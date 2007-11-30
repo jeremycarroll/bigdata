@@ -1,0 +1,82 @@
+<html>
+<head>
+<title>Journal</title>
+</head>
+<body>
+
+<p>
+
+The journal is an append-only persistence capable data structure
+supporting atomic commit, named indices, and transactions. Writes are
+logically appended to the journal to minimize disk head movement.  An
+individual journal will scale up to 4 terabytes and allows records up
+to 4 megabytes in length.  The journal supports the concept of
+"overflow", which is triggered when the journal exceeds a threshold
+extent.  An implementation that handles overflow will expunge B+Trees
+from the journal onto read-optimized index segments, thereby creating
+a database of range partitioned indices.
+
+</p>
+
+<p> 
+
+The journal may be used as a Write Once Read Many (WORM) store. An
+index is maintained over the historical commit points for the store,
+so a journal may also be used as an immortal store in which all
+historical consistent states may be accessed.  A read-write
+architecture may be realized by limiting the journal to a few
+gigabytes in length.  Both incrementally and when the journal
+overflows, key ranges of indices are expunged from the journal onto
+read-only index segments.  When used in this manner, a consistent read
+on an index partition requires a fused view of the data on the journal
+and the data in the active index segments.
+
+</p>
+
+<p>
+
+The journal can be either wired into memory or accessed in place on
+disk.  The advantage of wiring the journal into memory is that the
+disk head does not move for reads from the journal.  Wiring the
+journal into memory can offer performance benefits if writes are to be
+absorbed in a persistent buffer and migrated to a read-optimized index
+segments.  However, the B+Tree implementation provides caching for
+recently used nodes and leaves.  In addition, wiring a journal limits
+the maximum size of the journal to less than 2 gigabytes (it must fit
+into the JVM memory pool) and can cause contention for system RAM.
+
+</p>
+
+<p>
+
+The journal relies on the {@link com.bigdata.btree.BTree} to provide a
+persistent mapping from keys to values, including for the special
+cases of object identifiers and variable length byte[] keys. When used
+as an object store, the B+Tree naturally clusters serialized objects
+within the leaves of the B+Tree based on their object identifier and
+provides IO efficiencies. (From the perspective of the journal, an
+object is a byte[] or byte stream.)  If the database generalizes the
+concept of an object identifier to a variable length byte[], then the
+application can take control over the clustering behavior by simply
+choosing how to code a primary key for their objects.
+
+</p>
+
+<p>
+
+When using journals with an overflow limit of a few 100MB, a single
+large object would cause the journal to overflow.  In such cases
+applications may be better off writing very large objects (or streams)
+into the file system and then managing their metadata within the
+journal.  E.g., to have the blob reference an entry in the file
+system.  An alternative is to provision parts of a distributed
+database for larger records and larger extents or to distribute the
+chunks of the large object across multiple data services using a hash
+function.
+
+</p>
+
+</ul>
+</p>
+</body>
+</html>
