@@ -50,7 +50,7 @@ import com.bigdata.rdf.model.OptimizedValueFactory._ValueSortKeyComparator;
 import com.bigdata.rdf.rio.BulkRioLoader;
 import com.bigdata.rdf.util.AddIds;
 import com.bigdata.rdf.util.AddTerms;
-import com.bigdata.service.BigdataFederation;
+//import com.bigdata.service.BigdataFederation;
 import com.bigdata.service.ClientIndexView;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IDataService;

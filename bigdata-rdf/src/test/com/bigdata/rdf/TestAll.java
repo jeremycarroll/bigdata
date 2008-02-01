@@ -104,7 +104,7 @@ public class TestAll extends TestCase {
              * properties.
              */
 
-            suite.addTest(com.bigdata.rdf.scaleout.TestAll.suite());
+//            suite.addTest(com.bigdata.rdf.scaleout.TestAll.suite());
 
         }
 
