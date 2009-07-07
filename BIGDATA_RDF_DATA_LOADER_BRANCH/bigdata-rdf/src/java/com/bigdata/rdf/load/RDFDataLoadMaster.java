@@ -43,6 +43,7 @@ import org.openrdf.rio.RDFFormat;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.IResourceLock;
 import com.bigdata.journal.ITx;
+import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.inf.ClosureStats;
 import com.bigdata.rdf.rio.AsynchronousStatementBufferWithoutSids2;
 import com.bigdata.rdf.rules.InferenceEngine;
@@ -129,7 +130,29 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          * {@link #NTHREADS} is {@link Integer#MAX_VALUE}).
          */
         String QUEUE_CAPACITY = "queueCapacity";
-        
+
+        /**
+         * The #of threads used to buffer asynchronous writes for the TERM2ID index.
+         */
+        String TERM2ID_WRITER_POOL_SIZE = "term2IdWriterPoolSize";
+        int DEFAULT_TERM2ID_WRITER_POOL_SIZE = 5;
+
+        /**
+         * The #of threads used to buffer asynchronous writes for the other indices.
+         */
+        String OTHER_WRITER_POOL_SIZE = "otherIdWriterPoolSize";
+        int DEFAULT_OTHER_WRITER_POOL_SIZE = 5;
+
+        /**
+         * The maximum #of statements which can be parsed but not yet buffered on 
+         * for asynchronous index writes before new parser tasks will be paused.
+         * This is used to control the RAM demand of the parser tasks.  The RAM
+         * demand of the buffered index writes in controlled by the capacity and
+         * chunk size for the asynchronous index write buffers.
+         */
+        String UNBUFFERED_STATEMENT_THRESHOLD = "unbufferedStatementThreshold";
+        long DEFAULT_UNBUFFERED_STATEMENT_THRESHOLD = Bytes.megabyte32 * 1;
+
         /**
          * The buffer capacity for parsed RDF statements (not used when
          * {@link #ASYNCHRONOUS_WRITES} are enabled). 3x this gives the initial
@@ -290,7 +313,22 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          * @see ConfigurationOptions#QUEUE_CAPACITY
          */
         final public int queueCapacity;
-        
+
+        /**
+         * @see ConfigurationOptions#TERM2ID_WRITER_POOL_SIZE
+         */
+        public final int term2IdWriterPoolSize;
+
+        /**
+         * @see ConfigurationOptions#OTHER_WRITER_POOL_SIZE
+         */
+        public final int otherWriterPoolSize;
+
+        /**
+         * @see ConfigurationOptions#UNBUFFERED_STATEMENT_THRESHOLD
+         */
+        public final long unbufferedStatementThreshold;
+
         /**
          * The capacity of the buffers used to hold the parsed RDF data -or- the
          * initial capacity of the RDF {@link Value}s hash map when
@@ -397,6 +435,8 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
             
             sb.append(", " + ConfigurationOptions.QUEUE_CAPACITY + "="
                     + queueCapacity);
+
+            // @todo term2IdWriterPoolSize, etc.
             
             sb.append(", " + ConfigurationOptions.BUFFER_CAPACITY+ "="
                     + bufferCapacity);
@@ -460,7 +500,19 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
 
             queueCapacity = (Integer) config.getEntry(component,
                     ConfigurationOptions.QUEUE_CAPACITY, Integer.TYPE);
-            
+
+            term2IdWriterPoolSize = (Integer) config.getEntry(component,
+                    ConfigurationOptions.TERM2ID_WRITER_POOL_SIZE,
+                            Integer.TYPE);
+
+            otherWriterPoolSize = (Integer) config.getEntry(component,
+                    ConfigurationOptions.OTHER_WRITER_POOL_SIZE, Integer.TYPE);
+
+            unbufferedStatementThreshold = (Integer) config.getEntry(
+                    component,
+                    ConfigurationOptions.UNBUFFERED_STATEMENT_THRESHOLD,
+                    Long.TYPE);
+
             bufferCapacity = (Integer) config.getEntry(component,
                     ConfigurationOptions.BUFFER_CAPACITY, Integer.TYPE);
 

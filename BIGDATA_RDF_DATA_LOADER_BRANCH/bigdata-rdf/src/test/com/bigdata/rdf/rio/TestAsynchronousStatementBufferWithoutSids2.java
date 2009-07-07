@@ -82,7 +82,7 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
     final int chunkSize = 20000;
     final int valuesInitialCapacity = 10000;
     final int bnodesInitialCapacity = 16;
-    final long bufferedStatementThreshold = Long.MAX_VALUE;
+    final long unbufferedStatementThreshold = 5000;//Long.MAX_VALUE;
     
     /**
      * SHOULD be <code>true</code> since the whole point of this is higher
@@ -308,7 +308,7 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
                 20, // parserQueueCapacity
                 parallel?5:1,  // term2IdWriterPoolSize,
                 parallel?5:1,  // otherWriterPoolSize
-                bufferedStatementThreshold
+                unbufferedStatementThreshold
                 );
 
 //        final AsynchronousWriteBufferFactoryWithoutSids2<BigdataStatement, File> statementBufferFactory = new AsynchronousWriteBufferFactoryWithoutSids2<BigdataStatement, File>(

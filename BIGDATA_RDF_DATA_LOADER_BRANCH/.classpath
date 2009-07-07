@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="bigdata-rdf/src/java"/>
+	<classpathentry kind="src" path="bigdata/src/resources/logging"/>
 	<classpathentry kind="src" path="bigdata-sails/src/samples"/>
-	<classpathentry kind="src" path="bigdata-rdf/src/resources/logging"/>
 	<classpathentry kind="src" path="bigdata-jini/src/test"/>
 	<classpathentry kind="src" path="bigdata-sails/src/java"/>
 	<classpathentry kind="src" path="bigdata/src/java"/>
