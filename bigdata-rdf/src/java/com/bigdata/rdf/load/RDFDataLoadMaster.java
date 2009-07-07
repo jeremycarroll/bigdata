@@ -52,14 +52,9 @@ import com.bigdata.rdf.store.ITripleStore;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
 import com.bigdata.service.IBigdataClient;
-import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.master.TaskMaster;
-
-import edu.lehigh.swat.bench.ubt.bigdata.EDS;
-import edu.lehigh.swat.bench.ubt.bigdata.JDS;
-import edu.lehigh.swat.bench.ubt.bigdata.LDS;
 
 /**
  * Distributed bulk loader for RDF data. Creates/(re-)opens the
@@ -851,13 +846,6 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
     
     /**
      * Create/re-open the repository.
-     * <p>
-     * If the backing database does not exist, then create it and create the
-     * {@link AbstractTripleStore} on that database. When the backing database
-     * is an {@link IBigdataFederation}, then you can either re-open an
-     * existing federation or create one for the purposes of the test ({@link LDS},
-     * {@link EDS}) or connect to an existing federation ({@link JDS} for
-     * scale-out configurations).
      */
     public AbstractTripleStore openTripleStore() throws ConfigurationException {
 
