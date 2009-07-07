@@ -45,7 +45,6 @@ import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.rdf.store.TestScaleOutTripleStoreWithEmbeddedFederation;
 import com.bigdata.rdf.vocab.NoVocabulary;
-import com.bigdata.service.AbstractFederation;
 
 /**
  * Test suite for {@link AsynchronousStatementBufferWithoutSids2}.
@@ -82,7 +81,8 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
     final int chunkSize = 20000;
     final int valuesInitialCapacity = 10000;
     final int bnodesInitialCapacity = 16;
-    final long unbufferedStatementThreshold = 5000;//Long.MAX_VALUE;
+    final long unbufferedStatementThreshold = 5000L;//Long.MAX_VALUE;
+    final long rejectedExecutionDelay = 250L; // milliseconds.
     
     /**
      * SHOULD be <code>true</code> since the whole point of this is higher
@@ -321,7 +321,8 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
             if(new File(resource).exists()) {
 
                 statementBufferFactory
-                        .submitAll(new File(resource), null/* filter */);
+                        .submitAll(new File(resource), null/* filter */,
+                                rejectedExecutionDelay);
                 
             } else {
                 
