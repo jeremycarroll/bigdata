@@ -53,6 +53,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
@@ -98,7 +99,6 @@ import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.BigdataValueSerializer;
 import com.bigdata.rdf.model.StatementEnum;
-import com.bigdata.rdf.rio.AsynchronousStatementBufferWithoutSids2.AsynchronousWriteBufferFactoryWithoutSids2;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPOIndexWriteProc;
 import com.bigdata.rdf.spo.SPOIndexWriter;
@@ -127,17 +127,12 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.Latch;
 import com.bigdata.util.concurrent.ShutdownHelper;
 import com.bigdata.util.concurrent.ThreadPoolExecutorBaseStatisticsTask;
-import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 
 import cutthecrap.utils.striterators.Filter;
 import cutthecrap.utils.striterators.Striterator;
 
 /**
- * Configuration object specifies the {@link BlockingBuffer}s which will be used
- * to write on each of the indices and the reference for the TERM2ID index since
- * we will use synchronous RPC on that index. The same
- * {@link AsynchronousWriteBufferFactoryWithoutSids2} may be used for multiple
- * concurrent {@link AsynchronousStatementBufferImpl} instances.
+ * Factory object for high-volume RDF data load.
  * <p>
  * The asynchronous statement buffer w/o SIDs is much simpler that w/. If we
  * require that the document is fully buffered in memory, then we can simplify
@@ -175,15 +170,14 @@ import cutthecrap.utils.striterators.Striterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  * 
- *          FIXME Modify to support SIDs. We basically need to loop in the
- *          {@link #workflowLatch_bufferTerm2Id} workflow state until all SIDs
- *          have been assigned. However, the termination conditions will be a
- *          little more complex. During termination, if we have the TIDs but not
- *          yet the SIDs then we need to flush the SID requests rather than
- *          allowing them to timeout. Since SID processing is cyclic, we may
- *          have to do this one or more times.
+ * FIXME Modify to support SIDs. We basically need to loop in the
+ * {@link #workflowLatch_bufferTerm2Id} workflow state until all SIDs have been
+ * assigned. However, the termination conditions will be a little more complex.
+ * During termination, if we have the TIDs but not yet the SIDs then we need to
+ * flush the SID requests rather than allowing them to timeout. Since SID
+ * processing is cyclic, we may have to do this one or more times.
  * 
- *          <pre>
+ * <pre>
  * AsynchronousStatementBufferWithSids:
  * 
  * When SIDs are enabled, we must identify the minimum set of statements
@@ -945,6 +939,8 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      *            The resource (file or URL, but not a directory).
      * 
      * @throws Exception
+     * @throws RejectedExecutionException
+     *             if the work queue for the parser service is full.
      */
     public void submitOne(final String resource) throws Exception {
 
@@ -971,14 +967,37 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
         }
 
-        /*
-         * Submit resource for parsing.
-         * 
-         * @todo it would be nice to return a Future here that tracked the
-         * document through the workflow.
-         */
+        try {
+        
+            /*
+             * Submit resource for parsing.
+             * 
+             * @todo it would be nice to return a Future here that tracked the
+             * document through the workflow.
+             */
 
-        parserService.submit(newParserTask(resource));
+            parserService.submit(newParserTask(resource));
+            
+        } catch (RejectedExecutionException ex) {
+
+            /*
+             * Back out the document since the task was not accepted for
+             * execution.
+             */
+
+            lock.lock();
+            try {
+                assertSumOfLatchs();
+                workflowLatch_document.dec();
+                workflowLatch_parser.dec();
+                assertSumOfLatchs();
+            } finally {
+                lock.unlock();
+            }
+            
+            throw ex;
+
+        }
 
     }
 
@@ -991,15 +1010,21 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * @param filter
      *            An optional filter. Only the files selected by the filter will
      *            be processed.
+     * @param retryMillis
+     *            The number of millisseconds to wait between retrys when the
+     *            parser service work queue is full. When ZERO (0L), a
+     *            {@link RejectedExecutionException} will be thrown out instead.
      * 
      * @return The #of files that were submitted for processing.
      * 
      * @throws Exception
      */
-    public int submitAll(final File fileOrDir, final FilenameFilter filter)
+    public int submitAll(final File fileOrDir, final FilenameFilter filter,
+            final long retryMillis)
             throws Exception {
 
-        return new RunnableFileSystemLoader(fileOrDir, filter).call();
+        return new RunnableFileSystemLoader(fileOrDir, filter, retryMillis)
+                .call();
 
     }
 
@@ -1995,10 +2020,14 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
         private int count = 0;
 
+        private long retryCount = 0L;
+        
         final File fileOrDir;
 
         final FilenameFilter filter;
 
+        final long retryMillis;
+        
         /**
          * 
          * @param fileOrDir
@@ -2006,17 +2035,27 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
          * @param filter
          *            An optional filter on files that will be accepted when
          *            processing a directory.
+         * @param retryMillis
+         *            The number of milliseconds to wait between retrys when the
+         *            parser service work queue is full. When ZERO (0L), a
+         *            {@link RejectedExecutionException} will be thrown out
+         *            instead.
          */
         public RunnableFileSystemLoader(final File fileOrDir,
-                final FilenameFilter filter) {
+                final FilenameFilter filter, final long retryMillis) {
 
             if (fileOrDir == null)
                 throw new IllegalArgumentException();
 
+            if (retryMillis < 0)
+                throw new IllegalArgumentException();
+            
             this.fileOrDir = fileOrDir;
 
             this.filter = filter; // MAY be null.
 
+            this.retryMillis = retryMillis;
+            
         }
 
         /**
@@ -2076,22 +2115,52 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                  * Processing a standard file.
                  */
 
-                try {
+                while (true) {
+                    
+                    try {
 
-                    submitOne(file.getPath());
+                        submitOne(file.getPath());
 
-                    count++;
+                        count++;
+                        
+                        break;
 
-                } catch (InterruptedException ex) {
+                    } catch (RejectedExecutionException ex) {
 
-                    throw ex;
+                        if(parserService.isShutdown()) {
+                            
+                            // Do not retry since service is closed.
+                            throw ex;
+                            
+                        }
+                        
+                        if (retryMillis == 0L) {
 
-                } catch (Exception ex) {
+                            // Do not retry since if retry interval is 0L.
+                            throw ex;
 
-                    log.error(file, ex);
+                        }
+
+                        // sleep for the retry interval.
+                        Thread.sleep(retryMillis);
+                        
+                        retryCount++;
+                        
+                        // retry
+                        continue;
+
+                    } catch (InterruptedException ex) {
+
+                        throw ex;
+
+                    } catch (Exception ex) {
+
+                        log.error(file, ex);
+
+                    }
 
                 }
-
+                
             }
 
         }

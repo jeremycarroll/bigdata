@@ -45,7 +45,6 @@ import com.bigdata.journal.IResourceLock;
 import com.bigdata.journal.ITx;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.inf.ClosureStats;
-import com.bigdata.rdf.rio.AsynchronousStatementBufferWithoutSids2;
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -57,6 +56,10 @@ import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.master.TaskMaster;
+
+import edu.lehigh.swat.bench.ubt.bigdata.EDS;
+import edu.lehigh.swat.bench.ubt.bigdata.JDS;
+import edu.lehigh.swat.bench.ubt.bigdata.LDS;
 
 /**
  * Distributed bulk loader for RDF data. Creates/(re-)opens the
@@ -71,9 +74,6 @@ import com.bigdata.service.jini.master.TaskMaster;
  * @todo Support loading files from URLs, BFS, etc. This can be achieved via
  *       subclassing and overriding {@link #newClientTask(int)} and
  *       {@link #newJobState(String, Configuration)} as necessary.
- * 
- * @todo Strengthen the delete after semantics using
- *       {@link AsynchronousStatementBufferWithoutSids2}.
  */
 public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends Callable<U>, U>
         extends TaskMaster<S, T, U> {
@@ -120,65 +120,78 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         String ONTOLOGY = "ontology";
 
         /**
-         * The #of {@link ConcurrentDataLoader} threads that each client will
-         * Use {@link Integer#MAX_VALUE} for an unbounded thread pool.
+         * The core pool size for the thread pool running the parser tasks.
          */
-        String NTHREADS = "nthreads";
+        String PARSER_POOL_SIZE = "parserPoolSize";
 
         /**
-         * The capacity of the queue of jobs awaiting execution (ignored when
-         * {@link #NTHREADS} is {@link Integer#MAX_VALUE}).
+         * The capacity of the work queue for the thread pool running the parser
+         * tasks.
          */
-        String QUEUE_CAPACITY = "queueCapacity";
+        String PARSER_QUEUE_CAPACITY = "parserQueueCapacity";
 
         /**
-         * The #of threads used to buffer asynchronous writes for the TERM2ID index.
+         * The delay in milliseconds between resubmits of a task when the queue
+         * of tasks awaiting execution is at capacity.
+         */
+        String REJECTED_EXECUTION_DELAY = "rejectedExecutionDelay";
+
+        /** {@value #DEFAULT_REJECTED_EXECUTION_DELAY}ms */
+        long DEFAULT_REJECTED_EXECUTION_DELAY = 250;
+        
+        /**
+         * The #of threads used to buffer asynchronous writes for the TERM2ID
+         * index.
          */
         String TERM2ID_WRITER_POOL_SIZE = "term2IdWriterPoolSize";
+
         int DEFAULT_TERM2ID_WRITER_POOL_SIZE = 5;
 
         /**
-         * The #of threads used to buffer asynchronous writes for the other indices.
+         * The #of threads used to buffer asynchronous writes for the other
+         * indices.
          */
         String OTHER_WRITER_POOL_SIZE = "otherWriterPoolSize";
+
         int DEFAULT_OTHER_WRITER_POOL_SIZE = 5;
 
         /**
-         * The maximum #of statements which can be parsed but not yet buffered on 
-         * for asynchronous index writes before new parser tasks will be paused.
-         * This is used to control the RAM demand of the parser tasks.  The RAM
-         * demand of the buffered index writes in controlled by the capacity and
-         * chunk size for the asynchronous index write buffers.
+         * The maximum #of statements which can be parsed but not yet buffered
+         * on for asynchronous index writes before new parser tasks will be
+         * paused. This is used to control the RAM demand of the parser tasks.
+         * The RAM demand of the buffered index writes in controlled by the
+         * capacity and chunk size for the asynchronous index write buffers.
          */
         String UNBUFFERED_STATEMENT_THRESHOLD = "unbufferedStatementThreshold";
+
         long DEFAULT_UNBUFFERED_STATEMENT_THRESHOLD = Bytes.megabyte * 1;
 
-        /**
-         * The buffer capacity for parsed RDF statements (not used when
-         * {@link #ASYNCHRONOUS_WRITES} are enabled). 3x this gives the initial
-         * capacity of the RDF {@link Value}s hash map.
-         */
-        String BUFFER_CAPACITY = "bufferCapacity";
+//        /**
+//         * The buffer capacity for parsed RDF statements (not used when
+//         * {@link #ASYNCHRONOUS_WRITES} are enabled). 3x this gives the initial
+//         * capacity of the RDF {@link Value}s hash map.
+//         */
+//        String STATEMENT_BUFFER_CAPACITY = "statementBufferCapacity";
 
-        /**
-         * When <code>true</code> the asynchronous index write API will be
-         * used.
-         */
-        String ASYNCHRONOUS_WRITES = "asynchronousWrites";
+//        /**
+//         * When <code>true</code> the asynchronous index write API will be
+//         * used.
+//         */
+//        String ASYNCHRONOUS_WRITES = "asynchronousWrites";
         
         /**
-         * The chunk size used to break up the terms and values parsed from a
-         * document into chunks before writing them onto the master for the
-         * asynchronous write API (10k to 20k should be fine).
+         * When terms and values are parsed from a document then are aggregated
+         * into chunks of this size before they are written onto the master for
+         * the asynchronous write API (10k to 20k should be fine).
          */
-        String ASYNCHRONOUS_WRITE_PRODUCER_CHUNK_SIZE = "asynchronousWriteProducerChunkSize";
+        String PRODUCER_CHUNK_SIZE = "producerChunkSize";
 
-        /**
-         * When <code>true</code> synchronous RPC is used for writes on the
-         * TERM2ID index. When <code>false</code> asynchronous writes are used
-         * on that index.  Asynchronous writes have much better throughput.
-         */
-        String SYNC_RPC_FOR_TERM2ID = "syncRPCForTERM2ID";
+//        /**
+//         * When <code>true</code> synchronous RPC is used for writes on the
+//         * TERM2ID index. When <code>false</code> asynchronous writes are used
+//         * on that index.  Asynchronous writes have much better throughput.
+//         */
+//        String SYNC_RPC_FOR_TERM2ID = "syncRPCForTERM2ID";
         
         /**
          * The initial capacity of the hash map used to store RDF {@link Value}s
@@ -243,22 +256,13 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         
         boolean DEFAULT_PARSER_VALIDATES = false;
 
-        /**
-         * The delay in milliseconds between resubmits of a task when the queue
-         * of tasks awaiting execution is at capacity.
-         */
-        String REJECTED_EXECUTION_DELAY = "rejectedExecutionDelay";
-
-        /** {@value #DEFAULT_REJECTED_EXECUTION_DELAY}ms */
-        long DEFAULT_REJECTED_EXECUTION_DELAY = 250;
-        
-        /**
-         * The maximum #of times an attempt will be made to load any given file.
-         */
-        String MAX_TRIES = "maxTries";
-
-        /** {@value #DEFAULT_MAX_TRIES} */
-        int DEFAULT_MAX_TRIES = 3;
+//        /**
+//         * The maximum #of times an attempt will be made to load any given file.
+//         */
+//        String MAX_TRIES = "maxTries";
+//
+//        /** {@value #DEFAULT_MAX_TRIES} */
+//        int DEFAULT_MAX_TRIES = 3;
         
     }
 
@@ -305,15 +309,20 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         public final File ontology;
 
         /**
-         * @see ConfigurationOptions#NTHREADS
+         * @see ConfigurationOptions#PARSER_POOL_SIZE
          */
-        public final int nthreads;
+        public final int parserPoolSize;
 
         /**
-         * @see ConfigurationOptions#QUEUE_CAPACITY
+         * @see ConfigurationOptions#PARSER_QUEUE_CAPACITY
          */
-        final public int queueCapacity;
+        final public int parserQueueCapacity;
 
+        /**
+         * @see ConfigurationOptions#REJECTED_EXECUTION_DELAY
+         */
+        final public long rejectedExecutionDelay;
+        
         /**
          * @see ConfigurationOptions#TERM2ID_WRITER_POOL_SIZE
          */
@@ -329,29 +338,29 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          */
         public final long unbufferedStatementThreshold;
 
-        /**
-         * The capacity of the buffers used to hold the parsed RDF data -or- the
-         * initial capacity of the RDF {@link Value}s hash map when
-         * {@link #asynchronousWrites} is <code>true</code>.
-         * 
-         * @see ConfigurationOptions#BUFFER_CAPACITY
-         */
-        public final int bufferCapacity;
-
-        /**
-         * @see ConfigurationOptions#ASYNCHRONOUS_WRITES
-         */
-        public final boolean asynchronousWrites;
+//        /**
+//         * The capacity of the buffers used to hold the parsed RDF data -or- the
+//         * initial capacity of the RDF {@link Value}s hash map when
+//         * {@link #asynchronousWrites} is <code>true</code>.
+//         * 
+//         * @see ConfigurationOptions#STATEMENT_BUFFER_CAPACITY
+//         */
+//        public final int bufferCapacity;
+//
+//        /**
+//         * @see ConfigurationOptions#ASYNCHRONOUS_WRITES
+//         */
+//        public final boolean asynchronousWrites;
         
         /**
-         * @see ConfigurationOptions#ASYNCHRONOUS_WRITE_PRODUCER_CHUNK_SIZE
+         * @see ConfigurationOptions#PRODUCER_CHUNK_SIZE
          */
-        public final int asynchronousWritesProducerChunkSize;
+        public final int producerChunkSize;
         
-        /**
-         * @see ConfigurationOptions#SYNC_RPC_FOR_TERM2ID
-         */
-        public final boolean syncRPCForTERM2ID;
+//        /**
+//         * @see ConfigurationOptions#SYNC_RPC_FOR_TERM2ID
+//         */
+//        public final boolean syncRPCForTERM2ID;
 
         /**
          * @see ConfigurationOptions#VALUES_INITIAL_CAPACITY
@@ -399,15 +408,10 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          */
         final public boolean parserValidates;
 
-        /**
-         * @see ConfigurationOptions#REJECTED_EXECUTION_DELAY
-         */
-        final public long rejectedExecutionDelay;
-        
-        /**
-         * @see ConfigurationOptions#MAXTRIES
-         */
-        final public int maxTries;
+//        /**
+//         * @see ConfigurationOptions#MAXTRIES
+//         */
+//        final public int maxTries;
         
         /**
          * Default format assumed when file ext is unknown.
@@ -430,25 +434,28 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
             sb.append(", " + ConfigurationOptions.DATA_DIR_FILTER + "="
                     + dataDirFilter);
         
-            sb.append(", " + ConfigurationOptions.NTHREADS + "="
-                    + nthreads);
+            sb.append(", " + ConfigurationOptions.PARSER_POOL_SIZE + "="
+                    + parserPoolSize);
             
-            sb.append(", " + ConfigurationOptions.QUEUE_CAPACITY + "="
-                    + queueCapacity);
+            sb.append(", " + ConfigurationOptions.PARSER_QUEUE_CAPACITY + "="
+                    + parserQueueCapacity);
+
+            sb.append(", " + ConfigurationOptions.REJECTED_EXECUTION_DELAY + "="
+                        + rejectedExecutionDelay);
 
             // @todo term2IdWriterPoolSize, etc.
             
-            sb.append(", " + ConfigurationOptions.BUFFER_CAPACITY+ "="
-                    + bufferCapacity);
+//            sb.append(", " + ConfigurationOptions.STATEMENT_BUFFER_CAPACITY+ "="
+//                    + bufferCapacity);
         
-            sb.append(", " + ConfigurationOptions.ASYNCHRONOUS_WRITES+ "="
-                    + asynchronousWrites);
+//            sb.append(", " + ConfigurationOptions.ASYNCHRONOUS_WRITES+ "="
+//                    + asynchronousWrites);
             
-            sb.append(", " + ConfigurationOptions.ASYNCHRONOUS_WRITE_PRODUCER_CHUNK_SIZE+ "="
-                    + asynchronousWritesProducerChunkSize);
+            sb.append(", " + ConfigurationOptions.PRODUCER_CHUNK_SIZE+ "="
+                    + producerChunkSize);
 
-            sb.append(", " + ConfigurationOptions.SYNC_RPC_FOR_TERM2ID + "="
-                    + syncRPCForTERM2ID);
+//            sb.append(", " + ConfigurationOptions.SYNC_RPC_FOR_TERM2ID + "="
+//                    + syncRPCForTERM2ID);
 
             sb.append(", " + ConfigurationOptions.VALUES_INITIAL_CAPACITY + "="
                     + valuesInitialCapacity);
@@ -462,6 +469,9 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
             
             sb.append(", " + ConfigurationOptions.COMPUTE_CLOSURE + "="
                     + computeClosure);
+          
+            sb.append(", " + ConfigurationOptions.PARSER_VALIDATES + "="
+                    + parserValidates);
             
             sb.append(", " + ConfigurationOptions.DELETE_AFTER + "="
                     + deleteAfter);
@@ -495,11 +505,11 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
                     .getEntry(component, ConfigurationOptions.ONTOLOGY,
                             File.class, null/* defaultValue */);
 
-            nthreads = (Integer) config.getEntry(component,
-                    ConfigurationOptions.NTHREADS, Integer.TYPE);
+            parserPoolSize = (Integer) config.getEntry(component,
+                    ConfigurationOptions.PARSER_POOL_SIZE, Integer.TYPE);
 
-            queueCapacity = (Integer) config.getEntry(component,
-                    ConfigurationOptions.QUEUE_CAPACITY, Integer.TYPE);
+            parserQueueCapacity = (Integer) config.getEntry(component,
+                    ConfigurationOptions.PARSER_QUEUE_CAPACITY, Integer.TYPE);
 
             term2IdWriterPoolSize = (Integer) config.getEntry(component,
                     ConfigurationOptions.TERM2ID_WRITER_POOL_SIZE,
@@ -515,20 +525,20 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
                     Long.TYPE,
                     ConfigurationOptions.DEFAULT_UNBUFFERED_STATEMENT_THRESHOLD);
 
-            bufferCapacity = (Integer) config.getEntry(component,
-                    ConfigurationOptions.BUFFER_CAPACITY, Integer.TYPE);
+//            bufferCapacity = (Integer) config.getEntry(component,
+//                    ConfigurationOptions.STATEMENT_BUFFER_CAPACITY, Integer.TYPE);
 
-            asynchronousWrites = (Boolean) config.getEntry(component,
-                    ConfigurationOptions.ASYNCHRONOUS_WRITES, Boolean.TYPE);
+//            asynchronousWrites = (Boolean) config.getEntry(component,
+//                    ConfigurationOptions.ASYNCHRONOUS_WRITES, Boolean.TYPE);
 
-            asynchronousWritesProducerChunkSize = (Integer) config
+            producerChunkSize = (Integer) config
                     .getEntry(
                             component,
-                            ConfigurationOptions.ASYNCHRONOUS_WRITE_PRODUCER_CHUNK_SIZE,
+                            ConfigurationOptions.PRODUCER_CHUNK_SIZE,
                             Integer.TYPE);
 
-            syncRPCForTERM2ID = (Boolean) config.getEntry(component,
-                    ConfigurationOptions.SYNC_RPC_FOR_TERM2ID, Boolean.TYPE);
+//            syncRPCForTERM2ID = (Boolean) config.getEntry(component,
+//                    ConfigurationOptions.SYNC_RPC_FOR_TERM2ID, Boolean.TYPE);
 
             valuesInitialCapacity = (Integer) config.getEntry(component,
                     ConfigurationOptions.VALUES_INITIAL_CAPACITY, Integer.TYPE);
@@ -565,10 +575,10 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
                     ConfigurationOptions.REJECTED_EXECUTION_DELAY, Long.TYPE,
                     ConfigurationOptions.DEFAULT_REJECTED_EXECUTION_DELAY);
             
-            maxTries = (Integer) config.getEntry(
-                    component,
-                    ConfigurationOptions.MAX_TRIES, Integer.TYPE,
-                    ConfigurationOptions.DEFAULT_MAX_TRIES);
+//            maxTries = (Integer) config.getEntry(
+//                    component,
+//                    ConfigurationOptions.MAX_TRIES, Integer.TYPE,
+//                    ConfigurationOptions.DEFAULT_MAX_TRIES);
             
         }
 
