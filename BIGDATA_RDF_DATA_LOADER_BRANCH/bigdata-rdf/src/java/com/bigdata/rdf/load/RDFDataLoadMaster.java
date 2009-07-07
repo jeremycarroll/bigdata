@@ -503,15 +503,17 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
 
             term2IdWriterPoolSize = (Integer) config.getEntry(component,
                     ConfigurationOptions.TERM2ID_WRITER_POOL_SIZE,
-                            Integer.TYPE);
+                    Integer.TYPE,
+                    ConfigurationOptions.DEFAULT_TERM2ID_WRITER_POOL_SIZE);
 
             otherWriterPoolSize = (Integer) config.getEntry(component,
-                    ConfigurationOptions.OTHER_WRITER_POOL_SIZE, Integer.TYPE);
+                    ConfigurationOptions.OTHER_WRITER_POOL_SIZE, Integer.TYPE,
+                    ConfigurationOptions.DEFAULT_OTHER_WRITER_POOL_SIZE);
 
-            unbufferedStatementThreshold = (Integer) config.getEntry(
-                    component,
+            unbufferedStatementThreshold = (Integer) config.getEntry(component,
                     ConfigurationOptions.UNBUFFERED_STATEMENT_THRESHOLD,
-                    Long.TYPE);
+                    Long.TYPE,
+                    ConfigurationOptions.DEFAULT_UNBUFFERED_STATEMENT_THRESHOLD);
 
             bufferCapacity = (Integer) config.getEntry(component,
                     ConfigurationOptions.BUFFER_CAPACITY, Integer.TYPE);
