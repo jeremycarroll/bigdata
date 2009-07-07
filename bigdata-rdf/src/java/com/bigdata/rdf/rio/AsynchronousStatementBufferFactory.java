@@ -1184,6 +1184,46 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
     } // ParserTask
 
     /**
+     * Task deletes a resource from the local file system.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
+     */
+    protected class DeleteTask implements Runnable {
+
+        private final String resource;
+
+        public DeleteTask(final String resource) {
+
+            if (resource == null)
+                throw new IllegalArgumentException();
+            
+            this.resource = resource;
+            
+        }
+        
+        public void run() {
+
+            deleteResource(resource);
+
+        }
+
+    }
+
+    /**
+     * Delete a resource whose data have been made restart safe on the database
+     * from the local file system.
+     * 
+     * @param resource
+     *            The resource.
+     */
+    protected void deleteResource(final String resource) {
+
+        new File(resource).delete();
+
+    }
+    
+    /**
      * 
      * @param tripleStore
      * @param producerChunkSize
@@ -1220,10 +1260,10 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * @param pauseParsedPoolStatementThreshold
      *            The maximum #of statements which can be parsed but not yet
      *            buffered before requests for new parser tasks are paused [0:
-     *            {@link Long#MAX_VALUE}]. This allows you to place a constraint
-     *            on the RAM of the parsers. The RAM demand of the asynchronous
-     *            index write buffers is controlled by their master and sink
-     *            queue capacity and chunk size.
+     *            {@link Long#MAX_VALUE}]. This allows you to place a
+     *            constraint on the RAM of the parsers. The RAM demand of the
+     *            asynchronous index write buffers is controlled by their master
+     *            and sink queue capacity and chunk size.
      * 
      * @todo CDL still used for validation by some unit tests. Do a variant of
      *       this that does read-only TERM2ID requests and then validates the
@@ -1701,8 +1741,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * document has become restart safe on the database -- <strong>the
      * implementation MUST NOT block</strong>. One technique is to add the
      * <i>documentIdentifier</i> to an <em>unbounded</em> queue which is then
-     * drained by another thread. The default implementation logs the event @
-     * INFO.
+     * drained by another thread. The default implementation logs the event @ INFO.
      * 
      * @param resource
      *            The document identifier.
@@ -1710,7 +1749,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
     protected void documentDone(final String resource) {
 
         if (log.isInfoEnabled())
-            log.info("resource=" + resource + " : "+this);
+            log.info("resource=" + resource + " : " + this);
 
     }
 
@@ -3323,13 +3362,19 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                                 .addAndGet(toldTriplesThisDocument);
                         outstandingStatementCount
                                 .addAndGet(-toldTriplesThisDocument);
+                        if (deleteAfter) {
+                            // queue up delete.
+                            deleteService.submit(new DeleteTask(resource));
+                        }
                     } finally {
-                        lock.unlock();
-                    }
 
-                    // notify that the document is done.
-                    AsynchronousStatementBufferFactory.this
-                            .documentDone(getDocumentIdentifier());
+                        lock.unlock();
+
+                        // notify that the document is done.
+                        AsynchronousStatementBufferFactory.this
+                                .documentDone(getDocumentIdentifier());
+
+                    }
 
                 }
 
