@@ -43,13 +43,12 @@ import net.jini.config.ConfigurationException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
-import com.bigdata.rdf.load.AbstractRDFTaskFactory;
-import com.bigdata.rdf.load.ConcurrentDataLoader;
 import com.bigdata.rdf.load.IStatementBufferFactory;
 import com.bigdata.rdf.load.RDFDataLoadMaster;
 import com.bigdata.rdf.load.RDFFileLoadTask;
+import com.bigdata.rdf.model.BigdataStatement;
+import com.bigdata.rdf.rio.AsynchronousStatementBufferFactory;
 import com.bigdata.rdf.rio.IAsynchronousWriteStatementBufferFactory;
-import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.ITripleStore;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IDataService;
@@ -983,18 +982,115 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
 
         }
 
+//        @Override
+//        protected void loadData(final ConcurrentDataLoader loader,
+//                final AbstractRDFTaskFactory taskFactory,
+//                final AbstractTripleStore tripleStore)
+//                throws InterruptedException, Exception {
+//
+//            while (true) {
+//
+//                final boolean isQueueEmpty = clientTask.queue.isEmpty();
+//
+//                final IStatementBufferFactory bufferFactory = taskFactory.getBufferFactory();
+//                
+//                if (bufferFactory instanceof IAsynchronousWriteStatementBufferFactory) {
+//
+//                    if (((IAsynchronousWriteStatementBufferFactory) bufferFactory)
+//                            .isAnyDone()) {
+//                    
+//                        /*
+//                         * This should report 'done' until we close the factory
+//                         * below and once we close the factory this loop should
+//                         * not be repeated.
+//                         */
+//                        throw new RuntimeException("Consumer is done?");
+//                        
+//                    }
+//                    
+//                }
+//
+//                if (isQueueEmpty && clientTask.producerDone) {
+//
+//                    /*
+//                     * Note: There are no more elements to be taken from the
+//                     * queue but there may be tasks still running in the
+//                     * ConcurrentDataLoader. Therefore we now wait until all of
+//                     * those tasks are complete.
+//                     */
+//
+//                    if (log.isInfoEnabled())
+//                        log.info("Will await completion of loader tasks.");
+//
+//                    loader.awaitCompletion(Long.MAX_VALUE, TimeUnit.SECONDS);
+//
+////                    if (bufferFactory instanceof IAsynchronousWriteBufferFactory) {
+////
+////                        /*
+////                         * Now that there are no more tasks running in the CDL
+////                         * we can close the buffer factory. This will close the
+////                         * blocking buffers for the async writes, which will
+////                         * allow the iterators to drain out anything left in the
+////                         * buffers and then report that they are exhausted.
+////                         */
+////                        
+////                        if (log.isInfoEnabled())
+////                            log.info("Closing factory.");
+////
+////                        ((IAsynchronousWriteBufferFactory) bufferFactory)
+////                                .close();
+////                        
+////                    }
+//
+//                    if (log.isInfoEnabled())
+//                        log.info("Done.");
+//
+//                    // done.
+//                    return;
+//
+//                }
+//
+//                if (isQueueEmpty) {
+//
+//                    /*
+//                     * Pause for a bit if the queue is empty (polling).
+//                     * 
+//                     * Note: This will only occur during startup since the queue
+//                     * may initially be empty. Once [producerDone] is true, we
+//                     * will take the other code branch and await the completion
+//                     * of the tasks which have already been submitted to the
+//                     * loader.
+//                     */
+//                    Thread.sleep(10/* ms */);
+//
+//                    continue;
+//
+//                }
+//
+//                // take the element from the queue.
+//                final File file = clientTask.queue.take();
+//
+//                /*
+//                 * Submit a task which will load everything in the file or
+//                 * directory into the triple store. The task will run
+//                 * asynchronously. If the task fails then it will be retried up
+//                 * to a configured retry count before being placed into a failed
+//                 * state. Metadata about task outcomes is reported via counters
+//                 * to the load balancer.
+//                 */
+//                loader.submitTask(file.getPath(), taskFactory);
+//
+//            }
+
         @Override
-        protected void loadData(final ConcurrentDataLoader loader,
-                final AbstractRDFTaskFactory taskFactory,
-                final AbstractTripleStore tripleStore)
+        protected void loadData(
+                final AsynchronousStatementBufferFactory<BigdataStatement> bufferFactory)
                 throws InterruptedException, Exception {
 
             while (true) {
 
                 final boolean isQueueEmpty = clientTask.queue.isEmpty();
 
-                final IStatementBufferFactory bufferFactory = taskFactory.getBufferFactory();
-                
                 if (bufferFactory instanceof IAsynchronousWriteStatementBufferFactory) {
 
                     if (((IAsynchronousWriteStatementBufferFactory) bufferFactory)
@@ -1023,25 +1119,7 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
                     if (log.isInfoEnabled())
                         log.info("Will await completion of loader tasks.");
 
-                    loader.awaitCompletion(Long.MAX_VALUE, TimeUnit.SECONDS);
-
-//                    if (bufferFactory instanceof IAsynchronousWriteBufferFactory) {
-//
-//                        /*
-//                         * Now that there are no more tasks running in the CDL
-//                         * we can close the buffer factory. This will close the
-//                         * blocking buffers for the async writes, which will
-//                         * allow the iterators to drain out anything left in the
-//                         * buffers and then report that they are exhausted.
-//                         */
-//                        
-//                        if (log.isInfoEnabled())
-//                            log.info("Closing factory.");
-//
-//                        ((IAsynchronousWriteBufferFactory) bufferFactory)
-//                                .close();
-//                        
-//                    }
+                    bufferFactory.awaitAll();
 
                     if (log.isInfoEnabled())
                         log.info("Done.");
@@ -1074,12 +1152,10 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
                 /*
                  * Submit a task which will load everything in the file or
                  * directory into the triple store. The task will run
-                 * asynchronously. If the task fails then it will be retried up
-                 * to a configured retry count before being placed into a failed
-                 * state. Metadata about task outcomes is reported via counters
-                 * to the load balancer.
+                 * asynchronously. Metadata about task outcomes is reported via
+                 * performance counters to the load balancer.
                  */
-                loader.submitTask(file.getPath(), taskFactory);
+                bufferFactory.submitOne(file.getPath());
 
             }
 

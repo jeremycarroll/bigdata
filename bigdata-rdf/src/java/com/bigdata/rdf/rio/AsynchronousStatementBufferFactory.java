@@ -407,6 +407,9 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * If the TERM2ID asynchronous write buffer is open, then close it to flush
      * any buffered writes and, regardless, re-open the buffer if it is
      * configured for use.
+     * 
+     * @todo re-opening is not required so this could be moved into the ctor and
+     *       the fields made final.
      */
     private void reopenBuffer_term2Id() {
 
@@ -433,6 +436,9 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * For each of the non-TERM2ID asynchronous write buffers, if it is open,
      * then close it to flush any buffered writes and, regardless, re-open the
      * buffer if it is configured for use.
+     * 
+     * @todo re-opening is not required so this could be moved into the ctor and
+     *       the fields made final.
      */
     private final void reopenBuffer_others() {
 
@@ -696,8 +702,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
     /**
      * A {@link Latch} guarding documents which have been accepted for parsing
-     * but have not been transferred to the {@link #workflowLatch_bufferTerm2Id}
-     * .
+     * but have not been transferred to the {@link #workflowLatch_bufferTerm2Id}.
      * 
      * @todo We could add a resolver latch for network IO required to buffer the
      *       document locally. E.g., a read from a DFS or a web page.
@@ -753,40 +758,48 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      */
 
     /**
-     * The maximum #of statements which may be buffered before the
-     * {@link #parserService} will be paused in order to permit buffered
-     * statements to drain from memory. In order to ensure liveness, pausing the
-     * write service MUST be combined with flushing writes through the
-     * asynchronous write buffers, which will otherwise wait for an idle timeout
-     * or a chunk timeout if they are not being driven by demand.
+     * New parser tasks submitted to the {@link #parserService} will block when
+     * the {@link #unbufferedStatementCount} is GT this value. This is used to
+     * control the RAM demand of the parsed (but not yet buffered) statements.
+     * The RAM demand of the buffered statements is controlled by the capacity
+     * of the master and sink queues on which those statements are buffered.
      * 
-     * FIXME Ensure liveness by closing and re-opening the asynchronous write
-     * buffers if the parser service is paused and the work queue for the
-     * corresponding stage (term2Id or other index writes) is empty. The
-     * close/open needs to be atomic of course, and it should be triggered when
-     * parser tasks are blocking (paused) AND the master is empty. That could be
-     * done with a timeout in the {@link ParserThreadPoolExecutor} when it is
-     * awaiting the {@link #unpaused} {@link Condition}.
-     * <p>
-     * Use small value on U1 test variant to look for fence posts.
+     * @todo it is possible that the buffered writes on term2id could limit
+     *       throughput when the parser pool is paused since the decision to
+     *       pause the parser pool is based on the #of unbuffered statements
+     *       overall not just those staged for the term2id or the other indices.
      */
-    private final long bufferedStatementThreshold;
-    
+    private final long pauseParserPoolStatementThreshold;
+
     /**
-     * The #of RDF {@link Statement}s that are buffered. This is incremented
-     * when all statements for a given document have been parsed by the #of
-     * distinct statements in that document. This is decremented all writes for
-     * that document have been made restart safe on the database, or if
-     * processing fails for that document. This may be used as a proxy for the
-     * amount of data which is unavailable for garbage collection and thus for
-     * the size of the heap entailed by processing.
+     * The #of statements which have been parsed but not yet written onto the
+     * asynchronous index write buffers. This is incremented when all statements
+     * for a given document have been parsed by the #of distinct statements in
+     * that document. This is decremented when all statements for that document
+     * have been placed onto the asynchronous index write buffers, or if
+     * processing fails for that document. This is used to prevent new parser
+     * threads from overrunning the database when the parsers are faster than
+     * the database.
      */
-    private final AtomicLong bufferedStatementCount = new AtomicLong();
+    private final AtomicLong unbufferedStatementCount = new AtomicLong();
+
+    /**
+     * The #of RDF {@link Statement}s that have been parsed but which are not
+     * yet restart safe on the database. This is incremented when all statements
+     * for a given document have been parsed by the #of distinct statements in
+     * that document. This is decremented when all writes for that document have
+     * been made restart safe on the database, or if processing fails for that
+     * document. This may be used as a proxy for the amount of data which is
+     * unavailable for garbage collection and thus for the size of the heap
+     * entailed by processing.
+     */
+    private final AtomicLong outstandingStatementCount = new AtomicLong();
 
     /**
      * In order to prevent runaway demand on RAM, new parser tasks must await
-     * this {@link Condition} if the #of buffered statements is GTE the
-     * configured {@link #bufferedStatementThreshold} threshold.
+     * this {@link Condition} if the #of parsed but not yet buffered statements
+     * is GTE the configured {@link #pauseParserPoolStatementThreshold}
+     * threshold.
      */
     private Condition unpaused = lock.newCondition();
 
@@ -1119,8 +1132,10 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                     // queue task to buffer the writes.
                     term2IdWriterService
                             .submit(new BufferTerm2IdWrites(buffer));
-                    // increment #of buffered statements.
-                    bufferedStatementCount.addAndGet(buffer.statementCount);
+                    // increment #of outstanding statements (parsed but not restart safe). 
+                    outstandingStatementCount.addAndGet(buffer.statementCount);
+                    // increment #of unbuffered statements.
+                    unbufferedStatementCount.addAndGet(buffer.statementCount);
                 } finally {
                     lock.unlock();
                 }
@@ -1177,11 +1192,13 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * @param otherWriterPoolSize
      *            The #of worker threads in the thread pool for buffering
      *            asynchronous index writes on the other indices.
-     * @param bufferedStatementThreshold
-     *            The maximum #of statements which can be buffered before new
-     *            parser tasks are paused and the buffered writes are flushed to
-     *            the database. This allows you to place a constraint on the RAM
-     *            demand of the buffered documents.
+     * @param pauseParsedPoolStatementThreshold
+     *            The maximum #of statements which can be parsed but not yet
+     *            buffered before requests for new parser tasks are paused [0:
+     *            {@link Long#MAX_VALUE}]. This allows you to place a constraint
+     *            on the RAM of the parsers. The RAM demand of the asynchronous
+     *            index write buffers is controlled by their master and sink
+     *            queue capacity and chunk size.
      * 
      * @todo CDL still used for validation by some unit tests. Do a variant of
      *       this that does read-only TERM2ID requests and then validates the
@@ -1199,7 +1216,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
             final int parserQueueCapacity,//
             final int term2IdWriterPoolSize,//
             final int otherWriterPoolSize,//
-            final long bufferedStatementThreshold//
+            final long pauseParsedPoolStatementThreshold//
             ) {
 
         if (tripleStore == null)
@@ -1210,7 +1227,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
             throw new IllegalArgumentException();
         if (bnodesInitialCapacity <= 0)
             throw new IllegalArgumentException();
-        if (bufferedStatementThreshold <= 0)
+        if (pauseParsedPoolStatementThreshold < 0)
             throw new IllegalArgumentException();
         
         this.tripleStore = tripleStore;
@@ -1231,7 +1248,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
         
         this.deleteAfter = deleteAfter;
 
-        this.bufferedStatementThreshold = bufferedStatementThreshold;
+        this.pauseParserPoolStatementThreshold = pauseParsedPoolStatementThreshold;
         
         if (tripleStore.isStatementIdentifiers()) {
 
@@ -1438,42 +1455,54 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
     
     public boolean isAnyDone() {
 
-        if (buffer_t2id != null)
-            if (buffer_t2id.getFuture().isDone())
+        /*
+         * Note: lock is required to make this test atomic with respect to
+         * re-opening of buffers.
+         */
+        lock.lock();
+        try {
+
+            if (buffer_t2id != null)
+                if (buffer_t2id.getFuture().isDone())
+                    return true;
+
+            if (buffer_id2t.getFuture().isDone())
                 return true;
 
-        if (buffer_id2t.getFuture().isDone())
-            return true;
+            if (buffer_text != null)
+                if (buffer_text.getFuture().isDone())
+                    return true;
 
-        if (buffer_text != null)
-            if (buffer_text.getFuture().isDone())
+            if (buffer_spo.getFuture().isDone())
                 return true;
 
-        if (buffer_spo.getFuture().isDone())
-            return true;
+            if (buffer_pos != null)
+                if (buffer_pos.getFuture().isDone())
+                    return true;
 
-        if (buffer_pos != null)
-            if (buffer_pos.getFuture().isDone())
+            if (buffer_osp != null)
+                if (buffer_osp.getFuture().isDone())
+                    return true;
+
+            if (parserService.isTerminated())
                 return true;
 
-        if (buffer_osp != null)
-            if (buffer_osp.getFuture().isDone())
+            if (term2IdWriterService.isTerminated())
                 return true;
 
-        if (parserService.isTerminated())
-            return true;
+            if (otherWriterService.isTerminated())
+                return true;
 
-        if (term2IdWriterService.isTerminated())
-            return true;
+            if (deleteService != null && deleteService.isTerminated())
+                return true;
 
-        if (otherWriterService.isTerminated())
-            return true;
+            return false;
+        } finally {
 
-        if (deleteService != null && deleteService.isTerminated())
-            return true;
-                
-        return false;
-        
+            lock.unlock();
+
+        }
+
     }
     
     public void cancelAll(final boolean mayInterruptIfRunning) {
@@ -1890,21 +1919,39 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
             
             final CounterSet pauseSet = counterSet.makePath("pause");
 
-            // The #of buffered RDF Statements.
-            pauseSet.addCounter("bufferedStatementCount",
+            /*
+             * The #of parsed or buffered RDF Statements not yet restart safe
+             * (current value).
+             */
+            pauseSet.addCounter("outstandingStatementCount",
                     new Instrument<Long>() {
                         @Override
                         protected void sample() {
-                            setValue(bufferedStatementCount.get());
+                            setValue(outstandingStatementCount.get());
                         }
                     });
 
-            // The maximum #of statements before we suspend new parse requests.
-            pauseSet.addCounter("bufferedStatementThreshold",
+            /*
+             * The #of parsed but not yet buffered RDF Statements (current
+             * value).
+             */
+            pauseSet.addCounter("unbufferedStatementCount",
                     new Instrument<Long>() {
                         @Override
                         protected void sample() {
-                            setValue(bufferedStatementThreshold);
+                            setValue(unbufferedStatementCount.get());
+                        }
+                    });
+
+            /*
+             * The maximum #of statements parsed but not yet buffered before we
+             * suspend new parse requests.
+             */
+            pauseSet.addCounter("pauseParserPoolStatementThreshold",
+                    new Instrument<Long>() {
+                        @Override
+                        protected void sample() {
+                            setValue(pauseParserPoolStatementThreshold);
                         }
                     });
 
@@ -3205,7 +3252,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                         documentRestartSafeCount.incrementAndGet();
                         toldTriplesRestartSafeCount
                                 .addAndGet(toldTriplesThisDocument);
-                        bufferedStatementCount
+                        outstandingStatementCount
                                 .addAndGet(-toldTriplesThisDocument);
                     } finally {
                         lock.unlock();
@@ -3285,19 +3332,37 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
             }
 
-            // make sure that no errors were reported by those tasks.
-            for (Object f : futures) {
+            try {
 
-                ((Future) f).get();
+                /*
+                 * Make sure that no errors were reported by those tasks.
+                 */
+                for (Object f : futures) {
 
+                    ((Future) f).get();
+
+                }
+                
+            } finally {
+                
+                /*
+                 * At this point all writes have been buffered. We now discard
+                 * the buffered data (RDF Values and statements) since it will
+                 * no longer be used.
+                 */
+                reset();
+
+                lock.lock();
+                try {
+                    if (unbufferedStatementCount
+                            .addAndGet(-toldTriplesThisDocument) <= pauseParserPoolStatementThreshold) {
+                        unpaused.signalAll();
+                    }
+                } finally {
+                    lock.unlock();
+                }
+                
             }
-
-            /*
-             * At this point all writes have been buffered. We now discard the
-             * buffered data (RDF Values and statements) since it will no longer
-             * be used.
-             */
-            reset();
 
         }
 
@@ -3352,7 +3417,11 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                     bufferGuard_term2Id.dec();
                     workflowLatch_bufferTerm2Id.dec();
                     documentError(buffer.getDocumentIdentifier(), t);
-                    bufferedStatementCount.addAndGet(-buffer.statementCount);
+                    outstandingStatementCount.addAndGet(-buffer.statementCount);
+                    if (unbufferedStatementCount
+                            .addAndGet(-buffer.statementCount) <= pauseParserPoolStatementThreshold) {
+                        unpaused.signalAll();
+                    }
                     throw new Exception(t);
                 } finally {
                     lock.unlock();
@@ -3418,7 +3487,11 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                     bufferGuard_other.dec();
                     workflowLatch_bufferOther.dec();
                     documentError(buffer.getDocumentIdentifier(), t);
-                    bufferedStatementCount.addAndGet(-buffer.statementCount);
+                    outstandingStatementCount.addAndGet(-buffer.statementCount);
+                    if (unbufferedStatementCount
+                            .addAndGet(-buffer.statementCount) <= pauseParserPoolStatementThreshold) {
+                        unpaused.signalAll();
+                    }
                     throw new Exception(t);
                 } finally {
                     lock.unlock();
@@ -3463,7 +3536,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
          */
         private boolean isPaused() {
 
-            return bufferedStatementCount.get() >= bufferedStatementThreshold;
+            return unbufferedStatementCount.get() > pauseParserPoolStatementThreshold;
 
         }
 
@@ -3492,7 +3565,10 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
                     poolPausedCount.incrementAndGet();
                     
-                    System.err.println("PAUSE : "+AsynchronousStatementBufferFactory.this.toString());
+                    if (log.isInfoEnabled())
+                        log.info("PAUSE : "
+                                + AsynchronousStatementBufferFactory.this
+                                        .toString());
                     
                     while (isPaused()) {
 
@@ -3502,7 +3578,10 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
                     pausedThreadCount.decrementAndGet();
 
-                    System.err.println("RESUME: "+AsynchronousStatementBufferFactory.this.toString());
+                    if (log.isInfoEnabled())
+                        log.info("RESUME: "
+                                + AsynchronousStatementBufferFactory.this
+                                        .toString());
 
                 }
 

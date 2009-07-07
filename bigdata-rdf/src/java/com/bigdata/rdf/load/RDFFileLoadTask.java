@@ -8,12 +8,14 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
+import org.openrdf.rio.RDFFormat;
 
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
 import com.bigdata.journal.ITx;
 import com.bigdata.rdf.load.RDFDataLoadMaster.JobState;
 import com.bigdata.rdf.model.BigdataStatement;
+import com.bigdata.rdf.rio.AsynchronousStatementBufferFactory;
 import com.bigdata.rdf.rio.IAsynchronousWriteStatementBufferFactory;
 import com.bigdata.rdf.rio.AsynchronousStatementBufferWithoutSids2.AsynchronousWriteBufferFactoryWithoutSids2;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -103,26 +105,41 @@ public class RDFFileLoadTask<S extends JobState, V extends Serializable>
 
         }
 
-        // optionally use asynchronous writes on the statement indices.
-        final IAsynchronousWriteStatementBufferFactory<BigdataStatement> statementfactory = jobState.asynchronousWrites ? new AsynchronousWriteBufferFactoryWithoutSids2<BigdataStatement,File>(
-                (ScaleOutTripleStore) tripleStore,
-                jobState.asynchronousWritesProducerChunkSize,
-                jobState.valuesInitialCapacity,
-                jobState.bnodesInitialCapacity
-//                jobState.syncRPCForTERM2ID
-                )
-                : null;
-                
-        // Setup the task factory.
-        final RDFLoadTaskFactory taskFactory = new RDFLoadTaskFactory(
-                tripleStore, 
-                jobState.parserValidates, jobState.deleteAfter,
-                jobState.fallback, statementfactory);
+//        // optionally use asynchronous writes on the statement indices.
+//        final IAsynchronousWriteStatementBufferFactory<BigdataStatement> statementBufferFactory = jobState.asynchronousWrites ? new AsynchronousWriteBufferFactoryWithoutSids2<BigdataStatement,File>(
+//                (ScaleOutTripleStore) tripleStore,
+//                jobState.asynchronousWritesProducerChunkSize,
+//                jobState.valuesInitialCapacity,
+//                jobState.bnodesInitialCapacity
+////                jobState.syncRPCForTERM2ID
+//                )
+//                : null;
+//
+//      // Setup the task factory.
+//      final RDFLoadTaskFactory taskFactory = new RDFLoadTaskFactory(
+//              tripleStore, 
+//              jobState.parserValidates, jobState.deleteAfter,
+//              jobState.fallback, statementBufferfactory);
+//
+//      // Setup loader.
+//      final ConcurrentDataLoader loader = new ConcurrentDataLoader(fed,
+//              jobState.nthreads, jobState.queueCapacity,
+//              jobState.rejectedExecutionDelay, jobState.maxTries);
 
-        // Setup loader.
-        final ConcurrentDataLoader loader = new ConcurrentDataLoader(fed,
-                jobState.nthreads, jobState.queueCapacity,
-                jobState.rejectedExecutionDelay, jobState.maxTries);
+        final AsynchronousStatementBufferFactory<BigdataStatement> statementBufferFactory = new AsynchronousStatementBufferFactory<BigdataStatement>(
+                (ScaleOutTripleStore) tripleStore,//
+                jobState.asynchronousWritesProducerChunkSize,//
+                jobState.valuesInitialCapacity,//
+                jobState.bnodesInitialCapacity,//
+                RDFFormat.RDFXML, // defaultFormat
+                false, // verifyData
+                false, // deleteAfter
+                jobState.nthreads, // parserPoolSize 
+                jobState.queueCapacity, // parserQueueCapacity
+                jobState.term2IdWriterPoolSize,//
+                jobState.otherWriterPoolSize,//
+                jobState.unbufferedStatementThreshold
+                );
 
         try {
 
@@ -143,34 +160,38 @@ public class RDFFileLoadTask<S extends JobState, V extends Serializable>
                     // Create path to CDL counter set.
                     final CounterSet tmp = serviceRoot.makePath(relPath);
 
-                    // Attach CDL counters.
-                    tmp.attach(loader.getCounters());
+//                    // Attach CDL counters.
+//                    tmp.attach(loader.getCounters());
+//
+//                    // Attach task factory counters.
+//                    tmp.attach(taskFactory.getCounters());
 
-                    // Attach task factory counters.
-                    tmp.attach(taskFactory.getCounters());
-
+                    tmp.attach(statementBufferFactory.getCounters());
+                    
                 }
 
             }
 
-            // Let the loader know that we will run tasks.
-            taskFactory.notifyStart();
+//            // Let the loader know that we will run tasks.
+//            taskFactory.notifyStart();
+//
+//            // Load data.
+//            loadData(loader, taskFactory, tripleStore);
+//
+//            // Done loading data (stops the clock).
+//            taskFactory.notifyEnd();
+//
+//            // Shutdown the loader.
+//            loader.shutdown();
 
-            // Load data.
-            loadData(loader, taskFactory, tripleStore);
-
-            // Done loading data (stops the clock).
-            taskFactory.notifyEnd();
-
-            // Shutdown the loader.
-            loader.shutdown();
-
-            if (statementfactory != null) {
+            loadData(statementBufferFactory);
+            
+            if (statementBufferFactory != null) {
                 
                 if (log.isInfoEnabled())
                     log.info("Closing async writers.");
                 
-                statementfactory.awaitAll();
+                statementBufferFactory.awaitAll();
                 
             }
 
@@ -179,9 +200,9 @@ public class RDFFileLoadTask<S extends JobState, V extends Serializable>
             log.error("Task failed: " + t, t);
             
             try {
-                loader.shutdownNow();
-                if (statementfactory != null) {
-                    statementfactory
+//                loader.shutdownNow();
+                if (statementBufferFactory != null) {
+                    statementBufferFactory
                             .cancelAll(true/* mayInterruptIfRunning */);
                 }
             } catch (Throwable t2) {
@@ -197,12 +218,7 @@ public class RDFFileLoadTask<S extends JobState, V extends Serializable>
     }
 
     /**
-     * Hook to load data is invoked once by {@link #call()}. The default
-     * implementation uses {@link #loadDataFromFiles(AbstractTripleStore)}
-     * to load any files found in the {@link JobState#dataDir}.
-     * 
-     * @param tripleStore
-     *            Where to put the data.
+     * Hook to load data is invoked once by {@link #call()}. 
      * 
      * @throws InterruptedException
      *             if interrupted (job canceled).
@@ -210,203 +226,225 @@ public class RDFFileLoadTask<S extends JobState, V extends Serializable>
      *             if something else goes wrong.
      */
     protected void loadData(//
-            final ConcurrentDataLoader loader,//
-            final AbstractRDFTaskFactory taskFactory,//
-            final AbstractTripleStore tripleStore//
-    ) throws InterruptedException, Exception {
+            final AsynchronousStatementBufferFactory<BigdataStatement> factory)
+            throws InterruptedException, Exception {
 
-        loadDataFromFiles(loader, taskFactory, tripleStore);
+        factory.submitAll(jobState.dataDir, jobState.dataDirFilter);
 
     }
 
-    /**
-     * Runs a {@link RunnableFileSystemLoader} to loads data from the
-     * {@link JobState#dataDir} and optionally deletes files after they have
-     * been loaded successfully.
-     * 
-     * @throws InterruptedException
-     * @throws Exception
-     */
-    protected void loadDataFromFiles(final ConcurrentDataLoader loader,
-            final AbstractRDFTaskFactory taskFactory,
-            final AbstractTripleStore tripleStore) throws InterruptedException,
-            Exception {
+//    /**
+//     * Hook to load data is invoked once by {@link #call()}. The default
+//     * implementation uses {@link #loadDataFromFiles(AbstractTripleStore)}
+//     * to load any files found in the {@link JobState#dataDir}.
+//     * 
+//     * @param tripleStore
+//     *            Where to put the data.
+//     * 
+//     * @throws InterruptedException
+//     *             if interrupted (job canceled).
+//     * @throws Exception
+//     *             if something else goes wrong.
+//     */
+//    protected void loadData(//
+//            final ConcurrentDataLoader loader,//
+//            final AbstractRDFTaskFactory taskFactory,//
+//            final AbstractTripleStore tripleStore//
+//    ) throws InterruptedException, Exception {
+//
+//        loadDataFromFiles(loader, taskFactory, tripleStore);
+//
+//    }
+//
+//
+//    /**
+//     * Runs a {@link RunnableFileSystemLoader} to loads data from the
+//     * {@link JobState#dataDir} and optionally deletes files after they have
+//     * been loaded successfully.
+//     * 
+//     * @throws InterruptedException
+//     * @throws Exception
+//     */
+//    protected void loadDataFromFiles(final ConcurrentDataLoader loader,
+//            final AbstractRDFTaskFactory taskFactory,
+//            final AbstractTripleStore tripleStore) throws InterruptedException,
+//            Exception {
+//
+//        new RunnableFileSystemLoader(loader, taskFactory, tripleStore,
+//                jobState.dataDir, jobState.dataDirFilter).run();
+//        
+//    }
 
-        new RunnableFileSystemLoader(loader, taskFactory, tripleStore,
-                jobState.dataDir, jobState.dataDirFilter).run();
-        
-    }
-
-    /**
-     * {@link Runnable} class applies the factory to either a single file or to
-     * all files within a directory.
-     */
-    static protected class RunnableFileSystemLoader implements Runnable {
-
-        final protected transient static Logger log = Logger
-                .getLogger(RunnableFileSystemLoader.class);
-
-        volatile boolean done = false;
-
-        final ConcurrentDataLoader loader;
-
-        final AbstractRDFTaskFactory taskFactory;
-
-        final AbstractTripleStore tripleStore;
-
-        final File fileOrDir;
-        
-        final FilenameFilter filter;
-
-        /**
-         * 
-         * @param loader
-         * @param taskFactory
-         * @param tripleStore
-         * @param fileOrDir
-         *            The file or directory to be loaded.
-         * @param filter
-         *            An optional filter on files that will be accepted when
-         *            processing a directory.
-         */
-        public RunnableFileSystemLoader(final ConcurrentDataLoader loader,
-                final AbstractRDFTaskFactory taskFactory,
-                final AbstractTripleStore tripleStore, final File fileOrDir,
-                final FilenameFilter filter) {
-
-            if (loader == null)
-                throw new IllegalArgumentException();
-            if (taskFactory == null)
-                throw new IllegalArgumentException();
-            if (tripleStore == null)
-                throw new IllegalArgumentException();
-            if (fileOrDir == null)
-                throw new IllegalArgumentException();
-
-            this.loader = loader;
-
-            this.taskFactory = taskFactory;
-
-            this.tripleStore = tripleStore;
-
-            this.fileOrDir = fileOrDir;
-
-            this.filter = filter; // MAY be null.
-            
-        }
-
-        /**
-         * Creates a task using the {@link #taskFactory}, submits it to the
-         * {@link #loader} and and waits for the task to complete.
-         * <p>
-         * Errors are logged, but not thrown. This makes the task suitable
-         * for use with a {@link ScheduledExecutorService}.
-         * 
-         * @throws RuntimeException
-         *             if interrupted.
-         */
-        public void run() {
-
-            try {
-
-                if (log.isInfoEnabled())
-                    log.info("start: file=" + fileOrDir);
-
-                // loads everything in the file or directory.
-                process(fileOrDir);
-
-                // wait until the data have been loaded.
-                loader.awaitCompletion(Long.MAX_VALUE, TimeUnit.SECONDS);
-
-                if (log.isInfoEnabled())
-                    log.info("done : file=" + fileOrDir);
-
-            } catch (InterruptedException t) {
-
-                // Note: This is normal termination.
-                log.warn("Interrupted");
-
-                throw new RuntimeException("Interrupted.");
-
-            } catch (Throwable t) {
-
-                // Catch and log all errors.
-                log.error(fileOrDir, t);
-
-            }
-
-        }
-
-        /**
-         * Scans file(s) recursively starting with the named file, creates a
-         * task using the {@link ITaskFactory} for each file that passes the
-         * filter, and submits the task. When <i>file</i> is a directory, the
-         * method returns once all file(s) in the directory and its children
-         * have been submitted for processing.
-         * 
-         * @param file
-         *            Either a plain file or directory containing files to be
-         *            processed.
-         * @param filter
-         *            An optional filter.
-         * @param taskFactory
-         * 
-         * @throws InterruptedException
-         *             if the thread is interrupted while queuing tasks.
-         */
-        public void process(final File file) throws InterruptedException {
-
-            if (file == null)
-                throw new IllegalArgumentException();
-
-            if (taskFactory == null)
-                throw new IllegalArgumentException();
-
-            process2(file, filter, taskFactory);
-
-        }
-        
-        private void process2(final File file, final FilenameFilter filter,
-                final ITaskFactory taskFactory) throws InterruptedException {
-
-            if (file.isDirectory()) {
-
-                if (log.isInfoEnabled())
-                    log.info("Scanning directory: " + file);
-
-                // filter is optional.
-                final File[] files = filter == null ? file.listFiles() : file
-                        .listFiles(filter);
-
-                for (final File f : files) {
-
-                    process2(f, filter, taskFactory);
-
-                }
-
-            } else {
-
-                /*
-                 * Processing a standard file.
-                 */
-
-                if (log.isInfoEnabled())
-                    log.info("Scanning file: " + file);
-
-                try {
-
-                    loader.submitTask(file.getPath(), taskFactory);
-                    
-                } catch (Exception ex) {
-                    
-                    log.error(file, ex);
-                    
-                }
-
-            }
-
-        }
-
-    } // RunnableFileSystemLoader
+//    /**
+//     * {@link Runnable} class applies the factory to either a single file or to
+//     * all files within a directory.
+//     */
+//    static protected class RunnableFileSystemLoader implements Runnable {
+//
+//        final protected transient static Logger log = Logger
+//                .getLogger(RunnableFileSystemLoader.class);
+//
+//        volatile boolean done = false;
+//
+//        final ConcurrentDataLoader loader;
+//
+//        final AbstractRDFTaskFactory taskFactory;
+//
+//        final AbstractTripleStore tripleStore;
+//
+//        final File fileOrDir;
+//        
+//        final FilenameFilter filter;
+//
+//        /**
+//         * 
+//         * @param loader
+//         * @param taskFactory
+//         * @param tripleStore
+//         * @param fileOrDir
+//         *            The file or directory to be loaded.
+//         * @param filter
+//         *            An optional filter on files that will be accepted when
+//         *            processing a directory.
+//         */
+//        public RunnableFileSystemLoader(final ConcurrentDataLoader loader,
+//                final AbstractRDFTaskFactory taskFactory,
+//                final AbstractTripleStore tripleStore, final File fileOrDir,
+//                final FilenameFilter filter) {
+//
+//            if (loader == null)
+//                throw new IllegalArgumentException();
+//            if (taskFactory == null)
+//                throw new IllegalArgumentException();
+//            if (tripleStore == null)
+//                throw new IllegalArgumentException();
+//            if (fileOrDir == null)
+//                throw new IllegalArgumentException();
+//
+//            this.loader = loader;
+//
+//            this.taskFactory = taskFactory;
+//
+//            this.tripleStore = tripleStore;
+//
+//            this.fileOrDir = fileOrDir;
+//
+//            this.filter = filter; // MAY be null.
+//            
+//        }
+//
+//        /**
+//         * Creates a task using the {@link #taskFactory}, submits it to the
+//         * {@link #loader} and and waits for the task to complete.
+//         * <p>
+//         * Errors are logged, but not thrown. This makes the task suitable
+//         * for use with a {@link ScheduledExecutorService}.
+//         * 
+//         * @throws RuntimeException
+//         *             if interrupted.
+//         */
+//        public void run() {
+//
+//            try {
+//
+//                if (log.isInfoEnabled())
+//                    log.info("start: file=" + fileOrDir);
+//
+//                // loads everything in the file or directory.
+//                process(fileOrDir);
+//
+//                // wait until the data have been loaded.
+//                loader.awaitCompletion(Long.MAX_VALUE, TimeUnit.SECONDS);
+//
+//                if (log.isInfoEnabled())
+//                    log.info("done : file=" + fileOrDir);
+//
+//            } catch (InterruptedException t) {
+//
+//                // Note: This is normal termination.
+//                log.warn("Interrupted");
+//
+//                throw new RuntimeException("Interrupted.");
+//
+//            } catch (Throwable t) {
+//
+//                // Catch and log all errors.
+//                log.error(fileOrDir, t);
+//
+//            }
+//
+//        }
+//
+//        /**
+//         * Scans file(s) recursively starting with the named file, creates a
+//         * task using the {@link ITaskFactory} for each file that passes the
+//         * filter, and submits the task. When <i>file</i> is a directory, the
+//         * method returns once all file(s) in the directory and its children
+//         * have been submitted for processing.
+//         * 
+//         * @param file
+//         *            Either a plain file or directory containing files to be
+//         *            processed.
+//         * @param filter
+//         *            An optional filter.
+//         * @param taskFactory
+//         * 
+//         * @throws InterruptedException
+//         *             if the thread is interrupted while queuing tasks.
+//         */
+//        public void process(final File file) throws InterruptedException {
+//
+//            if (file == null)
+//                throw new IllegalArgumentException();
+//
+//            if (taskFactory == null)
+//                throw new IllegalArgumentException();
+//
+//            process2(file, filter, taskFactory);
+//
+//        }
+//        
+//        private void process2(final File file, final FilenameFilter filter,
+//                final ITaskFactory taskFactory) throws InterruptedException {
+//
+//            if (file.isDirectory()) {
+//
+//                if (log.isInfoEnabled())
+//                    log.info("Scanning directory: " + file);
+//
+//                // filter is optional.
+//                final File[] files = filter == null ? file.listFiles() : file
+//                        .listFiles(filter);
+//
+//                for (final File f : files) {
+//
+//                    process2(f, filter, taskFactory);
+//
+//                }
+//
+//            } else {
+//
+//                /*
+//                 * Processing a standard file.
+//                 */
+//
+//                if (log.isInfoEnabled())
+//                    log.info("Scanning file: " + file);
+//
+//                try {
+//
+//                    loader.submitTask(file.getPath(), taskFactory);
+//                    
+//                } catch (Exception ex) {
+//                    
+//                    log.error(file, ex);
+//                    
+//                }
+//
+//            }
+//
+//        }
+//
+//    } // RunnableFileSystemLoader
 
 }
