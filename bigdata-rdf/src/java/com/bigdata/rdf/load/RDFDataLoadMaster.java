@@ -140,7 +140,7 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         /**
          * The #of threads used to buffer asynchronous writes for the other indices.
          */
-        String OTHER_WRITER_POOL_SIZE = "otherIdWriterPoolSize";
+        String OTHER_WRITER_POOL_SIZE = "otherWriterPoolSize";
         int DEFAULT_OTHER_WRITER_POOL_SIZE = 5;
 
         /**
@@ -151,7 +151,7 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          * chunk size for the asynchronous index write buffers.
          */
         String UNBUFFERED_STATEMENT_THRESHOLD = "unbufferedStatementThreshold";
-        long DEFAULT_UNBUFFERED_STATEMENT_THRESHOLD = Bytes.megabyte32 * 1;
+        long DEFAULT_UNBUFFERED_STATEMENT_THRESHOLD = Bytes.megabyte * 1;
 
         /**
          * The buffer capacity for parsed RDF statements (not used when
@@ -510,7 +510,7 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
                     ConfigurationOptions.OTHER_WRITER_POOL_SIZE, Integer.TYPE,
                     ConfigurationOptions.DEFAULT_OTHER_WRITER_POOL_SIZE);
 
-            unbufferedStatementThreshold = (Integer) config.getEntry(component,
+            unbufferedStatementThreshold = (Long) config.getEntry(component,
                     ConfigurationOptions.UNBUFFERED_STATEMENT_THRESHOLD,
                     Long.TYPE,
                     ConfigurationOptions.DEFAULT_UNBUFFERED_STATEMENT_THRESHOLD);
