@@ -1044,7 +1044,8 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
                  * asynchronously. Metadata about task outcomes is reported via
                  * performance counters to the load balancer.
                  */
-                bufferFactory.submitOne(file.getPath());
+                bufferFactory.submitOne(file.getPath(),
+                        jobState.rejectedExecutionDelay);
 
             }
 

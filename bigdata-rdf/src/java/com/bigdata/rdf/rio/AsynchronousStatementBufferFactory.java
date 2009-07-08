@@ -939,6 +939,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      *            The resource (file or URL, but not a directory).
      * 
      * @throws Exception
+     *             if there is a problem creating the parser task.
      * @throws RejectedExecutionException
      *             if the work queue for the parser service is full.
      */
@@ -1001,6 +1002,78 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
     }
 
+    /**
+     * Submit a resource for processing.
+     * 
+     * @param resource
+     *            The resource (file or URL, but not a directory).
+     * @param retryMillis
+     *            The number of millisseconds to wait between retrys when the
+     *            parser service work queue is full. When ZERO (0L), a
+     *            {@link RejectedExecutionException} will be thrown out instead.
+     * 
+     * @throws Exception
+     *             if there is a problem creating the parser task.
+     * @throws RejectedExecutionException
+     *             if the service is shutdown -or- the retryMillis is ZERO(0L).
+     */
+    public void submitOne(final String resource, final long retryMillis)
+            throws InterruptedException {
+
+        if (resource == null)
+            throw new IllegalArgumentException();
+
+        if (retryMillis < 0)
+            throw new IllegalArgumentException();
+        
+        int retryCount = 0;
+        
+        while (true) {
+            
+            try {
+
+                submitOne(resource, retryMillis);
+                
+                return;
+
+            } catch (RejectedExecutionException ex) {
+
+                if(parserService.isShutdown()) {
+                    
+                    // Do not retry since service is closed.
+                    throw ex;
+                    
+                }
+                
+                if (retryMillis == 0L) {
+
+                    // Do not retry since if retry interval is 0L.
+                    throw ex;
+
+                }
+
+                // sleep for the retry interval.
+                Thread.sleep(retryMillis);
+                
+                retryCount++;
+                
+                // retry
+                continue;
+
+            } catch (InterruptedException ex) {
+
+                throw ex;
+
+            } catch (Exception ex) {
+
+                log.error(resource, ex);
+
+            }
+
+        }
+
+    }
+    
     /**
      * Submit all files in a directory for processing via
      * {@link #submitOne(String)}.
@@ -2166,7 +2239,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                     
                     try {
 
-                        submitOne(file.getPath());
+                        submitOne(file.getPath(), retryMillis);
 
                         count++;
                         
