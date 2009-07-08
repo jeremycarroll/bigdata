@@ -2236,52 +2236,24 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                  * Processing a standard file.
                  */
 
-                while (true) {
-                    
-                    try {
+                try {
 
-                        submitOne(file.getPath(), retryMillis);
+                    submitOne(file.getPath(), retryMillis);
 
-                        count++;
-                        
-                        break;
+                    count++;
 
-                    } catch (RejectedExecutionException ex) {
+                    return;
 
-                        if(parserService.isShutdown()) {
-                            
-                            // Do not retry since service is closed.
-                            throw ex;
-                            
-                        }
-                        
-                        if (retryMillis == 0L) {
+                } catch (InterruptedException ex) {
 
-                            // Do not retry since if retry interval is 0L.
-                            throw ex;
+                    throw ex;
 
-                        }
+                } catch (Exception ex) {
 
-                        // sleep for the retry interval.
-                        Thread.sleep(retryMillis);
-                        
-                        retryCount++;
-                        
-                        // retry
-                        continue;
-
-                    } catch (InterruptedException ex) {
-
-                        throw ex;
-
-                    } catch (Exception ex) {
-
-                        log.error(file, ex);
-
-                    }
+                    log.error(file, ex);
 
                 }
-                
+
             }
 
         }
@@ -2300,8 +2272,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * chunk that is processed have correlated indices and that the offset into
      * the array is given by {@link Split#fromIndex}.
      * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
-     *         Thompson</a>
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
     static private class Term2IdWriteProcAsyncResultHandler
