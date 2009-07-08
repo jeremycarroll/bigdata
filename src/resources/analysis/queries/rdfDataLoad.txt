@@ -13,7 +13,7 @@
 ##
 # Throughput (triples per second and toldTriples) for the RDF bulk distributed data load)
 ##
-http://localhost:8080/?regex=/([^/]*)/.*/U.*/toldTriplesRestartSafePerSec&depth=7&correlated=true&period=Minutes&file=service/cs/toldTriplesRestartSafePerSec
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/(toldTriplesRestartSafePerSec)&depth=7&correlated=true&period=Minutes&file=service/cs/toldTriplesRestartSafePerSec
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/(toldTriplesRestartSafeCount)&depth=8&correlated=true&file=service/cs/toldTriplesRestartSafeCount
 
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/(toldTriplesWriteCount)&depth=8&correlated=true&file=service/cs/toldTriplesWriteCount
