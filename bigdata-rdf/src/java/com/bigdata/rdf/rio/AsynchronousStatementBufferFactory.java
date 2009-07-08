@@ -78,6 +78,7 @@ import com.bigdata.btree.proc.IAsyncResultHandler;
 import com.bigdata.btree.proc.LongAggregator;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
+import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.io.ByteArrayBuffer;
 import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.journal.AbstractTask;
@@ -2094,12 +2095,8 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
              * suspend new parse requests.
              */
             pauseSet.addCounter("pauseParserPoolStatementThreshold",
-                    new Instrument<Long>() {
-                        @Override
-                        protected void sample() {
-                            setValue(pauseParserPoolStatementThreshold);
-                        }
-                    });
+                    new OneShotInstrument<Long>(
+                            pauseParserPoolStatementThreshold));
 
             // The #of suspended parse request threads (current value).
             pauseSet.addCounter("pausedThreadCount", new Instrument<Long>() {
