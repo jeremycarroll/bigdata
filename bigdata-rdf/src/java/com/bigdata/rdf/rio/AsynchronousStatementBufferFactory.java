@@ -1032,7 +1032,8 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
             
             try {
 
-                submitOne(resource, retryMillis);
+                // submit resource for processing.
+                submitOne(resource);
                 
                 return;
 
