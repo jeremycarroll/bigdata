@@ -44,3 +44,7 @@ http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(document)&depth=8&co
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(parser)&depth=8&correlated=true&file=service/cs/workflowLatch/parser
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(bufferTerm2Id)&depth=8&correlated=true&file=service/cs/workflowLatch/bufferTerm2Id
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(bufferOther)&depth=8&correlated=true&file=service/cs/workflowLatch/bufferOther
+
+# Latches used to guard against premature close of the workflow states.
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/bufferGuard/(guardTerm2Id)&depth=8&correlated=true&file=service/cs/bufferGuard/guardTerm2Id
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/bufferGuard/(guardOther)&depth=8&correlated=true&file=service/cs/bufferGuard/guardOther
