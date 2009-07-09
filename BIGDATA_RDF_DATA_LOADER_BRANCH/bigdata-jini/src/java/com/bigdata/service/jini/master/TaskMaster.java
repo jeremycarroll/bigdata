@@ -332,7 +332,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
          * services. In contrast, the {@link #serviceUUIDs} are serialized
          * and have public scope.
          */
-        private final transient ServiceItem[] serviceItems;
+        private transient ServiceItem[] serviceItems;
         
         /**
          * The mapping of tasks onto the {@link IRemoteExecutor}s on which
@@ -414,10 +414,22 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
 
                 }
 
+                if (serviceItems == null) {
+
+                    /*
+                     * Lazy initialization when de-serialized since field is
+                     * transient and will not be initialized by the default
+                     * de-serialization logic.
+                     */
+
+                    serviceItems = new ServiceItem[ntasks];
+
+                }
+
                 serviceItems[i] = serviceItem;
 
             }
-            
+
         }
 
         /**
