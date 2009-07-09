@@ -2262,6 +2262,9 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                  * Processing a standard file.
                  */
 
+                if(log.isInfoEnabled())
+                    log.info("Will load: "+file);
+                    
                 try {
 
                     submitOne(file.getPath(), retryMillis);
