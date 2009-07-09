@@ -599,7 +599,7 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         final TaskMaster task = new RDFDataLoadMaster(fed);
 
         // execute master wait for it to finish.
-        task.innerMain().get();
+        task.execute();
         
     }
     

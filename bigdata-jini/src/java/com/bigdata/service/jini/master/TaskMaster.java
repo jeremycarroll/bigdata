@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -859,25 +860,18 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
     private S jobState;
 
     /**
+     * A map giving the {@link Future} for each client. The keys of the map are
+     * the client numbers in [0:N-1].
+     * 
+     * @see #startClients()
+     * @see #awaitAll(Map)
+     * @see #cancelAll(Map, boolean)
+     */
+    private Map<Integer/* client# */, Future<U>> futures;
+    
+    /**
      * Runs the master. SIGTERM (normal kill or ^C) will cancel the job,
-     * including any running clients. A simple <code>main()</code> can be
-     * written as follows:
-     * 
-     * <pre>
-     * public static void main(String[] args) {
-     * 
-     *     final JiniFederation fed = new JiniClient(args).connect();
-     * 
-     *     final TaskMaster task = new MyMaster(fed);
-     * 
-     *     // execute master wait for it to finish.
-     *     task.innerMain().get();
-     * 
-     * }
-     * </pre>
-     * 
-     * Where <code>MyMaster</code> is a concrete subclass of
-     * {@link TaskMaster}.
+     * including any running clients.
      * 
      * @return The {@link Future} for the master. Use {@link Future#get()} to
      *         await the outcome of the master.
@@ -885,7 +879,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    final public Future<Void> innerMain() {
+    final protected Future<Void> innerMain() {
 
         final Future<Void> future = fed.getExecutorService().submit(this);
 
@@ -930,11 +924,74 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
     }
 
     /**
+     * Execute the master. If the master is interrupted, including by the signal
+     * handler installed by {@link #innerMain()}, then the client tasks will be
+     * cancelled. A simple <code>main()</code> can be written as follows:
+     * 
+     * <pre>
+     * public static void main(String[] args) {
+     * 
+     *     final JiniFederation fed = new JiniClient(args).connect();
+     * 
+     *     final TaskMaster task = new MyMaster(fed);
+     * 
+     *     // execute master wait for it to finish.
+     *     task.execute();
+     * 
+     * }
+     * </pre>
+     * 
+     * Where <code>MyMaster</code> is a concrete subclass of
+     * {@link TaskMaster}.
+     * 
+     * @throws InterruptedException
+     * @throws ExecutionException
+     */
+    public void execute() throws InterruptedException, ExecutionException {
+
+        // execute master wait for it to finish.
+        try {
+
+            innerMain().get();
+
+        } catch (CancellationException ex) {
+
+            // cancel any running clients.
+            cancelAll(futures, true/* mayInterruptIfRunning */);
+            
+            throw ex;
+            
+        } catch (InterruptedException ex) {
+
+            // cancel any running clients.
+            cancelAll(futures, true/* mayInterruptIfRunning */);
+            
+            throw ex;
+            
+        } catch (ExecutionException ex) {
+
+            // cancel any running clients.
+            cancelAll(futures, true/* mayInterruptIfRunning */);
+            
+            throw ex;
+
+        } finally {
+            
+            // always write the date when the master terminates.
+            System.err.println("Done: " + new Date());
+            
+        }
+
+    }
+    
+    /**
      * Wait a bit to discover some minimum #of data services. Then allocate the
      * clients to the data services. There can be more than one per data
      * service.
      * 
      * @return <code>null</code>
+     * 
+     * @see #execute()
      * 
      * @todo In my experience zookeeper (at least 3.0.1 and 3.1.0) has a
      *       tendency to drop sessions for the java client when under even
@@ -1006,7 +1063,9 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
 
         try {
 
-            awaitAll(startClients());
+            futures = startClients();
+            
+            awaitAll(futures);
 
             failure = false;
 
@@ -1796,9 +1855,22 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
      * @param mayInterruptIfRunning
      *            If the tasks for the futures may be interrupted.
      */
+    synchronized // since is invoked from execute() and runClients()
     protected void cancelAll(final Map<Integer, Future<U>> futures,
             final boolean mayInterruptIfRunning) {
 
+        if (futures == null) {
+
+            /*
+             * Note: This is ignored since it is possible that cancelAll() is
+             * invoked from execute() before the client tasks have been assigned
+             * their futures.
+             */
+
+            return;
+            
+        }
+        
         log.warn("Cancelling all futures: nfutures=" + futures.size());
 
         final Iterator<Future<U>> itr = futures.values().iterator();

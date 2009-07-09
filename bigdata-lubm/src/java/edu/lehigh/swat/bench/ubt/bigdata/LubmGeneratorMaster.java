@@ -33,7 +33,6 @@ import static edu.lehigh.swat.bench.ubt.bigdata.LubmGeneratorMaster.RunMode.Load
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -333,17 +332,7 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
 
         final TaskMaster task = new LubmGeneratorMaster(fed);
 
-        // execute master wait for it to finish.
-        try {
-
-            task.innerMain().get();
-            
-        } finally {
-            
-            // always write the date when the master terminates.
-            System.err.println("Done: " + new Date());
-            
-        }
+        task.execute();
         
     }
 
