@@ -32,6 +32,7 @@ import static edu.lehigh.swat.bench.ubt.bigdata.LubmGeneratorMaster.RunMode.Gene
 import static edu.lehigh.swat.bench.ubt.bigdata.LubmGeneratorMaster.RunMode.Load;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.Serializable;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -1057,6 +1058,11 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
             extends RDFFileLoadTask<S, V> {
 
         /**
+         * 
+         */
+        private static final long serialVersionUID = -5139910859778541040L;
+
+        /**
          * @param clientTask
          */
         public LoadDataTask(final S jobState, final int clientNum) {
@@ -1065,6 +1071,28 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
 
         }
         
+        /**
+         * Overriden to use the per-client directory based on
+         * {@link JobState#outDir} and the assigned client#.
+         */
+        @Override
+        protected void loadData(//
+                final AsynchronousStatementBufferFactory<BigdataStatement> factory)
+                throws InterruptedException, Exception {
+
+            final File outDir = new File(jobState.outDir, "client" + clientNum);
+
+            if(!outDir.exists()) {
+                
+                throw new FileNotFoundException(outDir.toString());
+                
+            }
+            
+            factory.submitAll(outDir, jobState.dataDirFilter,
+                    jobState.rejectedExecutionDelay);
+
+        }
+
     }
 
 }
