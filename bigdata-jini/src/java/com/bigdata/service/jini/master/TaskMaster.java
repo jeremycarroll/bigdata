@@ -61,7 +61,6 @@ import org.apache.zookeeper.data.Stat;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.jini.util.JiniUtil;
-import com.bigdata.rdf.load.RDFDataLoadMaster;
 import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
