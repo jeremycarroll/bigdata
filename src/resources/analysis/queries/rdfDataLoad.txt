@@ -17,6 +17,7 @@ http://localhost:8080/?regex=/([^/]*)/.*/U.*/(toldTriplesRestartSafePerSec)&dept
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/(toldTriplesRestartSafeCount)&depth=8&correlated=true&file=service/cs/toldTriplesRestartSafeCount
 
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/(toldTriplesWriteCount)&depth=8&correlated=true&file=service/cs/toldTriplesWriteCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/(documentTIDsWaitingCount)&depth=8&correlated=true&file=service/cs/documentTIDsWaitingCount
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/(documentTIDsReadyCount)&depth=8&correlated=true&file=service/cs/documentTIDsReadyCount
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/(documentErrorCount)&depth=8&correlated=true&file=service/cs/documentErrorCount
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/(documentRestartSafeCount)&depth=8&correlated=true&file=service/cs/documentRestartSafeCount

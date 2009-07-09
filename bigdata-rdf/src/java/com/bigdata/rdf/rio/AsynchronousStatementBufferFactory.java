@@ -637,7 +637,26 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * The #of documents whose TIDs have been assigned (cumulative total).
      */
     private final AtomicLong documentTIDsReadyCount = new AtomicLong(0L);
-    
+
+    /**
+     * The #of documents that are waiting on their TIDs (current value). The
+     * counter is incremented when a document begins to buffer writes on the
+     * TERM2ID index. The counter is decremented as soon as those writes are
+     * restart safe.
+     * <p>
+     * Note: The {@link #workflowLatch_bufferTerm2Id} is only decremented when
+     * the document begins to write on the other indices, so
+     * {@link #documentTIDsWaitingCount} will be decremented before
+     * {@link #workflowLatch_bufferTerm2Id}. The two counters will track very
+     * closely unless the {@link #otherWriterService} has a backlog.
+     * <p>
+     * Note: The {@link #workflowLatch_bufferOther} is decremented as soon as
+     * the writes on the other indices are restart safe since there is no
+     * transition to another workflow state. This is why there is no counter for
+     * "documentOtherWaitingCount".
+     */
+    private final AtomicLong documentTIDsWaitingCount = new AtomicLong(0L);
+
     /**
      * The #of told triples parsed from documents using this factory and
      * made restart safe on the database. This is incremented each time a
@@ -1910,9 +1929,19 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
         });
 
         /**
+         * The #of documents whose TERM2ID writes have begun to be buffered but
+         * are not yet restart-safe on the database.
+         */
+        counterSet.addCounter("documentTIDsWaitingCount", new Instrument<Long>() {
+            @Override
+            protected void sample() {
+                setValue(documentTIDsWaitingCount.get());
+            }
+        });
+
+        /**
          * The #of documents whose TERM2ID writes are restart-safe on the
-         * database. Each parser thread will block until the TERM2ID writes are
-         * done and then proceed to write on the remaining indices.
+         * database.
          */
         counterSet.addCounter("documentTIDsReadyCount", new Instrument<Long>() {
             @Override
@@ -3286,6 +3315,8 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
                     super.signal();
 
+                    documentTIDsWaitingCount.decrementAndGet();
+                    
                     documentTIDsReadyCount.incrementAndGet();
 
                     otherWriterService.submit(new BufferOtherWritesTask(
@@ -3556,6 +3587,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                 bufferGuard_term2Id.inc();
                 workflowLatch_parser.dec();
                 workflowLatch_bufferTerm2Id.inc();
+                documentTIDsWaitingCount.incrementAndGet();
                 assertSumOfLatchs();
             } finally {
                 lock.unlock();
@@ -3580,6 +3612,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                 try {
                     bufferGuard_term2Id.dec();
                     workflowLatch_bufferTerm2Id.dec();
+                    documentTIDsWaitingCount.decrementAndGet();
                     documentError(buffer.getDocumentIdentifier(), t);
                     outstandingStatementCount.addAndGet(-buffer.statementCount);
                     if (unbufferedStatementCount
