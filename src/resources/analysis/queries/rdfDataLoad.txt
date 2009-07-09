@@ -43,4 +43,4 @@ http://localhost:8080/?regex=/([^/]*)/.*/U.*/services/deleteService%2FAverage+Qu
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(document)&depth=8&correlated=true&file=service/cs/workflowLatch/document
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(parser)&depth=8&correlated=true&file=service/cs/workflowLatch/parser
 http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(bufferTerm2Id)&depth=8&correlated=true&file=service/cs/workflowLatch/bufferTerm2Id
-http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(parserOther)&depth=8&correlated=true&file=service/cs/workflowLatch/bufferOther
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(bufferOther)&depth=8&correlated=true&file=service/cs/workflowLatch/bufferOther
