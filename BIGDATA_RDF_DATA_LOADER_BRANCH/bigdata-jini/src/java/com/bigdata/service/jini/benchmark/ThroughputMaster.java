@@ -454,7 +454,7 @@ public class ThroughputMaster
         final TaskMaster task = new ThroughputMaster(fed);
 
         // execute master wait for it to finish.
-        task.innerMain().get();
+        task.execute();
         
     }
 
