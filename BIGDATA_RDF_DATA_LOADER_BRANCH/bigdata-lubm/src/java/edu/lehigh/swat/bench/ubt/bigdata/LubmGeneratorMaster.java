@@ -1071,27 +1071,51 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
 
         }
         
-        /**
-         * Overriden to use the per-client directory based on
-         * {@link JobState#outDir} and the assigned client#.
+        /*
+         * @todo This modification does not work. The problem is that the client
+         * assignment is not stable between the generate and the load phase.
+         * 
+         * There are a few workarounds and a few fixes.
+         * 
+         * workaround1: one client per CS host and use jobState.outDir. This
+         * works because the same named directory is used on each host so it
+         * does not matter which client is assigned to which host in the load
+         * phase. This does not let me experiment with two clients per CS.
+         * 
+         * workaround2: modify main() to run two jobs back to back with the same
+         * client assignments but different runMode - first generate, then load.
+         * this is a bit of a hack (quite a bit of a hack), but let's me test
+         * two clients per CS host.
+         * 
+         * fix: modify generate to write onto shared storage and load to use a
+         * master which hands off chunks of files to the clients, handles client
+         * failure, ensures that clients do not attempt to all load the same
+         * files, etc. This is nice (necessary) step for the master, but the
+         * test cluster does not have enough shared storage for large runs...
+         * This would also work if the data were pre-generated.
          */
-        @Override
-        protected void loadData(//
-                final AsynchronousStatementBufferFactory<BigdataStatement> factory)
-                throws InterruptedException, Exception {
-
-            final File outDir = new File(jobState.outDir, "client" + clientNum);
-
-            if(!outDir.exists()) {
-                
-                throw new FileNotFoundException(outDir.toString());
-                
-            }
-            
-            factory.submitAll(outDir, jobState.dataDirFilter,
-                    jobState.rejectedExecutionDelay);
-
-        }
+        
+//        /**
+//         * Overriden to use the per-client directory based on
+//         * {@link JobState#outDir} and the assigned client#.
+//         */
+//        @Override
+//        protected void loadData(//
+//                final AsynchronousStatementBufferFactory<BigdataStatement> factory)
+//                throws InterruptedException, Exception {
+//
+//            final File outDir = new File(jobState.outDir, "client" + clientNum);
+//
+//            if(!outDir.exists()) {
+//                
+//                throw new FileNotFoundException(outDir.toString());
+//                
+//            }
+//            
+//            factory.submitAll(outDir, jobState.dataDirFilter,
+//                    jobState.rejectedExecutionDelay);
+//
+//        }
 
     }
 
