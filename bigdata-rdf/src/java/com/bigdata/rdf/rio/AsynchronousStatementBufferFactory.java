@@ -49,7 +49,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -883,11 +882,10 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
     private final ThreadPoolExecutor otherWriterService;
 
     /**
-     * Bounded thread pool with an unbounded work queue used to delete files
-     * once they are restart safe on the database. This thread pool is created
-     * iff the {@link #deleteAfter} option was specified.
+     * Bounded thread pool with an unbounded work queue used process per file
+     * success or failure notices.
      */
-    private final ThreadPoolExecutor deleteService;
+    private final ThreadPoolExecutor notifyService;
 
     /**
      * {@link Runnable} collects performance counters on services used by the
@@ -1277,46 +1275,12 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
     } // ParserTask
 
-    /**
-     * Task deletes a resource from the local file system.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    protected class DeleteTask implements Runnable {
+    public String toString() {
 
-        private final String resource;
-
-        public DeleteTask(final String resource) {
-
-            if (resource == null)
-                throw new IllegalArgumentException();
-            
-            this.resource = resource;
-            
-        }
+        return super.toString() + "::" + getCounters();
         
-        public void run() {
-
-            deleteResource(resource);
-
-        }
-
     }
 
-    /**
-     * Delete a resource whose data have been made restart safe on the database
-     * from the local file system.
-     * 
-     * @param resource
-     *            The resource.
-     */
-    protected void deleteResource(final String resource) {
-
-        new File(resource).delete();
-
-    }
-    
     /**
      * 
      * @param tripleStore
@@ -1506,17 +1470,21 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                 new DaemonThreadFactory(getClass().getName()+"_otherWriteService") // threadFactory
         );
 
-        if(deleteAfter) {
-            
-            deleteService = (ThreadPoolExecutor) Executors.newFixedThreadPool(
-                    1, new DaemonThreadFactory(getClass().getName()
-                            + "_deleteService"));
-
-        } else {
-            
-            deleteService = null;
-
-        }
+        /*
+         * FIXME raise into the ctor args; update the counters; modify to run
+         * SuccessTask and FailureTask.  Use factory for those tasks so their
+         * behavior can be overridden for delete semantics or for RMI based
+         * notify semantics.
+         */
+        final int notifyServicePoolSize=3; 
+        notifyService = new ThreadPoolExecutor(//
+                notifyServicePoolSize, // corePoolSize
+                notifyServicePoolSize, // maximumPoolSize
+                1, // keepAliveTime
+                TimeUnit.MINUTES, // keepAlive units.
+                new LinkedBlockingQueue<Runnable>(/* unbounded */),// workQueue
+                new DaemonThreadFactory(getClass().getName()+"_notifyService") // threadFactory
+                );
 
         /*
          * @todo If sampling should be done for non-federation cases then we
@@ -1557,13 +1525,8 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                             new ThreadPoolExecutorBaseStatisticsTask(
                                     otherWriterService));
 
-            if (deleteAfter) {
-
-                tasks.put("deleteService",
-                                new ThreadPoolExecutorBaseStatisticsTask(
-                                        deleteService));
-
-            }
+            tasks.put("notifyService",
+                    new ThreadPoolExecutorBaseStatisticsTask(notifyService));
 
             // schedule this task to sample performance counters.
             serviceStatisticsFuture = scheduledService.scheduleWithFixedDelay(
@@ -1660,7 +1623,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
             if (otherWriterService.isTerminated())
                 return true;
 
-            if (deleteService != null && deleteService.isTerminated())
+            if (notifyService != null && notifyService.isTerminated())
                 return true;
 
             return false;
@@ -1781,10 +1744,10 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
                 assertSumOfLatchs();
 
-                if (deleteService != null) {
+                if (notifyService != null) {
                     // shutdown and wait until all files have been delete.
-                    deleteService.shutdown();
-                    new ShutdownHelper(deleteService, 10L, TimeUnit.SECONDS) {
+                    notifyService.shutdown();
+                    new ShutdownHelper(notifyService, 10L, TimeUnit.SECONDS) {
                         protected void logTimeout() {
                             log.warn("Waiting for delete service shutdown.");
                         }
@@ -1843,22 +1806,24 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * document has become restart safe on the database -- <strong>the
      * implementation MUST NOT block</strong>. One technique is to add the
      * <i>documentIdentifier</i> to an <em>unbounded</em> queue which is then
-     * drained by another thread. The default implementation logs the event @ INFO.
+     * drained by another thread.
+     * <p>
+     * The default implementation logs the event @ INFO.
      * 
      * @param resource
      *            The document identifier.
      */
     protected void documentDone(final String resource) {
 
-        if (log.isInfoEnabled())
-            log.info("resource=" + resource + " : " + this);
-
-    }
-
-    public String toString() {
-
-        return super.toString() + "::" + getCounters();
+        final Runnable task = newSuccessTask(resource);
+       
+        if (task != null) {
         
+            // queue up success notice.
+            notifyService.submit(task);
+            
+        }
+
     }
     
     /**
@@ -1872,7 +1837,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * @param t
      *            The exception.
      */
-    protected void documentError(final String resource, Throwable t) {
+    protected void documentError(final String resource, final Throwable t) {
 
         lock.lock();
         try {
@@ -1896,14 +1861,113 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
             
         }
 
-        /*
-         * Note: log error since no one watches the future for this task.
-         */
-
-        log.error("resource=" + resource + " : " + this, t);
+        final Runnable task = newFailureTask(resource, t);
+        if (task != null) {
+            // queue up success notice.
+            notifyService.submit(task);
+        }
 
     }
 
+    /**
+     * Return the optional task to be executed for a resource which has been
+     * successfully processed and whose assertions are now restart safe on the
+     * database. The task, if any, will be run on the {@link #notifyService}.
+     * <p>
+     * The default implementation runs a {@link DeleteTask} IFF <i>deleteAfter</i>
+     * was specified as <code>true</code> to the ctor and otherwise returns
+     * <code>null</code>. The event is logged @ INFO.
+     * 
+     * @param resource
+     *            The resource.
+     * 
+     * @return The task to run -or- <code>null</code> if no task should be
+     *         run.
+     */
+    protected Runnable newSuccessTask(final String resource) {
+        
+        if (log.isInfoEnabled())
+            log.info("resource=" + resource);
+        
+        if (deleteAfter) {
+            
+            return new DeleteTask(resource);
+            
+        }
+
+        return null;
+        
+    }
+
+    /**
+     * Return the optional task to be executed for a resource for which
+     * processing has failed. The task, if any, will be run on the
+     * {@link #notifyService}.
+     * <p>
+     * The default implementation logs a message @ ERROR.
+     * 
+     * @param resource
+     *            The resource.
+     * @param cause
+     *            The cause.
+     * 
+     * @return The task to run -or- <code>null</code> if no task should be
+     *         run.
+     */
+    protected Runnable newFailureTask(final String resource, final Throwable cause) {
+
+        return new Runnable() {
+
+            public void run() {
+
+                log.error(resource, cause);
+
+            }
+
+        };
+
+    }
+    
+    /**
+     * Task deletes a resource from the local file system.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
+     */
+    protected class DeleteTask implements Runnable {
+
+        private final String resource;
+
+        public DeleteTask(final String resource) {
+
+            if (resource == null)
+                throw new IllegalArgumentException();
+            
+            this.resource = resource;
+            
+        }
+        
+        public void run() {
+
+            deleteResource(resource);
+
+        }
+
+    }
+
+    /**
+     * Delete a resource whose data have been made restart safe on the database
+     * from the local file system.
+     * 
+     * @param resource
+     *            The resource.
+     */
+    protected void deleteResource(final String resource) {
+
+        new File(resource).delete();
+
+    }
+    
     public CounterSet getCounters() {
         
         final CounterSet counterSet = new CounterSet();
@@ -3446,10 +3510,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                                 .addAndGet(toldTriplesThisDocument);
                         outstandingStatementCount
                                 .addAndGet(-toldTriplesThisDocument);
-                        if (deleteAfter) {
-                            // queue up delete.
-                            deleteService.submit(new DeleteTask(resource));
-                        }
                     } finally {
 
                         lock.unlock();

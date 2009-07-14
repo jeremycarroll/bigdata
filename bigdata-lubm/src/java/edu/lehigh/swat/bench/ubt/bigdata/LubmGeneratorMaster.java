@@ -245,7 +245,9 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
 
         @Override
         protected void toString(StringBuilder sb) {
-        
+
+            super.toString(sb);
+            
             sb.append(", " + ConfigurationOptions.UNIV_NUM + "="
                     + univNum);
 
@@ -316,7 +318,8 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
 
     /**
      * Runs the master. SIGTERM (normal kill or ^C) will cancel the job,
-     * including any running clients.
+     * including any running clients. Use <code>-Dbigdata.component</code> to
+     * override the configuration component name.
      * 
      * @param args
      *            The {@link Configuration} and any overrides.
@@ -1093,6 +1096,20 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
          * files, etc. This is nice (necessary) step for the master, but the
          * test cluster does not have enough shared storage for large runs...
          * This would also work if the data were pre-generated.
+         * 
+         * To be robust, the master would have to watch for zk/jini service
+         * disconnect events and retask the last chunk if the client goes
+         * down.  This is really very much like the index write pipeline,
+         * which could be abstracted to cover this case.  Even to the point
+         * of a redirect handling a failed client.  The hash partitioning
+         * is different, but not much else. 
+         * 
+         * The master would have the scan logic, which should be abstract
+         * or an interface.  E.g., read from FS, HDFS, index, SPARQL, etc.
+         * 
+         * The client should be parameterized for the data type of the
+         * resource identifier and should have an abstract method or 
+         * interface for resolving the resource from the identifier.
          */
         
 //        /**

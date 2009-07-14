@@ -332,30 +332,11 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          * @see ConfigurationOptions#UNBUFFERED_STATEMENT_THRESHOLD
          */
         public final long unbufferedStatementThreshold;
-
-//        /**
-//         * The capacity of the buffers used to hold the parsed RDF data -or- the
-//         * initial capacity of the RDF {@link Value}s hash map when
-//         * {@link #asynchronousWrites} is <code>true</code>.
-//         * 
-//         * @see ConfigurationOptions#STATEMENT_BUFFER_CAPACITY
-//         */
-//        public final int bufferCapacity;
-//
-//        /**
-//         * @see ConfigurationOptions#ASYNCHRONOUS_WRITES
-//         */
-//        public final boolean asynchronousWrites;
         
         /**
          * @see ConfigurationOptions#PRODUCER_CHUNK_SIZE
          */
         public final int producerChunkSize;
-        
-//        /**
-//         * @see ConfigurationOptions#SYNC_RPC_FOR_TERM2ID
-//         */
-//        public final boolean syncRPCForTERM2ID;
 
         /**
          * @see ConfigurationOptions#VALUES_INITIAL_CAPACITY
@@ -402,11 +383,6 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          * @see ConfigurationOptions#PARSER_VALIDATES
          */
         final public boolean parserValidates;
-
-//        /**
-//         * @see ConfigurationOptions#MAXTRIES
-//         */
-//        final public int maxTries;
         
         /**
          * Default format assumed when file ext is unknown.
@@ -420,6 +396,8 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         @Override
         protected void toString(StringBuilder sb) {
         
+            super.toString(sb);
+            
             sb.append(", " + ConfigurationOptions.NAMESPACE + "="
                     + namespace);
             
@@ -440,17 +418,8 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
 
             // @todo term2IdWriterPoolSize, etc.
             
-//            sb.append(", " + ConfigurationOptions.STATEMENT_BUFFER_CAPACITY+ "="
-//                    + bufferCapacity);
-        
-//            sb.append(", " + ConfigurationOptions.ASYNCHRONOUS_WRITES+ "="
-//                    + asynchronousWrites);
-            
             sb.append(", " + ConfigurationOptions.PRODUCER_CHUNK_SIZE+ "="
                     + producerChunkSize);
-
-//            sb.append(", " + ConfigurationOptions.SYNC_RPC_FOR_TERM2ID + "="
-//                    + syncRPCForTERM2ID);
 
             sb.append(", " + ConfigurationOptions.VALUES_INITIAL_CAPACITY + "="
                     + valuesInitialCapacity);
@@ -520,20 +489,11 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
                     Long.TYPE,
                     ConfigurationOptions.DEFAULT_UNBUFFERED_STATEMENT_THRESHOLD);
 
-//            bufferCapacity = (Integer) config.getEntry(component,
-//                    ConfigurationOptions.STATEMENT_BUFFER_CAPACITY, Integer.TYPE);
-
-//            asynchronousWrites = (Boolean) config.getEntry(component,
-//                    ConfigurationOptions.ASYNCHRONOUS_WRITES, Boolean.TYPE);
-
             producerChunkSize = (Integer) config
                     .getEntry(
                             component,
                             ConfigurationOptions.PRODUCER_CHUNK_SIZE,
                             Integer.TYPE);
-
-//            syncRPCForTERM2ID = (Boolean) config.getEntry(component,
-//                    ConfigurationOptions.SYNC_RPC_FOR_TERM2ID, Boolean.TYPE);
 
             valuesInitialCapacity = (Integer) config.getEntry(component,
                     ConfigurationOptions.VALUES_INITIAL_CAPACITY, Integer.TYPE);
@@ -581,7 +541,8 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
 
     /**
      * Runs the master. SIGTERM (normal kill or ^C) will cancel the job,
-     * including any running clients.
+     * including any running clients. Use <code>-Dbigdata.component</code> to
+     * override the configuration component name.
      * 
      * @param args
      *            The {@link Configuration} and any overrides.
@@ -613,8 +574,7 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
     /**
      * Extended to support optional load, closure, and reporting.
      */
-    protected void runClients() throws ExecutionException,
-            InterruptedException, IOException, ConfigurationException {
+    protected void runJob() throws Exception {
 
         final S jobState = getJobState();
 
@@ -635,7 +595,7 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
              * each pair run on the SAME data service.
              */
 
-            super.runClients();
+            super.runJob();
 
             /*
              * The data generator aspect of the job is finished.
@@ -902,14 +862,10 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
 
     /**
      * Create the {@link AbstractTripleStore} specified by
-     * {@link ConfigurationOptions#NAMESPACE}. The {@link AbstractTripleStore}
-     * is configured using {@link JiniClient#getProperties(String)}, where the
-     * <i>component</i> is the name of the {@link RDFDataLoadMaster} (sub)class
-     * that is being executed.
+     * {@link ConfigurationOptions#NAMESPACE} using the <code>properties</code>
+     * associated with the {@link TaskMaster.JobState#component}.
      * 
      * @return The {@link AbstractTripleStore}
-     * 
-     * @see JiniClient#getProperties(String)
      */
     protected AbstractTripleStore createTripleStore() throws ConfigurationException {
 
@@ -925,7 +881,7 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          * executing the master.
          */
         final Properties properties = fed.getClient().getProperties(
-                getClass().getName());
+                jobState.component);
         
         final AbstractTripleStore tripleStore = new ScaleOutTripleStore(fed,
                 jobState.namespace, ITx.UNISOLATED, properties);

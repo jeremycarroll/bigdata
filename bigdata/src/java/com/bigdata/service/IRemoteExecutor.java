@@ -63,7 +63,13 @@ public interface IRemoteExecutor extends Remote {
      * @todo change API to <T> Future<T> submit(Callable<T> proc). This will
      *       break existing code but reflects the correct use of generics.
      */
-    public Future<? extends Object> submit(Callable<? extends Object> proc)
+    public Future<? extends Object> submit(Callable<? extends Object> task)
             throws IOException;
 
+    /**
+     * A transient and dynamic property set (aka session) associated with the
+     * {@link IRemoteExecutor} instance.
+     */
+    public Session getSession();
+    
 }

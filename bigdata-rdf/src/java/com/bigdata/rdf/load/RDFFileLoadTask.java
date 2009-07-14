@@ -78,9 +78,6 @@ public class RDFFileLoadTask<S extends JobState, V extends Serializable>
 
     }
 
-    /**
-     * {@link ConcurrentDataLoader}
-     */
     public Void call() throws Exception {
 
         final JiniFederation fed = getFederation();
