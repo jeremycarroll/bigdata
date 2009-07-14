@@ -560,6 +560,12 @@ public class BlockingBuffer<E> implements IBlockingBuffer<E> {
         return open;
         
     }
+
+    public boolean isOrdered() {
+        
+        return ordered;
+        
+    }
     
     /**
      * Closes the {@link BlockingBuffer} such that it will not accept new

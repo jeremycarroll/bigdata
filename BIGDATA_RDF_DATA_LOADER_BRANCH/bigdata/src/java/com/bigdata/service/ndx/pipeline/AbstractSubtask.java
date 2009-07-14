@@ -117,6 +117,13 @@ L>//
      */
     protected volatile long lastChunkAvailableNanos = lastChunkNanos;
 
+    public String toString() {
+
+        return getClass().getName() + "{locator=" + locator + ", open="
+                + buffer.isOpen() + "}";
+
+    }
+
     public AbstractSubtask(final M master, final L locator,
             final BlockingBuffer<E[]> buffer) {
 
@@ -192,6 +199,12 @@ L>//
             if (log.isInfoEnabled())
                 log.info("Done: " + locator);
 
+            /*
+             * wait until any asynchronous processing for the subtask is done
+             * (extension hook).
+             */ 
+            awaitPending();
+            
             // done.
             return stats;
 
@@ -232,6 +245,18 @@ L>//
 
     }
 
+    /**
+     * Wait until any asynchronous processing for the subtask is done. This is
+     * an extension hook which is used if the remote task accepts chunks for
+     * processing and uses an asynchronous notification mechanism to indicate
+     * the success or failure of elements. The default implementation is a NOP.
+     */
+    protected void awaitPending() throws InterruptedException {
+
+        // NOP - overriden by subclass which supports pendingSets.
+        
+    }
+    
     /**
      * Inner class is responsible for combining chunks as they become available
      * from the {@link IAsynchronousIterator} while maintaining liveness. It
@@ -382,12 +407,16 @@ L>//
                 }
 
                 if (chunkSize > 0
-                        && ((elapsedNanos > buffer.getChunkTimeout()) || (!buffer
-                                .isOpen() && !src.hasNext()))) {
+                        && (   (elapsedNanos > buffer.getChunkTimeout())//
+                            || (!buffer.isOpen() && !src.hasNext())//
+                            || (master.isFlushSinks() && !src.hasNext(1,TimeUnit.NANOSECONDS))//
+                            )) {
                     /*
                      * We have SOME data and either (a) the chunk timeout has
                      * expired -or- (b) the buffer is closed and there is
-                     * nothing more to be read from the iterator.
+                     * nothing more to be read from the iterator; -or- (c) the
+                     * master is signaling that sinks should prefer to flush
+                     * partial chunks rather than await additional data.
                      */
                     if (log.isInfoEnabled())
                         log.info("Partial chunk: " + chunkSize + ", elapsed="
@@ -400,7 +429,7 @@ L>//
                 /*
                  * Poll the source iterator for another chunk.
                  * 
-                 * @todo I need to review the logic for choosing a shorting poll
+                 * @todo I need to review the logic for choosing a short poll
                  * duration here. I believe that this choice is leading to high
                  * CPU utilization when there are a lot of index partitions and
                  * hence a large #of threads running on the clients. In fact, I
@@ -582,8 +611,6 @@ L>//
          * Drain the rest of the buffered chunks from the closed sink, feeding
          * them onto the master's redirect queue.
          */
-        final IAsynchronousIterator<E[]> itr = src;
-
         while (src.hasNext()) {
 
             master.redirectChunk(src.next());
