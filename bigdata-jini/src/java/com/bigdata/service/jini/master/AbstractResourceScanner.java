@@ -45,8 +45,7 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public abstract class AbstractResourceScanner<V> implements Callable<Long>,
-        Serializable {
+public abstract class AbstractResourceScanner<V> implements Callable<Long> {
 
     /**
      * The master buffer onto which the scanner drops chunks of resources

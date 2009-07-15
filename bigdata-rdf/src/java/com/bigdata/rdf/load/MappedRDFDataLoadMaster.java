@@ -121,10 +121,13 @@ V extends Serializable//
         String ONTOLOGY_FILE_FILTER = "ontologyFileFilter";
         
         /**
-         * The core pool size for the thread pool running the parser tasks.
+         * The core pool size for the thread pool running the parser tasks
+         * (default {@value #DEFAULT_PARSER_POOL_SIZE}).
          */
         String PARSER_POOL_SIZE = "parserPoolSize";
 
+        int DEFAULT_PARSER_POOL_SIZE = 5;
+        
         /**
          * The capacity of the work queue for the thread pool running the parser
          * tasks (default is 2x the parser pool size).
@@ -471,7 +474,8 @@ V extends Serializable//
                     FilenameFilter.class, new RDFFilenameFilter());
 
             parserPoolSize = (Integer) config.getEntry(component,
-                    ConfigurationOptions.PARSER_POOL_SIZE, Integer.TYPE);
+                    ConfigurationOptions.PARSER_POOL_SIZE, Integer.TYPE,
+                    ConfigurationOptions.DEFAULT_PARSER_POOL_SIZE);
 
             parserQueueCapacity = (Integer) config.getEntry(component,
                     ConfigurationOptions.PARSER_QUEUE_CAPACITY, Integer.TYPE,

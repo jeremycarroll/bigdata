@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.master;
 
+import java.io.Serializable;
+
 import com.bigdata.relation.accesspath.BlockingBuffer;
 
 /**
@@ -35,7 +37,7 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface IResourceScannerFactory<V> {
+public interface IResourceScannerFactory<V> extends Serializable {
 
     /**
      * Return a new scanner instance.
