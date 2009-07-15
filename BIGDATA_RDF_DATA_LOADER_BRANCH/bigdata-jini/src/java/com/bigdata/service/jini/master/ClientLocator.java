@@ -47,6 +47,13 @@ public class ClientLocator implements Externalizable {
     private static final long serialVersionUID = 7289277874475092452L;
     
     private int clientNo;
+   
+    /**
+     * Deserialization ctor.
+     */
+    public ClientLocator() {
+        
+    }
     
     public ClientLocator(final int clientNo) {
         
