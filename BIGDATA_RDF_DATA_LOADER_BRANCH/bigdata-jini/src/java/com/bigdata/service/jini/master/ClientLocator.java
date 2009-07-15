@@ -27,6 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.master;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 /**
  * A locator for a client task. This is just an integer in [0:N-1], where N is
  * the #of clients for the job.
@@ -34,9 +39,14 @@ package com.bigdata.service.jini.master;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class ClientLocator {
+public class ClientLocator implements Externalizable {
 
-    private final Integer clientNo;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 7289277874475092452L;
+    
+    private int clientNo;
     
     public ClientLocator(final int clientNo) {
         
@@ -46,21 +56,33 @@ public class ClientLocator {
     
     public int hashCode() {
         
-        return clientNo.hashCode();
+        // hash code of int is the int.
+        return clientNo;
         
     }
     
     public boolean equals(Object o) {
 
         return this == o
-                || (o instanceof ClientLocator && clientNo.intValue() == ((ClientLocator) o).clientNo
-                        .intValue());
+                || (o instanceof ClientLocator && clientNo == ((ClientLocator) o).clientNo);
         
     }
 
     public int getClientNo() {
         
-        return clientNo.intValue();
+        return clientNo;
+        
+    }
+
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        
+        clientNo = in.readInt();
+        
+    }
+
+    public void writeExternal(ObjectOutput out) throws IOException {
+
+        out.writeInt(clientNo);
         
     }
     
