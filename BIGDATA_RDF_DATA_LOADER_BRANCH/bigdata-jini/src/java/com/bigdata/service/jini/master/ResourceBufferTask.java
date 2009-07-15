@@ -373,6 +373,16 @@ HS extends ResourceBufferSubtaskStatistics //
         @SuppressWarnings("unchecked")
         public IAsynchronousClientTask call() throws Exception {
 
+            /*
+             * @todo This is being done explicitly because the task is not being
+             * submitted against the client's IRemoteExecutor service directly,
+             * but instead against the ExecutorService for its internal
+             * Federation reference. It would be better to obtain the
+             * non-proxied IRemoteExecutor and run against that.  I think that
+             * I fixed this before...
+             */
+            task.setFederation(getFederation());
+            
             final Future future = getFederation().getExecutorService().submit(
                     task);
 
