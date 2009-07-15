@@ -1,12 +1,6 @@
 package com.bigdata.rdf.load;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
-import java.net.URL;
 import java.rmi.RemoteException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Condition;
@@ -71,7 +65,7 @@ implements Serializable {
     /**
      * Instantiated by {@link #call()} on the {@link IRemoteExecutor} service.
      */
-    private transient AsynchronousStatementBufferFactory<BigdataStatement> statementBufferFactory;
+    private transient AsynchronousStatementBufferFactory<BigdataStatement,V> statementBufferFactory;
 
     /**
      * Note: transient field set by {@link #call()}. 
@@ -131,14 +125,14 @@ implements Serializable {
 
         }
 
-        statementBufferFactory = new AsynchronousStatementBufferFactory<BigdataStatement>(
+        statementBufferFactory = new AsynchronousStatementBufferFactory<BigdataStatement,V>(
                 (ScaleOutTripleStore) tripleStore,//
                 jobState.producerChunkSize,//
                 jobState.valuesInitialCapacity,//
                 jobState.bnodesInitialCapacity,//
                 jobState.getFallbackRDFFormat(), // 
                 jobState.parserValidates,//
-                jobState.deleteAfter,//
+                false, // deleteAfter is handled by the master!
                 jobState.parserPoolSize, //  
                 jobState.parserQueueCapacity, // 
                 jobState.term2IdWriterPoolSize,//
@@ -151,7 +145,8 @@ implements Serializable {
              * Override the "notifyService" to do asynchronous RMI back to this
              * class indicating success or failure for each resource.
              */
-            protected Runnable newSuccessTask(final String resource) {
+            @Override
+            protected Runnable newSuccessTask(final V resource) {
                 return new Runnable() {
                     public void run() {
                         try {
@@ -163,7 +158,8 @@ implements Serializable {
                 };
             }
 
-            protected Runnable newFailureTask(final String resource,
+            @Override
+            protected Runnable newFailureTask(final V resource,
                     final Throwable cause) {
                 return new Runnable() {
                     public void run() {
@@ -231,41 +227,38 @@ implements Serializable {
 
     }
 
-    /**
-     * FIXME This knows how to open {@link File}s and {@link URL}s, but it is
-     * not integrated into the {@link AsynchronousStatementBufferFactory} and
-     * the factory is parameterized for {@link String} resource identifiers, so
-     * the identifier would need to be converted to a {@link File}, {@link URL},
-     * etc. and each possibility tested.
-     */
-    @Override
-    protected InputStream openResource(final V resource) throws IOException {
-
-        final InputStream is;
-
-        if (resource instanceof File) {
-
-            is = new FileInputStream((File) resource);
-
-        } else if (resource instanceof URL) {
-
-            is = ((URL) resource).openStream();
-
-        } else {
-
-            throw new UnsupportedOperationException();
-
-        }
-
-        return new BufferedInputStream(is);
-
-    }
+//    /**
+//     * This knows how to open {@link File}s and {@link URL}s, but it is
+//     * not integrated into the {@link AsynchronousStatementBufferFactory}.
+//     */
+//    @Override
+//    protected InputStream openResource(final V resource) throws IOException {
+//
+//        final InputStream is;
+//
+//        if (resource instanceof File) {
+//
+//            is = new FileInputStream((File) resource);
+//
+//        } else if (resource instanceof URL) {
+//
+//            is = ((URL) resource).openStream();
+//
+//        } else {
+//
+//            throw new UnsupportedOperationException();
+//
+//        }
+//
+//        return new BufferedInputStream(is);
+//
+//    }
 
     public void accept(V[] chunk) throws RemoteException, InterruptedException {
 
         for (V resource : chunk) {
 
-            statementBufferFactory.submitOne(resource.toString(),
+            statementBufferFactory.submitOne(resource,
                     jobState.rejectedExecutionDelay);
 
         }

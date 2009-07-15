@@ -27,8 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.master;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.rmi.RemoteException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -72,7 +70,7 @@ public abstract class AbstractAsynchronousClientTask<U, V, L> extends
      * Return the proxy for the remote object which is notified as asynchronous
      * operations succeed or fail.
      */
-    public INotifyOutcome getNotifyProxy() {
+    public INotifyOutcome<V, L> getNotifyProxy() {
 
         return proxy;
         
@@ -129,14 +127,14 @@ public abstract class AbstractAsynchronousClientTask<U, V, L> extends
 
     }
 
-    /**
-     * Open an input stream reading from the resource identifier. This method is
-     * designed for pluggable abstractions for resolving the resource identifier
-     * to its data.
-     * 
-     * @param resource
-     *            The resource identifier.
-     */
-    abstract protected InputStream openResource(V resource) throws IOException;
+//    /**
+//     * Open an input stream reading from the resource identifier. This method is
+//     * designed for pluggable abstractions for resolving the resource identifier
+//     * to its data.
+//     * 
+//     * @param resource
+//     *            The resource identifier.
+//     */
+//    abstract protected InputStream openResource(V resource) throws IOException;
 
 }

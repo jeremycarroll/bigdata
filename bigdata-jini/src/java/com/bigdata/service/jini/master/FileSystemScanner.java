@@ -65,10 +65,10 @@ public class FileSystemScanner extends AbstractResourceScanner<File> {
      *            An optional filter on files that will be accepted when
      *            processing a directory.
      */
-    public FileSystemScanner(final BlockingBuffer<File[]> queue,
+    public FileSystemScanner(final BlockingBuffer<File[]> buffer,
             final File fileOrDir, final FilenameFilter filter) {
 
-        super(queue);
+        super(buffer);
 
         if (fileOrDir == null)
             throw new IllegalArgumentException();
@@ -134,6 +134,25 @@ public class FileSystemScanner extends AbstractResourceScanner<File> {
 
         }
 
+    }
+
+    /**
+     * Factory for factory.
+     */
+    public static IResourceScannerFactory<File> newFactory(
+            final File fileOrDir, final FilenameFilter filter) {
+
+        return new IResourceScannerFactory<File>() {
+
+            public AbstractResourceScanner newScanner(
+                    final BlockingBuffer<File[]> buffer) {
+                
+                return new FileSystemScanner(buffer, fileOrDir, filter);
+                
+            }
+            
+        };
+        
     }
 
 }

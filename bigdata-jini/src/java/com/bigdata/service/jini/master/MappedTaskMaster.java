@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.master;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
@@ -42,8 +43,8 @@ import com.bigdata.btree.BigdataMap;
 import com.bigdata.btree.BigdataSet;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.rdf.load.RDFDataLoadMaster;
+import com.bigdata.rdf.store.ITripleStore;
 import com.bigdata.relation.accesspath.BlockingBuffer;
-import com.bigdata.relation.accesspath.IRunnableBuffer;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.jini.JiniFederation;
 
@@ -132,6 +133,12 @@ V extends Serializable//
          */
         String CLIENT_HASH_FUNCTION = "clientHashFunction";
         
+        /**
+         * When <code>true</code>, the source files identified by the scanner
+         * will be deleted if they are successfully processed.
+         */
+        String DELETE_AFTER = "deleteAfter";
+
     }
     
     /**
@@ -177,6 +184,14 @@ V extends Serializable//
          */
         public final IHashFunction clientHashFunction;
         
+        /**
+         * When <code>true</code>, the each data file will be deleted once
+         * its data has been loaded into the {@link ITripleStore}.
+         * 
+         * @see 
+         */
+        public final boolean deleteAfter;
+                
         @Override
         protected void toString(final StringBuilder sb) {
 
@@ -195,6 +210,9 @@ V extends Serializable//
             sb.append(", "
                     + ConfigurationOptions.PENDING_SET_SUBTASK_INITIAL_CAPACITY
                     + "=" + pendingSetSubtaskInitialCapacity);
+
+            sb.append(", " + ConfigurationOptions.DELETE_AFTER + "="
+                    + deleteAfter);
 
         }
 
@@ -237,6 +255,10 @@ V extends Serializable//
                     ConfigurationOptions.CLIENT_HASH_FUNCTION,
                     IHashFunction.class, new DefaultHashFunction());
 
+            deleteAfter = (Boolean) config.getEntry(
+                    component,
+                    ConfigurationOptions.DELETE_AFTER, Boolean.TYPE);
+
         }
 
     }
@@ -267,7 +289,7 @@ V extends Serializable//
 
             // instantiate scanner backed by the resource buffer.
             final AbstractResourceScanner<?> scanner = getJobState().scannerFactory
-                    .newScanner((IRunnableBuffer) resourceBuffer);
+                    .newScanner((BlockingBuffer) resourceBuffer);
 
             // start scanner.
             final Future<Long> scannerFuture = fed.getExecutorService().submit(
@@ -334,7 +356,19 @@ V extends Serializable//
                 conf.getSinkChunkTimeoutNanos(),//
                 stats,//
                 resourceBuffer//
-        );
+        ) {
+          
+            @Override
+            public void didSucceed(final V resource) {
+                super.didSucceed(resource);
+                if(getJobState().deleteAfter) {
+                    if(resource instanceof File) {
+                        ((File)resource).delete();
+                    }
+                }
+            }
+            
+        };
 
         final Future<? extends ResourceBufferStatistics> future = getFederation()
                 .getExecutorService().submit(task);

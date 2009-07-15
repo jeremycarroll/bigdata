@@ -127,7 +127,7 @@ V extends Serializable//
 
         /**
          * The capacity of the work queue for the thread pool running the parser
-         * tasks.
+         * tasks (default is 2x the parser pool size).
          */
         String PARSER_QUEUE_CAPACITY = "parserQueueCapacity";
 
@@ -220,13 +220,6 @@ V extends Serializable//
          * @see BigdataSail.Options#TRUTH_MAINTENANCE
          */
         String COMPUTE_CLOSURE = "computeClosure";
-
-        /**
-         * When <code>true</code>, the data files will be deleted as they are
-         * consumed. (They will only be deleted once the data from the file are
-         * known to be restart safe in the {@link ITripleStore}.)
-         */
-        String DELETE_AFTER = "deleteAfter";
 
         /**
          * When <code>true</code>, an overflow with a compacting merge will
@@ -375,12 +368,6 @@ V extends Serializable//
         final boolean forceOverflowBeforeClosure;
         
         /**
-         * When <code>true</code>, the each data file will be deleted once
-         * its data has been loaded into the {@link ITripleStore}.
-         */
-        public final boolean deleteAfter;
-                
-        /**
          * When <code>true</code> a validating parsed will be used.
          * 
          * @see ConfigurationOptions#PARSER_VALIDATES
@@ -457,9 +444,6 @@ V extends Serializable//
             sb.append(", " + ConfigurationOptions.FALLBACK_RDF_FORMAT + "="
                     + fallbackRDFFormat);
             
-            sb.append(", " + ConfigurationOptions.DELETE_AFTER + "="
-                    + deleteAfter);
-
             sb.append(", " + ConfigurationOptions.FORCE_OVERFLOW_BEFORE_CLOSURE + "="
                     + forceOverflowBeforeClosure);
 
@@ -490,7 +474,8 @@ V extends Serializable//
                     ConfigurationOptions.PARSER_POOL_SIZE, Integer.TYPE);
 
             parserQueueCapacity = (Integer) config.getEntry(component,
-                    ConfigurationOptions.PARSER_QUEUE_CAPACITY, Integer.TYPE);
+                    ConfigurationOptions.PARSER_QUEUE_CAPACITY, Integer.TYPE,
+                    parserPoolSize * 2);
 
             term2IdWriterPoolSize = (Integer) config.getEntry(component,
                     ConfigurationOptions.TERM2ID_WRITER_POOL_SIZE,
@@ -532,10 +517,6 @@ V extends Serializable//
             computeClosure = (Boolean) config.getEntry(
                     component,
                     ConfigurationOptions.COMPUTE_CLOSURE, Boolean.TYPE);
-
-            deleteAfter = (Boolean) config.getEntry(
-                    component,
-                    ConfigurationOptions.DELETE_AFTER, Boolean.TYPE);
 
             forceOverflowBeforeClosure = (Boolean) config.getEntry(component,
                     ConfigurationOptions.FORCE_OVERFLOW_BEFORE_CLOSURE,

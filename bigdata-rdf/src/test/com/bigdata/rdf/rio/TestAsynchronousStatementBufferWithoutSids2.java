@@ -169,8 +169,8 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
         try {
 
             // only do load since we expect an error to be reported.
-            final AsynchronousStatementBufferFactory<BigdataStatement> factory = doLoad2(
-                    store, resource, parallel);
+            final AsynchronousStatementBufferFactory<BigdataStatement, File> factory = doLoad2(
+                    store, new File(resource), parallel);
             
             assertEquals("errorCount", 1, factory.getDocumentErrorCount());
             
@@ -285,18 +285,18 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
     protected void doLoad(final AbstractTripleStore store,
             final String resource, final boolean parallel) throws Exception {
 
-        doLoad2(store, resource, parallel);
+        doLoad2(store, new File(resource), parallel);
         
     }
 
     /**
      * Load using {@link AsynchronousStatementBufferWithoutSids2}.
      */
-    protected AsynchronousStatementBufferFactory<BigdataStatement> doLoad2(
-            final AbstractTripleStore store, final String resource,
+    protected AsynchronousStatementBufferFactory<BigdataStatement,File> doLoad2(
+            final AbstractTripleStore store, final File resource,
             final boolean parallel) throws Exception {
 
-        final AsynchronousStatementBufferFactory<BigdataStatement> statementBufferFactory = new AsynchronousStatementBufferFactory<BigdataStatement>(
+        final AsynchronousStatementBufferFactory<BigdataStatement,File> statementBufferFactory = new AsynchronousStatementBufferFactory<BigdataStatement,File>(
                 (ScaleOutTripleStore) store,//
                 chunkSize, //
                 valuesInitialCapacity,//
@@ -319,11 +319,10 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
         try {
 
             // tasks to load the resource or file(s)
-            if(new File(resource).exists()) {
+            if (resource.exists()) {
 
-                statementBufferFactory
-                        .submitAll(new File(resource), null/* filter */,
-                                rejectedExecutionDelay);
+                statementBufferFactory.submitAll(resource, null/* filter */,
+                        rejectedExecutionDelay);
                 
             } else {
                 
