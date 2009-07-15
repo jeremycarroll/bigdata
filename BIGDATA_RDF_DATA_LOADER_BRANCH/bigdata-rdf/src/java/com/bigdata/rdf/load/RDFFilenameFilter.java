@@ -22,7 +22,15 @@ public class RDFFilenameFilter implements FilenameFilter, Serializable {
 
     public boolean accept(File dir, String name) {
 
-        if (new File(dir, name).isDirectory()) {
+        final File file = new File(dir, name);
+        
+        if (file.isHidden()) {
+
+            return false;
+            
+        }
+        
+        if (file.isDirectory()) {
 
             // visit subdirectories.
             return true;

@@ -13,7 +13,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
-import org.openrdf.rio.RDFFormat;
 
 import com.bigdata.counters.CounterSet;
 import com.bigdata.journal.ITx;
@@ -137,23 +136,20 @@ implements Serializable {
                 jobState.producerChunkSize,//
                 jobState.valuesInitialCapacity,//
                 jobState.bnodesInitialCapacity,//
-                RDFFormat.RDFXML, // @todo defaultFormat is not serializable.
+                jobState.getFallbackRDFFormat(), // 
                 jobState.parserValidates,//
                 jobState.deleteAfter,//
-                jobState.parserPoolSize, // parserPoolSize 
-                jobState.parserQueueCapacity, // parserQueueCapacity
+                jobState.parserPoolSize, //  
+                jobState.parserQueueCapacity, // 
                 jobState.term2IdWriterPoolSize,//
                 jobState.otherWriterPoolSize,//
-                jobState.unbufferedStatementThreshold
+                jobState.notifyPoolSize,//
+                jobState.unbufferedStatementThreshold//
                 ) {
                         
             /*
              * Override the "notifyService" to do asynchronous RMI back to this
              * class indicating success or failure for each resource.
-             * 
-             * @todo raise notifyServicePoolSize into ctor and specify GTE ONE
-             * (1) since concurrent RMI could speed up asynchronous notification
-             * sigificantly.
              */
             protected Runnable newSuccessTask(final String resource) {
                 return new Runnable() {
@@ -185,18 +181,23 @@ implements Serializable {
         try {
 
             /*
-             * Note: Add the counters to be reported to the client's counter
-             * set. The added counters will be reported when the client reports
-             * its own counters.
+             * Add the counters to be reported to the client's counter set. The
+             * added counters will be reported when the client reports its own
+             * counters.
              */
-            final CounterSet serviceRoot = fed.getServiceCounterSet();
+            {
 
-            final String relPath = jobState.jobName;
+                final CounterSet serviceRoot = fed.getServiceCounterSet();
 
-            // Create path to CDL counter set.
-            final CounterSet tmp = serviceRoot.makePath(relPath);
+                final String relPath = jobState.jobName;
 
-            tmp.attach(statementBufferFactory.getCounters(), true/* replace */);
+                // Create path to counter set.
+                final CounterSet tmp = serviceRoot.makePath(relPath);
+
+                // Attach counters.
+                tmp
+                        .attach(statementBufferFactory.getCounters(), true/* replace */);
+            }
 
             /*
              * Wait until either (a) interrupted by the master using

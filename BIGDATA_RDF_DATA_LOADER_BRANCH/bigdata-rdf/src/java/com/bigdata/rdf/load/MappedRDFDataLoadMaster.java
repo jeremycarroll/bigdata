@@ -44,7 +44,6 @@ import com.bigdata.journal.IResourceLock;
 import com.bigdata.journal.ITx;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.inf.ClosureStats;
-import com.bigdata.rdf.rio.AsynchronousStatementBufferFactory;
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -73,15 +72,6 @@ import com.bigdata.service.jini.master.TaskMaster;
  * @todo Support loading files from URLs, BFS, etc. This can be achieved via
  *       subclassing and overriding {@link #newClientTask(int)} and
  *       {@link #newJobState(String, Configuration)} as necessary.
- * 
- * FIXME Clients processing RDF documents using the
- * {@link AsynchronousStatementBufferFactory} are MUCH more efficient if they
- * can maintain a steady workload. Therefore the sink idle timeout should be
- * disabled (Long#MAX_VALUE) for this use case to prevent the
- * {@link AsynchronousStatementBufferFactory} from being closed until the entire
- * job is finished, but this requires us to flush asynchronous index writes
- * aggressively when the job is nearing completion (in fact, a sink idle timeout
- * is pretty unlikely for a hash partitioned workload distribution!)
  */
 public class MappedRDFDataLoadMaster<//
 S extends MappedRDFDataLoadMaster.JobState,//
@@ -101,25 +91,13 @@ V extends Serializable//
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    public interface ConfigurationOptions extends TaskMaster.ConfigurationOptions {
+    public interface ConfigurationOptions extends MappedTaskMaster.ConfigurationOptions {
 
         /**
          * The KB namespace.
          */
         String NAMESPACE = "namespace";
 
-        /**
-         * The directory from which the data will be read.
-         */
-        String DATA_DIR = "dataDir";
-
-        /**
-         * Only files matched by the filter will be loaded from the
-         * {@link #DATA_DIR} (optional, but must be {@link Serializable} if
-         * given).
-         */
-        String DATA_DIR_FILTER = "dataDirFilter";
-        
         /**
          * A file or directory whose data will be loaded into the KB when it is
          * created. If it is a directory, then all data in that directory will
@@ -133,6 +111,15 @@ V extends Serializable//
          */
         String ONTOLOGY = "ontology";
 
+        /**
+         * Only files matched by the optional {@link FilenameFilter} will be
+         * accepted for processing (optional, but must be {@link Serializable}
+         * if given).  The default is an {@link RDFFilenameFilter}.
+         * 
+         * @see RDFFilenameFilter
+         */
+        String ONTOLOGY_FILE_FILTER = "ontologyFileFilter";
+        
         /**
          * The core pool size for the thread pool running the parser tasks.
          */
@@ -170,6 +157,17 @@ V extends Serializable//
         int DEFAULT_OTHER_WRITER_POOL_SIZE = 5;
 
         /**
+         * The #of threads used to handle asynchronous notification events when
+         * a resource has been successfully processed (document done and
+         * document error). These events are reported back to the job master
+         * using RMI. A thread pool is used to reduce latency for those
+         * asynchronous notifications.
+         */
+        String NOTIFY_POOL_SIZE = "notifyPoolSize";
+
+        int DEFAULT_NOTIFY_POOL_SIZE = 5;
+
+        /**
          * The maximum #of statements which can be parsed but not yet buffered
          * on for asynchronous index writes before new parser tasks will be
          * paused. This is used to control the RAM demand of the parser tasks.
@@ -180,19 +178,6 @@ V extends Serializable//
 
         long DEFAULT_UNBUFFERED_STATEMENT_THRESHOLD = Bytes.megabyte * 1;
 
-//        /**
-//         * The buffer capacity for parsed RDF statements (not used when
-//         * {@link #ASYNCHRONOUS_WRITES} are enabled). 3x this gives the initial
-//         * capacity of the RDF {@link Value}s hash map.
-//         */
-//        String STATEMENT_BUFFER_CAPACITY = "statementBufferCapacity";
-
-//        /**
-//         * When <code>true</code> the asynchronous index write API will be
-//         * used.
-//         */
-//        String ASYNCHRONOUS_WRITES = "asynchronousWrites";
-        
         /**
          * When terms and values are parsed from a document then are aggregated
          * into chunks of this size before they are written onto the master for
@@ -200,13 +185,6 @@ V extends Serializable//
          */
         String PRODUCER_CHUNK_SIZE = "producerChunkSize";
 
-//        /**
-//         * When <code>true</code> synchronous RPC is used for writes on the
-//         * TERM2ID index. When <code>false</code> asynchronous writes are used
-//         * on that index.  Asynchronous writes have much better throughput.
-//         */
-//        String SYNC_RPC_FOR_TERM2ID = "syncRPCForTERM2ID";
-        
         /**
          * The initial capacity of the hash map used to store RDF {@link Value}s
          * when processing a document (asynchronous writes only).
@@ -269,6 +247,15 @@ V extends Serializable//
         
         boolean DEFAULT_PARSER_VALIDATES = false;
 
+        /**
+         * When the {@link RDFFormat} of a resource is not evident, assume that
+         * it is the format specified by this value (default
+         * {@value #DEFAULT_FALLBACK_RDF_FORMAT}).
+         */
+        String FALLBACK_RDF_FORMAT = "fallbackRDFFormat";
+        
+        RDFFormat DEFAULT_FALLBACK_RDF_FORMAT = RDFFormat.RDFXML;
+        
 //        /**
 //         * The maximum #of times an attempt will be made to load any given file.
 //         */
@@ -299,21 +286,6 @@ V extends Serializable//
         public final String namespace;
 
         /**
-         * The directory from which files will be read.
-         * 
-         * @see ConfigurationOptions#DATA_DIR
-         */
-        public final File dataDir;
-
-        /**
-         * Only files matched by the filter in the {@link #dataDir} will be
-         * processed (optional, but must be {@link Serializable}).
-         * 
-         * @see ConfigurationOptions#DATA_DIR_FILTER
-         */
-        public final FilenameFilter dataDirFilter;
-        
-        /**
          * The file or directory from which files will be loaded when the
          * {@link ITripleStore} is first created.
          * 
@@ -321,6 +293,14 @@ V extends Serializable//
          */
         public final File ontology;
 
+        /**
+         * Only files matched by the filter will be processed (optional, but
+         * must be {@link Serializable}).
+         * 
+         * @see ConfigurationOptions#ONTOLOGY_FILE_FILTER
+         */
+        public final FilenameFilter ontologyFileFilter;
+        
         /**
          * @see ConfigurationOptions#PARSER_POOL_SIZE
          */
@@ -345,6 +325,11 @@ V extends Serializable//
          * @see ConfigurationOptions#OTHER_WRITER_POOL_SIZE
          */
         public final int otherWriterPoolSize;
+
+        /**
+         * @see ConfigurationOptions#NOTIFY_POOL_SIZE
+         */
+        public final int notifyPoolSize;
 
         /**
          * @see ConfigurationOptions#UNBUFFERED_STATEMENT_THRESHOLD
@@ -403,13 +388,21 @@ V extends Serializable//
         final public boolean parserValidates;
         
         /**
-         * Default format assumed when file ext is unknown.
-         * 
-         * @todo configure the filter. Since {@link RDFFormat} is not
-         *       serializable we will have to specify the filter class and
-         *       create an instance on the target machine.
+         * The {@link RDFFormat} that will be used when the format can not be
+         * deduced from the file extension or other metadata.
          */
-        final static transient public RDFFormat fallback = RDFFormat.RDFXML;
+        final public String fallbackRDFFormat;
+
+        /**
+         * Return the {@link RDFFormat} that will be used when the format can
+         * not be deduced from the file extension or other metadata.
+         */
+        public RDFFormat getFallbackRDFFormat() {
+            
+            // Note: RDFFormat is not Serializable, hence this workaround.
+            return RDFFormat.valueOf(fallbackRDFFormat);
+            
+        }
 
         @Override
         protected void toString(StringBuilder sb) {
@@ -419,11 +412,10 @@ V extends Serializable//
             sb.append(", " + ConfigurationOptions.NAMESPACE + "="
                     + namespace);
             
-            sb.append(", " + ConfigurationOptions.DATA_DIR+ "="
-                    + dataDir);
-        
-            sb.append(", " + ConfigurationOptions.DATA_DIR_FILTER + "="
-                    + dataDirFilter);
+            sb.append(", " + ConfigurationOptions.ONTOLOGY + "=" + ontology);
+
+            sb.append(", " + ConfigurationOptions.ONTOLOGY_FILE_FILTER + "="
+                    + ontologyFileFilter);
         
             sb.append(", " + ConfigurationOptions.PARSER_POOL_SIZE + "="
                     + parserPoolSize);
@@ -440,8 +432,9 @@ V extends Serializable//
             sb.append(", " + ConfigurationOptions.OTHER_WRITER_POOL_SIZE + "="
                     + otherWriterPoolSize);
 
-            // @todo other fields?
-            
+            sb.append(", " + ConfigurationOptions.NOTIFY_POOL_SIZE + "="
+                    + notifyPoolSize);
+
             sb.append(", " + ConfigurationOptions.PRODUCER_CHUNK_SIZE+ "="
                     + producerChunkSize);
 
@@ -457,9 +450,12 @@ V extends Serializable//
             
             sb.append(", " + ConfigurationOptions.COMPUTE_CLOSURE + "="
                     + computeClosure);
-          
+            
             sb.append(", " + ConfigurationOptions.PARSER_VALIDATES + "="
                     + parserValidates);
+            
+            sb.append(", " + ConfigurationOptions.FALLBACK_RDF_FORMAT + "="
+                    + fallbackRDFFormat);
             
             sb.append(", " + ConfigurationOptions.DELETE_AFTER + "="
                     + deleteAfter);
@@ -467,7 +463,7 @@ V extends Serializable//
             sb.append(", " + ConfigurationOptions.FORCE_OVERFLOW_BEFORE_CLOSURE + "="
                     + forceOverflowBeforeClosure);
 
-            // @todo more fields in the job state.
+            // @todo more fields in the job state?
 
         }
 
@@ -482,16 +478,13 @@ V extends Serializable//
             namespace = (String) config.getEntry(component,
                     ConfigurationOptions.NAMESPACE, String.class);
 
-            dataDir = (File) config.getEntry(component,
-                    ConfigurationOptions.DATA_DIR, File.class);
-
-            dataDirFilter = (FilenameFilter) config.getEntry(component,
-                    ConfigurationOptions.DATA_DIR_FILTER, FilenameFilter.class,
-                    null/* default */);
-
             ontology = (File) config
                     .getEntry(component, ConfigurationOptions.ONTOLOGY,
                             File.class, null/* defaultValue */);
+
+            ontologyFileFilter = (FilenameFilter) config.getEntry(component,
+                    ConfigurationOptions.ONTOLOGY_FILE_FILTER,
+                    FilenameFilter.class, new RDFFilenameFilter());
 
             parserPoolSize = (Integer) config.getEntry(component,
                     ConfigurationOptions.PARSER_POOL_SIZE, Integer.TYPE);
@@ -507,6 +500,10 @@ V extends Serializable//
             otherWriterPoolSize = (Integer) config.getEntry(component,
                     ConfigurationOptions.OTHER_WRITER_POOL_SIZE, Integer.TYPE,
                     ConfigurationOptions.DEFAULT_OTHER_WRITER_POOL_SIZE);
+
+            notifyPoolSize = (Integer) config.getEntry(component,
+                    ConfigurationOptions.NOTIFY_POOL_SIZE, Integer.TYPE,
+                    ConfigurationOptions.DEFAULT_NOTIFY_POOL_SIZE);
 
             unbufferedStatementThreshold = (Long) config.getEntry(component,
                     ConfigurationOptions.UNBUFFERED_STATEMENT_THRESHOLD,
@@ -548,6 +545,11 @@ V extends Serializable//
                     component,
                     ConfigurationOptions.FORCE_OVERFLOW, Boolean.TYPE,
                     ConfigurationOptions.DEFAULT_PARSER_VALIDATES);
+
+            fallbackRDFFormat = ((RDFFormat) config.getEntry(component,
+                    ConfigurationOptions.FALLBACK_RDF_FORMAT, RDFFormat.class,
+                    ConfigurationOptions.DEFAULT_FALLBACK_RDF_FORMAT))
+                    .toString();
 
             rejectedExecutionDelay = (Long) config.getEntry(
                     component,
@@ -597,10 +599,6 @@ V extends Serializable//
 
     /**
      * Extended to support optional load, closure, and reporting.
-     * 
-     * @todo make sure that these extended job options do not hold the client
-     *       tasks open beyond the end of the distributed data load. E.g., not
-     *       during closure.
      */
     protected void runJob() throws Exception {
 
@@ -610,32 +608,21 @@ V extends Serializable//
 
         final AbstractTripleStore tripleStore = openTripleStore();
 
-        // @todo this will include any pre-loaded ontology and axioms
-        // (non-zero). @todo exact?
+        // Note: includes any pre-loaded ontology and axioms (non-zero).
         final long statementCount0 = tripleStore.getStatementCount(); 
 
         if (jobState.loadData) {
 
-            /*
-             * Start the producer and consumer tasks.
-             * 
-             * Note: The producer and consumer tasks are paired. The tasks in
-             * each pair run on the SAME data service.
-             */
-
+            // Do the mapped, distributed data load.
             super.runJob();
 
-            /*
-             * The data generator aspect of the job is finished.
-             */
-
+            // The data generator aspect of the job is finished.
             final long elapsed = System.currentTimeMillis() - begin;
 
             /*
              * Report tps for distributed data load.
              */
-
-            final long statementCount = tripleStore.getStatementCount(); // @todo exact?
+            final long statementCount = tripleStore.getStatementCount();
 
             final long statementsAdded = statementCount - statementCount0;
 
@@ -646,10 +633,6 @@ V extends Serializable//
                     + statementCount + ", nnew=" + statementsAdded
                     + ", elapsed=" + elapsed + "ms");
 
-            /*
-             * @todo consider commenting this out but SHOULD be safe w/
-             * read-committed or read-historical reads.
-             */ 
             System.out.println(getKBInfo(tripleStore));
 
         }
@@ -659,50 +642,30 @@ V extends Serializable//
             /*
              * Compute database-at-once closure.
              * 
-             * @todo Given the long running nature of closure over a large data
-             * set, clients could write the set of rules that have reached fixed
-             * point (stages in the program) onto the lock node. That way if the
-             * client computing closure fails, the operation can failover to the
-             * next client which gains the lock.
-             * 
-             * @todo Also, without some persistent record of the closure
-             * operation state if there are two masters running then the 2nd
-             * master will begin the closure operation _again_ as soon as the
-             * first one completes!
-             * 
-             * @todo We should probably put the zlock for this into
-             * inf.computeClosure() itself together with the state updates for
-             * the closure job. That is going to be the only way to put a lock
-             * on things that will prevent anyone else from running closure.
-             * 
-             * @todo We also want to prevent concurrent writes on the triple
-             * store while computing the closure or the wrong fixed point could
-             * be computed. This means that other writes need to be buffered
-             * elsewhere until the closure is complete, which is really the
-             * workflow level for bigdata triple store updates.
+             * Note: This lock is advisory.
              */
             final IResourceLock lock = fed.getResourceLockService()
                     .acquireLock(tripleStore.getNamespace());
 
-            if (jobState.forceOverflowBeforeClosure) {
-
-                /*
-                 * Force overflow before computing the closure since we will
-                 * perform full range scans on several predicates, some range
-                 * scans on all statements, and some of these things we will do
-                 * more than once if the triple pattern occurs within a fixed
-                 * point enclosure.
-                 */
-
-                forceOverflow();
-
-                System.out.println(getKBInfo(tripleStore));
-
-            }
-
             try {
 
-                final long statementCount1 = tripleStore.getStatementCount(); // @todo exact?
+                if (jobState.forceOverflowBeforeClosure) {
+
+                    /*
+                     * Force overflow before computing the closure since we will
+                     * perform full range scans on several predicates, some
+                     * range scans on all statements, and some of these things
+                     * we will do more than once if the triple pattern occurs
+                     * within a fixed point enclosure.
+                     */
+
+                    forceOverflow();
+
+                    System.out.println(getKBInfo(tripleStore));
+
+                }
+
+                final long statementCount1 = tripleStore.getStatementCount();
                 
                 final long beginClosure = System.currentTimeMillis();
                 
@@ -720,7 +683,7 @@ V extends Serializable//
 
                 final long elapsed = System.currentTimeMillis() - beginClosure;
 
-                final long statementCount = tripleStore.getStatementCount(); // @todo exact?
+                final long statementCount = tripleStore.getStatementCount();
                 
                 final long statementsAdded = statementCount - statementCount1;
 
@@ -747,10 +710,9 @@ V extends Serializable//
             /*
              * Report total tps throughput for load+closure.
              */
-
             final long elapsed = System.currentTimeMillis() - begin;
             
-            final long statementCount = tripleStore.getStatementCount(); // @todo exact?
+            final long statementCount = tripleStore.getStatementCount();
             
             final long statementsAdded = statementCount - statementCount0;
 
@@ -941,9 +903,12 @@ V extends Serializable//
         if (log.isInfoEnabled())
             log.info("Loading ontology: " + jobState.ontology);
 
-        tripleStore.getDataLoader().loadFiles(jobState.ontology/* file */,
-                jobState.ontology.getPath()/* baseURI */,
-                JobState.fallback/* rdfFormat */, new RDFFilenameFilter());
+        tripleStore.getDataLoader().loadFiles(//
+                jobState.ontology,//file
+                jobState.ontology.getPath(),//baseURI
+                jobState.getFallbackRDFFormat(),//
+                jobState.ontologyFileFilter //
+                );
 
         System.out.println("axiomAndOntologyCount="
                 + tripleStore.getStatementCount());

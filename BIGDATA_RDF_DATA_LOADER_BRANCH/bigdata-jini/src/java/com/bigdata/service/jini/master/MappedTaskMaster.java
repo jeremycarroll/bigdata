@@ -46,7 +46,6 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.accesspath.IRunnableBuffer;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.jini.JiniFederation;
-import com.bigdata.service.ndx.pipeline.AbstractMasterTask;
 
 /**
  * Extends the {@link TaskMaster} to assign chunks of resources for processing
@@ -98,6 +97,9 @@ V extends Serializable//
          * {@link IndexMetadata} on the {@link IMetadataService}. The easiest
          * way to tweak things is just to update the {@link IndexMetadata}
          * objects on the {@link IMetadataService}.
+         * <p>
+         * Note: Clients using the asynchronous index write API are MUCH more
+         * efficient if they can maintain a steady workload.
          */
         String RESOURCE_BUFFER_CONFIG = "resourceBufferConfig";
         
@@ -124,6 +126,11 @@ V extends Serializable//
          * {@link Integer#MAX_VALUE} to use a {@link BigdataSet}.
          */
         String PENDING_SET_SUBTASK_INITIAL_CAPACITY = "pendingSetSubtaskInitialCapacity";
+   
+        /**
+         * The hash function used to assign resources to client tasks.
+         */
+        String CLIENT_HASH_FUNCTION = "clientHashFunction";
         
     }
     
@@ -164,6 +171,11 @@ V extends Serializable//
          * @see ConfigurationOptions#PENDING_SET_SUBTASK_INITIAL_CAPACITY
          */
         public final int pendingSetSubtaskInitialCapacity;
+
+        /**
+         * @see ConfigurationOptions#CLIENT_HASH_FUNCTION
+         */
+        public final IHashFunction clientHashFunction;
         
         @Override
         protected void toString(final StringBuilder sb) {
@@ -221,6 +233,10 @@ V extends Serializable//
                     ConfigurationOptions.PENDING_SET_SUBTASK_INITIAL_CAPACITY,
                     Integer.TYPE, Integer.MAX_VALUE);
 
+            clientHashFunction = (IHashFunction) config.getEntry(component,
+                    ConfigurationOptions.CLIENT_HASH_FUNCTION,
+                    IHashFunction.class, new DefaultHashFunction());
+
         }
 
     }
@@ -235,44 +251,14 @@ V extends Serializable//
     }
 
     /**
-     * Return the hash code for a resource to be assigned to a client task. The
-     * default implementation uses {@link Object#hashCode()}.
-     * 
-     * @param resource
-     *            The resource.
-     *            
-     * @return The hash code.
-     */
-    public int hashFunction(V resource) {
-        
-        return resource.hashCode();
-        
-    }
-
-    /**
-     * Extended to run the scanner, handing off resources to clients for
-     * processing. The clients should run until they are interrupted by the
-     * master.
-     * <p>
-     * After the scanner closes the master buffer, the master will continue to
-     * run until the pendingSet is empty. In order to prevent workload
-     * starvation, the sinks will be flushed aggressively once the master
-     * resource buffer is empty.
-     * 
-     * FIXME Termination conditions are still not quite correct. The resource
-     * buffer sinks must {@link IAsynchronousClientTask#close()} the client task
-     * once if the master is signaling that they should flush work agressively.
-     * The client tasks will then invoke {@link AbstractMasterTask#awaitAll()}.
-     * 
-     * FIXME In order to handle client failure once the master has begun to
-     * flush work aggressively we must start a NEW client task. Prior to that it
-     * is sufficient to redistribute the work among the remaining clients (in
-     * this case we could also start a replacement client task).
-     * 
-     * FIXME The resources remaining in the pendingSet should be pushed to all
-     * clients in AbstractMasterTask#awaitAll(). The resources should be placed
-     * into random orderings to maximize the chance that the clients will
-     * accelerate the work.
+     * Runs the scanner, handing off resources to clients for processing. The
+     * clients should run until they are interrupted by the master. When the
+     * scanner is done, it closes the master buffer. After the scanner closes
+     * the master buffer, the master will continue to run until the pendingSet
+     * is empty. However, once the master buffer is exhausted (closed and
+     * drained), the sinks will flush their last chunks and then close the
+     * clientTask. This prevents workload starvation during the shutdown
+     * protocol.
      */
     @Override
     protected void runJob() throws Exception {

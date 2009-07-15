@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -218,7 +219,7 @@ public class AbstractRunnableMasterStats<L, HS extends AbstractSubtaskStats> ext
                                 master.mapOperationOverSubtasks(op);
                             } catch(InterruptedException ex) {
                                 break;
-                            } catch(Exception ex) {
+                            } catch(ExecutionException ex) {
                                 log.error(this,ex);
                                 break;
                             }
@@ -270,7 +271,7 @@ public class AbstractRunnableMasterStats<L, HS extends AbstractSubtaskStats> ext
                                 master.mapOperationOverSubtasks(op);
                             } catch(InterruptedException ex) {
                                 break;
-                            } catch(Exception ex) {
+                            } catch(ExecutionException ex) {
                                 log.error(this,ex);
                                 break;
                             }
@@ -364,7 +365,7 @@ public class AbstractRunnableMasterStats<L, HS extends AbstractSubtaskStats> ext
                                 master.mapOperationOverSubtasks(op);
                             } catch(InterruptedException ex) {
                                 break;
-                            } catch(Exception ex) {
+                            } catch(ExecutionException ex) {
                                 log.error(this,ex);
                                 break;
                             }
@@ -415,7 +416,7 @@ public class AbstractRunnableMasterStats<L, HS extends AbstractSubtaskStats> ext
                                 master.mapOperationOverSubtasks(op);
                             } catch(InterruptedException ex) {
                                 break;
-                            } catch(Exception ex) {
+                            } catch(ExecutionException ex) {
                                 log.error(this,ex);
                                 break;
                             }
@@ -476,7 +477,7 @@ public class AbstractRunnableMasterStats<L, HS extends AbstractSubtaskStats> ext
                                 master.mapOperationOverSubtasks(op);
                             } catch(InterruptedException ex) {
                                 break;
-                            } catch(Exception ex) {
+                            } catch(ExecutionException ex) {
                                 log.error(this,ex);
                                 break;
                             }
@@ -847,7 +848,7 @@ public class AbstractRunnableMasterStats<L, HS extends AbstractSubtaskStats> ext
                         master.mapOperationOverSubtasks(op);
                     } catch(InterruptedException ex) {
                         break;
-                    } catch(Exception ex) {
+                    } catch(ExecutionException ex) {
                         log.error(this,ex);
                         break;
                     }

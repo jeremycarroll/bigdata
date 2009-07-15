@@ -151,6 +151,14 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         int DEFAULT_OTHER_WRITER_POOL_SIZE = 5;
 
         /**
+         * The #of threads used to delete files once they have been successfully
+         * processed.
+         */
+        String NOTIFY_POOL_SIZE = "notifyPoolSize";
+
+        int DEFAULT_NOTIFY_POOL_SIZE = 5;
+
+        /**
          * The maximum #of statements which can be parsed but not yet buffered
          * on for asynchronous index writes before new parser tasks will be
          * paused. This is used to control the RAM demand of the parser tasks.
@@ -329,6 +337,11 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         public final int otherWriterPoolSize;
 
         /**
+         * @see ConfigurationOptions#NOTIFY_POOL_SIZE
+         */
+        public final int notifyPoolSize;
+
+        /**
          * @see ConfigurationOptions#UNBUFFERED_STATEMENT_THRESHOLD
          */
         public final long unbufferedStatementThreshold;
@@ -483,6 +496,10 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
             otherWriterPoolSize = (Integer) config.getEntry(component,
                     ConfigurationOptions.OTHER_WRITER_POOL_SIZE, Integer.TYPE,
                     ConfigurationOptions.DEFAULT_OTHER_WRITER_POOL_SIZE);
+
+            notifyPoolSize = (Integer) config.getEntry(component,
+                    ConfigurationOptions.NOTIFY_POOL_SIZE, Integer.TYPE,
+                    ConfigurationOptions.DEFAULT_NOTIFY_POOL_SIZE);
 
             unbufferedStatementThreshold = (Long) config.getEntry(component,
                     ConfigurationOptions.UNBUFFERED_STATEMENT_THRESHOLD,

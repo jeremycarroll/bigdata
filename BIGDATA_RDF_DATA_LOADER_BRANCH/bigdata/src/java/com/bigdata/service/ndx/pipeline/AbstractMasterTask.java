@@ -35,7 +35,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -254,35 +253,6 @@ L>//
     protected final IAsynchronousIterator<E[]> src;
 
     /**
-     * When <code>true</code> the sinks will act as if they had a very short
-     * chunkTimeout rather than blocking to await more data. This is set
-     * <code>true</code> in {@link #awaitAll()} each time the
-     * {@link #redirectQueue} is empty. When <code>true</code>, this has the
-     * effect that the final partial chunk in each sink will be flushed through
-     * to the target in a timely manner, but without causing the sink to be
-     * closed (since redirects may still occur).
-     * 
-     * @todo Reverify the asynchronous write pipeline unit tests with the new
-     *       feature for aggressive flush of the sinks. Some errors are showing
-     *       up in the unit tests, but they do not appear to be related to the
-     *       introduction of the {@link #flushSinks} the modification to the
-     *       {@link AbstractSubtask} which applies that field. The errors are
-     *       stochastic and could be related to head combining chunks with the
-     *       {@link LinkedBlockingDeque}.
-     */
-    private volatile boolean flushSinks = false;
-    
-    /**
-     * When <code>true</code> the sink prefer to emit a partial chunk rather
-     * than blocking to await more data.
-     */
-    final public boolean isFlushSinks() {
-
-        return flushSinks;
-        
-    }
-    
-    /**
      * Map from the index partition identifier to the open subtask handling
      * writes bound for that index partition.
      */
@@ -295,15 +265,25 @@ L>//
      *            The operation, which should be light weight
      * 
      * @throws InterruptedException
+     * @throws ExecutionException
+     *             if a subtask throws an exception.
      */
     public void mapOperationOverSubtasks(final SubtaskOp<S> op)
-            throws InterruptedException, Exception {
+            throws InterruptedException, ExecutionException {
 
         final Iterator<S> itr = sinks.values().iterator();
 
         while(itr.hasNext()) {
             
-            op.call(itr.next());
+            try {
+
+                op.call(itr.next());
+                
+            } catch (Exception ex) {
+                
+                throw new ExecutionException(ex);
+                
+            }
             
         }
 
@@ -611,6 +591,16 @@ L>//
         return true;
         
     }
+
+    /**
+     * Extension hook invoked when the master's buffer is exhausted by
+     * {@link #awaitAll()}. The default implementation is a NOP.
+     */
+    protected void willShutdown() throws InterruptedException {
+        
+        // NOP.
+        
+    }
     
     /**
      * Await the completion of the writes on each index partition. The master
@@ -640,7 +630,12 @@ L>//
             
         }
 
-        flushSinks = false;
+        /*
+         * Extension hook may be used to map the pending set over the available
+         * clients during shutdown.
+         */
+        willShutdown();
+        
         while (true) {
 
             halted();
@@ -668,9 +663,6 @@ L>//
                     /*
                      * There is nothing available from the redirect queue.
                      */
-                    
-                    // prefer emitting partial chunks to waiting for more data.
-                    flushSinks = true;
                     
                     if (finishedSubtaskQueue.isEmpty() && sinks.isEmpty()
                             && redirectQueue.isEmpty() && nothingPending()) {
@@ -732,9 +724,6 @@ L>//
                  */
 
                 handleChunk(a, true/* reopen */);
-
-                // prefer waiting for more data to emitting chunks.
-                flushSinks = false;
                 
             }
 

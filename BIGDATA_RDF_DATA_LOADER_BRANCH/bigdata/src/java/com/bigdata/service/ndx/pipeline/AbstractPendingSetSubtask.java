@@ -1,26 +1,26 @@
 /*
 
-Copyright (C) SYSTAP, LLC 2006-2008.  All rights reserved.
+ Copyright (C) SYSTAP, LLC 2006-2008.  All rights reserved.
 
-Contact:
-     SYSTAP, LLC
-     4501 Tower Road
-     Greensboro, NC 27410
-     licenses@bigdata.com
+ Contact:
+ SYSTAP, LLC
+ 4501 Tower Road
+ Greensboro, NC 27410
+ licenses@bigdata.com
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; version 2 of the License.
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; version 2 of the License.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 /*
  * Created on Jul 13, 2009
  */
@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.service.ndx.pipeline;
 
 import java.io.IOException;
+import java.rmi.RemoteException;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Condition;
@@ -38,12 +39,13 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.IRemoteExecutor;
 import com.bigdata.service.jini.master.ClientLocator;
 import com.bigdata.service.jini.master.IAsynchronousClientTask;
-import com.bigdata.service.jini.master.INotifyOutcome;
 
 /**
- * Extended to submit requests to a remote {@link IAsynchronousClientTask} and
- * to track the set of outstanding asynchronous operations for a specific client
- * task.
+ * Extended to assign chunks of work items to a remote
+ * {@link IAsynchronousClientTask}, to track the set of outstanding
+ * asynchronous operations for a specific client task (the "pending set"), and
+ * to close the client task when the sink not assign any more work to that
+ * client.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -53,28 +55,27 @@ HS extends AbstractSubtaskStats, //
 M extends AbstractPendingSetMasterTask<? extends AbstractPendingSetMasterStats<L, HS>, E, ? extends AbstractPendingSetSubtask, L>, //
 E, //
 L> //
-        extends AbstractSubtask<HS,M,E,L>
-{
+        extends AbstractSubtask<HS, M, E, L> {
 
     final protected IAsynchronousClientTask<?, E> clientTask;
-    
+
     /**
      * The set of work items for which there are pending asynchronous
      * operations. Entries are cleared from this set as soon as ANY client has
      * successfully completed the work for that item.
      */
     private final Set<E> pendingSet;
-    
+
     /**
      * Lock used ONLY for the {@link #pendingSet}.
      */
     private final ReentrantLock lock = new ReentrantLock();
-    
+
     /**
      * Condition signalled when the {@link #pendingSet} is empty.
      */
     private final Condition pendingSetEmpty = lock.newCondition();
-    
+
     /**
      * {@inheritDoc}
      * 
@@ -89,13 +90,13 @@ L> //
 
         if (clientTask == null)
             throw new IllegalArgumentException();
-        
+
         pendingSet = newPendingSet();
-        
+
         this.clientTask = clientTask;
-        
+
     }
-    
+
     /**
      * Allocate and return the pending set. You MAY use a {@link BigdataSet}.
      */
@@ -109,19 +110,30 @@ L> //
             lock.unlock();
         }
     }
-    
+
     @Override
     protected final void awaitPending() throws InterruptedException {
+        /*
+         * Instruct the client task that we will not assign it any new work.
+         */
+        try {
+            clientTask.close();
+        } catch (RemoteException ex) {
+            throw new RuntimeException(toString(), ex);
+        }
+        /*
+         * Wait for the pending set to empty.
+         */
         lock.lockInterruptibly();
         try {
-            if(!pendingSet.isEmpty()) {
+            if (!pendingSet.isEmpty()) {
                 pendingSetEmpty.await();
             }
         } finally {
             lock.unlock();
         }
     }
-    
+
     final protected boolean addPending(final E e) {
         lock.lock();
         try {
@@ -160,14 +172,14 @@ L> //
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    protected boolean handleChunk(final E[] chunk)
-            throws ExecutionException, InterruptedException, IOException {
+    protected boolean handleChunk(final E[] chunk) throws ExecutionException,
+            InterruptedException, IOException {
 
         assert chunk != null;
         assert chunk.length > 0;
-        
+
         final int chunkSize = chunk.length;
-        
+
         /*
          * Instantiate the procedure using the data from the chunk and submit it
          * to be executed on the DataService using an RMI call.
@@ -175,48 +187,49 @@ L> //
         final long beginNanos = System.nanoTime();
         try {
 
-//            /*
-//             * @todo isolate this as a retry policy, but note that we need to be
-//             * able to indicate when the error is fatal, when the error was
-//             * handled by a redirect and hence the sink should close, and when
-//             * the error was handled by a successful retry.
-//             */
-//            boolean done = false;
-//            final int maxtries = 3;
-//            final long retryDelayNanos = TimeUnit.MILLISECONDS.toNanos(1000);
-//            for (int ntries = 0; ntries < maxtries; ntries++) {
-//
-//                try {
+            // /*
+            // * @todo isolate this as a retry policy, but note that we need to
+            // be
+            // * able to indicate when the error is fatal, when the error was
+            // * handled by a redirect and hence the sink should close, and when
+            // * the error was handled by a successful retry.
+            // */
+            // boolean done = false;
+            // final int maxtries = 3;
+            // final long retryDelayNanos = TimeUnit.MILLISECONDS.toNanos(1000);
+            // for (int ntries = 0; ntries < maxtries; ntries++) {
+            //
+            // try {
 
-                    /*
-                     * Submit (blocks until chunk is queued by the client task).
-                     */
-                    clientTask.accept(chunk);
-//                    done = true;
-//                    break;
-//
-//                } catch (ExecutionException ex) {
-//
-//                    if (ntries + 1 < maxtries) {
-//
-//                        log.error("Will retry (" + ntries + " of " + maxtries
-//                                + "): " + this, ex);
-//
-//                        continue;
-//
-//                    }
-//
-//                    log.fatal(this, ex);
-//
-//                    throw ex;
-//
-//                }
-//            }
-//            if (!done) {
-//                // should not reach this point.
-//                throw new AssertionError();
-//            }
-             
+            /*
+             * Submit (blocks until chunk is queued by the client task).
+             */
+            clientTask.accept(chunk);
+            // done = true;
+            // break;
+            //
+            // } catch (ExecutionException ex) {
+            //
+            // if (ntries + 1 < maxtries) {
+            //
+            // log.error("Will retry (" + ntries + " of " + maxtries
+            // + "): " + this, ex);
+            //
+            // continue;
+            //
+            // }
+            //
+            // log.fatal(this, ex);
+            //
+            // throw ex;
+            //
+            // }
+            // }
+            // if (!done) {
+            // // should not reach this point.
+            // throw new AssertionError();
+            // }
+
             if (log.isDebugEnabled())
                 log.debug(stats);
 
@@ -239,7 +252,7 @@ L> //
                 master.stats.chunksOut.incrementAndGet();
                 master.stats.elementsOut.addAndGet(chunkSize);
                 // note: duplicate elimination is not being performed.
-//                master.stats.duplicateCount.addAndGet(duplicateCount);
+                // master.stats.duplicateCount.addAndGet(duplicateCount);
                 master.stats.elapsedSinkChunkWritingNanos += elapsedNanos;
             }
 
@@ -269,7 +282,7 @@ L> //
      */
     @Override
     protected void notifyClientOfRedirect(L locator, Throwable cause) {
-        
+
         throw new UnsupportedOperationException();
 
     }

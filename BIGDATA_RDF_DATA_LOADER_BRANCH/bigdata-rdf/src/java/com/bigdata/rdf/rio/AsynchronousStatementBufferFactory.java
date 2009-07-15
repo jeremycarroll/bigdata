@@ -1315,6 +1315,9 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * @param otherWriterPoolSize
      *            The #of worker threads in the thread pool for buffering
      *            asynchronous index writes on the other indices.
+     * @param notifyPoolSize
+     *            The #of worker threads in the thread pool for handling
+     *            document success and document error notices.
      * @param pauseParsedPoolStatementThreshold
      *            The maximum #of statements which can be parsed but not yet
      *            buffered before requests for new parser tasks are paused [0:
@@ -1339,6 +1342,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
             final int parserQueueCapacity,//
             final int term2IdWriterPoolSize,//
             final int otherWriterPoolSize,//
+            final int notifyPoolSize,//
             final long pauseParsedPoolStatementThreshold//
             ) {
 
@@ -1418,11 +1422,10 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
          * the maximumPoolSize and idle threads will be retired, but only after
          * several minutes. 
          */
-
         parserService = new ParserThreadPoolExecutor(//
                 1, // corePoolSize
                 parserPoolSize, // maximumPoolSize
-                4, // keepAliveTime
+                1, // keepAliveTime
                 TimeUnit.MINUTES, // keepAlive units.
                 new LinkedBlockingQueue<Runnable>(parserQueueCapacity),// workQueue
                 new DaemonThreadFactory(getClass().getName()+"_parserService") // threadFactory
@@ -1439,11 +1442,10 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
          * threads will be created. Therefore we interpret the caller's argument
          * as both the corePoolSize and the maximumPoolSize.
          */
-
         term2IdWriterService = new ThreadPoolExecutor(//
                 term2IdWriterPoolSize, // corePoolSize
                 term2IdWriterPoolSize, // maximumPoolSize
-                4, // keepAliveTime
+                1, // keepAliveTime
                 TimeUnit.MINUTES, // keepAlive units.
                 new LinkedBlockingQueue<Runnable>(/* unbounded */),// workQueue
                 new DaemonThreadFactory(getClass().getName()+"_term2IdWriteService") // threadFactory
@@ -1460,26 +1462,29 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
          * threads will be created. Therefore we interpret the caller's argument
          * as both the corePoolSize and the maximumPoolSize.
          */
-
         otherWriterService = new ThreadPoolExecutor(//
                 otherWriterPoolSize, // corePoolSize
                 otherWriterPoolSize, // maximumPoolSize
-                4, // keepAliveTime
+                1, // keepAliveTime
                 TimeUnit.MINUTES, // keepAlive units.
                 new LinkedBlockingQueue<Runnable>(/* unbounded */),// workQueue
                 new DaemonThreadFactory(getClass().getName()+"_otherWriteService") // threadFactory
         );
 
         /*
-         * FIXME raise into the ctor args; update the counters; modify to run
-         * SuccessTask and FailureTask.  Use factory for those tasks so their
-         * behavior can be overridden for delete semantics or for RMI based
-         * notify semantics.
+         * Note: This service MUST NOT block or reject tasks as long as the
+         * statement buffer factory is open. It is configured with an unbounded
+         * workQueue and a bounded thread pool. The #of threads in the pool
+         * should build up to the maximumPoolSize and idle threads will be
+         * retired, but only after several minutes.
+         * 
+         * Note: Since we are using an unbounded queue, at most corePoolSize
+         * threads will be created. Therefore we interpret the caller's argument
+         * as both the corePoolSize and the maximumPoolSize.
          */
-        final int notifyServicePoolSize=3; 
         notifyService = new ThreadPoolExecutor(//
-                notifyServicePoolSize, // corePoolSize
-                notifyServicePoolSize, // maximumPoolSize
+                notifyPoolSize, // corePoolSize
+                notifyPoolSize, // maximumPoolSize
                 1, // keepAliveTime
                 TimeUnit.MINUTES, // keepAlive units.
                 new LinkedBlockingQueue<Runnable>(/* unbounded */),// workQueue
