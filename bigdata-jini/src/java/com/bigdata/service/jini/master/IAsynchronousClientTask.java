@@ -32,8 +32,6 @@ import java.rmi.RemoteException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
-import com.bigdata.service.IFederationCallable;
-
 /**
  * Interface for remote {@link Callable}s which process chunks of resources as
  * assigned by the {@link MappedTaskMaster}. This interface extends
@@ -49,18 +47,18 @@ import com.bigdata.service.IFederationCallable;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface IAsynchronousClientTask<U, V> extends IFederationCallable,
-        Remote {
+public interface IAsynchronousClientTask<U, V> extends Remote {
 
-    /**
-     * This is the main thread for the client. It should setup operations and
-     * then block. The master will interrupt the main thread using
-     * {@link Future#cancel(boolean)} once (a) all pending work is done; or (b)
-     * the job is interrupted.
-     * 
-     * {@inheritDoc}
-     */
-    public U call() throws Exception;
+    // Not a remote method.
+//    /**
+//     * This is the main thread for the client. It should setup operations and
+//     * then block. The master will interrupt the main thread using
+//     * {@link Future#cancel(boolean)} once (a) all pending work is done; or (b)
+//     * the job is interrupted.
+//     * 
+//     * {@inheritDoc}
+//     */
+//    public U call() throws Exception;
     
     /**
      * Accept a chunk of resources for processing. The client may block while it
