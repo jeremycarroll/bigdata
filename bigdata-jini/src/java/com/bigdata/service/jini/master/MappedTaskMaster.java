@@ -230,8 +230,8 @@ V extends Serializable//
                             100, // masterQueueCapacity,
                             1000, // masterChunkSize
                             TimeUnit.SECONDS.toNanos(5),// masterChunkTimeoutNanos
-                            Long.valueOf(IndexMetadata.Options.SINK_IDLE_TIMEOUT_NANOS).longValue(),//
-                            Long.valueOf(IndexMetadata.Options.SINK_POLL_TIMEOUT_NANOS).longValue(),//
+                            Long.valueOf(IndexMetadata.Options.DEFAULT_SINK_IDLE_TIMEOUT_NANOS).longValue(),//
+                            Long.valueOf(IndexMetadata.Options.DEFAULT_SINK_POLL_TIMEOUT_NANOS).longValue(),//
                             100, // sinkQueueCapacity
                             1000, // sinkChunkSize,
                             TimeUnit.SECONDS.toNanos(20)// sinkChunkTimeoutNanos
