@@ -1,12 +1,12 @@
 package com.bigdata.rdf.load;
 
+import java.io.File;
 import java.io.Serializable;
 
 import org.apache.log4j.Logger;
 import org.openrdf.rio.RDFFormat;
 
 import com.bigdata.counters.CounterSet;
-import com.bigdata.counters.ICounterSet;
 import com.bigdata.journal.ITx;
 import com.bigdata.rdf.load.RDFDataLoadMaster.JobState;
 import com.bigdata.rdf.model.BigdataStatement;
@@ -93,7 +93,7 @@ public class RDFFileLoadTask<S extends JobState, V extends Serializable>
 
         }
 
-        final AsynchronousStatementBufferFactory<BigdataStatement> statementBufferFactory = new AsynchronousStatementBufferFactory<BigdataStatement>(
+        final AsynchronousStatementBufferFactory<BigdataStatement,File> statementBufferFactory = new AsynchronousStatementBufferFactory<BigdataStatement,File>(
                 (ScaleOutTripleStore) tripleStore,//
                 jobState.producerChunkSize,//
                 jobState.valuesInitialCapacity,//
@@ -164,7 +164,7 @@ public class RDFFileLoadTask<S extends JobState, V extends Serializable>
      *             if something else goes wrong.
      */
     protected void loadData(//
-            final AsynchronousStatementBufferFactory<BigdataStatement> factory)
+            final AsynchronousStatementBufferFactory<BigdataStatement, File> factory)
             throws InterruptedException, Exception {
 
         factory.submitAll(jobState.dataDir, jobState.dataDirFilter,

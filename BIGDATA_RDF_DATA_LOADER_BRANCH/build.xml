@@ -514,6 +514,13 @@ an "NOP" bash script or edit your crontab.
  <chown file="${NAS}" type="both" owner="${install.user}.${install.group}"/>
  
  -->
+<!-- @todo check the installed configuration file (after parameter substitution). -->
+<!-- @todo also check the installed jini configuration files. -->
+<java classname="com.bigdata.jini.util.CheckConfiguration"
+	failonerror="true" fork="true" logerror="true">
+	<classpath refid="install.classpath" />
+	<arg value="${bigdata.config}" />
+</java>
 <loadfile property="postInstallMessage" srcFile="${install.bin.dir}/POST-INSTALL" />
 <echo>
 

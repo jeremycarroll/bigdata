@@ -22,30 +22,34 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 /*
- * Created on Jul 12, 2009
+ * Created on Jul 15, 2009
  */
 
-package com.bigdata.service.jini.master;
+package com.bigdata.jini.util;
 
-import com.bigdata.relation.accesspath.BlockingBuffer;
+import net.jini.config.ConfigurationException;
+import net.jini.config.ConfigurationProvider;
+
+import com.bigdata.config.Configuration;
 
 /**
- * Factory for {@link AbstractResourceScanner} implementations.
+ * Utility class provides a syntax check on a {@link Configuration}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface IResourceScannerFactory<V> {
+public class CheckConfiguration {
 
     /**
-     * Return a new scanner instance.
+     * @param args
+     *            The configuration and any overrides.
      * 
-     * @param buffer
-     *            The buffer on which the scanner will place resources to be
-     *            processed.
-     * 
-     * @return The scanner.
+     * @throws ConfigurationException
      */
-    public AbstractResourceScanner newScanner(BlockingBuffer<V[]> buffer);
+    public static void main(String[] args) throws ConfigurationException {
+
+        ConfigurationProvider.getInstance(args);
+
+    }
 
 }

@@ -32,7 +32,6 @@ import static edu.lehigh.swat.bench.ubt.bigdata.LubmGeneratorMaster.RunMode.Gene
 import static edu.lehigh.swat.bench.ubt.bigdata.LubmGeneratorMaster.RunMode.Load;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.Serializable;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -978,7 +977,7 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
 
         @Override
         protected void loadData(
-                final AsynchronousStatementBufferFactory<BigdataStatement> bufferFactory)
+                final AsynchronousStatementBufferFactory<BigdataStatement,File> bufferFactory)
                 throws InterruptedException, Exception {
 
             while (true) {
@@ -1037,8 +1036,7 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
                  * asynchronously. Metadata about task outcomes is reported via
                  * performance counters to the load balancer.
                  */
-                bufferFactory.submitOne(file.getPath(),
-                        jobState.rejectedExecutionDelay);
+                bufferFactory.submitOne(file, jobState.rejectedExecutionDelay);
 
             }
 

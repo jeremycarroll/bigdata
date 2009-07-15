@@ -33,9 +33,11 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -300,9 +302,11 @@ import cutthecrap.utils.striterators.Striterator;
  * 
  * @param <S>
  *            The generic type of the statement objects.
+ * @param <R>
+ *            The generic type of the resource identifier (File, URL, etc).
  */
-public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
-    implements IAsynchronousWriteStatementBufferFactory<S> {
+public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
+        implements IAsynchronousWriteStatementBufferFactory<S> {
 
     final protected transient static Logger log = Logger
             .getLogger(AsynchronousStatementBufferFactory.class);
@@ -944,7 +948,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
     }
 
     protected AsynchronousStatementBufferImpl newStatementBuffer(
-            final String resource) {
+            final R resource) {
 
         return new AsynchronousStatementBufferImpl(resource);
 
@@ -961,7 +965,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * @throws RejectedExecutionException
      *             if the work queue for the parser service is full.
      */
-    public void submitOne(final String resource) throws Exception {
+    public void submitOne(final R resource) throws Exception {
 
         lock.lock();
         try {
@@ -1035,7 +1039,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * @throws RejectedExecutionException
      *             if the service is shutdown -or- the retryMillis is ZERO(0L).
      */
-    public void submitOne(final String resource, final long retryMillis)
+    public void submitOne(final R resource, final long retryMillis)
             throws InterruptedException {
 
         if (resource == null)
@@ -1121,6 +1125,34 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
     }
 
     /**
+     * Open an buffered input stream reading from the resource.
+     * 
+     * @param resource
+     *            The resource identifier.
+     */
+    protected InputStream getInputStream(R resource) throws IOException {
+        
+        final InputStream is;
+
+        if (resource instanceof File) {
+
+            is = new FileInputStream((File) resource);
+
+        } else if (resource instanceof URL) {
+
+            is = ((URL) resource).openStream();
+
+        } else {
+
+            throw new UnsupportedOperationException();
+
+        }
+
+        return is;
+        
+    }
+    
+    /**
      * Return a task to parse the document. The task should allocate an
      * {@link AsynchronousStatementBufferImpl} for the document. When
      * that buffer is flushed, the document will be queued for further
@@ -1132,16 +1164,19 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * 
      * @throws Exception
      */
-    protected Callable<?> newParserTask(final String resource) throws Exception {
+    protected Callable<?> newParserTask(final R resource) throws Exception {
 
-        if (log.isInfoEnabled())
-            log.info("resource=" + resource);
+        final String resourceStr = resource.toString();
         
-        final RDFFormat defaultFormat= getDefaultRDFFormat();
+        if (log.isInfoEnabled())
+            log.info("resource=" + resourceStr);
+        
+        final RDFFormat defaultFormat = getDefaultRDFFormat();
 
+        // @todo when resource is URL use reported MimeTYPE also.
         final RDFFormat rdfFormat = (defaultFormat == null //
-                ? RDFFormat.forFileName(resource) //
-                : RDFFormat.forFileName(resource, defaultFormat)//
+                ? RDFFormat.forFileName(resourceStr) //
+                : RDFFormat.forFileName(resourceStr, defaultFormat)//
         );
         
         if (rdfFormat == null) {
@@ -1154,21 +1189,21 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
 
         // Convert the resource identifier to a URL.
         final String baseURI; ;
-        if (getClass().getResource(resource) != null) {
+        if (getClass().getResource(resourceStr) != null) {
             
-            baseURI = getClass().getResource(resource).toURI()
+            baseURI = getClass().getResource(resourceStr).toURI()
                     .toString();
             
         } else {
             
-            baseURI = new File(resource).toURI().toString();
+            baseURI = new File(resourceStr).toURI().toString();
             
         }
 
         return new ParserTask(resource, baseURI, rdfFormat);
 
     }
-
+    
     /**
      * Tasks either loads a RDF resource or verifies that the told triples found
      * in that resource are present in the database. The difference between data
@@ -1182,7 +1217,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
         /**
          * The resource to be loaded.
          */
-        private final String resource;
+        private final R resource;
         
         /**
          * The base URL for that resource.
@@ -1204,7 +1239,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
          * @param rdfFormat
          *            The RDF interchange syntax that the file uses.
          */
-        public ParserTask(final String resource, final String baseURL,
+        public ParserTask(final R resource, final String baseURL,
                 final RDFFormat rdfFormat) {
 
             if (resource == null)
@@ -1227,7 +1262,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                     .newStatementBuffer(resource);
             try {
                 // open reader on the file.
-                final InputStream rdfStream = new FileInputStream(resource);
+                final InputStream rdfStream = getInputStream(resource);
                 try {
                     // Obtain a buffered reader on the input stream.
                     final Reader reader = new BufferedReader(new InputStreamReader(
@@ -1807,18 +1842,14 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
     }
 
     /**
-     * This method may be overridden to trigger additional processing when a
-     * document has become restart safe on the database -- <strong>the
-     * implementation MUST NOT block</strong>. One technique is to add the
-     * <i>documentIdentifier</i> to an <em>unbounded</em> queue which is then
-     * drained by another thread.
-     * <p>
-     * The default implementation logs the event @ INFO.
+     * Invoked after a document has become restart safe. If
+     * {@link #newSuccessTask(Object)} returns a {@link Runnable} then that will
+     * be executed on the {@link #notifyService}.
      * 
      * @param resource
      *            The document identifier.
      */
-    protected void documentDone(final String resource) {
+    final protected void documentDone(final R resource) {
 
         final Runnable task = newSuccessTask(resource);
        
@@ -1832,17 +1863,16 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
     }
     
     /**
-     * This method may be <em>extended</em> to trigger additional processing
-     * when a document processing error has occurs -- <strong>the implementation
-     * MUST NOT block</strong>. The default implementation logs the event @
-     * ERROR.
+     * Invoked after a document has failed. If
+     * {@link #newFailureTask(Object, Throwable)} returns a {@link Runnable}
+     * then that will be executed on the {@link #notifyService}.
      * 
      * @param resource
      *            The document identifier.
      * @param t
      *            The exception.
      */
-    protected void documentError(final String resource, final Throwable t) {
+    final protected void documentError(final R resource, final Throwable t) {
 
         lock.lock();
         try {
@@ -1867,9 +1897,12 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
         }
 
         final Runnable task = newFailureTask(resource, t);
+        
         if (task != null) {
+        
             // queue up success notice.
             notifyService.submit(task);
+            
         }
 
     }
@@ -1889,7 +1922,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * @return The task to run -or- <code>null</code> if no task should be
      *         run.
      */
-    protected Runnable newSuccessTask(final String resource) {
+    protected Runnable newSuccessTask(final R resource) {
         
         if (log.isInfoEnabled())
             log.info("resource=" + resource);
@@ -1919,7 +1952,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * @return The task to run -or- <code>null</code> if no task should be
      *         run.
      */
-    protected Runnable newFailureTask(final String resource, final Throwable cause) {
+    protected Runnable newFailureTask(final R resource, final Throwable cause) {
 
         return new Runnable() {
 
@@ -1941,9 +1974,9 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      */
     protected class DeleteTask implements Runnable {
 
-        private final String resource;
+        private final R resource;
 
-        public DeleteTask(final String resource) {
+        public DeleteTask(final R resource) {
 
             if (resource == null)
                 throw new IllegalArgumentException();
@@ -1967,9 +2000,13 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
      * @param resource
      *            The resource.
      */
-    protected void deleteResource(final String resource) {
+    protected void deleteResource(final R resource) {
 
-        new File(resource).delete();
+        if(resource instanceof File) {
+
+            ((File)resource).delete();
+            
+        }
 
     }
     
@@ -2336,7 +2373,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                     
                 try {
 
-                    submitOne(file.getPath(), retryMillis);
+                    submitOne((R) file, retryMillis);
 
                     count++;
 
@@ -2921,7 +2958,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
             IStatementBuffer<S> {
 
         /** The document identifier. */
-        private final String resource;
+        private final R resource;
 
         private final AbstractTripleStore database;
 
@@ -2988,7 +3025,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
         /**
          * Return the identifier for the document.
          */
-        public String getDocumentIdentifier() {
+        public R getDocumentIdentifier() {
 
             return resource;
 
@@ -2998,7 +3035,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
          * @param resource
          *            The document identifier.
          */
-        protected AsynchronousStatementBufferImpl(final String resource) {
+        protected AsynchronousStatementBufferImpl(final R resource) {
 
             this.resource = resource;
 
@@ -3520,8 +3557,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement>
                         lock.unlock();
 
                         // notify that the document is done.
-                        AsynchronousStatementBufferFactory.this
-                                .documentDone(getDocumentIdentifier());
+                        documentDone(getDocumentIdentifier());
 
                     }
 
