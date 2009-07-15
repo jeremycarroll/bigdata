@@ -44,7 +44,7 @@ import com.bigdata.Banner;
  * @version $Id$
  */
 abstract public class ClientService extends AbstractService implements
-        IClientService {
+        IClientService, ISession {
 
     protected static final Logger log = Logger.getLogger(DataService.class);
 

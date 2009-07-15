@@ -47,7 +47,7 @@ import java.util.concurrent.RejectedExecutionException;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface IRemoteExecutor extends Remote, ISession {
+public interface IRemoteExecutor extends Remote {
 
     /**
      * Submit a {@link Callable} and return its {@link Future}. The

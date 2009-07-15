@@ -181,7 +181,7 @@ import com.bigdata.service.jini.DataServer;
  *       case. Do we have to handle it specially?
  */
 abstract public class DataService extends AbstractService
-    implements IDataService, IServiceShutdown //IWritePipeline
+    implements IDataService, IServiceShutdown, ISession //IWritePipeline
 {
 
     protected static final Logger log = Logger.getLogger(DataService.class);
