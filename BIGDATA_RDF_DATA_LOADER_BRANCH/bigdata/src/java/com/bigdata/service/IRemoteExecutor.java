@@ -30,6 +30,7 @@ package com.bigdata.service;
 
 import java.io.IOException;
 import java.rmi.Remote;
+import java.rmi.RemoteException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -46,7 +47,7 @@ import java.util.concurrent.RejectedExecutionException;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface IRemoteExecutor extends Remote {
+public interface IRemoteExecutor extends Remote, ISession {
 
     /**
      * Submit a {@link Callable} and return its {@link Future}. The
@@ -64,12 +65,6 @@ public interface IRemoteExecutor extends Remote {
      *       break existing code but reflects the correct use of generics.
      */
     public Future<? extends Object> submit(Callable<? extends Object> task)
-            throws IOException;
-
-    /**
-     * A transient and dynamic property set (aka session) associated with the
-     * {@link IRemoteExecutor} instance.
-     */
-    public Session getSession();
+            throws RemoteException;
     
 }
