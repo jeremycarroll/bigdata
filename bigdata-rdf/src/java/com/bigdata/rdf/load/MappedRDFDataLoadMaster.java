@@ -243,14 +243,14 @@ V extends Serializable//
         
         boolean DEFAULT_PARSER_VALIDATES = false;
 
-        /**
-         * When the {@link RDFFormat} of a resource is not evident, assume that
-         * it is the format specified by this value (default
-         * {@value #DEFAULT_FALLBACK_RDF_FORMAT}).
-         */
-        String FALLBACK_RDF_FORMAT = "fallbackRDFFormat";
-        
-        RDFFormat DEFAULT_FALLBACK_RDF_FORMAT = RDFFormat.RDFXML;
+//        /**
+//         * When the {@link RDFFormat} of a resource is not evident, assume that
+//         * it is the format specified by this value (default
+//         * {@value #DEFAULT_FALLBACK_RDF_FORMAT}).
+//         */
+//        String FALLBACK_RDF_FORMAT = "fallbackRDFFormat";
+//        
+//        RDFFormat DEFAULT_FALLBACK_RDF_FORMAT = RDFFormat.RDFXML;
         
 //        /**
 //         * The maximum #of times an attempt will be made to load any given file.
@@ -377,11 +377,11 @@ V extends Serializable//
          */
         final public boolean parserValidates;
         
-        /**
-         * The {@link RDFFormat} that will be used when the format can not be
-         * deduced from the file extension or other metadata.
-         */
-        final public String fallbackRDFFormat;
+//        /**
+//         * The {@link RDFFormat} that will be used when the format can not be
+//         * deduced from the file extension or other metadata.
+//         */
+//        final public RDFFormat fallbackRDFFormat;
 
         /**
          * Return the {@link RDFFormat} that will be used when the format can
@@ -390,7 +390,8 @@ V extends Serializable//
         public RDFFormat getFallbackRDFFormat() {
             
             // Note: RDFFormat is not Serializable, hence this workaround.
-            return RDFFormat.valueOf(fallbackRDFFormat);
+//            return RDFFormat.valueOf(fallbackRDFFormat);
+            return RDFFormat.RDFXML;
             
         }
 
@@ -444,8 +445,8 @@ V extends Serializable//
             sb.append(", " + ConfigurationOptions.PARSER_VALIDATES + "="
                     + parserValidates);
             
-            sb.append(", " + ConfigurationOptions.FALLBACK_RDF_FORMAT + "="
-                    + fallbackRDFFormat);
+//            sb.append(", " + ConfigurationOptions.FALLBACK_RDF_FORMAT + "="
+//                    + fallbackRDFFormat);
             
             sb.append(", " + ConfigurationOptions.FORCE_OVERFLOW_BEFORE_CLOSURE + "="
                     + forceOverflowBeforeClosure);
@@ -531,10 +532,11 @@ V extends Serializable//
                     ConfigurationOptions.FORCE_OVERFLOW, Boolean.TYPE,
                     ConfigurationOptions.DEFAULT_PARSER_VALIDATES);
 
-            fallbackRDFFormat = ((RDFFormat) config.getEntry(component,
-                    ConfigurationOptions.FALLBACK_RDF_FORMAT, RDFFormat.class,
-                    ConfigurationOptions.DEFAULT_FALLBACK_RDF_FORMAT))
-                    .toString();
+            // @todo enable once RDFFormat is Serializable. 
+//            fallbackRDFFormat = ((RDFFormat) config.getEntry(component,
+//                    ConfigurationOptions.FALLBACK_RDF_FORMAT, RDFFormat.class,
+//                    ConfigurationOptions.DEFAULT_FALLBACK_RDF_FORMAT))
+//                    .toString();
 
             rejectedExecutionDelay = (Long) config.getEntry(
                     component,
