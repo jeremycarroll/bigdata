@@ -105,6 +105,7 @@ public class RDFFileLoadTask<S extends JobState, V extends Serializable>
                 jobState.parserQueueCapacity, // parserQueueCapacity
                 jobState.term2IdWriterPoolSize,//
                 jobState.otherWriterPoolSize,//
+                jobState.notifyPoolSize,//
                 jobState.unbufferedStatementThreshold
                 );
 

@@ -200,7 +200,7 @@ L>//
                 log.info("Done: " + locator);
 
             /*
-             * wait until any asynchronous processing for the subtask is done
+             * Wait until any asynchronous processing for the subtask is done
              * (extension hook).
              */ 
             awaitPending();
@@ -409,14 +409,15 @@ L>//
                 if (chunkSize > 0
                         && (   (elapsedNanos > buffer.getChunkTimeout())//
                             || (!buffer.isOpen() && !src.hasNext())//
-                            || (master.isFlushSinks() && !src.hasNext(1,TimeUnit.NANOSECONDS))//
                             )) {
                     /*
                      * We have SOME data and either (a) the chunk timeout has
                      * expired -or- (b) the buffer is closed and there is
-                     * nothing more to be read from the iterator; -or- (c) the
-                     * master is signaling that sinks should prefer to flush
-                     * partial chunks rather than await additional data.
+                     * nothing more to be read from the iterator. Note that the
+                     * sink was closed above if the master's buffer was closed.
+                     * The master's buffer is closed as a precondition to
+                     * master.awaitAll(), so the sink WILL NOT block once the
+                     * master enter's awaitAll().
                      */
                     if (log.isInfoEnabled())
                         log.info("Partial chunk: " + chunkSize + ", elapsed="

@@ -1,27 +1,27 @@
 /*
 
-Copyright (C) SYSTAP, LLC 2006-2008.  All rights reserved.
+ Copyright (C) SYSTAP, LLC 2006-2008.  All rights reserved.
 
-Contact:
-     SYSTAP, LLC
-     4501 Tower Road
-     Greensboro, NC 27410
-     licenses@bigdata.com
+ Contact:
+ SYSTAP, LLC
+ 4501 Tower Road
+ Greensboro, NC 27410
+ licenses@bigdata.com
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; version 2 of the License.
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; version 2 of the License.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-*/
+ */
 /*
  * Created on Apr 15, 2009
  */
@@ -80,28 +80,19 @@ import com.bigdata.service.ndx.pipeline.AbstractSubtask;
  * @param <HS>
  *            The generic type of the value returned by {@link Callable#call()}
  *            for the subtask.
- * 
- * @todo finish up should use round robin multiple assignment of resources to
- *       clients to get done faster. this will have to assign the last resources
- *       to multiple clients (ideally based on client load) rather than
- *       assigning them based on the {@link #hashFunction(Serializable)}. The
- *       pendingMap and pendingSet logic for the master and subtask should be
- *       ready to go as they allow for the possibility that an item is tasked to
- *       more than one client.
  */
-abstract public class ResourceBufferTask <//
+abstract public class ResourceBufferTask<//
 H extends ResourceBufferStatistics<L, HS>, //
 E extends Serializable, //
 S extends ResourceBufferSubtask, //
 L extends ClientLocator, //
 HS extends ResourceBufferSubtaskStatistics //
-> extends AbstractPendingSetMasterTask<H, E, S, L> 
-{
+> extends AbstractPendingSetMasterTask<H, E, S, L> {
 
     // from the ctor.
-    
+
     protected final MappedTaskMaster taskMaster;
-    
+
     protected final int sinkQueueCapacity;
 
     protected final int sinkChunkSize;
@@ -109,13 +100,13 @@ HS extends ResourceBufferSubtaskStatistics //
     protected final long sinkChunkTimeoutNanos;
 
     public String toString() {
-        
+
         return getClass().getName() + "{jobName="
                 + taskMaster.getJobState().jobName + ", open="
                 + buffer.isOpen() + "}";
-        
+
     }
-    
+
     /**
      * {@inheritDoc}
      * 
@@ -130,28 +121,25 @@ HS extends ResourceBufferSubtaskStatistics //
      *            combine smaller chunks so that it can satisfy the desired
      *            <i>sinkChunkSize</i>.
      */
-    public ResourceBufferTask(//
-            final MappedTaskMaster taskMaster,
-            final long sinkIdleTimeoutNanos,
-            final long sinkPollTimeoutNanos,
-            final int sinkQueueCapacity,
-            final int sinkChunkSize,
-            final long sinkChunkTimeoutNanos,
-            final H stats,
-            final BlockingBuffer<E[]> buffer) {
+    public ResourceBufferTask(
+            //
+            final MappedTaskMaster taskMaster, final long sinkIdleTimeoutNanos,
+            final long sinkPollTimeoutNanos, final int sinkQueueCapacity,
+            final int sinkChunkSize, final long sinkChunkTimeoutNanos,
+            final H stats, final BlockingBuffer<E[]> buffer) {
 
         super(taskMaster.getFederation(), stats, buffer, sinkIdleTimeoutNanos,
                 sinkPollTimeoutNanos);
 
         if (taskMaster == null)
             throw new IllegalArgumentException();
-        
+
         if (sinkQueueCapacity <= 0)
             throw new IllegalArgumentException();
 
         if (sinkChunkSize <= 0)
             throw new IllegalArgumentException();
-        
+
         if (sinkChunkTimeoutNanos <= 0)
             throw new IllegalArgumentException();
 
@@ -160,9 +148,42 @@ HS extends ResourceBufferSubtaskStatistics //
         this.sinkQueueCapacity = sinkQueueCapacity;
 
         this.sinkChunkSize = sinkChunkSize;
-        
+
         this.sinkChunkTimeoutNanos = sinkChunkTimeoutNanos;
-        
+
+    }
+
+    /**
+     * Accelerate shutdown protocol by mapping the pending set across the
+     * remaining clients. Each resource in the pending set is assigned to
+     * multiple clients. The assignments are made in random orderings to
+     * minimize the likelyhood that each client will perform the same work.
+     * 
+     * FIXME Finish up should use round robin multiple assignment of resources
+     * to clients to get done faster.
+     */
+    protected void willShutdown() throws InterruptedException {
+        /*
+         * TODO visit the sinks and determine which are fast and which are slow.
+         * This could be done based on the pending set size of the sink, but the
+         * service rate is a better indicator since the asynchronous write API
+         * tends to complete large chunks of work items at the same time. For
+         * the slow sinks, map their pendingSet across the fast sinks using a
+         * round robin approach and a non-blocking add to the sink's input
+         * buffer. We can reopen fast sinks which have been closed for this
+         * purpose since we know that there is no workload on those clients. Be
+         * careful not to block here, but note that we are NOT holding any locks
+         * on entry to this method.
+         */
+//        final SubtaskOp<S> op = new SubtaskOp<S>() {
+//            public void call(S s) throws Exception {
+//            }
+//        };
+//        try {
+//            mapOperationOverSubtasks(op);
+//        } catch (ExecutionException ex) {
+//            throw new RuntimeException(ex);
+//        }
     }
 
     /**
@@ -173,22 +194,24 @@ HS extends ResourceBufferSubtaskStatistics //
             throws InterruptedException {
 
         final long begin = System.nanoTime();
-        
+
         try {
 
             final long beforeSplit = System.nanoTime();
-            
+
             // #of partitions.
             final int N = taskMaster.getJobState().nclients;
-            
+
+            // The hash function used to assign resources to client tasks.
+            final IHashFunction<E> hashFunction = ((MappedTaskMaster.JobState) taskMaster
+                    .getJobState()).clientHashFunction;
+
             // array of ordered containers for each partition.
             final List<E>[] v = new List[N];
 
             for (E e : chunk) {
 
-                // Note: Could have hashed on the Object value as easily as the
-                // key, which would make sense for some applications.
-                final int i = taskMaster.hashFunction(e) % N;
+                final int i = hashFunction.hashFunction(e) % N;
 
                 if (v[i] == null) {
 
@@ -199,7 +222,7 @@ HS extends ResourceBufferSubtaskStatistics //
                 v[i].add(e);
 
             }
-            
+
             final long splitNanos = System.nanoTime() - beforeSplit;
 
             synchronized (stats) {
@@ -207,7 +230,7 @@ HS extends ResourceBufferSubtaskStatistics //
                 stats.elapsedSplitChunkNanos += splitNanos;
 
             }
-            
+
             // Break the chunk into the splits
             for (int i = 0; i < v.length; i++) {
 
@@ -228,7 +251,7 @@ HS extends ResourceBufferSubtaskStatistics //
                      * This assumes that the data is inserted into the given
                      * array.
                      */
-                    
+
                     throw new AssertionError();
 
                 }
@@ -243,17 +266,23 @@ HS extends ResourceBufferSubtaskStatistics //
         } finally {
 
             synchronized (stats) {
-             
+
                 stats.handledChunkCount.incrementAndGet();
-                
+
                 stats.elapsedHandleChunkNanos += System.nanoTime() - begin;
-                
+
             }
-            
+
         }
 
     }
 
+    /**
+     * @todo In order to handle client failure once the master is shutting down
+     *       we must start a NEW client task. Prior to that it is sufficient to
+     *       redistribute the work among the remaining clients (in this case we
+     *       could also start a replacement client task).
+     */
     @SuppressWarnings("unchecked")
     @Override
     protected S newSubtask(final L locator, final BlockingBuffer<E[]> out) {
@@ -304,17 +333,19 @@ HS extends ResourceBufferSubtaskStatistics //
         }
 
     }
-    
+
     /**
-     * Factory object used to start a {@link AbstractAsynchronousClientTask} on an
-     * {@link IRemoteExecutor} service. The factory returns the proxy for the
-     * {@link AbstractAsynchronousClientTask}. By using {@link AbstractAsynchronousClientTask#getFuture()},
-     * the caller can also obtain the proxy for the task's {@link Future}.
+     * Factory object used to start a {@link AbstractAsynchronousClientTask} on
+     * an {@link IRemoteExecutor} service. The factory returns the proxy for the
+     * {@link AbstractAsynchronousClientTask}. By using
+     * {@link AbstractAsynchronousClientTask#getFuture()}, the caller can also
+     * obtain the proxy for the task's {@link Future}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    private static class ClientTaskFactory extends FederationCallable<IAsynchronousClientTask> {
+    private static class ClientTaskFactory extends
+            FederationCallable<IAsynchronousClientTask> {
 
         /**
          * 
@@ -331,7 +362,7 @@ HS extends ResourceBufferSubtaskStatistics //
             this.task = task;
 
         }
-        
+
         /**
          * Submit the {@link AbstractAsynchronousClientTask} for execution, set
          * its {@link Future} and return the proxy for the
@@ -351,7 +382,7 @@ HS extends ResourceBufferSubtaskStatistics //
                     .getProxy(task, true/* enableDGC */);
 
         }
-        
+
     }
 
     /**
@@ -361,24 +392,23 @@ HS extends ResourceBufferSubtaskStatistics //
      * parameters.
      */
     protected BlockingBuffer<E[]> newSubtaskBuffer() {
-        
+
         return new BlockingBuffer<E[]>(//
                 new LinkedBlockingDeque<E[]>(sinkQueueCapacity),//
                 sinkChunkSize,// 
                 sinkChunkTimeoutNanos,//
                 TimeUnit.NANOSECONDS,//
-                buffer.isOrdered()
-        );
-        
+                buffer.isOrdered());
+
     }
 
     @SuppressWarnings("unchecked")
     @Override
     protected Future<HS> submitSubtask(final S subtask) {
 
-        return (Future<HS>) getFederation().getExecutorService().submit(
-                subtask);
-        
+        return (Future<HS>) getFederation().getExecutorService()
+                .submit(subtask);
+
     }
 
     protected Map<E, Collection<L>> newPendingMap() {
@@ -389,14 +419,14 @@ HS extends ResourceBufferSubtaskStatistics //
         if (initialCapacity == Integer.MAX_VALUE) {
 
             final IRawStore store = getFederation().getTempStore();
-            
+
             final IndexMetadata metadata = new IndexMetadata("pendingMap", UUID
                     .randomUUID());
 
             final BTree ndx = BTree.create(store, metadata);
 
             return new BigdataMap<E, Collection<L>>(ndx);
-            
+
         } else {
 
             return new LinkedHashMap<E, Collection<L>>(initialCapacity);
@@ -412,7 +442,9 @@ HS extends ResourceBufferSubtaskStatistics //
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    public static class M<E extends Serializable> extends ResourceBufferTask<//
+    public static class M<E extends Serializable>
+            extends
+            ResourceBufferTask<//
             ResourceBufferStatistics<ClientLocator, ResourceBufferSubtaskStatistics>, // H
             E, // E
             ResourceBufferSubtask, // S
@@ -432,7 +464,7 @@ HS extends ResourceBufferSubtaskStatistics //
                 final long sinkChunkTimeoutNanos,
                 final ResourceBufferStatistics<ClientLocator, ResourceBufferSubtaskStatistics> stats,
                 final BlockingBuffer<E[]> buffer) {
-            
+
             super(taskMaster, sinkIdleTimeoutNanos, sinkPollTimeoutNanos,
                     sinkQueueCapacity, sinkChunkSize, sinkChunkTimeoutNanos,
                     stats, buffer);

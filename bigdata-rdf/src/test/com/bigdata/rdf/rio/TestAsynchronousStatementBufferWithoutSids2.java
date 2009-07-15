@@ -308,6 +308,7 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
                 20, // parserQueueCapacity
                 parallel?5:1,  // term2IdWriterPoolSize,
                 parallel?5:1,  // otherWriterPoolSize
+                parallel?5:1,  // notifyPoolSize
                 unbufferedStatementThreshold
                 );
 
