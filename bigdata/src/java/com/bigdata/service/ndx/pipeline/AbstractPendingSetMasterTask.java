@@ -72,7 +72,7 @@ implements INotifyOutcome<E, L>
      * processing and are removed when the client asynchronously reports success
      * or failure for the resource.
      */
-    private Map<E, Collection<L>> pendingMap;
+    final private Map<E, Collection<L>> pendingMap;
 
     private final JiniFederation<?> fed;
 
@@ -108,6 +108,8 @@ implements INotifyOutcome<E, L>
         this.masterProxy = (INotifyOutcome<E, L>) fed
                 .getProxy(this, true/* enableDGC */);
 
+        pendingMap = newPendingMap();
+        
     }
 
     final protected boolean nothingPending() {
@@ -154,9 +156,6 @@ implements INotifyOutcome<E, L>
             throw new IllegalArgumentException();
         lock.lock();
         try {
-            if (pendingMap == null) {
-                pendingMap = newPendingMap();
-            }
             Collection<L> locators = pendingMap.remove(e);
             if (locators == null) {
                 locators = new LinkedHashSet<L>();
