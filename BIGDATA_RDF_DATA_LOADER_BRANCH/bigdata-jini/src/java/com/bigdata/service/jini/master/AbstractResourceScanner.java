@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.master;
 
-import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
@@ -195,14 +194,21 @@ public abstract class AbstractResourceScanner<V> implements Callable<Long> {
         // drain chunk containing up to the desired chunk size.
         queue.drainTo(c, buffer.getMinimumChunkSize());
 
+        final int chunkSize = c.size();
+        
+        if (chunkSize == 0)
+            return;
+        
         // allocate array of the appropriate component type.
         final V[] a = (V[]) java.lang.reflect.Array.newInstance(c.getFirst()
-                .getClass(), c.size());
+                .getClass(), chunkSize);
 
         // copy the chunk onto the array.
         int i = 0;
         for (V v : c) {
 
+            assert v != null;
+            
             a[i++] = v;
 
         }

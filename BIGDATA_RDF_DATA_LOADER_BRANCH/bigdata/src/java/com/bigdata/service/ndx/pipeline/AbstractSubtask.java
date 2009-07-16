@@ -510,10 +510,10 @@ L>//
 
         /**
          * Return the buffered chunk(s) as a single combined chunk. If more than
-         * one chunk is combined to produce the returned chunk, then a merge
-         * sort is applied to the the elements of the chunk before it is
-         * returned to the caller in order to keep the data in the chunk fully
-         * ordered.
+         * one chunk is combined to produce the returned chunk and
+         * {@link BlockingBuffer#isOrdered()}, then a merge sort is applied to
+         * the the elements of the chunk before it is returned to the caller in
+         * order to keep the data in the chunk fully ordered.
          */
         public E[] next() {
 
@@ -524,10 +524,18 @@ L>//
 
             }
 
+            final E[] firstChunk = chunks.getFirst();
+            
+            assert firstChunk != null;
+            
+            assert firstChunk.length != 0;
+            
+            assert firstChunk[0] != null;
+            
             // Dynamic instantiation of array of the same component type.
             @SuppressWarnings("unchecked")
-            final E[] a = (E[]) java.lang.reflect.Array.newInstance(chunks
-                    .get(0)[0].getClass(), chunkSize);
+            final E[] a = (E[]) java.lang.reflect.Array.newInstance(
+                    firstChunk[0].getClass(), chunkSize);
 
             // Combine the chunk(s) into a single chunk.
             int dstpos = 0;
@@ -544,7 +552,7 @@ L>//
 
             }
 
-            if (ncombined > 0) {
+            if (ncombined > 0 && buffer.isOrdered()) {
 
                 ChunkMergeSortHelper.mergeSort(a);
 
