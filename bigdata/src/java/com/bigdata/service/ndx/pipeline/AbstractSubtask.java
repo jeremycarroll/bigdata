@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.ndx.pipeline;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
@@ -469,6 +470,8 @@ L>//
 
                     assert a != null;
                     assert a.length != 0;
+                    assert a[0] != null : "chunk with nulls: chunkSize="
+                            + a.length + ", chunk=" + Arrays.toString(a);
 
                     // add to the list of chunks which are already available.
                     chunks.add(a);
