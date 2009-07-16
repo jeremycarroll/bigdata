@@ -99,6 +99,20 @@ HS extends ResourceBufferSubtaskStatistics //
 
     protected final long sinkChunkTimeoutNanos;
 
+    /**
+     * Internal state reflecting the resources which are in process. Resources
+     * are added to this collection when they are posted to a client for
+     * processing and are removed when the client asynchronously reports success
+     * or failure for the resource.
+     */
+    final private Map<E, Collection<L>> pendingMap;
+
+    protected Map<E,Collection<L>> getPendingMap() {
+        
+        return pendingMap;
+        
+    }
+
     public String toString() {
 
         return getClass().getName() + "{jobName="
@@ -151,6 +165,8 @@ HS extends ResourceBufferSubtaskStatistics //
 
         this.sinkChunkTimeoutNanos = sinkChunkTimeoutNanos;
 
+        this.pendingMap = newPendingMap();
+        
     }
 
     /**
@@ -430,8 +446,8 @@ HS extends ResourceBufferSubtaskStatistics //
 
             final IRawStore store = getFederation().getTempStore();
 
-            final IndexMetadata metadata = new IndexMetadata("pendingMap", UUID
-                    .randomUUID());
+            // anonymous index (unnamed).
+            final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
 
             final BTree ndx = BTree.create(store, metadata);
 

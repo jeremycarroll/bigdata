@@ -60,13 +60,6 @@ L> //
     final protected IAsynchronousClientTask<?, E> clientTask;
 
     /**
-     * The set of work items for which there are pending asynchronous
-     * operations. Entries are cleared from this set as soon as ANY client has
-     * successfully completed the work for that item.
-     */
-    private final Set<E> pendingSet;
-
-    /**
      * Lock used ONLY for the {@link #pendingSet}.
      */
     private final ReentrantLock lock = new ReentrantLock();
@@ -91,21 +84,19 @@ L> //
         if (clientTask == null)
             throw new IllegalArgumentException();
 
-        pendingSet = newPendingSet();
-
         this.clientTask = clientTask;
 
     }
 
     /**
-     * Allocate and return the pending set. You MAY use a {@link BigdataSet}.
+     * Return the pending set.
      */
-    abstract protected Set<E> newPendingSet();
-
+    abstract protected Set<E> getPendingSet();
+    
     public int getPendingSetSize() {
         lock.lock();
         try {
-            return pendingSet.size();
+            return getPendingSet().size();
         } finally {
             lock.unlock();
         }
@@ -126,7 +117,7 @@ L> //
          */
         lock.lockInterruptibly();
         try {
-            if (!pendingSet.isEmpty()) {
+            if (!getPendingSet().isEmpty()) {
                 pendingSetEmpty.await();
             }
         } finally {
@@ -137,7 +128,7 @@ L> //
     final protected boolean addPending(final E e) {
         lock.lock();
         try {
-            return pendingSet.add(e);
+            return getPendingSet().add(e);
         } finally {
             lock.unlock();
         }
@@ -146,8 +137,8 @@ L> //
     final protected boolean removePending(final E e) {
         lock.lock();
         try {
-            final boolean ret = pendingSet.remove(e);
-            if (pendingSet.isEmpty()) {
+            final boolean ret = getPendingSet().remove(e);
+            if (getPendingSet().isEmpty()) {
                 pendingSetEmpty.signal();
             }
             return ret;

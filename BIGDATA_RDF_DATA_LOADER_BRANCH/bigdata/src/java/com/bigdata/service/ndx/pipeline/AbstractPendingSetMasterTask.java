@@ -66,14 +66,6 @@ implements INotifyOutcome<E, L>
      */
     private final ReentrantLock lock = new ReentrantLock();
 
-    /**
-     * Internal state reflecting the resources which are in process. Resources
-     * are added to this collection when they are posted to a client for
-     * processing and are removed when the client asynchronously reports success
-     * or failure for the resource.
-     */
-    final private Map<E, Collection<L>> pendingMap;
-
     private final JiniFederation<?> fed;
 
     public JiniFederation<?> getFederation() {
@@ -88,6 +80,14 @@ implements INotifyOutcome<E, L>
      */
     protected final INotifyOutcome<E,L> masterProxy;
 
+    /**
+     * Return the pending map. The pending map reflects the resources which are
+     * in process. Resources are added to this collection when they are posted
+     * to a client for processing and are removed when the client asynchronously
+     * reports success or failure for the resource.
+     */
+    abstract protected Map<E, Collection<L>> getPendingMap();
+    
     /**
      * @param stats
      * @param buffer
@@ -107,15 +107,13 @@ implements INotifyOutcome<E, L>
 
         this.masterProxy = (INotifyOutcome<E, L>) fed
                 .getProxy(this, true/* enableDGC */);
-
-        pendingMap = newPendingMap();
         
     }
 
     final protected boolean nothingPending() {
         lock.lock();
         try {
-            return pendingMap == null || pendingMap.isEmpty();
+            return getPendingMap().isEmpty();
         } finally {
             lock.unlock();
         }
@@ -124,7 +122,7 @@ implements INotifyOutcome<E, L>
     final public int getPendingSetSize() {
         lock.lock();
         try {
-            return pendingMap.size();
+            return getPendingMap().size();
         } finally {
             lock.unlock();
         }
@@ -156,17 +154,17 @@ implements INotifyOutcome<E, L>
             throw new IllegalArgumentException();
         lock.lock();
         try {
-            Collection<L> locators = pendingMap.remove(e);
+            Collection<L> locators = getPendingMap().remove(e);
             if (locators == null) {
                 locators = new LinkedHashSet<L>();
                 locators.add(locator);
-                pendingMap.put(e, locators);
+                getPendingMap().put(e, locators);
                 // added to the map.
                 return true;
             } else {
                 // already in the map.
                 locators.add(locator);
-                pendingMap.put(e, locators);
+                getPendingMap().put(e, locators);
                 return false;
             }
         } finally {
@@ -205,13 +203,11 @@ implements INotifyOutcome<E, L>
         boolean notify = false;
         lock.lock();
         try {
-            if (pendingMap == null)
-                throw new IllegalStateException();
             if (cause == null) {
                 /*
                  * Successful completion.
                  */
-                final Collection<L> locators = pendingMap.remove(e);
+                final Collection<L> locators = getPendingMap().remove(e);
                 if (locators == null) {
                     /*
                      * Presume already successful since not in the map. Return
@@ -239,7 +235,7 @@ implements INotifyOutcome<E, L>
             /*
              * Error reported.
              */
-            final Collection<L> locators = pendingMap.get(e);
+            final Collection<L> locators = getPendingMap().get(e);
             if (locators == null) {
                 /*
                  * Presume already successful since not in the map. Return false
@@ -262,14 +258,14 @@ implements INotifyOutcome<E, L>
             }
             if (locators.isEmpty()) {
                 // no outstanding requests remain, so will notify error.
-                pendingMap.remove(e);
+                getPendingMap().remove(e);
                 // will notify.
                 notify = true;
                 // no more rquests for that work item.
                 return true;
             } else {
                 // otherwise outstanding requests remain, so update map.
-                pendingMap.put(e, locators);
+                getPendingMap().put(e, locators);
                 // requests remain for that work item.
                 return false;
             }
