@@ -58,11 +58,26 @@ T extends IKeyArrayIndexProcedure,//
 A//
 > extends AbstractPendingSetSubtask<HS, M, E, L> {
 
+    /**
+     * The set of work items for which there are pending asynchronous
+     * operations. Entries are cleared from this set as soon as ANY client has
+     * successfully completed the work for that item.
+     */
+    private final Set<E> pendingSet;
+    
+    protected Set<E> getPendingSet() {
+        
+        return pendingSet;
+        
+    }
+    
     public ResourceBufferSubtask(final M master, final L locator,
             final IAsynchronousClientTask<?, E> clientTask,
             final BlockingBuffer<E[]> buffer) {
 
         super(master, locator, clientTask, buffer);
+
+        this.pendingSet = newPendingSet();
 
     }
 
@@ -75,8 +90,8 @@ A//
 
             final IRawStore store = master.getFederation().getTempStore();
 
-            final IndexMetadata metadata = new IndexMetadata("pendingSet#"
-                    + locator.getClientNo(), UUID.randomUUID());
+            // anonymous index (unnamed)
+            final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
 
             final BTree ndx = BTree.create(store, metadata);
 
