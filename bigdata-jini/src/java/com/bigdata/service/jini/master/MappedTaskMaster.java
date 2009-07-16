@@ -285,6 +285,12 @@ V extends Serializable//
     @Override
     protected void runJob() throws Exception {
         
+        /*
+         * Allocate and start processes for buffer used to assign resources to
+         * the client tasks.
+         */
+        final BlockingBuffer<V[]> resourceBuffer = newResourceBuffer();
+        
         try {
 
             // instantiate scanner backed by the resource buffer.
@@ -303,8 +309,8 @@ V extends Serializable//
             /*
              * The buffer should have been closed by the scanner. We close the
              * buffer here as a failsafe in case the scanner task did not start
-             * or in case the scanner it is interrupted (in which case
-             * Future#get() may return before the buffer is closed).
+             * or in case the scanner is interrupted (in which case Future#get()
+             * may return before the buffer is closed).
              */
             if (resourceBuffer.isOpen()) {
 
@@ -317,13 +323,8 @@ V extends Serializable//
     }
 
     /**
-     * Buffer used to assign resources to the client tasks.
-     */
-    private final BlockingBuffer<V[]> resourceBuffer = newResourceBuffer();
-    
-    /**
-     * Return the buffer used to hand off resources for processing to the
-     * clients.
+     * Allocate and start processing for the buffer used to hand off resources
+     * for processing to the clients.
      * 
      * @todo Specializing the behavior of the {@link MappedTaskMaster} requires
      *       overriding the behavior of the {@link ResourceBufferTask}. It
@@ -402,4 +403,5 @@ V extends Serializable//
      */
     abstract protected T newClientTask(INotifyOutcome<V, L> notifyProxy,
             final L locator);
+
 }

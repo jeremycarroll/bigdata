@@ -48,6 +48,6 @@ public interface IResourceScannerFactory<V> extends Serializable {
      * 
      * @return The scanner.
      */
-    public AbstractResourceScanner newScanner(BlockingBuffer<V[]> buffer);
+    public AbstractResourceScanner<V> newScanner(BlockingBuffer<V[]> buffer);
 
 }

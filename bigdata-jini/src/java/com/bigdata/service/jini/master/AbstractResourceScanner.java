@@ -34,6 +34,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.log4j.Logger;
+
 import com.bigdata.relation.accesspath.BlockingBuffer;
 
 /**
@@ -46,6 +48,9 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
  */
 public abstract class AbstractResourceScanner<V> implements Callable<Long> {
 
+    protected static final Logger log = Logger
+            .getLogger(AbstractResourceScanner.class);
+    
     /**
      * The master buffer onto which the scanner drops chunks of resources
      * for processing.
@@ -69,6 +74,11 @@ public abstract class AbstractResourceScanner<V> implements Callable<Long> {
      * The #of resources accepted by the scanner.
      */
     private final AtomicLong acceptCount = new AtomicLong();
+
+    /**
+     * The #of chunks of resources which have been added to the buffer.
+     */
+    private final AtomicLong chunkCount = new AtomicLong();
 
     /**
      * Return the #of accepted resources.
@@ -184,7 +194,8 @@ public abstract class AbstractResourceScanner<V> implements Callable<Long> {
     }
     
     /**
-     * Drain a chunk from the queue, transferring it to the buffer.
+     * Drain a chunk from the queue, transferring it to the buffer (blocks if
+     * the buffer is full).
      */
     @SuppressWarnings("unchecked")
     private void transferChunk() {
@@ -207,10 +218,18 @@ public abstract class AbstractResourceScanner<V> implements Callable<Long> {
         int i = 0;
         for (V v : c) {
 
-            assert v != null;
+            assert v != null : "null @ index=" + i;
             
             a[i++] = v;
 
+        }
+        assert i == chunkSize : "i=" + i + ", chunkSize=" + chunkSize;
+
+        if(log.isInfoEnabled()) {
+            
+            log.info("Adding chunk: chunkSize=" + chunkSize + ", naccepted="
+                    + acceptCount + ", chunkCount=" + chunkCount);
+            
         }
         
         /*
@@ -220,11 +239,13 @@ public abstract class AbstractResourceScanner<V> implements Callable<Long> {
          */
         buffer.add(a);
 
+        chunkCount.incrementAndGet();
+        
     }
     
     /**
-     * Drain anything left in the queue, transferring it in chunks to the
-     * buffer.
+     * Drain anything left in the queue, transferring it in chunks to the buffer
+     * (blocks if the buffer is full).
      */
     private void flushQueue() {
 
