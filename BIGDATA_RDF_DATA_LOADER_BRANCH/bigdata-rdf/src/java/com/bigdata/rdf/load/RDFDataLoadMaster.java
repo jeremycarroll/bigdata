@@ -574,10 +574,18 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
 
         final JiniFederation fed = new JiniClient(args).connect();
 
-        final TaskMaster task = new RDFDataLoadMaster(fed);
+        try {
+        
+            final TaskMaster task = new RDFDataLoadMaster(fed);
 
-        // execute master wait for it to finish.
-        task.execute();
+            // execute master wait for it to finish.
+            task.execute();
+
+        } finally {
+
+            fed.shutdown();
+            
+        }
         
     }
     

@@ -761,14 +761,21 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
      * cancelled. A simple <code>main()</code> can be written as follows:
      * 
      * <pre>
-     * public static void main(String[] args) {
+     * public static void main(final String[] args) {
      * 
      *     final JiniFederation fed = new JiniClient(args).connect();
      * 
-     *     final TaskMaster task = new MyMaster(fed);
+     *     try {
      * 
-     *     // execute master wait for it to finish.
-     *     task.execute();
+     *         final TaskMaster task = new MyMaster(fed);
+     * 
+     *         task.execute();
+     *         
+     *     } finally {
+     *     
+     *         fed.shutdown();
+     *         
+     *     }
      * 
      * }
      * </pre>

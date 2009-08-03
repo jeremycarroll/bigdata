@@ -333,10 +333,18 @@ public class LubmGeneratorMaster<S extends LubmGeneratorMaster.JobState, T exten
 
         final JiniFederation fed = new JiniClient(args).connect();
 
-        final TaskMaster task = new LubmGeneratorMaster(fed);
+        try {
 
-        task.execute();
-        
+            final TaskMaster task = new LubmGeneratorMaster(fed);
+
+            task.execute();
+
+        } finally {
+
+            fed.shutdown();
+
+        }
+
     }
 
     public LubmGeneratorMaster(final JiniFederation fed)

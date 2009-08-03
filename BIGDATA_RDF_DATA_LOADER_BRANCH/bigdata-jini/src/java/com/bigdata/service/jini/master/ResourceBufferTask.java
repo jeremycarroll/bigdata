@@ -80,6 +80,10 @@ import com.bigdata.service.ndx.pipeline.AbstractSubtask;
  * @param <HS>
  *            The generic type of the value returned by {@link Callable#call()}
  *            for the subtask.
+ * 
+ * @todo Isolate the pending set buffer logic and write unit tests for it. This
+ *       should also cover the acceleration of the final tasks during normal
+ *       shutdown.
  */
 abstract public class ResourceBufferTask<//
 H extends ResourceBufferStatistics<L, HS>, //
@@ -261,7 +265,7 @@ HS extends ResourceBufferSubtaskStatistics //
                 final E[] split = (E[]) java.lang.reflect.Array.newInstance(
                         chunk[0].getClass(), t.size());
 
-                if (t.toArray(chunk) != chunk) {
+                if (t.toArray(split) != split) {
 
                     /*
                      * This assumes that the data is inserted into the given

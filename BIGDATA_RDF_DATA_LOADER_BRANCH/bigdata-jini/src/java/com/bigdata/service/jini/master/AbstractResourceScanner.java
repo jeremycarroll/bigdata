@@ -30,7 +30,6 @@ package com.bigdata.service.jini.master;
 import java.util.LinkedList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -105,46 +104,24 @@ public abstract class AbstractResourceScanner<V> implements Callable<Long> {
     }
 
     /**
-     * Invokes {@link #runScanner()} and waits until all resources identified by
-     * the scanner have been processed.
-     * <p>
-     * During normal execution, the {@link BlockingBuffer} will be closed and
-     * this method will await its {@link Future} before returning. If the thread
-     * is interrupted or if any exception is thrown, then
-     * {@link BlockingBuffer#abort(Throwable)} is used to terminate buffer
-     * processing and the exception is rethrown out of this method.
+     * Invokes {@link #runScanner()}, queuing and transferring chunks of
+     * resources to the {@link BlockingBuffer} specified to the ctor. When
+     * {@link #runScanner()} completes normally, the remaining resources
+     * are transferred from the internal queue to the {@link BlockingBuffer}.
      * 
      * @return The #of resources accepted by the scanner.
      */
     final public Long call() throws Exception {
 
-        try {
+        // run the scanner.
+        runScanner();
 
-            // run the scanner.
-            runScanner();
-
-            // flush the last chunk to the blocking buffer.
-            flushQueue();
-            
-            // close the buffer - no more resources will be queued.
-            buffer.close();
-            
-            // await the completion of the work for the queued resources.
-            buffer.getFuture().get();
-            
-            // #of resources accepted by the scanner.
-            return acceptCount.get();
-            
-        } catch (Throwable t) {
-
-            // interrupt buffer.
-            buffer.abort(t);
-
-            // rethrow exception.
-            throw new RuntimeException(t);
-            
-        }
-
+        // flush the last chunk to the blocking buffer.
+        flushQueue();
+        
+        // #of resources accepted by the scanner.
+        return acceptCount.get();
+        
     }
     
     /**
@@ -165,6 +142,9 @@ public abstract class AbstractResourceScanner<V> implements Callable<Long> {
         if (resource == null)
             throw new IllegalArgumentException();
 
+        if (log.isDebugEnabled())
+            log.debug("accept: " + resource);
+        
         this.acceptCount.incrementAndGet();
 
         // add the resource to the queue.
@@ -227,8 +207,8 @@ public abstract class AbstractResourceScanner<V> implements Callable<Long> {
 
         if(log.isInfoEnabled()) {
             
-            log.info("Adding chunk: chunkSize=" + chunkSize + ", naccepted="
-                    + acceptCount + ", chunkCount=" + chunkCount);
+            log.info("chunkSize=" + chunkSize + ", naccepted=" + acceptCount
+                    + ", chunkCount=" + chunkCount);
             
         }
         
@@ -249,6 +229,9 @@ public abstract class AbstractResourceScanner<V> implements Callable<Long> {
      */
     private void flushQueue() {
 
+        if (log.isInfoEnabled())
+            log.info("Flushing queue to buffer.");
+        
         while(!queue.isEmpty()) {
 
             // transfer a chunk from the queue to the buffer.

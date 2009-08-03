@@ -224,16 +224,26 @@ V extends Serializable//
 
             super(component, config);
             
+            /*
+             * Note: the chunk size here should be selected in part as a
+             * function of the effort involved in processing each resource
+             * assigned to a given client. Together with the input queue on the
+             * client, that will determine how many outstanding resource
+             * requests are scheduled for processing, how far the scanner is
+             * running in advance of the task execution, and how much workload
+             * is assigned to a client in advance of observing the rate at which
+             * the client is consuming its workload.
+             */
             conf = (AsynchronousIndexWriteConfiguration) config.getEntry(component,
                     ConfigurationOptions.RESOURCE_BUFFER_CONFIG, AsynchronousIndexWriteConfiguration.class,
                     new AsynchronousIndexWriteConfiguration(//
                             100, // masterQueueCapacity,
-                            1000, // masterChunkSize
+                            100, // masterChunkSize
                             TimeUnit.SECONDS.toNanos(5),// masterChunkTimeoutNanos
                             Long.valueOf(IndexMetadata.Options.DEFAULT_SINK_IDLE_TIMEOUT_NANOS).longValue(),//
                             Long.valueOf(IndexMetadata.Options.DEFAULT_SINK_POLL_TIMEOUT_NANOS).longValue(),//
                             100, // sinkQueueCapacity
-                            1000, // sinkChunkSize,
+                            100, // sinkChunkSize,
                             TimeUnit.SECONDS.toNanos(20)// sinkChunkTimeoutNanos
                     ));
 
@@ -275,12 +285,11 @@ V extends Serializable//
     /**
      * Runs the scanner, handing off resources to clients for processing. The
      * clients should run until they are interrupted by the master. When the
-     * scanner is done, it closes the master buffer. After the scanner closes
-     * the master buffer, the master will continue to run until the pendingSet
-     * is empty. However, once the master buffer is exhausted (closed and
-     * drained), the sinks will flush their last chunks and then close the
-     * clientTask. This prevents workload starvation during the shutdown
-     * protocol.
+     * scanner is done, the resource buffer is closed. The master will continue
+     * to run until the pendingSet is empty. Once the master buffer is exhausted
+     * (closed and drained), the sinks will flush their last chunks and then
+     * {@link IAsynchronousClientTask#close()} the clientTask. This prevents
+     * workload starvation during the shutdown protocol.
      */
     @Override
     protected void runJob() throws Exception {
@@ -290,7 +299,7 @@ V extends Serializable//
          * the client tasks.
          */
         final BlockingBuffer<V[]> resourceBuffer = newResourceBuffer();
-        
+
         try {
 
             // instantiate scanner backed by the resource buffer.
@@ -302,21 +311,24 @@ V extends Serializable//
                     scanner);
 
             // await scanner future.
-            scannerFuture.get();
+            final Long acceptCount = scannerFuture.get();
 
-        } finally {
+            System.err.println("Master accepted " + acceptCount
+                    + " resources for processing.");
 
-            /*
-             * The buffer should have been closed by the scanner. We close the
-             * buffer here as a failsafe in case the scanner task did not start
-             * or in case the scanner is interrupted (in which case Future#get()
-             * may return before the buffer is closed).
-             */
-            if (resourceBuffer.isOpen()) {
+            // close the buffer - no more resources will be queued.
+            resourceBuffer.close();
 
-                resourceBuffer.close();
+            // await the completion of the work for the queued resources.
+            resourceBuffer.getFuture().get();
 
-            }
+        } catch (Throwable t) {
+
+            // interrupt buffer.
+            resourceBuffer.abort(t);
+
+            // rethrow exception.
+            throw new RuntimeException(t);
             
         }
         
