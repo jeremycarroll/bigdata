@@ -225,11 +225,17 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          * When <code>true</code>, the closure of the data set will be
          * computed.
          * 
+         * @see BigdataSail.Options#TRUTH_MAINTENANCE
+         * 
          * @todo Note that the closure will be computed ANYWAY if the
          *       {@link BigdataSail} is configured for incremental truth
          *       maintenance. (Create w/o incremental TM).
          * 
-         * @see BigdataSail.Options#TRUTH_MAINTENANCE
+         * @todo Change to an enum type with support for justification chains,
+         *       recomputing closure without magic sets or justification chains,
+         *       computing the incremental closure, etc. Make sure that the bulk
+         *       delete of inferences for recomputing closure is efficient
+         *       (range iterator with filter for inferences and delete flag).
          */
         String COMPUTE_CLOSURE = "computeClosure";
 
@@ -376,6 +382,8 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         /**
          * When <code>true</code>, the closure of the data set will be
          * computed once all data have been loaded.
+         * 
+         * @see ConfigurationOptions#COMPUTE_CLOSURE
          */
         public final boolean computeClosure;
 
