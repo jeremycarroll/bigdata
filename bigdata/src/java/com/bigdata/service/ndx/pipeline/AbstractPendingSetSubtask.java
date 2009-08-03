@@ -102,6 +102,23 @@ L> //
     }
 
     @Override
+    protected final void cancelRemoteTask(final boolean mayInterruptIfRunning)
+            throws InterruptedException {
+        
+        try {
+ 
+            // cancel the remote task.
+            clientTask.getFuture().cancel(mayInterruptIfRunning);
+        
+        } catch (RemoteException e) {
+            
+            throw new RuntimeException(e);
+            
+        }
+        
+    }
+
+    @Override
     protected final void awaitPending() throws InterruptedException {
         /*
          * Instruct the client task that we will not assign it any new work.
