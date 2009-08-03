@@ -34,7 +34,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.bigdata.btree.BigdataSet;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.IRemoteExecutor;
 import com.bigdata.service.jini.master.ClientLocator;

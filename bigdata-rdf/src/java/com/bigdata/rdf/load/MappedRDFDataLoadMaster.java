@@ -570,10 +570,18 @@ V extends Serializable//
 
         final JiniFederation fed = new JiniClient(args).connect();
 
-        final TaskMaster task = new MappedRDFDataLoadMaster(fed);
+        try {
 
-        // execute master wait for it to finish.
-        task.execute();
+            final TaskMaster task = new MappedRDFDataLoadMaster(fed);
+
+            // execute master wait for it to finish.
+            task.execute();
+
+        } finally {
+
+            fed.shutdown();
+
+        }
         
     }
     

@@ -43,8 +43,6 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
  */
 public class FileSystemScanner extends AbstractResourceScanner<File> {
 
-    protected static final Logger log = Logger.getLogger(FileSystemScanner.class);
-    
     volatile boolean done = false;
 
     protected final File fileOrDir;
@@ -122,9 +120,6 @@ public class FileSystemScanner extends AbstractResourceScanner<File> {
              * Processing a standard file.
              */
 
-            if (log.isInfoEnabled())
-                log.info("Accepted: " + file);
-
             accept(file);
 
         }
@@ -144,7 +139,7 @@ public class FileSystemScanner extends AbstractResourceScanner<File> {
              */
             private static final long serialVersionUID = 6440345409026346627L;
 
-            public AbstractResourceScanner newScanner(
+            public AbstractResourceScanner<File> newScanner(
                     final BlockingBuffer<File[]> buffer) {
                 
                 return new FileSystemScanner(buffer, fileOrDir, filter);

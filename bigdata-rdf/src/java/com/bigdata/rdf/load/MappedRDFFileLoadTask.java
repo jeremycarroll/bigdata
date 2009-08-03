@@ -71,10 +71,29 @@ implements Serializable {
      * Note: transient field set by {@link #call()}. 
      */
     private transient ReentrantLock lock;
+
     /**
+     * Condition signalled when done.
+     * <p>
      * Note: transient field set by {@link #call()}.
      */
     private transient Condition allDone;
+    
+    /**
+     * Condition signalled when ready.
+     * <p>
+     * Note: transient field set by {@link #call()}.
+     */
+    private transient Condition ready;
+    
+    /**
+     * Flag set once {@link #call()} has initialized our transient state.
+     * <p>
+     * Note: this flag is serialized so it is <code>false</code> before the
+     * methods on this class can be invoked using RMI, especially
+     * {@link #accept(Serializable[])}.
+     */
+    private volatile boolean isReady = false;
     
     public String toString() {
 
@@ -106,74 +125,97 @@ implements Serializable {
 
     }
 
-    public Void call() throws Exception {
+    protected void setUp() throws InterruptedException {
 
         // set transient fields.
         lock = new ReentrantLock();
         allDone = lock.newCondition();
-        
-        final JiniFederation fed = getFederation();
+        ready = lock.newCondition();
 
-        final AbstractTripleStore tripleStore = (AbstractTripleStore) fed
-                .getResourceLocator()
-                .locate(jobState.namespace, ITx.UNISOLATED);
+        lock.lockInterruptibly();
+        try {
 
-        if (tripleStore == null) {
+            final AbstractTripleStore tripleStore = (AbstractTripleStore) getFederation()
+                    .getResourceLocator().locate(jobState.namespace,
+                            ITx.UNISOLATED);
 
-            throw new RuntimeException("KB not found: namespace="
-                    + jobState.namespace);
+            if (tripleStore == null) {
 
-        }
+                throw new RuntimeException("KB not found: namespace="
+                        + jobState.namespace);
 
-        statementBufferFactory = new AsynchronousStatementBufferFactory<BigdataStatement,V>(
-                (ScaleOutTripleStore) tripleStore,//
-                jobState.producerChunkSize,//
-                jobState.valuesInitialCapacity,//
-                jobState.bnodesInitialCapacity,//
-                jobState.getFallbackRDFFormat(), // 
-                jobState.parserValidates,//
-                false, // deleteAfter is handled by the master!
-                jobState.parserPoolSize, //  
-                jobState.parserQueueCapacity, // 
-                jobState.term2IdWriterPoolSize,//
-                jobState.otherWriterPoolSize,//
-                jobState.notifyPoolSize,//
-                jobState.unbufferedStatementThreshold//
-                ) {
-                        
+            }
+
+            statementBufferFactory = new AsynchronousStatementBufferFactory<BigdataStatement, V>(
+                    (ScaleOutTripleStore) tripleStore,//
+                    jobState.producerChunkSize,//
+                    jobState.valuesInitialCapacity,//
+                    jobState.bnodesInitialCapacity,//
+                    jobState.getFallbackRDFFormat(), // 
+                    jobState.parserValidates,//
+                    false, // deleteAfter is handled by the master!
+                    jobState.parserPoolSize, //  
+                    jobState.parserQueueCapacity, // 
+                    jobState.term2IdWriterPoolSize,//
+                    jobState.otherWriterPoolSize,//
+                    jobState.notifyPoolSize,//
+                    jobState.unbufferedStatementThreshold//
+            ) {
+
+                /*
+                 * Override the "notifyService" to do asynchronous RMI back to
+                 * this class indicating success or failure for each resource.
+                 */
+                @Override
+                protected Runnable newSuccessTask(final V resource) {
+                    return new Runnable() {
+                        public void run() {
+                            try {
+                                getNotifyProxy().success(resource, locator);
+                            } catch (RemoteException ex) {
+                                log.error(resource, ex);
+                            }
+                        }
+                    };
+                }
+
+                @Override
+                protected Runnable newFailureTask(final V resource,
+                        final Throwable cause) {
+                    return new Runnable() {
+                        public void run() {
+                            try {
+                                getNotifyProxy()
+                                        .error(resource, locator, cause);
+                            } catch (RemoteException ex) {
+                                log.error(resource, ex);
+                            }
+                        }
+                    };
+                }
+
+            };
+
             /*
-             * Override the "notifyService" to do asynchronous RMI back to this
-             * class indicating success or failure for each resource.
+             * Update the flag and notify all blocked threads since they can now
+             * execute.
              */
-            @Override
-            protected Runnable newSuccessTask(final V resource) {
-                return new Runnable() {
-                    public void run() {
-                        try {
-                            getNotifyProxy().success(resource, locator);
-                        } catch (RemoteException ex) {
-                            log.error(resource, ex);
-                        }
-                    }
-                };
-            }
+            isReady = true;
 
-            @Override
-            protected Runnable newFailureTask(final V resource,
-                    final Throwable cause) {
-                return new Runnable() {
-                    public void run() {
-                        try {
-                            getNotifyProxy().error(resource, locator, cause);
-                        } catch (RemoteException ex) {
-                            log.error(resource, ex);
-                        }
-                    }
-                };
-            }
+            ready.signalAll();
 
-        };
+        } finally {
 
+            lock.unlock();
+            
+        }
+        
+    }
+    
+    public Void call() throws Exception {
+
+        setUp();
+        
         try {
 
             /*
@@ -183,7 +225,8 @@ implements Serializable {
              */
             {
 
-                final CounterSet serviceRoot = fed.getServiceCounterSet();
+                final CounterSet serviceRoot = getFederation()
+                        .getServiceCounterSet();
 
                 final String relPath = jobState.jobName;
 
@@ -254,7 +297,45 @@ implements Serializable {
 //
 //    }
 
-    public void accept(V[] chunk) throws RemoteException, InterruptedException {
+    /**
+     * Block until {@link #call()} has fully initialized the instance of this
+     * class running on the {@link IRemoteExecutor}. This method should be used
+     * to guard methods on this or derived classes which can be invoked by RMI
+     * and which depend on {@link #setUp()}.
+     */
+    protected void awaitReady() throws InterruptedException {
+
+        if (lock == null)
+            throw new IllegalStateException();
+
+        lock.lockInterruptibly();
+        try {
+
+            /*
+             * We use a combination of the volatile [isReady] flag and the
+             * [ready] Condition to ensure that the instance of this class
+             * running on the remote executor service has been fully initialized
+             * before we allow access to its methods other than call().
+             */
+            if (!isReady) {
+
+                // wait until ready.
+                ready.await();
+
+            }
+
+        } finally {
+
+            lock.unlock();
+
+        }
+
+    }
+    
+    public void accept(final V[] chunk) throws RemoteException,
+            InterruptedException {
+
+        awaitReady();
 
         for (V resource : chunk) {
 
@@ -267,6 +348,8 @@ implements Serializable {
 
     public void close() throws RemoteException, InterruptedException {
 
+        awaitReady();
+        
         lock.lockInterruptibly();
         try {
 
