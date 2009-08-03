@@ -225,6 +225,9 @@ L>//
             // clear the backing queue.
             buffer.clear();
             
+            // interrupt the remote task (extension hook).
+            cancelRemoteTask(true/* mayInterruptIfRunning */);
+            
             /*
              * Halt processing.
              * 
@@ -257,7 +260,22 @@ L>//
         // NOP - overriden by subclass which supports pendingSets.
         
     }
-    
+
+    /**
+     * Cancel the remote task. This is an extension hook which is used if the
+     * remote task accepts chunks for processing and uses an asynchronous
+     * notification mechanism to indicate the success or failure of elements.
+     * The default implementation is a NOP.
+     * 
+     * @throws InterruptedException
+     */
+    protected void cancelRemoteTask(boolean mayInterruptIfRunning)
+            throws InterruptedException {
+
+        // NOP - overriden by subclass which supports pendingSets.
+        
+    }
+
     /**
      * Inner class is responsible for combining chunks as they become available
      * from the {@link IAsynchronousIterator} while maintaining liveness. It
