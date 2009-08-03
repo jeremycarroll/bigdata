@@ -232,6 +232,9 @@ HS extends ResourceBufferSubtaskStatistics //
             for (E e : chunk) {
 
                 final int i = hashFunction.hashFunction(e) % N;
+                
+                assert i >= 0 && i < N : "hashFunction out of range: e=" + e
+                        + ", N=" + N + ", i=" + i;
 
                 if (v[i] == null) {
 

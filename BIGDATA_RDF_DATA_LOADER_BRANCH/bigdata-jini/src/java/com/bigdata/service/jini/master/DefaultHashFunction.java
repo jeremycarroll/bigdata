@@ -27,8 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.master;
 
-import java.io.Serializable;
-
 /**
  * Uses {@link Object#hashCode()}.
  * 
@@ -42,7 +40,7 @@ public class DefaultHashFunction<V> implements IHashFunction<V> {
      */
     private static final long serialVersionUID = 3492971868908009994L;
 
-    public int hashFunction(V value) {
+    public int hashFunction(final V value) {
 
         return value.hashCode();
         
