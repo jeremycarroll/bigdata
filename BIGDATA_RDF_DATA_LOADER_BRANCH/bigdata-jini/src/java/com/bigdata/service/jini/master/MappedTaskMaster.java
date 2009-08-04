@@ -234,16 +234,18 @@ V extends Serializable//
              * is assigned to a client in advance of observing the rate at which
              * the client is consuming its workload.
              */
+            final int masterChunkSize = 10000;
+            final int sinkChunkSize = 1000;
             conf = (AsynchronousIndexWriteConfiguration) config.getEntry(component,
                     ConfigurationOptions.RESOURCE_BUFFER_CONFIG, AsynchronousIndexWriteConfiguration.class,
                     new AsynchronousIndexWriteConfiguration(//
                             100, // masterQueueCapacity,
-                            100, // masterChunkSize
+                            masterChunkSize, //
                             TimeUnit.SECONDS.toNanos(5),// masterChunkTimeoutNanos
                             Long.valueOf(IndexMetadata.Options.DEFAULT_SINK_IDLE_TIMEOUT_NANOS).longValue(),//
                             Long.valueOf(IndexMetadata.Options.DEFAULT_SINK_POLL_TIMEOUT_NANOS).longValue(),//
                             100, // sinkQueueCapacity
-                            100, // sinkChunkSize,
+                            sinkChunkSize,//
                             TimeUnit.SECONDS.toNanos(20)// sinkChunkTimeoutNanos
                     ));
 
