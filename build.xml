@@ -512,7 +512,7 @@ an "NOP" bash script or edit your crontab.
 -->
 <!-- Works for earlier versions of ant LT 1.6 which do not bundle "chown". -->
 <apply executable="chown" description="set owner on NAS files" osfamily="unix">
-        <arg value="-Rv"/>
+        <arg value="-R"/>
         <arg value="${install.user}.${install.group}"/>
         <dirset dir="${NAS}"/>
 </apply>
