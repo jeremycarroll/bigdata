@@ -63,6 +63,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipInputStream;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.BNode;
@@ -1125,19 +1127,33 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
     }
 
     /**
-     * Open an buffered input stream reading from the resource.
+     * Open an buffered input stream reading from the resource. If the resource
+     * ends with <code>.gz</code> or <code>.zip</code> then the appropriate
+     * decompression will be applied.
      * 
      * @param resource
      *            The resource identifier.
      */
     protected InputStream getInputStream(R resource) throws IOException {
         
-        final InputStream is;
+        InputStream is;
 
         if (resource instanceof File) {
 
             is = new FileInputStream((File) resource);
 
+            final String name = ((File) resource).getName(); 
+            
+            if (name.endsWith(".gz")) {
+                
+                is = new GZIPInputStream(is);
+                
+            } else if(name.endsWith(".zip")) {
+                
+                is = new ZipInputStream(is);
+                
+            }
+            
         } else if (resource instanceof URL) {
 
             is = ((URL) resource).openStream();
