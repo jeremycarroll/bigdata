@@ -286,7 +286,7 @@ HS extends ResourceBufferSubtaskStatistics //
                 halted();
 
                 addToOutputBuffer((L) new ClientLocator(i), split,
-                        0/* fromIndex */, chunk.length/* toIndex */, reopen);
+                        0/* fromIndex */, split.length/* toIndex */, reopen);
 
             }
 
