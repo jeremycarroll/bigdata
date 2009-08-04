@@ -57,6 +57,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
 
+import com.bigdata.counters.CounterSet;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.service.AbstractScaleOutFederation;
@@ -1246,6 +1247,9 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
                 ZooHelper.destroyZNodes(fed.getZookeeperAccessor()
                         .getZookeeper(), jobZPath, 0/* depth */);
 
+                // detach the performance counters for the old job.
+                detachPerformanceCounters();
+                
             }
 
             try {
@@ -1345,6 +1349,37 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
 
     }
 
+    /**
+     * Detach the performance counters for the job.
+     * 
+     * @todo does not remove the counters on the LBS, just in local memory so
+     *       this is not much help. It would only be useful if we re-ran the
+     *       same job within the same JVM instance.
+     */
+    protected void detachPerformanceCounters() {
+
+        getFederation().getServiceCounterSet().makePath("Jobs").detach(
+                jobState.jobName);
+
+    }
+    
+    /**
+     * Attach to the counters reported by the client to the LBS.
+     */
+    protected void attachPerformanceCounters(final CounterSet counterSet) {
+
+        if(counterSet == null) {
+            
+            throw new IllegalArgumentException();
+            
+        }
+        
+        getFederation().getServiceCounterSet().makePath("Jobs").makePath(
+                getJobState().jobName).attach(counterSet, true/* replace */);
+        
+
+    }
+    
     /**
      * Class used to return the discovered services.
      * 

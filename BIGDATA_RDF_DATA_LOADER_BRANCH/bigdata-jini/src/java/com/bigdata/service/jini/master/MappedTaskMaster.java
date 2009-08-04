@@ -390,6 +390,11 @@ V extends Serializable//
 
         resourceBuffer.setFuture(future);
 
+        /*
+         * Attach to the counters reported by the client to the LBS.
+         */
+        attachPerformanceCounters(stats.getCounters());
+
         return task.getBuffer();
 
     }
