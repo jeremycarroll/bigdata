@@ -48,6 +48,7 @@ import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.rules.AbstractInferenceEngineTestCase;
 import com.bigdata.rdf.rules.BaseClosure;
 import com.bigdata.rdf.rules.DoNotAddFilter;
+import com.bigdata.rdf.rules.FullClosure;
 import com.bigdata.rdf.rules.RuleContextEnum;
 import com.bigdata.rdf.rules.RuleRdfs11;
 import com.bigdata.rdf.spo.SPOPredicate;
@@ -184,6 +185,8 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
             
             store.addStatement(V, sco, W);
             
+            store.addStatement(U, sco, W);
+            
             store.addStatement(X, sco, Y);
             
             store.addStatement(Y, sco, Z);
@@ -210,7 +213,7 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
                     store.getIndexManager().getTempStore(), tmp, store);
             
             // now get the program from the inference engine
-            BaseClosure closure = store.getClosureInstance();
+            BaseClosure closure = new FullClosure(store); //store.getClosureInstance();
             
             Program program = closure.getProgram(
                     store.getSPORelation().getNamespace(),
@@ -239,8 +242,8 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
                                 tempStore.getSPORelation().getNamespace()
                             },
                             new Constant<Long>(U.getTermId()),
-                            Var.var("p"),
-                            Var.var("o"))
+                            new Constant<Long>(sco.getTermId()),
+                            new Constant<Long>(W.getTermId()))
                     },
                     QueryOptions.NONE,
                     null // constraints
@@ -258,6 +261,8 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
             
             // log.info("bigdata program converted back from prolog program:");
             
+            int stepCount = 0;
+            
             steps = magicProgram.steps();
             
             while (steps.hasNext()) {
@@ -267,7 +272,11 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
                 
                 log.info(rule);
                 
+                stepCount++;
+                
             }
+            
+            log.info("magic program has " + stepCount + " steps");
 
             // then we somehow run the magic program and see if the fact in
             // question exists in the resulting closure, if it does, then the

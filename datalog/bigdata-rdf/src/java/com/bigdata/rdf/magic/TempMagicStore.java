@@ -199,6 +199,7 @@ public class TempMagicStore extends TempTripleStore {
         StringBuilder sb = super.dumpStore(
             resolveTerms, explicit, inferred, axioms, justifications, keyOrder);
         
+        int count = 0;
         Collection<String> symbols = getMagicSymbols();
         for (String symbol : symbols) {
             MagicRelation relation = getMagicRelation(symbol);
@@ -210,8 +211,10 @@ public class TempMagicStore extends TempTripleStore {
                 IMagicTuple tuple = itr.next();
                 sb.append("\n").append(relation.getNamespace()).append("#").append(i++)
                   .append("\t").append(tuple);
+                count++;
             }
         }
+        sb.append("\n" + count + " magic tuples");
         
         return sb;
         
