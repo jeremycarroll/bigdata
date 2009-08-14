@@ -88,4 +88,10 @@ public class MagicKeyOrder implements IKeyOrder<IMagicTuple>, Serializable {
         
     }
     
+    public String toString() {
+        
+        return indexName;
+        
+    }
+    
 }
