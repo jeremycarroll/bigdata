@@ -234,7 +234,7 @@ public class MagicTruthMaintenance extends TruthMaintenance {
                     );
 
             Program magicProgram =  
-                IRISUtils.magicSets(program, query, database, magicStore);
+                IRISUtils.magicSets(database, magicStore, program, query);
 
             computeClosure(database, magicStore, magicProgram);
             

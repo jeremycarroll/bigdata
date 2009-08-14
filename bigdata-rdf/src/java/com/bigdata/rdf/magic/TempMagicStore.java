@@ -190,14 +190,16 @@ public class TempMagicStore extends TempTripleStore {
         
     }
     
-    @Override
     public StringBuilder dumpStore(
             final AbstractTripleStore resolveTerms, final boolean explicit,
             final boolean inferred, final boolean axioms,
-            final boolean justifications, final IKeyOrder<ISPO> keyOrder) {
+            final boolean justifications, final boolean magics, 
+            final IKeyOrder<ISPO> keyOrder) {
         
         StringBuilder sb = super.dumpStore(
             resolveTerms, explicit, inferred, axioms, justifications, keyOrder);
+        
+        StringBuilder sb2 = new StringBuilder();
         
         int count = 0;
         Collection<String> symbols = getMagicSymbols();
@@ -209,12 +211,15 @@ public class TempMagicStore extends TempTripleStore {
             int i = 0;
             while (itr.hasNext()) {
                 IMagicTuple tuple = itr.next();
-                sb.append("\n").append(relation.getNamespace()).append("#").append(i++)
-                  .append("\t").append(tuple);
+                sb2.append("\n").append(relation.getNamespace()).append("#")
+                .append(i++).append("\t").append(tuple);
                 count++;
             }
         }
-        sb.append("\n" + count + " magic tuples");
+        sb.append(", #magicTuples=" + count);
+        if (magics) {
+            sb.append(sb2.toString());
+        }
         
         return sb;
         

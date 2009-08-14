@@ -109,19 +109,20 @@ public class IRISUtils {
      * {@link #irisToBigdata(AbstractTripleStore, TempMagicStore, Collection)}
      * for details.
      * 
-     * @param baseProgram
-     *                  the original bigdata program
-     * @param query
-     *                  the bigdata query
      * @param store
      *                  the database
      * @param focusStore
      *                  the focus store, where magic relations and predicates
      *                  will go
+     * @param baseProgram
+     *                  the original bigdata program
+     * @param query
+     *                  the bigdata query
      * @return
+     *                  the magic program
      */
-    public static Program magicSets(Program baseProgram, IRule query, 
-            AbstractTripleStore store, TempMagicStore focusStore) {
+    public static Program magicSets(AbstractTripleStore store, 
+            TempMagicStore focusStore, Program baseProgram, IRule query) {
         
         // create the magic sets optimizer
         IQuery irisQuery = convertToIRISQuery(query);
@@ -455,7 +456,7 @@ type (triple vs. NOT_EQUAL for example).
         
         MappedProgram bigdataProgram = new MappedProgram("magicProgram",
                 focusStore.getSPORelation().getNamespace(), 
-                true/* parallel */, true/* closure */
+                false/* parallel */, true/* closure */
                 );
         
         int i = 0;
