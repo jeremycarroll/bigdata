@@ -498,10 +498,11 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
                     );
 */            
             final MappedProgram program = new MappedProgram("owlPropertiesClosure",
-                    null, true/* parallel */, true/* closure */);
-            Vocabulary vocab = store.getVocabulary();
-            program.addStep(new RuleOwlSameAs2(store.getSPORelation().getNamespace(), vocab));
-            program.addStep(new RuleOwlSameAs3(store.getSPORelation().getNamespace(), vocab));
+                    null, false/* parallel */, true/* closure */);
+            final String ns = store.getSPORelation().getNamespace();
+            final Vocabulary vocab = store.getVocabulary();
+            program.addStep(new RuleOwlSameAs2(ns, vocab));
+            program.addStep(new RuleOwlSameAs3(ns, vocab));
 
             IRule query = new Rule(
                     "the query",
@@ -601,9 +602,9 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
         log.info("closure stats:\n"+stats);
         
         log.info("database contents\n"+
-                store.dumpStore(store, true, true, true).toString());
+                store.dumpStore(store, true, true, false).toString());
         log.info("focus store contents\n"+
-                magicStore.dumpStore(store, true, true, true, false, false, 
+                magicStore.dumpStore(store, true, true, true, false, true, 
                         SPOKeyOrder.SPO).toString());
          
         if (spo == null) {  // query

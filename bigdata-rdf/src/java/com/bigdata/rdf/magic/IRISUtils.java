@@ -29,6 +29,7 @@ package com.bigdata.rdf.magic;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -129,18 +130,102 @@ public class IRISUtils {
         Collection<org.deri.iris.api.basics.IRule> irisProgram = 
             bigdataToIRIS(baseProgram);
         
+        if (INFO) {
+            List<String> program = new LinkedList<String>();
+            for (org.deri.iris.api.basics.IRule rule : irisProgram) {
+                program.add(rule.toString());
+            }
+            Collections.sort(program);
+            StringBuilder sb = new StringBuilder();
+            for (String rule : program) {
+                sb.append(rule).append("\n");
+            }
+            if (sb.length() > 0) {
+                sb.setLength(sb.length()-1);
+            }
+            log.info("prolog program before magic sets:\n"+sb.toString());
+            log.info("query:\n"+irisQuery);
+        }
+        
         MagicSets magicSets = new MagicSets();
         Result result = magicSets.optimise(irisProgram, irisQuery);
         
+        List<org.deri.iris.api.basics.IRule> rules = 
+            filterOvergeneration(result);
+        
         if (INFO) {
-            log.info("prolog program after magic sets:");
-            for (org.deri.iris.api.basics.IRule rule : result.rules) {
-                log.info(rule);
+            List<String> program = new LinkedList<String>();
+            for (org.deri.iris.api.basics.IRule rule : rules) {
+                program.add(rule.toString());
+            }
+            Collections.sort(program);
+            StringBuilder sb = new StringBuilder();
+            for (String rule : program) {
+                sb.append(rule).append("\n");
+            }
+            if (sb.length() > 0) {
+                sb.setLength(sb.length()-1);
+            }
+            log.info("prolog program after magic sets:\n"+sb.toString());
+        }
+        
+        return irisToBigdata(rules, store, focusStore);
+      
+    }
+    
+    private static List<org.deri.iris.api.basics.IRule> filterOvergeneration(
+            Result result) {
+        
+        final List<org.deri.iris.api.basics.IRule> filtered = 
+            new LinkedList<org.deri.iris.api.basics.IRule>();
+        final List<org.deri.iris.api.basics.IRule> unfiltered = result.rules;
+        final boolean[] exclude = new boolean[unfiltered.size()];
+        
+        for (int i = 0; i < unfiltered.size(); i++) {
+            
+            org.deri.iris.api.basics.IRule rule = unfiltered.get(i);
+            List<ILiteral> body = rule.getBody();
+            for (ILiteral tail : body) {
+                org.deri.iris.api.basics.IPredicate predicate = 
+                    tail.getAtom().getPredicate();
+                if (predicate.equals(TRIPLE) || predicate.equals(NOT_EQUAL) || 
+                        predicate.equals(EQUAL)) {
+                    continue;
+                }
+                
+                boolean appearsInHead = false;
+                for (int j = 0; j < unfiltered.size(); j++) {
+                    if (i == j) {
+                        continue;
+                    }
+                    org.deri.iris.api.basics.IRule rule2 = unfiltered.get(j);
+                    ILiteral head = rule2.getHead().get(0);
+                    org.deri.iris.api.basics.IPredicate predicate2 = 
+                        head.getAtom().getPredicate();
+                    if (predicate.equals(predicate2)) {
+                        appearsInHead = true;
+                        break;
+                    }
+                }
+                
+                if (!appearsInHead) {
+                    log.info("excluding rule: " + rule);
+                    exclude[i] = true;
+                    break;
+                }
+                
+            }
+            
+        }
+        
+        for (int i = 0; i < unfiltered.size(); i++) {
+            if (exclude[i] == false) {
+                filtered.add(unfiltered.get(i));
             }
         }
         
-        return irisToBigdata(result.rules, store, focusStore);
-      
+        return filtered;
+        
     }
     
     /**
