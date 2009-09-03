@@ -57,6 +57,9 @@ public class TestAll extends TestCase {
 
         final TestSuite suite = new TestSuite("B+Tree key and value codecs");
 
+        // no data (discards any values).
+        suite.addTestSuite(TestEmptyRabaCoder.class);
+        
         // no compression.
         suite.addTestSuite(TestSimpleRabaCoder.class);
         

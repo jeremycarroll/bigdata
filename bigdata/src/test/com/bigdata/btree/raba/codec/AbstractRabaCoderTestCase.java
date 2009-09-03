@@ -596,7 +596,8 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
 
     }
 
-    public void doRoundTripTest(final IRabaCoder rabaCoder, final IRaba expected) {
+    static public void doRoundTripTest(final IRabaCoder rabaCoder,
+            final IRaba expected) {
 
         try {
 
