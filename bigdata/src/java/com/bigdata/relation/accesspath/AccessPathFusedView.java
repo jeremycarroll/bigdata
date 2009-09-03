@@ -29,11 +29,11 @@ package com.bigdata.relation.accesspath;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.FusedTupleIterator;
-import com.bigdata.btree.FusedView;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
+import com.bigdata.btree.view.FusedTupleIterator;
+import com.bigdata.btree.view.FusedView;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.striterator.ChunkedWrappedIterator;
 import com.bigdata.striterator.IChunkedIterator;

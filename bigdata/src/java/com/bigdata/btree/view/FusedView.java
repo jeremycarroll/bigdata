@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Feb 11, 2008
  */
 
-package com.bigdata.btree;
+package com.bigdata.btree.view;
 
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
@@ -34,16 +34,34 @@ import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.btree.AbstractBTree;
+import com.bigdata.btree.BTree;
+import com.bigdata.btree.IAutoboxBTree;
+import com.bigdata.btree.IBloomFilter;
+import com.bigdata.btree.ICounter;
+import com.bigdata.btree.IIndex;
+import com.bigdata.btree.ILinearList;
+import com.bigdata.btree.ILocalBTreeView;
+import com.bigdata.btree.IRangeQuery;
+import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleCursor;
+import com.bigdata.btree.ITupleIterator;
+import com.bigdata.btree.ITupleSerializer;
+import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.IndexSegment;
+import com.bigdata.btree.IndexSegmentStore;
+import com.bigdata.btree.ReadOnlyIndex;
+import com.bigdata.btree.Tuple;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.filter.Reverserator;
 import com.bigdata.btree.filter.TupleRemover;
+import com.bigdata.btree.isolation.IsolatedFusedView;
 import com.bigdata.btree.proc.AbstractKeyArrayIndexProcedureConstructor;
 import com.bigdata.btree.proc.IKeyRangeIndexProcedure;
 import com.bigdata.btree.proc.IResultHandler;
 import com.bigdata.btree.proc.ISimpleIndexProcedure;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
-import com.bigdata.isolation.IsolatedFusedView;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.relation.accesspath.AbstractAccessPath;

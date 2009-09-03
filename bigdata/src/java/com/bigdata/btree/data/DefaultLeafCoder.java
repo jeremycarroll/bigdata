@@ -194,10 +194,12 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
         buf.putShort(AbstractReadOnlyNodeData.VERSION0);
         
         short flags = 0;
-        if (leaf.hasDeleteMarkers()) {
+        final boolean hasDeleteMarkers = leaf.hasDeleteMarkers();
+        final boolean hasVersionTimestamps = leaf.hasVersionTimestamps();
+        if (hasDeleteMarkers) {
             flags |= AbstractReadOnlyNodeData.FLAG_DELETE_MARKERS;
         }
-        if (leaf.hasVersionTimestamps()) {
+        if (hasVersionTimestamps) {
             flags |= AbstractReadOnlyNodeData.FLAG_VERSION_TIMESTAMPS;
         }
 
@@ -232,7 +234,7 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
         
         // delete markers (bit coded).
         final int O_deleteMarkers;
-        if (leaf.hasDeleteMarkers()) {
+        if (hasDeleteMarkers) {
 
             O_deleteMarkers = buf.pos();
 
@@ -263,18 +265,20 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
 
         // The byte offset to minVersionTimestamp.
         final int O_versionTimestamps;
-        if (leaf.hasVersionTimestamps()) {
+        if (hasVersionTimestamps) {
 
             /*
              * The (min,max) are written out as full length long values. The per
              * tuple revision timestamps are written out using the minimum #of
              * bits required to code the data.
+             * 
+             * Note: If min==max then ZERO bits are used per timestamp!
              */
 
             final long min = leaf.getMinimumVersionTimestamp();
 
             final long max = leaf.getMaximumVersionTimestamp();
-
+            
 //            final long delta = max - min;
 //            assert delta >= 0;
 
@@ -300,36 +304,44 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
              * 
              * FIXME Use pluggable coding for version timestamps.
              */
-            final int byteLength = BytesUtil.bitFlagByteLength(nkeys
-                    * versionTimestampBits/* nbits */);
-            final byte[] a = new byte[byteLength];
-            final OutputBitStream obs = new OutputBitStream(a);
-            try {
-                
-                // array of [versionTimestampBits] fields.
-                for (int i = 0; i < nkeys; i++) {
+            if (versionTimestampBits > 0) {
+                /*
+                 * Note: We only write the deltas if there is more than one
+                 * distinct timestamp value (min!=max). When min==max, the
+                 * deltas are coded in zero bits, so this would be a NOP anyway.
+                 */
+                final int byteLength = BytesUtil.bitFlagByteLength(nkeys
+                        * versionTimestampBits/* nbits */);
+                final byte[] a = new byte[byteLength];
+                final OutputBitStream obs = new OutputBitStream(a);
+                try {
 
-                    final long deltat = leaf.getVersionTimestamp(i) - min;
-                    assert deltat >= 0;
-                    
-                    obs.writeLong(deltat, versionTimestampBits);
+                    // array of [versionTimestampBits] fields.
+                    for (int i = 0; i < nkeys; i++) {
 
+                        final long deltat = leaf.getVersionTimestamp(i) - min;
+                        assert deltat >= 0;
+
+                        obs.writeLong(deltat, versionTimestampBits);
+
+                    }
+
+                    obs.flush();
+
+                    // copy onto the buffer.
+                    buf.put(a);
+
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                    // Note: close is not necessary if flushed and backed by
+                    // byte[].
+                    // } finally {
+                    // try {
+                    // obs.close();
+                    // } catch (IOException e) {
+                    // log.error(e);
+                    // }
                 }
-
-                obs.flush();
-                
-                // copy onto the buffer.
-                buf.put(a);
-                
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-                // Note: close is not necessary if flushed and backed by byte[].
-//            } finally {
-//                try {
-//                    obs.close();
-//                } catch (IOException e) {
-//                    log.error(e);
-//                }
             }
 
         } else {
@@ -807,7 +819,7 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
 
             sb.append(", versionTimestamps={min="
                     + leaf.getMinimumVersionTimestamp() + ",max="
-                    + leaf.getMaximumVersionTimestamp() + "[");
+                    + leaf.getMaximumVersionTimestamp() + ",tuples=[");
 
             for (int i = 0; i < nkeys; i++) {
 

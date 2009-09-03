@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Oct 24, 2006
  */
 
-package com.bigdata.isolation;
+package com.bigdata.btree.isolation;
 
 import junit.framework.TestCase;
 

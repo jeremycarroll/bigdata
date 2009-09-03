@@ -49,6 +49,25 @@ import cutthecrap.utils.striterators.Striterator;
  * <p>
  * A non-leaf node.
  * </p>
+ * <h2>Per-child min/max revision timestamps and timestamp revision filtering</h2>
+ * 
+ * In order to track the min/max timestamp on the {@link Node} we must also
+ * track the min/max timestamp for each direct child of that {@link Node}. While
+ * this inflates the size of the {@link INodeData} data record considerably, we
+ * are required to track those per-child data in order to avoid a scan of the
+ * children when we need to recompute the min/max timestamp for the {@link Node}
+ * . The IO latency costs of that scan are simply not acceptable, especially for
+ * large branching factors. The min/max timestamp on the {@link Node} is ONLY
+ * used for filtering iterators based on a desired tuple revision range. This is
+ * why the choice to support tuple revision filters is its own configuration
+ * option.
+ * 
+ * FIXME An alternative to per-child min/max tuple revision timestamps would be
+ * the concurrent materialization of the direct children. These data are only
+ * mutable for B+Tree instances with relatively small branching factors. They
+ * are immutable for the {@link IndexSegment}. However, the per-{@link Node}
+ * min/max timestamp also make the tuple revision filtering more efficient since
+ * we can prune the search before we materialize the child.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -309,6 +328,41 @@ public class Node extends AbstractNode<Node> implements INodeData {
             
             parent.get().updateEntryCount(this, delta);
             
+        }
+        
+    }
+
+    /**
+     * Update the {@link #getMinimumVersionTimestamp()} and
+     * {@link #getMaximumVersionTimestamp()}. This is invoked when the min/max
+     * in the child has changed without a corresponding change to the #of
+     * spanned tuples. E.g., when an insert() causes a tuple to be updated
+     * rather than added.
+     * 
+     * @param child
+     *            The direct child.
+     */
+    final protected void updateMinMaxVersionTimestamp(
+            final AbstractNode<?> child) {
+
+        assert !isReadOnly();
+
+        final MutableNodeData data = (MutableNodeData) this.data;
+
+        final long cmin = child.getMinimumVersionTimestamp();
+
+        final long cmax = child.getMaximumVersionTimestamp();
+
+        if (cmin < data.minimumVersionTimestamp)
+            data.minimumVersionTimestamp = cmin;
+
+        if (cmax > data.maximumVersionTimestamp)
+            data.maximumVersionTimestamp = cmax;
+
+        if (parent != null) {
+
+            parent.get().updateMinMaxVersionTimestamp(child);
+
         }
         
     }
@@ -706,7 +760,7 @@ public class Node extends AbstractNode<Node> implements INodeData {
      * @exception IllegalArgumentException
      *                if the child is not a child of this node.
      */
-    void setChildKey(final AbstractNode<?> child) {
+    void setChildAddr(final AbstractNode<?> child) {
 
         if (!child.isPersistent()) {
 
@@ -730,17 +784,20 @@ public class Node extends AbstractNode<Node> implements INodeData {
     }
 
     /**
-     * Invoked by {@link #copyOnWrite()} to change the key for a child on a
-     * cloned parent to a reference to a cloned child.
+     * Invoked by {@link #copyOnWrite()} to clear the persistent address for a
+     * child on a cloned parent and set the reference to the cloned child.
      * 
-     * @param oldChildId
-     *            The persistent identity for the old child.
+     * @param oldChildAddr
+     *            The persistent address of the old child. The entries to be
+     *            updated are located based on this argument. It is an error if
+     *            this address is not found in the list of child addresses for
+     *            this {@link Node}.
      * @param newChild
      *            The reference to the new child.
      */
-    void replaceChildRef(final long oldChildId, final AbstractNode newChild) {
+    void replaceChildRef(final long oldChildAddr, final AbstractNode newChild) {
 
-        assert oldChildId != NULL || btree.store == null;
+        assert oldChildAddr != NULL || btree.store == null;
         assert newChild != null;
 
         // This node MUST have been cloned as a pre-condition, so it can not
@@ -761,7 +818,7 @@ public class Node extends AbstractNode<Node> implements INodeData {
         // Scan for location in weak references.
         for (int i = 0; i <= nkeys; i++) {
 
-            if (data.childAddr[i] == oldChildId) {
+            if (data.childAddr[i] == oldChildAddr) {
 
                 /*
                  * Note: We can not check anything which depends on
@@ -813,8 +870,8 @@ public class Node extends AbstractNode<Node> implements INodeData {
 
 //        System.err.println("this: "); dump(Level.DEBUG,System.err);
 //        System.err.println("newChild: "); newChild.dump(Level.DEBUG,System.err);
-        throw new IllegalArgumentException("Not our child : oldChildKey="
-                + oldChildId);
+        throw new IllegalArgumentException("Not our child : oldChildAddr="
+                + oldChildAddr);
 
     }
 
@@ -1761,16 +1818,24 @@ public class Node extends AbstractNode<Node> implements INodeData {
         p.removeChild(s);
         
     }
-    
+
     /**
      * Invoked by {@link AbstractNode#split()} to insert a key and reference for
      * a child created when another child of this node is split. This method has
-     * no effect on the #of entries spanned by the parent.
+     * no effect on the #of entries spanned by the parent. *
+     * <p>
+     * Note: This operation is invoked only when a node or leaf is split. As
+     * such, it can not cause the min/max tuple revision timestamp on this
+     * {@link Node} to change since no tuples have been added or removed.
+     * However, this method does need to record the min/max for the new
+     * rightSibling.
      * 
      * @param key
      *            The key on which the old node was split.
      * @param child
      *            The new node.
+     * 
+     *            FIXME set min/max for the new child.
      */
     protected void insertChild(final byte[] key, final AbstractNode child) {
 
@@ -2085,6 +2150,13 @@ public class Node extends AbstractNode<Node> implements INodeData {
      *       {@link Node#merge(AbstractNode, boolean)}. It may be that I can
      *       simplify things a bit further by making this adjustment here and in
      *       those merge() methods.
+     * 
+     *       FIXME This should clear the min/max for the child in this node's
+     *       data record. This is invoked by merge() on a leaf, then recursively
+     *       if we need to join nodes. The caller should have already updated
+     *       the min/max for the leaf's own data record and on this node's data
+     *       record for that leaf.  This method only needs to clear the min/max
+     *       entry associated with the child that is being removed.
      */
     protected void removeChild(final AbstractNode child) {
         
@@ -2287,8 +2359,8 @@ public class Node extends AbstractNode<Node> implements INodeData {
         } else {
 
             /*
-             * if a non-root node becomes deficient then it is joined with a
-             * direct sibling. if this forces a merge with a sibling, then the
+             * If a non-root node becomes deficient then it is joined with a
+             * direct sibling. If this forces a merge with a sibling, then the
              * merged sibling will be removed from the parent which may force
              * the parent to become deficient in turn, and thereby trigger a
              * join() of the parent.

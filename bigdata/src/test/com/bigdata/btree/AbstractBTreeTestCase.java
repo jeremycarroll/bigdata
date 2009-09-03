@@ -1717,28 +1717,30 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
      *            The #of trials.
      */
     public void doInsertLookupRemoveStressTest(int m,int nkeys,int ntrials) {
-        
-        log.info("m="+m+", nkeys="+nkeys+", ntrials="+ntrials);
-        
-        Integer[] keys = new Integer[nkeys];
-        
-        SimpleEntry[] vals = new SimpleEntry[nkeys];
 
-        for( int i=0; i<nkeys; i++ ) {
-            
-            keys[i] = i+1; // Note: this produces dense keys with origin ONE(1).
-            
+        if (log.isInfoEnabled())
+            log.info("m=" + m + ", nkeys=" + nkeys + ", ntrials=" + ntrials);
+
+        final Integer[] keys = new Integer[nkeys];
+
+        final SimpleEntry[] vals = new SimpleEntry[nkeys];
+
+        for (int i = 0; i < nkeys; i++) {
+
+            keys[i] = i + 1; // Note: this produces dense keys with origin
+                             // ONE(1).
+
             vals[i] = new SimpleEntry();
-            
+
         }
-        
+
         final BTree btree = getBTree(m);
 
         /*
          * Run test.
          */
-        Map<Integer,SimpleEntry> expected = new TreeMap<Integer,SimpleEntry>();
-        
+        final Map<Integer, SimpleEntry> expected = new TreeMap<Integer, SimpleEntry>();
+
         for( int i=0; i<ntrials; i++ ) {
             
             boolean insert = r.nextBoolean();

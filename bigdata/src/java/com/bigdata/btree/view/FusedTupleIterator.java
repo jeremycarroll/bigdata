@@ -22,12 +22,18 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
-package com.bigdata.btree;
+package com.bigdata.btree.view;
 
 import java.util.NoSuchElementException;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import com.bigdata.btree.BytesUtil;
+import com.bigdata.btree.DelegateTuple;
+import com.bigdata.btree.IRangeQuery;
+import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleIterator;
 
 /**
  * <p>

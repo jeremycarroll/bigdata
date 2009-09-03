@@ -28,6 +28,7 @@
 
 package com.bigdata.btree;
 
+import com.bigdata.btree.view.FusedView;
 import com.bigdata.io.ByteArrayBuffer;
 import com.bigdata.io.DataInputBuffer;
 import com.bigdata.io.DataOutputBuffer;

@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Oct 23, 2006
  */
 
-package com.bigdata.isolation;
+package com.bigdata.btree.isolation;
 
 import java.io.Serializable;
 
@@ -48,7 +48,7 @@ import com.bigdata.journal.Tx;
  *      including examples for things such as bank accounts.
  * 
  * @todo Write tests in which we do state-based conflict resolution for both the
- *       bank account examplres in Herlihy and the examples that we will find in
+ *       bank account examples in Herlihy and the examples that we will find in
  *       race conditions for the lexical terms and statements in an RDF model.
  * 
  * @todo How to handle cascading dependencies. For example, if there is a
@@ -76,7 +76,7 @@ import com.bigdata.journal.Tx;
  * to the {@link Journal} in the constructor. Such resolution would have to be
  * network aware (i.e., aware that there was a distributed database). <br>
  * 
- * If we change to allowing object graph traverals during conflict resolution,
+ * If we change to allowing object graph traversals during conflict resolution,
  * then we need to closely consider whether cycles can form and how they will
  * ground out.
  * 

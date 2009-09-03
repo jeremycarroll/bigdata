@@ -717,7 +717,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
         return false;
 
     }
-    
+
     /**
      * Checkpoint operation {@link #flush()}es dirty nodes, the optional
      * {@link IBloomFilter} (if dirty), the {@link IndexMetadata} (if dirty),
@@ -733,13 +733,36 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
      *         {@link BTree} was written onto the store. The {@link BTree} can
      *         be reloaded from this {@link Checkpoint} record.
      * 
+     * @see #writeCheckpoint2(), which returns the {@link Checkpoint} record
+     *      itself.
+     *      
      * @see #load(IRawStore, long)
-     * 
-     * @todo this could be modified to return the {@link Checkpoint} object but
-     *       I have not yet seen a situation where that was more interesting
-     *       than the address of the written {@link Checkpoint} record.
      */
     final public long writeCheckpoint() {
+    
+        // write checkpoint and return address of that checkpoint record.
+        return writeCheckpoint2().getCheckpointAddr();
+        
+    }
+
+    /**
+     * Checkpoint operation {@link #flush()}es dirty nodes, the optional
+     * {@link IBloomFilter} (if dirty), the {@link IndexMetadata} (if dirty),
+     * and then writes a new {@link Checkpoint} record on the backing store,
+     * saves a reference to the current {@link Checkpoint} and returns the
+     * address of that {@link Checkpoint} record.
+     * <p>
+     * Note: A checkpoint by itself is NOT an atomic commit. The commit protocol
+     * is at the store level and uses {@link Checkpoint}s to ensure that the
+     * state of the {@link BTree} is current on the backing store.
+     * 
+     * @return The {@link Checkpoint} record for the {@link BTree} was written
+     *         onto the store. The {@link BTree} can be reloaded from this
+     *         {@link Checkpoint} record.
+     * 
+     * @see #load(IRawStore, long)
+     */
+    final public Checkpoint writeCheckpoint2() {
         
         assertNotTransient();
         assertNotReadOnly();
@@ -815,8 +838,8 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
 
         }
         
-        // return address of that checkpoint record.
-        return checkpoint.getCheckpointAddr();
+        // return the checkpoint record.
+        return checkpoint;
         
     }
     

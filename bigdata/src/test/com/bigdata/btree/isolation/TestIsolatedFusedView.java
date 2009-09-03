@@ -26,22 +26,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Feb 14, 2008
  */
 
-package com.bigdata.isolation;
+package com.bigdata.btree.isolation;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.UUID;
 
 import com.bigdata.btree.AbstractBTree;
 import com.bigdata.btree.AbstractBTreeTestCase;
 import com.bigdata.btree.BTree;
-import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.BytesUtil;
-import com.bigdata.btree.FusedView;
-import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
-import com.bigdata.btree.TestFusedView;
+import com.bigdata.btree.ITupleIterator;
+import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.isolation.IsolatedFusedView;
+import com.bigdata.btree.view.FusedView;
+import com.bigdata.btree.view.TestFusedView;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.Options;
@@ -50,9 +52,10 @@ import com.bigdata.journal.Options;
  * Test suite for {@link IsolatedFusedView}.
  * <p>
  * Note: the test suite for an isolated write set is similar to a
- * {@link FusedView} except that it must also handle timestamps properly.
- * timestamps do not really effect the iterator or various lookup methods - they
- * mainly interact with the logic for detecting write-write conflicts.
+ * {@link FusedView} except that it must also handle the per tuple revision
+ * timestamps properly. The timestamps do not really effect the iterator (other
+ * than {@link Iterator#remove()} or various lookup methods - they mainly
+ * interact with the logic for detecting write-write conflicts.
  * 
  * @see TestFusedView
  * 
@@ -78,23 +81,25 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
      */
     public void test_writeSetIsolation() throws IOException {
         
-        byte[] k3 = i2k(3);
-        byte[] k5 = i2k(5);
-        byte[] k7 = i2k(7);
+        final byte[] k3 = i2k(3);
+        final byte[] k5 = i2k(5);
+        final byte[] k7 = i2k(7);
 
-        byte[] v3a = new byte[]{3};
-        byte[] v5a = new byte[]{5};
-        byte[] v7a = new byte[]{7};
+        final byte[] v3a = new byte[]{3};
+        final byte[] v5a = new byte[]{5};
+        final byte[] v7a = new byte[]{7};
         
-        byte[] v3b = new byte[]{3,1};
-        byte[] v5b = new byte[]{5,1};
-        byte[] v7b = new byte[]{7,1};
+        final byte[] v3b = new byte[]{3,1};
+        final byte[] v5b = new byte[]{5,1};
+        final byte[] v7b = new byte[]{7,1};
         
-        Properties properties = new Properties();
+        final Properties properties = new Properties();
         
         properties.setProperty(Options.BUFFER_MODE, BufferMode.Transient.toString());
         
-        Journal journal = new Journal(properties);
+        final Journal journal = new Journal(properties);
+        
+        try {
         
         // two btrees with the same index UUID.
         final IndexMetadata md = new IndexMetadata(UUID.randomUUID());
@@ -256,6 +261,12 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
             assertFalse(tuple.isDeletedVersion());
             assertEquals(t2,tuple.getVersionTimestamp()); // note: timestamp unchanged from groundState!
         
+        }
+        
+        } finally {
+            
+            journal.destroy();
+            
         }
        
     }

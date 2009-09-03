@@ -105,6 +105,11 @@ public class TestAll_BTreeBasics extends TestCase {
          * 
          * Note: tests with timestamps and delete markers are done in the
          * isolation package.
+         * 
+         * FIXME We should verify correct maintenance of the min/max and per
+         * tuple version timestamps here. The raba coder tests already verify
+         * correct coding and decoding IFF the data are being correctly
+         * maintained.
          */
         suite.addTestSuite(TestDeleteMarkers.class);
 

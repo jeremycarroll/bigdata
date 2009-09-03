@@ -98,7 +98,6 @@ public class TestAll extends TestCase {
         suite.addTest( com.bigdata.counters.TestAll.suite() );
         suite.addTest( com.bigdata.rawstore.TestAll.suite() );
         suite.addTest( com.bigdata.btree.TestAll.suite() );
-        suite.addTest( com.bigdata.isolation.TestAll.suite() );
         suite.addTest( com.bigdata.concurrent.TestAll.suite() );
         suite.addTest( com.bigdata.journal.TestAll.suite() );
         suite.addTest( com.bigdata.resources.TestAll.suite() );

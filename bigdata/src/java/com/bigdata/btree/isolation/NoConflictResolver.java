@@ -1,4 +1,4 @@
-package com.bigdata.isolation;
+package com.bigdata.btree.isolation;
 
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;

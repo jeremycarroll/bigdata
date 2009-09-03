@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Oct 14, 2006
  */
 
-package com.bigdata.isolation;
+package com.bigdata.btree.isolation;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -58,7 +58,7 @@ public class TestAll extends TestCase {
     public static Test suite()
     {
 
-        TestSuite suite = new TestSuite("isolation");
+        final TestSuite suite = new TestSuite("B+Tree Isolation");
 
         // test isolated fused view (handles delete markers).
         suite.addTestSuite(TestIsolatedFusedView.class);
@@ -68,6 +68,9 @@ public class TestAll extends TestCase {
         
         // tests of write-write conflict resolution.
         suite.addTestSuite(TestConflictResolution.class);
+
+        // @todo write test suite for this and handle remove() (propagate the tuple revision timestamp).
+        // suite.addTestSuite(TestIsolatedFusedViewCursors.class);
 
         return suite;
         

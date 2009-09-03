@@ -745,7 +745,8 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
      * Returns the next timestamp from the {@link ILocalTransactionManager}.
      * 
      * @deprecated This is here for historical reasons and is only used by the
-     *             test suite.
+     *             test suite.  Use {@link #getLocalTransactionManager()} and
+     *             {@link ITransactionService#nextTimestamp()}.
      */
     public long nextTimestamp() {
     

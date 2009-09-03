@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Feb 17, 2007
  */
 
-package com.bigdata.isolation;
+package com.bigdata.btree.isolation;
 
 import java.util.Properties;
 import java.util.UUID;
@@ -36,6 +36,7 @@ import com.bigdata.btree.BTree;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.isolation.IConflictResolver;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
@@ -212,72 +213,73 @@ public class TestConflictResolution extends TestCase2 {
         final Journal journal = new Journal(getProperties());
 
         try {
-        
-        String name = "abc";
 
-        final byte[] k1 = new byte[] { 1 };
+            final String name = "abc";
 
-        final byte[] v1a = new byte[] { 1 };
-        final byte[] v1b = new byte[] { 2 };
-        final byte[] v1c = new byte[] { 3 };
+            final byte[] k1 = new byte[] { 1 };
 
-        {
+            final byte[] v1a = new byte[] { 1 };
+            final byte[] v1b = new byte[] { 2 };
+            final byte[] v1c = new byte[] { 3 };
+
+            {
+
+                /*
+                 * register an index with a conflict resolver and commit the
+                 * journal.
+                 */
+
+                final IndexMetadata metadata = new IndexMetadata(name, UUID
+                        .randomUUID());
+
+                metadata.setIsolatable(true);
+
+                metadata.setConflictResolver(new SingleValueConflictResolver(
+                        k1, v1c));
+
+                journal.registerIndex(name, BTree.create(journal, metadata));
+
+                journal.commit();
+
+            }
 
             /*
-             * register an index with a conflict resolver and commit the
-             * journal.
+             * Create two transactions.
              */
-            
-            IndexMetadata metadata = new IndexMetadata(name, UUID.randomUUID());
-            
-            metadata.setIsolatable(true);
-            
-            metadata.setConflictResolver(new SingleValueConflictResolver(k1,
-                    v1c));
-            
-            journal.registerIndex(name, BTree.create(journal,metadata) );
 
-            journal.commit();
+            final long tx1 = journal.newTx(ITx.UNISOLATED);
 
-        }
+            final long tx2 = journal.newTx(ITx.UNISOLATED);
 
-        /*
-         * Create two transactions.
-         */
-        
-        final long tx1 = journal.newTx(ITx.UNISOLATED);
-        
-        final long tx2 = journal.newTx(ITx.UNISOLATED);
-        
-        /*
-         * Write a value under the same key on the same index in both
-         * transactions.
-         */
-        
-        journal.getIndex(name,tx1).insert(k1, v1a);
+            /*
+             * Write a value under the same key on the same index in both
+             * transactions.
+             */
 
-        journal.getIndex(name,tx2).insert(k1, v1b);
+            journal.getIndex(name, tx1).insert(k1, v1a);
 
-        journal.commit(tx1);
+            journal.getIndex(name, tx2).insert(k1, v1b);
 
-        /*
-         * verify that the value from tx1 is found under the key on the
-         * unisolated index.
-         */
-        assertEquals(v1a,(byte[])journal.getIndex(name).lookup(k1));
+            journal.commit(tx1);
 
-        journal.commit(tx2);
-        
-        /*
-         * verify that the resolved value is found under the key on the
-         * unisolated index.
-         */
-        assertEquals(v1c,(byte[])journal.getIndex(name).lookup(k1));
-        
+            /*
+             * verify that the value from tx1 is found under the key on the
+             * unisolated index.
+             */
+            assertEquals(v1a, (byte[]) journal.getIndex(name).lookup(k1));
+
+            journal.commit(tx2);
+
+            /*
+             * verify that the resolved value is found under the key on the
+             * unisolated index.
+             */
+            assertEquals(v1c, (byte[]) journal.getIndex(name).lookup(k1));
+
         } finally {
 
             journal.destroy();
-            
+
         }
 
     }

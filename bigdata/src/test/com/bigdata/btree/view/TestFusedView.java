@@ -25,16 +25,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Feb 1, 2007
  */
 
-package com.bigdata.btree;
+package com.bigdata.btree.view;
 
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.bigdata.btree.AbstractBTree;
+import com.bigdata.btree.AbstractBTreeTestCase;
+import com.bigdata.btree.AbstractTupleCursorTestCase;
+import com.bigdata.btree.BTree;
+import com.bigdata.btree.BytesUtil;
+import com.bigdata.btree.IRangeQuery;
+import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleCursor;
+import com.bigdata.btree.ITupleIterator;
+import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.IndexSegment;
+import com.bigdata.btree.NOPTupleSerializer;
+import com.bigdata.btree.TestTuple;
 import com.bigdata.btree.filter.Advancer;
 import com.bigdata.btree.filter.FilterConstructor;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.filter.TupleFilter;
+import com.bigdata.btree.view.FusedTupleIterator;
+import com.bigdata.btree.view.FusedView;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.sparse.SparseRowStore;
