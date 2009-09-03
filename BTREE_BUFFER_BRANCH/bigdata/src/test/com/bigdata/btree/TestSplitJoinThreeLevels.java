@@ -34,11 +34,11 @@ import org.apache.log4j.Level;
 import com.bigdata.btree.keys.KeyBuilder;
 
 /**
- * Test suite using {@link IIndex#insert(int, Object)} to split a tree to height
- * two (2) (three levels) and then using {@link IIndex#remove(int)} to reduce
- * the tree back to a single, empty root leaf. This test suite is focused on m :=
- * 3 since we are capable of exercising all split() and join() code paths with
- * that branching factor.
+ * Test suite using {@link BTree#insert(Object, Object)} to split a tree to
+ * height two (2) (three levels) and then using {@link BTree#remove(Object)} to
+ * reduce the tree back to a single, empty root leaf. This test suite is focused
+ * on m := 3 since we are capable of exercising all split() and join() code 
+ * paths with that branching factor.
  * <p>
  * Note: This also tests the {@link AbstractNode#isLeftMostNode()} and
  * {@link AbstractNode#isRightMostNode()} methods. In order to test those

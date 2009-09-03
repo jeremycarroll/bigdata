@@ -196,9 +196,10 @@ public class TestDataOutputBuffer extends TestCase2
      */
     public void test_reset() {
 
-        byte[] expected = new byte[10];
+        final byte[] expected = new byte[10];
 
-        DataOutputBuffer DataOutputBuffer = new DataOutputBuffer(5, expected);
+        final DataOutputBuffer DataOutputBuffer = new DataOutputBuffer(5,
+                expected);
 
         assertEquals(5, DataOutputBuffer.pos);
         assertTrue(expected == DataOutputBuffer.buf);
@@ -210,12 +211,11 @@ public class TestDataOutputBuffer extends TestCase2
 
     }
 
-    public void test_roundTrip() {
-        fail("write tests");
-    }
-
-    public void test_fencePosts() {
-        fail("write tests");
-    }
+//    // @todo write round-trip tests.
+//    public void test_roundTrip() {
+//
+//        fail("write tests");
+//        
+//    }
 
 }
