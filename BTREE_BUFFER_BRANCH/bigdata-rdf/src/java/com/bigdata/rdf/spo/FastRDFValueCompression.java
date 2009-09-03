@@ -12,6 +12,7 @@ import java.io.OutputStream;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.codec.AbstractRabaDecoder;
 import com.bigdata.btree.raba.codec.IRabaCoder;
@@ -107,18 +108,21 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
 
         obs.writeNibble(n);
 
+        // this is the offset where we will start to code the values.
+        final long O_values = obs.writtenBits();
+        
         for (int i = 0; i < n; i++) {
 
             if (raba.isNull(i)) {
 
                 // flag a deleted value (de-serialize to a null).
-                obs.writeInt( 7, 3 );
+                obs.writeInt(7, 3/* nbits */);
                 
             } else {
 
                 final byte[] val = raba.get(i);
 
-                obs.writeInt((int) val[0], 3);
+                obs.writeInt((int) val[0], 3/* nbits */);
                 
             }
 
@@ -141,7 +145,8 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
         final int n = raba.size();
         
         // This is sufficient capacity to code the data.
-        final int initialCapacity = Bytes.SIZEOF_INT + (3 * n) / 8 + 1;
+        final int initialCapacity = 1 + Bytes.SIZEOF_INT
+                + BytesUtil.bitFlagByteLength(3 * n);
 
         b.ensureCapacity(initialCapacity);
 
@@ -314,17 +319,40 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
             if (index < 0 || index >= size)
                 throw new IndexOutOfBoundsException();
 
-            int value = 0;
             long bitIndex = O_values;
-            for (int i = 0; i < 3; i++, bitIndex++) {
 
-                final boolean bit = data.getBit(bitIndex);
+            final InputBitStream ibs = data.getInputBitStream();
+            try {
 
-                value |= (bit ? 1 : 0) << i;
+                ibs.skip(bitIndex + index * 3);
 
+                final int value = ibs.readInt(3/* nbits */);
+
+                return (byte) (0xff & value);
+                
+            } catch(IOException ex) {
+                
+                throw new RuntimeException(ex);
+                
+            } finally {
+                try {
+                ibs.close();
+                } catch(IOException ex) {
+                    log.error(ex);
+                }
             }
-
-            return (byte) (value & 0xff);
+            
+//            int value = 0;
+//            
+//            for (int i = 0; i < 3; i++, bitIndex++) {
+//
+//                final boolean bit = data.getBit(bitIndex);
+//
+//                value |= (bit ? 1 : 0) << i;
+//
+//            }
+//
+//            return (byte) (value & 0xff);
 
         }
         

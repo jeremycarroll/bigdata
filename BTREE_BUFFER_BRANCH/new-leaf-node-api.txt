@@ -746,15 +746,24 @@ x. Other unit test problems:
 
 	 - (*) TestTx - test itr#remove() for tx isolation.
 
-	 - TestDatabaseAtOnceClosure - showing array store errors
-           related to join nexus changes.
+	 - TestDatabaseAtOnceClosure
 
-	 - FastRDFValueCompression is broken (due to the changes to
+	   - Showing array store errors, perhaps related to join nexus
+             changes as they impact the pipeline join.
+
+	   - Showing errors related to allowing literals into the
+             subject or predicate positions on
+             #test_fixedPoint_SampleData_Full_NestedSubqueryJoins()
+             and
+             #test_fixedPoint_SampleData_Fast_NestedSubqueryJoins().
+
+	 - Done [fixed by using IBS to read the value].
+	   FastRDFValueCompression is broken (due to the changes to
 	   BytesUtil to use the same big endian format for bit flags
 	   as OutputBitStream?)
 
-	 - The EmptyRabaCoder MAY need to discard the IRaba.  E.g.,
-           when used for the statement indices the B+Tree will
+	 - Done.  EmptyRabaCoder needs to discard any data inthe
+           IRaba.  When used for the statement indices the B+Tree will
            maintain the values but they will be empty (a different
            option might allow us to not maintain the values at all).
 
@@ -764,7 +773,14 @@ x. Other unit test problems:
        
    - Compare the size on disk of the trunk and this branch.
 
-   - Compare size on disk once compression is enabled.
+   - Compare size on disk again once record level compression is
+     enabled.
+
+   - Allow B+Tree specific record compression, store-based record
+     compression, or both?  Conceptually nicer in the store itself.
+
+   - Remove ByteBuffer from the IRawStore API, replacing it with our
+     byte[] slice class, e.g., com.bigdata.io.Slice.
 
          - IAddressSerializer is deprecated and should be deleted or
            reused by the INodeCoder.

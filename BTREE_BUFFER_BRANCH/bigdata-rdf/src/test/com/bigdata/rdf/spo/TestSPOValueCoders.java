@@ -190,6 +190,8 @@ public class TestSPOValueCoders extends TestCase2 {
 
         doRoundTripTest(getData(1, SIDs, inference), rabaCoder);
 
+        doRoundTripTest(getData(2, SIDs, inference), rabaCoder);
+
         doRoundTripTest(getData(10, SIDs, inference), rabaCoder);
 
         doRoundTripTest(getData(100, SIDs, inference), rabaCoder);
@@ -233,9 +235,14 @@ public class TestSPOValueCoders extends TestCase2 {
 
         /*
          * Compress the keys.
+         * 
+         * Note: A zero-length initialCapacity is specified since the byte[]
+         * allocation is generally tiny for this the SPO value coders. This
+         * choice effectively defers the allocation until the coder can specify
+         * a preferred capacity.
          */
         final AbstractFixedByteArrayBuffer originalData = rabaCoder.encode(
-                expected, new DataOutputBuffer());
+                expected, new DataOutputBuffer(0/*initialCapacity*/));
 
         try {
 

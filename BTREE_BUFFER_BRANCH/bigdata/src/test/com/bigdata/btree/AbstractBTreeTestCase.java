@@ -513,10 +513,12 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
                 final byte[] aa = actual.get(i);
 
                 // same length
-                assertEquals("get(" + i + ").length", ea.length, aa.length);
-                
+                if (ea.length != aa.length)
+                    assertEquals("get(" + i + ").length", ea.length, aa.length);
+
                 // same data.
-                assertEquals("get(" + i + ")", ea, aa);
+                if (!BytesUtil.bytesEqual(ea, aa))
+                    assertEquals("get(" + i + ")", ea, aa);
 
                 // verify same byte[] length reported.
                 assertEquals("length(" + i + ")", expected.length(i), actual

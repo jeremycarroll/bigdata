@@ -43,7 +43,8 @@ import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.io.FixedByteArrayBuffer;
 
 /**
- * Useful when a B+Tree uses keys but not values.
+ * Useful when a B+Tree uses keys but not values. Any values stored under the
+ * B+Tree will be <strong>discarded</strong> by this {@link IRabaCoder}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -73,19 +74,22 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
      * No.  Keys can not be constrained to be empty.
      */
     final public boolean isKeyCoder() {
+
         return false;
+        
     }
 
     /**
      * Yes.
      */
     final public boolean isValueCoder() {
-        return false;
+     
+        return true;
+        
     }
 
     /**
-     * @throws UnsupportedOperationException
-     *             unless {@link IRaba#isEmpty()} is <code>false</code>.
+     * <strong>Any data in the {@link IRaba} will be discarded!</strong>
      */
     public AbstractFixedByteArrayBuffer encode(final IRaba raba,
             final DataOutputBuffer buf) {
@@ -93,8 +97,8 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
         if (raba == null)
             throw new IllegalArgumentException();
 
-        if (!raba.isEmpty())
-            throw new UnsupportedOperationException();
+//        if (!raba.isEmpty())
+//            throw new UnsupportedOperationException();
 
         return FixedByteArrayBuffer.EMPTY;
 
