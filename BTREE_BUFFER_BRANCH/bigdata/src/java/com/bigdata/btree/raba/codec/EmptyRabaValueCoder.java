@@ -34,16 +34,15 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 import com.bigdata.btree.raba.AbstractRaba;
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
 import com.bigdata.io.DataOutputBuffer;
-import com.bigdata.io.FixedByteArrayBuffer;
 
 /**
- * Useful when a B+Tree uses keys but not values. Any values stored under the
+ * Useful when a B+Tree uses keys but not values. The coder maintains the
+ * {@link IRaba#size()}, but any <code>byte[]</code> values stored under the
  * B+Tree will be <strong>discarded</strong> by this {@link IRabaCoder}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
@@ -89,7 +88,8 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
     }
 
     /**
-     * <strong>Any data in the {@link IRaba} will be discarded!</strong>
+     * <strong>Any data in the {@link IRaba} will be discarded!</strong> Only
+     * the {@link IRaba#size()} is maintained.
      */
     public AbstractFixedByteArrayBuffer encode(final IRaba raba,
             final DataOutputBuffer buf) {
@@ -97,10 +97,21 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
         if (raba == null)
             throw new IllegalArgumentException();
 
+        if (raba.isKeys()) {
+
+            // not allowed for B+Tree keys.
+            throw new UnsupportedOperationException();
+            
+        }
+        
 //        if (!raba.isEmpty())
 //            throw new UnsupportedOperationException();
 
-        return FixedByteArrayBuffer.EMPTY;
+        final int O_origin = buf.pos();
+        
+        buf.putInt(raba.size());
+
+        return buf.slice(O_origin, buf.pos() - O_origin);
 
     }
 
@@ -119,10 +130,10 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
      * @version $Id$
      */
     static private class EmptyRabaValueDecoder implements ICodedRaba {
-
-//        public static final EmptyRabaDecoder INSTANCE = new EmptyRabaDecoder();
         
         private final AbstractFixedByteArrayBuffer data;
+        
+        private final int size;
         
         public EmptyRabaValueDecoder(final AbstractFixedByteArrayBuffer data) {
 
@@ -130,6 +141,8 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
                 throw new IllegalArgumentException();
             
             this.data = data;
+
+            size = data.getInt(0);
             
         }
         
@@ -156,54 +169,90 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
         
         final public int capacity() {
         
-            return 0;
+            return size;
             
         }
 
         final public int size() {
             
-            return 0;
+            return size;
             
         }
         
         final public boolean isEmpty() {
-            return true;
+            
+            return size == 0;
+            
         }
 
         final public boolean isFull() {
+            
             return true;
+            
         }
 
         final public boolean isNull(int index) {
-            throw new IndexOutOfBoundsException();
+            
+            if (index < 0 || index >= size)
+                throw new IndexOutOfBoundsException();
+            
+            return true;
+            
         }
 
         final public int length(int index) {
-            throw new IndexOutOfBoundsException();
+            
+            if (index < 0 || index >= size)
+                throw new IndexOutOfBoundsException();
+            
+            throw new NullPointerException();
+            
         }
 
         final public byte[] get(int index) {
-            throw new IndexOutOfBoundsException();
+            
+            if (index < 0 || index >= size)
+                throw new IndexOutOfBoundsException();
+            
+            return null;
+            
         }
 
         final public int copy(int index, OutputStream os) {
-            throw new IndexOutOfBoundsException();
+        
+            if (index < 0 || index >= size)
+                throw new IndexOutOfBoundsException();
+
+            throw new NullPointerException();
+        
         }
 
         final public Iterator<byte[]> iterator() {
+
             return new Iterator<byte[]>() {
 
+                int i = 0;
+
                 public boolean hasNext() {
-                    return false;
+
+                    return i < size;
+
                 }
 
                 public byte[] next() {
-                    throw new NoSuchElementException();
+
+                    i++;
+                    
+                    return null;
+                    
                 }
 
                 public void remove() {
+
                     throw new UnsupportedOperationException();
+                    
                 }
+                
             };
         }
 

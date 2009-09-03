@@ -59,10 +59,10 @@ public class TestEmptyRabaCoder extends TestCase2 {
     }
 
     /**
-     * Unit test with an empty byte[][].
+     * Verify will not code keys. 
      */
-    public void test_emptyRabaCoder() {
-        
+    public void test_emptyRabaCoder_keysNotAllowed() {
+
         final IRabaCoder rabaCoder = EmptyRabaValueCoder.INSTANCE;
 
         // not permitted for keys since keys are not optional.
@@ -71,9 +71,30 @@ public class TestEmptyRabaCoder extends TestCase2 {
         // does support values.
         assertTrue(rabaCoder.isValueCoder());
 
+        // verify will not accept keys.
+        try {
+            assertTrue(EmptyRaba.KEYS.isKeys());
+            rabaCoder.encode(EmptyRaba.KEYS, new DataOutputBuffer());
+            fail("Expecting: "+UnsupportedOperationException.class);
+        } catch(UnsupportedOperationException ex) {
+            if(log.isInfoEnabled())
+                log.info("Ignoring expected exception: "+ex);
+        }
+        
+    }
+    
+    /**
+     * Unit test with an empty byte[][].
+     */
+    public void test_emptyRabaCoder() {
+        
+        final IRabaCoder rabaCoder = EmptyRabaValueCoder.INSTANCE;
+
+        final IRaba expected = new ReadOnlyValuesRaba(0/* size */,
+                new byte[2][]);
+
         // empty raba.
-        AbstractRabaCoderTestCase.doRoundTripTest(rabaCoder,
-                new ReadOnlyValuesRaba(0/* size */, new byte[2][]));
+        AbstractRabaCoderTestCase.doRoundTripTest(rabaCoder, expected);
 
     }
 
@@ -85,11 +106,13 @@ public class TestEmptyRabaCoder extends TestCase2 {
 
         final IRabaCoder rabaCoder = EmptyRabaValueCoder.INSTANCE;
 
-        final IRaba actual = rabaCoder.decode(rabaCoder.encode(
-                new ReadOnlyValuesRaba(2/* size */, new byte[2][]),
+        final IRaba expected = new ReadOnlyValuesRaba(2/* size */,
+                new byte[2][]);
+
+        final IRaba actual = rabaCoder.decode(rabaCoder.encode(expected,
                 new DataOutputBuffer()));
 
-        AbstractBTreeTestCase.assertSameRaba(EmptyRaba.VALUES, actual);
+        AbstractBTreeTestCase.assertSameRaba(expected, actual);
 
     }
 
@@ -100,16 +123,18 @@ public class TestEmptyRabaCoder extends TestCase2 {
     public void test_emptyRabaCoder_discardsData() {
         
         final IRabaCoder rabaCoder = EmptyRabaValueCoder.INSTANCE;
-        
+
+        final IRaba expected = new ReadOnlyValuesRaba(2/* size */,
+                new byte[2][]);
+
         final byte[][] a = new byte[2][];
         a[0] = new byte[] { 1, 2, 3 };
         a[1] = new byte[] { 2 };
 
-        final IRaba actual = rabaCoder.decode(rabaCoder.encode(
-                new ReadOnlyValuesRaba(2/* size */, new byte[2][]),
+        final IRaba actual = rabaCoder.decode(rabaCoder.encode(expected,
                 new DataOutputBuffer()));
 
-        AbstractBTreeTestCase.assertSameRaba(EmptyRaba.VALUES, actual);
+        AbstractBTreeTestCase.assertSameRaba(expected, actual);
 
     }
 
