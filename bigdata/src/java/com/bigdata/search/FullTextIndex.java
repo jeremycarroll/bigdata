@@ -1359,5 +1359,9 @@ public class FullTextIndex extends AbstractRelation {
             IBindingSet bindingSet) {
         throw new UnsupportedOperationException();
     }
+    
+    public Class<?> getElementClass() {
+        throw new UnsupportedOperationException();
+    }
         
 }

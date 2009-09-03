@@ -573,6 +573,12 @@ public class MagicRelation extends AbstractRelation<IMagicTuple> {
         return magicTuple;
         
     }
+    
+    public Class<IMagicTuple> getElementClass() {
+        
+        return IMagicTuple.class;
+        
+    }
 
     /**
      * Extract the bound value from the predicate. When the predicate is not

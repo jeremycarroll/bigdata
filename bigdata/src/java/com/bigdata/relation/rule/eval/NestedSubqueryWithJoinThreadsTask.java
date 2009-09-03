@@ -60,6 +60,7 @@ import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.ndx.ClientIndexView;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.util.InnerCause;
+import com.bigdata.util.concurrent.ExecutionExceptions;
 import com.bigdata.util.concurrent.ExecutionHelper;
 
 /**
@@ -885,7 +886,10 @@ public class NestedSubqueryWithJoinThreadsTask implements IStepTask {
 
                     try {
                         joinHelper.submitTasks(tasks);
-                    } catch(ExecutionException ex) {
+                    } catch(ExecutionExceptions ex) {
+                        for(Throwable cause : ex.causes()) {
+                            log.error(cause, cause);
+                        }
                         throw new RuntimeException(ex);
                     }
 

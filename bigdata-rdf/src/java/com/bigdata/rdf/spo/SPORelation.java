@@ -68,6 +68,7 @@ import com.bigdata.rdf.inf.Justification;
 import com.bigdata.rdf.lexicon.ITermIdFilter;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.load.AssignedSplits;
+import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.spo.JustIndexWriteProc.WriteJustificationsProcConstructor;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -1073,7 +1074,13 @@ public class SPORelation extends AbstractRelation<ISPO> {
         
     }
 
-    /**
+    public Class<ISPO> getElementClass() {
+
+        return ISPO.class;
+
+    }
+   
+   /**
      * Extract the bound value from the predicate. When the predicate is not
      * bound at that index, then extract its binding from the binding set.
      * 
