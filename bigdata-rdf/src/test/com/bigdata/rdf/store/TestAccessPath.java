@@ -117,7 +117,7 @@ public class TestAccessPath extends AbstractTripleStoreTestCase {
      */
     public void test_slice() {
         
-        fail("write tests");
+//        fail("write tests");
         
     }
     

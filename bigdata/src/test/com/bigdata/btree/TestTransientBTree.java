@@ -36,6 +36,8 @@ import java.util.UUID;
 
 import com.bigdata.btree.AbstractBTree.HardReference;
 import com.bigdata.btree.keys.KeyBuilder;
+import com.bigdata.rawstore.IRawStore;
+import com.bigdata.rawstore.SimpleMemoryRawStore;
 
 /**
  * Unit tests for transient {@link BTree}s (no backing store).
@@ -76,7 +78,7 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
         
         assertEquals(expected,(String)btree.lookup("abc"));
        
-        assertTrue(btree.getRoot().self instanceof HardReference);
+        assertTrue(btree.getRoot().self instanceof HardReference<?>);
         
     }
 
@@ -346,5 +348,125 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
         }
 
     }
-    
+
+    /**
+     * This is the same as {@link #test_delete()} but the {@link BTree} is
+     * backed by an {@link IRawStore}.
+     * 
+     * @todo since the code is identical other than allocating the {@link BTree}
+     *       , factor out a doDeleteTest(BTree) method.
+     */
+    public void test_deletePersistent() {
+        
+        final IndexMetadata md = new IndexMetadata(UUID.randomUUID());
+        
+        final int branchingFactor = 3;
+
+        md.setBranchingFactor(branchingFactor);
+        
+        final BTree btree = BTree.create(new SimpleMemoryRawStore(), md);
+
+        if (log.isInfoEnabled())
+            log.info(btree.toString());
+
+        /*
+         * Until the write retention queue is full.
+         */
+        long key = 0L;
+        while (key < 100000) {
+
+            btree.insert(key, key * 2);
+
+            key++;
+            
+        }
+        
+        if (log.isInfoEnabled())
+            log.info(btree.toString());
+
+        /*
+         * Populate a weak value collection from the BTree's nodes and leaves.
+         */
+        final LinkedList<WeakReference<AbstractNode>> refs = new LinkedList<WeakReference<AbstractNode>>();
+        {
+
+            final Iterator<AbstractNode> itr = btree.getRoot().postOrderNodeIterator();
+            
+            while(itr.hasNext()) {
+                
+                final AbstractNode node = itr.next();
+                
+                refs.add( new WeakReference(node) );
+                
+            }
+
+            if (log.isInfoEnabled())
+                log.info("There are " + refs.size() + " nodes in the btree");
+
+            if (log.isInfoEnabled())
+                log.info("after inserting keys: " + btree.toString());
+
+            assertEquals(btree.getNodeCount()+btree.getLeafCount(),refs.size());
+            
+        }
+
+        /*
+         * Now delete a key-range and verify that #of nodes in the btree has
+         * been decreased.
+         */  
+        {
+            
+            final ITupleIterator itr = btree.rangeIterator(KeyBuilder
+                    .asSortKey(10000L), KeyBuilder.asSortKey(20000L),
+                    0/* capacity */, IRangeQuery.DEFAULT | IRangeQuery.CURSOR,
+                    null/* filter */);
+            
+            while(itr.hasNext()) {
+                
+                itr.next();
+                
+                itr.remove();
+                
+            }
+            
+            if (log.isInfoEnabled())
+                log.info("after deleting key range: " + btree.toString());
+        
+            assertTrue(btree.getNodeCount() + btree.getLeafCount() < refs
+                    .size());        
+
+        }
+        
+        /*
+         * Loop until GC activity has caused references to be cleared.
+         */
+        for (int x = 0; x < 100; x++) {
+
+            System.gc();
+
+            final int n = countClearedRefs(refs);
+
+            if (log.isInfoEnabled())
+                log.info("#of cleared references=" + n);
+            
+            if (n < refs.size()) {
+             
+                return;
+                
+            }
+            
+            final List<byte[]> stuff = new LinkedList<byte[]>();
+
+            for (int y = 0; y < 1000; y++) {
+
+                stuff.add(new byte[y * 1000 + 1]);
+
+            }
+
+        }
+        
+        fail("Did not clear references.");
+        
+    }
+
 }

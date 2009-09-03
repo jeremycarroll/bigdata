@@ -212,15 +212,17 @@ public class TestAsynchronousStatementBufferWithoutSids extends
      */
     protected void doLoadAndVerifyTest(final String resource) throws Exception {
 
-        AbstractTripleStore store = getStore();
-        
-        if(!(store instanceof ScaleOutTripleStore)) {
-            
-            fail("Test requires scale-out index views.");
-            
-        }
+        final AbstractTripleStore store = getStore();
         
         try {
+
+            if (!(store instanceof ScaleOutTripleStore)) {
+
+                log.warn("Test requires scale-out index views.");
+
+                return;
+
+            }
 
             doLoad(store, resource, parallel);
 
