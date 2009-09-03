@@ -1330,8 +1330,7 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
                 
 //                System.err.println("N="+N+", M="+M+", nchunks="+nchunks+", perChunk="+perChunk);
                 
-                final List<Callable<Void>> tasks = new ArrayList<Callable<Void>>(
-                        nchunks);
+                final List<Callable<Void>> tasks = new ArrayList<Callable<Void>>(nchunks);
 
                 int fromIndex = 0;
                 int remaining = numNotFound;

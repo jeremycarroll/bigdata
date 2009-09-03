@@ -57,7 +57,7 @@ abstract public class AbstractArrayBuffer<E> implements IBuffer<E> {
      * @param filter
      *            An optional filter for keeping elements out of the buffer.
      */
-    protected AbstractArrayBuffer(final int capacity,
+    protected AbstractArrayBuffer(final int capacity, 
             final IElementFilter<E> filter) {
         
         if (capacity <= 0)
@@ -125,7 +125,7 @@ abstract public class AbstractArrayBuffer<E> implements IBuffer<E> {
     }
 
     @SuppressWarnings("unchecked")
-    public void add(E e) {
+    public void add(final E e) {
 
         if (e == null)
             throw new IllegalArgumentException();
@@ -141,7 +141,7 @@ abstract public class AbstractArrayBuffer<E> implements IBuffer<E> {
             synchronized (this) {
 
                 if (buffer == null) {
-
+                    // FIXME We need to pass the Class in since dynamic typing can get it wrong here, leading to an ArrayStoreException a few lines below.
                     buffer = (E[]) java.lang.reflect.Array.newInstance(e
                             .getClass(), capacity);
 
