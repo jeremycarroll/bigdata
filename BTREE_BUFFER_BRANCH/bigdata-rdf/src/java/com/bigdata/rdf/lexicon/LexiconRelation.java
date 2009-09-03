@@ -550,6 +550,12 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
         throw new UnsupportedOperationException();
         
     }
+    
+    public Class<BigdataValue> getElementClass() {
+        
+        return BigdataValue.class;
+        
+    }
 
     /**
      * Note : this method is part of the mutation api. it is primarily (at this

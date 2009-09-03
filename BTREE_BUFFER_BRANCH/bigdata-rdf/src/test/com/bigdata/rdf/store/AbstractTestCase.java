@@ -884,7 +884,8 @@ abstract public class AbstractTestCase
 
             this.maxerrors = maxerrors;
             
-            this.buffer = new AbstractArrayBuffer<Statement>(capacity, null/* filter */) {
+            this.buffer = new AbstractArrayBuffer<Statement>(capacity,
+                    Statement.class, null/* filter */) {
 
                 @Override
                 protected long flush(int n, Statement[] a) {
