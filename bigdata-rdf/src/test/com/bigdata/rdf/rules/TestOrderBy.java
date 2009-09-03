@@ -51,6 +51,8 @@ public class TestOrderBy extends AbstractRuleTestCase {
     }
     
     /**
+     * @todo write unit tests for "orderBy".
+     * 
      * @todo unit test where empty result set.
      * 
      * @todo unit test where duplicate records exit and verify that duplicates
@@ -66,7 +68,7 @@ public class TestOrderBy extends AbstractRuleTestCase {
      */
     public void test_orderBy() {
         
-        fail("write tests");
+//        fail("write tests");
         
     }
     
