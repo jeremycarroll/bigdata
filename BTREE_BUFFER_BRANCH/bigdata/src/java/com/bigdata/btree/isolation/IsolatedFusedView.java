@@ -25,14 +25,13 @@
  * Created on Feb 12, 2007
  */
 
-package com.bigdata.isolation;
+package com.bigdata.btree.isolation;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.bigdata.btree.AbstractBTree;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.Checkpoint;
-import com.bigdata.btree.FusedView;
 import com.bigdata.btree.ICounter;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ILocalBTreeView;
@@ -40,6 +39,7 @@ import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.Tuple;
+import com.bigdata.btree.view.FusedView;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.TimestampUtility;
@@ -54,10 +54,11 @@ import com.bigdata.service.IBigdataFederation;
  * {@link BTree} visible only to that transaction.</li>
  * <li>Version timestamps are maintained for index entries in both the isolated
  * write set and groundState from which the transaction is reading.</li>
- * <li>The groundState is defined as the view of the index (partition) as of
- * the abs(startTime) of the transaction.</li>
+ * <li>The groundState is defined as the view of the index (partition) as of the
+ * abs(startTime) of the transaction.</li>
  * <li>Reads are performed against an ordered view defined by the writeSet
- * followed by the ordered set of indices defining the groundState of the index.</li>
+ * followed by the ordered set of indices defining the groundState of the index.
+ * </li>
  * <li>Writes first read through the ordered view to locate the most recent
  * version for an index entry. If the index entry is located in the isolated
  * writeSet then it is overwritten and its timestamp is unchanged. If the index
@@ -68,24 +69,28 @@ import com.bigdata.service.IBigdataFederation;
  * If the timestamp in the unisolated view differs from that in the writeSet
  * then there is a write-write conflict. Write-write conflicts MAY be validated
  * if the index has a registered {@link IConflictResolver}.</li>
- * <li>If the writeSet is validated then it is mergedDown (copied onto) the
- * then current unisolated index view. During the mergeDown phase the commit
+ * <li>If the writeSet is validated then it is mergedDown (copied onto) the then
+ * current unisolated index view. During the mergeDown phase the revision
  * timestamp of the transaction is applied to all index entries copied from the
  * write set. Transactions that later try to commit will recognize write-write
- * conflicts based on those updated timestamps.</li>
+ * conflicts based on those updated timestamps. Note that revision timestamps
+ * ARE NOT commit timestamps. Revision timestamps are assigned at the start of
+ * the validation phase. All tuples modified by a transaction are annotated with
+ * the same revision timestamp during the validation phase of the transaction.
+ * Write-write conflicts are detected on the basis of the per-tuple revision
+ * timestamps. Commit timestamps are assigned once the write set has been
+ * validated and checkpointed and all shards participating in the commit
+ * protocol signal that they are prepared and ready to commit.</li>
  * </ol>
  * </p>
  * <p>
- * Note: The commit time of the transaction is a bit of an illusion. What it
- * does is provide a strictly increasing timestamp on the tuples updated by that
- * transaction in the indices on which it has written. Write-write conflicts are
- * detected on the basis of that timestamp. Thus it is really a "revision
- * timestamp" for the transaction commit point. The timestamp from which the
- * post-commit state of the transaction may be read IS NOT defined for an
- * {@link IBigdataFederation}. It is not possible to define this timestamp
- * without requiring concurrent commit processing to be paused on all data
- * services on which the transaction has written, which is viewed as too high
- * a cost.
+ * Note: The timestamp from which the post-commit state of the transaction may
+ * be read IS NOT defined for an {@link IBigdataFederation}. It is not possible
+ * to define this timestamp without requiring concurrent commit processing to be
+ * paused on all data services on which the transaction has written, which is
+ * viewed as too high a cost. Instead, the commit timestamp is the state from
+ * which you can read the data written by the transaction. Reads on tuples NOT
+ * updated by the transaction MAY have been changed by concurrent transactions.
  * </p>
  * Note: The process of validating, merging down changes, and committing those
  * changes MUST be atomic. Therefore no other operations may be permitted access
@@ -93,8 +98,7 @@ import com.bigdata.service.IBigdataFederation;
  * transaction during this process. This constraint is generally achieved by
  * holding a write lock on the unisolated indices corresponding to the indices
  * isolated by the transaction, e.g., by declaring those indices to an
- * {@link ITx#UNISOLATED} {@link AbstractTask} which handles this process.
- * </p>
+ * {@link ITx#UNISOLATED} {@link AbstractTask} which handles this process. </p>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$

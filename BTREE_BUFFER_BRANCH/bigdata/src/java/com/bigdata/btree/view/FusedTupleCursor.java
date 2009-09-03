@@ -26,10 +26,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Aug 9, 2008
  */
 
-package com.bigdata.btree;
+package com.bigdata.btree.view;
 
 import java.util.NoSuchElementException;
 
+import com.bigdata.btree.BytesUtil;
+import com.bigdata.btree.IIndex;
+import com.bigdata.btree.IRangeQuery;
+import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleCursor;
+import com.bigdata.btree.ITupleCursor2;
+import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.keys.KeyBuilder;
 
 /**

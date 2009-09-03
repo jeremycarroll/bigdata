@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.btree;
 
+import com.bigdata.btree.view.TestFusedView;
+
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -77,18 +79,21 @@ public class TestAll extends TestCase {
         suite.addTest(TestAll_IndexSegment.suite());
 
         /*
-         * Test fused views, including iterators for the fused view.
-         */
-        suite.addTestSuite(TestFusedView.class);
-
-        /*
          * Test the Map and Set implementations.
          */
         suite.addTestSuite(TestBigdataMap.class);
         suite.addTestSuite(TestBigdataSet.class);
 
-        // @todo this test belongs in the isolation package.
-        // suite.addTestSuite(TestIsolatedFusedViewCursors.class);
+        /*
+         * Test fused views, including iterators for the fused view.
+         */
+        suite.addTest(com.bigdata.btree.view.TestAll.suite());
+
+        /*
+         * Test transactional isolation support, including iterators and
+         * iterator#remove() for the isolated index.
+         */
+        suite.addTest(com.bigdata.btree.isolation.TestAll.suite());
 
         // test index procedures.
         suite.addTest(com.bigdata.btree.proc.TestAll.suite());

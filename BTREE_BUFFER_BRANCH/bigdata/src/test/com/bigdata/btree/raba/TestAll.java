@@ -58,6 +58,7 @@ public class TestAll extends TestCase {
 
         final TestSuite suite = new TestSuite("Random Access Byte Arrays (rabas)");
 
+        // note: this class is exercised by Leaf.
         suite.addTestSuite(TestMutableValuesRaba.class);
         
         // test mutable key buffer.

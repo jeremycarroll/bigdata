@@ -38,6 +38,8 @@ import java.util.concurrent.TimeUnit;
 import org.CognitiveWeb.extser.LongPacker;
 import org.apache.log4j.Logger;
 
+import com.bigdata.btree.data.INodeData;
+import com.bigdata.btree.isolation.IConflictResolver;
 import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.IKeyBuilderFactory;
@@ -45,6 +47,7 @@ import com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder;
 import com.bigdata.btree.raba.codec.FrontCodedRabaCoder;
 import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.btree.raba.codec.FrontCodedRabaCoder.DefaultFrontCodedRabaCoder;
+import com.bigdata.btree.view.FusedView;
 import com.bigdata.config.Configuration;
 import com.bigdata.config.IValidator;
 import com.bigdata.config.IntegerRangeValidator;
@@ -53,7 +56,6 @@ import com.bigdata.config.LongValidator;
 import com.bigdata.io.DirectBufferPool;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.io.compression.IRecordCompressorFactory;
-import com.bigdata.isolation.IConflictResolver;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.MetadataIndex;
@@ -1041,6 +1043,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
     private boolean childLocks;
     private boolean deleteMarkers;
     private boolean versionTimestamps;
+    private boolean versionTimestampFilters;
     private BloomFilterFactory bloomFilterFactory;
     private IOverflowHandler overflowHandler;
     private ISplitHandler splitHandler;
@@ -1440,13 +1443,64 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
      * When <code>true</code> the index will maintain a per-index entry
      * timestamp. The primary use of this is in support of transactional
      * isolation.
+     * 
+     * @see #getVersionTimestampFilters()
      */
-    public final boolean getVersionTimestamps() {return versionTimestamps;}
-    
-    public final void setVersionTimestamps(boolean versionTimestamps) {
+    public final boolean getVersionTimestamps() {
+
+        return versionTimestamps;
         
+    }
+
+    /**
+     * When <code>true</code> the index will maintain the min/max of the per
+     * tuple-revision timestamp on each {@link Node} of the B+Tree. This
+     * information can be used to perform efficient filtering of iterators such
+     * that they visit only nodes and leaves having data for a specified tuple
+     * revision timestamp range. This filtering is efficient because it skips
+     * any node (and all spanned nodes or leaves) which does not have data for
+     * the desired revision timestamp range. In order to find all updates after
+     * a given timestamp revision, you specify (fromRevision,Long.MAX_VALUE). In
+     * order to visit the delta between two revisions, you specify
+     * (fromRevision, toRevision+1).
+     * <p>
+     * Tuple revision filtering can be very efficient for some purposes. For
+     * example, it can be used to synchronize disconnected clients or compute
+     * the write set of a committed transaction. However, it requires more space
+     * in the {@link INodeData} records since we must store the minimum and
+     * maximum timestamp revision for each child of a given node.
+     * <p>
+     * Per-tuple timestamp revisions MAY be used without support for per-tuple
+     * revision filtering.
+     * 
+     * @see #getVersionTimestamps()
+     */
+    public final boolean getVersionTimestampFilters() {
+
+        return versionTimestampFilters;
+        
+    }
+
+    /**
+     * Sets {@link #versionTimestampFilters}. You MUST also use
+     * {@link #setVersionTimestamps(boolean)} to <code>true</code> for version
+     * timestamp filtering to be supported.
+     * 
+     * @param versionTimestampFilters
+     *            <code>true</code> iff version timestamp filtering should be
+     *            supported.
+     */
+    public final void setVersionTimestampFilters(
+            final boolean versionTimestampFilters) {
+
+        this.versionTimestampFilters = versionTimestampFilters;
+
+    }
+
+    public final void setVersionTimestamps(final boolean versionTimestamps) {
+
         this.versionTimestamps = versionTimestamps;
-        
+
     }
 
     /**
@@ -1459,10 +1513,19 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
         
     }
 
+    /**
+     * Convenience method sets both {@link #getDeleteMarkers()} and
+     * {@link #getVersionTimestamps()} at the same time.
+     * 
+     * @param isolatable
+     *            <code>true</code> if delete markers and version timestamps
+     *            will be enabled -or- <code>false</code> if they will be
+     *            disabled.
+     */
     public void setIsolatable(final boolean isolatable) {
 
         setDeleteMarkers(isolatable);
-        
+
         setVersionTimestamps(isolatable);
         
     }
@@ -1991,6 +2054,8 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
         
         this.versionTimestamps = false;
 
+        this.versionTimestampFilters = false;
+
         // optional bloom filter setup.
         final boolean bloomFilter = Boolean.parseBoolean(getProperty(
                 indexManager, properties, namespace, Options.BLOOM_FILTER,
@@ -2228,6 +2293,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
                         .getClass().getName()));
         sb.append(", deleteMarkers=" + deleteMarkers);
         sb.append(", versionTimestamps=" + versionTimestamps);
+        sb.append(", versionTimestampFilters=" + versionTimestampFilters);
         sb.append(", isolatable=" + isIsolatable());
         sb.append(", bloomFilterFactory=" + (bloomFilterFactory == null ? "N/A"
                 : bloomFilterFactory.toString())); 
@@ -2296,9 +2362,15 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
     private static transient final int VERSION5 = 0x05;
     
     /**
+     * This version introduced {@link #versionTimestampFilters}.  Reads of prior
+     * versions set this field to <code>false</code>.
+     */
+    private static transient final int VERSION6 = 0x06;
+    
+    /**
      * The version that will be serialized by this class.
      */
-    private static transient final int CURRENT_VERSION = VERSION5;
+    private static transient final int CURRENT_VERSION = VERSION6;
     
     /**
      * @todo review generated record for compactness.
@@ -2315,6 +2387,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
         case VERSION3:
         case VERSION4:
         case VERSION5:
+        case VERSION6:
             break;
         default:
             throw new IOException("Unknown version: version=" + version);
@@ -2378,6 +2451,16 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
         deleteMarkers = in.readBoolean();
         
         versionTimestamps = in.readBoolean();
+
+        if (version < VERSION6) {
+
+            versionTimestampFilters = false;
+
+        } else {
+
+            versionTimestampFilters = in.readBoolean();
+            
+        }
 
         bloomFilterFactory = (BloomFilterFactory) in.readObject();
 
@@ -2557,6 +2640,12 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
         out.writeBoolean(deleteMarkers);
         
         out.writeBoolean(versionTimestamps);
+        
+        if (version >= VERSION6) {
+
+            out.writeBoolean(versionTimestampFilters);
+            
+        }
 
         out.writeObject(bloomFilterFactory);
         

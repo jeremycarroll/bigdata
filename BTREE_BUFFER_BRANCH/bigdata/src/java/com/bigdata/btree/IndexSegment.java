@@ -807,12 +807,12 @@ public class IndexSegment extends AbstractBTree {
                 return ReadOnlyKeysRaba.EMPTY;
             }
 
-            public long getMaximumVersionTimestamp() {
-                return 0;
+            final public long getMaximumVersionTimestamp() {
+                return Long.MIN_VALUE;
             }
 
-            public long getMinimumVersionTimestamp() {
-                return 0;
+            final public long getMinimumVersionTimestamp() {
+                return Long.MAX_VALUE;
             }
 
             final public int getSpannedTupleCount() {

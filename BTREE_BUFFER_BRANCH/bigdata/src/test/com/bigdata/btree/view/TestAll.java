@@ -1,6 +1,6 @@
-/*
+/**
 
-Copyright (C) SYSTAP, LLC 2006-2008.  All rights reserved.
+Copyright (C) SYSTAP, LLC 2006-2007.  All rights reserved.
 
 Contact:
      SYSTAP, LLC
@@ -21,45 +21,46 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-/*
- * Created on Aug 7, 2009
- */
+package com.bigdata.btree.view;
 
-package com.bigdata.btree.raba;
-
-import com.bigdata.btree.Leaf;
-
-import junit.framework.TestCase2;
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 
 /**
- * Test suite for {@link MutableValuesRaba}.
- * 
+ * Aggregates test suites into increasing dependency order.
+ *
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestMutableValuesRaba extends TestCase2 {
+public class TestAll extends TestCase {
 
     /**
      * 
      */
-    public TestMutableValuesRaba() {
-
+    public TestAll() {
     }
 
     /**
-     * @param name
+     * @param arg0
      */
-    public TestMutableValuesRaba(String name) {
-        super(name);
+    public TestAll(String arg0) {
+        super(arg0);
     }
 
     /**
-     * @todo Write tests, but note that this class is exercised by {@link Leaf}.
+     * Returns a test that will run each of the implementation specific test
+     * suites in turn.
      */
-    public void test_something() {
+    public static Test suite()
+    {
 
-//        fail("write tests");
+        final TestSuite suite = new TestSuite("Fused Views");
+
+        suite.addTestSuite(TestFusedView.class);
+
+        return suite;
         
     }
-
+    
 }

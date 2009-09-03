@@ -45,6 +45,7 @@ import com.bigdata.btree.data.INodeData;
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.MutableKeyBuffer;
 import com.bigdata.btree.raba.MutableValueBuffer;
+import com.bigdata.btree.view.FusedView;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
 import com.bigdata.io.DirectBufferPool;
 import com.bigdata.io.SerializerUtil;
@@ -2126,8 +2127,8 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
          * The max/max version timestamp for the node/leaf. These data are only
          * used when the B+Tree is maintaining per tuple revision timestamps.
          */
-        long minimumVersionTimestamp = Long.MAX_VALUE;
-        long maximumVersionTimestamp = Long.MIN_VALUE;
+        long minimumVersionTimestamp;
+        long maximumVersionTimestamp;
         
         /**
          * We precompute the #of children to be assigned to each node and the
@@ -2151,15 +2152,23 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
              */
             this.keys = new MutableKeyBuffer(m);
             
+            this.minimumVersionTimestamp = Long.MAX_VALUE;
+            
+            this.maximumVersionTimestamp = Long.MIN_VALUE;
+
         }
 
+        /**
+         * 
+         * @param max
+         *            The #of children to be assigned to this node -or- the #of
+         *            tuples to be assigned to a leaf.
+         */
         protected void reset(final int max) {
             
-            // @todo just clear to size:=0?
-//            this.keys = new MutableKeyBuffer(m);
-            this.keys.nkeys = 0;
-            
             this.max = max;
+            
+            this.keys.nkeys = 0;
             
             this.minimumVersionTimestamp = Long.MAX_VALUE;
             
@@ -2233,13 +2242,6 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
      */
     protected static class SimpleLeafData extends AbstractSimpleNodeData
             implements ILeafData {
-
-        // mutable.
-        
-//        /**
-//         * The ordinal position of this leaf in the {@link IndexSegment}.
-//         */
-//        int leafIndex;
 
         /**
          * The values stored in the leaf (directly accessed by the
@@ -2340,15 +2342,31 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
          * the next record.
          */
         final public boolean isDoubleLinked() {
+            
             return true;
+            
         }
 
+        /**
+         * @throws UnsupportedOperationException
+         *             since the data are maintained externally and patched on
+         *             the coded records by the {@link IndexSegmentBuilder}.
+         */
         final public long getNextAddr() {
+            
             throw new UnsupportedOperationException();
+            
         }
 
+        /**
+         * @throws UnsupportedOperationException
+         *             since the data are maintained externally and patched on
+         *             the coded records by the {@link IndexSegmentBuilder}.
+         */
         final public long getPriorAddr() {
+            
             throw new UnsupportedOperationException();
+            
         }
 
     }

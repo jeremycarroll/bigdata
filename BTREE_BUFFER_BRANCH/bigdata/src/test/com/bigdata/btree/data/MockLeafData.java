@@ -128,11 +128,11 @@ class MockLeafData extends AbstractMockNodeData implements ILeafData {
 
         this.versionTimestamps = versionTimestamps;
 
+        long min = Long.MAX_VALUE;
+        long max = Long.MIN_VALUE;
+        
         if (versionTimestamps != null) {
 
-            long min = Long.MAX_VALUE;
-            long max = Long.MIN_VALUE;
-            
             final int nkeys = keys.size();
             
             for (int i = 0; i < nkeys; i++) {
@@ -147,16 +147,12 @@ class MockLeafData extends AbstractMockNodeData implements ILeafData {
                 
             }
             
-            this.minVersionTimestamp = min;
-            
-            this.maxVersionTimestamp = max;
-            
-        } else {
-
-            this.minVersionTimestamp = this.maxVersionTimestamp = 0L;
-
         }
         
+        this.minVersionTimestamp = min;
+        
+        this.maxVersionTimestamp = max;
+       
     }
 
     public boolean isDoubleLinked() {

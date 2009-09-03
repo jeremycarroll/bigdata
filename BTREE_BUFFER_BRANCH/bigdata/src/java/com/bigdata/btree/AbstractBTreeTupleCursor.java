@@ -33,8 +33,9 @@ import java.util.NoSuchElementException;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.Leaf.ILeafListener;
+import com.bigdata.btree.isolation.IsolatedFusedView;
+import com.bigdata.btree.view.FusedView;
 import com.bigdata.io.DataOutputBuffer;
-import com.bigdata.isolation.IsolatedFusedView;
 import com.bigdata.mdi.LocalPartitionMetadata;
 
 /**
@@ -1574,11 +1575,11 @@ abstract public class AbstractBTreeTupleCursor<I extends AbstractBTree, L extend
              */
             if (true) {
                 final byte[] key = leaf.getKeys().get(index);
-                if (BytesUtil.compareBytes(key, fromKey) < 0) {
+                if (fromKey!=null&&BytesUtil.compareBytes(key, fromKey) < 0) {
                     // key is LT then the optional inclusive lower bound.
                     return false;
                 }
-                if (BytesUtil.compareBytes(key, toKey) >= 0) {
+                if (toKey!=null&&BytesUtil.compareBytes(key, toKey) >= 0) {
                     // key is GTE the optional exclusive upper bound
                     return false;
 

@@ -55,6 +55,7 @@ import com.bigdata.btree.proc.AbstractKeyArrayIndexProcedureConstructor;
 import com.bigdata.btree.proc.IKeyRangeIndexProcedure;
 import com.bigdata.btree.proc.IResultHandler;
 import com.bigdata.btree.proc.ISimpleIndexProcedure;
+import com.bigdata.btree.view.FusedView;
 import com.bigdata.cache.HardReferenceQueue;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
@@ -2288,7 +2289,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
                 filter);
 
     }
-    
+
     /**
      * Core implementation.
      * <p>
@@ -2308,6 +2309,9 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * is also responsible for constructing an {@link ITupleIterator} in a
      * manner similar to this method. If you are updating the logic here, then
      * check the logic in that method as well!
+     * 
+     * @todo add support to the iterator construct for filtering by a tuple
+     *       revision timestamp range.
      */
     public ITupleIterator rangeIterator(//
             final byte[] fromKey,//
@@ -3025,7 +3029,8 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
          * 
          * Note: This iterator only visits dirty nodes.
          */
-        final Iterator<AbstractNode> itr = node.postOrderNodeIterator(true);
+        final Iterator<AbstractNode> itr = node
+                .postOrderNodeIterator(true/* dirtyNodesOnly */);
 
         while (itr.hasNext()) {
 
@@ -3227,7 +3232,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
         if (parent != null) {
 
             // Set the persistent identity of the child on the parent.
-            parent.setChildKey(node);
+            parent.setChildAddr(node);
 
             // // Remove from the dirty list on the parent.
             // parent.dirtyChildren.remove(node);

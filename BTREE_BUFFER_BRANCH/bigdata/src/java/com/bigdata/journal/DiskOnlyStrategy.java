@@ -1836,7 +1836,7 @@ public class DiskOnlyStrategy extends AbstractBufferStrategy implements
             throw new IllegalStateException(ERR_READ_ONLY);
         
         if (nbytes <= 0)
-            throw new IllegalArgumentException("Bad record size");
+            throw new IllegalArgumentException(ERR_BAD_RECORD_SIZE);
         
         final long addr; // address in the store.
         

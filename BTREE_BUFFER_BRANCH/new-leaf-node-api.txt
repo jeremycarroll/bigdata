@@ -44,7 +44,8 @@ Index partition splits.
 
    - More robust (transactional)
 
-   - Based on #of bytes in post-merge file (no need to tweak).
+   - Based on #of bytes in post-merge file (no need to tweak,
+     radically simplifies life).
 
 --------------------
 
@@ -88,6 +89,9 @@ Distributed Tx
 
      - Write sets must stick with their corresponding index partition.
 
+     - How can we retain low tx latency during index partition (split,
+       move, join) operations?
+
      - Bottlenecks
      
      - The IsolatedFusedView's tuple cursor needs to override remove()
@@ -96,6 +100,29 @@ Distributed Tx
 
      - Unit tests to verify correct propagation of version timestamps
        for index segments and views.
+
+--------------------
+HA
+
+     - The logical DS identifier should be just the zk node/path for
+       the logical DS.  That gives us direct lookup in zk of the
+       physical DS instances and their order is the failover chain.
+       An alternative would be to store the logical DS UUID in the
+       data for the logical DS zpath and cache the reverse resolution
+       (UUID to LDS).
+
+     - The time to start a new PDS for an LDS will be quite large as
+       we need to replicate all the state of the existing LDS.  The
+       state could be read from any of the existing PDS for that LDS,
+       or from a combination of those instances.
+
+--------------------
+Monitoring.  
+
+Look at how MonALISA handles large numbers of clients and large scale
+monitoring, including proxying for WAN connections.  An integration
+with MonALISA would be great, but would be restricted to commercial
+users due to their own licensing.
 
 --------------------
 Sync of disconnected clients:
@@ -657,9 +684,6 @@ x. Done. Verify all RabaCoder and leaf/node data records.
           it this way, so there might be a reason to keep an object
           around which has those buffers)
 
-        - (*) Should run all of the persistence tests against each of
-          the IRabaCoder combinations.
-
 x. Transient B+Tree issues.
 
 	- (*) Verify that transient B+Trees convert data records to
@@ -713,21 +737,14 @@ x. Transient B+Tree issues.
 
 x. Other unit test problems:
 
-         - (****) Merge from the trunk.
+         - (****) Merge from the trunk.  I am not picking up the
+           commits on the trunk?!?
 
-         - TestIsolatedFusedView is broken.
+         - (*) TestIsolatedFusedView - Add a unit test here with
+	   cursor#remove(), then fix remove() to propagate the tuple
+	   revision timestamp with the delete marker.
 
-	   Add a unit test here with cursor#remove(), then fix
-	   remove() to propagate the tuple revision timestamp with the
-	   delete marker.
-
-	 - TestTx#test_writeIsolation() also shows what is probably
-           the same problem.  Also test itr#remove() for tx isolation.
-
-	 - TestRangeQuery#reverseScan() and #removeAll() are broken
-           (services).
-
-	 - Rerun the "resources" test suite (split, join, merge).
+	 - (*) TestTx - test itr#remove() for tx isolation.
 
 	 - TestDatabaseAtOnceClosure - showing array store errors
            related to join nexus changes.
@@ -740,12 +757,6 @@ x. Other unit test problems:
            when used for the statement indices the B+Tree will
            maintain the values but they will be empty (a different
            option might allow us to not maintain the values at all).
-
-	 - The min/max tuple revision timestamps are not being
-           maintained by Leaf.  Write unit tests for this.  Plan for
-           iterator filter on tuple revision timestamp using the
-           min/max on a node to skip all spanned nodes when they are
-           not relevant to the query.
 
 6. (***) Tighter coding & versioning.
 
@@ -762,50 +773,59 @@ x. Other unit test problems:
 	   IAddressManager if it will use address aware coding.  That
 	   information is not currently available to the INodeCoder.
 
-	 - Share pluggable timestamp serialization logic for
-	   DefaultLeafCoder and ResultSet.
-
-	 - (*) ReadOnlyNode/Leaf Coding.
-
-	     Note: Any of these coding schemes could wind up with a
-	     bit boundary which needs to be byte aligned.  See how
-	     this is done in the CanonicalHuffmanRabaCoder.
-
-	   - Code the min/max of the version timestamp (add to the
-             API).
+         - Done. Code the min/max of the version timestamp (add to the
+           API).
 	   
-  	   - Code the version timestamp[].
+  	 - Code the version timestamp[].
 
-	     A good coding scheme might be the minimum timestamp plus
+	   - A good coding scheme might be the minimum timestamp plus
              a minimum width coding for the remainder for each
              timestamp.
 
-	   - Code the childAddr[].
+	   - Share pluggable timestamp serialization logic for
+	     DefaultLeafCoder and ResultSet.  Note that version
+	     information is always delivered IF it is being
+	     maintained.
 
-	     A good scheme might be identical to the version timestamp
-	     scheme since the childAddr[] will tend to have a shared
-	     prefix (actually, they might not since they are broken
-	     down internally into a byte offset and a byte length).
+	 - Code the childAddr[].
 
-	     For an index segment, the childAddr[] values will also be
-	     strictly increasing (again, not true since they code the
-	     region, the byte offset, and the byte length).
+	   A good scheme might be identical to the version timestamp
+	   scheme since the childAddr[] will tend to have a shared
+	   prefix (actually, they might not since they are broken down
+	   internally into a byte offset and a byte length).
+
+	   For an index segment, the childAddr[] values will also be
+	   strictly increasing (again, not true since they code the
+	   region, the byte offset, and the byte length).
 	     
-	   - Code the childEntryCount[].
+        - Code the childEntryCount[].
 
-	     A similar scheme might apply here.  Since the B+Tree is
-	     balanced the #of spanned tuples for each child will be
-	     roughly comparable, hence substracting out the minimum
-	     could save space.
+	  A similar scheme might apply here.  Since the B+Tree is
+	  balanced the #of spanned tuples for each child will be
+	  roughly comparable, hence substracting out the minimum could
+	  save space.
+
+	- TERM2ID could use direct addressing of the assigned term
+          identifiers if they are not packed.  That could well save
+          space over their huffman coding or simple coding since we
+          just store the long[].
+	  
+	- Compare simple vs huffman coding of ID2TERM at m<33 (e.g.,
+          on the journal).
 
 7. (***) Buffering & caching.
 
-	- There will have to be lookup (hash table) by store UUID and
-          addr for node/leaf data records which are still in the
-          cache.  In fact, since those data records are immutable and
-          the IAbstractNodeData implementations are thread-safe for
-          readers, we can share them across all requests for the same
-          store+addr, even when the B+Tree instances are different.
+        - Add global read retention queue and weak value hash map
+          based lookup per store of the retained data record objects.
+
+	  Consider releasing decoders earlier since they can be
+	  rematerialized from the byte[] slice.
+
+	- Since data records are immutable and the IAbstractNodeData
+          implementations are thread-safe for readers, we can share
+          the data records and their INodeData/ILeafData objects
+          across all requests for the same store+addr, even when the
+          B+Tree instances are different.
 
 	  The problem with the hard reference cache is its fixed
 	  capacity.  The Java LRU has this same limitation.  We can
@@ -824,6 +844,14 @@ x. Other unit test problems:
 	- Unit test for IndexSegment with version timestamps enabled
           which verifies the correct max/max version timestamps on the
           nodes and leaves.
+
+        - Examine GC problems with lots of B+Tree nodes buffered.  Try
+          parallel old GC and the G1 collector.
+
+	  Tony Printezis [Antonios.Printezis@sun.com] 10G+ heaps will
+	  most likely create unpleasant Full GC pauses!  :-) But, yes,
+	  evaluate Parallel Old to first see how it works. And we can
+	  take it from there...
 
 x. (***) RMI SHOULD reuse buffers whenever possible.
 
@@ -894,6 +922,85 @@ x. (***) RMI SHOULD reuse buffers whenever possible.
          - trunk vs branch performance comparisons (also compare the
            space on the disk).  For scale-out, also look at the RAM
            profile.
+
+x. Tuple revision filtering, per-child min/max tuple revision
+   timestamp on Node, and overall min/max tuple revision timestamp on
+   Node.
+
+	 - The min/max tuple revision timestamps are not being
+           maintained by Leaf.  Write unit tests for this.  
+
+	   All of the mutation operations on the leaf need to track
+	   the min/max version timestamp, including:
+
+	   done. Leaf#insert() (as insert, update, or delete)
+
+	   done. Leaf#remove() (if version timestamps are used w/o
+		 delete markers)
+
+	   Leaf#split() [Leaf is done, but Node.min[] and max[] are
+	                 not done yet].
+	   
+	   Leaf#merge() [Leaf is done, but Node.min[] and max[] are
+			 not updated yet.]
+	   
+	   Leaf#redistributeKeys() [Leaf is done, but Node.min[] and
+				    max[] are not updated yet.]
+
+	   ----
+
+	   To track the min/max timestamp on the Node we must also
+	   track the min/max timestamp for each direct child of that
+	   node.  While this inflates the size of the Node's data
+	   record considerably, we are required to track those
+	   per-child data in order to avoid a scan of the children
+	   when we need to recompute the min/max timestamp for the
+	   Node.  The cost of that scan (with its IO) is simply not
+	   acceptable.  The min/max timestamp on the Node is ONLY used
+	   for filtering iterators based on a desired tuple revision
+	   range.  This is why the choice to support tuple revision
+	   filters is its own configuration option.
+
+	   Node#insertChild()
+
+	   Node#removeChild()
+
+	   Node#split()
+
+	   Node#merge()
+
+	   Node#redistributeKeys()
+
+	   merge/split appear to update the child entry counts on the
+	   parent directly, so they must also update the min/max
+	   directly.
+
+	   Put the versionTimestamp[] into its own Class along with
+	   the min/max version timestamps.  This will reduce the in
+	   memory overhead for a MutableNodeData or MutableLeafData
+	   instance which does not use version timestamps. This will
+	   also make coding those data easier to isolate since there
+	   can be an interface for the version timestamp information
+	   (extended by IAbstractNodeData).
+
+	   (****) Lots of tasty unit tests.  This really needs to be
+	   tested in depth on the 3-level B+Tree example to ensure
+	   that we are covering all of the bases, including
+	   redistribution of keys, splitting of nodes, and merging of
+	   nodes.
+
+	   Done. [min=MAX_LONG iff empty, max=MIN_LONG iff empty,
+	   verify in unit tests, including initial state and end state
+	   after all tuples are removed] Firm policy on the initial
+	   value of the min/max version timestamp.
+
+	 - Support iterator filtering by a tuple revision range.
+           Write the unit tests for that.  Consider change the
+           IRangeQuery API to have an object which declares the
+           iterator parameters since there are SO MANY.  The iterator
+           should skip nodes when they are not relevant to the tuple
+           revision constraint.
+
 
 ------------------------------------------------------------
 laptop 9/2/2009
@@ -1141,17 +1248,6 @@ com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder@9b04ac : elapsed=50066, r
 	     This could be part of how we reconcile the DataSerializer
 	     and the IRabaCoder APIs.
 
-       - (***) Add global read retention queue and weak value hash map
-         based lookup per store of the retained nodes.
-
-       - Examine GC problems with lots of B+Tree nodes buffered.  Try
-         parallel old GC and the G1 collector.
-
-	 Tony Printezis [Antonios.Printezis@sun.com] 10G+ heaps will
-	 most likely create unpleasant Full GC pauses!  :-) But, yes,
-	 evaluate Parallel Old to first see how it works. And we can
-	 take it from there...
-
        - Done. Converge on the standard fastutil and dsi dependencies,
          removing their variants from the lgpl-utils module and move
          the lgpl-utils module into the bigdata project.
@@ -1205,75 +1301,22 @@ com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder@9b04ac : elapsed=50066, r
            support coding in the bit streams.
 
 ------------------------------------------------------------
-Errors:
+(***) Known problem test suites:
 
-     - TM blew out on baseball stats file @ 2G
+	 - The "resources" test suite has problems related to the
+           refactor which changed the timing for purging old
+           resources.
 
-ERROR: 447969 com.bigdata.journal.TemporaryStore.executorService1         com.bigdata.journal.AbstractBufferStrategy.overflow(AbstractBufferStrategy.java:301): Would exceed int32 bytes.
-java.lang.RuntimeException: java.util.concurrent.ExecutionException: java.lang.RuntimeException: De-serialization problem: addr={nbytes=517,offset=2130370317} from store=D:\DOCUME~1\mikep\LOCALS~1\Temp\bigdata1406701428727139694.tmp : cause=java.lang.IllegalArgumentException: Would truncate written data.
-	at com.bigdata.rdf.spo.SPORelation.insert(SPORelation.java:1392)
-	at com.bigdata.rdf.store.AbstractTripleStore.addStatements(AbstractTripleStore.java:2951)
-	at com.bigdata.rdf.rio.StatementBuffer.writeSPOs(StatementBuffer.java:1017)
-	at com.bigdata.rdf.rio.StatementBuffer.addStatements(StatementBuffer.java:883)
-	at com.bigdata.rdf.rio.StatementBuffer.incrementalWrite(StatementBuffer.java:742)
-	at com.bigdata.rdf.rio.StatementBuffer.add(StatementBuffer.java:803)
-	at com.bigdata.rdf.rio.StatementBuffer.add(StatementBuffer.java:814)
-	at com.bigdata.rdf.rio.StatementBuffer.processDeferredStatements(StatementBuffer.java:511)
-	at com.bigdata.rdf.rio.StatementBuffer.flush(StatementBuffer.java:413)
-	at com.bigdata.rdf.sail.BigdataSail$BigdataSailConnection.flushStatementBuffers(BigdataSail.java:1673)
-	at com.bigdata.rdf.sail.BigdataSail$BigdataSailConnection.commit(BigdataSail.java:1589)
-	at org.openrdf.repository.sail.SailRepositoryConnection.commit(SailRepositoryConnection.java:81)
-	at com.bigdata.rdf.sail.BigdataSailRepositoryConnection.commit(BigdataSailRepositoryConnection.java:44)
-	at com.bigdata.samples.SampleCode.loadSomeDataFromADocument(SampleCode.java:118)
-	at com.bigdata.samples.TestBaseball.main(TestBaseball.java:48)
-Caused by: java.util.concurrent.ExecutionException: java.lang.RuntimeException: De-serialization problem: addr={nbytes=517,offset=2130370317} from store=D:\DOCUME~1\mikep\LOCALS~1\Temp\bigdata1406701428727139694.tmp : cause=java.lang.IllegalArgumentException: Would truncate written data.
-	at java.util.concurrent.FutureTask$Sync.innerGet(FutureTask.java:222)
-	at java.util.concurrent.FutureTask.get(FutureTask.java:83)
-	at com.bigdata.rdf.spo.SPORelation.insert(SPORelation.java:1377)
-	... 14 more
-Caused by: java.lang.RuntimeException: De-serialization problem: addr={nbytes=517,offset=2130370317} from store=D:\DOCUME~1\mikep\LOCALS~1\Temp\bigdata1406701428727139694.tmp : cause=java.lang.IllegalArgumentException: Would truncate written data.
-	at com.bigdata.btree.AbstractBTree.readNodeOrLeaf(AbstractBTree.java:3254)
-	at com.bigdata.btree.Node._getChild(Node.java:2262)
-	at com.bigdata.btree.Node.getChild(Node.java:2176)
-	at com.bigdata.btree.Node.lookup(Node.java:688)
-	at com.bigdata.btree.Node.lookup(Node.java:690)
-	at com.bigdata.btree.Node.lookup(Node.java:690)
-	at com.bigdata.btree.Node.lookup(Node.java:690)
-	at com.bigdata.btree.AbstractBTree.lookup(AbstractBTree.java:1858)
-	at com.bigdata.btree.AbstractBTree.lookup(AbstractBTree.java:1790)
-	at com.bigdata.rdf.spo.SPOIndexWriteProc.apply(SPOIndexWriteProc.java:193)
-	at com.bigdata.btree.UnisolatedReadWriteIndex.submit(UnisolatedReadWriteIndex.java:795)
-	at com.bigdata.rdf.spo.SPOIndexWriter.call(SPOIndexWriter.java:263)
-	at com.bigdata.rdf.spo.SPOIndexWriter.call(SPOIndexWriter.java:1)
-	at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)
-	at java.util.concurrent.FutureTask.run(FutureTask.java:138)
-	at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:886)
-	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:908)
-	at java.lang.Thread.run(Thread.java:619)
-Caused by: java.lang.IllegalArgumentException: Would truncate written data.
-	at com.bigdata.journal.DiskOnlyStrategy.truncate(DiskOnlyStrategy.java:2355)
-	at com.bigdata.journal.AbstractBufferStrategy.overflow(AbstractBufferStrategy.java:341)
-	at com.bigdata.journal.DiskOnlyStrategy.overflow(DiskOnlyStrategy.java:2133)
-	at com.bigdata.journal.DiskOnlyStrategy.allocate(DiskOnlyStrategy.java:1854)
-	at com.bigdata.journal.DiskOnlyStrategy.write(DiskOnlyStrategy.java:2027)
-	at com.bigdata.journal.TemporaryRawStore.write(TemporaryRawStore.java:472)
-	at com.bigdata.btree.AbstractBTree.writeNodeOrLeaf(AbstractBTree.java:3157)
-	at com.bigdata.btree.DefaultEvictionListener.evicted(DefaultEvictionListener.java:98)
-	at com.bigdata.btree.DefaultEvictionListener.evicted(DefaultEvictionListener.java:1)
-	at com.bigdata.cache.HardReferenceQueue.evict(HardReferenceQueue.java:251)
-	at com.bigdata.cache.HardReferenceQueue.beforeOffer(HardReferenceQueue.java:224)
-	at com.bigdata.cache.RingBuffer.offer(RingBuffer.java:165)
-	at com.bigdata.cache.RingBuffer.add(RingBuffer.java:153)
-	at com.bigdata.cache.HardReferenceQueue.add(HardReferenceQueue.java:203)
-	at com.bigdata.btree.AbstractBTree.touch(AbstractBTree.java:2920)
-	at com.bigdata.btree.AbstractNode.<init>(AbstractNode.java:342)
-	at com.bigdata.btree.Leaf.<init>(Leaf.java:141)
-	at com.bigdata.btree.BTree$NodeFactory.allocLeaf(BTree.java:1384)
-	at com.bigdata.btree.NodeSerializer.getLeaf(NodeSerializer.java:1011)
-	at com.bigdata.btree.NodeSerializer.getNodeOrLeaf(NodeSerializer.java:463)
-	at com.bigdata.btree.AbstractBTree.readNodeOrLeaf(AbstractBTree.java:3250)
-	... 17 more
+	 - In the "services" test suite, there are problems with:
 
+	   - TestBasicIndexStuff_testNoSuchIndex needs to be
+             revisited due to changed assumptions.
+
+	   - TestDistributedTransactionServiceRestart
+
+	   - TestDistributedTransactionService (known and deferred)
+
+------------------------------------------------------------
 
 Access:
 

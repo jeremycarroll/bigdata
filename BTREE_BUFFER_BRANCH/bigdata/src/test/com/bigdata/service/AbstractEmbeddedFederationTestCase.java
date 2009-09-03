@@ -84,7 +84,7 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
 
     public Properties getProperties() {
         
-        Properties properties = new Properties( super.getProperties() );
+        final Properties properties = new Properties(super.getProperties());
         
         // Note: uses transient mode for tests.
         properties.setProperty(Options.BUFFER_MODE, BufferMode.Transient
@@ -134,22 +134,25 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
         fed = client.connect();
 
         metadataService = fed.getMetadataService();
-        log.info("metadataService: "+metadataService.getServiceUUID());
+        if (log.isInfoEnabled())
+            log.info("metadataService: " + metadataService.getServiceUUID());
 
-        dataService0 = ((EmbeddedFederation)fed).getDataService(0);
-        log.info("dataService0   : "+dataService0.getServiceUUID());
+        dataService0 = ((EmbeddedFederation) fed).getDataService(0);
+        if (log.isInfoEnabled())
+            log.info("dataService0   : " + dataService0.getServiceUUID());
 
         if (((EmbeddedFederation) fed).getDataServiceCount() > 1) {
-        
-            dataService1 = ((EmbeddedFederation)fed).getDataService(1);
-            log.info("dataService1   : "+dataService1.getServiceUUID());
+
+            dataService1 = ((EmbeddedFederation) fed).getDataService(1);
+            if (log.isInfoEnabled())
+                log.info("dataService1   : " + dataService1.getServiceUUID());
             
         }
         
     }
     
     public void tearDown() throws Exception {
-        
+
         client.disconnect(true/*immediateShutdown*/);
 
         /*
@@ -157,12 +160,14 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
          * able to see what was created in the file system.
          */
         
-        if(false && dataDir.exists() && dataDir.isDirectory()) {
+        if (true && dataDir.exists() && dataDir.isDirectory()) {
 
             recursiveDelete( dataDir );
             
         }
         
+        super.tearDown();
+
     }
     
     /**
@@ -172,24 +177,26 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
      * @param f
      *            A file or directory.
      */
-    private void recursiveDelete(File f) {
+    private void recursiveDelete(final File f) {
         
         if(f.isDirectory()) {
             
-            File[] children = f.listFiles();
-            
-            for(int i=0; i<children.length; i++) {
-                
-                recursiveDelete( children[i] );
-                
+            final File[] children = f.listFiles();
+
+            for (int i = 0; i < children.length; i++) {
+
+                recursiveDelete(children[i]);
+
             }
             
         }
         
-        log.info("Removing: "+f);
+        if(log.isInfoEnabled())
+            log.info("Removing: "+f);
         
         if (!f.delete())
             throw new RuntimeException("Could not remove: " + f);
+//            log.error("Could not remove: " + f);
 
     }
     

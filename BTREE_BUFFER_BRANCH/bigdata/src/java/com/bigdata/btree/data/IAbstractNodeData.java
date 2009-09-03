@@ -72,19 +72,20 @@ public interface IAbstractNodeData {
 
     /**
      * The earliest tuple revision timestamp associated with any tuple spanned
-     * by this node or leaf.
+     * by this node or leaf. If there are NO tuples for the leaf, then this MUST
+     * return {@link Long#MAX_VALUE} since the initial value of the minimum
+     * version timestamp is always the largest possible long integer.
      * 
      * @throws UnsupportedOperationException
      *             unless tuple revision timestamps are being maintained.
-     * 
-     *             FIXME specify the correct return for an empty root leaf for
-     *             min/max version timestamp.
      */
     long getMinimumVersionTimestamp();
 
     /**
      * The most recent tuple revision timestamp associated with any tuple
-     * spanned by this node or leaf.
+     * spanned by this node or leaf. If there are NO tuples for the leaf, then
+     * this MUST return {@link Long#MIN_VALUE} since the initial value of the
+     * maximum version timestamp is always the smallest possible long integer.
      * 
      * @throws UnsupportedOperationException
      *             unless tuple revision timestamps are being maintained.

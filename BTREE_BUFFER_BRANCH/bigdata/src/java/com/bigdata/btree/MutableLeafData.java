@@ -82,7 +82,7 @@ public class MutableLeafData implements ILeafData {
      * the split point and performing the split.
      * </p>
      */
-    final MutableValueBuffer values;
+    final MutableValueBuffer vals;
 
     /**
      * The deletion markers IFF isolation is supported by the {@link BTree}.
@@ -98,13 +98,7 @@ public class MutableLeafData implements ILeafData {
     final long[] versionTimestamps;
 
     /**
-     * The minimum version timestamp (iff they are maintained) and otherwise
-     * ZERO(0). These fields are initialized to ZERO and will be non-zero iff
-     * version timestamps are inserted into the record.
-     * 
-     * FIXME These fields are not maintained yet. Since they default to ZERO the
-     * minimum MUST be updated if it is non-zero. Perhaps change the default to
-     * {@link Long#MIN_VALUE} and {@link Long#MAX_VALUE}?
+     * The minimum version timestamp.
      * 
      * @todo these fields at 16 bytes to each {@link MutableLeafData} object
      *       even when we do not use them. It would be better to use a subclass
@@ -119,22 +113,26 @@ public class MutableLeafData implements ILeafData {
      * 
      * @param branchingFactor
      *            The branching factor for the owning B+Tree.
-     * @param versionTimestamps
+     * @param hasVersionTimestamps
      *            <code>true</code> iff version timestamps will be maintained.
-     * @param deleteMarkers
+     * @param hasDeleteMarkers
      *            <code>true</code> iff delete markers will be maintained.
      */
     public MutableLeafData(final int branchingFactor,
-            final boolean versionTimestamps, final boolean deleteMarkers) {
+            final boolean hasVersionTimestamps, final boolean hasDeleteMarkers) {
 
         keys = new MutableKeyBuffer(branchingFactor + 1);
 
-        values = new MutableValueBuffer(branchingFactor + 1);
+        vals = new MutableValueBuffer(branchingFactor + 1);
 
-        this.versionTimestamps = (versionTimestamps ? new long[branchingFactor + 1]
+        versionTimestamps = (hasVersionTimestamps ? new long[branchingFactor + 1]
                 : null);
 
-        this.deleteMarkers = (deleteMarkers ? new boolean[branchingFactor + 1]
+        // init per API specification.
+        minimumVersionTimestamp = Long.MAX_VALUE;
+        maximumVersionTimestamp = Long.MIN_VALUE;
+        
+        deleteMarkers = (hasDeleteMarkers ? new boolean[branchingFactor + 1]
                 : null);
 
     }
@@ -151,14 +149,14 @@ public class MutableLeafData implements ILeafData {
 
         keys = new MutableKeyBuffer(branchingFactor + 1, src.getKeys());
 
-        values = new MutableValueBuffer(branchingFactor + 1, src.getValues());
+        vals = new MutableValueBuffer(branchingFactor + 1, src.getValues());
 
-        this.versionTimestamps = (src.hasVersionTimestamps() ? new long[branchingFactor + 1]
+        versionTimestamps = (src.hasVersionTimestamps() ? new long[branchingFactor + 1]
                 : null);
 
-        this.deleteMarkers = (src.hasDeleteMarkers() ? new boolean[branchingFactor + 1]
+        deleteMarkers = (src.hasDeleteMarkers() ? new boolean[branchingFactor + 1]
                 : null);
-        
+
         final int nkeys = keys.size();
         
         if (versionTimestamps != null) {
@@ -168,7 +166,18 @@ public class MutableLeafData implements ILeafData {
                 versionTimestamps[i] = src.getVersionTimestamp(i);
                 
             }
-            
+
+            minimumVersionTimestamp = src.getMinimumVersionTimestamp();
+
+            maximumVersionTimestamp = src.getMaximumVersionTimestamp();
+
+        } else {
+
+            minimumVersionTimestamp = Long.MAX_VALUE;
+
+            maximumVersionTimestamp = Long.MIN_VALUE;
+
+
         }
         
         if (deleteMarkers != null) {
@@ -212,10 +221,13 @@ public class MutableLeafData implements ILeafData {
         }
 
         this.keys = keys;
-        this.values = values;
+        this.vals = values;
         this.versionTimestamps = versionTimestamps;
         this.deleteMarkers = deleteMarkers;
-        
+
+        if (versionTimestamps != null)
+            recalcMinMaxVersionTimestamp();
+
     }
     
     /**
@@ -303,7 +315,7 @@ public class MutableLeafData implements ILeafData {
 
     final public IRaba getValues() {
         
-        return values;
+        return vals;
         
     }
     
@@ -333,7 +345,7 @@ public class MutableLeafData implements ILeafData {
     
     final public int getValueCount() {
         
-        return values.size();
+        return vals.size();
         
     }
     
@@ -375,6 +387,41 @@ public class MutableLeafData implements ILeafData {
         
         throw new UnsupportedOperationException();
         
+    }
+
+    /**
+     * Recalculate the min/max version timestamp on the leaf. The caller is
+     * responsible for propagating the new min/max to the ancestors of the leaf.
+     * 
+     * @throws UnsupportedOperationException
+     *             if the leaf is not maintaining per-tuple version timestamps.
+     */
+    void recalcMinMaxVersionTimestamp() {
+
+        // must be maintaining version timestamps.
+        if (versionTimestamps == null)
+            throw new UnsupportedOperationException();
+
+        final int nkeys = keys.nkeys;
+
+        long min = Long.MAX_VALUE;
+        long max = Long.MIN_VALUE;
+
+        for (int i = 0; i < nkeys; i++) {
+
+            final long t = versionTimestamps[i];
+
+            if (t < min)
+                min = t;
+
+            if (t > max)
+                max = t;
+
+        }
+
+        minimumVersionTimestamp = min;
+        maximumVersionTimestamp = max;
+
     }
 
 }

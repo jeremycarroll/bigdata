@@ -35,23 +35,40 @@ import org.apache.log4j.Level;
 import com.bigdata.btree.data.DefaultLeafCoder;
 import com.bigdata.btree.data.ILeafData;
 import com.bigdata.btree.filter.EmptyTupleIterator;
+import com.bigdata.btree.isolation.IsolatedFusedView;
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.MutableKeyBuffer;
 import com.bigdata.btree.raba.MutableValueBuffer;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
+import com.bigdata.journal.ITransactionService;
 
 import cutthecrap.utils.striterators.EmptyIterator;
 import cutthecrap.utils.striterators.SingleValueIterator;
 
 /**
  * <p>
- * A leaf.
+ * A B+-Tree leaf.
  * </p>
+ * <h2>Tuple revision timestamps</h2>
  * <p>
- * Note: Leaves are NOT chained together for the object index since that forms
- * cycles that make it impossible to set the persistent identity for both the
- * prior and next fields of a leaf.
- * </p>
+ * When tuple revision timestamps are maintained, they must be propagated to the
+ * parents if we insert or remove a tuple, but also need to be propagated if we
+ * update a tuple in a manner which changes the min/max version timestamp. This
+ * is done either by {@link Node#updateEntryCount(AbstractNode, int)}, when the
+ * #of tuples in the leaf was changed, or by
+ * {@link Node#updateMinMaxVersionTimestamp(AbstractNode)} when the #of tuples
+ * in the leaf is unchanged.
+ * <p>
+ * The {@link #getMinimumVersionTimestamp()} and
+ * {@link #getMaximumVersionTimestamp()} can be used to efficiently filter
+ * iterators so as to only visit those nodes and leaves which have updates for
+ * some revision timestamp range. This filtering is effective because if we
+ * reject a node has not having data for the revision range of interest, then we
+ * do not need to consider any of the nodes or leaves spanned by that node.
+ * <p>
+ * Note that revision timestamps ARE NOT commit timestamps. See
+ * {@link ITransactionService} and {@link IsolatedFusedView} for more about
+ * this and how to obtain and work with revision timestamps.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -193,7 +210,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
 
     final public long getMaximumVersionTimestamp() {
 
-        return data.getMinimumVersionTimestamp();
+        return data.getMaximumVersionTimestamp();
 
     }
 
@@ -448,6 +465,8 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
      * ensure by appropriate navigation of parent nodes that the key for the
      * next tuple either exists in or belongs in this leaf. If the leaf
      * overflows then it is split after the insert.
+     * 
+     * FIXME maintain min/max version timestamps.
      */
     @Override
     public Tuple insert(final byte[] searchKey, final byte[] newval,
@@ -525,7 +544,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             final MutableLeafData data = (MutableLeafData) this.data;
             
             // update the entry on the leaf.
-            data.values.values[entryIndex] = newval;
+            data.vals.values[entryIndex] = newval;
 
             if (data.deleteMarkers != null) {
 
@@ -560,8 +579,19 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             }
 
             if (data.versionTimestamps != null) {
-
+                boolean propagateMinMax = false;
                 data.versionTimestamps[entryIndex] = timestamp;
+                if (data.minimumVersionTimestamp > timestamp) {
+                    data.minimumVersionTimestamp = timestamp;
+                    propagateMinMax = true;
+                }
+                if (data.maximumVersionTimestamp < timestamp) {
+                    data.maximumVersionTimestamp = timestamp;
+                    propagateMinMax = true;
+                }
+                if (propagateMinMax && parent != null) {
+                    parent.get().updateMinMaxVersionTimestamp(this);
+                }
 
             }
             
@@ -610,7 +640,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             // Tunnel through to the mutable object.
             final MutableLeafData data = (MutableLeafData) this.data;
             final MutableKeyBuffer keys = data.keys;
-            final MutableValueBuffer vals = data.values;
+            final MutableValueBuffer vals = data.vals;
 //            copyKey(entryIndex, searchKeys, tupleIndex);
             keys.keys[entryIndex] = searchKey; // note: presumes caller does not reuse the searchKeys!
             vals.values[entryIndex] = newval;
@@ -629,6 +659,10 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             }
             if (data.versionTimestamps != null) {
                 data.versionTimestamps[entryIndex] = timestamp;
+                if (data.minimumVersionTimestamp > timestamp)
+                    data.minimumVersionTimestamp = timestamp;
+                if (data.maximumVersionTimestamp < timestamp)
+                    data.maximumVersionTimestamp = timestamp;
             }
 
             /*nkeys++;*/keys.nkeys++; vals.nvalues++;
@@ -639,9 +673,8 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         ((BTree)btree).nentries++;
 
         if( parent != null ) {
-            
+            // update spanned tuple count and min/max version timestamp.
             parent.get().updateEntryCount(this, 1);
-            
         }
 
 //        if (INFO) {
@@ -730,18 +763,20 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
 
     /**
      * <p>
-     * Split an over capacity leaf (a leaf with maxKeys+1 keys), creating a new
-     * rightSibling. The splitIndex (the index of the first key to move to the
-     * rightSibling) is <code>(maxKeys+1)/2</code>. The key at the splitIndex
-     * is also inserted as the new separatorKey into the parent. All keys and
-     * values starting with splitIndex are moved to the new rightSibling. If
-     * this leaf is the root of the tree (no parent), then a new root
-     * {@link Node} is created without any keys and is made the parent of this
-     * leaf. In any case, we then insert( separatorKey, rightSibling ) into the
-     * parent node, which may cause the parent node itself to split.
+     * Split an over-capacity leaf (a leaf with <code>maxKeys+1</code> keys),
+     * creating a new rightSibling. The splitIndex (the index of the first key
+     * to move to the rightSibling) is <code>(maxKeys+1)/2</code>. The key at
+     * the splitIndex is also inserted as the new separatorKey into the parent.
+     * All keys and values starting with splitIndex are moved to the new
+     * rightSibling. If this leaf is the root of the tree (no parent), then a
+     * new root {@link Node} is created without any keys and is made the parent
+     * of this leaf. In any case, we then insert( separatorKey, rightSibling )
+     * into the parent node, which may cause the parent node itself to split.
      * </p>
      * 
      * @return The new rightSibling leaf.
+     * 
+     *         FIXME maintain min/max version timestamps.
      */
     @Override
     protected IAbstractNode split() {
@@ -776,9 +811,6 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
                 getKeys().get(splitIndex),//
                 getKeys().get(splitIndex - 1)//
                 );
-//        final Object separatorKey = ArrayType.alloc(btree.keyType, 1, stride);
-//        System.arraycopy(keys,splitIndex*stride,separatorKey,0,stride);
-//        final Object separatorKey = getKey(splitIndex);
         
         // The new rightSibling of this leaf (this will be a mutable leaf).
         final Leaf rightSibling = new Leaf(btree);
@@ -786,10 +818,6 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         // Tunnel through to the mutable objects.
         final MutableLeafData data = (MutableLeafData) this.data;
         final MutableLeafData sdata = (MutableLeafData) rightSibling.data;
-        final MutableKeyBuffer keys = data.keys;
-        final MutableKeyBuffer skeys = sdata.keys;
-        final MutableValueBuffer vals = data.values;
-        final MutableValueBuffer svals = sdata.values;
 
         // increment #of leaves in the tree.
         btree.nleaves++;
@@ -809,7 +837,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
 //            rightSibling.setKey(j, getKey(i));
             rightSibling.copyKey(j, this.getKeys(), i);
             
-            svals.values[j] = vals.values[i];
+            sdata.vals.values[j] = data.vals.values[i];
 
             if (data.deleteMarkers != null) {
                 sdata.deleteMarkers[j] = data.deleteMarkers[i];
@@ -820,8 +848,8 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             }
             
             // clear out the old keys and values.
-            keys.keys[i] = null;
-            vals.values[i] = null;
+            data.keys.keys[i] = null;
+            data.vals.values[i] = null;
             if (data.deleteMarkers != null)
                 data.deleteMarkers[i] = false;
             if (data.versionTimestamps != null)
@@ -829,15 +857,31 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
 
             // one less key here.
             /* nkeys--; */
-            keys.nkeys--;
-            vals.nvalues--;
+            data.keys.nkeys--;
+            data.vals.nvalues--;
             // more more key there.
             /*rightSibling.nkeys++;*/
-            skeys.nkeys++;
-            svals.nvalues++;
+            sdata.keys.nkeys++;
+            sdata.vals.nvalues++;
 
         }
 
+        /*
+         * Recalculate the version timestamps. This is both easier than tracking
+         * the changes on a per-tuple basis in the loop above and we have to
+         * recalculate the version timestamps anyway if we move one whose value
+         * is equal to the min or max.
+         */
+        if (data.versionTimestamps != null)
+            data.recalcMinMaxVersionTimestamp();
+        if (sdata.versionTimestamps != null)
+            sdata.recalcMinMaxVersionTimestamp();
+
+        /*
+         * Now consider the parent. It will have to be updated. If there is no
+         * parent (if this is the root leaf), then we need to create that
+         * parent.
+         */
         Node p = getParent();
 
         if (p == null) {
@@ -854,7 +898,8 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         } else {
             
             assert !p.isReadOnly();
-            
+
+            // FIXME must update min/max on parent, which requires a child scan :-(
             // this leaf now has fewer entries
             ((MutableNodeData) p.data).childEntryCounts[p.getIndexOf(this)] -= rightSibling
                     .getKeyCount();
@@ -900,8 +945,12 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         }
 
         /* 
-         * insert(splitKey,rightSibling) into the parent node.  This may cause
+         * Insert(splitKey,rightSibling) into the parent node.  This may cause
          * the parent node itself to split.
+         * 
+         * Note: This operation can not cause the min/max on the parent Node
+         * to change.  However, insertChild() does need to record the min/max
+         * for the new rightSibling.
          */
         p.insertChild(separatorKey, rightSibling);
 
@@ -922,7 +971,11 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
      *            A direct sibling of this leaf (either the left or right
      *            sibling). The sibling MUST be mutable.
      * 
-     * FIXME modify to always choose the shortest separator key.
+     * @todo Modify to always choose the shortest separator key from within a
+     *       region in which the split is reasonable. This will help keep down
+     *       the size of the separator keys in the nodes.
+     * 
+     *       FIXME maintain min/max version timestamps.
      */
     @Override
     protected void redistributeKeys(final AbstractNode sibling,
@@ -976,15 +1029,15 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         final MutableNodeData pdata = (MutableNodeData) p.data;
         final MutableKeyBuffer keys = data.keys;
         final MutableKeyBuffer skeys = sdata.keys;
-        final MutableValueBuffer vals = data.values;
-        final MutableValueBuffer svals = sdata.values;
+        final MutableValueBuffer vals = data.vals;
+        final MutableValueBuffer svals = sdata.vals;
 
         /*
-         * determine which leaf is earlier in the key ordering and get the
+         * Determine which leaf is earlier in the key ordering and get the
          * index of the sibling.
          */
-        if( isRightSibling/*keys[nkeys-1] < s.keys[0]*/) {
-        
+        if (isRightSibling) {
+
             /*
              * redistributeKeys(this,rightSibling). all we have to do is move
              * the first key from the rightSibling to the end of the keys in
@@ -999,8 +1052,18 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             vals.values[nkeys] = svals.values[0];
             if (data.deleteMarkers != null)
                 data.deleteMarkers[nkeys] = sdata.deleteMarkers[0];
-            if (data.versionTimestamps != null)
-                data.versionTimestamps[nkeys] = sdata.versionTimestamps[0];
+            boolean updateMinMaxVersionTimestampOnSibling = false;
+            if (data.versionTimestamps != null) {
+                final long t = sdata.versionTimestamps[0];
+                data.versionTimestamps[nkeys] = t;
+                if (t < data.minimumVersionTimestamp)
+                    data.minimumVersionTimestamp = t;
+                if (t > data.maximumVersionTimestamp)
+                    data.maximumVersionTimestamp = t;
+                if (t == sdata.minimumVersionTimestamp
+                        || t == sdata.maximumVersionTimestamp)
+                    updateMinMaxVersionTimestampOnSibling = true;
+            }
 
             // copy down the keys on the right sibling to cover up the hole.
             System.arraycopy(skeys.keys, 1, skeys.keys, 0, snkeys-1);
@@ -1021,6 +1084,9 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             /*s.nkeys--;*/ skeys.nkeys--; svals.nvalues--;
             /*this.nkeys++;*/keys.nkeys++; vals.nvalues++;
             
+            if(updateMinMaxVersionTimestampOnSibling)
+                sdata.recalcMinMaxVersionTimestamp();
+            
             // update the separator key for the rightSibling.
 //            p.setKey(index, s.getKey(0));
             p.copyKey(index, s.getKeys(), 0);
@@ -1029,6 +1095,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             pdata.childEntryCounts[index]++;
             // update parent : one less key on our right sibling.
             pdata.childEntryCounts[index + 1]--;
+            // FIXME update min/max on parent for this leaf and the rightSibling.
 
             if (btree.debug) {
                 assertInvariants();
@@ -1060,8 +1127,20 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             vals.values[0] = svals.values[snkeys-1];
             if (data.deleteMarkers != null)
                 data.deleteMarkers[0] = sdata.deleteMarkers[snkeys - 1];
-            if (data.versionTimestamps != null)
-                data.versionTimestamps[0] = sdata.versionTimestamps[snkeys - 1];
+//            if (data.versionTimestamps != null)
+//                data.versionTimestamps[0] = sdata.versionTimestamps[snkeys - 1];
+            boolean updateMinMaxVersionTimestampOnSibling = false;
+            if (data.versionTimestamps != null) {
+                final long t = sdata.versionTimestamps[snkeys - 1];
+                data.versionTimestamps[0] = t;
+                if (t < data.minimumVersionTimestamp)
+                    data.minimumVersionTimestamp = t;
+                if (t > data.maximumVersionTimestamp)
+                    data.maximumVersionTimestamp = t;
+                if (t == sdata.minimumVersionTimestamp
+                        || t == sdata.maximumVersionTimestamp)
+                    updateMinMaxVersionTimestampOnSibling = true;
+            }
             // clear
             skeys.keys[snkeys-1] = null;
             svals.values[snkeys-1] = null;
@@ -1072,6 +1151,9 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             /*s.nkeys--;*/ skeys.nkeys--; svals.nvalues--;
             /*this.nkeys++;*/ keys.nkeys++; vals.nvalues++;
             
+            if(updateMinMaxVersionTimestampOnSibling)
+                sdata.recalcMinMaxVersionTimestamp();
+
             // update the separator key for this leaf.
 //            p.setKey(index-1,getKey(0));
             p.copyKey(index-1, this.getKeys(), 0);
@@ -1080,6 +1162,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             pdata.childEntryCounts[index]++;
             // update parent : one less key on our left sibling.
             pdata.childEntryCounts[index-1]--;
+            // FIXME update min/max on parent for this leaf and the rightSibling.
 
             if (btree.debug) {
                 assertInvariants();
@@ -1095,11 +1178,16 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
      * sibling from the store and remove the sibling from the parent. This will
      * trigger recursive {@link AbstractNode#join()} if the parent node is now
      * deficient. While this changes the #of entries spanned by the current node
-     * it does NOT effect the #of entries spanned by the parent.
+     * it does NOT effect the #of entries spanned by the parent. Likewise, while
+     * the min/max tuple revision timestamp may change for this {@link Leaf}, it
+     * WILL NOT change for its parent {@link Node} (since this operation does
+     * not remove any tuples).
      * 
      * @param sibling
      *            A direct sibling of this leaf (does NOT need to be mutable).
      *            The sibling MUST have exactly the minimum #of keys.
+     * 
+     *            FIXME maintain min/max version timestamps.
      */
     @Override
     protected void merge(final AbstractNode sibling,
@@ -1138,7 +1226,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         }
 
         /*
-         * The index of this leaf in its parent. we note this before we
+         * The index of this leaf in its parent. We note this before we
          * start mucking with the keys.
          */
         final int index = p.getIndexOf(this);
@@ -1154,31 +1242,8 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
                 getBranchingFactor(), s.data) : (MutableLeafData) s.data;
         final MutableNodeData pdata = (MutableNodeData) p.data;
 
-        // Tunnel through to the mutable keys objects.
-        final MutableKeyBuffer keys = data.keys;
-        final MutableKeyBuffer skeys = sdata.keys;
-        final MutableValueBuffer vals = data.values;
-        final MutableValueBuffer svals = sdata.values;
-
-//        /*
-//         * Tunnel through to the mutable keys object.
-//         * 
-//         * Note: since we do not require the sibling to be mutable we have to
-//         * test and convert the key buffer for the sibling to a mutable key
-//         * buffer if the sibling is immutable. Also note that the sibling MUST
-//         * have the minimum #of keys for a merge so we set the capacity of the
-//         * mutable key buffer to that when we have to convert the siblings keys
-//         * into mutable form in order to perform the merge operation.
-//         */
-//        final MutableKeyBuffer keys = (MutableKeyBuffer) this.getKeys();
-//        final MutableKeyBuffer skeys = (s.getKeys() instanceof MutableKeyBuffer ? (MutableKeyBuffer) s.getKeys()
-//                : new MutableKeyBuffer(getBranchingFactor(), s.getKeys()));
-//        final MutableValueBuffer vals = (MutableValueBuffer) this.values;
-//        final MutableValueBuffer svals= (s.values instanceof MutableValueBuffer ? (MutableValueBuffer) s.values
-//                : new MutableValueBuffer(getBranchingFactor(), s.values));
-
         /*
-         * determine which leaf is earlier in the key ordering so that we know
+         * Determine which leaf is earlier in the key ordering so that we know
          * whether the sibling's keys will be inserted at the front of this
          * leaf's keys or appended to this leaf's keys.
          */
@@ -1195,9 +1260,10 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
              * Copy in the keys and values from the sibling.
              */
             
-            System.arraycopy(skeys.keys, 0, keys.keys, nkeys, snkeys);
+            System.arraycopy(sdata.keys.keys, 0, data.keys.keys, nkeys, snkeys);
 
-            System.arraycopy(svals.values, 0, vals.values, nkeys, snkeys);
+            System.arraycopy(sdata.vals.values, 0, data.vals.values, nkeys,
+                    snkeys);
 
             if (data.deleteMarkers != null) {
                 System.arraycopy(sdata.deleteMarkers, 0, data.deleteMarkers,
@@ -1207,14 +1273,18 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             if (data.versionTimestamps != null) {
                 System.arraycopy(sdata.versionTimestamps, 0,
                         data.versionTimestamps, nkeys, snkeys);
+                if (sdata.minimumVersionTimestamp < data.minimumVersionTimestamp)
+                    data.minimumVersionTimestamp = sdata.minimumVersionTimestamp;
+                if (sdata.maximumVersionTimestamp > data.maximumVersionTimestamp)
+                    data.maximumVersionTimestamp = sdata.maximumVersionTimestamp;
             }
             
             /* 
              * Adjust the #of keys in this leaf.
              */
 //            this.nkeys += s.nkeys;
-            keys.nkeys += snkeys;
-            vals.nvalues += snkeys;
+            data.keys.nkeys += snkeys;
+            data.vals.nvalues += snkeys;
 
             /*
              * Note: in this case we have to replace the separator key for this
@@ -1229,6 +1299,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             p.copyKey(index, p.getKeys(), index+1 );
 
             // reallocate spanned entries from the sibling to this node.
+            // FIXME Update min/max on the parent for this leaf.
             pdata.childEntryCounts[index] += s.getSpannedTupleCount();
             
             if(btree.debug) assertInvariants();
@@ -1236,7 +1307,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         } else {
             
             /*
-             * merge( leftSibling, this ). the keys and values from this leaf
+             * merge( leftSibling, this ). The keys and values from this leaf
              * will be move down by sibling.nkeys positions and then the keys
              * and values from the sibling will be copied into this leaf
              * starting at index zero(0).
@@ -1248,8 +1319,9 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
              */
             
             // move keys and values down by sibling.nkeys positions.
-            System.arraycopy(keys.keys, 0, keys.keys, snkeys, nkeys);
-            System.arraycopy(vals.values, 0, vals.values, snkeys, nkeys);
+            System.arraycopy(data.keys.keys, 0, data.keys.keys, snkeys, nkeys);
+            System.arraycopy(data.vals.values, 0, data.vals.values, snkeys,
+                    nkeys);
             if (data.deleteMarkers != null) {
                 System.arraycopy(data.deleteMarkers, 0, data.deleteMarkers,
                         snkeys, nkeys);
@@ -1260,8 +1332,8 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             }
             
             // copy keys and values from the sibling to index 0 of this leaf.
-            System.arraycopy(skeys.keys, 0, keys.keys, 0, snkeys);
-            System.arraycopy(svals.values, 0, vals.values, 0, snkeys);
+            System.arraycopy(sdata.keys.keys, 0, data.keys.keys, 0, snkeys);
+            System.arraycopy(sdata.vals.values, 0, data.vals.values, 0, snkeys);
             if (data.deleteMarkers != null) {
                 System.arraycopy(sdata.deleteMarkers, 0, data.deleteMarkers, 0,
                         snkeys);
@@ -1269,22 +1341,32 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             if (data.versionTimestamps != null) {
                 System.arraycopy(sdata.versionTimestamps, 0,
                         data.versionTimestamps, 0, snkeys);
+                if (sdata.minimumVersionTimestamp < data.minimumVersionTimestamp)
+                    data.minimumVersionTimestamp = sdata.minimumVersionTimestamp;
+                if (sdata.maximumVersionTimestamp > data.maximumVersionTimestamp)
+                    data.maximumVersionTimestamp = sdata.maximumVersionTimestamp;
             }
             
 //            this.nkeys += s.nkeys;
-            keys.nkeys += snkeys;
-            vals.nvalues += snkeys;
+            data.keys.nkeys += snkeys;
+            data.vals.nvalues += snkeys;
 
+            // FIXME update min/max on the parent for this leaf.
             // reallocate spanned entries from the sibling to this node.
             pdata.childEntryCounts[index] += s.getSpannedTupleCount();
 
             if(btree.debug) assertInvariants();
             
         }
-        
+
         /*
          * The sibling leaf is now empty. We need to detach the leaf from its
          * parent node and then delete the leaf from the store.
+         * 
+         * Note: We have already adjusted the min/max for this Leaf on the
+         * parent. The min/max for the parent itself will be unchanged by the
+         * merge(). Therefore this method need only clear out the min/max for
+         * the deleted child.
          */
         p.removeChild(s);
         
@@ -1306,7 +1388,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         // Tunnel through to the mutable keys and values objects.
         final MutableLeafData data = (MutableLeafData) this.data;
         final MutableKeyBuffer keys = data.keys;
-        final MutableValueBuffer vals = data.values;
+        final MutableValueBuffer vals = data.vals;
 
         System.arraycopy(keys.keys, entryIndex, keys.keys, entryIndex + 1,
                 count);
@@ -1340,15 +1422,12 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         vals.values[entryIndex] = null;
 
         if (data.deleteMarkers != null) {
-
             data.deleteMarkers[entryIndex] = false;
-
         }
 
         if (data.versionTimestamps != null) {
-
             data.versionTimestamps[entryIndex] = 0L;
-
+            // Note: caller MUST update min/max if they are invalidated!
         }
         
     }
@@ -1468,7 +1547,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             // Tunnel through to the mutable objects.
             final MutableLeafData data = (MutableLeafData) this.data;
             final MutableKeyBuffer keys = data.keys;
-            final MutableValueBuffer vals = data.values;
+            final MutableValueBuffer vals = data.vals;
     
             if (length > 0) {
     
@@ -1506,7 +1585,22 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
             // One more deleted tuple.
             btree.getBtreeCounters().ntupleRemove++;
         
-    }
+            if (data.versionTimestamps != null) {
+                /*
+                 * If the tuple with the min/max version timestamp was removed
+                 * then we need to recalculate the min/max version timestamp.
+                 * This needs to happen after we update nkeys/nvalues (so the
+                 * new min/max considers only the valid tuples) and before we
+                 * update the spanned tuple counts on the parent (so the new
+                 * min/max will be propagated correctly).
+                 */
+                final long oldVersionTimestamp = tuple.getVersionTimestamp();
+                if (oldVersionTimestamp == data.minimumVersionTimestamp
+                        || oldVersionTimestamp == data.maximumVersionTimestamp)
+                    data.recalcMinMaxVersionTimestamp();
+            }
+            
+        }
         
         if( btree.root != this ) {
 
@@ -1514,8 +1608,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
              * this is not the root leaf.
              */
         
-            // update entry count on ancestors.
-            
+            // update entry count and min/max version timestamp on ancestors.
             parent.get().updateEntryCount(this, -1);
 
             if (data.getKeyCount() < minKeys()) {
@@ -1562,7 +1655,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         return tuple;
         
     }
-
+    
     /**
      * Visits this leaf if unless it is not dirty and the flag is true, in which
      * case the returned iterator will not visit anything.
