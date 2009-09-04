@@ -645,12 +645,13 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
                 
                 throw new RuntimeException(ex);
                 
-            } finally {
-                try {
-                    ibs.close();
-                } catch (IOException ex) {
-                    log.error(ex);
-                }
+// close not required for IBS backed by byte[] and has high overhead.
+//            } finally {
+//                try {
+//                    ibs.close();
+//                } catch (IOException ex) {
+//                    log.error(ex);
+//                }
             }
 
         }

@@ -150,9 +150,8 @@ public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
 
     /** The byte offset of the start of the front-coded representation. */
     private static final int O_DATA = O_RATIO + SIZEOF_RATIO;
-    
-    public AbstractFixedByteArrayBuffer encode(final IRaba raba,
-            final DataOutputBuffer buf) {
+
+    public ICodedRaba encodeLive(final IRaba raba, final DataOutputBuffer buf) {
 
         if (raba == null)
             throw new IllegalArgumentException();
@@ -171,7 +170,11 @@ public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
 
         // The byte offset of the origin of the coded record into the buffer.
         final int O_origin = buf.pos();
-//        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        // front-code the byte[][].
+        final CustomByteArrayFrontCodedList decoder = new CustomByteArrayFrontCodedList(
+                raba.iterator(), ratio);
+
         try {
 
             // The record version identifier.
@@ -183,11 +186,7 @@ public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
             // The ratio used to front code the data.
             buf.writeInt(ratio);
 
-            // front-code the byte[][].
-            final CustomByteArrayFrontCodedList c = new CustomByteArrayFrontCodedList(
-                    raba.iterator(), ratio);
-
-            c.getBackingBuffer().writeOn(buf);
+            decoder.getBackingBuffer().writeOn(buf);
 
             buf.flush();
 
@@ -197,15 +196,29 @@ public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
 
         }
 
-        return buf.slice(O_origin, buf.pos() - O_origin);
+        final AbstractFixedByteArrayBuffer slice = buf.slice(//
+                O_origin, buf.pos() - O_origin);
 
-//        return decode(ByteBuffer.wrap(a));
+        return new CodedRabaImpl(slice, decoder);
+        
+    }
 
+    public AbstractFixedByteArrayBuffer encode(final IRaba raba,
+            final DataOutputBuffer buf) {
+
+        /*
+         * Note: there is nearly zero overhead associated with this code path.
+         * The only unnecessary action is wrapping the CodedRabaImpl with the
+         * (slice,decoder), which is pretty near zero cost.
+         */
+        
+        return encodeLive(raba, buf).data();
+        
     }
 
     public ICodedRaba decode(final AbstractFixedByteArrayBuffer data) {
 
-        return new FrontCodedDecoder(data);
+        return new CodedRabaImpl(data);
 
     }
 
@@ -216,7 +229,7 @@ public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
      *         Thompson</a>
      * @version $Id$
      */
-    static class FrontCodedDecoder extends AbstractRabaDecoder {
+    private static class CodedRabaImpl extends AbstractCodedRaba {
 
         private final AbstractFixedByteArrayBuffer data;
 
@@ -227,7 +240,7 @@ public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
          * @param data
          *            The record containing the coded data.
          */
-        public FrontCodedDecoder(final AbstractFixedByteArrayBuffer data) {
+        public CodedRabaImpl(final AbstractFixedByteArrayBuffer data) {
 
             final byte version = data.getByte(O_VERSION);
 
@@ -248,6 +261,24 @@ public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
                     .array(), data.off() + O_DATA, data.len());
 
             this.data = data;
+
+        }
+
+        /**
+         * Alternative constructor avoids the cost of constructing the decoder
+         * when it is already available.
+         * 
+         * @param data
+         *            The record containing the coded data.
+         * @param decoder
+         *            The decoder object.
+         */
+        public CodedRabaImpl(final AbstractFixedByteArrayBuffer data,
+                final CustomByteArrayFrontCodedList decoder) {
+
+            this.data = data;
+
+            this.decoder = decoder;
 
         }
 

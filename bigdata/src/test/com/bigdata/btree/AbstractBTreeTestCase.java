@@ -816,15 +816,15 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
         final IRawStore store = new SimpleMemoryRawStore();
 
         final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
-        
+
         metadata.setBranchingFactor(branchingFactor);
 
         metadata.setTupleSerializer(tupleSer);
-        
+
         // override the BTree class.
         metadata.setBTreeClassName(NoEvictionBTree.class.getName());
-        
-        return (NoEvictionBTree) BTree.create(store,metadata);
+
+        return (NoEvictionBTree) BTree.create(store, metadata);
         
     }
     
@@ -1360,20 +1360,20 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
      * 
      * @return The populated {@link BTree}.
      */
-    public BTree doInsertRandomSparseKeySequenceTest(int m, int ninserts, int trace) {
+    public BTree doInsertRandomSparseKeySequenceTest(final int m, final int ninserts, final int trace) {
         
         /*
          * generate random keys.  the keys are a sparse monotonic sequence.
          */
-        int keys[] = new int[ninserts];
+        final int keys[] = new int[ninserts];
 
-        SimpleEntry entries[] = new SimpleEntry[ninserts];
+        final SimpleEntry entries[] = new SimpleEntry[ninserts];
         
         int lastKey = 0;
 
         for( int i=0; i<ninserts; i++ ) {
         
-            int key = r.nextInt(100)+lastKey+1;
+            final int key = r.nextInt(100)+lastKey+1;
             
             keys[i] = key;
             
@@ -1461,7 +1461,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
      */
     protected BTree doInsertKeySequenceTest(int m, int[] keys, SimpleEntry[] entries, int[] order, int trace){
 
-        BTree btree = getBTree(m);
+        final BTree btree = getBTree(m);
 
         try {
             
@@ -1471,11 +1471,11 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
 
                 final int ikey = keys[order[i]];
 
-                SimpleEntry entry = entries[order[i]];
+                final SimpleEntry entry = entries[order[i]];
 
                 if( i>0 && i%10000 == 0 ) {
                     
-                    log.info("index=" + i + ", key=" + ikey + ", entry="
+                    if(log.isInfoEnabled()) log.info("index=" + i + ", key=" + ikey + ", entry="
                             + entry);
                     
                 }

@@ -87,6 +87,29 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
         
     }
 
+    public ICodedRaba encodeLive(final IRaba raba, final DataOutputBuffer buf) {
+
+        if (raba == null)
+            throw new IllegalArgumentException();
+
+        if (raba.isKeys()) {
+
+            // not allowed for B+Tree keys.
+            throw new UnsupportedOperationException();
+
+        }
+
+        final int O_origin = buf.pos();
+
+        final int size = raba.size();
+
+        buf.putInt(size);
+
+        return new EmptyCodedRaba(buf.slice(O_origin, buf.pos() - O_origin),
+                size);
+
+    }
+
     /**
      * <strong>Any data in the {@link IRaba} will be discarded!</strong> Only
      * the {@link IRaba#size()} is maintained.
@@ -103,9 +126,6 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
             throw new UnsupportedOperationException();
             
         }
-        
-//        if (!raba.isEmpty())
-//            throw new UnsupportedOperationException();
 
         final int O_origin = buf.pos();
         
@@ -117,7 +137,7 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
 
     public ICodedRaba decode(final AbstractFixedByteArrayBuffer data) {
         
-        return new EmptyRabaValueDecoder(data);
+        return new EmptyCodedRaba(data);
         
     }
 
@@ -129,13 +149,13 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
      *         Thompson</a>
      * @version $Id$
      */
-    static private class EmptyRabaValueDecoder implements ICodedRaba {
+    static private class EmptyCodedRaba implements ICodedRaba {
         
         private final AbstractFixedByteArrayBuffer data;
         
         private final int size;
         
-        public EmptyRabaValueDecoder(final AbstractFixedByteArrayBuffer data) {
+        public EmptyCodedRaba(final AbstractFixedByteArrayBuffer data) {
 
             if (data == null)
                 throw new IllegalArgumentException();
@@ -143,6 +163,17 @@ public class EmptyRabaValueCoder implements IRabaCoder, Externalizable {
             this.data = data;
 
             size = data.getInt(0);
+            
+        }
+        
+        public EmptyCodedRaba(final AbstractFixedByteArrayBuffer data, final int size) {
+
+            if (data == null)
+                throw new IllegalArgumentException();
+            
+            this.data = data;
+
+            this.size = size;
             
         }
         

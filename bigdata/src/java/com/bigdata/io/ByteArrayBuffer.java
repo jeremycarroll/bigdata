@@ -32,7 +32,6 @@ import it.unimi.dsi.fastutil.io.RepositionableStream;
 import it.unimi.dsi.io.OutputBitStream;
 
 import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;

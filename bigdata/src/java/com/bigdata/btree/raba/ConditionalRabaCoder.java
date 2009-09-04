@@ -122,25 +122,54 @@ public class ConditionalRabaCoder implements IRabaCoder, Externalizable {
 
         final boolean isSmall = data.getByte(0) == 1 ? true : false;
 
-        final AbstractFixedByteArrayBuffer slice = data
+        final AbstractFixedByteArrayBuffer delegateSlice = data
                 .slice(1, data.len() - 1);
 
         final ICodedRaba codedRaba;
         if (isSmall) {
 
-            codedRaba = smallCoder.decode(slice);
+            codedRaba = smallCoder.decode(delegateSlice);
 
         } else {
 
-            codedRaba = bigCoder.decode(slice);
+            codedRaba = bigCoder.decode(delegateSlice);
             
         }
 
         // wraps coded raba to return the original data().
-        return new CodedRabaSlice(codedRaba,data);
+        return new CodedRabaSlice(data, codedRaba);
+
+    }
+
+    public ICodedRaba encodeLive(final IRaba raba, final DataOutputBuffer buf) {
+
+        final int size = raba.size();
+
+        final boolean isSmall = isSmall(size);
+
+        final int O_origin = buf.pos();
+
+        buf.putByte((byte) (isSmall ? 1 : 0));
+
+        final ICodedRaba delegateCodedRaba;
+        if (isSmall) {
+
+            delegateCodedRaba = smallCoder.encodeLive(raba, buf);
+
+        } else {
+
+            delegateCodedRaba = bigCoder.encodeLive(raba, buf);
+
+        }
+
+        final AbstractFixedByteArrayBuffer delegateSlice = delegateCodedRaba
+                .data();
+
+        return new CodedRabaSlice(buf.slice(O_origin, delegateSlice.len() + 1),
+                delegateCodedRaba);
         
     }
-    
+
     public AbstractFixedByteArrayBuffer encode(final IRaba raba,
             final DataOutputBuffer buf) {
 
@@ -216,9 +245,9 @@ public class ConditionalRabaCoder implements IRabaCoder, Externalizable {
         private final IRaba delegate;
 
         private final AbstractFixedByteArrayBuffer data;
-        
-        CodedRabaSlice(final IRaba delegate,
-                final AbstractFixedByteArrayBuffer data) {
+
+        CodedRabaSlice(final AbstractFixedByteArrayBuffer data,
+                final IRaba delegate) {
 
             this.delegate = delegate;
             

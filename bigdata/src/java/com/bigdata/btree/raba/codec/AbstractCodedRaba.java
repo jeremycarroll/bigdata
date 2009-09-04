@@ -41,9 +41,9 @@ import com.bigdata.btree.raba.AbstractRaba;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class AbstractRabaDecoder implements ICodedRaba {
+abstract public class AbstractCodedRaba implements ICodedRaba {
 
-    protected AbstractRabaDecoder() {
+    protected AbstractCodedRaba() {
         
     }
 
