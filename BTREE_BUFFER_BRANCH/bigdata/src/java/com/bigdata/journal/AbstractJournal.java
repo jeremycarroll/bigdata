@@ -1105,7 +1105,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
     }
 
     /**
-     * Immediate shutdown (running tasks are cancelled rather than being
+     * Immediate shutdown (running tasks are canceled rather than being
      * permitted to complete).
      * 
      * @see #shutdown()

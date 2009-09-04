@@ -32,6 +32,24 @@ public interface IRabaCoder extends Serializable {
     boolean isValueCoder();
 
     /**
+     * Encode the data, returning an {@link ICodedRaba}. Implementations of this
+     * method should be optimized for the very common use case where the caller
+     * requires immediate access to the coded data record. In that case, many of
+     * the {@link IRabaCoder} implementations can be optimized by passing the
+     * underlying decoding object directly into an alternative constructor for
+     * the {@link ICodedRaba}. The byte[] slice for the coded data record is
+     * available from {@link ICodedRaba#data()}.
+     * <p>
+     * This method covers the vast major of the use cases for coding data, which
+     * is to code B+Tree keys or values for a node or leaf that has been evicted
+     * from the {@link AbstractBTree}'s write retention queue. The common use
+     * case is to wrap a coded record that was read from an {@link IRawStore}.
+     * The {@link IndexSegmentBuilder} is a special case, since the coded record
+     * will not be used other than to write it on the disk.
+     */
+    public ICodedRaba encodeLive(IRaba raba, DataOutputBuffer buf);
+        
+    /**
      * Encode the data.
      * <p>
      * Note: Implementations of this method are typically heavy. While it is

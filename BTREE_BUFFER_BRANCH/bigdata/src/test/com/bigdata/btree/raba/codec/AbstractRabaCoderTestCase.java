@@ -601,8 +601,14 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
 
         try {
 
-            // encode the logical byte[][].
-//            final IRabaDecoder actual0 = rabaCoder.encode(expected);
+            // Test the live coded path (returns coded raba instance for immediate use).
+            final ICodedRaba liveCodedRaba = rabaCoder.encodeLive(expected,
+                    new DataOutputBuffer());
+
+            final AbstractFixedByteArrayBuffer liveCodedData = liveCodedRaba.data();
+            
+            AbstractBTreeTestCase.assertSameRaba(expected, liveCodedRaba);
+            
             final AbstractFixedByteArrayBuffer originalData = rabaCoder.encode(
                     expected, new DataOutputBuffer());
             
@@ -620,8 +626,15 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
 
                 originalData.getDataInput().read(tmp);
 
+                // compare against result from encode()
                 assertTrue(BytesUtil.compareBytesWithLenAndOffset(originalData.off(),
                         originalData.len(), originalData.array(), 0, tmp.length, tmp) == 0);
+
+                // compare against result from encodeLive.
+                assertTrue(BytesUtil.compareBytesWithLenAndOffset(originalData
+                        .off(), originalData.len(), originalData.array(),
+                        liveCodedData.off(), liveCodedData.len(), liveCodedData
+                                .array()) == 0);
 
             }
 

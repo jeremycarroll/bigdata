@@ -373,9 +373,13 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
         return new DataInputBuffer(array(), off, len);
         
     }
-    
+
     /**
      * Return a bit stream that will read from the slice.
+     * <p>
+     * Note: You DO NOT need to close this stream since it is backed by a
+     * byte[]. In fact, {@link InputBitStream#close()} when backed by a byte[]
+     * appears to have relatively high overhead, which is weird.
      */
     public InputBitStream getInputBitStream() {
 
