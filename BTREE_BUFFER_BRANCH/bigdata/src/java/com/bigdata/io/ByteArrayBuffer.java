@@ -87,6 +87,10 @@ public class ByteArrayBuffer extends OutputStream implements IByteArrayBuffer,
      */
     byte[] buf;
 
+    /**
+     * {@inheritDoc} This is re-allocated whenever the capacity of the buffer is
+     * too small and reused otherwise.
+     */
     final public byte[] array() {
 
         return buf;
@@ -195,12 +199,13 @@ public class ByteArrayBuffer extends OutputStream implements IByteArrayBuffer,
      *            The minimum #of bytes in the buffer.
      * 
      * @todo this can be potentially overridden in a derived class to only copy
-     *       those bytes up to the current position.
+     *       those bytes up to the current position, which would be somewhat
+     *       faster.
      */
     /*final*/ public void ensureCapacity(final int capacity) {
         
-        if(capacity<0) throw new IllegalArgumentException();
-//        assert capacity >= 0;
+        if (capacity < 0)
+            throw new IllegalArgumentException();
 
         final int overflow = capacity - buf.length;
 
@@ -210,9 +215,6 @@ public class ByteArrayBuffer extends OutputStream implements IByteArrayBuffer,
              * extend to at least the target capacity.
              */
             final byte[] tmp = new byte[extend(capacity)];
-            
-//            // copy only the defined bytes.
-//            System.arraycopy(buf, 0, tmp, 0, this.len);
             
             // copy all bytes to the new byte[].
             System.arraycopy(buf, 0, tmp, 0, buf.length);
@@ -242,9 +244,9 @@ public class ByteArrayBuffer extends OutputStream implements IByteArrayBuffer,
      * @todo this does not need to be final. also, caller's could set the policy
      *       including a policy that refuses to extend the capacity.
      */
-    final protected int extend(final int required) {
+    protected int extend(final int required) {
 
-        int capacity = Math.max(required, buf.length * 2);
+        final int capacity = Math.max(required, buf.length * 2);
 
         if(INFO)
             log.info("Extending buffer to capacity=" + capacity + " bytes.");
@@ -252,6 +254,49 @@ public class ByteArrayBuffer extends OutputStream implements IByteArrayBuffer,
         return capacity;
         
     }
+
+    /**
+     * Trims the backing byte[] to an exact fit by making a copy of the data in
+     * the buffer and returns the old byte[].  All bytes between {@link #off()}
+     * and {@link #limit()} are copied into the exact fit byte[].
+     * <p>
+     * Note: A {@link #slice(int, int)} with a view of <i>this</i>
+     * {@link ByteArrayBuffer} will continue to have a view onto the backing
+     * buffer associated with <i>this</i> instance. This works because
+     * {@link SliceImpl#array()} delegates to the outer
+     * {@link ByteArrayBuffer#array()} method. This makes it possible to
+     * {@link #trim()} a {@link ByteArrayBuffer} on which you have
+     * {@link #slice(int, int)}s, while maintaining the validity of those
+     * slices.
+     * 
+     * @return The old byte[].
+     */
+    final public byte[] trim() {
+        
+        final byte[] tmp = buf;
+        
+        // assert not required - only tests RabaCoder assumptions.
+        assert limit == pos;
+        
+        final byte[] a = new byte[limit];
+        
+        // Note: assumes offset==0, otherwise must reset offset!
+        assert off() == 0;
+        
+        // copy onto new buffer.
+        System.arraycopy(tmp, off(), a, 0, a.length);
+        
+        // replace buffer.
+        this.buf = a;
+
+        // return the old buffer.
+        return tmp;
+        
+    }
+    
+    /*
+     * Absolute put/get methods.
+     */
     
     final public void put(final int pos, //
             final byte[] b) {
@@ -1333,7 +1378,7 @@ public class ByteArrayBuffer extends OutputStream implements IByteArrayBuffer,
      */
     public AbstractFixedByteArrayBuffer slice(final int off, final int len) {
 
-        return new Slice(off, len);
+        return new SliceImpl(off, len);
 
     }
 
@@ -1345,9 +1390,9 @@ public class ByteArrayBuffer extends OutputStream implements IByteArrayBuffer,
      *         Thompson</a>
      * @version $Id$
      */
-    private class Slice extends AbstractFixedByteArrayBuffer {
+    private class SliceImpl extends AbstractFixedByteArrayBuffer {
 
-        protected Slice(final int off, final int len) {
+        protected SliceImpl(final int off, final int len) {
 
             super(off, len);
             
@@ -1412,5 +1457,21 @@ public class ByteArrayBuffer extends OutputStream implements IByteArrayBuffer,
 //        out.write(array(), pos(), pos()+limit());
 //                
 //    }
-    
+
+    /**
+     * Return a bit stream which will write on this buffer. The stream will
+     * begin at the current {@link #pos()}.
+     * 
+     * @return The bit stream.
+     * 
+     * @todo Add OBS(byte[],off,len) ctor for faster operations. However, you
+     *       MUST pre-extend the buffer to have sufficient capacity since an
+     *       {@link OutputBitStream} wrapping a byte[] will not auto-extend.
+     */
+    public OutputBitStream getOutputBitStream() {
+        
+        return new OutputBitStream(this, 0 /* unbuffered! */, false/* reflectionTest */);
+
+    }
+
 }

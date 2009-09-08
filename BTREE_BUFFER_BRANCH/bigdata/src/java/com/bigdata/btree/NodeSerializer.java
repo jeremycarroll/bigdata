@@ -384,20 +384,18 @@ public class NodeSerializer {
     }
 
     /**
-     * Encode a node or leaf onto an internal buffer and return that buffer (NOT
-     * thread-safe). The operation writes on an internal buffer which is
-     * automatically extended as required.
+     * Encode a node or leaf and return a coded instance of the persistent data
+     * for that node or leaf backed by an exact fit byte[] (NOT thread-safe).
+     * The operation writes on an internal buffer which is automatically
+     * extended as required.
      * 
      * @param node
      *            The node or leaf.
      * 
      * @return The buffer containing the coded data record for the node or leaf
-     *         in a <em>shared buffer</em>. The contents of this buffer may be
-     *         overwritten by the next node or leaf serialized the same instance
-     *         of this class. The position will be zero and the limit will be
-     *         the #of bytes in the coded representation.
+     *         in an exact fit byte[] owned by the coded node or leaf.
      */
-    public AbstractFixedByteArrayBuffer encode(final IAbstractNodeData node) {
+    public <T extends IAbstractNodeData> T encodeLive(final T node) {
 
         if (node == null)
             throw new IllegalArgumentException();
@@ -420,7 +418,82 @@ public class NodeSerializer {
         
         }
 
+        final T codedNode;
         if(node.isLeaf()) {
+
+            codedNode = (T) leafCoder
+                    .encodeLive((ILeafData) node, _writeBuffer);
+
+        } else {
+
+            codedNode = (T) nodeCoder
+                    .encodeLive((INodeData) node, _writeBuffer);
+
+        }
+
+        /*
+         * Trim the backing byte[] buffer to an exact fit. All of the slice()s
+         * based on that buffer will reference the new backing byte[]. trim()
+         * returns the _old_ backing byte[], which we then wrap and use to
+         * replace the write buffer. This allows the write buffer to grow until
+         * it "fits" the coded data records, while preserving exact fit byte[]s
+         * for each coded node or leaf whose slices for the coded keys and
+         * values remain tied to the exact fit byte[].
+         */
+        _writeBuffer = new DataOutputBuffer(0/* len */, _writeBuffer.trim());
+
+//        if (node.isLeaf() && leafCoder instanceof CanonicalHuffmanRabaCoder) {
+//            // hack updates reference into the backing byte[]. 
+//            ((CanonicalHuffmanRabaCoder.CodedRabaImpl) ((ILeafData) codedNode)
+//                    .getValues()).trimmedSlice();
+//        }
+        
+        // Return the coded node or leaf.
+        return codedNode;
+
+    }
+
+    /**
+     * Encode a node or leaf onto an internal buffer and return that buffer (NOT
+     * thread-safe). This is a slight optimization of
+     * {@link #encodeLive(IAbstractNodeData)} which is used when the written
+     * node or leaf will not be reused, e.g., by the {@link IndexSegmentBuilder}
+     * . The operation writes on an internal buffer which is automatically
+     * extended as required.
+     * 
+     * @param node
+     *            The node or leaf.
+     * 
+     * @return The buffer containing the coded data record for the node or leaf
+     *         in a <em>shared buffer</em>. The contents of this buffer may be
+     *         overwritten by the next node or leaf serialized the same instance
+     *         of this class. The position will be zero and the limit will be
+     *         the #of bytes in the coded representation.
+     */
+    public AbstractFixedByteArrayBuffer encode(final IAbstractNodeData node) {
+
+        if (node == null)
+            throw new IllegalArgumentException();
+
+        if (node.isCoded()) {
+
+            // already coded.
+            throw new IllegalStateException();
+
+        }
+
+        if (_writeBuffer == null) {
+
+            // re-allocate.
+            allocWriteBuffer();
+
+        } else {
+
+            _writeBuffer.reset();
+
+        }
+
+        if (node.isLeaf()) {
 
             return leafCoder.encode((ILeafData) node, _writeBuffer);
 
@@ -431,7 +504,7 @@ public class NodeSerializer {
         }
 
     }
-    
+
     /**
      * Update the serialization of a leaf to set the prior and next leaf
      * references and change its serialization type from {@link #TYPE_LEAF} to

@@ -540,14 +540,14 @@ public class SPO implements ISPO, Comparable<SPO> {
 
     /**
      * Return a representation of the statement using the term identifiers (the
-     * identifers are NOT resolved to terms).
+     * identifiers are NOT resolved to terms).
      * 
      * @see ITripleStore#toString(long, long, long)
      */
     public String toString() {
 
         return ("< " + toString(s) + ", " + toString(p) + ", " + toString(o))
-                + (type == null ? "" : " : " + type
+                + (type == null ? "" : " : " + type+(override?", override":"")
                         + (sid == NULL ? "" : ", sid=" + sid)) + " >";
 
     }

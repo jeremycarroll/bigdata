@@ -29,6 +29,8 @@ package com.bigdata.rdf.spo;
 
 import junit.framework.TestCase;
 
+import com.bigdata.io.ByteArrayBuffer;
+import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rdf.model.StatementEnum;
 
 /**
@@ -67,5 +69,53 @@ public class TestStatementEnum extends TestCase {
                 StatementEnum.Inferred, StatementEnum.Inferred));
         
     }
-    
+
+    public void test_isOverride() {
+
+        // test w/o override flag.
+        boolean override = false;
+        for (StatementEnum type : StatementEnum.values()) {
+            
+            if (type == StatementEnum.Backchained) {
+
+                // skip this - it is not a real statement type.
+                continue;
+                
+            }
+
+            final byte[] val = SPO.serializeValue(new ByteArrayBuffer(),
+                    override, type, IRawStore.NULL);
+
+            final byte b = val[0];
+
+            assertEquals(type, StatementEnum.decode(b));
+            
+            assertEquals(override, StatementEnum.isOverride(b));
+
+        }
+
+        // test w/ override flag.
+        override = true;
+        for (StatementEnum type : StatementEnum.values()) {
+            
+            if (type == StatementEnum.Backchained) {
+
+                // skip this - it is not a real statement type.
+                continue;
+                
+            }
+
+            final byte[] val = SPO.serializeValue(new ByteArrayBuffer(),
+                    override, type, IRawStore.NULL);
+
+            final byte b = val[0];
+
+            assertEquals(type, StatementEnum.decode(b));
+
+            assertEquals(override, StatementEnum.isOverride(b));
+            
+        }
+
+    }
+
 }

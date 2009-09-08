@@ -658,11 +658,11 @@ abstract public class AbstractKeyArrayIndexProcedure extends
             obs.writeNibble(n);
             
 //            obs.write(a.iterator());
-            
-            for(int i=0; i<n; i++) {
-                
+
+            for (int i = 0; i < n; i++) {
+
                 obs.writeBit(a[i]);
-                
+
             }
 
             obs.flush();

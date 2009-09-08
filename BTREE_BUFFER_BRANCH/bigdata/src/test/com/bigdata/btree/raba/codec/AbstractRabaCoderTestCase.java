@@ -735,8 +735,8 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         final Random r = new Random();
 
         // default nops.
-//        int nops = 200000;
-        int nops = 1000000; // ~30-40s per coder @ 1M.
+        int nops = 200000;
+//        int nops = 1000000; // ~30-40s per coder @ 1M.
         if (args.length > 0)
             nops = Integer.valueOf(args[0]);
         if (nops <= 0)
@@ -758,12 +758,13 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         
         // The coders to be tested.
         final IRabaCoder[] coders = new IRabaCoder[] {
-//                MutableKeyCoder @todo define to measure against the MutableKeyBuffer.
-                SimpleRabaCoder.INSTANCE,
-//                new FrontCodedRabaCoder(2/* ratio */),
-                new FrontCodedRabaCoder(8/* ratio */),
-//                new FrontCodedRabaCoder(32/* ratio */),
-                CanonicalHuffmanRabaCoder.INSTANCE};
+//                new MutableRabaCoder(), // provides performance baseline.
+//                SimpleRabaCoder.INSTANCE, // simplest coding.
+////                new FrontCodedRabaCoder(2/* ratio */),
+//                new FrontCodedRabaCoder(8/* ratio */), // front-coding.
+////                new FrontCodedRabaCoder(32/* ratio */),
+                CanonicalHuffmanRabaCoder.INSTANCE // huffman coding.
+                };
 
         System.out.println("nops=" + nops + ", size=" + size + ", ncoders="
                 + coders.length);

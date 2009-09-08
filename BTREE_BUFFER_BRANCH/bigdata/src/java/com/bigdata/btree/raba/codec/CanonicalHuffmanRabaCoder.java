@@ -45,6 +45,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import org.apache.log4j.Logger;
 
@@ -52,6 +54,7 @@ import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
+import com.bigdata.io.ByteArrayBuffer;
 import com.bigdata.io.DataOutputBuffer;
 
 /**
@@ -209,7 +212,7 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
     private static final transient boolean debug = log.isDebugEnabled();
 
     /**
-     * The original serialization version for the record.
+     * The original serialization version for the coded data record.
      */
     final protected static transient byte VERSION0 = 0x00;
 
@@ -1164,11 +1167,8 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
             // The serialization version for the record.
             final int version = VERSION0;
 
-//            final FastByteArrayOutputStream baos = new FastByteArrayOutputStream(
-//                    initialCapacity);
-
-            final OutputBitStream obs = new OutputBitStream(buf,
-                    0/* bufSize */, false/* reflectionTest */);
+            final OutputBitStream obs = buf.getOutputBitStream();
+//                new OutputBitStream(buf, 0/* bufSize */, false/* reflectionTest */);
 
             // The record version identifier.
             obs.writeInt(version, 8/* nbits */);
@@ -1353,7 +1353,8 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
      *         Thompson</a>
      * @version $Id$
      */
-    private static class CodedRabaImpl extends AbstractCodedRaba {
+    // @todo private
+    public static class CodedRabaImpl extends AbstractCodedRaba {
 
         /**
          * The <em>byte</em> offset to the packed symbol2byte table relative to
@@ -1387,19 +1388,39 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
         
         private final AbstractFixedByteArrayBuffer data;
 
+//        /**
+//         * A reference to the backing byte array. Offsets into this array MUST
+//         * be adjusted for the starting offset of the slice. Direct access to
+//         * this byte[] is used to reduce the cost of operations such lookup in
+//         * the packed symbol2byte table.
+//         * 
+//         * @todo final
+//         */
+//        private byte[] array;
+//
         /**
-         * A reference to the backing byte array. Offsets into this array MUST
-         * be adjusted for the starting offset of the slice. Direct access to
-         * this byte[] is used to reduce the cost of operations such lookup in
-         * the packed symbol2byte table.
-         */
-        private final byte[] array;
-
-        /**
-         * The offset into the {@link #array} of the first byte of the slice for
-         * the data record.
+         * The offset into the coded data record of the first byte of the slice
+         * for the data record.
+         * <p>
+         * Note: The reference to the backing <code>byte[]</code> can be changed
+         * by {@link ByteArrayBuffer#trim()}. In order to protect against such
+         * changes, we only store the offset into the data record (which is
+         * immutable across trim()).
+         * 
+         * @todo if we implement a compacting store for the coded data records
+         *       then the offset could change and we would also have to protect
+         *       the API level operations of all {@link ICodedRaba}s against
+         *       relocation of the backing data record due to asynchronous
+         *       compacting operations.
          */
         private final int aoff;
+
+//        /** @todo hack! resets these fields if the slice gets trimmed. */
+//        public void trimmedSlice() {
+//
+//            this.array = data.array();
+//            
+//        }
 
         /**
          * The decoder, which is always available.
@@ -1477,8 +1498,14 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
                 throw new IllegalArgumentException();
             
             this.data = data;
-            this.array = data.array();
-            this.aoff = data.off();
+//            if (decoder == null) {
+//                // context is NOT encodeLive() so trim() is NOT used.
+//                this.array = data.array();
+                this.aoff = data.off();
+//            } else {
+//                this.array = null;
+//                this.aoff = Integer.MIN_VALUE;
+//            }
 
             final StringBuilder sb = debug ? new StringBuilder("\n") : null;
             final InputBitStream ibs = data.getInputBitStream();
@@ -1691,38 +1718,44 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
 
         }
 
-        /**
-         * Lookup a symbol, returning the byte value for that symbol.
-         * 
-         * @param symbol
-         *            The symbol.
-         * 
-         * @return The byte value.
-         */
-        private byte symbol2byte(final int symbol) {
-        
-            assert symbol >= 0 && symbol < nsymbols : "nsymbol=" + symbol
-                    + " not in [0:" + (nsymbols - 1) + "]";
-
-            if (!isSymbolTable) {
-
-                return (byte) KeyBuilder.encodeByte(symbol);
-                
-            } else {
-
-                /*
-                 * Index into the buffer start after [nsymbols].
-                 * 
-                 * Note: This uses direct indexing into the backing byte[] to
-                 * avoid method call and parameter check overhead associated
-                 * with data.getByte().
-                 */
-                return array[aoff + BYTE_O_symbols + symbol];
-//                return data.getByte(BYTE_O_symbols + symbol);
-            
-            }
-
-        }
+//        /**
+//         * Lookup a symbol, returning the byte value for that symbol.
+//         * 
+//         * @param symbol
+//         *            The symbol.
+//         * 
+//         * @return The byte value.
+//         * 
+//         * @deprecated This has been inlined for better performance.
+//         */
+//        final private byte symbol2byte(final byte[] array, final int symbol) {
+//        
+//            assert symbol >= 0 && symbol < nsymbols : "nsymbol=" + symbol
+//                    + " not in [0:" + (nsymbols - 1) + "]";
+//
+//            if (!isSymbolTable) {
+//
+//                return (byte) KeyBuilder.encodeByte(symbol);
+//                
+//            } else {
+//
+//                /*
+//                 * Index into the buffer start after [nsymbols].
+//                 * 
+//                 * Note: This uses direct indexing into the backing byte[] to
+//                 * avoid method call and parameter check overhead associated
+//                 * with data.getByte(). [I had to disable the direct addressing
+//                 * because ByteArrayBuffer#trim() was replacing the backing
+//                 * byte[] reference after the data were coded by encodeLive()].
+//                 */
+////                if (array != null)
+//                return array[aoff + BYTE_O_symbols + symbol];
+//                
+////                return data.getByte(BYTE_O_symbols + symbol);
+//            
+//            }
+//
+//        }
 
         public boolean isNull(final int index) {
 
@@ -1932,30 +1965,15 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
                 }
 
                 /*
-                 * Allocate an exact fit byte[] and decode into that byte[].
+                 * Allocate an exact fit byte[] and decode into that byte[]. We
+                 * decode to symbol indices and then convert symbol indices to
+                 * bytes, which are stored in that exact fit byte[].
                  */
 
                 // position at the start of the coded byte[].
                 ibs.position(O_from + O_codedValues);
-                {
-
-                    // the decoded byte[].
-                    final byte[] a = new byte[nsymbols];
-
-                    // decode to symbol indices and convert symbol indices to
-                    // bytes.
-                    for (int i = 0; i < nsymbols; i++) {
-
-                        final int symbol = decoder.decode(ibs);
-                        
-                        a[i] = symbol2byte(symbol);
-
-                    }
-
-                    // done.
-                    return a;
-
-                }
+                
+                return getFrom(ibs, nsymbols);
 
             } catch (IOException ex) {
 
@@ -1971,6 +1989,65 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
 //                }
 
             }
+
+        }
+
+        /**
+         * Decodes the specified number of symbols into an exact fit byte[]. The
+         * {@link InputBitStream} must be pre-positioned to the start of the
+         * coded symbols.
+         * 
+         * @param ibs
+         *            The bit stream.
+         * @param nsymbols
+         *            The #of symbols to decode.
+         * 
+         * @return The exact fit byte[] containing the decoded symbols.
+         * 
+         * @throws IOException
+         */
+        private byte[] getFrom(final InputBitStream ibs, final int nsymbols)
+                throws IOException {
+
+            // Allocate the decoded byte[].
+            final byte[] a = new byte[nsymbols];
+
+            if (!isSymbolTable) {
+
+                for (int i = 0; i < nsymbols; i++) {
+
+                    final int symbol = decoder.decode(ibs);
+
+                    a[i] = (byte) KeyBuilder.encodeByte(symbol);
+
+                }
+
+                return a;
+                
+            }
+
+            /*
+             * Note: This uses direct indexing into the backing byte[] to
+             * avoid method call and parameter check overhead associated
+             * with data.getByte().
+             */
+
+            // the coded data record.
+            final byte[] array = data.array();
+
+            final int aoff = this.aoff + BYTE_O_symbols;
+
+            for (int i = 0; i < nsymbols; i++) {
+
+                final int symbol = decoder.decode(ibs);
+
+                a[i] = array[aoff + symbol];
+
+                // a[i] = symbol2byte(array, symbol);
+
+            }
+
+            return a;
 
         }
 
@@ -2048,26 +2125,8 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
                 // position at the start of the coded byte[].
                 ibs.position(O_from + O_codedValues);
 
-                // reset the read bits counter.
-                ibs.readBits(0L);
-
-                // #of symbols in this coded byte[].
-                int nsymbols = 0;
-
-                while (ibs.readBits() < codeLength) {
-
-                    final int symbol = decoder.decode(ibs);
-
-                    final byte b = symbol2byte(symbol);
-
-                    os.write(b);
-
-                    nsymbols++;
-
-                }
-
-                // #of bytes written onto the buffer.
-                return nsymbols;
+                // transfer codeLength decoded bytes to caller's stream.
+                return copyFrom(ibs, codeLength, os);
 
             } catch (IOException ex) {
 
@@ -2085,6 +2144,159 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
 
         }
 
+        /**
+         * Copy a sequence of decoded code words onto the caller's stream.
+         * 
+         * @param ibs
+         *            The input stream, pre-positioned at the start of the code
+         *            words to be decoded.
+         * @param codeLength
+         *            The bit length of the sequence of code words to be
+         *            decoded.
+         * @param os
+         *            Where to put the data.
+         * 
+         * @return The #of decoded symbols that were copied.
+         * 
+         * @throws IOException
+         */
+        private int copyFrom(final InputBitStream ibs, final long codeLength,
+                final OutputStream os) throws IOException {
+
+            // The #of symbols decoded. 
+            int nsymbols = 0;
+
+            // reset the read bits counter.
+            ibs.readBits(0L);
+
+            if (!isSymbolTable) {
+
+                while (ibs.readBits() < codeLength) {
+
+                    final int symbol = decoder.decode(ibs);
+
+                    final byte b = (byte) KeyBuilder.encodeByte(symbol);
+
+                    os.write(b);
+
+                    nsymbols++;
+
+                }
+
+                return nsymbols;
+
+            }
+
+            /*
+             * Note: This uses direct indexing into the backing byte[] to avoid
+             * method call and parameter check overhead associated with
+             * data.getByte().
+             */
+
+            // the coded data record.
+            final byte[] array = data.array();
+
+            // compute once.
+            final int aoff = this.aoff + BYTE_O_symbols;
+
+            while (ibs.readBits() < codeLength) {
+
+                final int symbol = decoder.decode(ibs);
+
+                // final byte b = symbol2byte(array, symbol);
+                final byte b = array[aoff + symbol];
+
+                os.write(b);
+
+                nsymbols++;
+
+            }
+
+            return nsymbols;
+
+        }
+
+        /**
+         * Basic implementation may be overridden if a faster implementation is
+         * available.
+         */
+        public Iterator<byte[]> iterator() {
+
+            /**
+             * This per-iterator buffer is used to copy the decoded byte[] out
+             * of the coded raba. get(index) requires two passes over the coded
+             * value - one of which is just to compute the #of symbols. By using
+             * copy(int,os) we can extract the data in a single pass onto this
+             * buffer. The data in the buffer is then cloned to obtain an exact
+             * fit byte[].
+             * 
+             * @todo if we knew the max byte[] length for the instance then we
+             *       could use that here and avoid over/under allocating.
+             */
+            final ByteArrayBuffer tmp = new ByteArrayBuffer(128/*initialCapacity*/);
+            
+            return new Iterator<byte[]>() {
+
+                int i = 0;
+
+                public boolean hasNext() {
+
+                    return i < size();
+
+                }
+
+                public byte[] next() {
+
+                    if (!hasNext())
+                        throw new NoSuchElementException();
+
+                    try {
+
+                        if (!isKeys) {
+
+                            /*
+                             * Figure out whether or not this index is a null.
+                             */
+                            final boolean isNull = data.getBit(O_nulls + i);
+
+                            if (isNull) {
+
+                                // per the API.
+                                return null;
+
+                            }
+
+                        }
+
+                        // reset the buffer.
+                        tmp.reset();
+
+                        // copy out decoded byte[] (more efficient than get()).
+                        copy(i, tmp);
+
+                        // return an exact fit copy of the decoded byte[].
+                        return tmp.toByteArray();
+
+                    } finally {
+
+                        i++;
+
+                    }
+
+//                    return get(i++);
+
+                }
+
+                public void remove() {
+
+                    throw new UnsupportedOperationException();
+
+                }
+
+            };
+
+        }
+        
         /**
          * This is an efficient binary search performed without materializing the
          * coded byte[][].
@@ -2145,6 +2357,9 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
              * directly access the codeWord for the symbol in the coder impl.
              */
 
+            // the coded data record.
+            final byte[] array = data.array();
+            
             final int nmem = this.size;
             
             final int base = 0;
@@ -2160,7 +2375,7 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
                 final int offset = base + mid;
 
                 // compare actual vs probe
-                final int tmp = compare(ibs, offset/* index */, key);
+                final int tmp = compare(ibs, offset/* index */, key, array);
 
                 if (tmp > 0) {
 
@@ -2198,6 +2413,8 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
          *            The index of the coded value.
          * @param key
          *            The search probe key.
+         * @param array
+         *            The reference to the coded data record.
          * 
          * @return a negative integer, zero, or a positive integer if the coded
          *         value identified by the <i>index</i> is less than, equal to,
@@ -2207,7 +2424,7 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
          * @throws IOException
          */
         private int compare(final InputBitStream ibs, final int index,
-                final byte[] key) throws IOException {
+                final byte[] key, final byte[] array) throws IOException {
 
             if (nsymbols == 0) {
 
@@ -2221,7 +2438,7 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
                 return BytesUtil.compareBytes(key, BytesUtil.EMPTY);
 
             }
-            
+
             // get the bit offset of the start of this coded value.
             ibs.position(O_codedValueOffsets + ((long) index)
                     * codedValueOffsetBits);
@@ -2245,14 +2462,36 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
             // reset the read bits counter.
             ibs.readBits(0L);
 
+            // #of symbols decoded.
             int nsymbols = 0;
+
+            // pre-compute once.
+            final int aoff = this.aoff + BYTE_O_symbols;
+            
+            // loop compares decoded symbols one-by-one.
             while (ibs.readBits() < codeLength && nsymbols < key.length) {
 
                 assert decoder != null;
                 
                 final int symbol = decoder.decode(ibs);
 
-                final byte b = symbol2byte(symbol);
+//              final byte b = symbol2byte(array, symbol);
+                final byte b;
+                if (!isSymbolTable) {
+
+                    b = (byte) KeyBuilder.encodeByte(symbol);
+                    
+                } else {
+
+                    /*
+                     * Note: This uses direct indexing into the backing byte[] to
+                     * avoid method call and parameter check overhead associated
+                     * with data.getByte().
+                     */
+
+                    b = array[aoff + symbol];
+                
+                }
                 
                 final byte a = key[nsymbols];
 

@@ -34,6 +34,7 @@ import java.io.ObjectOutput;
 
 import com.bigdata.btree.MutableNodeData;
 import com.bigdata.btree.raba.IRaba;
+import com.bigdata.btree.raba.codec.ICodedRaba;
 import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
 import com.bigdata.io.DataOutputBuffer;
@@ -120,8 +121,8 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
         
     }
 
-    public AbstractFixedByteArrayBuffer encode(final INodeData node,
-            final DataOutputBuffer buf) {
+
+    public INodeData encodeLive(final INodeData node, final DataOutputBuffer buf) {
 
         if (node == null)
             throw new IllegalArgumentException();
@@ -172,11 +173,12 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
         
         // Write the encoded keys on the buffer.
         final int O_keys = buf.pos();
-        final AbstractFixedByteArrayBuffer encodedKeys = keysCoder.encode(node
-                .getKeys(), buf);
+        final ICodedRaba encodedKeys = keysCoder
+                .encodeLive(node.getKeys(), buf);
+//        final AbstractFixedByteArrayBuffer encodedKeysData = encodedKeys.data();
 
         // Patch the byte length of the coded keys on the buffer.
-        buf.putInt(O_keysSize, encodedKeys.len());
+        buf.putInt(O_keysSize, encodedKeys.data().len());
 
         // childAddr[] : @todo code childAddr[] (needs IAddressManager if store aware coding).
         final int O_childAddr = buf.pos();
@@ -201,9 +203,21 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
             buf.putLong(node.getMaximumVersionTimestamp());
             
         }
+
+        // Slice onto the coded data record.
+        final AbstractFixedByteArrayBuffer slice = buf.slice(//
+                O_origin, buf.pos() - O_origin);
+
+        // Read-only coded IDataRecord. 
+        return new ReadOnlyNodeData(slice, encodedKeys);
         
-        return buf.slice(O_origin, buf.pos() - O_origin);
-        
+    }
+
+    public AbstractFixedByteArrayBuffer encode(final INodeData node,
+            final DataOutputBuffer buf) {
+
+        return encodeLive(node, buf).data();
+
     }
 
     /**
@@ -231,15 +245,21 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
          */
         private final int O_keys;
 
-        private final IRaba keys;
+        /**
+         * The coded keys.
+         */
+        private final ICodedRaba keys;
 
         /**
          * Offset of the encoded childAddr[] in the buffer.
          */
         private final int O_childAddr;
-        
+
         /**
          * Offset of the encoded childEntryCount[] in the buffer.
+         * 
+         * @todo could be computed at runtime as
+         *       <code>O_childAddr + (nkeys + 1) * SIZEOF_ADDR</code>.
          */
         private final int O_childEntryCount;
                 
@@ -248,11 +268,81 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
             return b;
             
         }
-        
+
+        /**
+         * Constructor used when the caller is encoding the {@link INodeData}.
+         * 
+         * @param buf
+         *            The buffer containing the data for the node.
+         * @param keys The coded keys.
+         */
+        public ReadOnlyNodeData(final AbstractFixedByteArrayBuffer buf,
+                final ICodedRaba keys) {
+
+            if (buf == null)
+                throw new IllegalArgumentException();
+
+            if (keys == null)
+                throw new IllegalArgumentException();
+
+            int pos = O_TYPE;
+            final byte type = buf.getByte(pos);
+            pos += SIZEOF_TYPE;
+
+            switch (type) {
+            case NODE:
+                break;
+            case LEAF:
+                throw new AssertionError();
+            case LINKED_LEAF:
+                throw new AssertionError();
+            default:
+                throw new AssertionError("type=" + type);
+            }
+
+            final int version = buf.getShort(pos);
+            pos += SIZEOF_VERSION;
+            switch (version) {
+            case VERSION0:
+                break;
+            default:
+                throw new AssertionError("version=" + version);
+            }
+            
+            // flags
+            flags = buf.getShort(pos);
+            pos += SIZEOF_FLAGS;
+
+            // @todo unpack - must wrap buf as DataInputStream for this, so updating internal pos.
+            this.nkeys = buf.getInt(pos);
+            pos += SIZEOF_NKEYS;
+            
+            // @todo unpack - must wrap buf as DataInputStream for this.
+            this.nentries = buf.getInt(pos);
+            pos += SIZEOF_ENTRY_COUNT;
+            
+            final int keysSize = buf.getInt(pos);
+            pos += SIZEOF_KEYS_SIZE;
+
+//          O_keys = O_childEntryCount + (nkeys + 1) * SIZEOF_ENTRY_COUNT;
+            O_keys = pos;
+            this.keys = keys;//keysCoder.decode(buf.slice(O_keys, keysSize));
+            pos += keysSize;
+//            assert b.position() == O_keys + keysSize;
+            
+            O_childAddr = pos;
+            
+            O_childEntryCount = O_childAddr + (nkeys + 1) * SIZEOF_ADDR;
+
+            // save reference to buffer
+            this.b = buf;
+
+        }
+
         /**
          * Decode in place (wraps a buffer containing an encoded node data record).
          * 
-         * @param b
+         * @param buf
          *            The buffer containing the data for the node.
          */
         public ReadOnlyNodeData(final AbstractFixedByteArrayBuffer buf,
@@ -314,7 +404,6 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
             O_childEntryCount = O_childAddr + (nkeys + 1) * SIZEOF_ADDR;
 
             // save reference to buffer
-//            this.b = (b.isReadOnly() ? b : b.asReadOnlyBuffer());
             this.b = buf;
 
         }

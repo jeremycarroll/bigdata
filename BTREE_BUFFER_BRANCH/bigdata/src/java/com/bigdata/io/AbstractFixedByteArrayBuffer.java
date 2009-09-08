@@ -185,23 +185,21 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
 
     }
 
-    final public void putByte(int pos, final byte v) {
+    final public void putByte(final int pos, final byte v) {
 
         assert rangeCheck(pos, 1);
 
-        pos += off;
-        
-        array()[pos] = v;
+        // adjust by the offset.
+        array()[off + pos] = v;
 
     }
 
-    final public byte getByte(int pos) {
+    final public byte getByte(final int pos) {
 
         assert rangeCheck(pos, 1);
 
-        pos += off;
-        
-        return array()[pos];
+        // adjust by the offset.
+        return array()[off + pos];
         
     }
     
@@ -209,6 +207,7 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
 
         assert rangeCheck(pos, 2);
 
+        // adjust by the offset.
         pos += off;
         
         // big-endian
@@ -221,6 +220,7 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
 
         assert rangeCheck(pos, 2);
 
+        // adjust by the offset.
         pos += off;
         
         short v = 0;
@@ -237,6 +237,7 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
 
         assert rangeCheck(pos, 4);
         
+        // adjust by the offset.
         pos += off;
 
         array()[pos++] = (byte) (v >>> 24);
@@ -250,6 +251,7 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
 
         assert rangeCheck(pos, 4);
 
+        // adjust by the offset.
         pos += off;
         
         int v = 0;
@@ -280,6 +282,7 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
 
         assert rangeCheck(pos, 8);
         
+        // adjust by the offset.
         pos += off;
 
         // big-endian.
@@ -304,6 +307,7 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
 
         assert rangeCheck(pos, 8);
         
+        // adjust by the offset.
         pos += off;
         
         long v = 0L;

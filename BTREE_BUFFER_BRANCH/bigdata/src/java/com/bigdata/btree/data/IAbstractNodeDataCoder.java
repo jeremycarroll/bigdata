@@ -59,7 +59,7 @@ public interface IAbstractNodeDataCoder<T extends IAbstractNodeData> extends
     boolean isLeafDataCoder();
 
     /**
-     * Encode the data.
+     * Encode the data, returning a slice containing the coded data.
      * <p>
      * Note: Implementations of this method are typically heavy. While it is
      * always valid to {@link #encode(IAbstractNodeData, DataOutputBuffer)} an
@@ -88,6 +88,39 @@ public interface IAbstractNodeDataCoder<T extends IAbstractNodeData> extends
      *             {@link INodeData} records.
      */
     AbstractFixedByteArrayBuffer encode(T node, DataOutputBuffer buf);
+
+    /**
+     * Encode the data, returning a reference to a coded instance of the data.
+     * <p>
+     * Note: Implementations of this method are typically heavy. While it is
+     * always valid to {@link #encode(IAbstractNodeData, DataOutputBuffer)} an
+     * {@link IAbstractNodeData}, DO NOT invoke this <em>arbitrarily</em> on
+     * data which may already be coded. The {@link IAbstractNodeCodedData}
+     * interface will always be implemented for coded data.
+     * 
+     * @param node
+     *            The node or leaf data.
+     * @param buf
+     *            A buffer on which the coded data will be written.
+     * 
+     * @return A reference to a coded instance of the data.
+     *         {@link IAbstractNodeData#data()} is a slice onto the
+     *         post-condition state of the caller's buffer whose view
+     *         corresponds to the coded record. This may be written directly
+     *         onto an output stream or the slice may be converted to an exact
+     *         fit byte[].
+     * 
+     * @throws UnsupportedOperationException
+     *             if {@link IAbstractNodeData#isLeaf()} is <code>true</code>
+     *             and this {@link IAbstractNodeDataCoder} can not code B+Tree
+     *             {@link ILeafData} records.
+     * 
+     * @throws UnsupportedOperationException
+     *             if {@link IAbstractNodeData#isLeaf()} is <code>false</code>
+     *             and this {@link IAbstractNodeDataCoder} can not code B+Tree
+     *             {@link INodeData} records.
+     */
+    T encodeLive(T node, DataOutputBuffer buf);
 
     /**
      * Return an {@link IAbstractNodeData} instance which can access the coded

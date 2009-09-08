@@ -128,10 +128,11 @@ public class SPOIndexWriteProc extends AbstractKeyArrayIndexProcedure implements
         }
         
         public SPOIndexWriteProc newInstance(IRabaCoder keySer,
-                IRabaCoder valSer, int fromIndex, int toIndex,
-                byte[][] keys, byte[][] vals) {
+                IRabaCoder valSer, int fromIndex, int toIndex, byte[][] keys,
+                byte[][] vals) {
 
-            return new SPOIndexWriteProc(keySer,valSer,fromIndex, toIndex, keys, vals);
+            return new SPOIndexWriteProc(keySer, valSer, fromIndex, toIndex,
+                    keys, vals);
 
         }
         
@@ -184,8 +185,8 @@ public class SPOIndexWriteProc extends AbstractKeyArrayIndexProcedure implements
             /*
              * Decode the new (proposed) statement identifier.
              */
-            final long new_sid = decodeStatementIdentifier(newType,val);
-            
+            final long new_sid = decodeStatementIdentifier(newType, val);
+
             /*
              * The current value for the statement in this index partition (or
              * null iff the stmt is not asserted).
