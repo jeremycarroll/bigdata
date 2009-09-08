@@ -268,9 +268,286 @@ Revision: Head
 
 Commit message: Merging trunk into branch BTREE_BUFFER_BRANCH [2004]:[2048].
 
+Goals:
+
+x. Misc.
+
+	- (***) TM Bug: KB will not downgrade a statement from Explicit to Inferred. 
+
+	  The KB will not downgrade a statement from Explicit to
+	  Inferred if you retract the statement but it is still
+	  supported.  I noticed this when I saw
+	  StatementEnum#isOverride() which appeared to be doing an
+	  incorrect bit test (==1 vs !=0).  I've added a unit test to
+	  TestTruthMaintenance for this,
+	  test_downgradeExplicitToInference().  It fails.
+
+	  TruthMaintenance#retractAll() is using a downgrade buffer
+	  with a DoNotAddFilter.  That filters out inferences, so when
+	  we try to add the SPO to the downgradeBuffer, it was not
+	  making it in.  Next I tried modifying the DoNotAddFilter to
+	  let in any SPO with the 'override' flag set.  That seemed a
+	  bit dangerous, so instead I modified the downgradeBuffer to
+	  NOT use any filter.  Safer, I think.  However, still no
+	  dice.
+
+	  I *think* that the downgradeBuffer should be adding an
+	  "Inferred, override" SPO to the focusStore.  Eventually,
+	  that "override" SPO needs to be written onto the DB, where
+	  it is responsible for changing the SPO state from Explicit
+	  to Inferred -- and that is what is not happening.
+
+	- Encapsulate the {min,max,t[]} for version timestamps and
+          their coders.
+
+	- Raise IRaba into the IIndexProcedure impls for the keys and
+          values.  Avoid double-coding if the keys/values are already
+          coded.  Reconcile with KVO(C)[] usage.  This should NOT
+          effect the IIndexProcedure serialization since we already
+          use ICodedRaba's for RMI.
+
+	- return (b & StatementEnum.MASK_OVERRIDE) == 1;
+
+	  Should be != 0  ?!?! (StatementType enum).
+
+x. Transient B+Tree issues.
+
+	- (*) Verify that transient B+Trees convert data records to
+          immutable data records when there is an eviction event.
+          This will help us bound their in-memory footprint.
+
+	  Need a unit test for this.
+
+	- Historically, a mutable node was always non-persistent. With
+          the introduction of coding of nodes and leaves for transient
+          B+Trees on eviction from the write retention queue, those
+          nodes and leaves become read-only when they are coded
+          without becoming persistent.  While {@link
+          IAbstractNodeData#isCoded()} currently reflects the same
+          distinction as {@link IAbstractNodeData#isReadOnly()}, that
+          might not always be the case. For example, it is possible to
+          have mutable coded node/leaf impls.
+
+	 - (***) There really need to be more unit tests for transient
+	   B+Trees to get at other broken assumptions, primarily
+	   asserts which are no longer valid.
+
+	 - (***) A weird problem shows up for transient B+Trees during
+           remove.  The problem is during removeAll().  One of the
+           siblings for a merge has a deleted parent, so they are not
+           in fact siblings of the same parent node!
+
+	   This looks like a real bug.  It might be connected to the
+           transient B+Tree semantics, but we should never have a
+           child which does not point back to its parent!
+
+	   One possibility is that the update of the parent on the
+	   children during merge() is broken, e.g., it does not update
+	   the last child's parent for some code path.
+	   Node#redistributeKeys() also does this.  The copyOnWrite
+	   Node() ctor is another place where we do this.  And
+	   copyOnWrite() also invokes replaceChildRef(), which is
+	   another place where the parent is changed.
+
+	   split() also updates the child references, but it is less
+	   likely to be the cause of a deleted parent.
+
+	   There are unit tests for these things, but perhaps they are
+	   not verifying that the parents are updated correctly?
+
+	   Why does TestRemoveAll() not trigger this?
+
+	   Check TestSplitJoinThreeLevels.  It it is not testing the
+	   parent reference assumptions then perhaps the problem
+	   exists even in a simple and well documented unit test.
+
+	   (***) Add asserts in the top-down navigation, split, join,
+	   and copyOnWrite to verify that the parent of a node is
+	   never deleted.
+
+x. Other unit test problems:
+
+         - (*) TestIsolatedFusedView - Add a unit test here with
+	   cursor#remove(), then fix remove() to propagate the tuple
+	   revision timestamp with the delete marker.
+
+	 - (*) TestTx - test itr#remove() for tx isolation.
+
+	 - (*) Suggests memory leak in the unit tests.  E.g., store
+           file not closed, services not shutdown, leak of the direct
+           buffers, etc.
+
+	   (***) This appears to be a memory leak through AcceptTask
+	   in NonBlockingLockManagerWithNewDesign with the stack local
+	   variable acting as a GC root.  Perhaps making AcceptClass
+	   static would get rid of this problem?
+
+java.lang.OutOfMemoryError: unable to create new native thread
+	at java.lang.Thread.start0(Native Method)
+	at java.lang.Thread.start(Thread.java:597)
+	at java.util.concurrent.ThreadPoolExecutor.addIfUnderMaximumPoolSize(ThreadPoolExecutor.java:727)
+	at java.util.concurrent.ThreadPoolExecutor.execute(ThreadPoolExecutor.java:657)
+	at java.util.concurrent.AbstractExecutorService.invokeAll(AbstractExecutorService.java:200)
+	at com.bigdata.rdf.lexicon.LexiconRelation.addTerms(LexiconRelation.java:889)
+	... 40 more
+
+	 - The RDF jini federation tests are all failing due to
+           configuration file errors (files not found, etc).
+
+	 - Lots of unit tests are still leaking files on the disk.
+
+6. (***) Tighter coding & versioning.
+
+   - Make sure all records and Externalizable interfaces are versioned.
+       
+   - Compare the size on disk of the trunk and this branch.
+  
+  	 - Code the version timestamp[].
+
+	   - A good coding scheme might be the minimum timestamp plus
+             a minimum width coding for the remainder for each
+             timestamp.
+
+	   - Share pluggable timestamp serialization logic for
+	     DefaultLeafCoder and ResultSet.  Note that version
+	     information is always delivered IF it is being
+	     maintained.
+
+	 - Code the childAddr[].
+
+	   A good scheme might be identical to the version timestamp
+	   scheme since the childAddr[] will tend to have a shared
+	   prefix (actually, they might not since they are broken down
+	   internally into a byte offset and a byte length).
+
+	   For an index segment, the childAddr[] values will also be
+	   strictly increasing (again, not true since they code the
+	   region, the byte offset, and the byte length).
+	     
+        - Code the childEntryCount[].
+
+	  A similar scheme might apply here.  Since the B+Tree is
+	  balanced the #of spanned tuples for each child will be
+	  roughly comparable, hence substracting out the minimum could
+	  save space.
+
+	- TERM2ID could use direct addressing of the assigned term
+          identifiers if they are not packed.  That could well save
+          space over their huffman coding or simple coding since we
+          just store the long[].
+	  
+	- Compare simple vs huffman coding of ID2TERM at m<33 (e.g.,
+          on the journal).
+
+        - IndexMetadata.
+
+          - Review all of the options relating to object
+            serialization, key/value compression, and record
+            compression.
+
+	    Note that record level compression might be moved into the
+	    store.  It is covered right now by the NodeSerializer.
+	    That has the advantage of being per B+Tree, even on the
+	    journal and of not challenging any existing APIs. It has
+	    the disadvantage of making the NodeSerializer complex.
+
+	  - Add options for the LeafCoder and NodeCoder?
+
+7. (***) Buffering & caching.
+
+        - Add global read retention queue and weak value hash map
+          based lookup per store of the retained data record objects.
+
+	  Consider releasing decoders earlier since they can be
+	  rematerialized from the byte[] slice.
+
+	- Since data records are immutable and the IAbstractNodeData
+          implementations are thread-safe for readers, we can share
+          the data records and their INodeData/ILeafData objects
+          across all requests for the same store+addr, even when the
+          B+Tree instances are different.
+
+	  The problem with the hard reference cache is its fixed
+	  capacity.  The Java LRU has this same limitation.  We can
+	  place an upper bound on the ring buffer and then manage the
+	  size on disk of the buffered nodes.  The buffer is not
+	  thread safe so it will have to be wrapped for that purpose.
+	  A concurrent version would be a nice touch, but only if we
+	  observe a hot spot on touch().
+
+	- The IndexSegment has a leaf cache.  That should be a global
+          cache.
+
+        - Make sure that the IndexSegmentBuilder reuses buffers and
+          slices in an optimal manner.  See flush() in that class.
+
+	- Unit test for IndexSegment with version timestamps enabled
+          which verifies the correct max/max version timestamps on the
+          nodes and leaves.
+
+        - Examine GC problems with lots of B+Tree nodes buffered.  Try
+          parallel old GC and the G1 collector.
+
+	  Tony Printezis [Antonios.Printezis@sun.com] 10G+ heaps will
+	  most likely create unpleasant Full GC pauses!  :-) But, yes,
+	  evaluate Parallel Old to first see how it works. And we can
+	  take it from there...
+
+x. (***) RMI SHOULD reuse buffers whenever possible.
+
+	 - Index write pipeline.  This is easier to do for things like
+	   the index write pipeline.
+
+         - ResultSet. It is not clear how to do this for the
+	   Externalizable interface used by the ResultSet.  Probably
+	   we need to have a ResultSetCoder so we can pass in the
+	   buffer.  Then the Externalizable implementation just
+	   invokes the coder.
+
+	 - Index procedure invocations.  Re-review use of IRabaCoding
+	   for IIndexProcedure impls.  Can we use a "Coder" model here
+	   as well and only code if we will do an RMI?  Also review
+	   the KVO(C)[] model and compare with the IRaba model.
+	   
+         - Unit tests for serialization of index procedure abstract
+	   classes, and the means they have of passing back byte[][]s
+	   and bit[]s.
+
+	 - There are no unit tests for serialization coverage for
+           IndexMetadata.
+
+	 - Unit tests of serialization for the IRabaCoders.
+
+	 - Review use of rabas in index procedures with an eye to
+           minimizing allocation once more.
+   
+	 - getKeys():IRaba and getValues():IRaba SHOULD be raised into
+	   the IKeyArrayIndexProcedure API.  This will make it easier
+	   to use efficient access to the coded data.
+
+
 ------------------------------------------------------------
 -------------- Store level record compression --------------
 ------------------------------------------------------------
+
+   - Compare size on disk again once record level compression is
+     enabled.
+
+   - Allow B+Tree specific record compression, store-based record
+     compression, or both?  Conceptually nicer in the store itself.
+
+   - Remove ByteBuffer from the IRawStore API, replacing it with our
+     byte[] slice class, e.g., com.bigdata.io.Slice.
+
+         - IAddressSerializer is deprecated and should be deleted or
+           reused by the INodeCoder.
+
+	   Note: This must be provisioned with information about the
+	   IAddressManager if it will use address aware coding.  That
+	   information is not currently available to the INodeCoder.
+
+         - Done. Code the min/max of the version timestamp (add to the
+           API).
 
 - Support gzip, zip, bmz and other compression protocols in the store
   at the record level.
@@ -297,9 +574,36 @@ Commit message: Merging trunk into branch BTREE_BUFFER_BRANCH [2004]:[2048].
          experiments. Feel free to give it try and ping me on how to
          use the library (documentation is in bmz.h.)
 
-Goals:
+	- The IRawStore API SHOULD NOT make the ByteBuffer's read-only
+          and would be better off if it used an IRawRecord/Slice
+          combination.
 
-  - Compression: two-level compression.
+        - Decompress should be byte[] to byte[] using streams ala
+	  DataInputBuffer and DataOutputBuffer.
+
+	  If a "compression service" is added, make sure that it can
+	  not cause deadlocks.
+             
+        - Optimize out the use of the ByteBuffer.  This should be easy
+          to hack w/ record level compression if we use a
+          ByteArrayBuffer as the (de-)compression target.
+
+        - Record level compression for the store.
+
+	- The IndexSegment nodes region can be read into a byte[]
+          rather than a direct ByteBuffer.  I do not believe that we
+          gain access to any additional memory with direct ByteBuffers
+          and they are definately slower and consume memory which can
+          not be otherwise reused.  This will make it possible to do
+          perfect allocations for the nodes region.
+	  
+	  The nodes region could be compressed as a single record if
+          we get tricky.  That would be better compression, but all
+          addressing into the nodes region would have to be in terms
+          of the decompressed record.  You could not directly read on
+          the file system at the given byte address since it would be
+          in the middle of a compressed region.
+
 
     1. Record compression (e.g., deflate)
 
@@ -428,23 +732,7 @@ Goals:
           type(byte) // 0=node
 	  -- body (compressed) --
 	  version(short)
-	  flags(short) // unused.
-    	  nkeys(int)
-	  nentries(int)
-	  keysSize(int)
-	  childAddr[]:long[]
-	  childEntryCounts:int[]
-	  keys:byte[][] // encoded as dictionary plus byte aligned code strings.
-
-       new Node(ByteBuffer) // wrap ByteBuffer as NodeData, initialize
-			    // nkeys and nentries from the ByteBuffer
-			    // and set a ref to the NodeData
-
-       ReadOnlyNodeData(ByteBuffer) // wrap and decode.
-
-       ReadOnlyNodeData(INodeData) // allocate ByteBuffer, encode on
-				   // ByteBuffer as [header+body], and
-				   // wrap.
+	  ...
 
        Leaf:
 
@@ -456,25 +744,7 @@ Goals:
 	  ]
 	  -- body (compressed) --
 	  version(short)
-	  flags(short) // VERSION_TIMESTAMPS | DELETE_MARKERS
-    	  nkeys(int)
-	  keysSize(int)
-	  valuesSize(int)
-	  timestamp:long[] // optional, based on B+Tree provisioning.
-	  deleteMarker:bit[] // optional, based on B+Tree provisioning.
-	  keys:byte[][] // encoded as dictionary plus byte aligned code strings.
-	  values:byte[][] // encoded as dictionary plus byte aligned code strings.
-
-       new Leaf(ByteBuffer) // wrap ByteBuffer as LeafData, initialize
-			    // nkeys from the ByteBuffer and set a ref
-			    // to the LeafData.  priorAddr and nextAddr
-			    // are available iff type==2.
-
-       ReadOnlyLeafData(ByteBuffer) // wrap and decode.
-
-       ReadOnlyLeafData(ILeafData) // allocate ByteBuffer, encode on
-				   // ByteBuffer as [header+body], and
-				   // wrap.
+	  ...
 
        These record layouts order the fixed length fields and arrays
        with known dimensions to the front of the record.  The keys and
@@ -488,524 +758,12 @@ Goals:
        in the header data as well.  This means that writing a B+Tree
        node or leaf will always use IRawStore#write(int,ByteBuffer).
 
-       - Done. Create mutable INodeData and ILeafData implementations
-         based on the existing code in AbstractNode, Node, Leaf, and
-         MutableKeys.
-
-	 - Done (this is now checked by the various methods which copy
-	   data out of a leaf). ILeafData#getValue(int) and possibly
-	   some other methods must also test whether or not the tuple
-	   has been deleted.  That information is NOT available on the
-	   IRaba.
-
-	 - Done. nkeys refactor has broken the code.
-
-	 - Done. toString() for Leaf, Node, LeafData impls and NodeData impls.
-
-	 - Done. Finish isolation @ ILeafData and INodeData.
-
-	   - PO:
-
-	     - identity, dirty, deleted
-
-	   - AbstractNode:
-
-	     - self:Reference<AbstractNode<T>>
-	     - parent:Reference<Node>
-	     - keys:IRaba
-	     - referenceCount:int
-
-	   - Node:
-
-	     - childRefs[]
-	     - childLocks[]
-	     - data:INodeData (new!)
-
-	   - MutableNodeData:
-
-	     - keys:IRaba
-	     - nentries:int
-	     - childAddr:long[]
-	     - childEntryCount:int[]
-
-	   - Leaf
-
-	     - data:ILeafData (new!)
-
-	   - MutableLeafData
-
-	     - keys:IRaba
-	     - values:IRaba
-	     - deleteMarkers[] (BitVector w/ long[] impl?)
-	     - versionTimestamps:long[]
-
-	   - Done (passing in the branchingFactor). Either the
-             IRabaCoder must round-trip the capacity or we must have
-             appropriate ctors for MutableKeyBuffer and
-             MutableValueBuffer so that they are provisioned to the
-             correct capacity (rather than just the #of keys or values
-             currently in the node or leaf).
-
-	   - Done. verify clearing (in delete()) and stealing (in ctors).
-
-	   - Done. verify copyOnWrite().
-
-	   - Done. Verify use of Node:Node(final Node src, final long
-             triggeredByChildId).  The javadoc indicates that this is
-             a copy ctor and that the src is always an immutable Node.
-
-	   - Done. Roll prior/next addr into ILeafData?
-
-	 - Done. Review cases where we explicitly tunnel through and
-           obtain the mutable version of the keys or values for a node
-           or leaf.  I believe that in all cases we are about to
-           discard the values in a sibling during a merge, in which
-           case it is Ok to decode them first and we do not lose any
-           efficiency since we will be storing the keys/values in a
-           mutable node/leaf.
-
-1. Done. encode(IRaba,ByteArrayBuffer):byte[]
-
-   This allows buffer reuse, but gives us the coded byte[].  We need
-   that to write the #of bytes followed by the coded data for RMI.
-
-2. Done. decode(IRawRecord):IRaba(Decoder)
-
-   This allows decoding a slice of a byte[], which we need for leaves
-   and nodes.  Make sure that we decode in place for those cases.
-
-3. Done. IRabaDecoder data():IRawRecord
-
-   probably the latter for now as data() might still be useful.
-
-x. Done. Verify all RabaCoder and leaf/node data records.  
-
-         - Done. Modify IRabaCoder to reduce byte[] allocation:
-	   
-	 - Done. Optimize the CustomFrontCodedByteArray for IRawRecord
-           and optimize the IRabaCoder for that case.
-
-	 - Done. Verify that O_xxx offsets are NOT presumed to be
-           absolute when coding.  E.g., that we do not presume that
-           the buffer was rewound before we begin to code the
-           data. However, they ARE absolute during decoding.
-
-	 - Done. Leaf and node should code seqeuentially and the patch
-           the byte length of the keys and values to avoid additional
-           byte[] allocations.
-
-	 - Done. Abstract the leaf and node coders into an interface
-           parallel in design to the IRabaCoder.
-           encode(ILeafData,flags):slice and decode(slice):ILeafData.
-           This will let me directly replace the coded representation
-           of the leaves.
-
-	 - Done. Unit tests should verify that leaf data and node data
-           are correctly coded and decoded when there is a non-zero
-           offset.  The IRabaCoder unit tests already handle this.
-
-	 - Done. Unit tests should verify search for random prefix and
-           random suffix of known keys.  Again, the IRabaCoder unit
-           tests already handle this.
-
-	 - Done. Bug fix for search on front-coded raba.
-
-4. Done.  Get rid of all uses of IDataSerializer, replacing them with
-   IRabaCoder.
-
-         - Done. IndexMetadata will need to be updated to reflect the
-	   codec interface change and the reconcilation of the
-	   IDataSerializer with the IRabaCoder.
-
-	 - Done. ITupleSerializer - update (IDataSerializer).
-
-	 - Done. ResultSet must operate on the coded representation
-           rather than de-serializing the data.
-
-	 - Done. The IIndexProcedure implementations MUST NOT
-           deserialize the coded rabas.  Just wrap them.
-
-	 - Done.  Verify min/max version timestamps for nodes and
-           leaves are correctly maintained and persisted with unit
-           tests.  The IRaba unit tests MUST explore the value space
-           here for both nodes and leaves.
-
-5. Done. Replace data record in AbstractBTree on eviction with coded
-   data record.
-
-        - Done. Make sure that we DO NOT recode a coded IRaba
-          accidently.  This can of course be done intentionally, but
-          we should not be recoding records which are already coded as
-          that is a heavy operation.
-
-        - Done [it was a unit test problem.] There is a problem either
-	  with unit test or the code for delete markers in
-	  TestChunkedIterators.  The unit test did not historically
-	  generate deleted tuples, so the problem could be either with
-	  the B+Tree or the ResultSet or the test's own assumptions.
-
-	- Done. [The root leaf of an empty IndexSegment had a mutable
-	  data record.]  Finally, there is an odd problem with one
-	  IndexSegment unit tests where the segment is verifying that
-	  the iterator (tuple cursor) is exhausted and winds up trying
-	  to request the nextAddr from the leaf data record, which is
-	  a MutableLeafData instance(?!?).
-
-	- Done. Verify that all methods with generic parameters
-          AbstractNode<?> in AbstractBTree which are overridden are
-          overridden with exactly the same method signature.  Use
-          @Override to avoid this problem in the future.
-
-	  Done. Also check classes which extend AbstractNode (Leaf,
-	  Node, ImmutableLeaf, ImmutableNode).
-
-        - Done. Must replace the [data] with the read-only record.
-          This will change the NodeSerializer API since we need the
-          ReadOnlyLeafData or ReadOnlyNodeData object back, not just
-          the ByteBuffer (this is available from those classes).
-
-	   AbstractBTree#writeNodeOrLeaf(final AbstractNode node)
-
-        - Done. Each mutable B+Tree should use a single backing buffer
-          instance for key and value compression (NodeSerializer did
-          it this way, so there might be a reason to keep an object
-          around which has those buffers)
-
-x. Transient B+Tree issues.
-
-	- (*) Verify that transient B+Trees convert data records to
-          immutable data records when there is an eviction event.
-          This will help us bound their in-memory footprint.
-
-	  Need a unit test for this.
-
-	- Historically, a mutable node was always non-persistent. With
-          the introduction of coding of nodes and leaves for transient
-          B+Trees on eviction from the write retention queue, those
-          nodes and leaves become read-only when they are coded
-          without becoming persistent.  While {@link
-          IAbstractNodeData#isCoded()} currently reflects the same
-          distinction as {@link IAbstractNodeData#isReadOnly()}, that
-          might not always be the case. For example, it is possible to
-          have mutable coded node/leaf impls.
-
-	 - (***) There really need to be more unit tests for transient
-	   B+Trees to get at other broken assumptions, primarily
-	   asserts which are no longer valid.
-
-	 - (***) A weird problem shows up for transient B+Trees during
-           remove.  The problem is during removeAll().  One of the
-           siblings for a merge has a deleted parent, so they are not
-           in fact siblings of the same parent node!
-
-	   This looks like a real bug.  It might be connected to the
-           transient B+Tree semantics, but we should never have a
-           child which does not point back to its parent!
-
-	   One possibility is that the update of the parent on the
-	   children during merge() is broken, e.g., it does not update
-	   the last child's parent for some code path.
-	   Node#redistributeKeys() also does this.  The copyOnWrite
-	   Node() ctor is another place where we do this.  And
-	   copyOnWrite() also invokes replaceChildRef(), which is
-	   another place where the parent is changed.
-
-	   split() also updates the child references, but it is less
-	   likely to be the cause of a deleted parent.
-
-	   There are unit tests for these things, but perhaps they are
-	   not verifying that the parents are updated correctly?
-
-	   Why does TestRemoveAll() not trigger this?
-
-	   Check TestSplitJoinThreeLevels.  It it is not testing the
-	   parent reference assumptions then perhaps the problem
-	   exists even in a simple and well documented unit test.
-
-x. Other unit test problems:
-
-         - (****) Merge from the trunk.  I am not picking up the
-           commits on the trunk?!?
-
-         - (*) TestIsolatedFusedView - Add a unit test here with
-	   cursor#remove(), then fix remove() to propagate the tuple
-	   revision timestamp with the delete marker.
-
-	 - (*) TestTx - test itr#remove() for tx isolation.
-
-	 - TestDatabaseAtOnceClosure
-
-	   - Showing array store errors, perhaps related to join nexus
-             changes as they impact the pipeline join.
-
-	   - Showing errors related to allowing literals into the
-             subject or predicate positions on
-             #test_fixedPoint_SampleData_Full_NestedSubqueryJoins()
-             and
-             #test_fixedPoint_SampleData_Fast_NestedSubqueryJoins().
-
-	 - Done [fixed by using IBS to read the value].
-	   FastRDFValueCompression is broken (due to the changes to
-	   BytesUtil to use the same big endian format for bit flags
-	   as OutputBitStream?)
-
-	 - Done.  EmptyRabaCoder needs to discard any data inthe
-           IRaba.  When used for the statement indices the B+Tree will
-           maintain the values but they will be empty (a different
-           option might allow us to not maintain the values at all).
-
-6. (***) Tighter coding & versioning.
-
-   - Make sure all records and Externalizable interfaces are versioned.
-       
-   - Compare the size on disk of the trunk and this branch.
-
-   - Compare size on disk again once record level compression is
-     enabled.
-
-   - Allow B+Tree specific record compression, store-based record
-     compression, or both?  Conceptually nicer in the store itself.
-
-   - Remove ByteBuffer from the IRawStore API, replacing it with our
-     byte[] slice class, e.g., com.bigdata.io.Slice.
-
-         - IAddressSerializer is deprecated and should be deleted or
-           reused by the INodeCoder.
-
-	   Note: This must be provisioned with information about the
-	   IAddressManager if it will use address aware coding.  That
-	   information is not currently available to the INodeCoder.
-
-         - Done. Code the min/max of the version timestamp (add to the
-           API).
-	   
-  	 - Code the version timestamp[].
-
-	   - A good coding scheme might be the minimum timestamp plus
-             a minimum width coding for the remainder for each
-             timestamp.
-
-	   - Share pluggable timestamp serialization logic for
-	     DefaultLeafCoder and ResultSet.  Note that version
-	     information is always delivered IF it is being
-	     maintained.
-
-	 - Code the childAddr[].
-
-	   A good scheme might be identical to the version timestamp
-	   scheme since the childAddr[] will tend to have a shared
-	   prefix (actually, they might not since they are broken down
-	   internally into a byte offset and a byte length).
-
-	   For an index segment, the childAddr[] values will also be
-	   strictly increasing (again, not true since they code the
-	   region, the byte offset, and the byte length).
-	     
-        - Code the childEntryCount[].
-
-	  A similar scheme might apply here.  Since the B+Tree is
-	  balanced the #of spanned tuples for each child will be
-	  roughly comparable, hence substracting out the minimum could
-	  save space.
-
-	- TERM2ID could use direct addressing of the assigned term
-          identifiers if they are not packed.  That could well save
-          space over their huffman coding or simple coding since we
-          just store the long[].
-	  
-	- Compare simple vs huffman coding of ID2TERM at m<33 (e.g.,
-          on the journal).
-
-7. (***) Buffering & caching.
-
-        - Add global read retention queue and weak value hash map
-          based lookup per store of the retained data record objects.
-
-	  Consider releasing decoders earlier since they can be
-	  rematerialized from the byte[] slice.
-
-	- Since data records are immutable and the IAbstractNodeData
-          implementations are thread-safe for readers, we can share
-          the data records and their INodeData/ILeafData objects
-          across all requests for the same store+addr, even when the
-          B+Tree instances are different.
-
-	  The problem with the hard reference cache is its fixed
-	  capacity.  The Java LRU has this same limitation.  We can
-	  place an upper bound on the ring buffer and then manage the
-	  size on disk of the buffered nodes.  The buffer is not
-	  thread safe so it will have to be wrapped for that purpose.
-	  A concurrent version would be a nice touch, but only if we
-	  observe a hot spot on touch().
-
-	- The IndexSegment has a leaf cache.  That should be a global
-          cache.
-
-        - Make sure that the IndexSegmentBuilder reuses buffers and
-          slices in an optimal manner.  See flush() in that class.
-
-	- Unit test for IndexSegment with version timestamps enabled
-          which verifies the correct max/max version timestamps on the
-          nodes and leaves.
-
-        - Examine GC problems with lots of B+Tree nodes buffered.  Try
-          parallel old GC and the G1 collector.
-
-	  Tony Printezis [Antonios.Printezis@sun.com] 10G+ heaps will
-	  most likely create unpleasant Full GC pauses!  :-) But, yes,
-	  evaluate Parallel Old to first see how it works. And we can
-	  take it from there...
-
-x. (***) RMI SHOULD reuse buffers whenever possible.
-
-	 - Index write pipeline.  This is easier to do for things like
-	   the index write pipeline.
-
-         - ResultSet. It is not clear how to do this for the
-	   Externalizable interface used by the ResultSet.  Probably
-	   we need to have a ResultSetCoder so we can pass in the
-	   buffer.  Then the Externalizable implementation just
-	   invokes the coder.
-
-	 - Index procedure invocations.  Re-review use of IRabaCoding
-	   for IIndexProcedure impls.  Can we use a "Coder" model here
-	   as well and only code if we will do an RMI?  Also review
-	   the KVO(C)[] model and compare with the IRaba model.
-	   
-         - Unit tests for serialization of index procedure abstract
-	   classes, and the means they have of passing back byte[][]s
-	   and bit[]s.
-
-	 - There are no unit tests for serialization coverage for
-           IndexMetadata.
-
-	 - Unit tests of serialization for the IRabaCoders.
-
-	 - Review use of rabas in index procedures with an eye to
-           minimizing allocation once more.
-   
-	 - getKeys():IRaba and getValues():IRaba SHOULD be raised into
-	   the IKeyArrayIndexProcedure API.  This will make it easier
-	   to use efficient access to the coded data.
-
-9. Compression
-
-	- The IRawStore API SHOULD NOT make the ByteBuffer's read-only
-          and would be better off if it used an IRawRecord/Slice
-          combination.
-
-        - Decompress should be byte[] to byte[] using streams ala
-	  DataInputBuffer and DataOutputBuffer.
-
-	  If a "compression service" is added, make sure that it can
-	  not cause deadlocks.
-             
-        - Optimize out the use of the ByteBuffer.  This should be easy
-          to hack w/ record level compression if we use a
-          ByteArrayBuffer as the (de-)compression target.
-
-        - Record level compression for the store.
-
-	- The IndexSegment nodes region can be read into a byte[]
-          rather than a direct ByteBuffer.  I do not believe that we
-          gain access to any additional memory with direct ByteBuffers
-          and they are definately slower and consume memory which can
-          not be otherwise reused.  This will make it possible to do
-          perfect allocations for the nodes region.
-	  
-	  The nodes region could be compressed as a single record if
-          we get tricky.  That would be better compression, but all
-          addressing into the nodes region would have to be in terms
-          of the decompressed record.  You could not directly read on
-          the file system at the given byte address since it would be
-          in the middle of a compressed region.
-
 10. Performance tuning:
 
          - trunk vs branch performance comparisons (also compare the
            space on the disk).  For scale-out, also look at the RAM
            profile.
 
-x. Tuple revision filtering, per-child min/max tuple revision
-   timestamp on Node, and overall min/max tuple revision timestamp on
-   Node.
-
-	 - The min/max tuple revision timestamps are not being
-           maintained by Leaf.  Write unit tests for this.  
-
-	   All of the mutation operations on the leaf need to track
-	   the min/max version timestamp, including:
-
-	   done. Leaf#insert() (as insert, update, or delete)
-
-	   done. Leaf#remove() (if version timestamps are used w/o
-		 delete markers)
-
-	   Leaf#split() [Leaf is done, but Node.min[] and max[] are
-	                 not done yet].
-	   
-	   Leaf#merge() [Leaf is done, but Node.min[] and max[] are
-			 not updated yet.]
-	   
-	   Leaf#redistributeKeys() [Leaf is done, but Node.min[] and
-				    max[] are not updated yet.]
-
-	   ----
-
-	   To track the min/max timestamp on the Node we must also
-	   track the min/max timestamp for each direct child of that
-	   node.  While this inflates the size of the Node's data
-	   record considerably, we are required to track those
-	   per-child data in order to avoid a scan of the children
-	   when we need to recompute the min/max timestamp for the
-	   Node.  The cost of that scan (with its IO) is simply not
-	   acceptable.  The min/max timestamp on the Node is ONLY used
-	   for filtering iterators based on a desired tuple revision
-	   range.  This is why the choice to support tuple revision
-	   filters is its own configuration option.
-
-	   Node#insertChild()
-
-	   Node#removeChild()
-
-	   Node#split()
-
-	   Node#merge()
-
-	   Node#redistributeKeys()
-
-	   merge/split appear to update the child entry counts on the
-	   parent directly, so they must also update the min/max
-	   directly.
-
-	   Put the versionTimestamp[] into its own Class along with
-	   the min/max version timestamps.  This will reduce the in
-	   memory overhead for a MutableNodeData or MutableLeafData
-	   instance which does not use version timestamps. This will
-	   also make coding those data easier to isolate since there
-	   can be an interface for the version timestamp information
-	   (extended by IAbstractNodeData).
-
-	   (****) Lots of tasty unit tests.  This really needs to be
-	   tested in depth on the 3-level B+Tree example to ensure
-	   that we are covering all of the bases, including
-	   redistribution of keys, splitting of nodes, and merging of
-	   nodes.
-
-	   Done. [min=MAX_LONG iff empty, max=MIN_LONG iff empty,
-	   verify in unit tests, including initial state and end state
-	   after all tuples are removed] Firm policy on the initial
-	   value of the min/max version timestamp.
-
-	 - Support iterator filtering by a tuple revision range.
-           Write the unit tests for that.  Consider change the
-           IRangeQuery API to have an object which declares the
-           iterator parameters since there are SO MANY.  The iterator
-           should skip nodes when they are not relevant to the tuple
-           revision constraint.
-
-
-------------------------------------------------------------
 laptop 9/2/2009
 
 -server -Xmx1000m
@@ -1032,36 +790,110 @@ alibaba	 : 45655 stmts added in 1.719 secs, rate= 26559, commitLatency=219ms
 NCIOnc	 : 464841 stmts added in 26.75 secs, rate= 17377, commitLatency=422ms
 baseball :
 
+9/7/2009 : encodeLive(), trim(), symbol2byte() uses array(), FastRDFValueCoder not used.
+U10	 : 1316700 stmts added in 99.185 secs, rate= 13275, commitLatency=0ms
+U5	 : 645835 stmts added in 41.969 secs, rate= 15388, commitLatency=0ms
+U1	 : 103104 stmts added in 4.735 secs, rate= 21774, commitLatency=0ms
+wordnet  : 273681 stmts added in 17.078 secs, rate= 16025, commitLatency=328ms
+thesaurus: 1086012 stmts added in 72.031 secs, rate= 15077, commitLatency=344ms
+alibaba  : 45655 stmts added in 1.765 secs, rate= 25866, commitLatency=250ms
+NCIOnc   : 464841 stmts added in 28.187 secs, rate= 16491, commitLatency=407ms
+^^^ All examples are slower!
+
+9/7/2009 : symbol2byte() modified to conditionally use backing array ref when NOT encodeLive().
+U10	 : 1316700 stmts added in 97.128 secs, rate= 13556, commitLatency=0ms
+U5	 : 645835 stmts added in 40.451 secs, rate= 15965, commitLatency=0ms
+U1	 : 103104 stmts added in 4.86 secs, rate= 21214, commitLatency=0ms
+wordnet	 : 273681 stmts added in 16.531 secs, rate= 16555, commitLatency=329ms
+thesaurus: 1086012 stmts added in 70.891 secs, rate= 15319, commitLatency=344ms
+alibaba  : 45655 stmts added in 1.844 secs, rate= 24758, commitLatency=234ms
+NCIOnc	 : 464841 stmts added in 27.031 secs, rate= 17196, commitLatency=500ms
+
+9/7/2009 : inlined symbol2byte(), but still NOT using FastRDFValueCoder.
+U10	 : 1316700 stmts added in 116.701 secs, rate= 11282, commitLatency=0ms
+U5	 : 645835 stmts added in 48.094 secs, rate= 13428, commitLatency=0ms
+U1	 : 103104 stmts added in 5.188 secs, rate= 19873, commitLatency=0ms
+wordnet	 : 273681 stmts added in 17.563 secs, rate= 15582, commitLatency=328ms
+thesaurus: 1086012 stmts added in 77.469 secs, rate= 14018, commitLatency=343ms
+alibaba  : 45655 stmts added in 2.047 secs, rate= 22303, commitLatency=328ms
+NCIOnc   : 464841 stmts added in 30.453 secs, rate= 15264, commitLatency=438ms
+
+9/7/2009 : inlined symbol2byte(), but using FastRDFValueCoder w/ putInt(size).
+U10	 : 1316700 stmts added in 90.75 secs, rate= 14509, commitLatency=0ms
+U5	 : 645835 stmts added in 37.987 secs, rate= 17001, commitLatency=0ms
+U1	 : 103104 stmts added in 4.562 secs, rate= 22600, commitLatency=0ms
+wordnet  : 273681 stmts added in 15.438 secs, rate= 17727, commitLatency=328ms
+thesaurus: 1086012 stmts added in 67.703 secs, rate= 16040, commitLatency=297ms
+alibaba  : 45655 stmts added in 1.797 secs, rate= 25406, commitLatency=172ms
+NCIOnc   : 464841 stmts added in 26.672 secs, rate= 17428, commitLatency=360ms
+
+9/7/2009 : inlined symbol2byte(), but using SimpleRabaCoder for values.
+U10	 : 1316700 stmts added in 88.076 secs, rate= 14949, commitLatency=0ms
+U5	 : 645835 stmts added in 36.904 secs, rate= 17500, commitLatency=0ms
+U1	 : 103104 stmts added in 4.469 secs, rate= 23070, commitLatency=0ms
+wordnet	 : 273681 stmts added in 15.109 secs, rate= 18113, commitLatency=469ms
+thesaurus: 1086012 stmts added in 68.344 secs, rate= 15890, commitLatency=312ms
+alibaba	 : 45655 stmts added in 1.797 secs, rate= 25406, commitLatency=172ms
+NCIOnc   : 464841 stmts added in 26.718 secs, rate= 17398, commitLatency=453ms
+
+	 - Note: Based on the results above it is clear that encoding
+           the values can be a significant cost.
+
+	   SimpleRabaCoder is slightly faster than FastRDFValueCoder
+	   for most data sets.  Both are significantly faster than
+	   CanonicalHuffman.
+
+	   Track coding time for keys (nodes and leaves) and values
+	   separately for the B+Tree.  The data can be reported out of
+	   the BTreeCounters.  This will give better guidence on the
+	   performance of different raba coders.
+
 	 - Performance comparisons of different coders (primarily
            simple vs huffman) for the RDF DB (impacts TERM2ID, ID2TERM
            and statement indices when using SIDS).
 
-	 - Performance comparisons of load rate change due to the
-           coding of nodes and leaves when they are evicted and their
-           subsequent use as coded data records.
+	- Add OBS(byte[],off,len) ctor for faster operations on
+          slices.
 
-	 AbstractRabaCoderTestCase#main(String[])
+	- Try increasing the default write retention queue capacity
+          and see how that effects throughput.
+
+	- Faster and direct initialization of the
+          CanonicalHuffmanRabaCoder#CodedRaba instance during
+          encodeLive().  Directly set the various instance fields.
+
+ 	- Try using getValueStream() rather than getValue() and
+          getKeyStream() rather than getKey() for ITuple operations.
+          However, note that direct byte[] operations are often
+          significantly faster unless the heap overhead becomes a
+          bottleneck.
+
+	- The front-coded raba could be more efficient (the backing
+          implementation recomputes the length of the front coded
+          array during extraction).
+
+	- Try buffering more data when loading a series of documents.
+          Do we get better B+Tree performance?
+
+	- Performance comparisons of load rate change due to the
+          coding of nodes and leaves when they are evicted and their
+          subsequent use as coded data records.
+
+	- AbstractRabaCoderTestCase#main(String[])
 
 	     - There are definately optimizations which could be made
 	       in the front-coded byte[], mainly dealing with
 	       recomputing the length of a byte[] entry, but also with
 	       copying the data efficiently onto an OutputStream.
 
-	     - Memory analyzer.  How is the in-memory representation
-               now as compared to the trunk?
+	- Memory analyzer.  How is the in-memory representation now as
+          compared to the trunk?
 
-	 (***) The canonical huffman raba coder appears to be VERY
-	       slow when compared to the other implementations.  The
-	       problem appears to be InputBitStream.
-
-	       Modify InputBitStream to natively use the backing
-	       (byte[], off, len), which should be much faster.
-
-	       This would be a new ctor.  position := 0.  pos := off.
-	       avail := len.
-
-	       AbstractFixedByteArrayBuffer would use that ctor for
-	       its getInputBitStream() method.
+        - The default node and leaf keys coder should use
+          front-coding.  However, there is a ratio parameter. The
+          right value for the ratio could depend on the B+Tree
+          branching factor, and that can vary for the mutable BTree
+          and the IndexSegment.
 
 nops=400000, size=256, ncoders=5
 com.bigdata.btree.raba.codec.SimpleRabaCoder@ee6ad6 : elapsed=17231, recordLength=3032
@@ -1113,12 +945,6 @@ recode	5609	6044344	92.07%	927.975
 com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder@9b04ac : elapsed=50066, recordLength=1916
 
 
-       - Canonical Huffman.
-
-          - Add unit tests for keys NOT present in the raba.
-
-	  - Done. Special case when nsymbols==1 (dsiutils bug).
-
        - RDF Front Coding or Canonical Huffman Leaf Key Coders.
 
          This would apply only to the leaves, where we always have
@@ -1135,31 +961,7 @@ com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder@9b04ac : elapsed=50066, r
            very compact when the alphabet corresponds to the natural
            data type size.  E.g., RDF long[3] or long[4] keys.
 
-       - (***) IndexMetadata.
-
-          - Review all of the options relating to object
-            serialization, key/value compression, and record
-            compression.
-
-	    Note that record level compression might be moved into the
-	    store.  It is covered right now by the NodeSerializer.
-	    That has the advantage of being per B+Tree, even on the
-	    journal and of not challenging any existing APIs. It has
-	    the disadvantage of making the NodeSerializer complex.
-
-	  - Add options for the LeafCoder and NodeCoder.
-
-	  - The default node and leaf keys coder should use
-            front-coding.  However, there is a ratio parameter. The
-            right value for the ratio could depend on the B+Tree
-            branching factor, and that can vary for the mutable BTree
-            and the IndexSegment.
-
-	  - IAddressSerializer -> IAddressCoder?
-
-	  - ITimestampCoder?
-
-	  - What should be used for the default value coder?
+         - What should be used for the default value coder?
 
 	    - SimpleValueCoder (no compression)?
 
@@ -1171,6 +973,11 @@ com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder@9b04ac : elapsed=50066, r
 	    See Id2TermTupleSerializer, which already uses the
 	    ConditionalValueCoder.  Review the choice based on
 	    performance for load, query, and size on disk.
+
+	    TERM2ID should use a fixed size value coding for the
+	    long[] of term identifers.  This _might_ save space and
+	    will definately improve performance over huffman with
+	    offset addressing.
 	    
 	    Note that huffman coding may cost more, but it may be
 	    worth it for large data sets based on the in-memory
@@ -1251,6 +1058,9 @@ com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder@9b04ac : elapsed=50066, r
 	     This could be part of how we reconcile the DataSerializer
 	     and the IRabaCoder APIs.
 
+------------------------------------------------------------
+x. Packaging (ant script, dependencies).
+
        - Done. Converge on the standard fastutil and dsi dependencies,
          removing their variants from the lgpl-utils module and move
          the lgpl-utils module into the bigdata project.
@@ -1304,6 +1114,86 @@ com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder@9b04ac : elapsed=50066, r
            support coding in the bit streams.
 
 ------------------------------------------------------------
+
+x. Tuple revision filtering, per-child min/max tuple revision
+   timestamp on Node, and overall min/max tuple revision timestamp on
+   Node.
+
+	 - The min/max tuple revision timestamps are not being
+           maintained by Leaf.  Write unit tests for this.  
+
+	   All of the mutation operations on the leaf need to track
+	   the min/max version timestamp, including:
+
+	   done. Leaf#insert() (as insert, update, or delete)
+
+	   done. Leaf#remove() (if version timestamps are used w/o
+		 delete markers)
+
+	   Leaf#split() [Leaf is done, but Node.min[] and max[] are
+	                 not done yet].
+	   
+	   Leaf#merge() [Leaf is done, but Node.min[] and max[] are
+			 not updated yet.]
+	   
+	   Leaf#redistributeKeys() [Leaf is done, but Node.min[] and
+				    max[] are not updated yet.]
+
+	   ----
+
+	   To track the min/max timestamp on the Node we must also
+	   track the min/max timestamp for each direct child of that
+	   node.  While this inflates the size of the Node's data
+	   record considerably, we are required to track those
+	   per-child data in order to avoid a scan of the children
+	   when we need to recompute the min/max timestamp for the
+	   Node.  The cost of that scan (with its IO) is simply not
+	   acceptable.  The min/max timestamp on the Node is ONLY used
+	   for filtering iterators based on a desired tuple revision
+	   range.  This is why the choice to support tuple revision
+	   filters is its own configuration option.
+
+	   Node#insertChild()
+
+	   Node#removeChild()
+
+	   Node#split()
+
+	   Node#merge()
+
+	   Node#redistributeKeys()
+
+	   merge/split appear to update the child entry counts on the
+	   parent directly, so they must also update the min/max
+	   directly.
+
+	   Put the versionTimestamp[] into its own Class along with
+	   the min/max version timestamps.  This will reduce the in
+	   memory overhead for a MutableNodeData or MutableLeafData
+	   instance which does not use version timestamps. This will
+	   also make coding those data easier to isolate since there
+	   can be an interface for the version timestamp information
+	   (extended by IAbstractNodeData).
+
+	   (****) Lots of tasty unit tests.  This really needs to be
+	   tested in depth on the 3-level B+Tree example to ensure
+	   that we are covering all of the bases, including
+	   redistribution of keys, splitting of nodes, and merging of
+	   nodes.
+
+	   Done. [min=MAX_LONG iff empty, max=MIN_LONG iff empty,
+	   verify in unit tests, including initial state and end state
+	   after all tuples are removed] Firm policy on the initial
+	   value of the min/max version timestamp.
+
+	 - Support iterator filtering by a tuple revision range.
+           Write the unit tests for that.  Consider change the
+           IRangeQuery API to have an object which declares the
+           iterator parameters since there are SO MANY.  The iterator
+           should skip nodes when they are not relevant to the tuple
+           revision constraint.
+
+------------------------------------------------------------
 (***) Known problem test suites:
 
 	 - The "resources" test suite has problems related to the
@@ -1334,6 +1224,17 @@ junit.framework.ComparisonFailure: expected:<focusStor...> but was:<databas...>
 	at junit.framework.Assert.assertEquals(Assert.java:81)
 	at junit.framework.Assert.assertEquals(Assert.java:87)
 	at com.bigdata.rdf.rules.TestTMUtility.test_rewrite2(TestTMUtility.java:128)
+
+Oh, and this one which is related to an incorrect mutation count.  The
+problem is noted in the unit test.
+
+junit.framework.AssertionFailedError: mutationCount expected:<3> but was:<0>
+	at junit.framework.Assert.fail(Assert.java:47)
+	at junit.framework.Assert.failNotEquals(Assert.java:282)
+	at junit.framework.Assert.assertEquals(Assert.java:64)
+	at junit.framework.Assert.assertEquals(Assert.java:136)
+	at com.bigdata.rdf.rules.TestDatabaseAtOnceClosure.test_simpleFixPoint(TestDatabaseAtOnceClosure.java:860)
+
 
 ------------------------------------------------------------
 
@@ -1384,6 +1285,8 @@ Access:
 
   - Strongly type the AbstractBTree's IAutoBox interface for the
     key/value types and link that with the ITupleSerializer types.
+
+  - Fully implement the JDK 1.6 Map/Set interfaces.
 
 B+Tree node buffering.
 
@@ -1465,226 +1368,6 @@ B+Tree node buffering.
 	 We could also install records into the cache when building an
 	 index segment, but again that might not be a benefit.
 
- * <pre>
-
-   version:uint6     The version identifier for this record format (6 bits,
-		     which allows for 64 format revisions).
-
-   bitCodedSymbols:1 A bit flag whose value is 1 iff the symbols are given as
-		     a packed symbol[] and 0 if they are given as a 256 bit
-		     vector (32 bytes).
-
-   nsymbols:uint9    There are at most 256 distinct symbols, which are the
-                     distinct possible byte values (9 bits, which allows
-                     for an empty leaf or node with no byte values used as
-		     well as a leaf or node with all 256 byte values used).
-
-   -- note: at this point the record is byte aligned --
-
-   symbol:byte[]     The packed symbol array -or- an alternative coding which
-   symbol:bit[256]   is used if there are GT 32 distinct symbols to be coded
-                     since it a more compact representation.
-
-		     O_symbols := 16 bits.
-
-   -- note: at this point the record is byte aligned --
-
-   bitLengthBits:uint8
-		     The width in bits of the integers used to code the 
-		     bitLength[].
-
-		     The bit offset to this field is either ((2+nsymbols)*8) (if
-		     the symbols are coded as a packed byte[]) or ((2+32)*8) (if
-		     the symbols are coded as a 256 bit vector).
-
-   codeOffsetBits:uint8
-	             The width in bits of the integers used to code the
-	             codeOffset[].  If this is ZERO (0), then the codeOffset[]
-		     was not stored and the coded values must be decoded with
-		     a sequential scan of the codeWord[].
-
-		     O_codeOffsetBits := O_bitLengths + 8;
-
-   sumCodedValueBitLengths:uint32
-		     The sum of the bit lengths of the coded values.  This is
-		     a 32bit unsigned integer, which is sufficient to code up
-		     bit lengths of up to 512MB.  This field IS NOT present 
-		     if the codeOffsetBits is ZERO (0) since the field is only
-		     used to compute the bit offset of the codeOffset[].
-
-		     O_sumCodedValueBitLengths := O_bitLengths + 16;
-
-   -- note: at this point the record is byte aligned --
-   
-   nulls[]	     A vector of [nvalues] bit flags.  A flag is a ONE (1) iff
-		     the corresponding byte[] in the logical byte[][] was a 
-		     null.  A null is coded as a sequence of ZERO (0) code 
-		     words.  However, empty byte[]s are also permitted for
-		     B+Tree values (but not for B+Tree keys).  Therefore you
-		     MUST test the nulls[] to distinguish between a null byte[]
-		     and an empty byte[].
-
-		     O_nulls :=  O_bitLengthBits + 8 + 8 + (codeOffsetBits==0?0:32);
-  
-   bitLength[]	     The delta in the bit length of each code word from the
-		     previous code word.  There is one code word pre symbol.  
-		     The code words MUST be a canonical huffman code, which
-		     implies that the code words are arranged in a
-		     non-decreasing order.  This is used to reconstruct the
-		     decoder when processing the record.  The combination of
-		     a canonical huffman code and the bitLength[] allows us 
-		     to generate the decoder without any additional information.
-
-		     O_bitLength[] := O_nulls + nvalues
-
-   codedValue:bit[]  The coded values given as a sequence of code words.  The
-		     offsets of each coded value in this array are given
-		     directly by the codeOffset[].
-
-		     O_codedValue[] := O_bitLength[] + (nsymbols*bitLengthBits)
-
-   codeOffset[]      Offset to the start of each code from the start of the
-                     codedValue[].  While the delta in the offsets could be
-		     represented more efficiently, the offsets are represented
-		     directly so that we may avoid reading the entire codeOffset[]
-		     into memory.  This array is present iff codeOffsetBits is GT 
-		     ZERO.
-
-		     O_codeOffset[] := O_codedValue[] + sumCodedValueBitLengths
-
- </pre>
-
-codeWord[]=[1101, 000, 001, 010, 1110, 1111, 011, 100, 101, 1100]
-longCodeWord[]=[13, 0, 1, 2, 14, 15, 3, 4, 5, 12] (base10 version of the codeWords)
-
-length[]=[3, 3, 3, 3, 3, 3, 4, 4, 4, 4]
-symbol[]=[1, 2, 3, 6, 7, 8, 9, 0, 4, 5]
-
-Reordering of the symbol2byte[] to match the code book:
-      0    1    2    3    4    5    6    7    8    9
-in: [99, 101, 105, 107, 109, 110, 111, 112, 114, 115]
-out:[101, 105, 107, 111, 112, 114, 115, 99, 109, 110]
-
-codeWord: 000, symbol=0, value=99 (c)
-codeWord: 001, symbol=1, value=101 (e)
-codeWord: 010, symbol=2, value=105 (i)
-codeWord: 011, symbol=3, value=107 (k)
-codeWord: 100, symbol=4, value=109 (m)
-codeWord: 101, symbol=5, value=110 (n)
-codeWord: 1101, symbol=6, value=111 (o)
-codeWord: 1110, symbol=7, value=112 (p)
-codeWord: 1111, symbol=8, value=114 (r)
-codeWord: 1100, symbol=9, value=115 (s)
-
-
-Note: When sending this record format, you must also transmit both the
-#of values in the logical byte[][] coded by the record and the #of
-bits in the record itself.
-
-- The Huffman decoder ctor requires the code words arranged into a
-  non-decreasing order by code length paired with the symbols arranged
-  in a correlated order.  This can be done either in the serialized
-  format or when read build the decoder from the record.  We do this
-  when we build the decoder because that allows us to use a more
-  compact representation of the symbols in the serialized record and
-  because the code word lengths are implicit in the code words due to
-  the prefix property.
-
-  - The codeWordLength[] might be more compact with run length
-    encoding.  The article suggests [min, max, #of codes having each
-    length between min and max].  E.g., a variant of runLength
-    encoding.
-
-    Try fibonacci codes for the dictionary entries when N LT 64?
-
-  - dsiutils
-
-    1. Modified HuffmanCodec to expose the symbol[].
-    
-    2. HuffmanCodec will fail if it is given a zero length
-       frequency[].  The exception is thrown out of the
-       CanonicalFast64CodeWordDecoder ctor.
-
-    3. Done. The ByteArrayFrontCodedList can not directly use the data
-       in place in a ByteBuffer or IBS.  Its serialization will have
-       to be modified to support that application.
-
-    4. Build lgpl-utils as a separate JAR and link it as a dependency.
-
-  - Implement at least:
-
-    None w/ search.  The byte[][] is written out w/o coding.
-
-       Write and test.  We should be able to do search() on this as
-       well as random lookup.  [This could be implemented using
-       FrontCodedCoder if it were modified such that the ratio is
-       dynamically set to the #of items in the record.]
-
-    Prefix coding w/ search
-
-       Done.  Continue the refactor so we can use search() on a raba
-       and test it in this context.  See if I can make some progress.
-
-       Still need to reconcile PrefixSerializer (IDataSerializer,
-       streams) with FrontCodedDataCoder (IDataCoder, records).
-
-    Canonical huffman coding w/ search.
-
-       This requires us to code zero frequency count byte values are
-       used so any byte[] may be coded.
-
-    Canonical huffman coding w/o search.
-
-       Only the byte values having non-zero frequency counts are
-       coded.
-    
-	Note: I am still having troubles with the canonical huffman
-	code.  It is possible to rebuild the Decoder from the
-	frequency[].  While that is quite a hack, it might be better
-	than banging my head on the wall further.  One problem with
-	that approach (at least as taken by MikeP) is it is NOT a
-	canonical code which results.  Another is that different data
-	are written onto the persistent record so the serialized
-	formats would not be compatible after a fix.
-
-    Hu-Tucker w/ search.
-
-        I am disincluded to implement this coding since the algorithm
-	implemented to find the code is quadratic in the size of the
-	code space and we would need to code all 256 byte values each
-	time in order to use this for search.
-
-    FastRDFValueCompression
-
-	Modify implement IDataCoder so as to permit in place access to
-	the coded values.
-
-  - Try patch to HuffmanSerializer in the trunk w/o StringBuilder and
-    w/o freq[].  Instead, send the code word bit lengths and either
-    use canonical huffman codes or also send the symbols/symbol
-    indices.
-
-- extend IRandomAccessByteArray interface for keys, adding a search()
-  method.  
-
-  Refactor to declare optional operations which throw an
-  UnsupportedOperationException and then clean up the interface
-  hierarchy.
-
-- Both Leaf and Node should provide access methods to wrap their keys
-  as a Raba and their values as a Raba.  We may want caching for those
-  wrapped views.
-
-  - Implement MutableLeafData by refactoring Leaf.
-
-  - Implement MutableNodeData by refactoring Node.
-
-- Align IDataSerializer with IRabaEncoder and IRabaDecoder.  Modify
-  various things to take advantage of random access to the coded
-  byte[]s rather than decoding everything first.
-
-- IBS over ByteBufferInputStream might be slow.  Look into that.
-
 ------------------------------------------------------------
 -- Global B+Tree node/leaf buffering, or maybe record ------
 -- buffer across all stores for a DS instance --------------
@@ -1763,3 +1446,14 @@ Mac Java 1.6 Setup
 
 http://www.netbeans.org/kb/61/java/javafx-jdk6-on-32-bit-mac.html
 http://landonf.bikemonkey.org/static/soylatte/
+
+
+http://blog.neo4j.org/2009/04/current-database-debate-and-graph.html
+http://neo4j.org/
+
+Consider implementing neo4j APIs.
+
+
+http://4store.org/ (Garlik)
+
+http://www.mpi-inf.mpg.de/yago-naga/yago/ (256M, 2 million entities)

@@ -438,6 +438,150 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
     }
 
     /**
+     * A simple test of {@link TruthMaintenance} in which some statements are
+     * asserted, including one statement which is also produced as an inference,
+     * and their closure is computed and aspects of that closure are verified
+     * (this is based on rdfs11). After we verify the closure, we retract the
+     * explicit statement and then verify that the closure was updated such that
+     * the statement was downgraded to an inference.
+     * 
+     * @throws SailException 
+     */
+    public void test_downgradeExplicitToInference() throws SailException {
+        
+        final AbstractTripleStore store = getStore();
+        
+        try {
+            
+            final TruthMaintenance tm = new TruthMaintenance(store.getInferenceEngine());
+            
+            final BigdataValueFactory f = store.getValueFactory();
+            
+            final BigdataURI U = f.createURI("http://www.bigdata.com/U");
+            final BigdataURI V = f.createURI("http://www.bigdata.com/V");
+            final BigdataURI X = f.createURI("http://www.bigdata.com/X");
+
+            final BigdataURI rdfsSubClassOf = f.asValue(RDFS.SUBCLASSOF);
+
+            {
+
+                final TempTripleStore tempStore = tm.newTempTripleStore();
+
+                // buffer writes on the tempStore.
+                {
+
+                    final StatementBuffer assertionBuffer = new StatementBuffer(
+                            tempStore, store, 10/* capacity */);
+
+                    assertTrue(tempStore == assertionBuffer.getStatementStore());
+
+                    assertionBuffer.add(U, rdfsSubClassOf, V);
+                    assertionBuffer.add(V, rdfsSubClassOf, X);
+
+                    /*
+                     * Note: this statement is entailed by the other two, but we
+                     * represent it explicitly as well in order to test the
+                     * downgrade mechanism.
+                     */
+                    assertionBuffer.add(U, rdfsSubClassOf, X);
+
+                    // flush to the temp store.
+                    assertionBuffer.flush();
+
+                }
+
+                if (log.isInfoEnabled())
+                    log.info("\n\ntempStore:\n"
+                            + tempStore.dumpStore(store, true, true, false,
+                                    true));
+
+                System.err.println("Doing asserts.");
+                
+                // perform closure and write on the database.
+                tm.assertAll(tempStore);
+
+            }
+
+            if (log.isInfoEnabled())
+                log.info("\n\ndatabase:\n"
+                        + store.dumpStore(store, true, true, false, true));
+            
+            // verify statements exist.
+            assertTrue(store.hasStatement(U, rdfsSubClassOf, V));
+            assertTrue(store.hasStatement(V, rdfsSubClassOf, X));
+            assertTrue(store.hasStatement(U, rdfsSubClassOf, X));
+            
+            // and verify their statement type. 
+            assertEquals(StatementEnum.Explicit, store.getStatement(U,
+                    rdfsSubClassOf, V).getStatementType());
+            assertEquals(StatementEnum.Explicit, store.getStatement(V,
+                    rdfsSubClassOf, X).getStatementType());
+            assertEquals(StatementEnum.Explicit, store.getStatement(U,
+                    rdfsSubClassOf, X).getStatementType());
+
+            // now retract 
+            {
+
+                final TempTripleStore tempStore = tm.newTempTripleStore();
+
+                // buffer writes on the tempStore.
+                {
+
+                    final StatementBuffer retractionBuffer = new StatementBuffer(
+                            tempStore, store, 10/* capacity */);
+
+                    assertTrue(tempStore == retractionBuffer.getStatementStore());
+
+                    /*
+                     * Retract this statement. It is explicitly present in the
+                     * DB. However, note that it is also inferred. Therefore, it
+                     * MUST be downgraded to an inference.
+                     */
+                    retractionBuffer.add(U, rdfsSubClassOf, X);
+
+                    // flush to the temp store.
+                    retractionBuffer.flush();
+
+                }
+
+                if (log.isInfoEnabled())
+                    log.info("\n\ntempStore:\n"
+                            + tempStore.dumpStore(store, true, true, false,
+                                    true));
+
+                System.err.println("Doing retraction.");
+                
+                // perform closure and write on the database.
+                tm.retractAll(tempStore);
+                
+            }
+
+            if (log.isInfoEnabled())
+                log.info("\n\ndatabase:\n"
+                        + store.dumpStore(store, true, true, false, true));
+            
+            // verify statements exist.
+            assertTrue(store.hasStatement(U, rdfsSubClassOf, V));
+            assertTrue(store.hasStatement(V, rdfsSubClassOf, X));
+            assertTrue(store.hasStatement(U, rdfsSubClassOf, X));
+
+            // and verify their statement type. 
+            assertEquals(StatementEnum.Explicit, store.getStatement(U,
+                    rdfsSubClassOf, V).getStatementType());
+            assertEquals(StatementEnum.Explicit, store.getStatement(V,
+                    rdfsSubClassOf, X).getStatementType());
+            assertEquals(StatementEnum.Inferred, store.getStatement(U,
+                    rdfsSubClassOf, X).getStatementType());
+
+        } finally {
+            
+            store.closeAndDelete();
+            
+        }
+        
+    }
+
+    /**
      * Given three explicit statements:
      * 
      * <pre>
@@ -555,23 +699,24 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
         }
 
     }
-    
+
     /**
-     * This test demonstrates TM incorrectness. I add two statements into store
-     * A, then remove one of them. Then I add the the statement that remain in
-     * store A into store B and compare the closure of the stores. They should
-     * be the same, right? Well, unfortunately they are not the same. Too many
-     * inferences were deleted from the first store during TM.
+     * This test demonstrates TM incorrectness (since fixed of course). I add
+     * two statements into store A, then remove one of them. Then I add the the
+     * statement that remain in store A into store B and compare the closure of
+     * the stores. They should be the same, right? Well, unfortunately they are
+     * not the same. Too many inferences were deleted from the first store
+     * during TM.
      */
     public void test_closurecorrectness() {
         
-        URI a = new URIImpl("http://www.bigdata.com/a");
-        URI b = new URIImpl("http://www.bigdata.com/b");
-        URI c = new URIImpl("http://www.bigdata.com/c");
-//        URI d = new URIImpl("http://www.bigdata.com/d");
-        URI sco = RDFS.SUBCLASSOF;
+        final URI a = new URIImpl("http://www.bigdata.com/a");
+        final URI b = new URIImpl("http://www.bigdata.com/b");
+        final URI c = new URIImpl("http://www.bigdata.com/c");
+//        final URI d = new URIImpl("http://www.bigdata.com/d");
+        final URI sco = RDFS.SUBCLASSOF;
 
-        AbstractTripleStore store = getStore();
+        final AbstractTripleStore store = getStore();
         
         try {
 

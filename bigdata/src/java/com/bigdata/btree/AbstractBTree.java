@@ -61,7 +61,7 @@ import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
-import com.bigdata.io.FixedByteArrayBuffer;
+import com.bigdata.io.AbstractFixedByteArrayBuffer;
 import com.bigdata.io.compression.IRecordCompressorFactory;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.AbstractTask;
@@ -3152,52 +3152,45 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
             node.assertInvariants();
         
         // the coded data record.
-        final FixedByteArrayBuffer slice;
+        final AbstractFixedByteArrayBuffer slice;
         {
-
-            /*
-             * Code the node or leaf onto a shared buffer, replacing the data
-             * record reference on the node/leaf with a reference to the coded
-             * data record.
-             */
 
             final long begin = System.nanoTime();
 
             /*
-             * Code the record, then _clone_ the backing byte[] buffer (it is a
-             * shared buffer) and wrap the cloned byte[] as a slice.
+             * Code the node or leaf, replacing the data record reference on the
+             * node/leaf with a reference to the coded data record.
              * 
-             * FIXME This should be optimized for the very common use case where
-             * we want to have immediate access to the coded data record. In
-             * that case, many of the IRabaCoder implementations can be
-             * optimized by passing the underlying coding object
-             * (FrontCodedByteArray, HuffmanCodec's decoder) directly into an
-             * alternative ctor for the decoder. This gives us "free" decoding
-             * for the case when we are coding the record. The coded data record
-             * is available from the IRabaDecoder.
+             * Note: This is optimized for the very common use case where we
+             * want to have immediate access to the coded data record. In that
+             * case, many of the IRabaCoder implementations can be optimized by
+             * passing the underlying coding object (FrontCodedByteArray,
+             * HuffmanCodec's decoder) directly into an alternative ctor for the
+             * decoder. This gives us "free" decoding for the case when we are
+             * coding the record. The coded data record is available from the
+             * IRabaDecoder.
              * 
              * About the only time when we do not need to do this is the
              * IndexSegmentBuilder, since the coded record will not be used
              * other than to write it on the disk.
-             * 
-             * In order to do this, INodeCoder and ILeafCoder need to be
-             * modified and then NodeSerializer as well. They all need
-             * "encodeLive()" options.
              */
-            slice = FixedByteArrayBuffer
-                    .wrap(nodeSer.encode(node).toByteArray());
-
             if (node.isLeaf()) {
 
-                // wrap coded record and _replace_ the data ref.
-                ((Leaf) node).data = nodeSer.leafCoder.decode(slice);
-                
+                // code data record and _replace_ the data ref.
+                ((Leaf) node).data = nodeSer.encodeLive(((Leaf) node).data);
+
+                // slice onto the coded data record.
+                slice = ((Leaf) node).data();
+
                 btreeCounters.leavesWritten++;
 
             } else {
 
-                // wrap coded record and _replace_ the data ref.
-                ((Node) node).data = nodeSer.nodeCoder.decode(slice);
+                // code data record and _replace_ the data ref.
+                ((Node) node).data = nodeSer.encodeLive(((Node) node).data);
+
+                // slice onto the coded data record.
+                slice = ((Node) node).data();
 
                 btreeCounters.nodesWritten++;
 
@@ -3238,8 +3231,9 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 
         /*
          * The node or leaf now has a persistent identity and is marked as
-         * clean. At this point is MUST be treated as being immutable. Any
-         * changes directed to this node or leaf MUST trigger copy-on-write.
+         * clean. At this point it's data record is read-only. Any changes
+         * directed to this node or leaf MUST trigger copy-on-write and convert
+         * the data record to a mutable instance before proceeding.
          */
 
         node.setIdentity(addr);

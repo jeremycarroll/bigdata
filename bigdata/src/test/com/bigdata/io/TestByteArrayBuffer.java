@@ -202,6 +202,39 @@ public class TestByteArrayBuffer extends TestCase2 {
         
     }
 
+    public void test_trim() {
+
+        // note: will be extended.
+        final int initialCapacity = Bytes.SIZEOF_INT * 2;
+
+        final ByteArrayBuffer buf = new ByteArrayBuffer(initialCapacity);
+
+        buf.putInt(1);
+        buf.putInt(3);
+        buf.putInt(5);
+
+        assertEquals(Bytes.SIZEOF_INT * 3, buf.limit());
+        
+        final int currentCapacity = buf.capacity();
+        
+        assertTrue(currentCapacity > initialCapacity);
+        
+        final byte[] old = buf.trim();
+
+        assertEquals(currentCapacity, old.length);
+
+        assertTrue(old != buf.array());
+        
+        assertEquals(Bytes.SIZEOF_INT * 3, buf.limit());
+        
+        assertEquals(Bytes.SIZEOF_INT * 3, buf.array().length);
+        
+        assertEquals(1, buf.getInt(0));
+        assertEquals(3, buf.getInt(Bytes.SIZEOF_INT));
+        assertEquals(5, buf.getInt(Bytes.SIZEOF_INT * 2));
+
+    }
+    
     /*
      * get/put
      * 

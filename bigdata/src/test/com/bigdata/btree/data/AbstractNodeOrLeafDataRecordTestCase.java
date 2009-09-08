@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree.data;
 
 import com.bigdata.btree.AbstractBTreeTestCase;
+import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.raba.ReadOnlyKeysRaba;
 import com.bigdata.btree.raba.ReadOnlyValuesRaba;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
@@ -152,9 +153,24 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
              * A leaf data record.
              */
 
+            // Test the live coded path (returns coded instance for immediate use).
+            final ILeafData liveCodedLeaf = ((IAbstractNodeDataCoder<ILeafData>) coder)
+                    .encodeLive((ILeafData) expected, new DataOutputBuffer());
+
+            final AbstractFixedByteArrayBuffer liveCodedData = liveCodedLeaf
+                    .data();
+
+            assertSameLeafData((ILeafData) expected, liveCodedLeaf);
+
             // encode
             final AbstractFixedByteArrayBuffer originalData = ((IAbstractNodeDataCoder<ILeafData>) coder)
                     .encode((ILeafData) expected, buf);
+
+            // verify same encoding.
+            assertTrue(0 == BytesUtil.compareBytesWithLenAndOffset(
+                    liveCodedData.off(), liveCodedData.len(), liveCodedData
+                            .array(), originalData.off(), originalData.len(),
+                    originalData.array()));
 
             // Verify we can decode the record.
             {
@@ -216,6 +232,15 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
             /*
              * A node data record.
              */
+
+            // Test the live coded path (returns coded instance for immediate use).
+            final INodeData liveCodedNode = ((IAbstractNodeDataCoder<INodeData>) coder)
+                    .encodeLive((INodeData) expected, new DataOutputBuffer());
+
+            final AbstractFixedByteArrayBuffer liveCodedData = liveCodedNode
+                    .data();
+
+            assertSameNodeData((INodeData) expected, liveCodedNode);
 
             // encode
             final AbstractFixedByteArrayBuffer originalData = ((IAbstractNodeDataCoder<INodeData>) coder)

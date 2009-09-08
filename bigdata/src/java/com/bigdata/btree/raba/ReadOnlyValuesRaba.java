@@ -55,7 +55,7 @@ public class ReadOnlyValuesRaba extends AbstractRaba {
     }
 
     /**
-     * For B+Tree values (allows <code>null</code>s, not searchable).
+     * No.
      */
     final public boolean isKeys() {
     

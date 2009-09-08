@@ -500,37 +500,43 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
 
         assertEquals("size", expected.size(), actual.size());
 
+        // random permutation for random access test.
+        final int[] order = getRandomOrder(expected.size());
+        
         // test using random access.
         for (int i = 0; i < expected.size(); i++) {
 
-            assertEquals("isNull(" + i + ")", expected.isNull(i), actual
-                    .isNull(i));
+            // process the elements in a random order.
+            final int j = order[i];
+            
+            assertEquals("isNull(" + j + ")", expected.isNull(j), actual
+                    .isNull(j));
 
-            if (!expected.isNull(i)) {
+            if (!expected.isNull(j)) {
 
                 // verify same byte[] contents.
-                final byte[] ea = expected.get(i);
-                final byte[] aa = actual.get(i);
+                final byte[] ea = expected.get(j);
+                final byte[] aa = actual.get(j);
 
                 // same length
                 if (ea.length != aa.length)
-                    assertEquals("get(" + i + ").length", ea.length, aa.length);
+                    assertEquals("get(" + j + ").length", ea.length, aa.length);
 
                 // same data.
                 if (!BytesUtil.bytesEqual(ea, aa))
-                    assertEquals("get(" + i + ")", ea, aa);
+                    assertEquals("get(" + j + ")", ea, aa);
 
                 // verify same byte[] length reported.
-                assertEquals("length(" + i + ")", expected.length(i), actual
-                        .length(i));
+                assertEquals("length(" + j + ")", expected.length(j), actual
+                        .length(j));
 
                 // verify copy() gives expected byte[].
                 try {
                     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     final DataOutputStream dos = new DataOutputStream(baos);
-                    actual.copy(i, dos);
+                    actual.copy(j, dos);
                     dos.flush();
-                    assertEquals("copy(" + i + ",dos)", expected.get(i), baos
+                    assertEquals("copy(" + j + ",dos)", expected.get(j), baos
                             .toByteArray());
                 } catch (IOException ex) {
                     fail("Not expecting exception", ex);
@@ -538,11 +544,11 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
                 
             } else {
 
-                assertEquals("get(" + i + ")", null, actual.get(i));
+                assertEquals("get(" + j + ")", null, actual.get(j));
 
                 // verify actual throws the expected exception.
                 try {
-                    actual.length(i);
+                    actual.length(j);
                     fail("Expecting: " + NullPointerException.class);
                 } catch (NullPointerException ex) {
                     if (log.isDebugEnabled())
@@ -553,7 +559,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
                 try {
                     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     final DataOutputStream dos = new DataOutputStream(baos);
-                    actual.copy(i, dos);
+                    actual.copy(j, dos);
                     fail("Expecting: " + NullPointerException.class);
                 } catch (NullPointerException ex) {
                     if (log.isDebugEnabled())
@@ -1920,7 +1926,8 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
      * @param actual
      *            The btree that is being validated.
      */
-    static public void assertSameBTree(AbstractBTree expected, IIndex actual) {
+    static public void assertSameBTree(final AbstractBTree expected,
+            final IIndex actual) {
 
         assert expected != null;
         

@@ -2465,7 +2465,7 @@ public class Node extends AbstractNode<Node> implements INodeData {
 //            throw new RuntimeException(new InterruptedException());
 //        }
         
-        assert index >= 0 && index <= getKeyCount();
+        assert index >= 0 && index <= data.getKeyCount();
 
         final Reference<AbstractNode<?>> childRef = childRefs[index];
 

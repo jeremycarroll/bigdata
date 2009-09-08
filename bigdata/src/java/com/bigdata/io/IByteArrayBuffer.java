@@ -31,7 +31,8 @@ package com.bigdata.io;
 import it.unimi.dsi.fastutil.io.RepositionableStream;
 
 /**
- * An interface for reading from and accessing a managed (extensible) byte[].
+ * An interface for reading from and accessing a managed byte[]. Implementations
+ * of this interface may permit transparent extension of the managed byte[].
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -41,8 +42,7 @@ import it.unimi.dsi.fastutil.io.RepositionableStream;
 public interface IByteArrayBuffer extends IRawRecord {
 
     /**
-     * The backing byte[]. This reference is invalidated if the buffer is
-     * extended.
+     * The backing byte[]. 
      */
     byte[] array();
     

@@ -1,6 +1,5 @@
 package com.bigdata.rdf.spo;
 
-
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
 
@@ -45,10 +44,10 @@ import com.bigdata.rdf.store.AbstractTripleStore;
  * 
  * @todo Fast coder for SIDs+type?
  */
-public class FastRDFValueCompression implements Externalizable, IRabaCoder {
+public class FastRDFValueCoder implements Externalizable, IRabaCoder {
 
     protected static final Logger log = Logger
-            .getLogger(FastRDFValueCompression.class);
+            .getLogger(FastRDFValueCoder.class);
     
     /**
      * 
@@ -58,7 +57,12 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
     /**
      * The only version defined so far.
      */
-    private static final byte VERSION0 = 0x00;
+    private static transient final byte VERSION0 = 0x00;
+
+    /**
+     * The bit offset of the start of the coded values. Each value is 3 bits.
+     */
+    private static transient final long O_values = (1/* version */+ Bytes.SIZEOF_INT/* size */) << 3;
     
     /**
      * No.
@@ -77,7 +81,7 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
     /**
      * Sole constructor (handles de-serialization also).
      */
-    public FastRDFValueCompression() {
+    public FastRDFValueCoder() {
 
     }
 
@@ -127,24 +131,26 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
         
         final int size = raba.size();
 
-        final long O_values;
+        buf.putByte(VERSION0);
+
+        buf.putInt(size);
+
+        /*
+         * @todo use variant OBS(byte[], off, len) constructor and
+         * pre-extend the buffer to have sufficient capacity so the OBS can
+         * write directly onto the backing byte[], which will be much
+         * faster.
+         */
+        final OutputBitStream obs = buf.getOutputBitStream();
+//        final long O_values;
         try {
 
-            /*
-             * @todo Variant OBS(byte[], off, len) constructor for a byte[]
-             * slice. If we have pre-extended the buffer to have sufficient
-             * capacity, then the OBS can write directly onto the backing
-             * byte[], which will be much faster.
-             */
-            final OutputBitStream obs = new OutputBitStream(buf, 0 /* unbuffered! */,
-                    false/* reflectionTest */);
-
-            obs.writeInt(VERSION0, 8/* nbits */);
-
-            obs.writeNibble(size);
-
-            // Note: the bit offset where we start to code the values.
-            O_values = obs.writtenBits();
+//            obs.writeInt(VERSION0, 8/* nbits */);
+//
+//            obs.writeNibble(size);
+//
+//            // Note: the bit offset where we start to code the values.
+//            O_values = obs.writtenBits();
             
             for (int i = 0; i < size; i++) {
 
@@ -176,10 +182,12 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
         final AbstractFixedByteArrayBuffer slice = buf.slice(O_origin, buf.pos()
                 - O_origin);
 
-        // adjusted bit offset to the start of the coded values in the slice.
-        final int O_valuesAdjusted = ((int) O_values) - O_origin << 3;
+//        // adjusted bit offset to the start of the coded values in the slice.
+//        final int O_valuesAdjusted = ((int) O_values) - O_origin << 3;
+//
+//        return new CodedRabaImpl(slice, size, O_valuesAdjusted);
 
-        return new CodedRabaImpl(slice, size, O_valuesAdjusted);
+        return new CodedRabaImpl(slice, size);
 
     }
 
@@ -204,10 +212,10 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
          */
         private final int size;
         
-        /**
-         * Bit offset to the first coded value.
-         */
-        private final int O_values;
+//        /**
+//         * Bit offset to the first coded value.
+//         */
+//        private final int O_values;
         
         final public AbstractFixedByteArrayBuffer data() {
 
@@ -258,15 +266,17 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
          *            The coded data record.
          * @param size
          *            The size of the coded {@link IRaba}.
-         * @param O_values
-         *            The bit offset of the start of the coded values.
          */
+//        * @param O_values
+//        *            The bit offset of the start of the coded values.
         public CodedRabaImpl(final AbstractFixedByteArrayBuffer data,
-                final int size, final int O_values) {
+                final int size) { //, final int O_values) {
 
             this.data = data;
+
             this.size = size;
-            this.O_values = O_values;
+            
+//            this.O_values = O_values;
             
         }
 
@@ -283,40 +293,50 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
 
             this.data = data;
 
-            final InputBitStream ibs = data.getInputBitStream();
+            final byte version = data.getByte(0/*off*/);
+            
+            if (version != VERSION0) {
 
-            try {
+                throw new RuntimeException("Unknown version=" + version);
 
-                final byte version = (byte) ibs.readInt(8/* nbits */);
-
-                if (version != VERSION0) {
-
-                    throw new IOException("Unknown version=" + version);
-
-                }
-
-                size = ibs.readNibble();
-
-                O_values = (int) ibs.readBits();
-
-            } catch (IOException ex) {
-
-                throw new RuntimeException(ex);
-
-// close not required for IBS backed by byte[] and has high overhead.
-//            } finally {
-//                
-//                try {
-//
-//                    ibs.close();
-//
-//                } catch (IOException ex) {
-//
-//                    log.error(ex);
-//                    
-//                }
-//                
             }
+
+            size = data.getInt(1/*off*/);//ibs.readNibble();
+            
+//            final InputBitStream ibs = data.getInputBitStream();
+//
+//            try {
+//
+//                final byte version = (byte) ibs.readInt(8/* nbits */);
+//
+//                if (version != VERSION0) {
+//
+//                    throw new RuntimeException("Unknown version=" + version);
+//
+//                }
+//
+//                size = ibs.readNibble();
+//
+//                O_values = (int) ibs.readBits();
+//
+//            } catch (IOException ex) {
+//
+//                throw new RuntimeException(ex);
+//
+//// close not required for IBS backed by byte[] and has high overhead.
+////            } finally {
+////                
+////                try {
+////
+////                    ibs.close();
+////
+////                } catch (IOException ex) {
+////
+////                    log.error(ex);
+////                    
+////                }
+////                
+//            }
 
         }
 
@@ -336,12 +356,10 @@ public class FastRDFValueCompression implements Externalizable, IRabaCoder {
             if (index < 0 || index >= size)
                 throw new IndexOutOfBoundsException();
 
-            long bitIndex = O_values;
-
             final InputBitStream ibs = data.getInputBitStream();
             try {
 
-                ibs.skip(bitIndex + index * 3);
+                ibs.position(O_values + (index * 3L));
 
                 final int value = ibs.readInt(3/* nbits */);
 

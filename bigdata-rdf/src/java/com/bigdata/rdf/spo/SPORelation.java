@@ -68,7 +68,6 @@ import com.bigdata.rdf.inf.Justification;
 import com.bigdata.rdf.lexicon.ITermIdFilter;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.load.AssignedSplits;
-import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.spo.JustIndexWriteProc.WriteJustificationsProcConstructor;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -602,13 +601,16 @@ public class SPORelation extends AbstractRelation<ISPO> {
         if (!statementIdentifiers) {
 
             /*
-             * FIXME this value serializer does not know about statement
-             * identifiers. Therefore it is turned off if statement identifiers
-             * are enabled. Examine some options for value compression for the
-             * statement indices when statement identifiers are enabled.
+             * Note: this value coder does not know about statement identifiers.
+             * Therefore it is turned off if statement identifiers are enabled.
+             * 
+             * @todo Examine some options for value compression for the
+             * statement indices when statement identifiers are enabled. Of
+             * course, the CanonicalHuffmanRabaCoder can always be used.
              */
 
-            leafValSer = new FastRDFValueCompression();
+            leafValSer = new FastRDFValueCoder();
+//            leafValSer = SimpleRabaCoder.INSTANCE;
 
         } else {
             

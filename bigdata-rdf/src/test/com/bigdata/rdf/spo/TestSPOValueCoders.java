@@ -179,7 +179,7 @@ public class TestSPOValueCoders extends TestCase2 {
 
     public void test_FastRDFValueCoder() {
 
-        doRoundTripTests(new FastRDFValueCompression(), false/* sids */, true/* inference */);
+        doRoundTripTests(new FastRDFValueCoder(), false/* sids */, true/* inference */);
 
     }
 
@@ -194,11 +194,19 @@ public class TestSPOValueCoders extends TestCase2 {
 
         doRoundTripTest(getData(10, SIDs, inference), rabaCoder);
 
+        for (int i = 0; i < 1000; i++) {
+
+            doRoundTripTest(getData(r.nextInt(64), SIDs, inference), rabaCoder);
+
+        }
+
         doRoundTripTest(getData(100, SIDs, inference), rabaCoder);
 
         doRoundTripTest(getData(1000, SIDs, inference), rabaCoder);
 
         doRoundTripTest(getData(10000, SIDs, inference), rabaCoder);
+
+//        doRoundTripTest(getData(100000, SIDs, inference), rabaCoder);
 
     }
     
@@ -241,8 +249,12 @@ public class TestSPOValueCoders extends TestCase2 {
          * choice effectively defers the allocation until the coder can specify
          * a preferred capacity.
          */
-        final AbstractFixedByteArrayBuffer originalData = rabaCoder.encode(
-                expected, new DataOutputBuffer(0/*initialCapacity*/));
+        final AbstractFixedByteArrayBuffer originalData;
+        {
+            final DataOutputBuffer buf = new DataOutputBuffer(0/* initialCapacity */);
+            originalData = rabaCoder.encode(expected, buf);
+            buf.trim();
+        }
 
         try {
 

@@ -79,10 +79,10 @@ public class DataOutputBuffer extends ByteArrayBuffer implements DataOutput {
      *            The buffer reference is used directly rather than making a
      *            copy of the data.
      */
-    public DataOutputBuffer(final int len, byte[] buf) {
+    public DataOutputBuffer(final int len, final byte[] buf) {
 
-        super(len/*pos*/, buf.length/*readLimit*/, buf);
-        
+        super(len/* pos */, buf.length/* readLimit */, buf);
+
     }
 
     /**
@@ -187,7 +187,7 @@ public class DataOutputBuffer extends ByteArrayBuffer implements DataOutput {
         if (pos + 1 > buf.length)
             ensureCapacity(pos + 1);
 
-        buf[pos++] = v ? (byte)1 : (byte)0;
+        buf[pos++] = v ? (byte) 1 : (byte) 0;
 
         limit = pos;
 
