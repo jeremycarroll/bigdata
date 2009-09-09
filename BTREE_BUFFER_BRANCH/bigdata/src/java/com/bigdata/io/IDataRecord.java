@@ -35,17 +35,37 @@ import java.nio.ByteBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface IRawRecord extends IByteArrayAccess {
+public interface IDataRecord extends IByteArraySlice {
 
     /**
-     * The start of the slice in the {@link #array()}.
+     * Return a slice of the backing buffer.
+     * 
+     * @param aoff
+     *            The starting offset of the slice into this slice.
+     * @param alen
+     *            The #of bytes in the slice.
+     * 
+     * @return The slice.
      */
-    public int off();
+    IDataRecord slice(final int aoff, final int alen);
 
     /**
-     * The length of the slice in the {@link #array()}.
+     * Return a copy of the data in the slice.
+     * 
+     * @return A new array containing data in the slice.
+     * 
+     * @see #asByteBuffer()
      */
-    public int len();
+    byte[] toByteArray();
+
+    /**
+     * Wraps the data in the slice within a {@link ByteBuffer} (does NOT copy
+     * the data).
+     * 
+     * @return A {@link ByteBuffer} encapsulating a reference to the data in the
+     *         slice.
+     */
+    ByteBuffer asByteBuffer();
 
     /**
      * Absolute bulk <i>put</i> copies all bytes in the caller's array into this
@@ -148,19 +168,6 @@ public interface IRawRecord extends IByteArrayAccess {
     long getLong(int pos);
 
     double getDouble(int pos);
-
-
-    /**
-     * Return a slice of the backing buffer.
-     * 
-     * @param aoff
-     *            The starting offset of the slice into this slice.
-     * @param alen
-     *            The #of bytes in the slice.
-     * 
-     * @return The slice.
-     */
-    IRawRecord slice(final int aoff, final int alen);
 
     /**
      * Get the value of a bit.

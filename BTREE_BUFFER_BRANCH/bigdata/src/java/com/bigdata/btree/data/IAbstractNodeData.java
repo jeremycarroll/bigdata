@@ -29,6 +29,7 @@ package com.bigdata.btree.data;
 
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
+import com.bigdata.io.IDataRecordAccess;
 
 /**
  * Interface for low-level data access.
@@ -36,7 +37,7 @@ import com.bigdata.io.AbstractFixedByteArrayBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface IAbstractNodeData {
+public interface IAbstractNodeData extends IDataRecordAccess {
 
     /**
      * True iff this is a leaf node.
@@ -54,7 +55,7 @@ public interface IAbstractNodeData {
     boolean isCoded();
 
     /**
-     * The coded (aka compressed) data.
+     * {@inheritDoc}
      * 
      * @throws UnsupportedOperationException
      *             unless {@link #isCoded()} returns <code>true</code>.

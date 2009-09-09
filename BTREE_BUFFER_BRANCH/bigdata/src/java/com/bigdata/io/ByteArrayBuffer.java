@@ -43,9 +43,9 @@ import com.bigdata.btree.BytesUtil;
 /**
  * A view on a mutable byte[] that may be extended.
  * <p>
- * Note: The backing byte[] slice always has an {@link IRawRecord#off() offset}
- * of ZERO (0) and a {@link IRawRecord#len() length} equal to the capacity of
- * the backing byte[]. The {@link IRawRecord#len() length} is automatically
+ * Note: The backing byte[] slice always has an {@link IDataRecord#off() offset}
+ * of ZERO (0) and a {@link IDataRecord#len() length} equal to the capacity of
+ * the backing byte[]. The {@link IDataRecord#len() length} is automatically
  * extended iff the backing buffer is extended.
  * <p>
  * Note: This class implements {@link OutputStream} so that it may be wrapped by
@@ -455,7 +455,7 @@ public class ByteArrayBuffer extends OutputStream implements IByteArrayBuffer,
      * 
      * @return A new array containing data in the buffer.
      * 
-     * @see #wrap()
+     * @see #asByteBuffer()
      * 
      * @todo this returns the data in [0:pos], which is essentially the data
      *       written on the buffer using relative put operations but without
@@ -763,7 +763,7 @@ public class ByteArrayBuffer extends OutputStream implements IByteArrayBuffer,
      *         current buffer. The data will be overwritten if {@link #reset()}
      *         is invoked followed by any operations that write on the buffer.
      */
-    final public ByteBuffer wrap() {
+    final public ByteBuffer asByteBuffer() {
 
         return ByteBuffer.wrap(buf, pos, limit);
         

@@ -277,17 +277,19 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
 //     */
 //    private long lastMetadataAddr;
 
-    final protected int getReadRetentionQueueCapacity() {
-        
-        return metadata.getBTreeReadRetentionQueueCapacity();
-        
-    }
-    
-    final protected int getReadRetentionQueueScan() {
-        
-        return metadata.getBTreeReadRetentionQueueScan();
-        
-    }
+//  @Override
+//    final protected int getReadRetentionQueueCapacity() {
+//        
+//        return metadata.getBTreeReadRetentionQueueCapacity();
+//        
+//    }
+//    
+//    @Override
+//    final protected int getReadRetentionQueueScan() {
+//        
+//        return metadata.getBTreeReadRetentionQueueScan();
+//        
+//    }
     
     /**
      * Required constructor form for {@link BTree} and any derived subclasses.
@@ -1131,11 +1133,12 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
 
             ndistinctOnWriteRetentionQueue = 0;
 
-            if (readRetentionQueue != null) {
-
-                readRetentionQueue.clear(true/* clearRefs */);
-
-            }
+//            if (readRetentionQueue != null) {
+//
+//                // FIXME MUST NOT clear the read retention queue if global!
+//                readRetentionQueue.clear(true/* clearRefs */);
+//
+//            }
 
             /*
              * Replace the root with a new root leaf.

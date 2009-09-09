@@ -259,20 +259,22 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
                     .size());        
 
         }
-        
+
         /*
          * Loop until GC activity has caused references to be cleared.
          */
-        for (int x = 0; x < 100; x++) {
+        final int limit = 100;
+        for (int x = 0; x < limit; x++) {
 
             System.gc();
 
             final int n = countClearedRefs(refs);
 
             if (log.isInfoEnabled())
-                log.info("#of cleared references=" + n);
-            
-            if (n < refs.size()) {
+                log.info("pass " + x + "of " + limit
+                        + ": #of cleared references=" + n);
+
+            if (n <= refs.size()) {
              
                 return;
                 
@@ -288,7 +290,7 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
 
         }
         
-        fail("Did not clear references.");
+        fail("Did not clear references after "+limit+" passes");
         
     }
 
@@ -440,16 +442,18 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
         /*
          * Loop until GC activity has caused references to be cleared.
          */
-        for (int x = 0; x < 100; x++) {
+        final int limit = 100;
+        for (int x = 0; x < limit; x++) {
 
             System.gc();
 
             final int n = countClearedRefs(refs);
 
             if (log.isInfoEnabled())
-                log.info("#of cleared references=" + n);
-            
-            if (n < refs.size()) {
+                log.info("pass " + x + "of " + limit
+                        + ": #of cleared references=" + n);
+
+            if (n <= refs.size()) {
              
                 return;
                 
@@ -465,7 +469,7 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
 
         }
         
-        fail("Did not clear references.");
+        fail("Did not clear references after : " + limit + " passes");
         
     }
 

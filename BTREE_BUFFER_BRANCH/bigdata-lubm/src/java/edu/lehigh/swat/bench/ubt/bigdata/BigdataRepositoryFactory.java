@@ -394,13 +394,13 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
             
         }
 
-        /*
-         * A large values works well for scale-up but you might need to reduce
-         * the read retention queue capacity since if you expect to have a large
-         * #of smaller indices open, e.g., for scale-out scenarios. Zero will
-         * disable the read-retention queue.
-         */
-        properties.setProperty(IndexMetadata.Options.BTREE_READ_RETENTION_QUEUE_CAPACITY, "0");
+//        /*
+//         * A large values works well for scale-up but you might need to reduce
+//         * the read retention queue capacity since if you expect to have a large
+//         * #of smaller indices open, e.g., for scale-out scenarios. Zero will
+//         * disable the read-retention queue.
+//         */
+//        properties.setProperty(IndexMetadata.Options.BTREE_READ_RETENTION_QUEUE_CAPACITY, "0");
         
         // may be used to turn off database-at-once closure during load.  
 //        properties.setProperty(Options.COMPUTE_CLOSURE, "false");
@@ -513,8 +513,8 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
                 System.err.println(Options.NESTED_SUBQUERY + "="
                         + p.getProperty(Options.NESTED_SUBQUERY));
 
-                System.err.println(IndexMetadata.Options.BTREE_READ_RETENTION_QUEUE_CAPACITY + "="
-                        + p.getProperty(IndexMetadata.Options.DEFAULT_BTREE_READ_RETENTION_QUEUE_CAPACITY));
+//                System.err.println(IndexMetadata.Options.BTREE_READ_RETENTION_QUEUE_CAPACITY + "="
+//                        + p.getProperty(IndexMetadata.Options.BTREE_READ_RETENTION_QUEUE_CAPACITY));
                 
                 System.err.println(Options.CHUNK_CAPACITY + "="
                         + p.getProperty(Options.CHUNK_CAPACITY));

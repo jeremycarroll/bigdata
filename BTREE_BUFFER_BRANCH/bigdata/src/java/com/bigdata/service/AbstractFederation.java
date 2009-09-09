@@ -153,7 +153,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
             }
 
             // terminate sampling and reporting tasks.
-            new ShutdownHelper(scheduledExecutorService, 10L/*logTimeout*/, TimeUnit.SECONDS) {
+            new ShutdownHelper(scheduledExecutorService, 10L/* logTimeout */,
+                    TimeUnit.SECONDS) {
 
                 public void logTimeout() {
 

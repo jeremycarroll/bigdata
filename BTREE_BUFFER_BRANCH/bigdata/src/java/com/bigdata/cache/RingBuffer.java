@@ -184,10 +184,10 @@ public class RingBuffer<T> implements Queue<T> {
      * This hook provides an opportunity to realize an eviction protocol and is
      * used for that purpose by {@link HardReferenceQueue}. It is also used to
      * realize the the stale reference protocol in
-     * {@link SynchronizedHardReferenceQueue}.
+     * {@link SynchronizedHardReferenceQueueWithTimeout}.
      * 
      * @todo it can be used to realize the chunk combiner on add protocol as
-     * well.
+     *       well.
      */
     protected void beforeOffer(final T ref) {
         
@@ -290,7 +290,7 @@ public class RingBuffer<T> implements Queue<T> {
      * Return the buffer elements in MRU (head) to LRU (tail) order.
      */
     @SuppressWarnings("unchecked")
-    public <TX> TX[] toArray(TX[] a) {
+    public <TX> TX[] toArray(final TX[] a) {
 
         final TX[] r = a.length >= size ? a : (TX[]) java.lang.reflect.Array
                 .newInstance(a.getClass().getComponentType(), size);
@@ -472,12 +472,14 @@ public class RingBuffer<T> implements Queue<T> {
      * @return True iff we found <i>ref</i> in the scanned queue positions.
      */
     final public boolean scanHead(final int nscan, final T ref) {
-        
-        if (nscan <= 0)
-            throw new IllegalArgumentException();
-        
-        if (ref == null)
-            throw new IllegalArgumentException();
+
+        assert nscan > 0;
+        assert ref != null;
+//        if (nscan <= 0)
+//            throw new IllegalArgumentException();
+//        
+//        if (ref == null)
+//            throw new IllegalArgumentException();
         
         /*
          * Note: This loop goes backwards from the head.  Since the head is the
@@ -488,31 +490,28 @@ public class RingBuffer<T> implements Queue<T> {
          * Note: This uses local variables to shadow the instance variables
          * so that we do not modify the state of the cache as a side effect.
          */
-        {
 
-            int head = this.head;
+        int head = this.head;
 
-            int count = this.size;
+        int count = this.size;
 
-            for (int i = 0; i < nscan && count > 0; i++) {
+        for (int i = 0; i < nscan && count > 0; i++) {
 
-                head = (head == 0 ? capacity-1 : head - 1); // update head.
+            head = (head == 0 ? capacity - 1 : head - 1); // update head.
 
-                count--; // update #of references.
+            count--; // update #of references.
 
-                if( refs[head] == ref ) {
-                
-                    // Found a match.
+            if (refs[head] == ref) {
 
-                    return true;
+                // Found a match.
 
-                }
+                return true;
 
             }
 
-            return false;
-
         }
+
+        return false;
         
     }
     

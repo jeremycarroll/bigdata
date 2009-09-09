@@ -117,7 +117,7 @@ public class AbstractIndexSegmentTestCase extends AbstractBTreeTestCase {
 
         final ImmutableLeafCursor itr = seg.newLeafCursor(SeekEnum.First);
         
-        assertTrue(firstLeaf==itr.leaf()); // Note: test depends on cache!
+        assertTrue(firstLeaf.getDelegate()==itr.leaf().getDelegate()); // Note: test depends on cache!
         
         ImmutableLeaf priorLeaf = itr.leaf();
         
@@ -169,7 +169,7 @@ public class AbstractIndexSegmentTestCase extends AbstractBTreeTestCase {
 
         final ImmutableLeafCursor itr = seg.newLeafCursor(SeekEnum.Last);
 
-        assertTrue(lastLeaf == itr.leaf()); // Note: test depends on cache!
+        assertTrue(lastLeaf.getDelegate() == itr.leaf().getDelegate()); // Note: test depends on cache!
 
         ImmutableLeaf nextLeaf = itr.leaf();
 

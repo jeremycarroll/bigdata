@@ -189,6 +189,12 @@ public class Node extends AbstractNode<Node> implements INodeData {
 
     }
 
+    final public INodeData getDelegate() {
+        
+        return data;
+
+    }
+    
     /*
      * INodeData.
      */

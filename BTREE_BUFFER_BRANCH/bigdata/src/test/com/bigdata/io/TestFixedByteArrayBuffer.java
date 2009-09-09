@@ -66,21 +66,21 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
     public void test_ctor() {
 
         {
-            final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(10);
+            final IDataRecord buf = new FixedByteArrayBuffer(10);
             assertNotNull(buf.array());
             assertEquals(0, buf.off());
             assertEquals(10, buf.len());
         }
 
         {
-            final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(0);
+            final IDataRecord buf = new FixedByteArrayBuffer(0);
             assertNotNull(buf.array());
             assertEquals(0, buf.off());
             assertEquals(0, buf.len());
         }
 
         {
-            final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(
+            final IDataRecord buf = new FixedByteArrayBuffer(
                     new byte[12], 2, 8);
             assertNotNull(buf.array());
             assertEquals(12, buf.array().length);
@@ -196,7 +196,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
         final int size = 20;
 
-        final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(size);
+        final IDataRecord buf = new FixedByteArrayBuffer(size);
 
         assertEquals((byte) 0, buf.getByte(0));
 
@@ -227,7 +227,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
         
         final int size = 200;
         
-        final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(size);
+        final IDataRecord buf = new FixedByteArrayBuffer(size);
         
         assertEquals((byte) 0, buf.getByte(0));
         assertEquals((byte) 0, buf.getByte(size - 1));
@@ -267,7 +267,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
         
         final int size = 200;
         
-        final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(size);
+        final IDataRecord buf = new FixedByteArrayBuffer(size);
 
         assertEquals((byte) 0, buf.getByte(0));
         assertEquals((byte) 0, buf.getByte(size - 1));
@@ -310,7 +310,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
     public void test_getByte_putByte() {
         
-        final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(
+        final IDataRecord buf = new FixedByteArrayBuffer(
                 Bytes.SIZEOF_BYTE * 3);
 
         final int pos = Bytes.SIZEOF_BYTE;
@@ -339,7 +339,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
     
     public void test_getShort_putShort() {
         
-        final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(
+        final IDataRecord buf = new FixedByteArrayBuffer(
                 Bytes.SIZEOF_SHORT * 3);
 
         final int pos = Bytes.SIZEOF_SHORT;
@@ -364,7 +364,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
     
     public void test_getInt_putInt() {
 
-        final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(
+        final IDataRecord buf = new FixedByteArrayBuffer(
                 Bytes.SIZEOF_INT * 3);
 
         final int pos = Bytes.SIZEOF_INT;
@@ -389,7 +389,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
     public void test_getFloat_putFloat() {
 
-        final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(
+        final IDataRecord buf = new FixedByteArrayBuffer(
                 Bytes.SIZEOF_FLOAT * 3);
 
         final int pos = Bytes.SIZEOF_FLOAT;
@@ -413,7 +413,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
     
     public void test_getLong_putLong() {
         
-        final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(
+        final IDataRecord buf = new FixedByteArrayBuffer(
                 Bytes.SIZEOF_LONG * 3);
 
         final int pos = Bytes.SIZEOF_LONG;
@@ -438,7 +438,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
     public void test_getDouble_putDouble() {
 
-        final IFixedByteArrayBuffer buf = new FixedByteArrayBuffer(
+        final IDataRecord buf = new FixedByteArrayBuffer(
                 Bytes.SIZEOF_DOUBLE * 3);
 
         final int pos = Bytes.SIZEOF_DOUBLE;

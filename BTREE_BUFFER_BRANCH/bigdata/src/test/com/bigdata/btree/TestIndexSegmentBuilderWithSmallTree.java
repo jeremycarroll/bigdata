@@ -264,11 +264,11 @@ public class TestIndexSegmentBuilderWithSmallTree extends
          
             final ImmutableLeafCursor itr = seg.newLeafCursor(SeekEnum.First);
             
-            assertTrue(firstLeaf == itr.leaf()); // Note: test depends on cache!
+            assertTrue(firstLeaf.getDelegate() == itr.leaf().getDelegate()); // Note: test depends on cache!
             assertNull(itr.prior());
 
-            assertTrue(lastLeaf == itr.next()); // Note: test depends on cache!
-            assertTrue(lastLeaf == itr.leaf()); // Note: test depends on cache!
+            assertTrue(lastLeaf.getDelegate() == itr.next().getDelegate()); // Note: test depends on cache!
+            assertTrue(lastLeaf.getDelegate() == itr.leaf().getDelegate()); // Note: test depends on cache!
             
         }
         
@@ -282,11 +282,11 @@ public class TestIndexSegmentBuilderWithSmallTree extends
             
             final ImmutableLeafCursor itr = seg.newLeafCursor(SeekEnum.Last);
             
-            assertTrue(lastLeaf == itr.leaf()); // Note: test depends on cache!
+            assertTrue(lastLeaf.getDelegate() == itr.leaf().getDelegate()); // Note: test depends on cache!
             assertNull(itr.next());
 
-            assertTrue(firstLeaf == itr.prior()); // Note: test depends on cache!
-            assertTrue(firstLeaf == itr.leaf()); // Note: test depends on cache!
+            assertTrue(firstLeaf.getDelegate() == itr.prior().getDelegate()); // Note: test depends on cache!
+            assertTrue(firstLeaf.getDelegate() == itr.leaf().getDelegate()); // Note: test depends on cache!
 
         }
         
@@ -373,7 +373,7 @@ public class TestIndexSegmentBuilderWithSmallTree extends
         assertEquals("nextAddr", 0L, leaf.getNextAddr());
 
         final ImmutableLeafCursor itr = seg.newLeafCursor(SeekEnum.First);
-        assertTrue(leaf == itr.leaf());
+        assertTrue(leaf.getDelegate() == itr.leaf().getDelegate()); // Note: test depends on cache.
         assertNull(itr.prior());
         assertNull(itr.next());
         
@@ -420,7 +420,7 @@ public class TestIndexSegmentBuilderWithSmallTree extends
      */
     public BTree getProblem2() {
 
-        BTree btree = getBTree(3);
+        final BTree btree = getBTree(3);
 
         for (int i = 1; i <= 9; i++) {
 

@@ -53,6 +53,7 @@ import com.bigdata.btree.ReadOnlyIndex;
 import com.bigdata.cache.ConcurrentWeakValueCache;
 import com.bigdata.cache.ConcurrentWeakValueCacheWithTimeout;
 import com.bigdata.cache.HardReferenceQueue;
+import com.bigdata.cache.LRUNexus;
 import com.bigdata.config.Configuration;
 import com.bigdata.config.IValidator;
 import com.bigdata.config.IntegerRangeValidator;
@@ -869,11 +870,11 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
             final long commitRecordIndexAddr = 0L;
             final UUID uuid = UUID.randomUUID(); // Journal's UUID.
             final long closedTime = 0L;
-            IRootBlockView rootBlock0 = new RootBlockView(true, offsetBits,
+            final IRootBlockView rootBlock0 = new RootBlockView(true, offsetBits,
                     nextOffset, firstCommitTime, lastCommitTime, commitCounter,
                     commitRecordAddr, commitRecordIndexAddr, uuid, createTime,
                     closedTime, checker);
-            IRootBlockView rootBlock1 = new RootBlockView(false, offsetBits,
+            final IRootBlockView rootBlock1 = new RootBlockView(false, offsetBits,
                     nextOffset, firstCommitTime, lastCommitTime, commitCounter,
                     commitRecordAddr, commitRecordIndexAddr, uuid, createTime,
                     closedTime, checker);
@@ -1023,6 +1024,9 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
 
         }
 
+        // Save resource description (sets value returned by getUUID()).
+        this.journalMetadata = new JournalMetadata(this);
+        
         /*
          * Create or re-load the index of commit records.
          */
@@ -1033,9 +1037,6 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
          */
         setupCommitters();
 
-        // save resource description.
-        this.journalMetadata = new JournalMetadata(this);
-        
         // report event.
         ResourceManager.openJournal(getFile() == null ? null : getFile()
                 .toString(), size(), getBufferStrategy().getBufferMode());
@@ -1334,6 +1335,16 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
         
         _bufferStrategy.deleteResources();
 
+        try {
+            
+            LRUNexus.INSTANCE.deleteCache(this);
+            
+        } catch (Throwable t) {
+            
+            log.error(t, t);
+            
+        } 
+        
         ResourceManager.deleteJournal(getFile() == null ? null : getFile()
                 .toString());
 
@@ -1647,7 +1658,13 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
 
     }
 
-    public IResourceMetadata getResourceMetadata() {
+    final public UUID getUUID() {
+        
+        return journalMetadata.getUUID();
+        
+    }
+    
+    final public IResourceMetadata getResourceMetadata() {
         
         return journalMetadata;
         
@@ -2850,7 +2867,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
      */
     final public int getMaxRecordSize() {
 
-        return ((AbstractRawWormStore) _bufferStrategy).getAddressManger()
+        return ((AbstractRawWormStore) _bufferStrategy).getAddressManager()
                 .getMaxByteCount();
 
     }

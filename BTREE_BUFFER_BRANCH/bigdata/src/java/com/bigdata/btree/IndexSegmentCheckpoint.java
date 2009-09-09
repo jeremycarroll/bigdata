@@ -125,10 +125,11 @@ public class IndexSegmentCheckpoint {
      * Version 0 of the serialization format.
      */
     static transient final public int VERSION0 = 0x0;
-   
+
     /**
-     * UUID for this {@link IndexSegment} (it is a unique identifier for
-     * the index segment resource).
+     * UUID for this {@link IndexSegment} (it is a unique identifier for the
+     * index segment resource and is reported as the {@link UUID} of the
+     * {@link IndexSegmentStore}).
      */
     final public UUID segmentUUID;
 

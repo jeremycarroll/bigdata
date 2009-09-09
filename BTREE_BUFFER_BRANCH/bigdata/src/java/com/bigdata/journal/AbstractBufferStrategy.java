@@ -28,6 +28,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.text.NumberFormat;
+import java.util.UUID;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -133,6 +134,8 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
      * <code>true</code> iff the {@link IBufferStrategy} is read-only.
      */
     private boolean readOnly;
+
+//    private final UUID storeUUID;
     
     protected final long initialExtent;
     protected final long maximumExtent;
@@ -170,6 +173,12 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
         
     }
     
+//    final public UUID getUUID() {
+//        
+//        return storeUUID;
+//        
+//    }
+    
     final public long getInitialExtent() {
         
         return initialExtent;
@@ -193,14 +202,16 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
         return nextOffset;
         
     }
-    
+
     /**
      * (Re-)open a buffer.
      * 
-     * @param initialExtent -
-     *            as defined by {@link #getInitialExtent()}
-     * @param maximumExtent -
-     *            as defined by {@link #getMaximumExtent()}.
+     * @param storeUUID
+     *            The UUID that identifies the owning {@link IRawStore}.
+     * @param initialExtent
+     *            - as defined by {@link #getInitialExtent()}
+     * @param maximumExtent
+     *            - as defined by {@link #getMaximumExtent()}.
      * @param offsetBits
      *            The #of bits that will be used to represent the byte offset in
      *            the 64-bit long integer addresses for the store. See
@@ -212,15 +223,20 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
      * @param bufferMode
      *            The {@link BufferMode}.
      */
-    AbstractBufferStrategy(long initialExtent, long maximumExtent,
-            int offsetBits, long nextOffset, BufferMode bufferMode, boolean readOnly) {
+    AbstractBufferStrategy(
+            // UUID storeUUID,
+            long initialExtent, long maximumExtent, int offsetBits,
+            long nextOffset, BufferMode bufferMode, boolean readOnly) {
 
         super(offsetBits);
         
         assert nextOffset >= 0;
-        
-        if( bufferMode == null ) throw new IllegalArgumentException();
 
+        if (bufferMode == null)
+            throw new IllegalArgumentException();
+
+//        this.storeUUID = storeUUID;
+        
         this.initialExtent = initialExtent;
         
         this.maximumExtent = maximumExtent; // MAY be zero!
@@ -518,6 +534,18 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
 //                + "ms");
 //
 //        return count;
+        
+    }
+
+    /**
+     * Not supported - this is available on the {@link AbstractJournal}.
+     * 
+     * @throws UnsupportedOperationException
+     *             always
+     */
+    public UUID getUUID() {
+        
+        throw new UnsupportedOperationException();
         
     }
 

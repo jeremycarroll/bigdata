@@ -270,7 +270,7 @@ Commit message: Merging trunk into branch BTREE_BUFFER_BRANCH [2004]:[2048].
 
 Goals:
 
-x. Misc.
+x. TM Bug.
 
 	- (***) TM Bug: KB will not downgrade a statement from Explicit to Inferred. 
 
@@ -296,19 +296,6 @@ x. Misc.
 	  that "override" SPO needs to be written onto the DB, where
 	  it is responsible for changing the SPO state from Explicit
 	  to Inferred -- and that is what is not happening.
-
-	- Encapsulate the {min,max,t[]} for version timestamps and
-          their coders.
-
-	- Raise IRaba into the IIndexProcedure impls for the keys and
-          values.  Avoid double-coding if the keys/values are already
-          coded.  Reconcile with KVO(C)[] usage.  This should NOT
-          effect the IIndexProcedure serialization since we already
-          use ICodedRaba's for RMI.
-
-	- return (b & StatementEnum.MASK_OVERRIDE) == 1;
-
-	  Should be != 0  ?!?! (StatementType enum).
 
 x. Transient B+Tree issues.
 
@@ -404,9 +391,12 @@ java.lang.OutOfMemoryError: unable to create new native thread
   
   	 - Code the version timestamp[].
 
-	   - A good coding scheme might be the minimum timestamp plus
-             a minimum width coding for the remainder for each
+	   - done. A good coding scheme might be the minimum timestamp
+             plus a minimum width coding for the remainder for each
              timestamp.
+
+	   - Encapsulate the {min,max,t[]} for version timestamps and
+             their coders.
 
 	   - Share pluggable timestamp serialization logic for
 	     DefaultLeafCoder and ResultSet.  Note that version
@@ -423,6 +413,11 @@ java.lang.OutOfMemoryError: unable to create new native thread
 	   For an index segment, the childAddr[] values will also be
 	   strictly increasing (again, not true since they code the
 	   region, the byte offset, and the byte length).
+
+	   Note: IAddressSerializer must be provisioned with
+	   information about the IAddressManager if it will use
+	   address aware coding.  That information is not currently
+	   available to the INodeCoder.
 	     
         - Code the childEntryCount[].
 
@@ -453,46 +448,6 @@ java.lang.OutOfMemoryError: unable to create new native thread
 
 	  - Add options for the LeafCoder and NodeCoder?
 
-7. (***) Buffering & caching.
-
-        - Add global read retention queue and weak value hash map
-          based lookup per store of the retained data record objects.
-
-	  Consider releasing decoders earlier since they can be
-	  rematerialized from the byte[] slice.
-
-	- Since data records are immutable and the IAbstractNodeData
-          implementations are thread-safe for readers, we can share
-          the data records and their INodeData/ILeafData objects
-          across all requests for the same store+addr, even when the
-          B+Tree instances are different.
-
-	  The problem with the hard reference cache is its fixed
-	  capacity.  The Java LRU has this same limitation.  We can
-	  place an upper bound on the ring buffer and then manage the
-	  size on disk of the buffered nodes.  The buffer is not
-	  thread safe so it will have to be wrapped for that purpose.
-	  A concurrent version would be a nice touch, but only if we
-	  observe a hot spot on touch().
-
-	- The IndexSegment has a leaf cache.  That should be a global
-          cache.
-
-        - Make sure that the IndexSegmentBuilder reuses buffers and
-          slices in an optimal manner.  See flush() in that class.
-
-	- Unit test for IndexSegment with version timestamps enabled
-          which verifies the correct max/max version timestamps on the
-          nodes and leaves.
-
-        - Examine GC problems with lots of B+Tree nodes buffered.  Try
-          parallel old GC and the G1 collector.
-
-	  Tony Printezis [Antonios.Printezis@sun.com] 10G+ heaps will
-	  most likely create unpleasant Full GC pauses!  :-) But, yes,
-	  evaluate Parallel Old to first see how it works. And we can
-	  take it from there...
-
 x. (***) RMI SHOULD reuse buffers whenever possible.
 
 	 - Index write pipeline.  This is easier to do for things like
@@ -519,11 +474,144 @@ x. (***) RMI SHOULD reuse buffers whenever possible.
 	 - Unit tests of serialization for the IRabaCoders.
 
 	 - Review use of rabas in index procedures with an eye to
-           minimizing allocation once more.
+           minimizing allocation.  Avoid double-coding if the
+           keys/values are already coded.  Reconcile with KVO(C)[]
+           usage.  This should NOT effect the IIndexProcedure
+           serialization since we already use ICodedRaba's for RMI.
    
 	 - getKeys():IRaba and getValues():IRaba SHOULD be raised into
 	   the IKeyArrayIndexProcedure API.  This will make it easier
 	   to use efficient access to the coded data.
+
+7. (***) Buffering & caching.
+
+   - Replaced openLeafCount and index segment leaf bytes on disk with
+     the corresponding counters from the LRUNexus.
+
+   - Added the store UUID to the IRawStore API.
+
+   - Added global LRU and factory for per-store record/object cache.
+
+   - The BTree and IndexSegment read-retention queue configuration
+     properties are gone.
+
+   - The IndexSegment leafCache and its configuration properties are
+     gone.
+
+   - (***) A huge percentage of the time is the FastRDFValueCoder.
+     Change this to use 4 bits per statement and then the nibble
+     addressing can be done without using the IBS.
+
+     Note: A mutable coded value raba could be implemented for the
+     statement indices.  With a fixed bit length per value, we can
+     represent the data in m/2 bytes.
+
+   - copyOnWrite() is using the IRaba#iterator() to copy the keys and
+     values into the mutable keys and values buffer.  This code path
+     gets a lot of use.  Optimize it.  31% of the time is
+     copyOnWrite() for load.  91% of that time is just copying the
+     values out of the FastRDFValueCoder!
+
+   - scanHead on the global LRU may be doing too much.  It is 1% of
+     all time.
+
+
+	  -------------------- IndexSegment(Builder) --------------------
+
+	- We do not always need to buffer newly generated index
+          segments since they are sometimes moved rather than used
+          locally.  The use of the write through cache by the
+          IndexSegmentBuilder should therefore be an option controlled
+          by the caller.
+
+	- The write through cache must also be aware of IUpdateStore,
+          which is used by the IndexSegmentBuilder.  
+
+	- The IndexSegment has a weak value leaf cache with lookup by
+          the addr of the leaf.  The backing hard reference queue
+          should be global.  The weak value leaf cache can be reused
+          for all B+Tree implementations as the node/leaf cache.  Why
+          do we try to avoid placing nodes into this cache?
+
+        - Make sure that the IndexSegmentBuilder reuses buffers and
+          slices in an optimal manner.  See flush() in that class.
+
+	- Unit test for IndexSegment with version timestamps enabled
+          which verifies the correct max/max version timestamps on the
+          nodes and leaves.
+
+        - Examine GC problems with lots of B+Tree nodes buffered.  Try
+          parallel old GC and the G1 collector.
+
+	  Tony Printezis [Antonios.Printezis@sun.com] 10G+ heaps will
+	  most likely create unpleasant Full GC pauses!  :-) But, yes,
+	  evaluate Parallel Old to first see how it works. And we can
+	  take it from there...
+
+
+Using a hash map with weak references pointing to the data, while
+maintaining strong references to the data that they do not want to see
+evicted, is a reasonable idea (and _much_ better than using soft
+references to achieve the same result!!!). Things to watch out:
+
+1) They said that they would start dropping strong references using an
+   LRU policy once the heap occupancy gets under a certain
+   threshold. They have to watch out here. What Java would report as
+   used space will include the occupancy of the young generation. And
+   because that seesaws, it might be that case that the used space
+   will look to be over the threshold (as the eden is filling up), but
+   it will then drop below the threshold a few secs later (after a
+   young GC). Assuming that most cache entries will live long enough
+   to make it to the old gen, a better way to do this is to actually
+   monitor the old gen occupancy, it will be a more stable
+   metric. Also, are they going to use ParallelGC or CMS? If they use
+   the latter and the decide to drop the strong references after a CMS
+   cycle has started, then those entries might not get dropped one
+   time (they will be dropped during the next cycle).
+
+2) Something else to watch out is that some entries might have already
+   handed out to application threads that have requested them. So,
+   even if they decide to remove some entries from the cache, some
+   threads might still be holding on to them and, as a result, less
+   memory than planned might be reclaimed during the GC. I don't know
+   how much of a problem this would be in practice. I assume that they
+   would use the weak reference callback facility to remove entries
+   from the hash map.
+
+3) Yes, managing native buffers using NIO is a pain. They don't really
+   "leak", but they are not promptly reclaimed either. NIO buffers
+   rely on finalization to reclaim their native resources (and for
+   good, and surprising to me, reasons they cannot be explicitly
+   disposed of). As a result, they can only be typically reclaimed
+   during Full GCs. So, if the application uses them up at a higher
+   rate than it fills up the old gen, it's likely to run out of native
+   space before the next Full GC. Using Java objects is a better idea
+   IMHO.
+
+----
+
+Ref (3), I asked about finalization and Tony replied:
+
+----
+
+You can call System.gc() and System.runFinalization() to force
+unreachable objects to be finalized. Some customers do use that to
+deal with the issue of NIO buffers running out. But System.gc() is
+quite expensive as it's getting more expensive as heaps are growing
+larger...
+
+BTW, here's the reason why NIO buffers cannot be explicitly disposed
+(unlike, say, Swing components). If you dispose of one that's still
+reachable, then some thread might be still accessing its address space
+after that buffer has been disposed of. If then another buffer is
+allocated that reserves the same address space, then you now have a
+security issue. So you have to ensure that no references exist to an
+NIO buffer before it's been disposed of. The NIO folks were asking me
+whether it would be easy to decide whether a particular object is live
+or not to maybe be able to dispose of the buffers earlier... I said
+that we can do that, but it will not be very useful as it will be a
+whole heap operation (full marking basically...). You're better off
+doing a Full GC and reclaim all buffers that are unreachable.
 
 
 ------------------------------------------------------------
@@ -536,18 +624,128 @@ x. (***) RMI SHOULD reuse buffers whenever possible.
    - Allow B+Tree specific record compression, store-based record
      compression, or both?  Conceptually nicer in the store itself.
 
-   - Remove ByteBuffer from the IRawStore API, replacing it with our
-     byte[] slice class, e.g., com.bigdata.io.Slice.
+   - Update IndexMetadata read-retention queue and write retention
+     queue javadoc (remove options for the read-retention queue since
+     it is going to be global).
 
-         - IAddressSerializer is deprecated and should be deleted or
-           reused by the INodeCoder.
+IRawStore
 
-	   Note: This must be provisioned with information about the
-	   IAddressManager if it will use address aware coding.  That
-	   information is not currently available to the INodeCoder.
+    write(ByteBuffer data):long		// write compressed record on the disk.
+    read(long addr):ByteBuffer		// read compressed record from the disk.
+    delete(long addr):void		// not in the API at this time.
 
-         - Done. Code the min/max of the version timestamp (add to the
-           API).
+LRUNexus - global instance for coordinating LRU caches.
+
+    // cache for data records, node/leaf data records, or deserialized objects
+    getCache(IRawStore):Map<Long,Object>
+
+ICompressedStore extends IRawStore
+
+    // compress slice and write on backing store.
+    write(byte[],off,len,headerLen,CompressorEnum):long -or-
+    write(IByteArraySlice,headerLen:int,CompressionEnum):long
+
+    // read a record from the store, obtaining the decompressed view
+    // of the application record header and application record body.
+    read(addr:long):IFixedDataRecord (in fact, FixedByteArrayBuffer)
+
+    There is an API tension surrounding IUpdateStore.  That interface
+    is motivated by the IndexSegmentBuilder which needs to have the
+    addr from which the record can be recovered before it has written
+    the record in order to set the prior/next addr fields.  The
+    problem is that we need to know the actual bytes after compression
+    in order to allocate the space efficiently for a WORM store.  This
+    conflict could be resolved if we restrict the update to the header
+    data.
+
+    So
+
+        update(long addr, int off, ByteBuffer data):void
+
+    becomes
+
+	update(long addr, int off, IByteArraySlice):void
+
+    which only permits update to the header region. off+slice.len()
+    must lie within the header region for this operation to be valid.
+
+    In fact, IUpdateStore could just be rolled into ICompressedStore
+    as some optional methods for operations on the header.  Look at
+    the IndexSegmentBuilder for compatibility with this approach.
+
+// Adds transparent caching of decompressed records.
+ICachedStore extends ICompressedStore
+
+    getLRUNexus():LRUNexus
+
+    // initialized from the LRUNexus on (re-)open.
+    private final ConcurrentWeakValueCache<Long,FixedDataRecord>
+
+    // extended to write through on the cache.
+    write(IByteArraySlice,headerLen:int,CompressionEnum):long
+
+    // extended to test the cache first and place the record into the
+    // cache on a miss.
+    read(addr:long):IFixedDataRecord (in fact, FixedByteArrayBuffer)
+    
+	(De-)compression layer.
+
+	   Transparently (de-)compresses records on their way into/out
+	   of the IRawStore and adjusts the byte[] slice so as to show
+	   only the application header bytes followed by the
+	   application data bytes.
+
+	   Decompression can be concurrent or single threaded
+	   (configured thread pool size).  Decompression is relatively
+	   fast, especially when compared to compression.
+
+	   This MAY break code since byteCount(addr) != slice.len()
+	   when record level compression is enabled.
+
+	   Record level compression can be configured at least at the
+	   store level with the index segment compression provider
+	   configured by the IndexMetadata.  Potentially allow a BTree
+	   compression provider override of the default journal
+	   compression provider.
+
+	   IndexSegmentStore must do something special here in how it
+	   buffers the nodes region of the file.
+
+    - Direct ByteBuffers are only really useful when reading from or
+      writing on the disk.  In that context they can minimize the IO
+      cost.  However, they place the data outside of the JVM heap and
+      make it difficult to operate efficiently on byte[]s.
+
+      The (de)compression API is a natural place to convert from
+      direct ByteBuffers to <byte[],off,len> slices.  It may be that
+      this should happen inside of the IRawStore or that the IRawStore
+      should be extended by IRecordCache which adds an API for access
+      to the cached byte[] slices.
+
+      The DiskOnlyJournal also uses direct buffers in its write cache.
+      In fact, it implements both a read cache and a write cache.  
+
+    - Possible implementations for refactoring include:
+
+	   DiskOnlyStrategy#writeCache:WriteCache
+
+	   DiskOnlyStrategy#readCache:LRUCache<Long, byte[]>
+	   
+	   IndexSegmentStore#leafCache:ConcurrentWeakValueCacheWithTimeout<Long, ImmutableLeaf>
+
+	   IndexSegmentStore:buf_nodes:ByteBuffer (nodes region buffer)
+
+	   IRecordCompressor, IRecordCompressionFactory,
+	   RecordCompressor (based on Deflate), NOPCompressor.
+
+	   bmz
+
+	   gzip
+	   
+	   zip
+
+    - Remove ByteBuffer from the IRawStore API, replacing it with our
+      byte[] slice class, e.g., com.bigdata.io.Slice.
 
 - Support gzip, zip, bmz and other compression protocols in the store
   at the record level.
@@ -631,12 +829,21 @@ x. (***) RMI SHOULD reuse buffers whenever possible.
        The [headerDataLength] gives the #of bytes of application data
        in the header exclusive of the header metadata. If there is no
        application header data then this field is zero.  The header
-       data is intended used to represent data which can not be
-       compressed.  For example, the priorAddr and nextAddr fields of
-       an IndexSegment leaf can not be compressed because we need to
-       know the total size of the record before they can be
-       assigned. If the byte count is negative, then it is interpreted
-       as the #of 32-bit words containing (uncompressed) header data.
+       data is intended to represent data which can not be compressed.
+       For example, the priorAddr and nextAddr fields of an
+       IndexSegment leaf can not be compressed because we need to know
+       the total size of the record before they can be assigned. If
+       the byte count is negative, then it is interpreted as the #of
+       32-bit words containing (uncompressed) header data.
+
+       Option to exclude a record from compression?  Bit flag for that
+       in the header, leaving 7 bytes for the header data length?
+       Writes would have to go around the compression API to avoid
+       compress or would have to specify the compression provider (NOP
+       vs)....  Could also use byte to indicate the compression
+       provider, with 0 reserved for NOP, 1 for Deflate, 2 for Zip, 3
+       for GZip, 4 for bmz.  Lot's of room for extension there, but
+       the extensions must be compiled into the codebase.
 
        Either all records in the store are compressed by a common
        technique or none are.  This is indicated when the store is
@@ -848,12 +1055,114 @@ NCIOnc   : 464841 stmts added in 26.718 secs, rate= 17398, commitLatency=453ms
 	   the BTreeCounters.  This will give better guidence on the
 	   performance of different raba coders.
 
-	 - Performance comparisons of different coders (primarily
-           simple vs huffman) for the RDF DB (impacts TERM2ID, ID2TERM
-           and statement indices when using SIDS).
+9/9/2009 : global LRU refactor w/ 10k capacity.
+U10	 : N/A
+U5	 : N/A
+U1	 : 103104 stmts added in 7.016 secs, rate= 14695, commitLatency=0ms
+wordnet  : 273681 stmts added in 21.922 secs, rate= 12484, commitLatency=313ms
+thesaurus: 1086012 stmts added in 101.0 secs, rate= 10752, commitLatency=422ms
+alibaba	 : 45655 stmts added in 2.14 secs, rate= 21334, commitLatency=219ms
+NCIOnc	 : 464841 stmts added in 27.031 secs, rate= 17196, commitLatency=328ms
+
+9/9/2009 : global LRU refactor w/ 50k capacity.
+U10	 : 1316700 stmts added in 100.295 secs, rate= 13128, commitLatency=0ms
+U5	 : 645835 stmts added in 41.344 secs, rate= 15621, commitLatency=0ms
+U1	 : 103104 stmts added in 4.593 secs, rate= 22448, commitLatency=0ms
+wordnet	 : 273681 stmts added in 15.25 secs, rate= 17946, commitLatency=313ms
+thesaurus: 1086012 stmts added in 69.109 secs, rate= 15714, commitLatency=375ms
+alibaba	 : 45655 stmts added in 1.922 secs, rate= 23753, commitLatency=188ms
+NCIOnc	 : 464841 stmts added in 38.094 secs, rate= 12202, commitLatency=406ms
+
+9/9/2009 : global LRU refactor w/ 200k capacity.
+U10	 : 1316700 stmts added in 115.156 secs, rate= 11434, commitLatency=0ms
+U5	 : 645835 stmts added in 43.844 secs, rate= 14730, commitLatency=0ms
+U1	 : 103104 stmts added in 4.578 secs, rate= 22521, commitLatency=0ms
+wordnet	 : 273681 stmts added in 15.031 secs, rate= 18207, commitLatency=344ms
+thesaurus: 1086012 stmts added in 70.203 secs, rate= 15469, commitLatency=297ms
+alibaba	 : 45655 stmts added in 1.985 secs, rate= 23000, commitLatency=203ms
+NCIOnc	 : 464841 stmts added in 26.812 secs, rate= 17337, commitLatency=313ms
+
+9/9/2009 : global LRU refactor w/ 295,833 capacity (based on 1024 bytes/rec and 1000m heap).
+U10	 : 1316700 stmts added in 119.201 secs, rate= 11046, commitLatency=0ms
+U5	 : 645835 stmts added in 44.985 secs, rate= 14356, commitLatency=0ms
+U1	 : 103104 stmts added in 4.64 secs, rate= 22220, commitLatency=0ms
+wordnet	 : 273681 stmts added in 15.546 secs, rate= 17604, commitLatency=375ms
+thesaurus: 1086012 stmts added in 78.391 secs, rate= 13853, commitLatency=297ms
+alibaba	 : 45655 stmts added in 1.687 secs, rate= 27062, commitLatency=235ms
+NCIOnc	 : 464841 stmts added in 27.64 secs, rate= 16817, commitLatency=328ms
+
+9/9/2009 : global LRU refactor w/ 295,833 capacity (based on 1024 bytes/rec and 1000m heap), front-coded ratio=16, m=32 (default).
+U10	 : 1316700 stmts added in 122.361 secs, rate= 10760, commitLatency=0ms
+U5	 : 645835 stmts added in 44.672 secs, rate= 14457, commitLatency=0ms
+U1	 : 103104 stmts added in 4.609 secs, rate= 22370, commitLatency=0ms
+wordnet	 : 273681 stmts added in 15.906 secs, rate= 17206, commitLatency=344ms
+thesaurus: 1086012 stmts added in 73.969 secs, rate= 14681, commitLatency=265ms
+alibaba	 : 45655 stmts added in 1.718 secs, rate= 26574, commitLatency=188ms
+NCIOnc	 : 464841 stmts added in 27.938 secs, rate= 16638, commitLatency=344ms
+
+9/9/2009 : global LRU refactor w/ 295,833 capacity (based on 1024 bytes/rec and 1000m heap), front-coded ratio=8, m=64.
+U10	 : 1316700 stmts added in 125.875 secs, rate= 10460, commitLatency=0ms
+U5	 : 645835 stmts added in 45.701 secs, rate= 14131, commitLatency=0ms
+U1	 : 103104 stmts added in 3.797 secs, rate= 27154, commitLatency=0ms
+wordnet	 : 273681 stmts added in 14.344 secs, rate= 19079, commitLatency=359ms
+thesaurus: 1086012 stmts added in 65.734 secs, rate= 16521, commitLatency=343ms
+alibaba	 : 45655 stmts added in 1.578 secs, rate= 28932, commitLatency=188ms
+NCIOnc	 : 464841 stmts added in 25.031 secs, rate= 18570, commitLatency=438ms
+
+	 - The global LRU capacity is a huge performance variable.
+           Correlate to the JVM size.
+
+	 - The branching factor is also a huge performance variable.
+
+	   Note: branchingFactor interacts with the effective buffer
+	   size unless we change the assumed average record size.  If
+	   fact, if we do not change the assumed average record size
+	   then the performance rocks @ m=256 until we run into a low
+	   memory situation and major GC costs begin to dominate.
+
+	   Note: branchingFactor interacts with the store size due to
+	   the WORM architecture.
+
+	   Note: branchingFactor will interact with at least the cold
+	   query latency since we materalize records of different
+	   size, but query should be much better now since we are not
+	   deserializing anything - just wrapping the coded record for
+	   access by the node or leaf.
+
+	   - Look at branching factor x store size x query time, but
+             first optimize the copyOnWrite code paths.
+
+           - Look at branching factor x statement buffer capacity
+             (only the very large files can exploit a larger statement
+             buffer).
+
+	   - Look at branching factor on the index segments.
+
+	 - Look at GC time x maximum heap x global LRU capacity.
+
+	 - Try the new GC (incremental collection of the old gen).
+
+	 --------------------
+
+	- Look at thread contention (none that I can see).
+
+	- Performance comparisons of different coders (primarily
+          simple vs huffman) for the RDF DB (impacts TERM2ID, ID2TERM
+          and statement indices when using SIDS).
 
 	- Add OBS(byte[],off,len) ctor for faster operations on
           slices.
+
+	- Try changing the front-coded raba ratio (normally 8, but try
+          16 or m/4 which is 8 when m=32 but higher when m=64).  Note
+          that leaves may be 1/2 full on average so, maybe m/2.
+
+	- Try larger branching factors for the mutable BTree.  This
+          might improve performance.  There may be interactions with
+          the chunk size of the writes, the resulting size of the
+          store on disk, and the size of the write retention queue.
+          For example, buffing 1M SPOs might do much better than
+          buffering 100k SPOs before an incremental write.
 
 	- Try increasing the default write retention queue capacity
           and see how that effects throughput.
@@ -1457,3 +1766,16 @@ Consider implementing neo4j APIs.
 http://4store.org/ (Garlik)
 
 http://www.mpi-inf.mpg.de/yago-naga/yago/ (256M, 2 million entities)
+
+GOM & CTC blog on bigdata to increase interest.
+
+Tx attributes, e.g., for authentication information to support ACLs.
+This can be an API on the ILocalTx object.  For an authenticated
+client, we would add the appropriate attributes to the local tx.
+Query, etc. can recover the txId from the view and do ACL stuff with
+that.
+
+http://myweb.wssu.edu/dichevc/ (Winstom Salem)
+http://myweb.wssu.edu/dichevad/
+
+http://www.w3.org/2001/04/ACLS/Schema

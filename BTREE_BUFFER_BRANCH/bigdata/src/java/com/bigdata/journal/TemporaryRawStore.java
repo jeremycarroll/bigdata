@@ -37,6 +37,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.cache.LRUNexus;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.io.DirectBufferPool;
 import com.bigdata.mdi.AbstractResourceMetadata;
@@ -141,8 +142,13 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
     
     /**
      * Create a {@link TemporaryRawStore}.
+     * 
+     * @param offsetBits
+     *            This determines the capacity of the store file and the maximum
+     *            length of a record. The value is passed through to
+     *            {@link WormAddressManager#WormAddressManager(int)}.
      */
-    public TemporaryRawStore(int offsetBits) {
+    public TemporaryRawStore(final int offsetBits) {
 
         this(0L/* maximumExtent */, offsetBits, getTempFile());
         
@@ -175,7 +181,7 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
         
         if(INFO) {
             
-            log.info("offsetBits="+offsetBits+", file="+file
+            log.info("offsetBits=" + offsetBits + ", file=" + file
 //            ,new RuntimeException()
             );
             
@@ -314,12 +320,22 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
 
                     } catch (Throwable t) {
 
-                        log.warn(t, t);
+                        log.error(t, t);
 
                     }
 
                 }
-                
+
+                try {
+                 
+                    LRUNexus.INSTANCE.deleteCache(this);
+                    
+                } catch (Throwable t) {
+                    
+                    log.error(t, t);
+                    
+                }
+
             }
 
         }
@@ -370,7 +386,8 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
      */
     static final class ResourceMetadata extends AbstractResourceMetadata {
 
-        public ResourceMetadata(TemporaryRawStore store, String fileStr) {
+        public ResourceMetadata(final TemporaryRawStore store,
+                final String fileStr) {
 
             super(fileStr, /*store.buf.getExtent(),*/ store.uuid, store.createTime);
 
@@ -490,7 +507,7 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
      */
     final public int getMaxRecordSize() {
 
-        return ((AbstractRawWormStore) buf).getAddressManger()
+        return ((AbstractRawWormStore) buf).getAddressManager()
                 .getMaxByteCount();
 
     }
