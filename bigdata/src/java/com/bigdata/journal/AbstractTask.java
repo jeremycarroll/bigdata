@@ -2408,6 +2408,10 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
             return delegate.getProperties();
         }
 
+        public UUID getUUID() {
+            return delegate.getUUID();
+        }
+        
         public IResourceMetadata getResourceMetadata() {
             return delegate.getResourceMetadata();
         }
@@ -2782,6 +2786,10 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
             return delegate.getProperties();
         }
 
+        public UUID getUUID() {
+            return delegate.getUUID();
+        }
+        
         public IResourceMetadata getResourceMetadata() {
             return delegate.getResourceMetadata();
         }

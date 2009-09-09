@@ -36,10 +36,10 @@ import com.bigdata.btree.data.IAbstractNodeData;
 import com.bigdata.btree.data.IAbstractNodeDataCoder;
 import com.bigdata.btree.data.ILeafData;
 import com.bigdata.btree.data.INodeData;
-import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
 import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.io.FixedByteArrayBuffer;
+import com.bigdata.io.IDataRecord;
 import com.bigdata.io.compression.IRecordCompressor;
 import com.bigdata.io.compression.IRecordCompressorFactory;
 import com.bigdata.io.compression.NOPRecordCompressor;
@@ -85,11 +85,12 @@ import com.bigdata.rawstore.IRawStore;
  * @see IAbstractNodeDataCoder
  */
 public class NodeSerializer {
-    
+
     /**
-     * An object that knows how to constructor {@link Node}s and {@link Leaf}s.
+     * An object that knows how to construct {@link Node}s and {@link Leaf}s
+     * from {@link INodeData} and {@link ILeafData} objects.
      */
-    private final INodeFactory nodeFactory;
+    protected final INodeFactory nodeFactory;
 
     /**
      * When <code>true</code> the {@link NodeSerializer} instance will refuse to
@@ -114,7 +115,7 @@ public class NodeSerializer {
     /**
      * Factory for record-level (de-)compression of nodes and leaves (optional).
      */
-    private final IRecordCompressorFactory recordCompressorFactory;
+    private final IRecordCompressorFactory<?> recordCompressorFactory;
     
     /**
      * An object that knows how to (de-)compress a node or leaf (optional).
@@ -176,6 +177,7 @@ public class NodeSerializer {
     /**
      * Constructor is disallowed.
      */
+    @SuppressWarnings("unused")
     private NodeSerializer() {
 
         throw new UnsupportedOperationException();
@@ -226,7 +228,7 @@ public class NodeSerializer {
             final int initialBufferCapacity, //
             final IndexMetadata indexMetadata,//
             final boolean readOnly,//
-            final IRecordCompressorFactory recordCompressorFactory
+            final IRecordCompressorFactory<?> recordCompressorFactory
             ) {
         
         assert nodeFactory != null;
@@ -314,36 +316,25 @@ public class NodeSerializer {
     }
 
     /**
-     * Wrap a coded {@link INodeData} or {@link ILeafData} record, returning an
-     * {@link AbstractNode} (thread-safe). This method is used when the caller
-     * does not know a-priori whether the reference is to a node or leaf. The
-     * decision is made based on inspection of the first byte byte in the
-     * supplied buffer, which codes for a node, leaf, or linked-leaf.
+     * Decode an {@link INodeData} or {@link ILeafData} record, wrapping the
+     * underlying data record (thread-safe). The decision to decode as an
+     * {@link INodeData} or {@link ILeafData} instance is made based on
+     * inspection of the first byte byte in the supplied buffer, which codes for
+     * a node, leaf, or linked-leaf.
      * 
-     * @param btree
-     *            The B+Tree.
-     * @param addr
-     *            The address of the record in the backing store.
      * @param buf
-     *            A buffer containing the record as read from the backing store.
+     *            The data record.
      * 
-     * @return A {@link Node} or {@link Leaf} for that data record.
+     * @return A {@link INodeData} or {@link ILeafData} instance for that data
+     *         record.
      * 
-     *         FIXME modify to operate on a byte[] slice for faster performance.
-     *         Compression should occur at the store level with a header
-     *         mechanism. We should only see a
-     *         {@link AbstractFixedByteArrayBuffer} here, suitable for
-     *         {@link IRabaCoder#decode(com.bigdata.io.AbstractFixedByteArrayBuffer)}
+     *         FIXME modify to accept {@link IDataRecord} rather than
+     *         {@link ByteBuffer}.
      */
-    public AbstractNode<?> decode(final AbstractBTree btree, final long addr,
-            final ByteBuffer buf) {
+    public IAbstractNodeData decode(final ByteBuffer buf) {
 
-        //        assert btree != null;
-        //        assert addr != 0L;
         assert buf != null;
         assert buf.position() == 0;
-
-        final AbstractNode<?> ret;
 
         final boolean isNode = AbstractReadOnlyNodeData.isNode(buf
                 .get(AbstractReadOnlyNodeData.O_TYPE));
@@ -363,23 +354,45 @@ public class NodeSerializer {
         
         if(isNode) {
 
-            // wrap the record.
-            final INodeData data = nodeCoder.decode(slice);
-
-            // wrap as Node.
-            ret = nodeFactory.allocNode(btree, addr, data);
+            return nodeCoder.decode(slice);
             
-        } else {
-
-            // wrap buffer as data record.
-            final ILeafData data = leafCoder.decode(slice);
-
-            // wrap data record as Leaf.
-            ret = nodeFactory.allocLeaf(btree, addr, data);
-
         }
 
-        return ret;
+        return leafCoder.decode(slice);
+
+    }
+
+    /**
+     * Wrap an {@link INodeData} or {@link ILeafData} instance as a {@link Node}
+     * or a {@link Leaf}. This DOES NOT set the parent of the new {@link Node}
+     * or {@link Leaf}.
+     * 
+     * @param btree
+     *            The owning B+Tree.
+     * @param addr
+     *            The address of the data record in the backing store.
+     * @param data
+     *            The data record.
+     *            
+     * @return The node or leaf.
+     */
+    public AbstractNode<?> wrap(final AbstractBTree btree, final long addr,
+            final IAbstractNodeData data) {
+
+        //        assert btree != null;
+        //        assert addr != 0L;
+
+        if (data.isLeaf()) {
+
+            // wrap data record as Leaf.
+            return nodeFactory.allocLeaf(btree, addr, (ILeafData) data);
+
+        } else {
+
+            // wrap data record as Node.
+            return nodeFactory.allocNode(btree, addr, (INodeData) data);
+
+        }
 
     }
 
@@ -395,6 +408,7 @@ public class NodeSerializer {
      * @return The buffer containing the coded data record for the node or leaf
      *         in an exact fit byte[] owned by the coded node or leaf.
      */
+    @SuppressWarnings("unchecked")
     public <T extends IAbstractNodeData> T encodeLive(final T node) {
 
         if (node == null)

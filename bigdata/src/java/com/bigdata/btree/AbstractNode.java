@@ -90,21 +90,6 @@ public abstract class AbstractNode<T extends AbstractNode<T>> extends PO impleme
     final transient protected AbstractBTree btree;
 
     /**
-     * The minimum #of keys. For a {@link Node}, the minimum #of children is
-     * <code>minKeys + 1</code>. For a {@link Leaf}, the minimum #of values
-     * is <code>minKeys</code>.
-     */
-    abstract protected int minKeys();
-
-    /**
-     * The maximum #of keys. This is <code>branchingFactor - 1</code> for a
-     * {@link Node} and <code>branchingFactor</code> for a {@link Leaf}. For a
-     * {@link Node}, the maximum #of children is <code>maxKeys + 1</code>. For a
-     * {@link Leaf}, the maximum #of values is <code>maxKeys</code>.
-     */
-    abstract protected int maxKeys();
-
-    /**
      * The parent of this node. This is null for the root node. The parent is
      * required in order to set the persistent identity of a newly persisted
      * child node on its parent. The reference to the parent will remain
@@ -155,6 +140,26 @@ public abstract class AbstractNode<T extends AbstractNode<T>> extends PO impleme
      */
     transient protected int referenceCount = 0;
 
+    /**
+     * The minimum #of keys. For a {@link Node}, the minimum #of children is
+     * <code>minKeys + 1</code>. For a {@link Leaf}, the minimum #of values
+     * is <code>minKeys</code>.
+     */
+    abstract protected int minKeys();
+
+    /**
+     * The maximum #of keys. This is <code>branchingFactor - 1</code> for a
+     * {@link Node} and <code>branchingFactor</code> for a {@link Leaf}. For a
+     * {@link Node}, the maximum #of children is <code>maxKeys + 1</code>. For a
+     * {@link Leaf}, the maximum #of values is <code>maxKeys</code>.
+     */
+    abstract protected int maxKeys();
+
+    /**
+     * Return the delegate {@link IAbstractNodeData} object.
+     */
+    abstract IAbstractNodeData getDelegate();
+    
     public void delete() {
         
         if( deleted ) {
@@ -270,26 +275,11 @@ public abstract class AbstractNode<T extends AbstractNode<T>> extends PO impleme
 
         assert btree != null;
 
-//        assert btree.branchingFactor >= Options.MIN_BRANCHING_FACTOR;
-
         this.btree = btree;
-
-//        this.branchingFactor = btree.branchingFactor;
 
         // reference to self: reused to link parents and children.
         this.self = btree.newRef(this);
         
-//        /*
-//         * Compute the minimum #of children/values. this is the same whether
-//         * this is a Node or a Leaf.
-//         */
-//        final int minChildren = (branchingFactor + 1) >> 1;
-//        
-//        this.minKeys = isLeaf() ? minChildren : minChildren - 1;
-//        
-//        // The maximum #of keys is easy to compute.
-//        this.maxKeys = isLeaf() ? branchingFactor : branchingFactor - 1;
-
         if (!dirty) {
 
             /*

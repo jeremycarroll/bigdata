@@ -39,7 +39,6 @@ import org.apache.zookeeper.KeeperException;
 import org.openrdf.model.Value;
 import org.openrdf.rio.RDFFormat;
 
-import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.IResourceLock;
 import com.bigdata.journal.ITx;
 import com.bigdata.rawstore.Bytes;
@@ -936,10 +935,7 @@ V extends Serializable//
         log.info(Options.NESTED_SUBQUERY + "="
                 + p.getProperty(Options.NESTED_SUBQUERY));
 
-        log.info(IndexMetadata.Options.BTREE_READ_RETENTION_QUEUE_CAPACITY
-                        + "="
-                        + p
-                                .getProperty(IndexMetadata.Options.DEFAULT_BTREE_READ_RETENTION_QUEUE_CAPACITY));
+//        log.info(IndexMetadata.Options.BTREE_READ_RETENTION_QUEUE_CAPACITY + "=" + p.getProperty(IndexMetadata.Options.BTREE_READ_RETENTION_QUEUE_CAPACITY));
 
         log.info(Options.CHUNK_CAPACITY + "="
                 + p.getProperty(Options.CHUNK_CAPACITY));

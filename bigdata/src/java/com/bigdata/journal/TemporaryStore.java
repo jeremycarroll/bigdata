@@ -169,7 +169,7 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
      * reclaimed). The <i>checkpointAddr</i> is noted as the current
      * {@link #restoreLastCheckpoint()} point.
      */
-    public void restoreCheckpoint(long checkpointAddr) {
+    public void restoreCheckpoint(final long checkpointAddr) {
 
         assertOpen();
 
@@ -223,15 +223,15 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
         
     }
     
-    public BTree registerIndex(String name, IndexMetadata metadata) {
+    public BTree registerIndex(final String name, final IndexMetadata metadata) {
     
-        BTree btree = BTree.create(this, metadata);
+        final BTree btree = BTree.create(this, metadata);
 
         return registerIndex(name, btree);
         
     }
     
-    public BTree registerIndex(String name, BTree btree) {
+    public BTree registerIndex(final String name, final BTree btree) {
 
         synchronized (name2Addr) {
 
@@ -246,7 +246,7 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
         
     }
     
-    public void dropIndex(String name) {
+    public void dropIndex(final String name) {
         
         synchronized(name2Addr) {
 
@@ -263,7 +263,7 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
      * Return an {@link ITx#UNISOLATED} view of the named index -or-
      * <code>null</code> if there is no registered index by that name.
      */
-    public BTree getIndex(String name) {
+    public BTree getIndex(final String name) {
 
         synchronized(name2Addr) {
 
@@ -291,7 +291,7 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
      *             unless the timestamp is either {@link ITx#READ_COMMITTED} or
      *             {@link ITx#UNISOLATED}.
      */
-    public BTree getIndex(String name, long timestamp) {
+    public BTree getIndex(final String name, final long timestamp) {
 
         assertOpen();
 

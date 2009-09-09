@@ -42,6 +42,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.apache.system.SystemUtil;
 
+import com.bigdata.cache.LRUNexus;
 import com.bigdata.counters.httpd.CounterSetHTTPD;
 import com.bigdata.counters.linux.StatisticsCollectorForLinux;
 import com.bigdata.counters.win.StatisticsCollectorForWindows;
@@ -280,7 +281,7 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
                             .makePath(ICounterHierarchy.Memory_GarbageCollectors));
             
             /*
-             * Add counters reporting on the various DirectBufferPool.
+             * Add counters reporting on the various DirectBufferPools.
              */
             {
 
@@ -292,6 +293,19 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
                 
             }
 
+            /*
+             * Add counters reporting on the global LRU and the per-store
+             * caches.
+             */
+            {
+
+                serviceRoot.makePath(
+                        IProcessCounters.Memory + ICounterSet.pathSeparator
+                                + "LRUNexus").attach(
+                        LRUNexus.INSTANCE.getCounters().getCounters());
+                
+            }
+            
         }
                 
     }
@@ -311,7 +325,7 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
 
         final CounterSet ptmp = serviceInfoSet.makePath("Properties");
 
-        final Enumeration e = properties.propertyNames();
+        final Enumeration<?> e = properties.propertyNames();
 
         while (e.hasMoreElements()) {
 
@@ -530,10 +544,12 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
      * 
      * @see Options
      */
-    public static AbstractStatisticsCollector newInstance(Properties properties) {
-        
+    public static AbstractStatisticsCollector newInstance(
+            final Properties properties) {
+
         final int interval = Integer.parseInt(properties.getProperty(
-                Options.PERFORMANCE_COUNTERS_SAMPLE_INTERVAL, Options.DEFAULT_PERFORMANCE_COUNTERS_SAMPLE_INTERVAL));
+                Options.PERFORMANCE_COUNTERS_SAMPLE_INTERVAL,
+                Options.DEFAULT_PERFORMANCE_COUNTERS_SAMPLE_INTERVAL));
 
         if (interval <= 0)
             throw new IllegalArgumentException();

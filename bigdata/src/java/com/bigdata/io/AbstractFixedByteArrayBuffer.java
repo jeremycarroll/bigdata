@@ -35,8 +35,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
-import org.apache.log4j.Logger;
-
 import com.bigdata.btree.BytesUtil;
 
 /**
@@ -51,11 +49,11 @@ import com.bigdata.btree.BytesUtil;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuffer {
+abstract public class AbstractFixedByteArrayBuffer implements IFixedDataRecord {
 
-    protected static final Logger log = Logger.getLogger(AbstractFixedByteArrayBuffer.class);
-    
-    protected static final boolean INFO = log.isInfoEnabled();
+//    protected static final Logger log = Logger.getLogger(AbstractFixedByteArrayBuffer.class);
+//    
+//    protected static final boolean INFO = log.isInfoEnabled();
 
     /**
      * The start of the slice in the {@link #array()}.
@@ -332,23 +330,6 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
         
     }
 
-    final public byte[] toByteArray() {
-        
-        final byte[] tmp = new byte[len];
-
-        System.arraycopy(array(), off/* srcPos */, tmp/* dst */,
-                0/* destPos */, len);
-        
-        return tmp;
-        
-    }
-
-    final public ByteBuffer asByteBuffer() {
-
-        return ByteBuffer.wrap(array(), off, len);
-        
-    }
-
     final public boolean getBit(final long bitIndex) {
 
         assert rangeCheck(BytesUtil.byteIndexForBit(bitIndex), 1);
@@ -369,92 +350,21 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
 
     }
 
-    /**
-     * Return an input stream that will read from the slice.
-     */
-    public DataInputBuffer getDataInput() {
+    final public byte[] toByteArray() {
+        
+        final byte[] tmp = new byte[len];
 
-        return new DataInputBuffer(array(), off, len);
+        System.arraycopy(array(), off/* srcPos */, tmp/* dst */,
+                0/* destPos */, len);
+        
+        return tmp;
         
     }
 
-    /**
-     * Return a bit stream that will read from the slice.
-     * <p>
-     * Note: You DO NOT need to close this stream since it is backed by a
-     * byte[]. In fact, {@link InputBitStream#close()} when backed by a byte[]
-     * appears to have relatively high overhead, which is weird.
-     */
-    public InputBitStream getInputBitStream() {
+    final public ByteBuffer asByteBuffer() {
 
-        /*
-         * We have to double-wrap the buffer to ensure that it reads from just
-         * the slice since InputBitStream does not have a constructor which
-         * accepts a slice of the form (byte[], off, len). [It would be nice if
-         * InputBitStream handled the slice natively since should be faster per
-         * its own javadoc.]
-         * 
-         * Note: The reflection test semantics are not quite what I would want.
-         * If you specify [false] then the code does not even test for the
-         * RepositionableStream interface. Ideally, it would always do that but
-         * skip the reflection on the getChannel() method when it was false.
-         */
-//        return new InputBitStream(getDataInput(), 0/* unbuffered */, true/* reflectionTest */);
+        return ByteBuffer.wrap(array(), off, len);
         
-        /*
-         * This directly wraps the slice.  This is much faster.
-         */
-        return new InputBitStream(array(), off, len);
-
-    }
-
-    /**
-     * Write the slice on the output stream.
-     * 
-     * @param os
-     *            The output stream.
-     * 
-     * @throws IOException
-     */
-    final public void writeOn(final OutputStream os) throws IOException {
-        
-        os.write(array(), off, len);
-        
-    }
-    
-    /**
-     * Write the slice on the output stream.
-     * 
-     * @param os
-     *            The output stream.
-     *            
-     * @throws IOException
-     */
-    final public void writeOn(final DataOutput out) throws IOException {
-        
-        out.write(array(), off, len);
-
-    }
-
-    /**
-     * Write part of the slice on the output stream.
-     * 
-     * @param os
-     *            The output stream.
-     *            
-     * @throws IOException
-     */
-    final public void writeOn(final OutputStream os, final int aoff,
-            final int alen) throws IOException {
-
-        if (aoff < 0) // check starting pos.
-            throw new IllegalArgumentException();
-
-        if (aoff + alen > this.len) // check run length.
-            throw new IllegalArgumentException();
-
-        os.write(array(), off + aoff, alen);
-
     }
 
     public AbstractFixedByteArrayBuffer slice(final int aoff, final int alen) {
@@ -470,6 +380,64 @@ abstract public class AbstractFixedByteArrayBuffer implements IFixedByteArrayBuf
             }
 
         };
+
+    }
+
+    /*
+     * IFixedDataRecord
+     */
+    
+    public DataInputBuffer getDataInput() {
+
+        return new DataInputBuffer(array(), off, len);
+        
+    }
+
+    public InputBitStream getInputBitStream() {
+
+//        /*
+//         * We have to double-wrap the buffer to ensure that it reads from just
+//         * the slice since InputBitStream does not have a constructor which
+//         * accepts a slice of the form (byte[], off, len). [It would be nice if
+//         * InputBitStream handled the slice natively since should be faster per
+//         * its own javadoc.]
+//         * 
+//         * Note: The reflection test semantics are not quite what I would want.
+//         * If you specify [false] then the code does not even test for the
+//         * RepositionableStream interface. Ideally, it would always do that but
+//         * skip the reflection on the getChannel() method when it was false.
+//         */
+//        return new InputBitStream(getDataInput(), 0/* unbuffered */, true/* reflectionTest */);
+        
+        /*
+         * This directly wraps the slice.  This is much faster.
+         */
+        return new InputBitStream(array(), off, len);
+
+    }
+
+    final public void writeOn(final OutputStream os) throws IOException {
+        
+        os.write(array(), off, len);
+        
+    }
+    
+    final public void writeOn(final DataOutput out) throws IOException {
+        
+        out.write(array(), off, len);
+
+    }
+
+    final public void writeOn(final OutputStream os, final int aoff,
+            final int alen) throws IOException {
+
+        if (aoff < 0) // check starting pos.
+            throw new IllegalArgumentException();
+
+        if (aoff + alen > this.len) // check run length.
+            throw new IllegalArgumentException();
+
+        os.write(array(), off + aoff, alen);
 
     }
 

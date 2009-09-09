@@ -125,12 +125,23 @@ public class DefaultEvictionListener implements
                     
                 }
                 
-                if (btree.readRetentionQueue != null) {
+            } // isDirty
 
-                    btree.readRetentionQueue.add(ref);
+            if (btree.globalLRU != null) {
 
-                }
-                
+                /*
+                 * Add the INodeData or ILeafData object to the global LRU, NOT
+                 * the Node or Leaf.
+                 * 
+                 * Note: The global LRU touch only occurs on eviction from the
+                 * write retention queue. This is nice because it limits the
+                 * touches on the global LRU, which could otherwise be a hot
+                 * spot. We do a touch whether or not the node was persisted
+                 * since we are likely to return to the node in either case.
+                 */
+
+                btree.globalLRU.add(node.getDelegate());
+
             }
 
         }

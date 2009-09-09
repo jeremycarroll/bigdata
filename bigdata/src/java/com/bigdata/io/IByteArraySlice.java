@@ -28,12 +28,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.io;
 
 /**
- * Interface for access to a backing byte[].
+ * Interface for a slice of a backing byte[].
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface IByteArrayAccess {
+public interface IByteArraySlice {
 
     /**
      * The backing byte[]. This method DOES NOT guarantee that the backing array
@@ -42,5 +42,15 @@ public interface IByteArrayAccess {
      * extended.
      */
     public byte[] array();
-    
+
+    /**
+     * The start of the slice in the {@link #array()}.
+     */
+    public int off();
+
+    /**
+     * The length of the slice in the {@link #array()}.
+     */
+    public int len();
+
 }

@@ -48,9 +48,8 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * entry on the tail whose age as reported by that interface exceeds a timeout
  * is evicted. This continues until we reach the first value on the tail of the
  * queue whose age is greater than the timeout. This behavior is enabled if a
- * non-ZERO timeout is specified and then only if the generic type of the
- * objects in the queue extends {@link IValueAge}. Stales references are also
- * cleared by a background thread.
+ * non-ZERO timeout is specified. Stales references are also cleared by a
+ * background thread.
  * </p>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
@@ -77,9 +76,7 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
      *            There is no guarantee that all stored references are distinct.
      * @param timeout
      *            The timeout (in nanoseconds) for an entry in the queue. When
-     *            ZERO (0L), the timeout is disabled. See {@link IValueAge}.
-     *            The timeout behavior is only available when the references
-     *            stored in the queue implement {@link IValueAge}.
+     *            ZERO (0L), the timeout is disabled.
      */
     public SynchronizedHardReferenceQueueWithTimeout(final int capacity,
             final long timeout) {
@@ -103,9 +100,7 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
      *            reference to the cache.
      * @param timeout
      *            The timeout (in nanoseconds) for an entry in the queue. When
-     *            ZERO (0L), the timeout is disabled. See {@link IValueAge}.
-     *            The timeout behavior is only available when the references
-     *            stored in the queue implement {@link IValueAge}.
+     *            ZERO (0L), the timeout is disabled.
      */
     public SynchronizedHardReferenceQueueWithTimeout(final int capacity,
             final int nscan, final long timeout) {
@@ -153,6 +148,7 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
             
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         protected final void beforeOffer(final T ref) {
 
@@ -161,7 +157,7 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
             if (timeout != 0L) {
 
                 // touch the new reference
-                ((ValueAge) ref).touch();
+                ((ValueAge<T>) ref).touch();
 
                 // evict any stale references.
                 evictStaleRefs(timeout);
@@ -247,8 +243,7 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
     
     /**
      * The timeout (in nanoseconds) for an entry in the queue. When ZERO (0L),
-     * the timeout is disabled. Note that the timeout is only applied when the
-     * references in the queue implement {@link IValueAge}.
+     * the timeout is disabled.
      */
     final public long timeout() {
         

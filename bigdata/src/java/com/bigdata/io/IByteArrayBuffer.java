@@ -37,22 +37,25 @@ import it.unimi.dsi.fastutil.io.RepositionableStream;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  * 
- * @todo raise mark(), pos(int), etc into this interface?
+ * @todo raise mark(), etc. into this interface?
  */
-public interface IByteArrayBuffer extends IRawRecord {
+public interface IByteArrayBuffer extends IDataRecord {
 
     /**
-     * The backing byte[]. 
+     * The backing byte[] WILL be transparently replaced if the buffer capacity
+     * is extended. {@inheritDoc}
      */
     byte[] array();
-    
+
     /**
      * The offset of the slice into the backing byte[] is always zero.
+     * {@inheritDoc}
      */
     int off();
 
     /**
      * The length of the slice is always the capacity of the backing byte[].
+     * {@inheritDoc}
      */
     int len();
     
