@@ -79,6 +79,13 @@ Full tx support for RDF
      - Log tx commit times together with their associated revision
        timestamps.
 
+     - Performance tuning for timestamp[] coding.
+
+     - Option to provision KB to support transactions.
+
+     - TERM2ID and ID2TERM will be non-transactional.  How about the
+       text index?
+
 --------------------
 
 Distributed Tx
@@ -484,33 +491,6 @@ x. (***) RMI SHOULD reuse buffers whenever possible.
 	   to use efficient access to the coded data.
 
 7. (***) Buffering & caching.
-
-   - Replaced openLeafCount and index segment leaf bytes on disk with
-     the corresponding counters from the LRUNexus.
-
-   - Added the store UUID to the IRawStore API.
-
-   - Added global LRU and factory for per-store record/object cache.
-
-   - The BTree and IndexSegment read-retention queue configuration
-     properties are gone.
-
-   - The IndexSegment leafCache and its configuration properties are
-     gone.
-
-   - (***) A huge percentage of the time is the FastRDFValueCoder.
-     Change this to use 4 bits per statement and then the nibble
-     addressing can be done without using the IBS.
-
-     Note: A mutable coded value raba could be implemented for the
-     statement indices.  With a fixed bit length per value, we can
-     represent the data in m/2 bytes.
-
-   - copyOnWrite() is using the IRaba#iterator() to copy the keys and
-     values into the mutable keys and values buffer.  This code path
-     gets a lot of use.  Optimize it.  31% of the time is
-     copyOnWrite() for load.  91% of that time is just copying the
-     values out of the FastRDFValueCoder!
 
    - scanHead on the global LRU may be doing too much.  It is 1% of
      all time.
@@ -1132,6 +1112,32 @@ and query performance vs m=32.
 
 New GC might do MUCH better - there are frequent major GC pauses.
 
+9/10/2009 : global LRU refactor w/ 295,833 capacity, m=32, FastSPOValueCoder2, jdk_1.6.0_16
+U10	  : 1316700 stmts added in 113.53 secs, rate= 11597, commitLatency=0ms
+U5	  : 645835 stmts added in 43.969 secs, rate= 14688, commitLatency=0ms
+U1	  : 103104 stmts added in 4.499 secs, rate= 22917, commitLatency=0ms
+wordnet	  : 273681 stmts added in 14.797 secs, rate= 18495, commitLatency=344ms
+thesaurus : 1086012 stmts added in 71.547 secs, rate= 15179, commitLatency=359ms
+alibaba	  : 45655 stmts added in 1.672 secs, rate= 27305, commitLatency=203ms
+NCIOnc	  : 464841 stmts added in 26.657 secs, rate= 17437, commitLatency=1234ms
+
+9/10/2009 : global LRU refactor w/ 295,833 capacity, m=32, FastSPOValueCoder2, jdk_1.6.0_16, G1
+U10	  : 
+U5	  : 
+U1	  : 
+wordnet	  : 
+thesaurus : 
+alibaba	  : 
+NCIOnc	  : 
+
+U10	  : 
+U5	  : 
+U1	  : 
+wordnet	  : 
+thesaurus : 
+alibaba	  : 
+NCIOnc	  : 
+
 copyOnWrite for SPO indices is now cheap.  Copy on write for the
 ID2TERM and TERM2ID indices still shows up as a cost, but it is way
 down.
@@ -1141,6 +1147,124 @@ prefix, if any, for the raba.  That would be useful for a keys raba
 since a common prefix is ... common and that would reduce the storage
 requirements and increase search speed.  In fact, we could do a
 front-coded huffman coded approach for keys.
+
+
+
+New options:
+
+    -XX:+UseCompressedOops (64-bit only)
+
+    -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC
+
+         -XX:MaxGCPauseMillis=<X>
+
+	 -XX:GCPauseIntervalMillis=<X>
+
+         See http://java.sun.com/javase/6/webnotes/6u14.html and
+         http://java.sun.com/javase/technologies/hotspot/gc/
+
+
+
+
+	 - Bug in B+Tree with data and parent lost showing up on LUBM
+           Q9 for U10.  This might be related to the transient B+Tree
+           problem where the parent of the sibling was deleted.
+
+java.lang.AssertionError: com.bigdata.btree.Leaf@9319d9{ isDirty=false, isDeleted=false, addr=0, parent=N/A, data=NA}
+	at com.bigdata.btree.DefaultEvictionListener.evicted(DefaultEvictionListener.java:146)
+
+	 - G1 triggers assertion during U10 load!
+
+ java.lang.AssertionError
+	at com.bigdata.btree.Node.<init>(Node.java:723)
+	at com.bigdata.btree.AbstractNode.copyOnWrite(AbstractNode.java:471)
+	at com.bigdata.btree.AbstractNode.copyOnWrite(AbstractNode.java:521)
+	at com.bigdata.btree.AbstractNode.copyOnWrite(AbstractNode.java:521)
+	at com.bigdata.btree.AbstractNode.copyOnWrite(AbstractNode.java:521)
+	at com.bigdata.btree.AbstractNode.copyOnWrite(AbstractNode.java:415)
+	at com.bigdata.btree.Leaf.insert(Leaf.java:483)
+	at com.bigdata.btree.Node.insert(Node.java:899)
+	at com.bigdata.btree.Node.insert(Node.java:899)
+	at com.bigdata.btree.Node.insert(Node.java:899)
+	at com.bigdata.btree.Node.insert(Node.java:899)
+	at com.bigdata.btree.AbstractBTree.insert(AbstractBTree.java:1651)
+	at com.bigdata.btree.AbstractBTree.insert(AbstractBTree.java:1597)
+	at com.bigdata.rdf.spo.SPOIndexWriteProc.apply(SPOIndexWriteProc.java:210)
+	at com.bigdata.btree.UnisolatedReadWriteIndex.submit(UnisolatedReadWriteIndex.java:796)
+	at com.bigdata.rdf.spo.SPOIndexWriter.call(SPOIndexWriter.java:263)
+
+
+	 - Query hotspot:
+
+com.bigdata.rdf.rules.RDFJoinNexus.getTailAccessPath(IPredicate)	 
+
+	 - (***) Load and most query is now slower(!?!) than for the
+           trunk.
+
+	   Consider decoding "hot" nodes and leaves.  E.g., if the ref
+	   count is GT 10.  This would probably have to sync on the
+	   node/leaf data record to avoid concurrent decoding and then
+	   the new (decoded) data record would have to be placed into
+	   the cache.  
+
+	   We can monitor in the eviction listener and notice when the
+	   ref count has dropped and consider reconversion to a coded
+	   data record (either by keeping the persistent data record
+	   and re-wrapping it or by re-reading it from the store), or
+	   we could just leave it decoded until it is finally evicted
+	   from the write retention queue and the global LRU.
+
+	   Only Node/Leaf reference counts are maintained.  We do not
+	   have reference counts for the data records at this time.
+	   That could be done if we had them extend some base object
+	   with the [ref] field.
+
+	 - There are lots of other variables for query performance,
+           such as the chunk capacity and the chunks of chunks
+           capacity, but the difference between the branch and the
+           trunk is the coding and buffering of B+Tree nodes and
+           leaves.
+
+	 - Doubling the writeRetentionQueue capacity has no impact on
+	   query against historical data (LUBM U10).
+
+	 - Effect of the writeRetentionQueue capacity for load.  The
+           baseline is with a capacity of 500.
+
+	    500, m=32 : 11230
+	   1000, m=32 : 11823
+	   2000, m=32 : 13252
+	   4000, m=32 : 18698, net=14680
+	   8000, m=32 : 19471, net=14870
+	   8000, m=64 : 22896, net=17553, nextOffset=167823032
+	   8000, m=128: 23833, net=17692, nextOffset=153749219
+	   -------------
+	   trunk: 19,218 (net 15,512)
+
+	   look at store size (truncate to fit).
+
+	   look at the max memory used and GC time and pauses.
+
+	   is the test harness committing after each source file it
+	   loads?  checkpointing the indices?
+
+	   A B*Tree (split @ 2/3, join @ 1/3) could be substantially
+	   faster since split/joins drive decoding to mutable parents.
+
+	 - Correlate the maximumMemoryFootprint for bigdata against
+           the retained heap and the size of the global LRU and the
+           #of cached records across the stores.  Does this system as
+           a whole respect the maximumMemoryFootprint?  Is it capped
+           out on the global LRU?  Do the per-store caches retain more
+           references than can be explained by the global LRU (plus
+           the write retention queue, which is used even for read-only
+           B+Tree instances).
+
+         - Compare performance of the canonical huffman coder vs
+           simple coder with and without record level compression.  It
+           might be much faster to operate with record level
+           compression over simple raba coding, though the in-memory
+           footprint would be larger.
 
 	 - The global LRU capacity is a huge performance variable.
            Correlate to the JVM size.
@@ -1174,6 +1298,19 @@ front-coded huffman coded approach for keys.
 	 - Look at GC time x maximum heap x global LRU capacity.
 
 	 - Try the new GC (incremental collection of the old gen).
+
+	 - Try nscan := 0,5,10,20 for the global LRU.  We already trim
+           duplicates using the write retention queue.  The global LRU
+           can still see duplicates from concurrent access to the same
+           B+Tree.
+
+	 - Reversing the dirty post-order iterator for eviction and
+           saving the nextAddr on the leaves and maintaining their
+           weak reference on the Leaf could improve performance in
+           query since ChildIterator#next() drives a lot of the disk
+           reads.  This would be a whole new code path for the BTree
+           for linked forward scan iterators which avoided top-down
+           reads whenever possible.
 
 	 --------------------
 

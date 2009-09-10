@@ -29,6 +29,7 @@ package com.bigdata.btree;
 import java.lang.reflect.Constructor;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.btree.AbstractBTreeTupleCursor.MutableBTreeTupleCursor;
 import com.bigdata.btree.Leaf.ILeafListener;
 import com.bigdata.btree.data.ILeafData;
@@ -769,9 +770,6 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
         assertNotTransient();
         assertNotReadOnly();
         
-        if (INFO)
-            log.info("begin");
-        
 //        assert root != null : "root is null"; // i.e., isOpen().
 
         // flush any dirty nodes.
@@ -803,9 +801,6 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
 
                 filter.write(store);
 
-                if (INFO)
-                    log.info("wrote updated bloom filter record.");
-
             }
             
         }
@@ -819,9 +814,6 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
             
             metadata.write(store);
             
-            if(INFO)
-                log.info("wrote updated metadata record");
-            
         }
         
         // create new checkpoint record.
@@ -830,15 +822,11 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
         // write it on the store.
         checkpoint.write(store);
         
-        if (INFO) {
-
-            // Note: this is the scale-out index name for a partitioned index.
-            final String name = metadata.getName();
-
-            log.info((name == null ? "" : "name=" + name + ", ")
-                        + "wroteCheckpoint=" + checkpoint);
-
-        }
+        if (BigdataStatics.debug)
+            System.err.println("name=" + metadata.getName()
+                    + ", writeQueue{size=" + writeRetentionQueue.size()
+                    + ",distinct=" + ndistinctOnWriteRetentionQueue + "} : "
+                    + checkpoint);
         
         // return the checkpoint record.
         return checkpoint;

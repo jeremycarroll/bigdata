@@ -63,7 +63,7 @@ public class TestTripleStoreLoadRateLocal extends ProxyTestCase {
 
     public Properties getProperties() {
 
-        Properties properties = new Properties(super.getProperties());
+        final Properties properties = new Properties(super.getProperties());
 
         // turn off incremental truth maintenance.
         properties.setProperty(DataLoader.Options.CLOSURE, ClosureEnum.None.toString());

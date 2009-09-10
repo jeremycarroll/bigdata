@@ -337,6 +337,15 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
 //            properties.setProperty(IndexMetadata.Options.SPLIT_HANDLER_MIN_ENTRY_COUNT, ""+1 * Bytes.kilobyte32);
 //            properties.setProperty(IndexMetadata.Options.SPLIT_HANDLER_ENTRY_COUNT_PER_SPLIT, ""+5 * Bytes.kilobyte32);
 
+            // write retention queue (default is 500).
+            properties.setProperty(
+                    IndexMetadata.Options.WRITE_RETENTION_QUEUE_CAPACITY,
+                    "8000");
+
+            properties.setProperty(
+                    IndexMetadata.Options.BTREE_BRANCHING_FACTOR,
+                    "64");
+
             {
                 /*
                  * Tweak the split points for the various indices to achieve
@@ -512,6 +521,12 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
 
                 System.err.println(Options.NESTED_SUBQUERY + "="
                         + p.getProperty(Options.NESTED_SUBQUERY));
+
+              System.err.println(IndexMetadata.Options.WRITE_RETENTION_QUEUE_CAPACITY + "="
+              + p.getProperty(IndexMetadata.Options.WRITE_RETENTION_QUEUE_CAPACITY));
+
+              System.err.println(IndexMetadata.Options.BTREE_BRANCHING_FACTOR+ "="
+              + p.getProperty(IndexMetadata.Options.BTREE_BRANCHING_FACTOR));
 
 //                System.err.println(IndexMetadata.Options.BTREE_READ_RETENTION_QUEUE_CAPACITY + "="
 //                        + p.getProperty(IndexMetadata.Options.BTREE_READ_RETENTION_QUEUE_CAPACITY));

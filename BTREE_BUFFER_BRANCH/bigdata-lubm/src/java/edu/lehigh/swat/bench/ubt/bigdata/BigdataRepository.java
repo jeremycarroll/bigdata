@@ -313,7 +313,11 @@ public class BigdataRepository implements Repository {
         sb.append("literalCount\t" + tripleStore.getLiteralCount()+"\n");
         
         sb.append("bnodeCount\t" + tripleStore.getBNodeCount()+"\n");
-        
+
+        sb.append("branchingFactor\t" + tripleStore.getSPOIndex().getIndexMetadata().getBranchingFactor()+"\n");
+
+        sb.append("writeRetentionCapacity\t" + tripleStore.getSPOIndex().getIndexMetadata().getWriteRetentionQueueCapacity()+"\n");
+
 //        sb.append(tripleStore.predicateUsage());
         
         } catch(Throwable t) {
@@ -563,9 +567,12 @@ public class BigdataRepository implements Repository {
                  * Note: We already have a commit point if we used the concurent
                  * data loader, but this also writes some info on System.out.
                  * 
-                 * Note: this gives us a commit point if closure fails.
+                 * Note: skipping the commit if you are going to compute the
+                 * closure can be a big win since it does not checkpoint the
+                 * indices.
                  */
-                commit();
+                if(!computeClosure) 
+                    commit();
                 
             } catch (Throwable t) {
 
