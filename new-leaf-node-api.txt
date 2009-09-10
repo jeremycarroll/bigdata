@@ -1109,6 +1109,39 @@ thesaurus: 1086012 stmts added in 65.734 secs, rate= 16521, commitLatency=343ms
 alibaba	 : 45655 stmts added in 1.578 secs, rate= 28932, commitLatency=188ms
 NCIOnc	 : 464841 stmts added in 25.031 secs, rate= 18570, commitLatency=438ms
 
+9/9/2009 : global LRU refactor w/ 295,833 capacity, m=32, FastSPOValueCoder2.
+U10	 : 1316700 stmts added in 115.219 secs, rate= 11427, commitLatency=0ms
+U5	 : 645835 stmts added in 43.377 secs, rate= 14888, commitLatency=0ms
+U1	 : 103104 stmts added in 4.625 secs, rate= 22292, commitLatency=0ms
+wordnet	 : 273681 stmts added in 15.657 secs, rate= 17479, commitLatency=297ms
+thesaurus: 1086012 stmts added in 71.297 secs, rate= 15232, commitLatency=297ms
+alibaba	 : 45655 stmts added in 1.719 secs, rate= 26559, commitLatency=172ms
+NCIOnc	 : 464841 stmts added in 26.844 secs, rate= 17316, commitLatency=343ms
+
+9/9/2009 : global LRU refactor w/ 295,833 capacity, m=64, FastSPOValueCoder2 (pretty good - check size on disk)
+U10	 : 1316700 stmts added in 112.549 secs, rate= 11698, commitLatency=0ms
+U5	 : 645835 stmts added in 41.172 secs, rate= 15686, commitLatency=0ms
+U1	 : 103104 stmts added in 3.671 secs, rate= 28086, commitLatency=0ms (!)
+wordnet	 : 273681 stmts added in 13.828 secs, rate= 19791, commitLatency=359ms
+thesaurus: 1086012 stmts added in 64.765 secs, rate= 16768, commitLatency=297ms
+alibaba  : 45655 stmts added in 1.578 secs, rate= 28932, commitLatency=235ms
+NCIOnc	 : 464841 stmts added in 25.391 secs, rate= 18307, commitLatency=406ms
+
+m=64 looks pretty good with FastSPOValueCoder2. Check the size on disk
+and query performance vs m=32.
+
+New GC might do MUCH better - there are frequent major GC pauses.
+
+copyOnWrite for SPO indices is now cheap.  Copy on write for the
+ID2TERM and TERM2ID indices still shows up as a cost, but it is way
+down.
+
+The canonical huffman raba coder does not factor out the common
+prefix, if any, for the raba.  That would be useful for a keys raba
+since a common prefix is ... common and that would reduce the storage
+requirements and increase search speed.  In fact, we could do a
+front-coded huffman coded approach for keys.
+
 	 - The global LRU capacity is a huge performance variable.
            Correlate to the JVM size.
 
@@ -1145,6 +1178,9 @@ NCIOnc	 : 464841 stmts added in 25.031 secs, rate= 18570, commitLatency=438ms
 	 --------------------
 
 	- Look at thread contention (none that I can see).
+
+	- Is there a faster way to read/write a code word (only
+          effects the ID2TERM index)?
 
 	- Performance comparisons of different coders (primarily
           simple vs huffman) for the RDF DB (impacts TERM2ID, ID2TERM

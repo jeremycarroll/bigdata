@@ -609,7 +609,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
              * course, the CanonicalHuffmanRabaCoder can always be used.
              */
 
-            leafValSer = new FastRDFValueCoder();
+            leafValSer = new FastRDFValueCoder2();
 //            leafValSer = SimpleRabaCoder.INSTANCE;
 
         } else {

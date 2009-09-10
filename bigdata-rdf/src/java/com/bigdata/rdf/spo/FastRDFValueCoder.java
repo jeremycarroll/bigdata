@@ -42,7 +42,7 @@ import com.bigdata.rdf.store.AbstractTripleStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  * 
- * @todo Fast coder for SIDs+type?
+ * @todo Fast coder for SIDs+type?  E.g., SID[size] followed by nibble[size]?
  */
 public class FastRDFValueCoder implements Externalizable, IRabaCoder {
 
@@ -68,14 +68,18 @@ public class FastRDFValueCoder implements Externalizable, IRabaCoder {
      * No.
      */
     final public boolean isKeyCoder() {
+        
         return false;
+        
     }
 
     /**
      * Yes.
      */
     final public boolean isValueCoder() {
+
         return true;
+        
     }
 
     /**

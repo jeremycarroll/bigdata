@@ -183,6 +183,39 @@ public class TestSPOValueCoders extends TestCase2 {
 
     }
 
+    /**
+     * Simple tests for {@link FastRDFValueCoder2}.
+     * <P>
+     * Note: this does not cover nulls or overrides, but the stress tests covers
+     * both.
+     */
+    public void test_FastRDFValueCoder2_001() {
+
+        doRoundTripTest(new SPO[] { new SPO(0, 0, 0, StatementEnum.Axiom) },
+                new FastRDFValueCoder2());
+
+        doRoundTripTest(new SPO[] { new SPO(0, 0, 0, StatementEnum.Explicit) },
+                new FastRDFValueCoder2());
+
+        doRoundTripTest(new SPO[] { new SPO(0, 0, 0, StatementEnum.Inferred) },
+                new FastRDFValueCoder2());
+
+        doRoundTripTest(new SPO[] { new SPO(0, 0, 0, StatementEnum.Axiom),
+                new SPO(0, 0, 0, StatementEnum.Inferred) },
+                new FastRDFValueCoder2());
+
+        doRoundTripTest(new SPO[] { new SPO(0, 0, 0, StatementEnum.Explicit),
+                new SPO(0, 0, 0, StatementEnum.Axiom) },
+                new FastRDFValueCoder2());
+
+    }
+
+    public void test_FastRDFValueCoder2() {
+
+        doRoundTripTests(new FastRDFValueCoder2(), false/* sids */, true/* inference */);
+
+    }
+
     protected void doRoundTripTests(final IRabaCoder rabaCoder,
             final boolean SIDs, final boolean inference) {
 
