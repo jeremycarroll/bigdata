@@ -288,7 +288,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
         /**
          * A reasonable maximum write retention queue capacity.
          */
-        int MAX_WRITE_RETENTION_QUEUE_CAPACITY = 2000;
+        int MAX_WRITE_RETENTION_QUEUE_CAPACITY = 20000;
         
          /*
          * Options that apply to FusedViews as well as to AbstractBTrees.

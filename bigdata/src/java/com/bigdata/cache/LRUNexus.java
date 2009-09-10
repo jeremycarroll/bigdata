@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import net.jini.config.Configuration;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.btree.AbstractBTree;
 import com.bigdata.btree.BloomFilter;
 import com.bigdata.btree.Checkpoint;
@@ -202,17 +203,38 @@ public class LRUNexus {
     private final ConcurrentWeakValueCache<UUID, CacheImpl<Object>> cacheSet;
 
     /**
-     * Return the default maximum memory footprint, which is 30% of the maximum
-     * JVM heap. This limit is a bit conservative. It is designed to leave some
-     * room for application data objects and GC. You may be able to get away
-     * with significantly more on machines with large RAM.
+     * Return the default maximum memory footprint, which is
+     * {@link #percentMaximumMemory} of the maximum JVM heap. This limit is a
+     * bit conservative. It is designed to leave some room for application data
+     * objects and GC. You may be able to get away with significantly more on
+     * machines with large RAM.
      */
     static long getMaximumMemoryFootprint() {
         
-        return (long) (Runtime.getRuntime().maxMemory() * .3);
+        return (long) (Runtime.getRuntime().maxMemory() * percentMaximumMemory);
         
     }
 
+    /**
+     * The percentage of the JVM heap to use for bigdata buffers as managed by
+     * this class.
+     */
+    static final float percentMaximumMemory = .3f;
+
+    /**
+     * The average record size, which is an input to the nominal capacity of the
+     * {@link #globalLRU}.
+     * 
+     * @todo Estimate the average record size based on real data (counters).
+     *       Actually, 1024 is not bad for the RDF DB with a branching factor of
+     *       32. This is a pretty common value for the byte length of the
+     *       decompressed node and leaf data records.  It will be much larger
+     *       for {@link IndexSegment}s of course so scale-out will need to
+     *       plan for a mixture of records on journals and index segments in
+     *       memory.
+     */
+    static final int baseAverageRecordSize = 1024;
+    
     /**
      * Return the default {@link LRU} capacity based on the maximum
      * memory footprint and some heuristics.
@@ -222,32 +244,35 @@ public class LRUNexus {
      */
     static int getQueueCapacity(final long maximumMemoryFootprint) {
 
-        /*
-         * @todo Estimate the average record size based on real data (counters).
-         * Actually, 1024 is not bad for the RDF DB with a branching factor of
-         * 32. This is a pretty common value for the byte length of the
-         * decompressed node and leaf data records.
-         */
-        final int averageRecordSize = 1024 * (Integer
-                .valueOf(IndexMetadata.Options.DEFAULT_BTREE_BRANCHING_FACTOR) / 32);
+        final int averageRecordSize = (int) (baseAverageRecordSize * (Integer
+                .valueOf(IndexMetadata.Options.DEFAULT_BTREE_BRANCHING_FACTOR) / 32.));
 
         // target capacity for that expected record size.
-        final long tmp = maximumMemoryFootprint / averageRecordSize;
+        final long maximumQueueCapacityEstimate = maximumMemoryFootprint / averageRecordSize;
 
-        System.err.println("maxCapacityEst=" + tmp);
+        // -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC
+        if(BigdataStatics.debug)
+            System.err.println(//
+                "defaultBranchingFactor="
+                + IndexMetadata.Options.DEFAULT_BTREE_BRANCHING_FACTOR//
+                + ", averageRecordSize=" + averageRecordSize//
+                + "\nmaxMemory="+Runtime.getRuntime().maxMemory()//
+                + ", percentMaximumMemory="+percentMaximumMemory//
+                + ", maximumQueueCapacityEstimate=" + maximumQueueCapacityEstimate//
+                );
         
         if (true)
-            return (int) Math.min(Integer.MAX_VALUE, tmp);
+            return (int) Math.min(Integer.MAX_VALUE, maximumQueueCapacityEstimate);
 
         if (maximumMemoryFootprint < Bytes.gigabyte * 2) {
 
             // capacity is no more than X
-            return (int) Math.min(tmp, 200000/* 200k */);
+            return (int) Math.min(maximumQueueCapacityEstimate, 200000/* 200k */);
 
         } else {
 
             // capacity is no more than Y
-            return (int) Math.min(tmp, 1000000/* 1M */);
+            return (int) Math.min(maximumQueueCapacityEstimate, 1000000/* 1M */);
 
         }
 
@@ -557,9 +582,10 @@ public class LRUNexus {
             final int nscan, final int initialCapacity, final float loadFactor,
             final int concurrencyLevel) {
 
-        System.err.println("maximumMemoryFootprint=" + maximumMemoryFootprint
-                + ", queueCapacity=" + queueCapacity + ", initialCapacity="
-                + initialCapacity);
+        if (BigdataStatics.debug)
+            System.err.println("maximumMemoryFootprint="
+                    + maximumMemoryFootprint + ", queueCapacity="
+                    + queueCapacity + ", initialCapacity=" + initialCapacity);
         
         this.maximumMemoryFootprint = maximumMemoryFootprint;
 

@@ -758,10 +758,10 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         
         // The coders to be tested.
         final IRabaCoder[] coders = new IRabaCoder[] {
-//                new MutableRabaCoder(), // provides performance baseline.
-//                SimpleRabaCoder.INSTANCE, // simplest coding.
+                new MutableRabaCoder(), // provides performance baseline.
+                SimpleRabaCoder.INSTANCE, // simplest coding.
 ////                new FrontCodedRabaCoder(2/* ratio */),
-//                new FrontCodedRabaCoder(8/* ratio */), // front-coding.
+                new FrontCodedRabaCoder(8/* ratio */), // front-coding.
 ////                new FrontCodedRabaCoder(32/* ratio */),
                 CanonicalHuffmanRabaCoder.INSTANCE // huffman coding.
                 };

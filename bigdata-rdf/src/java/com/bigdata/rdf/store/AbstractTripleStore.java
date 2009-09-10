@@ -473,11 +473,11 @@ abstract public class AbstractTripleStore extends
          * used, it becomes increasingly likely that each bulk read or write
          * operation will on average touch all index partitions. This is because
          * #of low order local counter bits reversed and rotated into the high
-         * bits of the term identifier places an approproximate bound on the #of
+         * bits of the term identifier places an approximate bound on the #of
          * index partitions of the ID2TERM or a statement index that will be
          * touched by a scattered read or write. However, that number will
          * continue to grow slowly over time as new partition identifiers are
-         * introduced (the partition identifers appear next in the encoded term
+         * introduced (the partition identifiers appear next in the encoded term
          * identifier and therefore determine the degree of locality or scatter
          * once the quickly varying high bits have had their say).
          * <p>

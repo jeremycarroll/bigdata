@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.Checkpoint;
 import com.bigdata.btree.IIndex;
@@ -1965,6 +1966,11 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
 
         assertOpen();
 
+        final long beginNanos = System.nanoTime();
+
+        // #of bytes on the journal as of the previous commit point.
+        final long byteCountBefore = _rootBlock.getNextOffset();
+
         if (log.isInfoEnabled())
             log.info("commitTime=" + commitTime);
 
@@ -2041,7 +2047,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
 
         /*
          * Force application data to stable storage _before_ we update the root
-         * blocks. This option guarentees that the application data is stable on
+         * blocks. This option guarantees that the application data is stable on
          * the disk before the atomic commit. Some operating systems and/or file
          * systems may otherwise choose an ordered write with the consequence
          * that the root blocks are laid down on the disk before the application
@@ -2114,9 +2120,20 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
 
         }
 
+        final long elapsedNanos = System.nanoTime() - beginNanos;
+
+        if (BigdataStatics.debug)
+            System.err.println("commit: commitTime=" + commitTime
+                    + ", latency="
+                    + TimeUnit.NANOSECONDS.toMillis(elapsedNanos)
+                    + ", nextOffset=" + nextOffset + ", byteCount="
+                    + (nextOffset - byteCountBefore));
+
         if (log.isInfoEnabled())
-            log.info("Done: commitTime=" + commitTime + ", nextOffset="
-                    + nextOffset);
+            log.info("commit: commitTime=" + commitTime + ", latency="
+                    + TimeUnit.NANOSECONDS.toMillis(elapsedNanos)
+                    + ", nextOffset=" + nextOffset + ", byteCount="
+                    + (nextOffset - byteCountBefore));
 
         return commitTime;
 

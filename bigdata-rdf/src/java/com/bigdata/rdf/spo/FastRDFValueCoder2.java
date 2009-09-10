@@ -27,8 +27,8 @@ import com.bigdata.rdf.store.AbstractTripleStore;
  * as a place holder for a <code>null</code> value and de-serializes to a
  * [null]. This is just the low nibble of the {@link StatementEnum#code()}. This
  * "nibble" encoding makes it fast and easy to extract the value from the coded
- * record.  The first value is stored in the low nibble, the next in the high
- * nibble, then it is on to the low nibble of the next byte. 
+ * record. The first value is stored in the low nibble, the next in the high
+ * nibble, then it is on to the low nibble of the next byte.
  * <p>
  * Note: the 'override' flag is NOT stored in the statement indices, but it is
  * passed by the procedure that writes on the statement indices so that we can
@@ -44,6 +44,11 @@ import com.bigdata.rdf.store.AbstractTripleStore;
  * @version $Id$
  * 
  * @todo Fast coder for SIDs+type? E.g., SID[size] followed by nibble[size]?
+ * 
+ * @todo A mutable coded value raba could be implemented for the statement
+ *       indices. With a fixed bit length per value, we can represent the data
+ *       in m/2 bytes. This is also true for things like TERM2ID where the
+ *       values could be represented as a long[].
  */
 public class FastRDFValueCoder2 implements Externalizable, IRabaCoder {
 

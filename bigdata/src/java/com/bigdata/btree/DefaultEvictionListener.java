@@ -28,6 +28,7 @@ package com.bigdata.btree;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.btree.data.IAbstractNodeData;
 import com.bigdata.cache.HardReferenceQueue;
 
 /**
@@ -140,7 +141,13 @@ public class DefaultEvictionListener implements
                  * since we are likely to return to the node in either case.
                  */
 
-                btree.globalLRU.add(node.getDelegate());
+                final IAbstractNodeData delegate = node.getDelegate();
+                
+                assert delegate != null : node.toString();
+                
+                assert delegate.isCoded() : node.toString();
+                
+                btree.globalLRU.add(delegate);
 
             }
 
