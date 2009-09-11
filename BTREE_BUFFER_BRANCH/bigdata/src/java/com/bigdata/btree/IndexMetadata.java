@@ -49,6 +49,7 @@ import com.bigdata.btree.raba.codec.FrontCodedRabaCoder;
 import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.btree.raba.codec.FrontCodedRabaCoder.DefaultFrontCodedRabaCoder;
 import com.bigdata.btree.view.FusedView;
+import com.bigdata.cache.LRUNexus;
 import com.bigdata.config.Configuration;
 import com.bigdata.config.IValidator;
 import com.bigdata.config.IntegerRangeValidator;
@@ -385,7 +386,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
                 .getPackage().getName()
                 + ".writeRetentionQueue.scan";
 
-        String DEFAULT_WRITE_RETENTION_QUEUE_CAPACITY = "500";
+        String DEFAULT_WRITE_RETENTION_QUEUE_CAPACITY = "8000";// was 500
 
         String DEFAULT_WRITE_RETENTION_QUEUE_SCAN = "20";
 
@@ -494,16 +495,21 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
 
         /**
          * The default branching factor for a mutable {@link BTree}.
-         * 
-         * FIXME Change default branchingFactor, writeRetentionQueueCapacity,
-         * nscan. [m=64 and writeRetentionQueueCapacity=8000 appear to be the
-         * magic numbers up to U50 with the B+Tree refactor]. Historically,
-         * performance was best for up to at least a 4M triple RDF dataset for
-         * load, closure and query at m=256, but thereafter performance begins
-         * to drag. Reconsider once I get rid of the {@link ImmutableKeyBuffer}
-         * and other cruft that is driving GC.
+         * <p>
+         * Note: on 9/11/2009 I changed the default B+Tree branching factor and
+         * write retention queue capacity to 64 (was 32) and 8000 (was 500)
+         * respectively. This change in the B+Tree branching factor reduces the
+         * height of B+Trees on the Journal, increases the size of the
+         * individual records on the disk, and aids performance substantially.
+         * The larger write retention queue capacity helps to prevent B+Tree
+         * nodes and leaves from being coded and flushed to disk too soon, which
+         * decreases disk IO and keeps things in their mutable form in memory
+         * longer, which improves search performance and keeps down the costs of
+         * mutation operations. Systems with less RAM may need to reduce the
+         * size of the {@link LRUNexus} global LRU to avoid
+         * {@link OutOfMemoryError}s.
          */
-        String DEFAULT_BTREE_BRANCHING_FACTOR = "32"; //"256"
+        String DEFAULT_BTREE_BRANCHING_FACTOR = "64"; //"256"
 
 //        /**
 //         * The capacity of the hard reference queue used to retain recently used
