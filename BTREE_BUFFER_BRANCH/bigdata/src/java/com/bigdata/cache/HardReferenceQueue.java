@@ -183,8 +183,9 @@ public class HardReferenceQueue<T> extends RingBuffer<T> implements IHardReferen
     @Override
     public boolean add(final T ref) {
         
-        if (ref == null)
-            throw new IllegalArgumentException();
+        // note: tested by the base class in offer().
+//        if (ref == null)
+//            throw new IllegalArgumentException();
         
         /*
          * Scan the last nscan references for this reference. If found, return

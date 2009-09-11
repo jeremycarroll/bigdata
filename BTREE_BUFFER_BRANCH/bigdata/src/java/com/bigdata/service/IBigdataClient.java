@@ -300,7 +300,7 @@ public interface IBigdataClient<T> {
         String DEFAULT_CLIENT_MAX_PARALLEL_TASKS_PER_REQUEST = "100";
 
         /**
-         * The timeout in millseconds for a task submitting to an
+         * The timeout in milliseconds for a task submitting to an
          * {@link IDataService} (default {@value #DEFAULT_CLIENT_TASK_TIMEOUT}).
          * <p>
          * Note: Use {@value Long#MAX_VALUE} for NO timeout (the maximum value

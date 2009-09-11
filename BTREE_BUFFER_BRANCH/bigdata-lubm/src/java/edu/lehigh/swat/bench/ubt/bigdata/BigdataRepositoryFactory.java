@@ -279,6 +279,7 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
          */
 //        properties.setProperty(Options.MAX_PARALLEL_SUBQUERIES, "5");
         properties.setProperty(Options.MAX_PARALLEL_SUBQUERIES, "0");
+
         /*
          * Choice of the join algorithm.
          * 
@@ -287,8 +288,6 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
          * true is nested, which is also the default right now.
          */
         properties.setProperty(Options.NESTED_SUBQUERY, "false");
-
-        //        properties.setProperty(Options.BRANCHING_FACTOR,"64");// default is 32
         
         {
          

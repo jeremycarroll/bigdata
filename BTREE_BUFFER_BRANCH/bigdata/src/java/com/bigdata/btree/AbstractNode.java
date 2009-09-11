@@ -26,8 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.btree;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
@@ -407,15 +405,15 @@ public abstract class AbstractNode<T extends AbstractNode<T>> extends PO impleme
      * 
      * @return Either this leaf or a copy of this leaf.
      */
-    protected AbstractNode<T> copyOnWrite() {
+    protected Leaf copyOnWrite() {
         
         // Always invoked first for a leaf and thereafter in its other form.
         assert isLeaf();
         
-        return copyOnWrite(NULL);
+        return (Leaf) copyOnWrite(NULL);
         
     }
-    
+
     /**
      * <p>
      * Return this node or leaf iff it is dirty (aka mutable) and otherwise
@@ -432,8 +430,8 @@ public abstract class AbstractNode<T extends AbstractNode<T>> extends PO impleme
      * root to be dirty and transient. This method handles that cloning process,
      * but the caller MUST test whether or not the node was copied by this
      * method, MUST delegate the mutation operation to the copy iff a copy was
-     * made, and MUST result in an awareness in the caller that the copy exists
-     * and needs to be used in place of the immutable version of the node.
+     * made, and MUST be aware that the copy exists and needs to be used in
+     * place of the immutable version of the node.
      * </p>
      * 
      * @param triggeredByChildId
@@ -445,96 +443,7 @@ public abstract class AbstractNode<T extends AbstractNode<T>> extends PO impleme
     protected AbstractNode<T> copyOnWrite(final long triggeredByChildId) {
 
 //        if (isPersistent()) {
-        if (isReadOnly()) {
-
-            if(INFO) {
-                log.info("this="+this+", trigger="+triggeredByChildId);
-//                if( DEBUG ) {
-//                    System.err.println("this"); dump(Level.DEBUG,System.err);
-//                }
-            }
-
-            // cast to mutable implementation class.
-            final BTree btree = (BTree) this.btree;
-            
-            // identify of the node that is being copied and deleted.
-            final long oldId = this.identity;
-
-            // parent of the node that is being cloned (null iff it is the root).
-            Node parent = this.getParent();
-
-            // the new node (mutable copy of the old node).
-            final AbstractNode newNode;
-
-            if (this instanceof Node) {
-
-                newNode = new Node((Node) this, triggeredByChildId);
-                
-                btree.getBtreeCounters().nodesCopyOnWrite++;
-
-            } else {
-
-                newNode = new Leaf((Leaf) this);
-
-                btree.getBtreeCounters().leavesCopyOnWrite++;
-
-            }
-
-            // delete this node now that it has been cloned.
-            this.delete();
-            
-            if (btree.root == this) {
-
-                assert parent == null;
-
-                // Update the root node on the btree.
-                if(INFO)
-                    log.info("Copy-on-write : replaced root node on btree.");
-
-                final boolean wasDirty = btree.root.dirty;
-                
-                assert newNode != null;
-                
-                btree.root = newNode;
-                
-                if (!wasDirty) {
-                    
-                    btree.fireDirtyEvent();
-                    
-                }
-
-            } else {
-
-                /*
-                 * Recursive copy-on-write up the tree. This operations stops as
-                 * soon as we reach a parent node that is already dirty and
-                 * grounds out at the root in any case.
-                 */
-                assert parent != null;
-
-                if (!parent.isDirty()) {
-
-                    /*
-                     * Note: pass up the identity of the old child since we want
-                     * to avoid having its parent reference reset.
-                     */
-                    parent = (Node) parent.copyOnWrite(oldId);
-
-                }
-
-                /*
-                 * Replace the reference to this child with the reference to the
-                 * new child. This makes the old child inaccessible via
-                 * navigation. It will be GCd once it falls off of the hard
-                 * reference queue.
-                 */
-                parent.replaceChildRef(oldId, newNode);
-
-            }
-
-            return newNode;
-
-        } else {
+        if (!isReadOnly()) {
 
             /*
              * Since a clone was not required, we use this as an opportunity to
@@ -542,11 +451,99 @@ public abstract class AbstractNode<T extends AbstractNode<T>> extends PO impleme
              * nodes which have been touched recently will remain strongly
              * reachable.
              */
+            
             btree.touch(this);
             
             return this;
 
         }
+
+        if (INFO) {
+            log.info("this=" + this + ", trigger=" + triggeredByChildId);
+//                if( DEBUG ) {
+//                    System.err.println("this"); dump(Level.DEBUG,System.err);
+//                }
+        }
+
+        // cast to mutable implementation class.
+        final BTree btree = (BTree) this.btree;
+        
+        // identify of the node that is being copied and deleted.
+        final long oldId = this.identity;
+
+        // parent of the node that is being cloned (null iff it is the root).
+        Node parent = this.getParent();
+
+        // the new node (mutable copy of the old node).
+        final AbstractNode newNode;
+
+        if (this instanceof Node) {
+
+            newNode = new Node((Node) this, triggeredByChildId);
+            
+            btree.getBtreeCounters().nodesCopyOnWrite++;
+
+        } else {
+
+            newNode = new Leaf((Leaf) this);
+
+            btree.getBtreeCounters().leavesCopyOnWrite++;
+
+        }
+
+        // delete this node now that it has been cloned.
+        this.delete();
+        
+        if (btree.root == this) {
+
+            assert parent == null;
+
+            // Update the root node on the btree.
+            if(INFO)
+                log.info("Copy-on-write : replaced root node on btree.");
+
+            final boolean wasDirty = btree.root.dirty;
+            
+            assert newNode != null;
+            
+            btree.root = newNode;
+            
+            if (!wasDirty) {
+                
+                btree.fireDirtyEvent();
+                
+            }
+
+        } else {
+
+            /*
+             * Recursive copy-on-write up the tree. This operations stops as
+             * soon as we reach a parent node that is already dirty and
+             * grounds out at the root in any case.
+             */
+            assert parent != null;
+
+            if (!parent.isDirty()) {
+
+                /*
+                 * Note: pass up the identity of the old child since we want
+                 * to avoid having its parent reference reset.
+                 */
+                parent = (Node) parent.copyOnWrite(oldId);
+
+            }
+
+            /*
+             * Replace the reference to this child with the reference to the
+             * new child. This makes the old child inaccessible via
+             * navigation. It will be GCd once it falls off of the hard
+             * reference queue.
+             */
+            parent.replaceChildRef(oldId, newNode);
+
+        }
+
+        return newNode;
 
     }
 
@@ -817,32 +814,6 @@ public abstract class AbstractNode<T extends AbstractNode<T>> extends PO impleme
         return btree.branchingFactor;
         
     }
-    
-    final public int getKeyCount() {
-        
-        return getKeys().size();
-        
-    }
-    
-    final public void copyKey(final int index, final OutputStream os) {
-        
-        try {
-            
-            os.write(getKeys().get(index));
-            
-        } catch(IOException ex) {
-            
-            throw new RuntimeException(ex);
-            
-        }
-
-    }
-    
-//    final public byte[] getKey(final int index) {
-//
-//        return keys.get(index);
-//        
-//    }
     
     /**
      * <p>

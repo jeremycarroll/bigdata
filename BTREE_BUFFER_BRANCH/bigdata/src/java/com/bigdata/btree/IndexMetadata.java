@@ -491,14 +491,17 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
          * @see #INDEX_SEGMENT_BRANCHING_FACTOR
          */
         String BTREE_BRANCHING_FACTOR = BTree.class.getName()+".branchingFactor";
-        
+
         /**
          * The default branching factor for a mutable {@link BTree}.
          * 
-         * @todo Performance is best for up to at least a 4M triple RDF dataset for
-         *       load, closure and query at m=256, but thereafter performance begins
-         *       to drag. Reconsider once I get rid of the
-         *       {@link ImmutableKeyBuffer} and other cruft that is driving GC.
+         * FIXME Change default branchingFactor, writeRetentionQueueCapacity,
+         * nscan. [m=64 and writeRetentionQueueCapacity=8000 appear to be the
+         * magic numbers up to U50 with the B+Tree refactor]. Historically,
+         * performance was best for up to at least a 4M triple RDF dataset for
+         * load, closure and query at m=256, but thereafter performance begins
+         * to drag. Reconsider once I get rid of the {@link ImmutableKeyBuffer}
+         * and other cruft that is driving GC.
          */
         String DEFAULT_BTREE_BRANCHING_FACTOR = "32"; //"256"
 

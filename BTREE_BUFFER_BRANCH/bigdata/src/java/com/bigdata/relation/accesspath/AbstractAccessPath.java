@@ -551,7 +551,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
      * {@link #MAX_FULLY_BUFFERED_READ_LIMIT}.
      * 
      * FIXME in order to support large limits we need to verify that the
-     * asynchonous iterator can correctly handle REMOVEALL and that incremental
+     * asynchronous iterator can correctly handle REMOVEALL and that incremental
      * materialization up to the [limit] will not effect the semantics for
      * REMOVEALL or the other iterator flags (per above). (In fact, the
      * asynchronous iterator does not support either [offset] or [limit] at this
