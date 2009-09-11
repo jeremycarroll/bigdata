@@ -32,7 +32,8 @@ import org.apache.log4j.Logger;
  * @param <V>
  *            The generic type of the values.
  */
-public class ConcurrentWeakValueCache<K, V> implements IConcurrentWeakValueCache<K, V> {
+public class ConcurrentWeakValueCache<K, V> implements
+        IConcurrentWeakValueCache<K, V> {
 
     protected static transient final Logger log = Logger.getLogger(ConcurrentWeakValueCache.class);
     

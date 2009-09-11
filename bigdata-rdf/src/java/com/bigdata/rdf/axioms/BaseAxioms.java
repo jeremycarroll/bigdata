@@ -45,7 +45,6 @@ import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.IndexMetadata.Options;
-import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.StatementEnum;
@@ -168,7 +167,7 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
      * @throws IllegalArgumentException
      *             if the parameter is <code>null</code>.
      */
-    protected void addAxioms(Collection<BigdataStatement> axioms) {
+    protected void addAxioms(final Collection<BigdataStatement> axioms) {
 
         if (axioms == null)
             throw new IllegalArgumentException();
@@ -188,7 +187,7 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
      * database, but it will still result in the SPO[] containing the axioms to
      * be defined in {@link MyStatementBuffer}.
      */
-    private void writeAxioms(Collection<BigdataStatement> axioms) {
+    private void writeAxioms(final Collection<BigdataStatement> axioms) {
         
         if (axioms == null)
             throw new IllegalArgumentException();
@@ -200,9 +199,9 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
         
         // SPO[] exposed by our StatementBuffer subclass.
         final SPO[] stmts;
-        
-        if(naxioms>0) {
-        
+
+        if (naxioms > 0) {
+
         // Note: min capacity of one handles case with no axioms.
             
             final int capacity = Math.max(1, naxioms);
@@ -262,7 +261,7 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
      * @throws IllegalStateException
      *             if the {@link #btree} exists.
      */
-    private void createBTree(int naxioms) {
+    private void createBTree(final int naxioms) {
         
         if (btree != null)
             throw new IllegalStateException();
@@ -284,7 +283,8 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
         
         metadata.setTupleSerializer(tupleSer);
         
-        btree = BTree.create(new SimpleMemoryRawStore(), metadata);
+        btree = BTree.createTransient(metadata);
+//        btree = BTree.create(new SimpleMemoryRawStore(), metadata);
 
     }
 
@@ -352,7 +352,7 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
         
     }
     
-    final public boolean isAxiom(long s, long p, long o) {
+    final public boolean isAxiom(final long s, final long p, final long o) {
 
         if (btree == null)
             throw new IllegalStateException();

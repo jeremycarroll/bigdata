@@ -150,10 +150,25 @@ public class RingBuffer<T> implements Queue<T> {
     
     public boolean add(final T ref) throws IllegalStateException {
 
-        if (!offer(ref))
+        if (ref == null)
+            throw new IllegalArgumentException();
+
+        beforeOffer( ref );
+
+        if (isFull())
             throw new IllegalStateException();
 
+        refs[head] = ref;
+
+        head = (head + 1) % capacity;
+
+        size++;
+
         return true;
+//        if (!offer(ref))
+//            throw new IllegalStateException();
+//
+//        return true;
         
     }
 

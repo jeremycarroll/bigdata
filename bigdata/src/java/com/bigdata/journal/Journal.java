@@ -131,7 +131,7 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
      * @param properties
      *            See {@link com.bigdata.journal.Options}.
      */
-    public Journal(Properties properties) {
+    public Journal(final Properties properties) {
         
         super(properties);
      

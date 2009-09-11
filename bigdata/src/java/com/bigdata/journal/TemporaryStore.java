@@ -72,8 +72,8 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
     private final int liveIndexCacheCapacity = 20;
 
     /**
-     * The timeout for stale entries in the live index cache for the
-     * {@link Name2Addr} instance.
+     * The timeout in milliseconds for stale entries in the live index cache for
+     * the {@link Name2Addr} instance.
      * 
      * @todo this should be a configuration property once the temporary store
      *       accepts a {@link Properties} object in its ctor.

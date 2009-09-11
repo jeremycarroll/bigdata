@@ -41,6 +41,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Logger;
@@ -811,7 +812,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 //  0.75f// loadFactor
 //  50// concurrencyLevel
     final private ConcurrentWeakValueCache<SPOPredicate, SPOAccessPath> cache = new ConcurrentWeakValueCacheWithTimeout<SPOPredicate, SPOAccessPath>(
-            100/* queueCapacity */, 60 * 1000/* timeout */
+            100/* queueCapacity */, TimeUnit.MILLISECONDS.toNanos(60 * 1000)/* timeout */
     );
 
     /**

@@ -27,11 +27,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.cache;
 
+import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -39,8 +41,6 @@ import net.jini.config.Configuration;
 
 import com.bigdata.BigdataStatics;
 import com.bigdata.btree.AbstractBTree;
-import com.bigdata.btree.BloomFilter;
-import com.bigdata.btree.Checkpoint;
 import com.bigdata.btree.ITupleCursor;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
@@ -53,6 +53,8 @@ import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.io.IDataRecord;
 import com.bigdata.io.IDataRecordAccess;
+import com.bigdata.journal.AbstractBufferStrategy;
+import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.TemporaryStore;
 import com.bigdata.rawstore.AbstractRawStore;
@@ -248,7 +250,8 @@ public class LRUNexus {
                 .valueOf(IndexMetadata.Options.DEFAULT_BTREE_BRANCHING_FACTOR) / 32.));
 
         // target capacity for that expected record size.
-        final long maximumQueueCapacityEstimate = maximumMemoryFootprint / averageRecordSize;
+        final long maximumQueueCapacityEstimate = maximumMemoryFootprint
+                / averageRecordSize * 4;
 
         // -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC
         if(BigdataStatics.debug)
@@ -288,11 +291,15 @@ public class LRUNexus {
      */
     private class CacheImpl<V> extends ConcurrentWeakValueCache<Long, V> {
 
+        private final Class<? extends IRawStore> cls;
         private final IAddressManager am;
+        private final File file;
 
         /**
          * Uses the specified values.
          * 
+         * @param cls
+         *            The {@link IRawStore} implementation class.
          * @param am
          *            The <em>delegate</em> {@link IAddressManager} associated
          *            with the {@link IRawStore} whose records are being cached.
@@ -301,6 +308,8 @@ public class LRUNexus {
          *            NOT provide a reference to an {@link IRawStore} here as
          *            that will cause the {@link IRawStore} to be retained by a
          *            hard reference!
+         * @param file
+         *            The backing file (may be <code>null</code>).
          * @param queue
          *            The {@link IHardReferenceQueue} (optional).
          * @param initialCapacity
@@ -314,16 +323,17 @@ public class LRUNexus {
          *            cleared references. When <code>false</code> those entries
          *            will remain in the cache.
          */
-        public CacheImpl(final IAddressManager am, final IHardReferenceQueue<V> queue,
-                final int initialCapacity, final float loadFactor,
-                final int concurrencyLevel,
+        public CacheImpl(final Class<? extends IRawStore> cls,
+                final IAddressManager am, final File file,
+                final IHardReferenceQueue<V> queue, final int initialCapacity,
+                final float loadFactor, final int concurrencyLevel,
                 final boolean removeClearedReferences) {
 
             super(queue, initialCapacity, loadFactor, concurrencyLevel,
                     removeClearedReferences);
 
             if(am instanceof IRawStore) {
-
+ 
                 /*
                  * This would cause the IRawStore to be retained by a hard
                  * reference!
@@ -334,7 +344,11 @@ public class LRUNexus {
 
             }
             
+            this.cls = cls;
+            
             this.am = am;
+            
+            this.file = file;
             
         }
         
@@ -348,11 +362,13 @@ public class LRUNexus {
             final WeakRef2 weakRef = (WeakRef2) super.removeMapEntry(k);
 
             counters.bytesInMemory.addAndGet(-weakRef.bytesInMemory);
-            counters.bytesInMemory.addAndGet(-weakRef.bytesOnDisk);
-            counters.recordCount.decrementAndGet();
             
+            counters.bytesOnDisk.addAndGet(-weakRef.bytesOnDisk);
+            
+            counters.lruDistinctCount.decrementAndGet();
+
             return weakRef;
-            
+
         }
 
         @Override
@@ -369,25 +385,34 @@ public class LRUNexus {
                 
             }
 
-            // add in the byte length of the new data record.
-            long delta = ((IDataRecordAccess)newVal).data().len();
+            // add in the decompressed byte length of the new data record.
+            long deltaBytesInMemory = ((WeakRef2) newRef).bytesInMemory;
+            
+            // add in the bytes on disk of the new data record.
+            long deltaBytesOnDisk = ((WeakRef2) newRef).bytesOnDisk;
 
             if (oldRef != null) {
 
-                // subtract out the byte length of the old data record.
-                delta -= ((WeakRef2) oldRef).bytesInMemory;
+                // subtract out the decompressed byte length of the old data record.
+                deltaBytesInMemory -= ((WeakRef2) oldRef).bytesInMemory;
+
+                // subtract out the bytes on disk of the old data record.
+                deltaBytesOnDisk -= ((WeakRef2) oldRef).bytesOnDisk;
+
+            } else {
+                
+                counters.lruDistinctCount.incrementAndGet();
 
             }
 
-            // adjust the counter.
-            counters.bytesInMemory.addAndGet(delta);
+            // adjust counters.
             
-            if (oldRef == null) {
-
-                counters.recordCount.incrementAndGet();
-
-            }
+            if (deltaBytesInMemory != 0)
+                counters.bytesInMemory.addAndGet(deltaBytesInMemory);
             
+            if (deltaBytesOnDisk != 0)
+                counters.bytesOnDisk.addAndGet(deltaBytesOnDisk);
+
         }
         
         /**
@@ -498,8 +523,10 @@ public class LRUNexus {
         }
 
         /**
-         * Evicts up to 10 elements from the tail if the bytesInMemory is over
+         * Evicts up to N=10 elements from the tail if the bytesInMemory is over
          * the desired memory footprint.
+         * 
+         * @todo configuration parameter for N and tune.  probably N=2 is Ok.
          */
         @Override
         protected void beforeOffer(final V v) {
@@ -535,9 +562,7 @@ public class LRUNexus {
     /**
      * Constructor with reasonable defaults based on {@link Runtime#maxMemory()}.
      * 
-     * @todo tune parameters.
-     * 
-     * @todo larger initialCapacity.
+     * @todo tune parameters (larger initialCapacity).
      */
     public LRUNexus() {
 
@@ -606,40 +631,35 @@ public class LRUNexus {
      * Return the global LRU instance. This LRU enforces competition across all
      * {@link IRawStore}s for buffer space (RAM).
      * 
-     * FIXME Simplify the integration pattern for use of a cache. You have to
-     * follow a "get()" then if miss, read+wrap, then putIfAbsent(). You MUST
-     * also "touch" the object on the global LRU on access to keep it "live".
-     * Finally, for write through, you must insert the object into the cache.
-     * You DO NOT need to "touch" the object on a cache hit or when inserting it
-     * into the cache since the cache is backed by the global LRU and the
-     * {@link ConcurrentWeakValueCache} will automatically "touch" the object on
-     * the LRU. These semantics could be made more transparent if we define an
-     * ICachedStore interface. However, the caller would need to pass in the
-     * functor to create the appropriate object on get() and would need to
-     * handle the "touch" protocol as well.
+     * @todo Simplify the integration pattern for use of a cache. You have to
+     *       follow a "get()" then if miss, read+wrap, then putIfAbsent(). You
+     *       MUST also "touch" the object on the global LRU on access to keep it
+     *       "live". Finally, for write through, you must insert the object into
+     *       the cache. You DO NOT need to "touch" the object on a cache hit or
+     *       when inserting it into the cache since the cache is backed by the
+     *       global LRU and the {@link ConcurrentWeakValueCache} will
+     *       automatically "touch" the object on the LRU. These semantics could
+     *       be made more transparent if we define an ICachedStore interface.
+     *       However, the caller would need to pass in the functor to create the
+     *       appropriate object on get() and would need to handle the "touch"
+     *       protocol as well.
      */
     public IHardReferenceQueue<Object> getGlobalLRU() {
 
         return globalLRU;
         
     }
-    
+
     /**
      * An canonicalizing factory for cache instances supporting random access to
      * decompressed {@link IDataRecord}s, higher-level data structures wrapping
      * those decompressed data records ({@link INodeData} and {@link ILeafData}
      * ), or objects deserialized from those {@link IDataRecord}s.
-     * 
-     * @todo Caches are NOT used transparently (but that might change). They
-     *       MUST be integrated into the higher level access structures.
-     *       Additional record types which SHOULD be cached include
-     *       {@link Checkpoint}s, {@link IndexMetadata} , {@link BloomFilter}s,
-     *       etc.
-     * 
-     * @todo This can not track bytesInMemory unless the weak referents
-     *       implement {@link IDataRecordAccess} since it relies on
-     *       {@link IDataRecordAccess#data()} to self-report the length of the
-     *       decompressed {@link IDataRecord}.
+     * <p>
+     * Note: This can not track bytesInMemory unless the weak referents
+     * implement {@link IDataRecordAccess} since it relies on
+     * {@link IDataRecordAccess#data()} to self-report the length of the
+     * decompressed {@link IDataRecord}.
      * 
      * @see AbstractBTree#readNodeOrLeaf(long)
      * @see IndexSegmentStore#reopen()
@@ -655,16 +675,38 @@ public class LRUNexus {
 
         if (cache == null) {
 
-            final IAddressManager am = (store instanceof AbstractRawWormStore ? ((AbstractRawStore) store)
-                    .getAddressManager()
-                    : null);
+            final Class<? extends IRawStore> cls = store.getClass();
+            final IAddressManager am;
+            final File file = store.getFile();
             
-            cache = new CacheImpl<Object>(am, globalLRU,
+            if (store instanceof AbstractJournal) {
+                
+                am = ((AbstractBufferStrategy) ((AbstractJournal) store)
+                        .getBufferStrategy()).getAddressManager();
+
+            } else if (store instanceof AbstractRawWormStore) {
+                
+                am = ((AbstractRawStore) store).getAddressManager();
+                
+            } else {
+                
+                am = null;
+                
+            }
+            
+            cache = new CacheImpl<Object>(cls, am, file, globalLRU,
                     initialCapacity, loadFactor, concurrencyLevel, true/* removeClearedReferences */);
 
-            CacheImpl<Object> oldVal = cacheSet.putIfAbsent(storeUUID, cache);
+            final CacheImpl<Object> oldVal = cacheSet.putIfAbsent(storeUUID,
+                    cache);
 
-            if (oldVal != null) {
+            if (oldVal == null) {
+
+//                if (BigdataStatics.debug)
+//                    System.err.println("New store: " + store + " : file="
+//                            + store.getFile());
+                
+            } else {
 
                 // concurrent insert.
                 cache = oldVal;
@@ -754,18 +796,14 @@ public class LRUNexus {
         private final AtomicLong bytesInMemory = new AtomicLong();
 
         /**
-         * {@link #recordCount} is the #of distinct records retained by the
+         * {@link #lruDistinctCount} is the #of distinct records retained by the
          * canonicalizing weak value cache for decompressed records.
          */
-        private final AtomicLong recordCount = new AtomicLong();
+        private final AtomicLong lruDistinctCount = new AtomicLong();
 
         public CounterSet getCounters() {
 
             final CounterSet counters = new CounterSet();
-
-            counters.addCounter("maximumMemoryFootprint",
-                    new OneShotInstrument<Long>(
-                            LRUNexus.this.maximumMemoryFootprint));
 
             counters.addCounter("bytesOnDisk", new Instrument<Long>() {
                 @Override
@@ -781,13 +819,55 @@ public class LRUNexus {
                 }
             });
 
-            counters.addCounter("recordCount", new Instrument<Long>() {
+            counters.addCounter("bytesInMemory Percent Used", new Instrument<Double>() {
                 @Override
                 protected void sample() {
-                    setValue(recordCount.get());
+                    setValue(((int) (10000 * bytesInMemory.get() / (double) LRUNexus.this.maximumMemoryFootprint)) / 100d);
                 }
             });
-            
+
+            counters.addCounter("bytesInMemory Maximum Footprint",
+                    new OneShotInstrument<Long>(
+                            LRUNexus.this.maximumMemoryFootprint));
+
+            counters.addCounter("LRU Capacity", new Instrument<Integer>() {
+                @Override
+                protected void sample() {
+                    setValue(LRUNexus.this.globalLRU.capacity());
+                }
+            });
+
+            counters.addCounter("LRU Size", new Instrument<Integer>() {
+                @Override
+                protected void sample() {
+                    setValue(LRUNexus.this.globalLRU.size());
+                }
+            });
+
+            counters.addCounter("LRU Distinct", new Instrument<Long>() {
+                @Override
+                protected void sample() {
+                    setValue(lruDistinctCount.get());
+                }
+            });
+
+            counters.addCounter("LRU Percent Used", new Instrument<Double>() {
+                @Override
+                protected void sample() {
+                    setValue(((int) (10000 * LRUNexus.this.globalLRU.size() / (double) LRUNexus.this.globalLRU
+                            .capacity())) / 100d);
+                }
+            });
+
+            counters.addCounter("LRU Percent Distinct",
+                    new Instrument<Double>() {
+                        @Override
+                        protected void sample() {
+                            setValue(((int) (10000 * lruDistinctCount.get() / (double) LRUNexus.this.globalLRU
+                                    .capacity())) / 100d);
+                        }
+            });
+
             /*
              * The #of stores whose nodes and leaves are being cached.
              */
@@ -798,10 +878,81 @@ public class LRUNexus {
                 }
             });
 
+            /*
+             * The average bytes in memory per buffered record.
+             */
+            counters.addCounter("averageRecordSizeInMemory",
+                    new Instrument<Integer>() {
+                        @Override
+                        protected void sample() {
+                            final long tmp = lruDistinctCount.get();
+                            if (tmp == 0) {
+                                setValue(0);
+                            }
+                            setValue((int) (bytesInMemory.get() / tmp));
+                        }
+                    });
+
+            /*
+             * The average bytes on disk per buffered record.
+             */
+            counters.addCounter("averageRecordSizeOnDisk",
+                    new Instrument<Integer>() {
+                        @Override
+                        protected void sample() {
+                            final long tmp = lruDistinctCount.get();
+                            if (tmp == 0) {
+                                setValue(0);
+                            }
+                            setValue((int) (bytesOnDisk.get() / tmp));
+                        }
+            });
+
             return counters;
 
+        }
+        
+        public String toString() {
+            
+            return getCounters().toString();
+            
         }
 
     }
 
+    public String toString() {
+        
+        final String t = getCounters().toString();
+        
+        if(!BigdataStatics.debug) {
+            
+            return t;
+            
+        }
+        
+        final StringBuilder sb = new StringBuilder();
+
+        sb.append(t);
+
+        final Iterator<WeakReference<CacheImpl<Object>>> itr = cacheSet
+                .iterator();
+
+        while (itr.hasNext()) {
+
+            final CacheImpl<Object> cache = itr.next().get();
+
+            if (cache == null) {
+                // weak reference was cleared.
+                continue;
+            }
+
+            sb.append("\ncache: storeClass=" + cache.cls.getName() + ", size="
+                    + cache.size() + ", file=" + cache.file);
+
+        }
+            
+        return sb.toString();
+        
+    }
+    
 }

@@ -1075,11 +1075,7 @@ abstract public class JoinTask implements Callable<Void> {
                 final Map.Entry<IPredicate, Collection<IBindingSet>> entry = itr
                         .next();
 
-                final IPredicate predicate = entry.getKey();
-
-                final Collection<IBindingSet> bindingSets = entry.getValue();
-
-                tasks[i++] = new AccessPathTask(predicate, bindingSets);
+                tasks[i++] = new AccessPathTask(entry.getKey(), entry.getValue());
 
             }
 

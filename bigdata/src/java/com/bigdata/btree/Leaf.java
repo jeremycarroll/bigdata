@@ -34,7 +34,6 @@ import org.apache.log4j.Level;
 
 import com.bigdata.btree.data.DefaultLeafCoder;
 import com.bigdata.btree.data.ILeafData;
-import com.bigdata.btree.data.INodeData;
 import com.bigdata.btree.filter.EmptyTupleIterator;
 import com.bigdata.btree.isolation.IsolatedFusedView;
 import com.bigdata.btree.raba.IRaba;
@@ -167,6 +166,12 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         
     }
 
+    final public int getKeyCount() {
+        
+        return data.getKeyCount();
+        
+    }
+    
     final public IRaba getKeys() {
         
         return data.getKeys();

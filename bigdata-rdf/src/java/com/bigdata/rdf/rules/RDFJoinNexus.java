@@ -704,82 +704,16 @@ public class RDFJoinNexus implements IJoinNexus {
 
         if (predicate.getPartitionId() != -1) {
 
-            if(indexManager instanceof IBigdataFederation) {
-                
-                /*
-                 * This will happen if you fail to re-create the JoinNexus
-                 * within the target execution environment.
-                 * 
-                 * This is disallowed because the predicate specifies an index
-                 * partition and expects to have access to the local index
-                 * objects for that index partition. However, the index
-                 * partition is only available when running inside of the
-                 * ConcurrencyManager and when using the IndexManager exposed by
-                 * the ConcurrencyManager to its tasks.
-                 */
-                
-                throw new IllegalStateException();
-                
-            }
-            
-            /*
-             * This handles a request for an access path that is restricted to a
-             * specific index partition.
-             * 
-             * Note: This path is used with the scale-out JOIN strategy, which
-             * distributes join tasks onto each index partition from which it
-             * needs to read. Those tasks constrain the predicate to only read
-             * from the index partition which is being serviced by that join
-             * task.
-             * 
-             * Note: Since the relation may materialize the index views for its
-             * various access paths, and since we are restricted to a single
-             * index partition and (presumably) an index manager that only sees
-             * the index partitions local to a specific data service, we create
-             * an access path view for an index partition without forcing the
-             * relation to be materialized.
-             * 
-             * @todo caching for the access path?
-             */
-            
-            final String namespace = predicate.getOnlyRelationName();
+            return getTailAccessPathForIndexPartition(predicate);
 
-            /*
-             * Find the best access path for that predicate.
-             * 
-             * @todo hardcoded to the SPORelation.
-             */
-            final IKeyOrder keyOrder = SPORelation.getKeyOrder(predicate);
-
-            // The name of the desired index partition.
-            final String name = DataService
-                    .getIndexPartitionName(namespace + "."
-                            + keyOrder.getIndexName(), predicate
-                            .getPartitionId());
-            
-            /*
-             * @todo whether or not we need both keys and values depends on the
-             * specific index/predicate.
-             * 
-             * Note: We can specify READ_ONLY here since the tail predicates are
-             * not mutable for rule execution.
-             */
-            final int flags = IRangeQuery.KEYS | IRangeQuery.VALS | IRangeQuery.READONLY;
-
-            final long timestamp = getReadTimestamp();
-            
-            final IIndex ndx = indexManager.getIndex(name, timestamp);
-            
-            return new SPOAccessPath(indexManager, timestamp, predicate,
-                    keyOrder, ndx, flags, getChunkOfChunksCapacity(),
-                    getChunkCapacity(), getFullyBufferedReadThreshold()).init();
-            
         }
         
         // Resolve the relation name to the IRelation object.
+        // @todo hotspot
         final IRelation relation = getTailRelationView(predicate);
         
-        // find the best access path for the predicate for that relation.
+        // Find the best access path for the predicate for that relation.
+        // @todo hotspot
         IAccessPath accessPath = relation.getAccessPath(predicate);
 
         final ISolutionExpander expander = predicate.getSolutionExpander();
@@ -808,6 +742,78 @@ public class RDFJoinNexus implements IJoinNexus {
         
         // return that access path.
         return accessPath;
+
+    }
+
+    /**
+     * This handles a request for an access path that is restricted to a
+     * specific index partition.
+     * <p>
+     * Note: This path is used with the scale-out JOIN strategy, which
+     * distributes join tasks onto each index partition from which it needs to
+     * read. Those tasks constrain the predicate to only read from the index
+     * partition which is being serviced by that join task.
+     * <p>
+     * Note: Since the relation may materialize the index views for its various
+     * access paths, and since we are restricted to a single index partition and
+     * (presumably) an index manager that only sees the index partitions local
+     * to a specific data service, we create an access path view for an index
+     * partition without forcing the relation to be materialized.
+     * 
+     * @todo caching for the access path?
+     */
+    private IAccessPath getTailAccessPathForIndexPartition(
+            final IPredicate predicate) {
+
+        if (indexManager instanceof IBigdataFederation) {
+       
+            /*
+             * This will happen if you fail to re-create the JoinNexus
+             * within the target execution environment.
+             * 
+             * This is disallowed because the predicate specifies an index
+             * partition and expects to have access to the local index
+             * objects for that index partition. However, the index
+             * partition is only available when running inside of the
+             * ConcurrencyManager and when using the IndexManager exposed by
+             * the ConcurrencyManager to its tasks.
+             */
+            
+            throw new IllegalStateException();
+            
+        }
+        
+        final String namespace = predicate.getOnlyRelationName();
+
+        /*
+         * Find the best access path for that predicate.
+         * 
+         * @todo hardcoded to the SPORelation.
+         */
+        final IKeyOrder keyOrder = SPORelation.getKeyOrder(predicate);
+
+        // The name of the desired index partition.
+        final String name = DataService
+                .getIndexPartitionName(namespace + "."
+                        + keyOrder.getIndexName(), predicate
+                        .getPartitionId());
+        
+        /*
+         * @todo whether or not we need both keys and values depends on the
+         * specific index/predicate.
+         * 
+         * Note: We can specify READ_ONLY here since the tail predicates are
+         * not mutable for rule execution.
+         */
+        final int flags = IRangeQuery.KEYS | IRangeQuery.VALS | IRangeQuery.READONLY;
+
+        final long timestamp = getReadTimestamp();
+        
+        final IIndex ndx = indexManager.getIndex(name, timestamp);
+        
+        return new SPOAccessPath(indexManager, timestamp, predicate,
+                keyOrder, ndx, flags, getChunkOfChunksCapacity(),
+                getChunkCapacity(), getFullyBufferedReadThreshold()).init();
 
     }
     

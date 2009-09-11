@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Logger;
@@ -370,7 +371,7 @@ public class MagicRelation extends AbstractRelation<IMagicTuple> {
     final private 
         ConcurrentWeakValueCache<MagicPredicate, MagicAccessPath> cache = 
         new ConcurrentWeakValueCacheWithTimeout<MagicPredicate, MagicAccessPath>
-            ( 100/* queueCapacity */, 60 * 1000/* timeout */
+            ( 100/* queueCapacity */, TimeUnit.MILLISECONDS.toNanos(60 * 1000)/* timeout */
               );
 
     /**

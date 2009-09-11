@@ -258,7 +258,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
     private final int liveIndexCacheCapacity;
 
     /**
-     * The configured timeout for stale entries in the
+     * The configured timeout in milliseconds for stale entries in the
      * {@link HardReferenceQueue} backing the index cache maintained by the
      * "live" {@link Name2Addr} object.
      * 
@@ -2122,18 +2122,17 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
 
         final long elapsedNanos = System.nanoTime() - beginNanos;
 
-        if (BigdataStatics.debug)
-            System.err.println("commit: commitTime=" + commitTime
+        if (BigdataStatics.debug || log.isInfoEnabled()) {
+            final String msg = "commit: commitTime=" + commitTime
                     + ", latency="
                     + TimeUnit.NANOSECONDS.toMillis(elapsedNanos)
                     + ", nextOffset=" + nextOffset + ", byteCount="
-                    + (nextOffset - byteCountBefore));
-
-        if (log.isInfoEnabled())
-            log.info("commit: commitTime=" + commitTime + ", latency="
-                    + TimeUnit.NANOSECONDS.toMillis(elapsedNanos)
-                    + ", nextOffset=" + nextOffset + ", byteCount="
-                    + (nextOffset - byteCountBefore));
+                    + (nextOffset - byteCountBefore);
+            if (BigdataStatics.debug)
+                System.err.println(msg);
+            else if (log.isInfoEnabled())
+                log.info(msg);
+        }
 
         return commitTime;
 

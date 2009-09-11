@@ -26,8 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.btree;
 
-import org.apache.log4j.Logger;
-
 import com.bigdata.btree.data.IAbstractNodeData;
 import com.bigdata.cache.HardReferenceQueue;
 
@@ -41,115 +39,99 @@ import com.bigdata.cache.HardReferenceQueue;
 public class DefaultEvictionListener implements
         IEvictionListener {
 
-    /**
-     * Log for eviction of dirty leaves and nodes. 
-     */
-    protected static final Logger log = Logger
-            .getLogger(DefaultEvictionListener.class);
-    
-    /**
-     * True iff the {@link #log} level is INFO or less.
-     */
-    final static protected boolean INFO = log.isInfoEnabled();
-
-//    /**
-//     * True iff the {@link #log} level is DEBUG or less.
-//     */
-//    final static protected boolean DEBUG = log.isDebugEnabled();
-
     public void evicted(final HardReferenceQueue<PO> cache, final PO ref) {
 
         final AbstractNode<?> node = (AbstractNode<?>) ref;
 
         /*
-         * Decrement the reference counter.  When it reaches zero (0) we will
+         * Decrement the reference counter. When it reaches zero (0) we will
          * evict the node or leaf iff it is dirty.
          */
-        
-        if (--node.referenceCount == 0) {
 
-            final AbstractBTree btree = node.btree;
+        if (--node.referenceCount > 0) {
             
-            assert btree.ndistinctOnWriteRetentionQueue > 0;
+            return;
 
-            btree.ndistinctOnWriteRetentionQueue--;
             
-            if( node.deleted ) {
-                
+        }
+
+        final AbstractBTree btree = node.btree;
+
+        assert btree.ndistinctOnWriteRetentionQueue > 0;
+
+        btree.ndistinctOnWriteRetentionQueue--;
+
+        if (node.deleted) {
+
+            /*
+             * Deleted nodes are ignored as they are evicted from the queue.
+             */
+
+            return;
+
+        }
+
+        // this does not permit transient nodes to be coded.
+        if (node.dirty && btree.store != null) {
+//            // this causes transient nodes to be coded on eviction.
+//            if (node.dirty) {
+            
+            if (node.isLeaf()) {
+
                 /*
-                 * Deleted nodes are ignored as they are evicted from the queue.
+                 * A leaf is written out directly.
+                 */
+                
+                btree.writeNodeOrLeaf(node);
+
+            } else {
+
+                /*
+                 * A non-leaf node must be written out using a post-order
+                 * traversal so that all dirty children are written through
+                 * before the dirty parent. This is required in order to
+                 * assign persistent identifiers to the dirty children.
                  */
 
-//                if( DEBUG ) log.debug("ignoring deleted");
-                
-                return;
+                btree.writeNodeRecursive(node);
+
+            }
+
+            // is a coded data record.
+            assert node.isCoded();
+            
+            // no longer dirty.
+            assert !node.dirty;
+            
+            if (btree.store != null) {
+             
+                // object is persistent (has assigned addr).
+                assert ref.identity != PO.NULL;
                 
             }
             
-            if (node.dirty) {
-                
-                if (node.isLeaf()) {
+        } // isDirty
 
-                    /*
-                     * A leaf is written out directly.
-                     */
-                    
-                    if(INFO) log.info("Evicting dirty leaf: "+node);
-                    
-                    btree.writeNodeOrLeaf(node);
+        if (btree.globalLRU != null) {
 
-                } else {
+            /*
+             * Add the INodeData or ILeafData object to the global LRU, NOT the
+             * Node or Leaf.
+             * 
+             * Note: The global LRU touch only occurs on eviction from the write
+             * retention queue. This is nice because it limits the touches on
+             * the global LRU, which could otherwise be a hot spot. We do a
+             * touch whether or not the node was persisted since we are likely
+             * to return to the node in either case.
+             */
 
-                    /*
-                     * A non-leaf node must be written out using a post-order
-                     * traversal so that all dirty children are written through
-                     * before the dirty parent. This is required in order to
-                     * assign persistent identifiers to the dirty children.
-                     */
+            final IAbstractNodeData delegate = node.getDelegate();
 
-                    if(INFO) log.info("Evicting dirty node: "+node);
-                    
-                    btree.writeNodeRecursive(node);
+            assert delegate != null : node.toString();
 
-                }
+            assert delegate.isCoded() : node.toString();
 
-                // is a coded data record.
-                assert node.isCoded();
-                
-                // no longer dirty.
-                assert !node.dirty;
-                
-                if (btree.store != null) {
-                 
-                    // object is persistent (has assigned addr).
-                    assert ref.identity != PO.NULL;
-                    
-                }
-                
-            } // isDirty
-
-            if (btree.globalLRU != null) {
-
-                /*
-                 * Add the INodeData or ILeafData object to the global LRU, NOT
-                 * the Node or Leaf.
-                 * 
-                 * Note: The global LRU touch only occurs on eviction from the
-                 * write retention queue. This is nice because it limits the
-                 * touches on the global LRU, which could otherwise be a hot
-                 * spot. We do a touch whether or not the node was persisted
-                 * since we are likely to return to the node in either case.
-                 */
-
-                final IAbstractNodeData delegate = node.getDelegate();
-                
-                assert delegate != null : node.toString();
-                
-                assert delegate.isCoded() : node.toString();
-                
-                btree.globalLRU.add(delegate);
-
-            }
+            btree.globalLRU.add(delegate);
 
         }
 

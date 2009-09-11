@@ -233,6 +233,12 @@ public class Node extends AbstractNode<Node> implements INodeData {
         
     }
 
+    final public int getKeyCount() {
+        
+        return data.getKeyCount();
+        
+    }
+    
     final public IRaba getKeys() {
         
         return data.getKeys();
@@ -626,13 +632,19 @@ public class Node extends AbstractNode<Node> implements INodeData {
     protected Node(final Node src, final long triggeredByChildId) {
 
         super(src);
-        
+
         assert !src.isDirty();
         
         assert src.isReadOnly();
 //        assert src.isPersistent();
 
-        // steal/clone the data record.
+        /*
+         * Steal/clone the data record.
+         * 
+         * Note: The copy constructor is invoked when we need to begin mutation
+         * operations on an immutable node or leaf, so make sure that the data
+         * record is mutable.
+         */
         assert src.data != null;
         this.data = src.isReadOnly() ? new MutableNodeData(src
                 .getBranchingFactor(), src.data) : src.data;
@@ -640,81 +652,38 @@ public class Node extends AbstractNode<Node> implements INodeData {
 
         // clear reference on source.
         src.data = null;
-        
-////        assert triggeredByChild != null;
-//
-//        nentries = src.nentries;
-//        
-//        /*
-//         * Steal/copy the keys.
-//         * 
-//         * Note: The copy constructor is invoked when we need to begin mutation
-//         * operations on an immutable node or leaf, so make sure that the keys
-//         * are mutable.
-//         */
-//        {
-//
-////            nkeys = src.nkeys;
-//
-//            if (src.getKeys() instanceof MutableKeyBuffer) {
-//
-//                keys = src.getKeys();
-//
-//            } else {
-//
-//                keys = new MutableKeyBuffer(src.getBranchingFactor(), src
-//                        .getKeys());
-//
-//            }
-//
-//            // release reference on the source node.
-////            src.nkeys = 0;
-//            src.keys = null;
-//            
-//        }
-//        
-//        /*
-//         * Steal the childAddr[] and childEntryCounts[] arrays.
-//         */
-//        {
-//
-//            // steal reference and clear reference on the source.
-//            childAddr = src.childAddr; src.childAddr = null;
-//            
-//            // steal reference and clear reference on the source.
-//            childEntryCounts = src.childEntryCounts;
-//
-////            childAddr = new long[branchingFactor+1];
-////
-////            childEntryCounts = new int[branchingFactor+1];
-////
-////        // Note: There is always one more child than keys for a Node.
-////        System.arraycopy(src.childAddr, 0, childAddr, 0, nkeys+1);
-////
-////        // Note: There is always one more child than keys for a Node.
-////        System.arraycopy(src.childEntryCounts, 0, childEntryCounts, 0, nkeys+1);
-//            
-//        }
 
         /*
          * Steal strongly reachable unmodified children by setting their parent
          * fields to the new node. Stealing the child means that it MUST NOT be
          * used by its previous ancestor (our source node for this copy).
          */
-
-//        childRefs = new WeakReference[branchingFactor+1];
+        
         childRefs = src.childRefs; src.childRefs = null;
 
         childLocks = src.childLocks; src.childLocks = null;
 
-        final int nkeys = getKeyCount();
+        final int nkeys = data.getKeyCount();
         
         for (int i = 0; i <= nkeys; i++) {
 
             final AbstractNode child = childRefs[i] == null ? null
                     : childRefs[i].get();
 
-            if (child != null && child.identity != triggeredByChildId) {
+            /*
+             * Note: Both child.identity and triggeredByChildId will always be
+             * 0L for a transient B+Tree since we never assign persistent
+             * identity to the nodes and leaves. Therefore [child.identity !=
+             * triggeredByChildId] will fail for ALL children, including the
+             * trigger, and therefore fail to set the parent on any of them. The
+             * [btree.store==null] test handles this condition and always steals
+             * the child, setting its parent to this new node.
+             * 
+             * FIXME It is clear that testing on child.identity is broken in 
+             * some other places for the transient store.
+             */
+            if (child != null
+                    && (btree.store == null || child.identity != triggeredByChildId)) {
 
                 /*
                  * Copy on write should never trigger for a dirty node and only
@@ -744,10 +713,6 @@ public class Node extends AbstractNode<Node> implements INodeData {
         childRefs = null;
         childLocks = null;
         data = null;
-//        keys = null;
-//        childAddr = null;
-//        nentries = 0;
-//        childEntryCounts = null;
         
     }
     
@@ -2372,7 +2337,7 @@ public class Node extends AbstractNode<Node> implements INodeData {
              * join() of the parent.
              */
 
-            if (getKeyCount() < minKeys()) {
+            if (data.getKeyCount() < minKeys()) {
 
                 join();
 

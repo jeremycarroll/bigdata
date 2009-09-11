@@ -30,13 +30,11 @@ package com.bigdata.btree;
 import com.bigdata.btree.raba.MutableKeyBuffer;
 import com.bigdata.btree.raba.MutableValueBuffer;
 
-
-
 /**
  * Test suite for various utility methods, both static and instance, on
  * {@link AbstractNode}.
  * 
- * @todo review converage now that so much has changed with respect to keys.
+ * @todo review coverage now that so much has changed with respect to keys.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$

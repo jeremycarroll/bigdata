@@ -306,6 +306,10 @@ x. TM Bug.
 
 x. Transient B+Tree issues.
 
+        - Add flag to transient B+Tree to NOT code records for the
+	  fastest possible access.  This could be used for the axioms
+	  or any other really hot code.
+
 	- (*) Verify that transient B+Trees convert data records to
           immutable data records when there is an eviction event.
           This will help us bound their in-memory footprint.
@@ -358,6 +362,43 @@ x. Transient B+Tree issues.
 	   (***) Add asserts in the top-down navigation, split, join,
 	   and copyOnWrite to verify that the parent of a node is
 	   never deleted.
+
+           (***) I have a handle on this now. Both child.identity and
+           triggeredByChildId will always be 0L for a transient B+Tree
+           since we never assign persistent identity to the nodes and
+           leaves. Therefore [child.identity != triggeredByChildId]
+           will fail for ALL children, including the trigger, and
+           therefore fail to set the parent on any of them. The
+           [btree.store==null] test handles this condition and always
+           steals the child, setting its parent to this new node.  It
+           is clear that testing on child.identity is broken in some
+           other places for the transient store.  (***) Survey all
+           tests on PO.identity and identify other places where any
+           of the following assumptions enter in:
+
+	     - [child.identity == triggeredByChildId]
+
+	     - [child.identity != triggeredByChildId] (Node's copy ctor)
+
+	     - node.isReadOnly() --> persistent (transient nodes are
+               converted to coded nodes, but they are not made
+               persistent when they are converted.
+
+	       In fact, disabling that conversion would fix the
+               transient delete unit test and provides a workaround
+               for this bug!  This is trivially done in the
+               DefaultEvictionListener
+
+            if (node.dirty && btree.store != null) {
+
+	       // btree.writeNodeOrLeaf(...)
+
+	    }
+
+	   The following assumptions are still valid (right?):
+
+	     - [child.identity == 0L] still implies dirty. (transient
+               nodes are never assigned a persistent address).
 
 x. Other unit test problems:
 
@@ -1167,8 +1208,11 @@ New options:
 
 
 	 - Bug in B+Tree with data and parent lost showing up on LUBM
-           Q9 for U10.  This might be related to the transient B+Tree
-           problem where the parent of the sibling was deleted.
+           Q9 for U10 with G1.  This might be related to the transient
+           B+Tree problem where the parent of the sibling was deleted.
+
+	   This was also triggered on U50 w/o G1 on Q9.  Again for a
+	   Leaf.
 
 java.lang.AssertionError: com.bigdata.btree.Leaf@9319d9{ isDirty=false, isDeleted=false, addr=0, parent=N/A, data=NA}
 	at com.bigdata.btree.DefaultEvictionListener.evicted(DefaultEvictionListener.java:146)
@@ -1194,9 +1238,44 @@ java.lang.AssertionError: com.bigdata.btree.Leaf@9319d9{ isDirty=false, isDelete
 	at com.bigdata.rdf.spo.SPOIndexWriter.call(SPOIndexWriter.java:263)
 
 
-	 - Query hotspot:
+	 - Query hotspots:
 
-com.bigdata.rdf.rules.RDFJoinNexus.getTailAccessPath(IPredicate)	 
+	     - Fixed stupid bug in
+               SynchronizedHardReferenceQueueWithTimeout where
+               evictStaleRefs() was doing precisely the wrong thing.
+               This gave back 25% on query performance.
+
+	     - Modified the axioms to use a transient B+Tree.
+
+	     - (***) Make sure that the pipeline joins are have good
+	             chunk size and are properly ordered for efficient
+	             read in JoinTask.BindingSetConsumerTask#call()
+		     
+		     Do the same for the nexted subquery joins.
+
+	     - Sample Q9 and see where the effort is going and verify
+               that everything is in cache after the first
+               presentation of the query (NO reasds on the store or
+               the disk).
+
+	     - (***) Query hotspot (the big one)
+
+	       com.bigdata.rdf.rules.RDFJoinNexus.getTailAccessPath(IPredicate)	 
+
+	       - locateResource():
+
+	         - cache the row store.
+
+	         - read by timestamp in the row store.
+
+  	         - deserializing the axioms into a new simple memory
+                   store for each query?!?
+
+	     - Factor out the abstract interface for the front-coded
+               byte[] and use direct byte[] access throughout?  This
+               will mean rolling the offset into the code.
+
+               it.unimi.dsi.fastutil.bytes.CustomByteArrayFrontCodedList$BackingByteArray.get(int)
 
 	 - (***) Load and most query is now slower(!?!) than for the
            trunk.
@@ -1241,7 +1320,9 @@ com.bigdata.rdf.rules.RDFJoinNexus.getTailAccessPath(IPredicate)
 	   -------------
 	   trunk: 19,218 (net 15,512)
 
-	   look at store size (truncate to fit).
+	   look at store size.
+
+	   look at performance on the trunk when writeRetentionQueue.capacity=8000
 
 	   look at the max memory used and GC time and pauses.
 
@@ -1304,13 +1385,19 @@ com.bigdata.rdf.rules.RDFJoinNexus.getTailAccessPath(IPredicate)
            can still see duplicates from concurrent access to the same
            B+Tree.
 
-	 - Reversing the dirty post-order iterator for eviction and
-           saving the nextAddr on the leaves and maintaining their
+	 - (**) Reversing the dirty post-order iterator for eviction
+           and saving the nextAddr on the leaves and maintaining their
            weak reference on the Leaf could improve performance in
            query since ChildIterator#next() drives a lot of the disk
            reads.  This would be a whole new code path for the BTree
            for linked forward scan iterators which avoided top-down
            reads whenever possible.
+
+	 - (***) Do a performance test for TM and put a profiler on
+           it.
+
+	 - (***) Do a performance test for datalog query rewrites and
+           put a profiler on it.
 
 	 --------------------
 

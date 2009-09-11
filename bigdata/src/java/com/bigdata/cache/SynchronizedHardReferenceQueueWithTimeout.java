@@ -102,6 +102,7 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
      *            The timeout (in nanoseconds) for an entry in the queue. When
      *            ZERO (0L), the timeout is disabled.
      */
+    @SuppressWarnings("unchecked")
     public SynchronizedHardReferenceQueueWithTimeout(final int capacity,
             final int nscan, final long timeout) {
 
@@ -118,7 +119,23 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
 
     }
 
-    static private class InnerHardReferenceQueue<T> extends
+    /**
+     * Inner class wraps each object inserted into the queue with the nanotime
+     * corresponding to that insert. A {@link Cleaner} thread runs periodically
+     * and removes stale references from the tail of the queue.
+     * <p>
+     * Note: This deliberately DOES NOT test the tail in
+     * {@link HardReferenceQueue#beforeOffer(Object)} to cut down on the
+     * overhead associated with {@link #add(Object)}. Stale references will be
+     * evicted regardless when the {@link Cleaner} runs.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
+     * @version $Id$
+     * @param <T>
+     *            The generic type of the queue entries for this inner class.
+     */
+    static private class InnerHardReferenceQueue<T extends ValueAge<?>> extends
             HardReferenceQueue<T> {
 
         /**
@@ -148,24 +165,6 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
             
         }
 
-        @SuppressWarnings("unchecked")
-        @Override
-        protected final void beforeOffer(final T ref) {
-
-            super.beforeOffer(ref);
-            
-            if (timeout != 0L) {
-
-                // touch the new reference
-                ((ValueAge<T>) ref).touch();
-
-                // evict any stale references.
-                evictStaleRefs(timeout);
-
-            }
-
-        }
-
         /**
          * Examine references backwards from the tail, evicting any that have
          * become stale (too long since they were last touched).
@@ -177,34 +176,24 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
          */
         int evictStaleRefs(final long timeout) {
 
+            final int size0 = size();
+
+            if (size0 == 0)
+                return 0;
+            
             final long now = System.nanoTime();
 
+            final long maxAge = now - peek().ts;
+
+            T x;
+            long age = 0;
             int ncleared = 0;
+            while ((x = peek()) != null) {
 
-            while (!isEmpty()) {
+                age = now - x.ts;
 
-                @SuppressWarnings("unchecked")
-                final ValueAge v = (ValueAge) peek();
-
-                final long timestamp = v.timestamp();
-
-                final long age = now - timestamp;
-
-                if (age < timeout) {
-
-                    if (DEBUG)
-                        log.debug("Stopping at age="
-                                + TimeUnit.NANOSECONDS.toMillis(age)
-                                + " : #ncleared=" + ncleared + ", size="
-                                + size());
-
+                if (age < timeout)
                     break;
-
-                }
-
-                if (DEBUG)
-                    log.debug("Clearing reference: age="
-                            + TimeUnit.NANOSECONDS.toMillis(age) + ", " + v);
 
                 // evict the tail.
                 evict();
@@ -212,6 +201,12 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
                 ncleared++;
 
             }
+
+            if (DEBUG && ncleared > 3)
+                log.debug("#ncleared=" + ncleared + ", size=" + size()
+                        + ", timeout=" + TimeUnit.NANOSECONDS.toMillis(timeout)
+                        + ", maxAge=" + TimeUnit.NANOSECONDS.toMillis(maxAge)
+                        + ", age=" + TimeUnit.NANOSECONDS.toMillis(age));
 
             return ncleared;
             
@@ -266,7 +261,30 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
     /*
      * Methods which DO require synchronization.
      */
+
+    /*
+     * Note: I've tried coding add(ref) two different ways here. Probably this
+     * is too small an issue to make a different and the runs may have been too
+     * short, plus the performance could vary by hotspot compiler.
+     * 
+     * Another alternative, which would break encapsulation, is to have a
+     * parallel array of long timestamps for the references so we can avoid
+     * the allocation entirely.
+     */
     
+//    // allocate ValueAge outside of synchronized block: 3156/1656 on U10 query.
+//    public boolean add(final T ref) {
+//
+//        final ValueAge<T> v = new ValueAge<T>(ref);
+//        synchronized(this) {
+//
+//            return queue.add(v);
+//            
+//        }
+//
+//    }
+    
+    // allocate inside of synchronized block: 2781/406 on U10 query.
     synchronized public boolean add(final T ref) {
 
         return queue.add(new ValueAge<T>(ref));
@@ -295,7 +313,7 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
         
         final ValueAge<T> age = queue.peek();
 
-        return age == null ? null : age.get();
+        return age == null ? null : age.ref;
 
     }
 
@@ -426,7 +444,18 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
      */
     private static class ValueAge<T> {
 
+        /**
+         * The object stored in the queue.
+         */
         private final T ref;
+
+        /**
+         * The timestamp associated with the value. This is initialized to the
+         * {@link System#nanoTime()} when the {@link ValueAge} was created and
+         * is updated to the value of {@link System#nanoTime()} each time
+         * {@link #touch()} is invoked.
+         */
+        final private long ts = System.nanoTime();
         
         public ValueAge(final T ref) {
             
@@ -434,42 +463,6 @@ public class SynchronizedHardReferenceQueueWithTimeout<T> implements
             
         }
         
-        public T get() {
-            
-            return ref;
-            
-        }
-        
-        /**
-         * Invoked when a value is touched. The value must reset the timestamp
-         * that it will report. That timestamp MUST be obtained using
-         * {@link System#nanoTime()} as the age of the value will be judged by
-         * comparison to the current value reported by {@link System#nanoTime()}.
-         * <p>
-         * Note: DO NOT invoke this method from hot code such as that will
-         * impose a huge performance penalty! It is sufficient to let the
-         * {@link InnerHardReferenceQueue} invoke this method itself when it
-         * adds a reference.
-         */
-        final public void touch() {
-        
-            timestamp = System.nanoTime();
-            
-        }
-        
-        /**
-         * Report the timestamp associated with the value. That timestamp MUST be
-         * the value of {@link System#nanoTime()} when {@link #touch()} was last
-         * invoked.
-         */
-        final public long timestamp() {
-            
-            return timestamp;
-            
-        }
-        
-        private long timestamp = System.nanoTime();
-
     }
     
 }
