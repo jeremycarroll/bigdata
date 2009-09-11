@@ -56,12 +56,14 @@ import com.bigdata.io.IDataRecordAccess;
 import com.bigdata.journal.AbstractBufferStrategy;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.Journal;
+import com.bigdata.journal.TemporaryRawStore;
 import com.bigdata.journal.TemporaryStore;
 import com.bigdata.rawstore.AbstractRawStore;
 import com.bigdata.rawstore.AbstractRawWormStore;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IRawStore;
+import com.bigdata.rawstore.WormAddressManager;
 import com.bigdata.resources.StoreManager.ManagedJournal;
 import com.bigdata.service.jini.JiniClient;
 import com.sun.xml.internal.fastinfoset.sax.Properties;
@@ -249,9 +251,20 @@ public class LRUNexus {
         final int averageRecordSize = (int) (baseAverageRecordSize * (Integer
                 .valueOf(IndexMetadata.Options.DEFAULT_BTREE_BRANCHING_FACTOR) / 32.));
 
-        // target capacity for that expected record size.
+        /*
+         * The target capacity for that expected record size.
+         * 
+         * FIXME This parameter can get you into trouble with too much GC if too
+         * much gets buffered on the queue.
+         * 
+         * 4x may be a bit aggressive. Try 3x.
+         * 
+         * TestTripleStoreLoadRateLocal: 4x yields 38s GC time with 1G heap.
+         * 
+         * TestTripleStoreLoadRateLocal: 3x yields 36s GC time with 1G heap.
+         */
         final long maximumQueueCapacityEstimate = maximumMemoryFootprint
-                / averageRecordSize * 4;
+                / averageRecordSize * 2;
 
         // -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC
         if(BigdataStatics.debug)
@@ -278,6 +291,241 @@ public class LRUNexus {
             return (int) Math.min(maximumQueueCapacityEstimate, 1000000/* 1M */);
 
         }
+
+    }
+
+    /**
+     * Global instance with default configuration.
+     * 
+     * @todo This is hardwired to {@link #INSTANCE} right now in
+     *       {@link AbstractBTree}. That might be Ok since it imposes a JVM wide
+     *       constraint on the memory used to buffer for stores and stores are
+     *       identified by their UUIDs. Regardless, all caching for all stores
+     *       MUST use the same instance. This includes the
+     *       {@link TemporaryStore}, {@link IndexSegmentStore}, {@link Journal},
+     *       {@link ManagedJournal}, etc.
+     */
+    public static final LRUNexus INSTANCE = new LRUNexus();
+
+    /**
+     * Constructor with reasonable defaults based on {@link Runtime#maxMemory()}.
+     * 
+     * @todo tune parameters (larger initialCapacity).
+     */
+    public LRUNexus() {
+
+        this(//
+                getMaximumMemoryFootprint(),// maximumMemoryFootprint
+                5,    // minimumCacheSetCapacity
+                getQueueCapacity(getMaximumMemoryFootprint()),// queueCapacity
+                20,   // nscan
+                16,   // initial capacity (the Java default).
+                .75f, // loadFactor (the Java default)
+                16    // concurrencyLevel (the Java default)
+        );
+
+    }
+
+    /**
+     * Constructor with caller specified parameters.
+     * 
+     * @param maximumMemoryFootprint
+     *            The maximum in-memory footprint for the buffered
+     *            {@link IDataRecordAccess} objects.
+     * @param minimumCacheSetCapacity
+     *            The #of caches for which we will force retention. E.g., a
+     *            value of N implies that hard references will be retained to
+     *            the LRU cache for N stores. In practice, stores will typically
+     *            hold a hard reference to their LRU cache instance so many more
+     *            LRU cache instances MAY be retained.
+     * @param queueCapacity
+     *            The {@link IHardReferenceQueue} capacity.
+     * @param nscan
+     *            The #of entries on the {@link IHardReferenceQueue} to scan for
+     *            a match before adding a reference.
+     * @param initialCapacity
+     *            The initial capacity of the per-store hash maps.
+     * @param loadFactor
+     *            The load factor for the per store hash maps.
+     * @param concurrencyLevel
+     *            The concurrency level of the per-store hash maps.
+     */
+    public LRUNexus(final long maximumMemoryFootprint,
+            final int minimumCacheSetCapacity, final int queueCapacity,
+            final int nscan, final int initialCapacity, final float loadFactor,
+            final int concurrencyLevel) {
+
+        if (BigdataStatics.debug)
+            System.err.println("maximumMemoryFootprint="
+                    + maximumMemoryFootprint + ", queueCapacity="
+                    + queueCapacity + ", initialCapacity=" + initialCapacity);
+        
+        this.maximumMemoryFootprint = maximumMemoryFootprint;
+
+        this.initialCapacity = initialCapacity;
+        
+        this.loadFactor = loadFactor;
+
+        this.concurrencyLevel = concurrencyLevel;
+
+        globalLRU = new LRU<Object>(queueCapacity, nscan);
+
+        cacheSet = new ConcurrentWeakValueCache<UUID, CacheImpl<Object>>(
+                minimumCacheSetCapacity);
+
+    }
+
+    /**
+     * Return the global LRU instance. This LRU enforces competition across all
+     * {@link IRawStore}s for buffer space (RAM).
+     * 
+     * @todo Simplify the integration pattern for use of a cache. You have to
+     *       follow a "get()" then if miss, read+wrap, then putIfAbsent(). You
+     *       MUST also "touch" the object on the global LRU on access to keep it
+     *       "live". Finally, for write through, you must insert the object into
+     *       the cache. You DO NOT need to "touch" the object on a cache hit or
+     *       when inserting it into the cache since the cache is backed by the
+     *       global LRU and the {@link ConcurrentWeakValueCache} will
+     *       automatically "touch" the object on the LRU. These semantics could
+     *       be made more transparent if we define an ICachedStore interface.
+     *       However, the caller would need to pass in the functor to create the
+     *       appropriate object on get() and would need to handle the "touch"
+     *       protocol as well.
+     */
+    public IHardReferenceQueue<Object> getGlobalLRU() {
+
+        return globalLRU;
+        
+    }
+
+    /**
+     * An canonicalizing factory for cache instances supporting random access to
+     * decompressed {@link IDataRecord}s, higher-level data structures wrapping
+     * those decompressed data records ({@link INodeData} and {@link ILeafData}
+     * ), or objects deserialized from those {@link IDataRecord}s.
+     * <p>
+     * Note: This can not track bytesInMemory unless the weak referents
+     * implement {@link IDataRecordAccess} since it relies on
+     * {@link IDataRecordAccess#data()} to self-report the length of the
+     * decompressed {@link IDataRecord}.
+     * 
+     * @see AbstractBTree#readNodeOrLeaf(long)
+     * @see IndexSegmentStore#reopen()
+     */
+    public ConcurrentWeakValueCache<Long, Object> getCache(final IRawStore store) {
+
+        if (store == null)
+            throw new IllegalArgumentException();
+        
+        final UUID storeUUID = store.getUUID();
+        
+        CacheImpl<Object> cache = cacheSet.get(storeUUID);
+
+        if (cache == null) {
+
+            final Class<? extends IRawStore> cls = store.getClass();
+            final IAddressManager am;
+            final File file = store.getFile();
+            
+            if (store instanceof AbstractJournal) {
+
+                am = ((AbstractBufferStrategy) ((AbstractJournal) store)
+                        .getBufferStrategy()).getAddressManager();
+
+            } else if (store instanceof TemporaryRawStore) {
+
+                // Avoid hard reference to the temporary store (clone's the
+                // address manager instead).
+                am = new WormAddressManager(((TemporaryRawStore) store)
+                        .getOffsetBits());
+                
+            } else if (store instanceof AbstractRawWormStore) {
+                
+                am = ((AbstractRawStore) store).getAddressManager();
+                
+            } else {
+
+                // @todo which cases come though here? SimpleMemoryStore,
+                // SimpleFileStore, ...
+                am = null;
+                
+            }
+            
+            cache = new CacheImpl<Object>(cls, am, file, globalLRU,
+                    initialCapacity, loadFactor, concurrencyLevel, true/* removeClearedReferences */);
+
+            final CacheImpl<Object> oldVal = cacheSet.putIfAbsent(storeUUID,
+                    cache);
+
+            if (oldVal == null) {
+
+//                if (BigdataStatics.debug)
+//                    System.err.println("New store: " + store + " : file="
+//                            + store.getFile());
+                
+            } else {
+
+                // concurrent insert.
+                cache = oldVal;
+
+            }
+
+        }
+
+        return cache;
+
+    }
+
+    /**
+     * Remove the cache for the {@link IRawStore} from the set of caches
+     * maintained by this class and clear any entries in that cache. This method
+     * SHOULD be used when the persistent resources for the store are deleted.
+     * It SHOULD NOT be used if a store is simply closed in a context when the
+     * store COULD be re-opened. In such cases, the cache for that store will be
+     * automatically released after it has become only weakly reachable.
+     * 
+     * @param store
+     *            The store.
+     * 
+     * @see IRawStore#destroy()
+     * @see IRawStore#deleteResources()
+     */
+    public void deleteCache(final IRawStore store) {
+
+        if (store == null)
+            throw new IllegalArgumentException();
+        
+        // remove cache from the cacheSet.
+        final CacheImpl<Object> cache = cacheSet.remove(store.getUUID());
+
+        if(cache != null) {
+            
+            // if cache exists, the clear it.
+            cache.clear();
+            
+        }
+        
+    }
+
+    /**
+     * Discard all hard reference in the {@link #getGlobalLRU()}. This may be
+     * used if all bigdata instances in the JVM are closed, but SHOULD NOT be
+     * invoked if you are just closing some {@link IRawStore}. The per-store
+     * caches are not deleted, but they will empty as their weak references are
+     * cleared by the JVM. Note that, depending on the garbage collector, the
+     * JVM may delay clearing weak references for objects in the old generation
+     * until the next full GC.
+     */
+    public void discardAllCaches() {
+
+        globalLRU.clear(true/* clearRefs */);
+        
+    }
+    
+    /** The counters for the global LRU. */
+    public LRUCounters getCounters() {
+
+        return counters;
 
     }
 
@@ -547,232 +795,6 @@ public class LRUNexus {
     }
 
     /**
-     * Global instance with default configuration.
-     * 
-     * @todo This is hardwired to {@link #INSTANCE} right now in
-     *       {@link AbstractBTree}. That might be Ok since it imposes a JVM wide
-     *       constraint on the memory used to buffer for stores and stores are
-     *       identified by their UUIDs. Regardless, all caching for all stores
-     *       MUST use the same instance. This includes the
-     *       {@link TemporaryStore}, {@link IndexSegmentStore}, {@link Journal},
-     *       {@link ManagedJournal}, etc.
-     */
-    public static final LRUNexus INSTANCE = new LRUNexus();
-
-    /**
-     * Constructor with reasonable defaults based on {@link Runtime#maxMemory()}.
-     * 
-     * @todo tune parameters (larger initialCapacity).
-     */
-    public LRUNexus() {
-
-        this(//
-                getMaximumMemoryFootprint(),// maximumMemoryFootprint
-                5,    // minimumCacheSetCapacity
-                getQueueCapacity(getMaximumMemoryFootprint()),// queueCapacity
-                20,   // nscan
-                16,   // initial capacity (the Java default).
-                .75f, // loadFactor (the Java default)
-                16    // concurrencyLevel (the Java default)
-        );
-
-    }
-
-    /**
-     * Constructor with caller specified parameters.
-     * 
-     * @param maximumMemoryFootprint
-     *            The maximum in-memory footprint for the buffered
-     *            {@link IDataRecordAccess} objects.
-     * @param minimumCacheSetCapacity
-     *            The #of caches for which we will force retention. E.g., a
-     *            value of N implies that hard references will be retained to
-     *            the LRU cache for N stores. In practice, stores will typically
-     *            hold a hard reference to their LRU cache instance so many more
-     *            LRU cache instances MAY be retained.
-     * @param queueCapacity
-     *            The {@link IHardReferenceQueue} capacity.
-     * @param nscan
-     *            The #of entries on the {@link IHardReferenceQueue} to scan for
-     *            a match before adding a reference.
-     * @param initialCapacity
-     *            The initial capacity of the per-store hash maps.
-     * @param loadFactor
-     *            The load factor for the per store hash maps.
-     * @param concurrencyLevel
-     *            The concurrency level of the per-store hash maps.
-     */
-    public LRUNexus(final long maximumMemoryFootprint,
-            final int minimumCacheSetCapacity, final int queueCapacity,
-            final int nscan, final int initialCapacity, final float loadFactor,
-            final int concurrencyLevel) {
-
-        if (BigdataStatics.debug)
-            System.err.println("maximumMemoryFootprint="
-                    + maximumMemoryFootprint + ", queueCapacity="
-                    + queueCapacity + ", initialCapacity=" + initialCapacity);
-        
-        this.maximumMemoryFootprint = maximumMemoryFootprint;
-
-        this.initialCapacity = initialCapacity;
-        
-        this.loadFactor = loadFactor;
-
-        this.concurrencyLevel = concurrencyLevel;
-
-        globalLRU = new LRU<Object>(queueCapacity, nscan);
-
-        cacheSet = new ConcurrentWeakValueCache<UUID, CacheImpl<Object>>(
-                minimumCacheSetCapacity);
-
-    }
-
-    /**
-     * Return the global LRU instance. This LRU enforces competition across all
-     * {@link IRawStore}s for buffer space (RAM).
-     * 
-     * @todo Simplify the integration pattern for use of a cache. You have to
-     *       follow a "get()" then if miss, read+wrap, then putIfAbsent(). You
-     *       MUST also "touch" the object on the global LRU on access to keep it
-     *       "live". Finally, for write through, you must insert the object into
-     *       the cache. You DO NOT need to "touch" the object on a cache hit or
-     *       when inserting it into the cache since the cache is backed by the
-     *       global LRU and the {@link ConcurrentWeakValueCache} will
-     *       automatically "touch" the object on the LRU. These semantics could
-     *       be made more transparent if we define an ICachedStore interface.
-     *       However, the caller would need to pass in the functor to create the
-     *       appropriate object on get() and would need to handle the "touch"
-     *       protocol as well.
-     */
-    public IHardReferenceQueue<Object> getGlobalLRU() {
-
-        return globalLRU;
-        
-    }
-
-    /**
-     * An canonicalizing factory for cache instances supporting random access to
-     * decompressed {@link IDataRecord}s, higher-level data structures wrapping
-     * those decompressed data records ({@link INodeData} and {@link ILeafData}
-     * ), or objects deserialized from those {@link IDataRecord}s.
-     * <p>
-     * Note: This can not track bytesInMemory unless the weak referents
-     * implement {@link IDataRecordAccess} since it relies on
-     * {@link IDataRecordAccess#data()} to self-report the length of the
-     * decompressed {@link IDataRecord}.
-     * 
-     * @see AbstractBTree#readNodeOrLeaf(long)
-     * @see IndexSegmentStore#reopen()
-     */
-    public ConcurrentWeakValueCache<Long, Object> getCache(final IRawStore store) {
-
-        if (store == null)
-            throw new IllegalArgumentException();
-        
-        final UUID storeUUID = store.getUUID();
-        
-        CacheImpl<Object> cache = cacheSet.get(storeUUID);
-
-        if (cache == null) {
-
-            final Class<? extends IRawStore> cls = store.getClass();
-            final IAddressManager am;
-            final File file = store.getFile();
-            
-            if (store instanceof AbstractJournal) {
-                
-                am = ((AbstractBufferStrategy) ((AbstractJournal) store)
-                        .getBufferStrategy()).getAddressManager();
-
-            } else if (store instanceof AbstractRawWormStore) {
-                
-                am = ((AbstractRawStore) store).getAddressManager();
-                
-            } else {
-                
-                am = null;
-                
-            }
-            
-            cache = new CacheImpl<Object>(cls, am, file, globalLRU,
-                    initialCapacity, loadFactor, concurrencyLevel, true/* removeClearedReferences */);
-
-            final CacheImpl<Object> oldVal = cacheSet.putIfAbsent(storeUUID,
-                    cache);
-
-            if (oldVal == null) {
-
-//                if (BigdataStatics.debug)
-//                    System.err.println("New store: " + store + " : file="
-//                            + store.getFile());
-                
-            } else {
-
-                // concurrent insert.
-                cache = oldVal;
-
-            }
-
-        }
-
-        return cache;
-
-    }
-
-    /**
-     * Remove the cache for the {@link IRawStore} from the set of caches
-     * maintained by this class and clear any entries in that cache. This method
-     * SHOULD be used when the persistent resources for the store are deleted.
-     * It SHOULD NOT be used if a store is simply closed in a context when the
-     * store COULD be re-opened. In such cases, the cache for that store will be
-     * automatically released after it has become only weakly reachable.
-     * 
-     * @param store
-     *            The store.
-     * 
-     * @see IRawStore#destroy()
-     * @see IRawStore#deleteResources()
-     */
-    public void deleteCache(final IRawStore store) {
-
-        if (store == null)
-            throw new IllegalArgumentException();
-        
-        // remove cache from the cacheSet.
-        final CacheImpl<Object> cache = cacheSet.remove(store.getUUID());
-
-        if(cache != null) {
-            
-            // if cache exists, the clear it.
-            cache.clear();
-            
-        }
-        
-    }
-
-    /**
-     * Discard all hard reference in the {@link #getGlobalLRU()}. This may be
-     * used if all bigdata instances in the JVM are closed, but SHOULD NOT be
-     * invoked if you are just closing some {@link IRawStore}. The per-store
-     * caches are not deleted, but they will empty as their weak references are
-     * cleared by the JVM. Note that, depending on the garbage collector, the
-     * JVM may delay clearing weak references for objects in the old generation
-     * until the next full GC.
-     */
-    public void discardAllCaches() {
-
-        globalLRU.clear(true/* clearRefs */);
-        
-    }
-    
-    /** The counters for the global LRU. */
-    public LRUCounters getCounters() {
-
-        return counters;
-
-    }
-
-    /**
      * Counters for the global {@link LRUNexus}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
@@ -888,6 +910,7 @@ public class LRUNexus {
                             final long tmp = lruDistinctCount.get();
                             if (tmp == 0) {
                                 setValue(0);
+                                return;
                             }
                             setValue((int) (bytesInMemory.get() / tmp));
                         }
@@ -903,6 +926,7 @@ public class LRUNexus {
                             final long tmp = lruDistinctCount.get();
                             if (tmp == 0) {
                                 setValue(0);
+                                return;
                             }
                             setValue((int) (bytesOnDisk.get() / tmp));
                         }

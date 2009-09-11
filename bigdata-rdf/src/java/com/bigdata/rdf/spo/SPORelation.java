@@ -885,7 +885,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
         }
 
     }
-    
+
     /**
      * Core impl.
      * <p>
@@ -900,20 +900,22 @@ public class SPORelation extends AbstractRelation<ISPO> {
      * 
      * @return The access path.
      * 
-     * FIXME This does not touch the cache. Track down the callers. I imagine
-     * that these are mostly SPO access path scans, but they could also be scans
-     * on the POS or OSP indices. What we really want is a method with the
-     * signature <code>getAccessPath(keyOrder,filter)</code>, where the
-     * filter is optional. This method should cache by the keyOrder, which
-     * implies that we want to either verify or layer on the filter if we will
-     * be reusing the cached access path with different filter values.
-     * <p>
-     * The application SHOULD NOT specify both the predicate and the keyOrder
-     * since they are less likely to make the right choice, but it is reasonable
-     * to specify the keyOrder for bulk copy, dump, and some other modestly low
-     * level things and when only a single access path is used, then of course
-     * we need to specify that access path (several things use a temporary
-     * triple store with only the SPO access path).
+     *         FIXME This does not touch the cache. Track down the callers. I
+     *         imagine that these are mostly SPO access path scans, but they
+     *         could also be scans on the POS or OSP indices. What we really
+     *         want is a method with the signature
+     *         <code>getAccessPath(keyOrder,filter)</code>, where the filter is
+     *         optional. This method should cache by the keyOrder, which implies
+     *         that we want to either verify or layer on the filter if we will
+     *         be reusing the cached access path with different filter values.
+     *         <p>
+     *         The application SHOULD NOT specify both the predicate and the
+     *         keyOrder since they are less likely to make the right choice, but
+     *         it is reasonable to specify the keyOrder for bulk copy, dump, and
+     *         some other modestly low level things and when only a single
+     *         access path is used, then, of course, we need to specify that
+     *         access path (several things use a temporary triple store with
+     *         only the SPO access path).
      */
     public SPOAccessPath getAccessPath(final IKeyOrder<ISPO> keyOrder,
             final IPredicate<ISPO> predicate) {

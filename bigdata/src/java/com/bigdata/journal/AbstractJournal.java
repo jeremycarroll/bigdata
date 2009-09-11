@@ -2132,6 +2132,9 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
                 System.err.println(msg);
             else if (log.isInfoEnabled())
                 log.info(msg);
+            if(BigdataStatics.debug) {
+                System.err.println(LRUNexus.INSTANCE.toString());
+            }
         }
 
         return commitTime;

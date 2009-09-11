@@ -1162,22 +1162,71 @@ thesaurus : 1086012 stmts added in 71.547 secs, rate= 15179, commitLatency=359ms
 alibaba	  : 45655 stmts added in 1.672 secs, rate= 27305, commitLatency=203ms
 NCIOnc	  : 464841 stmts added in 26.657 secs, rate= 17437, commitLatency=1234ms
 
-9/10/2009 : global LRU refactor w/ 295,833 capacity, m=32, FastSPOValueCoder2, jdk_1.6.0_16, G1
-U10	  : 
-U5	  : 
-U1	  : 
-wordnet	  : 
-thesaurus : 
-alibaba	  : 
-NCIOnc	  : 
+9/11/2009 : global LRU 591,664 (4x), m=64, queueCapacity=8000, FastSPOValueCoder2, jdk_1.6.0_16, bug fix in logic to evict stale references.
+U10	  : 1316700 stmts added in 69.157 secs, rate= 19039, commitLatency=0ms
+U5	  : 645835 stmts added in 25.749 secs, rate= 25081, commitLatency=0ms
+U1	  : 103104 stmts added in 3.953 secs, rate= 26082, commitLatency=0ms
+wordnet	  : 273681 stmts added in 13.25 secs, rate= 20655, commitLatency=2047ms
+thesaurus : 1086012 stmts added in 76.078 secs, rate= 14274, commitLatency=2015ms (slow load, why?)
+alibaba	  : 45655 stmts added in 1.781 secs, rate= 25634, commitLatency=313ms
+NCIOnc	  : 464841 stmts added in 23.36 secs, rate= 19899, commitLatency=2594ms
 
-U10	  : 
-U5	  : 
-U1	  : 
-wordnet	  : 
-thesaurus : 
-alibaba	  : 
-NCIOnc	  : 
+Global LRU: 443748 (3x)
+U10	  : 1316700 stmts added in 64.247 secs, rate= 20494, commitLatency=0ms
+U5	  : 645835 stmts added in 25.752 secs, rate= 25079, commitLatency=0ms
+U1	  : 103104 stmts added in 3.564 secs, rate= 28929, commitLatency=0ms
+wordnet	  : 273681 stmts added in 12.453 secs, rate= 21977, commitLatency=2406ms
+thesaurus : 1086012 stmts added in 77.422 secs, rate= 14027, commitLatency=2469ms
+alibaba	  : 45655 stmts added in 2.078 secs, rate= 21970, commitLatency=312ms
+NCIOnc	  : 464841 stmts added in 26.594 secs, rate= 17479, commitLatency=3078ms
+
+Global LRU: 443748 (2x) and SimpleRabaCoder for Id2Term.
+U10	  : 1316700 stmts added in 59.358 secs, rate= 22182, commitLatency=0ms
+U5	  : 645835 stmts added in 22.891 secs, rate= 28213, commitLatency=0ms
+U1	  : 103104 stmts added in 3.109 secs, rate= 33163, commitLatency=0ms
+wordnet	  : 273681 stmts added in 11.11 secs, rate= 24633, commitLatency=2265ms
+thesaurus : 1086012 stmts added in 63.688 secs, rate= 17052, commitLatency=2234ms
+alibaba	  : 45655 stmts added in 1.484 secs, rate= 30764, commitLatency=422ms
+NCIOnc	  : 464841 stmts added in 20.875 secs, rate= 22267, commitLatency=2516ms (bytesOnDisk=70032274)
+
+Global LRU: 443748 (2x) and CanonicalHuffmanRabaCoder for Id2Term.
+U10	  : 1316700 stmts added in 58.33 secs, rate= 22573, commitLatency=0ms
+U5	  : 645835 stmts added in 23.484 secs, rate= 27501, commitLatency=0ms
+U1	  : 103104 stmts added in 2.999 secs, rate= 34379, commitLatency=0ms
+wordnet	  : 273681 stmts added in 11.469 secs, rate= 23862, commitLatency=2718ms
+thesaurus : 1086012 stmts added in 66.375 secs, rate= 16361, commitLatency=3531ms
+alibaba	  : 45655 stmts added in 1.5 secs, rate= 30436, commitLatency=406ms
+NCIOnc	  : 464841 stmts added in 21.687 secs, rate= 21434, commitLatency=4344ms (bytesOnDisk=62560799)
+
+(****) Examine % Memory Used and % LRU Distinct for data load
+       situations!!!
+
+/LRU Percent Distinct=1.54
+/LRU Percent Used=48.86
+/bytesInMemory Percent Used=1.6
+
+
+(****) The NodeSerializer or the NodeCoder and LeafCoder SHOULD be
+       configuration parameters so we can evolve the node/leaf data
+       record at will.  There are still a lot of performance benefits
+       to be had from tweaks in this area.       
+
+(****) m=64 may be better for the index segments as well.  Test this
+       out. 
+
+       - Optimized values raba for Term2Id (long[]).
+
+       - Test w/ simple vs huffman for Id2Term (BigdataValue has its
+         own serialization format and includes plenty of Unicode
+         data).
+
+	 Compare performance against disk usage and consider in tandom
+	 with record level compression, which could make the simple
+	 raba coder much more appealing.
+
+	 [If ASCII only for the index, then we could store the value
+         as ASCII as well.  Normalization should occur during the
+         parse I guess.]
 
 copyOnWrite for SPO indices is now cheap.  Copy on write for the
 ID2TERM and TERM2ID indices still shows up as a cost, but it is way
@@ -1239,13 +1288,6 @@ java.lang.AssertionError: com.bigdata.btree.Leaf@9319d9{ isDirty=false, isDelete
 
 
 	 - Query hotspots:
-
-	     - Fixed stupid bug in
-               SynchronizedHardReferenceQueueWithTimeout where
-               evictStaleRefs() was doing precisely the wrong thing.
-               This gave back 25% on query performance.
-
-	     - Modified the axioms to use a transient B+Tree.
 
 	     - (***) Make sure that the pipeline joins are have good
 	             chunk size and are properly ordered for efficient
