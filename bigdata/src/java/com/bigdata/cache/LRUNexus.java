@@ -42,17 +42,20 @@ import com.bigdata.service.jini.JiniClient;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  * 
- *          FIXME Test in low memory scenarios to look for fence posts.
+ *          FIXME Test sensitivity to the percentage of the JVM memory available
+ *          which is allowed for the cache, including in situations where the
+ *          buffer is allowed nearly no memory (buffer is starved) and in
+ *          situations where the buffer is given 50% or more of the JVM heap.
  * 
  *          FIXME Test w/ G1
- * 
- *          <pre>
- * -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC
- * </pre>
- * 
- * 
- *          FIXME Test sensitivity to the percentage of the JVM memory available
- *          which is allowed for the cache
+ *          <code>-XX:+UnlockExperimentalVMOptions -XX:+UseG1GC</code>
+ *          <p>
+ *          G1 appears faster for query, but somewhat slower for load. This is
+ *          probably related to the increased memory demand during load (more of
+ *          the data winds up buffered).
+ *          <p>
+ *          G1 can also trip a crash, at least during load. There is a Sun
+ *          incident ID# 1609804 for this.
  * 
  * @todo Simplify the integration pattern for use of a cache. You have to follow
  *       a "get()" then if miss, read+wrap, then putIfAbsent(). You MUST also
