@@ -440,7 +440,6 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
         if (sb != null)
             sb.append("min=" + min + ", max=" + max+"\n");
 
-        final BitVector shortestCodeWord;
         final int[] length = new int[nsymbols];
         final int[] symbol = new int[nsymbols];
 
@@ -465,9 +464,9 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
 
         final int shortestCodeWordLength = length[0];
 
-        shortestCodeWord = LongArrayBitVector.getInstance().length(
-                shortestCodeWordLength);
-        
+        final BitVector shortestCodeWord = LongArrayBitVector.getInstance()
+                .length(shortestCodeWordLength);
+
         for (int i = shortestCodeWordLength-1; i >= 0; i--) {
 
             shortestCodeWord.set(i, ibs.readBit());
