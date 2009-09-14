@@ -5,7 +5,7 @@
 	<classpathentry kind="src" path="bigdata-sails/src/samples"/>
 	<classpathentry kind="src" path="bigdata-jini/src/test"/>
 	<classpathentry kind="src" path="bigdata-sails/src/java"/>
-	<classpathentry kind="src" path="bigdata/src/java"/>
+	<classpathentry excluding="com/bigdata/btree/AbstractBTreeTmp.java" kind="src" path="bigdata/src/java"/>
 	<classpathentry kind="src" path="bigdata-rdf/src/test"/>
 	<classpathentry kind="src" path="bigdata/src/test"/>
 	<classpathentry kind="src" path="bigdata-sails/src/test"/>

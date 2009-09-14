@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.btree;
 
-import com.bigdata.btree.data.IAbstractNodeData;
 import com.bigdata.cache.HardReferenceQueue;
 
 /**
@@ -112,28 +111,29 @@ public class DefaultEvictionListener implements
             
         } // isDirty
 
-        if (btree.globalLRU != null) {
-
-            /*
-             * Add the INodeData or ILeafData object to the global LRU, NOT the
-             * Node or Leaf.
-             * 
-             * Note: The global LRU touch only occurs on eviction from the write
-             * retention queue. This is nice because it limits the touches on
-             * the global LRU, which could otherwise be a hot spot. We do a
-             * touch whether or not the node was persisted since we are likely
-             * to return to the node in either case.
-             */
-
-            final IAbstractNodeData delegate = node.getDelegate();
-
-            assert delegate != null : node.toString();
-
-            assert delegate.isCoded() : node.toString();
-
-            btree.globalLRU.add(delegate);
-
-        }
+        // This does not insert into the cache.  That is handled by writeNodeOrLeaf.
+//        if (btree.globalLRU != null) {
+//
+//            /*
+//             * Add the INodeData or ILeafData object to the global LRU, NOT the
+//             * Node or Leaf.
+//             * 
+//             * Note: The global LRU touch only occurs on eviction from the write
+//             * retention queue. This is nice because it limits the touches on
+//             * the global LRU, which could otherwise be a hot spot. We do a
+//             * touch whether or not the node was persisted since we are likely
+//             * to return to the node in either case.
+//             */
+//
+//            final IAbstractNodeData delegate = node.getDelegate();
+//
+//            assert delegate != null : node.toString();
+//
+//            assert delegate.isCoded() : node.toString();
+//
+//            btree.globalLRU.add(delegate);
+//
+//        }
 
     }
 

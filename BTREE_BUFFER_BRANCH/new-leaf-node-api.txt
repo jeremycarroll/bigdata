@@ -1205,6 +1205,100 @@ NCIOnc	  : 464841 stmts added in 21.687 secs, rate= 21434, commitLatency=4344ms 
 /LRU Percent Used=48.86
 /bytesInMemory Percent Used=1.6
 
+       **** Statistics are not solid.  I have seen - percent used for
+            the LRU (perhaps a synchronization issue with concurrent
+            GC?)
+
+       **** Try the standard java open linked hash map as the LRU - it
+            will always be dense even if it is single threaded.  There
+            are also native long maps from fastutil and RT java maps.
+
+       **** Cache dialog (move to the write retention queue).
+
+	    The write retention queue keeps hard references around so
+	    top-down navigation via weak references works for recently
+	    touched nodes.  We constantly touch the queue to keep the
+	    LRU current.
+
+	    The global cache is a canonicalizing mapping from address
+	    to the data record object.  It is only used for persistent
+	    (and hence clean) nodes and leaves.
+
+	    READ: We putIfAbsent the data record into the cache (the
+	    global LRU is touched iff the cache was modified) when it
+	    is read from the backing store (readNode). putIfAbsent()
+	    is used in case there was a concurrent read of the node by
+	    a different BTree instance.
+
+	    WRITE: On EVICTION -or- CHECKPOINT of a dirty node, we
+	    code the data record and put() it into the cache (the
+	    global LRU is touched). put() is used because there should
+	    not be an entry in the cache for that address (WORM
+	    store).
+
+	    On EVICTION of a clean node, we do nothing.  The node will
+	    continue to age on the global LRU.
+
+	    The transient B+Tree uses hard references.  We DO NOT need
+	    to touch the write retention queue since weak references
+	    are not used UNLESS we are planning to code nodes when
+	    they are evicted from the write retention queue.  We DO
+	    NOT touch the global cache since the nodes DO NOT have
+	    persistent addresses (there is no backing store).
+
+            @todo [much the same result is obtained using record level
+            compression and simple raba coders]. Hot nodes (and hot
+            leaves) could be coded in order to write them on the store
+            but left in their mutable form (MutableNodeData and
+            MutableLeafData). This would provide faster operations on
+            those hot objects. "Hot" could be determined by the
+            reference count on the Node/Leaf. Of course, that is zero
+            when they are evicted, but it can be non-zero for nodes
+            and leaves which are written out in response to a check
+            point. NOTE: If mutable node or leaf data records are
+            placed into the cache then they MUST be overriden to mark
+            them as read-only since they will be shared by multiple
+            B+Tree instances and MUST NOT be used for mutations!!!
+
+PRIORITIES
+
+	- The B+Tree errors are a priority (rare, but can be triggered 
+	  by U50 Query9 or the G1 garbage collector).  This might be
+	  linked to the global LRU in some odd fashion or just to the
+	  other changes I had made.  The symptom is a node/leaf whose
+	  data record reference is null.
+
+	  - Try w/ G1 and see if I can get them to show up.  U50 query
+            can also do it.
+
+	  - Verify comparison of HardRef vs WeakRef GlobalLRU on
+	    machine doing nothing else.
+
+	  - Performance tuning can not go much further until I fix the
+            twin issues in RDFJoinNexus#getTailAccessPath().  That is
+            adding so much cost that it is hiding some other benefits.
+            This is less critical since it does not touch the APIs or
+            the binary format.
+
+	- Extensive testing must be performed to identify B+Tree
+	  errors, memory management problems, or scaling issues with
+	  the new rabas and branching factor (1-2B on Journal, 10B on
+	  cluster).
+
+	- Quads and Sesame test suites for same.
+
+	- The whitepaper must be finished now.
+
+	- Record compression will change the performance for the
+          simple value raba, will change the binary format of the
+          record (a header coding the compression scheme and header
+          length), and will change the serialization for
+          IndexMetadata.  This needs to happen SOON.
+
+	- Support glitter integration, performance optimizations, and
+          hot backup for the Journal.
+
+	  ------------------------------------------------------------
 
 (****) The NodeSerializer or the NodeCoder and LeafCoder SHOULD be
        configuration parameters so we can evolve the node/leaf data
@@ -1213,6 +1307,9 @@ NCIOnc	  : 464841 stmts added in 21.687 secs, rate= 21434, commitLatency=4344ms 
 
 (****) m=64 may be better for the index segments as well.  Test this
        out. 
+
+(****) try out m=64 on U8000 and U50000 on a single server.  Where are
+       the limits? how is the performance?
 
        - Optimized values raba for Term2Id (long[]).
 
