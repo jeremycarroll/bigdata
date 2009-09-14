@@ -36,8 +36,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.bigdata.BigdataStatics;
 import com.bigdata.counters.CounterSet;
+import com.bigdata.counters.ICounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.io.IDataRecordAccess;
@@ -261,7 +261,31 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
     public CounterSet getCounterSet() {
 
-        return counters.getCounterSet();
+        final CounterSet root = counters.getCounterSet();
+
+        final Iterator<WeakReference<LRUCacheImpl<K, V>>> itr = cacheSet
+                .iterator();
+
+        while (itr.hasNext()) {
+
+            final LRUCacheImpl<K, V> cache = itr.next().get();
+
+            if (cache == null) {
+             
+                // weak reference was cleared.
+                continue;
+            }
+
+            // add the per-cache counters.
+            root.makePath(
+                    cache.cls.getName() + ICounterSet.pathSeparator
+                            + cache.storeUUID).attach(
+                    cache.counters.getCounters());
+
+        }
+
+
+        return root;
         
     }
     
@@ -307,21 +331,24 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
             final CounterSet counters = new CounterSet();
 
-            counters.addCounter("bytesOnDisk", new Instrument<Long>() {
-                @Override
-                protected void sample() {
-                    setValue(bytesOnDisk.get());
-                }
-            });
+            counters.addCounter(IGlobalLRU.IGlobalLRUCounters.BYTES_ON_DISK,
+                    new Instrument<Long>() {
+                        @Override
+                        protected void sample() {
+                            setValue(bytesOnDisk.get());
+                        }
+                    });
 
-            counters.addCounter("bytesInMemory", new Instrument<Long>() {
-                @Override
-                protected void sample() {
-                    setValue(bytesInMemory.get());
-                }
-            });
+            counters.addCounter(IGlobalLRU.IGlobalLRUCounters.BYTES_IN_MEMORY,
+                    new Instrument<Long>() {
+                        @Override
+                        protected void sample() {
+                            setValue(bytesInMemory.get());
+                        }
+                    });
 
-            counters.addCounter("bytesInMemory Percent Used",
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.PERCENT_BYTES_IN_MEMORY,
                     new Instrument<Double>() {
                         @Override
                         protected void sample() {
@@ -329,54 +356,47 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                         }
                     });
 
-            counters.addCounter("bytesInMemory Maximum Allowed",
-                    new OneShotInstrument<Long>(
-                            HardReferenceGlobalLRU.this.maximumBytesInMemory));
+            counters
+                    .addCounter(
+                            IGlobalLRU.IGlobalLRUCounters.MAXIMUM_ALLOWED_BYTES_IN_MEMORY,
+                            new OneShotInstrument<Long>(
+                                    HardReferenceGlobalLRU.this.maximumBytesInMemory));
 
-            counters.addCounter("LRU Size", new Instrument<Integer>() {
-                @Override
-                protected void sample() {
-                    setValue(HardReferenceGlobalLRU.this.size);
-                }
-            });
-
-            counters.addCounter("LRU Eviction Count", new Instrument<Long>() {
-                @Override
-                protected void sample() {
-                    setValue(evictionCount.get());
-                }
-            });
-
-            /*
-             * The #of stores whose nodes and leaves are being cached.
-             */
-            counters.addCounter("cacheCount", new Instrument<Integer>() {
-                @Override
-                protected void sample() {
-                    setValue(cacheSet.size());
-                }
-            });
-
-            /*
-             * The average bytes in memory per buffered record.
-             */
-            counters.addCounter("averageRecordSizeInMemory",
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.BUFFERED_RECORD_COUNT,
                     new Instrument<Integer>() {
                         @Override
                         protected void sample() {
-                            final long tmp = HardReferenceGlobalLRU.this.size;
-                            if (tmp == 0) {
-                                setValue(0);
-                                return;
-                            }
-                            setValue((int) (bytesInMemory.get() / tmp));
+                            setValue(HardReferenceGlobalLRU.this.size);
                         }
                     });
 
-            /*
-             * The average bytes on disk per buffered record.
-             */
-            counters.addCounter("averageRecordSizeOnDisk",
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.BUFFERED_RECORD_COUNT,
+                    new Instrument<Long>() {
+                        @Override
+                        protected void sample() {
+                            setValue(evictionCount.get());
+                        }
+                    });
+
+            counters
+                    .addCounter(
+                            IGlobalLRU.IGlobalLRUCounters.AVERAGE_RECORD_SIZE_IN_MEMORY,
+                            new Instrument<Integer>() {
+                                @Override
+                                protected void sample() {
+                                    final long tmp = HardReferenceGlobalLRU.this.size;
+                                    if (tmp == 0) {
+                                        setValue(0);
+                                        return;
+                                    }
+                                    setValue((int) (bytesInMemory.get() / tmp));
+                                }
+                            });
+
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.AVERAGE_RECORD_SIZE_ON_DISK,
                     new Instrument<Integer>() {
                         @Override
                         protected void sample() {
@@ -387,7 +407,16 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                             }
                             setValue((int) (bytesOnDisk.get() / tmp));
                         }
-            });
+                    });
+
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.CACHE_COUNT,
+                    new Instrument<Integer>() {
+                        @Override
+                        protected void sample() {
+                            setValue(cacheSet.size());
+                        }
+                    });
 
             return counters;
 
@@ -403,38 +432,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
     public String toString() {
         
-        final String t = getCounterSet().toString();
-        
-        if(!BigdataStatics.debug) {
-            
-            return t;
-            
-        }
-        
-        final StringBuilder sb = new StringBuilder();
-
-        sb.append(t);
-
-        final Iterator<WeakReference<LRUCacheImpl<K, V>>> itr = cacheSet
-                .iterator();
-
-        while (itr.hasNext()) {
-
-            final LRUCacheImpl<K, V> cache = itr.next().get();
-
-            if (cache == null) {
-                // weak reference was cleared.
-                continue;
-            }
-
-            sb.append("\ncache: storeClass=" + cache.cls.getName() + ", size="
-                    + cache.size() + ", file=" + cache.file);
-
-            sb.append(cache.counters.getCounters());
-
-        }
-
-        return sb.toString();
+        return getCounterSet().toString();
 
     }
 
@@ -600,13 +598,6 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
      *            The generic type of the key.
      * @param <V>
      *            The generic type of the value.
-     * 
-     * @todo Synchronization review, especially if hotspots indicated by
-     *       profiler. The individual maps could be concurrent (for concurrent
-     *       readers per store). The global LRU updates MUST be consistent
-     *       (maintain a well-structured double-linked list) but need not be
-     *       synchronized (assuming they is any other way to make them
-     *       consistent).
      */
     private static class LRUCacheImpl<K, V> implements ILRUCache<K, V> {
 
@@ -617,7 +608,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
          *         Thompson</a>
          * @version $Id$
          */
-        private static class LRUCacheCounters {
+        private class LRUCacheCounters {
 
             /**
              * The largest #of entries in the cache to date.
@@ -653,6 +644,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
                 final CounterSet c = new CounterSet();
 
+                // The maximum #of entries in this per-store cache.
                 c.addCounter("highTide", new Instrument<Integer>() {
                     @Override
                     protected void sample() {
@@ -660,6 +652,15 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                     }
                 });
 
+                // The size of this per-store cache.
+                c.addCounter("size", new Instrument<Integer>() {
+                    @Override
+                    protected void sample() {
+                        setValue(size());
+                    }
+                });
+
+                // The #of inserts into the cache (does not count touches).
                 c.addCounter("ninserts", new Instrument<Long>() {
                     @Override
                     protected void sample() {
@@ -667,6 +668,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                     }
                 });
 
+                // The #of cache tests (get()).
                 c.addCounter("ntests", new Instrument<Long>() {
                     @Override
                     protected void sample() {
@@ -674,6 +676,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                     }
                 });
 
+                // The #of successful cache tests.
                 c.addCounter("nsuccess", new Instrument<Long>() {
                     @Override
                     protected void sample() {
@@ -681,6 +684,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                     }
                 });
 
+                // The percentage of lookups which are satisfied by the cache.
                 c.addCounter("hitRatio", new Instrument<Double>() {
                     @Override
                     protected void sample() {
