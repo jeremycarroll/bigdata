@@ -63,10 +63,6 @@ import com.bigdata.rawstore.WormAddressManager;
  * @param <V>
  *            The generic type of the value.
  * 
- *            FIXME This is a candidate implementation which HAS NOT been
- *            tested!!!! Write a concurrent stress test and put it under a
- *            profiler.
- * 
  * @todo ... Disallow anything where <V> does not extend
  *       {@link IDataRecordAccess} since we can not measure the bytesInMemory
  *       for those objects and hence the LRU eviction policy will not account

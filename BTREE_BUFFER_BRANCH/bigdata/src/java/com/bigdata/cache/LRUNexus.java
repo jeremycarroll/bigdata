@@ -32,7 +32,6 @@ import java.lang.management.MemoryPoolMXBean;
 
 import com.bigdata.BigdataStatics;
 import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
 import com.bigdata.journal.Journal;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.service.jini.JiniClient;
@@ -43,10 +42,17 @@ import com.bigdata.service.jini.JiniClient;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  * 
- * FIXME Test in low memory scenarios to look for fence posts.
+ *          FIXME Test in low memory scenarios to look for fence posts.
  * 
- * FIXME Test sensitivity to the percentage of the JVM memory available which
- * is allowed for the cache
+ *          FIXME Test w/ G1
+ * 
+ *          <pre>
+ * -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC
+ * </pre>
+ * 
+ * 
+ *          FIXME Test sensitivity to the percentage of the JVM memory available
+ *          which is allowed for the cache
  * 
  * @todo Simplify the integration pattern for use of a cache. You have to follow
  *       a "get()" then if miss, read+wrap, then putIfAbsent(). You MUST also
@@ -92,34 +98,21 @@ import com.bigdata.service.jini.JiniClient;
  * @todo Note that a r/w store will require an approach in which addresses are
  *       PURGED from the store's cache during the commit protocol. That might be
  *       handled at the tx layer.
- * 
- * @todo test with the G1 policy
- * 
- *       <pre>
- * -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC
- * </pre>
- * 
- * @todo Estimate the average record size based on real data (counters).
- *       Actually, 1024 is not bad for the RDF DB with a branching factor of 32.
- *       This is a pretty common value for the byte length of the decompressed
- *       node and leaf data records. It will be much larger for
- *       {@link IndexSegment}s of course so scale-out will need to plan for a
- *       mixture of records on journals and index segments in memory.
  */
 public class LRUNexus {
 
-    /**
-     * Return the default maximum memory footprint, which is
-     * {@link #percentMaximumMemory} of the maximum JVM heap. This limit is a
-     * bit conservative. It is designed to leave some room for application data
-     * objects and GC. You may be able to get away with significantly more on
-     * machines with large RAM.
-     */
-    static long getMaximumMemoryFootprint(final float percentMaximumMemory) {
-        
-        return (long) (Runtime.getRuntime().maxMemory() * percentMaximumMemory);
-        
-    }
+//    /**
+//     * Return the default maximum memory footprint, which is
+//     * {@link #percentMaximumMemory} of the maximum JVM heap. This limit is a
+//     * bit conservative. It is designed to leave some room for application data
+//     * objects and GC. You may be able to get away with significantly more on
+//     * machines with large RAM.
+//     */
+//    static long getMaximumMemoryFootprint(final float percentMaximumMemory) {
+//        
+//        return (long) (Runtime.getRuntime().maxMemory() * percentMaximumMemory);
+//        
+//    }
 
     /**
      * Global instance.
@@ -153,22 +146,35 @@ public class LRUNexus {
         
         // The initial capacity for the backing hash map(s).
         final int initialCacheCapacity = 16;
-        
-        // The percentage of the JVM heap to use for bigdata buffers.
+
+        /*
+         * The percentage of the JVM heap to use for bigdata buffers.
+         * 
+         * This limit is a bit conservative. It is designed to leave some room
+         * for application data objects and GC. You may be able to get away with
+         * significantly more on machines with large RAM.
+         */
         final float percentMaximumMemory = .3f;
 
         // The maximum bytesInMemory to retain across the caches.
-        final long maximumBytesInMemory = getMaximumMemoryFootprint(percentMaximumMemory);
+        final long maximumBytesInMemory = (long) (Runtime.getRuntime()
+                .maxMemory() * percentMaximumMemory);
+//        final long maximumBytesInMemory = 302933632L;//FIXME comment out -- overridden for G1 bug.
         
         // The minimum #of caches to keep open.
         final int minimumCacheSetCapacity = 5;
         
-        // The average record size.
-        final int baseAverageRecordSize = 1024;
-        
         if(cls == WeakReferenceGlobalLRU.class) {
 
             final int queueCapacity;
+
+            /*
+             * Estimate of the average record size.
+             * 
+             * Note: 1024 is not bad value.
+             */
+            // The average record size.
+            final int baseAverageRecordSize = 1024;
             
             final int averageRecordSize = (int) (baseAverageRecordSize * (Integer
                     .valueOf(IndexMetadata.Options.DEFAULT_BTREE_BRANCHING_FACTOR) / 32.));

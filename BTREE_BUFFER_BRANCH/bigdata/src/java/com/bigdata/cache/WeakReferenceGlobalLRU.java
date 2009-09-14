@@ -57,17 +57,20 @@ import com.bigdata.rawstore.WormAddressManager;
  * Implementation based on a shared {@link HardReferenceQueue} and
  * {@link WeakReference}s in per-store {@link ConcurrentWeakValueCache}
  * instances.
+ * <p>
+ * This implementation IS NOT recommended. First, there is no need for the use
+ * of {@link WeakReference}s to manage the cache. Second, the very large ring
+ * buffer allows lots of duplicates and therefore can not make efficient use of
+ * memory (it can under fill the allocated buffer space, which makes
+ * configuration and more haphazard, and the eviction of an entry from the cache
+ * is somewhat unpredictable because the cache contains duplicates). The other
+ * problem with this implementation is that it requires an estimate of the
+ * average record size to pre-size the backing ring buffer, and the record size
+ * can vary quite a bit by application, coding, and branching factor. The
+ * alternative implementations do not have this limitation.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
- * 
- *          FIXME First, there is no need for the use of {@link WeakReference}s
- *          to manage the cache. Second, the very large ring buffer allows lots
- *          of duplicates and therefore can not make efficient use of memory (it
- *          can under fill the allocated buffer space, which makes configuration
- *          and more haphazard, and the eviction of an entry from the cache is
- *          somewhat unpredictable because the cache contains duplicates).
- * 
  */
 public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
 
