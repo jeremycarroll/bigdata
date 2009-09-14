@@ -40,6 +40,7 @@ import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.btree.data.ILeafData;
 import com.bigdata.btree.data.INodeData;
 import com.bigdata.counters.CounterSet;
+import com.bigdata.counters.ICounterSet;
 import com.bigdata.io.IDataRecord;
 import com.bigdata.io.IDataRecordAccess;
 import com.bigdata.rawstore.IAddressManager;
@@ -229,5 +230,70 @@ public interface IGlobalLRU<K,V> {
 
     /** The counters for the global LRU. */
     public CounterSet getCounterSet();
+
+    /**
+     * Interface defines some standard counters for the global LRU.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
+     */
+    public interface IGlobalLRUCounters extends ICounterSet {
+
+        /**
+         * The #of bytes on disk for the records that are buffered by the cache.
+         */
+        final String BYTES_ON_DISK = "Bytes On Disk";
+
+        /**
+         * The decompressed byte length for the records that are buffered by the
+         * cache.
+         */
+        final String BYTES_IN_MEMORY = "Bytes In Memory";
+
+        /**
+         * The maximum bytes in memory that may be used by the cache. Note that
+         * the constraint is strictly in terms of the value reported by
+         * {@link #BYTES_IN_MEMORY} and DOES NOT reflect any additional overhead
+         * required to represent the objects associated with the buffered data
+         * records.
+         */
+        final String MAXIMUM_ALLOWED_BYTES_IN_MEMORY = "Bytes In Memory Maximum Allowed";
+
+        /**
+         * The percentage of the maximum allowed bytes in memory that is used by
+         * the cache.
+         */
+        final String PERCENT_BYTES_IN_MEMORY = "Bytes In Memory Percent Used";
+
+        /**
+         * The #of records buffered by the cache (current value).
+         */
+        final String BUFFERED_RECORD_COUNT = "Buffered Record Count";
+
+        /**
+         * The #of records that have been evicted from the cache to date.
+         */
+        final String BUFFERED_RECORD_EVICTION_COUNT = "Buffered Record Eviction Count";
+
+        /**
+         * The average size on disk for the records buffered in the cache
+         * (current value).
+         */
+        final String AVERAGE_RECORD_SIZE_ON_DISK = "Average Record Size On Disk";
+
+        /**
+         * The average decompressed byte length for the records buffered in the
+         * cache (current value).
+         */
+        final String AVERAGE_RECORD_SIZE_IN_MEMORY = "Average Record Size In Memory";
+
+        /**
+         * The #of per-{@link IRawStore} cache instances (current value). Some
+         * implementations MAY supply additional counters for each active cache
+         * instance.
+         */
+        final String CACHE_COUNT = "Cache Count";
+        
+    }
 
 }

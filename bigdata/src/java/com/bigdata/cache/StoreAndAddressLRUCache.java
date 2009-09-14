@@ -390,21 +390,24 @@ public class StoreAndAddressLRUCache<V> implements IGlobalLRU<Long,V> {
 
             final CounterSet counters = new CounterSet();
 
-            counters.addCounter("bytesOnDisk", new Instrument<Long>() {
-                @Override
-                protected void sample() {
-                    setValue(bytesOnDisk.get());
-                }
-            });
+            counters.addCounter(IGlobalLRU.IGlobalLRUCounters.BYTES_ON_DISK,
+                    new Instrument<Long>() {
+                        @Override
+                        protected void sample() {
+                            setValue(bytesOnDisk.get());
+                        }
+                    });
 
-            counters.addCounter("bytesInMemory", new Instrument<Long>() {
-                @Override
-                protected void sample() {
-                    setValue(bytesInMemory.get());
-                }
-            });
+            counters.addCounter(IGlobalLRU.IGlobalLRUCounters.BYTES_IN_MEMORY,
+                    new Instrument<Long>() {
+                        @Override
+                        protected void sample() {
+                            setValue(bytesInMemory.get());
+                        }
+                    });
 
-            counters.addCounter("bytesInMemory Percent Used",
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.PERCENT_BYTES_IN_MEMORY,
                     new Instrument<Double>() {
                         @Override
                         protected void sample() {
@@ -412,65 +415,69 @@ public class StoreAndAddressLRUCache<V> implements IGlobalLRU<Long,V> {
                         }
                     });
 
-            counters.addCounter("bytesInMemory Maximum Allowed",
-                    new OneShotInstrument<Long>(
-                            StoreAndAddressLRUCache.this.maximumBytesInMemory));
+            counters
+                    .addCounter(
+                            IGlobalLRU.IGlobalLRUCounters.MAXIMUM_ALLOWED_BYTES_IN_MEMORY,
+                            new OneShotInstrument<Long>(
+                                    StoreAndAddressLRUCache.this.maximumBytesInMemory));
 
-            counters.addCounter("LRU Size", new Instrument<Integer>() {
-                @Override
-                protected void sample() {
-                    setValue(StoreAndAddressLRUCache.this.size());
-                }
-            });
-
-            counters.addCounter("LRU Eviction Count", new Instrument<Long>() {
-                @Override
-                protected void sample() {
-                    setValue(evictionCount.get());
-                }
-            });
-
-            /*
-             * The #of stores whose nodes and leaves are being cached.
-             */
-            counters.addCounter("cacheCount", new Instrument<Integer>() {
-                @Override
-                protected void sample() {
-                    setValue(cacheSet.size());
-                }
-            });
-
-            /*
-             * The average bytes in memory per buffered record.
-             */
-            counters.addCounter("averageRecordSizeInMemory",
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.BUFFERED_RECORD_COUNT,
                     new Instrument<Integer>() {
                         @Override
                         protected void sample() {
-                            final long tmp = StoreAndAddressLRUCache.this.size();
-                            if (tmp == 0) {
-                                setValue(0);
-                                return;
-                            }
-                            setValue((int) (bytesInMemory.get() / tmp));
+                            setValue(StoreAndAddressLRUCache.this.size());
                         }
                     });
 
-            /*
-             * The average bytes on disk per buffered record.
-             */
-            counters.addCounter("averageRecordSizeOnDisk",
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.BUFFERED_RECORD_COUNT,
+                    new Instrument<Long>() {
+                        @Override
+                        protected void sample() {
+                            setValue(evictionCount.get());
+                        }
+                    });
+
+            counters
+                    .addCounter(
+                            IGlobalLRU.IGlobalLRUCounters.AVERAGE_RECORD_SIZE_IN_MEMORY,
+                            new Instrument<Integer>() {
+                                @Override
+                                protected void sample() {
+                                    final long tmp = StoreAndAddressLRUCache.this
+                                            .size();
+                                    if (tmp == 0) {
+                                        setValue(0);
+                                        return;
+                                    }
+                                    setValue((int) (bytesInMemory.get() / tmp));
+                                }
+                            });
+
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.AVERAGE_RECORD_SIZE_ON_DISK,
                     new Instrument<Integer>() {
                         @Override
                         protected void sample() {
-                            final long tmp = StoreAndAddressLRUCache.this.size();
+                            final long tmp = StoreAndAddressLRUCache.this
+                                    .size();
                             if (tmp == 0) {
                                 setValue(0);
                                 return;
                             }
                             setValue((int) (bytesOnDisk.get() / tmp));
                         }
-            });
+                    });
+
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.CACHE_COUNT,
+                    new Instrument<Integer>() {
+                        @Override
+                        protected void sample() {
+                            setValue(cacheSet.size());
+                        }
+                    });
 
             return counters;
 
