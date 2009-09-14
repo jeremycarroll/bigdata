@@ -125,7 +125,9 @@ public class LRUNexus {
      * memory.
      * 
      * @todo Define configure properties. Document for {@link JiniClient} and
-     *       {@link Journal} users.
+     *       {@link Journal} users. Probably an environment variable that gives
+     *       the memory in bytes, k(b), m(b), or g(b) to be used since there is
+     *       a G1 bug with {@link Runtime#maxMemory()}.
      */
     public static final IGlobalLRU<Long, Object> INSTANCE;
 
@@ -156,6 +158,23 @@ public class LRUNexus {
          * This limit is a bit conservative. It is designed to leave some room
          * for application data objects and GC. You may be able to get away with
          * significantly more on machines with large RAM.
+         * 
+         * FIXME .3 can be too much memory on a machine with limited RAM loading
+         * a large data set. Better ergonomics! Perhaps keep some minimum amount
+         * for the JVM and then set a trigger on the GC time and if it crosses
+         * 5-10% of the CPU time for the application.
+         * 
+         * FIXME Put a profiler on a RAM limited (1g) JVM on a large data set
+         * load (U50) and see where the memory is going and why it gets into
+         * high GC overhead. The issue is likely to be that the write retention
+         * queue (8000) is too large for the higher branching factor (64) with a
+         * larger data set on a machine with little memory. Also back down the
+         * branching factor to 32 since the write retention queue will then
+         * reserve much less data. E.g., 100000k bytes for buffers,
+         * branchingFactor=32, writeRetentionQueue=500 would be a good profile
+         * for a 32-bit machine.  [Maybe the coded records are actually taking
+         * more heap space?  For some coders, e.g., huffman?  Could code only
+         * for write and otherwise leave mutable as a low-memory option?]
          */
         final float percentMaximumMemory = .3f;
 

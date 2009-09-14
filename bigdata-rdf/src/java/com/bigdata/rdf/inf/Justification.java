@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.rdf.inf;
 
+
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -38,7 +39,6 @@ import com.bigdata.btree.raba.codec.EmptyRabaValueCoder;
 import com.bigdata.journal.TemporaryRawStore;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rules.InferenceEngine;
-import com.bigdata.rdf.rules.TestJustifications;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.JustificationTupleSerializer;
 import com.bigdata.rdf.spo.SPO;
@@ -869,21 +869,21 @@ public class Justification implements Comparable<Justification> {
         
     }
 
-	/**
-	 * A collection of {@link SPO} objects (either fully bound or query
-	 * patterns) that have already been visited.
-	 * <p>
-	 * Note: This is a very specialized {@link SPO} set implementation. How it
-	 * is created and destroyed is tightly integrated with how
-	 * {@link TruthMaintenance} works. 
-	 * 
-	 * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
-	 *         Thompson</a>
-	 * @version $Id$
-	 * 
-	 * @todo this class is public only because of {@link TestJustifications}.
-	 * it should be private.
-	 */
+    /**
+     * A collection of {@link SPO} objects (either fully bound or query
+     * patterns) that have already been visited.
+     * <p>
+     * Note: This is a very specialized {@link SPO} set implementation. How it
+     * is created and destroyed is tightly integrated with how
+     * {@link TruthMaintenance} works.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
+     * @version $Id$
+     * 
+     * @todo this class is public only because of TestJustifications. it should
+     *       be private.
+     */
     public static class VisitedSPOSet {
        
         private BTree btree;
