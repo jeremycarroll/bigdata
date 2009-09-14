@@ -372,7 +372,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                     });
 
             counters.addCounter(
-                    IGlobalLRU.IGlobalLRUCounters.BUFFERED_RECORD_COUNT,
+                    IGlobalLRU.IGlobalLRUCounters.BUFFERED_RECORD_EVICTION_COUNT,
                     new Instrument<Long>() {
                         @Override
                         protected void sample() {
