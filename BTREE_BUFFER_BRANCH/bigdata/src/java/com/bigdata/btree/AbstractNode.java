@@ -50,7 +50,7 @@ import cutthecrap.utils.striterators.Striterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public abstract class AbstractNode<T extends AbstractNode<T>> extends PO implements IAbstractNode,
+public abstract class AbstractNode<T extends AbstractNode> extends PO implements IAbstractNode,
         IAbstractNodeData {
 
     /**
@@ -405,12 +405,12 @@ public abstract class AbstractNode<T extends AbstractNode<T>> extends PO impleme
      * 
      * @return Either this leaf or a copy of this leaf.
      */
-    protected Leaf copyOnWrite() {
+    protected AbstractNode<?> copyOnWrite() {
         
         // Always invoked first for a leaf and thereafter in its other form.
         assert isLeaf();
         
-        return (Leaf) copyOnWrite(NULL);
+        return copyOnWrite(NULL);
         
     }
 
