@@ -1123,7 +1123,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
 
 //            if (readRetentionQueue != null) {
 //
-//                // FIXME MUST NOT clear the read retention queue if global!
+//                // Note: MUST NOT clear the read retention queue if global!
 //                readRetentionQueue.clear(true/* clearRefs */);
 //
 //            }

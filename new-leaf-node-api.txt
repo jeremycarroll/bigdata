@@ -1269,7 +1269,9 @@ PRIORITIES
 	  data record reference is null.
 
 	  - Try w/ G1 and see if I can get them to show up.  U50 query
-            can also do it.
+            can also do it.  Try w/ G1 plus starvation (not enough
+            given to the Global LRU (starves the buffer) or too much
+            give to the Global LRU (starves the JVM)).
 
 	  - Verify comparison of HardRef vs WeakRef GlobalLRU on
 	    machine doing nothing else.

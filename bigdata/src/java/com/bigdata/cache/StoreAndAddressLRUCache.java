@@ -59,15 +59,6 @@ import com.bigdata.rawstore.WormAddressManager;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  * 
- *          FIXME Untested implementation of a global LRU strategy. For this
- *          implementation, hot spots are likely as all operations are
- *          synchronized. Performance will depend critically on the hash code
- *          for the UUID+addr being well distributed. E.g., collect the hash
- *          code data for some real runs and compute the probability of lying
- *          within a given bucket, for various #s of buckets (16, 32, 16000,
- *          32000, etc). Use bucket sizes based on probably #of buckets as the
- *          capacity of the backing map grows.
- * 
  * @todo Implement a variant of the {@link HardReferenceGlobalLRU} and this
  *       class which uses a single {@link ConcurrentHashMap} but also maintains
  *       the linked-list LRU ordering.
