@@ -302,8 +302,8 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
                 serviceRoot.makePath(
                         IProcessCounters.Memory + ICounterSet.pathSeparator
                                 + "LRUNexus").attach(
-                        LRUNexus.INSTANCE.getCounters().getCounters());
-                
+                        LRUNexus.INSTANCE.getCounterSet());
+
             }
             
         }

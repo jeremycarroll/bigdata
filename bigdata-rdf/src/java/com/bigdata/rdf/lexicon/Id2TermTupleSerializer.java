@@ -119,8 +119,8 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<Long, Bigdata
                 new ASCIIKeyBuilderFactory(Bytes.SIZEOF_LONG),//
                 getDefaultLeafKeysCoder(),//
 //                getDefaultValuesCoder()
-//                SimpleRabaCoder.INSTANCE
-                CanonicalHuffmanRabaCoder.INSTANCE
+                SimpleRabaCoder.INSTANCE
+//                CanonicalHuffmanRabaCoder.INSTANCE
 //                new ConditionalRabaCoder(//
 //                        SimpleRabaCoder.INSTANCE, // small
 //                        CanonicalHuffmanRabaCoder.INSTANCE, // large
