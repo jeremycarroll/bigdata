@@ -352,7 +352,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                     new Instrument<Double>() {
                         @Override
                         protected void sample() {
-                            setValue(((int) (10000 * bytesInMemory.get() / (double) HardReferenceGlobalLRU.this.maximumBytesInMemory)) / 100d);
+                            setValue(((int) (10000 * bytesInMemory.get() / (double) HardReferenceGlobalLRU.this.maximumBytesInMemory)) / 10000d);
                         }
                     });
 

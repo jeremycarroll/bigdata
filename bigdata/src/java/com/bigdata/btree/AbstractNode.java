@@ -50,8 +50,12 @@ import cutthecrap.utils.striterators.Striterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public abstract class AbstractNode<T extends AbstractNode> extends PO implements IAbstractNode,
-        IAbstractNodeData {
+public abstract class AbstractNode<T extends AbstractNode
+/*
+ * DO-NOT-USE-GENERIC-HERE. The compiler will fail under Linux (JDK 1.6.0_14,
+ * _16).
+ */
+> extends PO implements IAbstractNode, IAbstractNodeData {
 
     /**
      * Log for node and leaf operations.

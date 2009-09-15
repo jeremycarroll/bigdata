@@ -172,9 +172,13 @@ public class LRUNexus {
          * branching factor to 32 since the write retention queue will then
          * reserve much less data. E.g., 100000k bytes for buffers,
          * branchingFactor=32, writeRetentionQueue=500 would be a good profile
-         * for a 32-bit machine.  [Maybe the coded records are actually taking
-         * more heap space?  For some coders, e.g., huffman?  Could code only
-         * for write and otherwise leave mutable as a low-memory option?]
+         * for a 32-bit machine. Does this problem happen once the bloom filter
+         * gets shut off? [Maybe the coded records are actually taking more heap
+         * space? For some coders, e.g., huffman? Could code only for write and
+         * otherwise leave mutable as a low-memory option?] Try favoring less
+         * heap space, smaller write retention buffer, smaller global buffer,
+         * and doing more IO. The IO seems to be the easier cost to bear when
+         * compared with GC.
          */
         final float percentMaximumMemory = .3f;
 

@@ -698,7 +698,7 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
                     new Instrument<Double>() {
                         @Override
                         protected void sample() {
-                            setValue(((int) (10000 * bytesInMemory.get() / (double) WeakReferenceGlobalLRU.this.maximumBytesInMemory)) / 100d);
+                            setValue(((int) (10000 * bytesInMemory.get() / (double) WeakReferenceGlobalLRU.this.maximumBytesInMemory)) / 10000d);
                         }
                     });
 
@@ -788,7 +788,7 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
                 protected void sample() {
                     setValue(((int) (10000L * WeakReferenceGlobalLRU.this.globalLRU
                             .size() / (double) WeakReferenceGlobalLRU.this.globalLRU
-                            .capacity())) / 100d);
+                            .capacity())) / 10000d);
                 }
             });
 
@@ -797,7 +797,7 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
                         @Override
                         protected void sample() {
                             setValue(((int) (10000 * lruDistinctCount.get() / (double) WeakReferenceGlobalLRU.this.globalLRU
-                                    .capacity())) / 100d);
+                                    .capacity())) / 10000d);
                         }
                     });
 

@@ -411,7 +411,7 @@ public class StoreAndAddressLRUCache<V> implements IGlobalLRU<Long,V> {
                     new Instrument<Double>() {
                         @Override
                         protected void sample() {
-                            setValue(((int) (10000 * bytesInMemory.get() / (double) StoreAndAddressLRUCache.this.maximumBytesInMemory)) / 100d);
+                            setValue(((int) (10000 * bytesInMemory.get() / (double) StoreAndAddressLRUCache.this.maximumBytesInMemory)) / 10000d);
                         }
                     });
 
