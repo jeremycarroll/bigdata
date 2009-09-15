@@ -371,6 +371,8 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
 
                 log.error(ERR_INT32);
                 
+                return false;
+                
             }
             
         }
