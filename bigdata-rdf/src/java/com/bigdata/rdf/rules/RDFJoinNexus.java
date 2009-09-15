@@ -657,7 +657,10 @@ public class RDFJoinNexus implements IJoinNexus {
                  * Cache optimization for the last relation returned.
                  * 
                  * @todo could scan list of up to N ~= 7 relations and that
-                 * might also beat the hash map.
+                 * might also beat the hash map. Could also optimize for the
+                 * case with two relations in the view (truth maintenance). also
+                 * explore optimizing this call out of the caller since they
+                 * should be able to reuse the result in a given join context.
                  */
                 if (relationName == lastRelationName)
                     return lastRelation;
