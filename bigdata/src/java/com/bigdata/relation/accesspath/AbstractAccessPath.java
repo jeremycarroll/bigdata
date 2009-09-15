@@ -827,7 +827,6 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
      * 
      * @param accessPath
      *            The access path (including the triple pattern).
-     * 
      * @param offset
      *            The first element that will be materialized (non-negative).
      * @param limit
@@ -861,31 +860,30 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         int nread = 0;
         int nused = 0;
 
-        R[] buffer = null;
-
         // skip past the offset elements.
         while (nread < offset && src.hasNext()) {
 
             src.next();
-            
+
             nread++;
-            
+
         }
-        
-        // read up to [limit] elements.
-        while (src.hasNext() && nused < limit) {
+
+        // read up to [limit] elements into the buffer.
+        R[] buffer = null;
+        while (nused < limit && src.hasNext()) {
 
             final R e = src.next();
 
             if (buffer == null) {
 
                 buffer = (R[]) java.lang.reflect.Array.newInstance(
-                        e.getClass(), (int)limit);
+                        e.getClass(), (int) limit);
 
             }
 
             buffer[nused] = e;
-            
+
             nused++;
             nread++;
 
@@ -897,7 +895,10 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
                     + ", offset=" + offset + ", limit=" + limit);
 
         }
-        
+
+//        if (limit == 1)
+//            System.err.println("Fully buffered: used=" + nused + ", limit=" + limit);
+
         if (nread == 0) {
 
             return new EmptyChunkedIterator<R>(keyOrder);

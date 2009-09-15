@@ -50,7 +50,7 @@ final public class Constant<E/* extends Comparable<E>*/> implements IConstant<E>
         
     }
 
-    public Constant(E value) {
+    public Constant(final E value) {
         
         if (value == null)
             throw new IllegalArgumentException();
@@ -65,8 +65,8 @@ final public class Constant<E/* extends Comparable<E>*/> implements IConstant<E>
         
     }
     
-    final public boolean equals(IVariableOrConstant<E> o) {
-    
+    final public boolean equals(final IVariableOrConstant<E> o) {
+
         if (o.isConstant() && value.equals(o.get())) {
 
             return true;

@@ -212,7 +212,9 @@ public class HardReferenceQueue<T> extends RingBuffer<T> implements IHardReferen
      */
     protected void beforeOffer(final T ref) {
 
-        if (isFull()) {
+//        super.beforeOffer(ref);  // base class is NOP.
+        
+        if (size == capacity/* isFull() inline */) {
 
             /*
              * If at capacity, evict the LRU reference.
