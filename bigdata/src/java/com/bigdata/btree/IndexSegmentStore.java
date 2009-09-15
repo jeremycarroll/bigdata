@@ -41,7 +41,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.cache.LRUNexus;
+import com.bigdata.LRUNexus;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
@@ -748,7 +748,11 @@ public class IndexSegmentStore extends AbstractRawStore {
 
             try {
                 
-                LRUNexus.INSTANCE.deleteCache(this);
+                if (LRUNexus.INSTANCE != null) {
+
+                    LRUNexus.INSTANCE.deleteCache(this);
+
+                }
                 
             } catch (Throwable t) {
                 

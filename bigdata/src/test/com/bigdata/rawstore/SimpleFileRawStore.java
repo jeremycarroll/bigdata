@@ -34,7 +34,7 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import com.bigdata.cache.LRUNexus;
+import com.bigdata.LRUNexus;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.journal.TemporaryRawStore;
 import com.bigdata.mdi.IResourceMetadata;
@@ -245,9 +245,14 @@ public class SimpleFileRawStore extends AbstractRawWormStore {
 
     public void deleteResources() {
         
-        if(open) throw new IllegalStateException();
-        
-        LRUNexus.INSTANCE.deleteCache(this);
+        if (open)
+            throw new IllegalStateException();
+
+        if (LRUNexus.INSTANCE != null) {
+
+            LRUNexus.INSTANCE.deleteCache(this);
+
+        }
         
         if(!file.delete()) {
             

@@ -28,8 +28,12 @@ import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
 
 import java.util.Comparator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
+
+import com.bigdata.rawstore.Bytes;
 
 /**
  * Class supporting operations on variable length byte[] keys.
@@ -62,7 +66,7 @@ import org.apache.log4j.Logger;
  */
 public class BytesUtil {
 
-    protected static final Logger log = Logger.getLogger(BytesUtil.class);
+    protected static final transient Logger log = Logger.getLogger(BytesUtil.class);
 
     /**
      * An empty <code>byte[]</code>.
@@ -898,4 +902,55 @@ public class BytesUtil {
 
     }
     
+    /**
+     * Decode a string of the form <code>[0-9]+(k|kb|m|mb|g|gb)?</code>,
+     * returning the number of bytes. When a suffix indicates kilobytes,
+     * megabytes, or gigabytes then the returned value is scaled accordingly.
+     * The suffix is NOT case sensitive.
+     * 
+     * @param s
+     *            The string value.
+     * 
+     * @return The byte count.
+     * 
+     * @throws IllegalArgumentException
+     *             if there is a problem with the argument (<code>null</code>,
+     *             ill-formed, etc).
+     */
+    static public long getByteCount(final String s) {
+
+        if (s == null)
+            throw new IllegalArgumentException();
+
+        final Matcher m = PATTERN_BYTE_COUNT.matcher(s);
+
+        if (!m.matches())
+            throw new IllegalArgumentException(s);
+
+        // the numeric component.
+        final String g1 = m.group(1);
+
+        final long c = Long.valueOf(g1);
+
+        // the units (null if not given).
+        final String g2 = m.group(2);
+
+        final long count;
+        if (g2 == null) {
+            count = c;
+        } else if (g2.equalsIgnoreCase("k") || g2.equalsIgnoreCase("kb")) {
+            count = c * Bytes.kilobyte;
+        } else if (g2.equalsIgnoreCase("m") || g2.equalsIgnoreCase("mb")) {
+            count = c * Bytes.megabyte;
+        } else if (g2.equalsIgnoreCase("g") || g2.equalsIgnoreCase("gb")) {
+            count = c * Bytes.gigabyte;
+        } else {
+            throw new AssertionError();
+        }
+        return count;
+    }
+
+    static final private Pattern PATTERN_BYTE_COUNT = Pattern.compile(
+            "([0-9]+)(k|kb|m|mb|g|gb)?", Pattern.CASE_INSENSITIVE);
+
 }

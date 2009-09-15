@@ -29,7 +29,7 @@ package com.bigdata.rawstore;
 
 import java.nio.ByteBuffer;
 
-import com.bigdata.cache.LRUNexus;
+import com.bigdata.LRUNexus;
 
 /**
  * Abstract base class for {@link IRawStore} implementations. This class uses a

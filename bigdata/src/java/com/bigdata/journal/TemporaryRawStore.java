@@ -37,7 +37,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.cache.LRUNexus;
+import com.bigdata.LRUNexus;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.io.DirectBufferPool;
 import com.bigdata.mdi.AbstractResourceMetadata;
@@ -326,14 +326,18 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
 
                 }
 
-                try {
-                 
-                    LRUNexus.INSTANCE.deleteCache(this);
-                    
-                } catch (Throwable t) {
-                    
-                    log.error(t, t);
-                    
+                if (LRUNexus.INSTANCE != null) {
+
+                    try {
+
+                        LRUNexus.INSTANCE.deleteCache(this);
+
+                    } catch (Throwable t) {
+
+                        log.error(t, t);
+
+                    }
+
                 }
 
             }

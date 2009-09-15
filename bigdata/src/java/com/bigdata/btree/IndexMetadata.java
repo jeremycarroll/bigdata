@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import org.CognitiveWeb.extser.LongPacker;
 import org.apache.log4j.Logger;
 
+import com.bigdata.LRUNexus;
 import com.bigdata.btree.data.INodeData;
 import com.bigdata.btree.isolation.IConflictResolver;
 import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
@@ -49,7 +50,6 @@ import com.bigdata.btree.raba.codec.FrontCodedRabaCoder;
 import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.btree.raba.codec.FrontCodedRabaCoder.DefaultFrontCodedRabaCoder;
 import com.bigdata.btree.view.FusedView;
-import com.bigdata.cache.LRUNexus;
 import com.bigdata.config.Configuration;
 import com.bigdata.config.IValidator;
 import com.bigdata.config.IntegerRangeValidator;
@@ -386,7 +386,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
                 .getPackage().getName()
                 + ".writeRetentionQueue.scan";
 
-        String DEFAULT_WRITE_RETENTION_QUEUE_CAPACITY = "8000";// was 500
+        String DEFAULT_WRITE_RETENTION_QUEUE_CAPACITY = "500";// was 500
 
         String DEFAULT_WRITE_RETENTION_QUEUE_SCAN = "20";
 
@@ -507,9 +507,10 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
          * longer, which improves search performance and keeps down the costs of
          * mutation operations. Systems with less RAM may need to reduce the
          * size of the {@link LRUNexus} global LRU to avoid
-         * {@link OutOfMemoryError}s.
+         * {@link OutOfMemoryError}s. [Dropped back to 32/500 on 9/15/09 since
+         * this does not do so well at scale on machines with less RAM.]
          */
-        String DEFAULT_BTREE_BRANCHING_FACTOR = "64"; //"256"
+        String DEFAULT_BTREE_BRANCHING_FACTOR = "32"; //"256"
 
 //        /**
 //         * The capacity of the hard reference queue used to retain recently used
