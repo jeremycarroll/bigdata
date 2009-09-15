@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
-import com.bigdata.cache.LRUNexus;
+import com.bigdata.LRUNexus;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.journal.TemporaryRawStore;
 import com.bigdata.mdi.IResourceMetadata;
@@ -249,7 +249,11 @@ public class SimpleMemoryRawStore extends AbstractRawWormStore {
         
         if(open) throw new IllegalStateException();
         
-        LRUNexus.INSTANCE.deleteCache(this);
+        if (LRUNexus.INSTANCE != null) {
+
+            LRUNexus.INSTANCE.deleteCache(this);
+
+        }
         
     }
     

@@ -57,6 +57,62 @@ public class TestBytesUtil extends TestCase2 {
         super(name);
     }
 
+    public void test_getByteCount() {
+
+        try {
+            BytesUtil.getByteCount(null);
+            fail("Expecting: "+IllegalArgumentException.class);
+        } catch(IllegalArgumentException ex) {
+            if(log.isInfoEnabled())
+                log.info("Ignoring expected exception: "+ex);
+        }
+
+        try {
+            BytesUtil.getByteCount("");
+            fail("Expecting: "+IllegalArgumentException.class);
+        } catch(IllegalArgumentException ex) {
+            if(log.isInfoEnabled())
+                log.info("Ignoring expected exception: "+ex);
+        }
+        
+        try {
+            BytesUtil.getByteCount("3x");
+            fail("Expecting: "+IllegalArgumentException.class);
+        } catch(IllegalArgumentException ex) {
+            if(log.isInfoEnabled())
+                log.info("Ignoring expected exception: "+ex);
+        }
+
+        try {
+            BytesUtil.getByteCount("x2");
+            fail("Expecting: "+IllegalArgumentException.class);
+        } catch(IllegalArgumentException ex) {
+            if(log.isInfoEnabled())
+                log.info("Ignoring expected exception: "+ex);
+        }
+
+        assertEquals(3, BytesUtil.getByteCount("3"));
+
+        assertEquals(3 * 1024L, BytesUtil.getByteCount("3k"));
+        assertEquals(3 * 1024L, BytesUtil.getByteCount("3kb"));
+        assertEquals(3 * 1024L, BytesUtil.getByteCount("3K"));
+        assertEquals(3 * 1024L, BytesUtil.getByteCount("3KB"));
+        assertEquals(3 * 1024L, BytesUtil.getByteCount("3Kb"));
+
+        assertEquals(3 * 1024 * 1024L, BytesUtil.getByteCount("3m"));
+        assertEquals(3 * 1024 * 1024L, BytesUtil.getByteCount("3mb"));
+        assertEquals(3 * 1024 * 1024L, BytesUtil.getByteCount("3M"));
+        assertEquals(3 * 1024 * 1024L, BytesUtil.getByteCount("3MB"));
+        assertEquals(3 * 1024 * 1024L, BytesUtil.getByteCount("3Mb"));
+
+        assertEquals(3 * 1024 * 1024 * 1024L, BytesUtil.getByteCount("3g"));
+        assertEquals(3 * 1024 * 1024 * 1024L, BytesUtil.getByteCount("3gb"));
+        assertEquals(3 * 1024 * 1024 * 1024L, BytesUtil.getByteCount("3G"));
+        assertEquals(3 * 1024 * 1024 * 1024L, BytesUtil.getByteCount("3GB"));
+        assertEquals(3 * 1024 * 1024 * 1024L, BytesUtil.getByteCount("3Gb"));
+
+    }
+    
     /**
      * A byte has a signed value between -128 and 127.
      * 

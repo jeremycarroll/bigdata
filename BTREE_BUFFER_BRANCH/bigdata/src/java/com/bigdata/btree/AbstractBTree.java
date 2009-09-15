@@ -42,6 +42,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.bigdata.Banner;
+import com.bigdata.LRUNexus;
 import com.bigdata.btree.AbstractBTreeTupleCursor.MutableBTreeTupleCursor;
 import com.bigdata.btree.AbstractBTreeTupleCursor.ReadOnlyBTreeTupleCursor;
 import com.bigdata.btree.IndexMetadata.Options;
@@ -60,7 +61,6 @@ import com.bigdata.btree.proc.IResultHandler;
 import com.bigdata.btree.proc.ISimpleIndexProcedure;
 import com.bigdata.btree.view.FusedView;
 import com.bigdata.cache.HardReferenceQueue;
-import com.bigdata.cache.LRUNexus;
 import com.bigdata.cache.RingBuffer;
 import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.counters.CounterSet;
@@ -712,8 +712,9 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
              * will be wrapped as a Node or Leaf by the owning B+Tree instance.
              */
             
-            this.storeCache = LRUNexus.INSTANCE.getCache(store);
-            
+            this.storeCache = LRUNexus.INSTANCE != null ? LRUNexus.INSTANCE
+                    .getCache(store) : null;
+
 //            this.globalLRU = lruNexus.getGlobalLRU();
             
 //            this.readRetentionQueue = newReadRetentionQueue();
@@ -3437,15 +3438,19 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 
             }
 
-            // update cache : will touch global LRU iff cache is modified.
-            final IAbstractNodeData data2 = (IAbstractNodeData) storeCache
-                    .putIfAbsent(addr2, data);
+            if (storeCache != null) {
+             
+                // update cache : will touch global LRU iff cache is modified.
+                final IAbstractNodeData data2 = (IAbstractNodeData) storeCache
+                        .putIfAbsent(addr2, data);
 
-            if (data2 != null) {
+                if (data2 != null) {
 
-                // concurrent insert, use winner's value.
-                data = data2;
+                    // concurrent insert, use winner's value.
+                    data = data2;
 
+                }
+                
             }
 
             // wrap as Node or Leaf.

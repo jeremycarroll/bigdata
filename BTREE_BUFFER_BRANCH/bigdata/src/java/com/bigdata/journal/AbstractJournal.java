@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 import com.bigdata.BigdataStatics;
+import com.bigdata.LRUNexus;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.Checkpoint;
 import com.bigdata.btree.IIndex;
@@ -54,7 +55,6 @@ import com.bigdata.btree.ReadOnlyIndex;
 import com.bigdata.cache.ConcurrentWeakValueCache;
 import com.bigdata.cache.ConcurrentWeakValueCacheWithTimeout;
 import com.bigdata.cache.HardReferenceQueue;
-import com.bigdata.cache.LRUNexus;
 import com.bigdata.config.Configuration;
 import com.bigdata.config.IValidator;
 import com.bigdata.config.IntegerRangeValidator;
@@ -1336,16 +1336,20 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
         
         _bufferStrategy.deleteResources();
 
-        try {
-            
-            LRUNexus.INSTANCE.deleteCache(this);
-            
-        } catch (Throwable t) {
-            
-            log.error(t, t);
-            
-        } 
-        
+        if (LRUNexus.INSTANCE != null) {
+
+            try {
+
+                LRUNexus.INSTANCE.deleteCache(this);
+
+            } catch (Throwable t) {
+
+                log.error(t, t);
+
+            }
+
+        }
+
         ResourceManager.deleteJournal(getFile() == null ? null : getFile()
                 .toString());
 
@@ -2132,7 +2136,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
                 System.err.println(msg);
             else if (log.isInfoEnabled())
                 log.info(msg);
-            if(BigdataStatics.debug) {
+            if (BigdataStatics.debug && LRUNexus.INSTANCE != null) {
                 System.err.println(LRUNexus.INSTANCE.toString());
             }
         }

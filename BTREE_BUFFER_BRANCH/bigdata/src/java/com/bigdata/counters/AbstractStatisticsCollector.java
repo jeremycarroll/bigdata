@@ -42,7 +42,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.apache.system.SystemUtil;
 
-import com.bigdata.cache.LRUNexus;
+import com.bigdata.LRUNexus;
 import com.bigdata.counters.httpd.CounterSetHTTPD;
 import com.bigdata.counters.linux.StatisticsCollectorForLinux;
 import com.bigdata.counters.win.StatisticsCollectorForWindows;
@@ -293,11 +293,12 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
                 
             }
 
-            /*
-             * Add counters reporting on the global LRU and the per-store
-             * caches.
-             */
-            {
+            if (LRUNexus.INSTANCE != null) {
+
+                /*
+                 * Add counters reporting on the global LRU and the per-store
+                 * caches.
+                 */
 
                 serviceRoot.makePath(
                         IProcessCounters.Memory + ICounterSet.pathSeparator

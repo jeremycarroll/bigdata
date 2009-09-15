@@ -31,8 +31,8 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import com.bigdata.LRUNexus;
 import com.bigdata.btree.BTree;
-import com.bigdata.cache.LRUNexus;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.mdi.IResourceMetadata;

@@ -51,11 +51,11 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.config.SailConfigException;
 
+import com.bigdata.LRUNexus;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.BloomFilter;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ILocalBTreeView;
-import com.bigdata.cache.LRUNexus;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
@@ -319,8 +319,9 @@ public class BigdataRepository implements Repository {
 
         sb.append("writeRetentionCapacity\t" + tripleStore.getSPOIndex().getIndexMetadata().getWriteRetentionQueueCapacity()+"\n");
 
-        sb.append(LRUNexus.INSTANCE.toString()+"\n");
-        
+        if (LRUNexus.INSTANCE != null)
+            sb.append(LRUNexus.INSTANCE.toString() + "\n");
+
 //        sb.append(tripleStore.predicateUsage());
         
         } catch(Throwable t) {
