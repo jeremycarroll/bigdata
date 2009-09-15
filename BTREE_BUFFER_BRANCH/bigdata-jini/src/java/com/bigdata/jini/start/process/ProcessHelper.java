@@ -92,11 +92,21 @@ public class ProcessHelper {
 
         try {
 
-            log.warn("Waiting on exitValue: " + this);
+            if(log.isInfoEnabled())
+                log.info("Waiting on exitValue: " + this);
 
             final int exitValue = exitValue(Long.MAX_VALUE, TimeUnit.SECONDS);
 
-            log.warn("Process is dead: " + this + ", exitValue=" + exitValue);
+            final String msg = "Process is dead: " + this + ", exitValue="
+                    + exitValue;
+
+            if (exitValue != 0) {
+                // log as error w/ stack trace for abnormal exit.
+                log.error(msg, new RuntimeException(msg));
+            } else {
+                // just log a warning for a normal exit.
+                log.warn(msg);
+            }
 
             return exitValue;
             
