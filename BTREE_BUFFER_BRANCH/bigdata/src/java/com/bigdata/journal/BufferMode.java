@@ -177,7 +177,7 @@ public enum BufferMode {
      */
     public boolean isFullyBuffered() {
        
-        return stable;
+        return fullyBuffered;
         
     }
     
