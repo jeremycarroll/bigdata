@@ -174,6 +174,9 @@ public class RDFJoinNexus implements IJoinNexus {
     private final RDFJoinNexusFactory joinNexusFactory;
     
     private final IIndexManager indexManager;
+    
+    // Note: cached.
+    private final IResourceLocator resourceLocator;
 
     private final ActionEnum action;
     
@@ -420,6 +423,8 @@ public class RDFJoinNexus implements IJoinNexus {
         
         this.indexManager = indexManager;
         
+        this.resourceLocator = indexManager.getResourceLocator();
+        
         this.action = joinNexusFactory.action;
         
         this.writeTimestamp = joinNexusFactory.writeTimestamp;
@@ -606,8 +611,8 @@ public class RDFJoinNexus implements IJoinNexus {
 	 */
     public IRelation getHeadRelationView(final IPredicate pred) {
         
-        if (pred == null)
-            throw new IllegalArgumentException();
+//        if (pred == null)
+//            throw new IllegalArgumentException();
         
         if (pred.getRelationCount() != 1)
             throw new IllegalArgumentException();
@@ -617,8 +622,8 @@ public class RDFJoinNexus implements IJoinNexus {
         final long timestamp = (getAction().isMutation() ? getWriteTimestamp()
                 : getReadTimestamp(/*relationName*/));
 
-        final IRelation relation = (IRelation) getIndexManager()
-                .getResourceLocator().locate(relationName, timestamp);
+        final IRelation relation = (IRelation) resourceLocator.locate(
+                relationName, timestamp);
         
         if(DEBUG) {
             
@@ -636,8 +641,8 @@ public class RDFJoinNexus implements IJoinNexus {
     @SuppressWarnings("unchecked")
     public IRelation getTailRelationView(final IPredicate pred) {
 
-        if (pred == null)
-            throw new IllegalArgumentException();
+//        if (pred == null)
+//            throw new IllegalArgumentException();
         
         final int nsources = pred.getRelationCount();
 
@@ -647,26 +652,45 @@ public class RDFJoinNexus implements IJoinNexus {
 
             final String relationName = pred.getOnlyRelationName();
 
-            final long timestamp = getReadTimestamp(/*relationName*/);
+            synchronized (relationLock) {
+                /*
+                 * Cache optimization for the last relation returned.
+                 * 
+                 * @todo could scan list of up to N ~= 7 relations and that
+                 * might also beat the hash map.
+                 */
+                if (relationName == lastRelationName)
+                    return lastRelation;
 
-            relation = (IRelation) getIndexManager().getResourceLocator().locate(
-                    relationName, timestamp);
+//              final long timestamp = getReadTimestamp(/*relationName*/);
 
+                // hotspot on locate(name,ts)
+                relation = (IRelation) resourceLocator.locate(relationName,
+                        readTimestamp);
+                
+//                System.err.println(pred.toString());
+                
+                lastRelationName = relationName;
+                
+                lastRelation = relation;
+
+            }
+            
         } else if (nsources == 2) {
 
             final String relationName0 = pred.getRelationName(0);
 
             final String relationName1 = pred.getRelationName(1);
 
-            final long timestamp0 = getReadTimestamp(/*relationName0*/);
+//            final long timestamp0 = getReadTimestamp(/*relationName0*/);
+//
+//            final long timestamp1 = getReadTimestamp(/*relationName1*/);
 
-            final long timestamp1 = getReadTimestamp(/*relationName1*/);
+            final IRelation relation0 = (IRelation) resourceLocator.locate(
+                    relationName0, readTimestamp);//timestamp0);
 
-            final IRelation relation0 = (IRelation) getIndexManager()
-                    .getResourceLocator().locate(relationName0, timestamp0);
-
-            final IRelation relation1 = (IRelation) getIndexManager()
-                    .getResourceLocator().locate(relationName1, timestamp1);
+            final IRelation relation1 = (IRelation) resourceLocator.locate(
+                    relationName1, readTimestamp);//timestamp1);
 
             relation = new RelationFusedView(relation0, relation1);
 
@@ -685,6 +709,9 @@ public class RDFJoinNexus implements IJoinNexus {
         return relation;
         
     }
+    private transient final Object relationLock = new Object();
+    private transient String lastRelationName = null;
+    private transient IRelation lastRelation = null;
 
     /**
      * When {@link #backchain} is <code>true</code> and the tail predicate is
@@ -709,11 +736,11 @@ public class RDFJoinNexus implements IJoinNexus {
         }
         
         // Resolve the relation name to the IRelation object.
-        // @todo hotspot
+        // @todo hotspot: 24%
         final IRelation relation = getTailRelationView(predicate);
         
         // Find the best access path for the predicate for that relation.
-        // @todo hotspot
+        // @todo hotspot: 75%
         IAccessPath accessPath = relation.getAccessPath(predicate);
 
         final ISolutionExpander expander = predicate.getSolutionExpander();
@@ -1179,7 +1206,8 @@ public class RDFJoinNexus implements IJoinNexus {
     
     public IResourceLocator getRelationLocator() {
         
-        return indexManager.getResourceLocator();
+        return resourceLocator;
+//        return indexManager.getResourceLocator();
         
     }
 

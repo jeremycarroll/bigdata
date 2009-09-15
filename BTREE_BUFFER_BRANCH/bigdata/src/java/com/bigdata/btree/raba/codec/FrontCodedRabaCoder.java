@@ -369,13 +369,14 @@ public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
 
         public int search(final byte[] searchKey) {
 
-            if(isKeys()) {
+            // optimization: always keys.
+//            if(isKeys()) {
             
                 return decoder.search(searchKey);
                 
-            }
-            
-            throw new UnsupportedOperationException();
+//            }
+//            
+//            throw new UnsupportedOperationException();
 
         }
 

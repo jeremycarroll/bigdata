@@ -748,72 +748,80 @@ public class SPORelation extends AbstractRelation<ISPO> {
      */
     public IAccessPath<ISPO> getAccessPath(final IPredicate<ISPO> predicate) {
 
-        if (predicate == null)
-            throw new IllegalArgumentException();
-        
-        final SPOPredicate pred = (SPOPredicate) predicate;
-
         /*
-         * FIXME This was hacked in attempt to track down a nagging issue. There
-         * were two symptoms. First, some access paths were failing to deliver
-         * the correct results for joins. Second, the kb lost track of what was
-         * an inference and was treating everything as explicit. NOTE: The
-         * problem would go away on a restart, which is what led us to consider
-         * a stateful / cache effect. The data on disk was correct.
+         * Note: Query is faster w/o cache on all LUBM queries.
          * 
-         * It is possible that the join problem is related to the cache because
-         * the AbstractAccessPath is stateful for historical reads and it is
-         * within the grasp of reason that the logic there was failing and was
-         * keeping state for the UNISOLATED view as well.
-         * 
-         * Note: I have no idea how the the cache could cause the kb to loose
-         * track of what is inferred and what was explicit. This may be a red
-         * herring.
-         * 
-         * Note: The cache semantics for put() were actually putIfAbsent() when
-         * this problem was noticed. Perhaps the problem was related to those
-         * semantics since the access path in the cache would not be replaced if
-         * there was already an entry for a given predicate?
+         * @todo Optimization could reuse a caller's SPOAccessPath instance,
+         * setting only the changed data on the fromKey/toKey.  That could
+         * be done with setS(long), setO(long), setP(long) methods.  The
+         * filter could be modified in the same manner.  That could cut down
+         * on allocation costs, formatting the from/to keys, etc.
          */
-        if (getTimestamp() == ITx.UNISOLATED) {
-
-            // create an access path instance for that predicate.
-            return _getAccessPath(pred);
-
-        }
-
-        // test cache for access path.
-        SPOAccessPath accessPath = cache.get(pred);
-
-        if (accessPath != null) {
-
-            return accessPath;
-
-        }
-
-        // create an access path instance for that predicate.
-        accessPath = _getAccessPath(pred);
-
-        // add to cache.
-        cache.put(pred, accessPath);
+        return _getAccessPath(predicate);
         
-        return accessPath;
+//        if (predicate == null)
+//            throw new IllegalArgumentException();
+//        
+//        final SPOPredicate pred = (SPOPredicate) predicate;
+//
+//        /*
+//         * FIXME This was hacked in attempt to track down a nagging issue. There
+//         * were two symptoms. First, some access paths were failing to deliver
+//         * the correct results for joins. Second, the kb lost track of what was
+//         * an inference and was treating everything as explicit. NOTE: The
+//         * problem would go away on a restart, which is what led us to consider
+//         * a stateful / cache effect. The data on disk was correct.
+//         * 
+//         * It is possible that the join problem is related to the cache because
+//         * the AbstractAccessPath is stateful for historical reads and it is
+//         * within the grasp of reason that the logic there was failing and was
+//         * keeping state for the UNISOLATED view as well.
+//         * 
+//         * Note: I have no idea how the the cache could cause the kb to loose
+//         * track of what is inferred and what was explicit. This may be a red
+//         * herring.
+//         * 
+//         * Note: The cache semantics for put() were actually putIfAbsent() when
+//         * this problem was noticed. Perhaps the problem was related to those
+//         * semantics since the access path in the cache would not be replaced if
+//         * there was already an entry for a given predicate?
+//         */
+//        if (getTimestamp() == ITx.UNISOLATED || cache == null) {
+//
+//            // create an access path instance for that predicate.
+//            return _getAccessPath(pred);
+//
+//        }
+//
+//        // test cache for access path: cache is 50% effective for Q9.
+//        SPOAccessPath accessPath = cache.get(pred);
+//
+//        if (accessPath != null) {
+//
+//            return accessPath;
+//
+//        }
+//
+//        // create an access path instance for that predicate.
+//        accessPath = _getAccessPath(pred);
+//
+//        // add to cache.
+//        cache.put(pred, accessPath);
+//        
+//        return accessPath;
         
     }
 
-    /**
-     * {@link SPOAccessPath} cache.
-     * 
-     * @todo config cache capacity.
-     * 
-     * @todo config concurrency level, e.g., based on maxParallelSubqueries times the
-     * expected concurrency for queries against a given view.
-     */
-//  0.75f// loadFactor
-//  50// concurrencyLevel
-    final private ConcurrentWeakValueCache<SPOPredicate, SPOAccessPath> cache = new ConcurrentWeakValueCacheWithTimeout<SPOPredicate, SPOAccessPath>(
-            100/* queueCapacity */, TimeUnit.MILLISECONDS.toNanos(60 * 1000)/* timeout */
-    );
+//    /**
+//     * {@link SPOAccessPath} cache [disabled -- query is faster w/o this cache].
+//     */
+////  0.75f// loadFactor
+////  50// concurrencyLevel
+//    final private ConcurrentWeakValueCache<SPOPredicate, SPOAccessPath> cache
+//    =null;
+////    = new ConcurrentWeakValueCacheWithTimeout<SPOPredicate, SPOAccessPath>(
+////            100/* queueCapacity */, TimeUnit.MILLISECONDS.toNanos(60 * 1000)/* timeout */
+////    );
 
     /**
      * Isolates the logic for selecting the {@link SPOKeyOrder} from the

@@ -57,7 +57,7 @@ public class RingBuffer<T> implements Queue<T> {
     /**
      * The capacity of the buffer.
      */
-    private final int capacity;
+    protected final int capacity;
 
     /**
      * The internal fixed capacity buffer.
@@ -97,8 +97,11 @@ public class RingBuffer<T> implements Queue<T> {
     /**
      * The #of elements in the buffer. The buffer is empty when this field is
      * zero. The buffer is full when this field equals the {@link #capacity}.
+     * <p>
+     * Note: Exposed to {@link HardReferenceQueue} as an optimization for
+     * {@link #isFull()}.
      */
-    private int size = 0;
+    protected int size = 0;
 
     /**
      * Ctor.
@@ -155,7 +158,7 @@ public class RingBuffer<T> implements Queue<T> {
 
         beforeOffer( ref );
 
-        if (isFull())
+        if (size == capacity/* isFull() inlined */)
             throw new IllegalStateException();
 
         refs[head] = ref;
@@ -433,7 +436,7 @@ public class RingBuffer<T> implements Queue<T> {
         
     }
     
-    public T element() throws NoSuchElementException {
+    final public T element() throws NoSuchElementException {
 
         if (size == 0)
             throw new NoSuchElementException();
@@ -459,7 +462,7 @@ public class RingBuffer<T> implements Queue<T> {
         
     }
 
-    public T poll() {
+    final public T poll() {
 
         // The buffer must not be empty.
         if (size <= 0)

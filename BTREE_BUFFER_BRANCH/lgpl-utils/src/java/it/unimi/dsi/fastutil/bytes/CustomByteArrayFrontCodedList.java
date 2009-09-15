@@ -1373,7 +1373,7 @@ public class CustomByteArrayFrontCodedList extends AbstractObjectList<byte[]>
      */
     private int binarySearch(final byte[] key) {
 
-        final int base = 0;
+//        final int base = 0;
         
         final BackingBuffer bb = this.bb;
 
@@ -1383,17 +1383,17 @@ public class CustomByteArrayFrontCodedList extends AbstractObjectList<byte[]>
          * given by p[]. The data at p[i] is the length of the fully coded value
          * followed by the value itself.
          */
-        final int nmem = p.length;
+//        final int nmem = p.length;
         
         int low = 0;
 
-        int high = nmem - 1;
+        int high = p.length/*nmem*/ - 1;
 
         while (low <= high) {
 
             final int mid = (low + high) >> 1;
 
-            final int offset = base + mid;
+            final int offset = /*base +*/ mid;
 
             /*
              * Compare the probe with the full length byte[] at index [mid].
@@ -1437,7 +1437,7 @@ public class CustomByteArrayFrontCodedList extends AbstractObjectList<byte[]>
 
         // Not found: return insertion point.
 
-        final int offset = (base + low);
+        final int offset = (/*base +*/ low);
 
         return -(offset + 1);
 

@@ -181,6 +181,7 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
 
     }
 
+    // @todo hotspot 2% total query time.
     public T locate(final String namespace, final long timestamp) {
 
         if (namespace == null)
@@ -192,7 +193,7 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
 
         }
 
-        // test cache.
+        // test cache: hotspot 93% of method time.
         T resource = get(namespace, timestamp);
 
         if (resource != null) {
