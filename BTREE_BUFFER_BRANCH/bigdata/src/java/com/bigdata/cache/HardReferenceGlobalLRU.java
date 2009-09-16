@@ -513,7 +513,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
         private Entry<K, V> next;
 
         /** The owning cache for this entry. */
-        private LRUCacheImpl<K,V> cache;
+        private volatile LRUCacheImpl<K,V> cache;
         
         /** The bytes in memory for this entry. */
         int bytesInMemory;
@@ -595,10 +595,14 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
      * the LRU entry is being evicted and the {@link Entry} will be recycled
      * into the MRU position in the ordering. You must also remove the entry
      * under that key from the hash map.
+     * 
+     * @return The value associate with the entry before it was removed from the
+     *         LRU ordering.
      */
-    private void removeEntry(final Entry<K, V> e) {
+    private V removeEntry(final Entry<K, V> e) {
         if(!lock.isHeldByCurrentThread())
             throw new IllegalMonitorStateException();
+        if(e.cache==null) return null;
         final Entry<K, V> prior = e.prior;
         final Entry<K, V> next = e.next;
         if (e == first) {
@@ -613,12 +617,17 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
         if (next != null) {
             next.prior = prior;
         }
+        final V clearedValue = e.v;
         e.prior = null;
         e.next = null;
+        e.cache = null; // clear reference to the cache.
+        e.k = null; // clear the key.
+        e.v = null; // clear the value reference.
         size--;
         counters.bytesInMemory.addAndGet(-e.bytesInMemory);
         counters.bytesOnDisk.addAndGet(-e.bytesOnDisk);
         e.bytesInMemory = e.bytesOnDisk = 0;
+        return clearedValue;
     }
 
     /**
@@ -998,13 +1007,19 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
                         // entry in the LRU position.
                         entry = globalLRU.first;
+                        
+                        // the key associated with the entry to be evicted.
+                        final K evictedKey = entry.k;
 
+                        // The cache from which the entry will be evicted.
+                        final LRUCacheImpl<K,V> evictedFromCache = entry.cache; 
+                        
                         // remove LRU entry from ordering.
                         globalLRU.removeEntry(entry);
 
                         // remove entry under that key from hash map for that
                         // store.
-                        entry.cache.remove(entry.k);
+                        evictedFromCache.remove(evictedKey);//entry.k);
 
                         globalLRU.counters.evictionCount.incrementAndGet();
 
@@ -1109,12 +1124,12 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
             globalLRU.lock.lock();
             try {
-                globalLRU.removeEntry(entry);
+                return globalLRU.removeEntry(entry);
             } finally {
                 globalLRU.lock.unlock();
             }
 
-            return entry.v;
+//            return entry.v;
 
         }
 

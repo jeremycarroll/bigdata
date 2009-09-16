@@ -34,6 +34,7 @@ import java.util.Properties;
 
 import org.openrdf.rio.RDFFormat;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.LRUNexus;
 import com.bigdata.journal.Journal;
 import com.bigdata.rdf.store.DataLoader.ClosureEnum;
@@ -201,7 +202,9 @@ public class TestTripleStoreLoadRateLocal extends ProxyTestCase {
 
             store.closeAndDelete();
             
-            log.fatal("LRU After Destroy: "+LRUNexus.INSTANCE.toString());
+            if (BigdataStatics.debug)
+                System.err.println("\n-------LRUNexus after test:" + getName()
+                        + "--------" + LRUNexus.INSTANCE.toString());
 
         }
 
@@ -232,8 +235,9 @@ public class TestTripleStoreLoadRateLocal extends ProxyTestCase {
 
             store.closeAndDelete();
 
-            log.fatal("\n-------LRUNexus after test:" + getName() + "--------"
-                    + LRUNexus.INSTANCE.toString());
+            if (BigdataStatics.debug)
+                System.err.println("\n-------LRUNexus after test:" + getName()
+                        + "--------" + LRUNexus.INSTANCE.toString());
             
         }
 
