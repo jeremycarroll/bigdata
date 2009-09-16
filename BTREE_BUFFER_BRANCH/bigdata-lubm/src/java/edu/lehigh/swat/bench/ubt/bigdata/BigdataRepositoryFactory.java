@@ -287,7 +287,7 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
          * 
          * true is nested, which is also the default right now.
          */
-        properties.setProperty(Options.NESTED_SUBQUERY, "false");
+        properties.setProperty(Options.NESTED_SUBQUERY, "true");
         
         {
          
@@ -336,14 +336,14 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
 //            properties.setProperty(IndexMetadata.Options.SPLIT_HANDLER_MIN_ENTRY_COUNT, ""+1 * Bytes.kilobyte32);
 //            properties.setProperty(IndexMetadata.Options.SPLIT_HANDLER_ENTRY_COUNT_PER_SPLIT, ""+5 * Bytes.kilobyte32);
 
-            // write retention queue (default is 500).
-            properties.setProperty(
-                    IndexMetadata.Options.WRITE_RETENTION_QUEUE_CAPACITY,
-                    "8000");
-
-            properties.setProperty(
-                    IndexMetadata.Options.BTREE_BRANCHING_FACTOR,
-                    "64");
+//            // write retention queue (default is 500).
+//            properties.setProperty(
+//                    IndexMetadata.Options.WRITE_RETENTION_QUEUE_CAPACITY,
+//                    "8000");
+//
+//            properties.setProperty(
+//                    IndexMetadata.Options.BTREE_BRANCHING_FACTOR,
+//                    "64");
 
             {
                 /*

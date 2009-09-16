@@ -29,6 +29,7 @@ package com.bigdata.btree;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.btree.data.AbstractReadOnlyNodeData;
 import com.bigdata.btree.data.DefaultLeafCoder;
 import com.bigdata.btree.data.DefaultNodeCoder;
@@ -346,6 +347,8 @@ public class NodeSerializer {
             final byte[] tmp = new byte[buf.capacity()];
             buf.get(tmp);
             slice = FixedByteArrayBuffer.wrap(tmp);
+            if(BigdataStatics.debug)
+                System.err.print("[RO]");
         } else {
             // backing array is accessible, so wrap as slice.
             slice = new FixedByteArrayBuffer(buf.array(), buf.arrayOffset(),

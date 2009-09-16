@@ -1,5 +1,7 @@
 package com.bigdata.rdf.store;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -83,9 +85,14 @@ public class BigdataStatementIteratorImpl
         /*
          * Create a collection of the distinct term identifiers used in this
          * chunk.
+         * 
+         * @todo Long.valueOf(long) is a hot spot here. However, I probably need
+         * to drive the native long hash map awareness into
+         * getTerms(Collection<Long>) in order for the use of the
+         * LongOpenHashMap here to be of benefit.
          */
 
-//        LongOpenHashSet ids = new LongOpenHashSet(chunk.length*4);
+//        final LongOpenHashSet ids = new LongOpenHashSet(chunk.length*4);
         
         final Collection<Long> ids = new LinkedHashSet<Long>(chunk.length * 4);
 

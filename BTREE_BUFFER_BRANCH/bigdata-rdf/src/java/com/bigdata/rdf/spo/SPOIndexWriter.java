@@ -181,7 +181,7 @@ public class SPOIndexWriter implements Callable<Long> {
      */
     public Long call() throws Exception {
 
-        final long beginIndex = System.currentTimeMillis();
+        final long begin = System.currentTimeMillis();
 
         { // sort
 
@@ -282,7 +282,7 @@ public class SPOIndexWriter implements Callable<Long> {
 
         }
 
-        final long elapsed = System.currentTimeMillis() - beginIndex;
+        final long elapsed = System.currentTimeMillis() - begin;
 
         return elapsed;
 

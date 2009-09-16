@@ -220,6 +220,43 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
         return cache;
         
     }
+
+    /**
+     * The #of records in memory across all cache instances.
+     */
+    public int getRecordCount() {
+
+        return size;
+
+    }
+
+    /**
+     * The #of records which have been evicted from memory to date across all
+     * cache instances.
+     */
+    public long getEvictionCount() {
+
+        return counters.evictionCount.get();
+        
+    }
+    
+    /**
+     * The #of bytes in memory across all cache instances.
+     */
+    public long getBytesInMemory() {
+
+        return counters.bytesInMemory.get();
+        
+    }
+    
+    /**
+     * Return the #of cache instances.
+     */
+    public int getCacheSetSize() {
+        
+        return cacheSet.size();
+        
+    }
     
     public void deleteCache(final IRawStore store) {
 
@@ -227,7 +264,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
             throw new IllegalArgumentException();
 
         // remove cache from the cacheSet.
-        final ILRUCache<K, V> cache = cacheSet.remove(store.getUUID());
+        final LRUCacheImpl<K, V> cache = cacheSet.remove(store.getUUID());
 
         if (cache != null) {
 
@@ -242,12 +279,32 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
         
         lock.lock();
         try {
+
+            final Iterator<WeakReference<LRUCacheImpl<K, V>>> itr = cacheSet
+                    .iterator();
+
+            while (itr.hasNext()) {
+
+                final LRUCacheImpl<K, V> cache = itr.next().get();
+
+                if (cache == null) {
+
+                    // weak reference was cleared.
+                    continue;
+
+                }
+
+                cache.clear();
+
+            }
+
+            assert size == 0;
+            assert first == null;
+            assert last == null;
             
-            cacheSet.clear();
-
-            size = 0;
-
-            first = last = null;
+//            size = 0;
+//
+//            first = last = null;
             
             counters.clear();
             
@@ -274,6 +331,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
              
                 // weak reference was cleared.
                 continue;
+
             }
 
             // add the per-cache counters.
@@ -504,7 +562,8 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
         public String toString() {
             return "Entry{key=" + k + ",val=" + v + ",prior="
                     + (prior == null ? "N/A" : "" + prior.k) + ",next="
-                    + (next == null ? "N/A" : "" + next.k) + "}";
+                    + (next == null ? "N/A" : "" + next.k) + ",bytesInMemory="
+                    + bytesInMemory + ",bytesOnDisk=" + bytesOnDisk + "}";
         }
 
     } // class Entry
@@ -559,6 +618,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
         size--;
         counters.bytesInMemory.addAndGet(-e.bytesInMemory);
         counters.bytesOnDisk.addAndGet(-e.bytesOnDisk);
+        e.bytesInMemory = e.bytesOnDisk = 0;
     }
 
     /**
@@ -575,10 +635,39 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
         }
 
-        removeEntry(e);
+        // unlink entry
+        // removeEntry(e);
+        {
+            final Entry<K, V> prior = e.prior;
+            final Entry<K, V> next = e.next;
+            if (e == first) {
+                first = next;
+            }
+            if (last == e) {
+                last = prior;
+            }
+            if (prior != null) {
+                prior.next = next;
+            }
+            if (next != null) {
+                next.prior = prior;
+            }
+        }
 
-        addEntry(e);
-
+        // link entry as the new tail.
+        // addEntry(e);
+        {
+            if (first == null) {
+                first = e;
+                last = e;
+            } else {
+                last.next = e;
+                e.prior = last;
+                e.next = null; // must explicitly set to null.
+                last = e;
+            }
+        }
+        
     }
 
     /**
@@ -697,6 +786,12 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
             }
 
+            public String toString() {
+                
+                return getCounters().toString();
+                
+            }
+            
         }
 
         /**
@@ -826,15 +921,19 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
             
             try {
             
-                final Iterator<Map.Entry<K, HardReferenceGlobalLRU.Entry<K, V>>> itr = map
-                        .entrySet().iterator();
+                final Iterator<HardReferenceGlobalLRU.Entry<K, V>> itr = map
+                        .values().iterator();
                 
                 while (itr.hasNext()) {
-                
-                    itr.next();
-                    
+
+                    final HardReferenceGlobalLRU.Entry<K, V> e = itr.next();
+
+                    // remove entry from the map.
                     itr.remove();
-                    
+
+                    // unlink entry from the LRU.
+                    globalLRU.removeEntry(e);
+
                 }
 
                 counters.clear();
@@ -1019,6 +1118,12 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
         }
 
+        public String toString() {
+            
+            return super.toString() + "{" + counters.toString() + "}";
+            
+        }
+        
     }
 
 }
