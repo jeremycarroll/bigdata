@@ -69,6 +69,8 @@ public class TestAll extends TestCase {
         // Test cache semantics with weak/soft reference values.
         suite.addTestSuite( TestWeakValueCache.class );
         
+        suite.addTestSuite( TestHardReferenceGlobalLRU.class );
+        
 //        // Generic test of cache policy.
 //        retval.addTestSuite( TestCachePolicy.class );
 

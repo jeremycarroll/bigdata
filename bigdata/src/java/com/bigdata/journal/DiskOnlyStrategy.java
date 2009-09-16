@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.Executors;
 
+import com.bigdata.LRUNexus;
 import com.bigdata.btree.BTree.Counter;
 import com.bigdata.cache.LRUCache;
 import com.bigdata.counters.AbstractStatisticsCollector;
@@ -215,8 +216,10 @@ public class DiskOnlyStrategy extends AbstractBufferStrategy implements
      * Written records are NOT entered into the read cache since (when the
      * {@link #writeCache} is enabled), recently written records are already in
      * the {@link #writeCache}.
-     * 
-     * @todo purge old entries based on last touched time?
+     * <p>
+     * Note: The higher-level data structures use the {@link LRUNexus}, which
+     * provides a read cache of the decompressed records. For this reason there
+     * is little reason to enable this lower-level read cache.
      */
     private LRUCache<Long, byte[]> readCache = null;
     
@@ -395,7 +398,7 @@ public class DiskOnlyStrategy extends AbstractBufferStrategy implements
          * @param data
          *            The record.
          */
-        void write(long addr, ByteBuffer data) {
+        void write(final long addr, final ByteBuffer data) {
 
             // the position() at which the record is cached.
             final int position = buf.position();
@@ -430,8 +433,8 @@ public class DiskOnlyStrategy extends AbstractBufferStrategy implements
          *         for those cases when the record to be updated in still in
          *         the {@link WriteCache}.
          */
-        ByteBuffer read(long addr,int nbytes) {
-                
+        ByteBuffer read(final long addr, final int nbytes) {
+
             /*
              * The return value is the position in the writeCache where that
              * record starts and [null] if the record is not in the writeCache.

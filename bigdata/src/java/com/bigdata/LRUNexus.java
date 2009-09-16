@@ -39,6 +39,7 @@ import com.bigdata.cache.IGlobalLRU;
 import com.bigdata.cache.StoreAndAddressLRUCache;
 import com.bigdata.cache.WeakReferenceGlobalLRU;
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.rawstore.IRawStore;
 
 /**
  * Static singleton factory.
@@ -186,6 +187,20 @@ public class LRUNexus {
         String INITIAL_CAPACITY = LRUNexus.class.getName() + ".initialCapacity";
 
         String DEFAULT_INITIAL_CAPACITY = "16";
+
+        /**
+         * The minimum #of per-{@link IRawStore} cache instances that will be
+         * retained by hard references. This controls the size of a hard
+         * reference ring buffer backing a weak value hash map. The actual
+         * number of cache instances will be less if fewer stores have been
+         * opened or if open stores have been
+         * {@link IRawStore#deleteResources() destroyed}. More cache instances
+         * will exist if there are hard references to more {@link IRawStore}
+         * instances.
+         */
+        String MIN_CACHE_SET_SIZE = LRUNexus.class.getName()+".minCacheSetSize";
+        
+        String DEFAULT_MIN_CACHE_SET_SIZE = "5";
         
     }
 
@@ -272,7 +287,27 @@ public class LRUNexus {
                 }
 
                 // The minimum #of caches to keep open.
-                final int minimumCacheSetCapacity = 5;
+                final int minCacheSetSize = Integer.valueOf(System.getProperty(
+                        Options.MIN_CACHE_SET_SIZE,
+                        Options.DEFAULT_MIN_CACHE_SET_SIZE));
+
+                if (BigdataStatics.debug)
+                    System.err.println(//
+                            "m="
+                                    + IndexMetadata.Options.DEFAULT_BTREE_BRANCHING_FACTOR//
+                                    + ", maxPercent="
+                                    + percentHeap//
+                                    + ", maxHeap="
+                                    + maxHeap
+                                    + ", bufferSize="
+                                    + maximumBytesInMemory
+                                    + ", maxMemory="
+                                    + Runtime.getRuntime().maxMemory()//
+                                    + ", loadFactor=" + loadFactor
+                                    + ", initialCacheCapacity="
+                                    + initialCacheCapacity
+                                    + ", minCacheSetSize=" + minCacheSetSize
+                                    + ", cls=" + cls);
 
                 if (maximumBytesInMemory > 0) {
 
@@ -312,14 +347,8 @@ public class LRUNexus {
 
                         if (BigdataStatics.debug)
                             System.err.println(//
-                                    "defaultBranchingFactor="
-                                            + IndexMetadata.Options.DEFAULT_BTREE_BRANCHING_FACTOR//
-                                            + ", averageRecordSize="
+                                    "averageRecordSize="
                                             + averageRecordSize//
-                                            + "\nmaxMemory="
-                                            + Runtime.getRuntime().maxMemory()//
-                                            + ", percentMaximumMemory="
-                                            + percentHeap//
                                             + ", maximumQueueCapacityEstimate="
                                             + maximumQueueCapacityEstimate//
                                     );
@@ -349,7 +378,7 @@ public class LRUNexus {
 
                         tmp = new WeakReferenceGlobalLRU(//
                                 maximumBytesInMemory,//
-                                minimumCacheSetCapacity,//
+                                minCacheSetSize,//
                                 queueCapacity,//
                                 20, // nscan
                                 initialCacheCapacity,//
@@ -360,13 +389,13 @@ public class LRUNexus {
                     } else if (cls == HardReferenceGlobalLRU.class) {
 
                         tmp = new HardReferenceGlobalLRU<Long, Object>(
-                                maximumBytesInMemory, minimumCacheSetCapacity,
+                                maximumBytesInMemory, minCacheSetSize,
                                 initialCacheCapacity, loadFactor);
 
                     } else if (cls == StoreAndAddressLRUCache.class) {
 
                         tmp = new StoreAndAddressLRUCache<Object>(
-                                maximumBytesInMemory, minimumCacheSetCapacity,
+                                maximumBytesInMemory, minCacheSetSize,
                                 initialCacheCapacity, loadFactor);
 
                     } else {

@@ -4,8 +4,11 @@
 
 package com.bigdata.rdf.sail;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +22,7 @@ import org.openrdf.sail.SailException;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.IIndexManager;
+import com.bigdata.journal.IJournal;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.rawstore.Bytes;
@@ -386,7 +390,7 @@ public class BigdataSailHelper {
 
         p2.putAll( indexManager.getGlobalRowStore().write(RelationSchema.INSTANCE, map) );
 
-        if(indexManager instanceof Journal) {
+        if(indexManager instanceof IJournal) {
 
             // make the changes restart safe (not required for federations).
             ((Journal)indexManager).commit();
@@ -464,7 +468,7 @@ public class BigdataSailHelper {
         JDS;
         
     }
-    
+
     /**
      * Utility class.
      * <p>
@@ -474,18 +478,23 @@ public class BigdataSailHelper {
      * be interpreted as a {@link LocalDataServiceFederation} (LDS), an
      * {@link EmbeddedFederation} (EDS), or a {@link JiniFederation} (JDS).
      * <p>
-     * Note: The namespace identifies which triple store you are accessing and
-     * defaults to "kb".
+     * Note: The <i>namespace</i> identifies which triple store you are
+     * accessing and defaults to <code>kb</code>.
      * <p>
-     * Note: The timestamp identifies which commit point you are accessing and
-     * defaults to the {@link ITx#UNISOLATED} view.
+     * Note: The <i>timestamp</i> identifies which commit point you are
+     * accessing and defaults to the {@link ITx#UNISOLATED} view, which can also
+     * be specified as {@value #ITx#UNISOLATED}).
+     * <p>
+     * Note: The <i>properties</i> is a file containing property overrides to be
+     * applied to the kb.
      * 
      * @param args
-     *            <i>filename</i> ((LTS|LDS|EDS|JDS (<i>namespace</i> (<i>timestamp</i>)))
+     *            <i>filename</i> ((LTS|LDS|EDS|JDS ((<i>namespace</i>
+     *            (<i>timestamp</i>)))properties)
      * 
      * @throws SailException
-     * @throws ConfigurationException 
-     * @throws IOException 
+     * @throws ConfigurationException
+     * @throws IOException
      */
     public static void main(String[] args) throws SailException, ConfigurationException, IOException {
        
@@ -537,6 +546,16 @@ public class BigdataSailHelper {
         final long timestamp = args.length > 3 ? Long.valueOf(args[3])
                 : ITx.UNISOLATED;
 
+        final File propertyFile = args.length > 4 ? new File(args[4]) : null;
+
+        if (propertyFile != null && !propertyFile.exists()) {
+
+            System.err.println("No such file: "+propertyFile);
+            
+            System.exit(1);
+            
+        }
+            
         final BigdataSailHelper helper = new BigdataSailHelper();
 
         System.out.println("filename: " + filename);
@@ -622,10 +641,27 @@ public class BigdataSailHelper {
             if(true) {
 
                 final Properties p = new Properties();
-                
-                System.out.println("reading new properties from stdin::");
-                
-                p.load(System.in);
+
+                if (propertyFile != null) {
+
+                    System.out.println("reading new properties from file::");
+
+                    final InputStream is = new BufferedInputStream(
+                            new FileInputStream(propertyFile));
+                    try {
+                        p.load(is);
+                    } finally {
+                        is.close();
+                    }
+                    p.store(System.out, "Will apply properties::");
+
+                } else {
+
+                    System.out.println("reading new properties from stdin::");
+
+                    p.load(System.in);
+
+                }
 
 //                p.setProperty(Options.NESTED_SUBQUERY, "false");
 //                p.setProperty(Options.CHUNK_CAPACITY, "100");
@@ -637,6 +673,7 @@ public class BigdataSailHelper {
                 System.out.println("\npost-modification properties::");
 
                 showProperties(helper.setProperties(sail, p));
+                
             }
 
         } finally {
