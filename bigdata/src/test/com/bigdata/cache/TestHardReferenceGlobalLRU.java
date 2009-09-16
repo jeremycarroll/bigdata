@@ -44,6 +44,17 @@ import com.bigdata.rawstore.SimpleMemoryRawStore;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
+ * 
+ * @todo there should be a concurrent stress tests with multiple stores doing
+ *       inserts to verify that there are no concurrency issues with eviction.
+ *       This should be extended to include removal of records under a key and
+ *       also to clearing a specific cache and to clearing all caches
+ *       concurrently. In order to test this, we probably need to run against
+ *       ground truth. That should be the data actually read from the store
+ *       rather than from the cache. The basis for comparison is then the data
+ *       read through the cache (and reading to the store on a cache miss)
+ *       against the data read from the store directly. The store
+ *       implementations can be the {@link SimpleMemoryRawStore}.
  */
 public class TestHardReferenceGlobalLRU extends TestCase2 {
 
