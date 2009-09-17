@@ -43,6 +43,7 @@ import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.io.ByteArrayBuffer;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.model.StatementEnum;
+import com.bigdata.rdf.store.IRawTripleStore;
 
 /**
  * (De-)serializes {@link SPO}s for statement indices.
@@ -69,6 +70,8 @@ import com.bigdata.rdf.model.StatementEnum;
 public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 
     private static final long serialVersionUID = 2893830958762265104L;
+    
+    private static final transient long NULL = IRawTripleStore.NULL;
     
     /**
      * The natural order for the index.
@@ -126,67 +129,113 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
         
     }
     
-    // FIXME quads : decode key.
+    // FIXME quads : decode SPO
     public SPO deserialize(final ITuple tuple) {
 
         if (tuple == null)
             throw new IllegalArgumentException();
 
-//      // clone of the key.
-//      final byte[] key = itr.getKey();
-      
         // copy of the key in a reused buffer.
-        final byte[] key = tuple.getKeyBuffer().array(); 
+        final byte[] key = tuple.getKeyBuffer().array();
 
-//        long[] ids = new long[IRawTripleStore.N];
-        
         /*
          * Note: GTE since the key is typically a reused buffer which may be
          * larger than the #of bytes actually holding valid data.
          */
-        assert key.length >= 8 * keyOrder.getKeyArity();
-//      assert key.length == 8 * IRawTripleStore.N + 1;
-        
-//        final long _0 = KeyBuilder.decodeLong(key, 1);
-//      
-//        final long _1 = KeyBuilder.decodeLong(key, 1+8);
-//      
-//        final long _2 = KeyBuilder.decodeLong(key, 1+8+8);
+        final int keyArity = keyOrder.getKeyArity();
 
-        /*
-         * Decode the key.
-         */
-        
+        assert key.length >= 8 * keyArity;
+
         final long _0 = KeyBuilder.decodeLong(key, 0);
         
         final long _1 = KeyBuilder.decodeLong(key, 8);
       
         final long _2 = KeyBuilder.decodeLong(key, 8+8);
-        
+
+        // 4th key position exists iff quad keys.
+        final long _3 = keyArity == 4 ? KeyBuilder.decodeLong(key, 8 + 8 + 8)
+                : NULL;
+
         /*
          * Re-order the key into SPO order.
          */
         
-        final long s, p, o;
+        final long s, p, o, c;
         
         switch (keyOrder.index()) {
+
+        /*
+         * Triples
+         * 
+         * [c] will be NULL for triples, but the SID may be read from the value
+         * associated with the key below and set on the SPO object.
+         */
 
         case SPOKeyOrder._SPO:
             s = _0;
             p = _1;
             o = _2;
+            c = NULL;
             break;
             
         case SPOKeyOrder._POS:
             p = _0;
             o = _1;
             s = _2;
+            c = NULL;
             break;
             
         case SPOKeyOrder._OSP:
             o = _0;
             s = _1;
             p = _2;
+            c = NULL;
+            break;
+
+        /*
+         * Quads
+         */
+
+        case SPOKeyOrder._SPOC:
+            s = _0;
+            p = _1;
+            o = _2;
+            c = _3;
+            break;
+            
+        case SPOKeyOrder._POCS:
+            p = _0;
+            o = _1;
+            c = _2;
+            s = _3;
+            break;
+
+        case SPOKeyOrder._OCSP:
+            o = _0;
+            c = _1;
+            s = _2;
+            p = _3;
+            break;
+
+        case SPOKeyOrder._CSPO:
+            c = _0;
+            s = _1;
+            p = _2;
+            o = _3;
+            break;
+
+        case SPOKeyOrder._PCSO:
+            p = _0;
+            c = _1;
+            s = _2;
+            o = _3;
+            break;
+
+        case SPOKeyOrder._SOPC:
+            s = _0;
+            o = _1;
+            p = _2;
+            c = _3;
             break;
 
         default:
@@ -195,43 +244,34 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 
         }
         
-        if((tuple.flags()&IRangeQuery.VALS)==0) {
-        
+        if ((tuple.flags() & IRangeQuery.VALS) == 0) {
+
             // Note: No type or statement identifier information.
-            final SPO spo = new SPO(s, p, o);
-            
-            return spo;
+            return new SPO(s, p, o, c);
             
         }
-        
+
         /*
          * Decode the StatementEnum and the optional statement identifier.
          */
 
         final ByteArrayBuffer vbuf = tuple.getValueBuffer();
-        
-        final StatementEnum type = StatementEnum.decode( vbuf.array()[0] ); 
-        
-        final SPO spo = new SPO(s, p, o, type);
-        
+
+        final StatementEnum type = StatementEnum.decode(vbuf.array()[0]);
+
+        final SPO spo = new SPO(s, p, o, c, type);
+
         if (vbuf.limit() == 1 + 8) {
 
             /*
              * The value buffer appears to contain a statement identifier, so we
              * read it.
              */
-            
-            spo.setStatementIdentifier( vbuf.getLong(1) );
 
-            // @todo asserts.
-//            assert AbstractTripleStore.isStatement(sid) : "Not a statement identifier: "
-//                    + toString(sid);
-//
-//            assert type == StatementEnum.Explicit : "statement identifier for non-explicit statement : "
-//                    + toString();
-//
-//            assert sid != NULL : "statement identifier is NULL for explicit statement: "
-//                    + toString();
+            // SIDs only valid for triples.
+            assert keyArity == 3;
+            
+            spo.setStatementIdentifier(vbuf.getLong(1));
 
         }
 
@@ -353,12 +393,18 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 
         buf.putByte(b);
 
-        if (spo.hasStatementIdentifier()) {
+        if (keyOrder.getKeyArity() == 3) {
 
-            assert type == StatementEnum.Explicit : "Statement identifier not allowed: type="
-                    + type;
+            // 4th position is interpretable as SID for triples only (vs quads).
+            
+            if (spo.hasStatementIdentifier()) {
 
-            buf.putLong(spo.getStatementIdentifier());
+                assert type == StatementEnum.Explicit : "Statement identifier not allowed: type="
+                        + type;
+
+                buf.putLong(spo.getStatementIdentifier());
+
+            }
 
         }
 
