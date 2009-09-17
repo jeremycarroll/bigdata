@@ -126,6 +126,7 @@ public class BigdataEvaluationStatistics extends EvaluationStatistics {
                  * Get the most efficient access path.
                  */
 
+                // FIXME quads : keyArity==4 then pass [c] to getAccessPath(). 
                 final IAccessPath accessPath = conn.database.getAccessPath(
                         (subj == null ? BigdataSail.NULL : subj.getTermId()),
                         (pred == null ? BigdataSail.NULL : pred.getTermId()),
@@ -187,7 +188,7 @@ public class BigdataEvaluationStatistics extends EvaluationStatistics {
          * 
          * @return Its constant value -or- <code>null</code>.
          */
-        protected Value getConstantValue(Var var) {
+        protected Value getConstantValue(final Var var) {
 
             if (var != null) {
 
