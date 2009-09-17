@@ -83,9 +83,9 @@ public class TestSPOTupleSerializer extends TestCase2 {
 
         SPOTupleSerializer fixture = new SPOTupleSerializer(SPOKeyOrder.SPO);
         
-        byte[] k1 = fixture.statement2Key(1, 2, 3);
-        byte[] k2 = fixture.statement2Key(2, 2, 3);
-        byte[] k3 = fixture.statement2Key(2, 2, 4);
+        byte[] k1 = fixture.serializeKey(new SPO(1, 2, 3));
+        byte[] k2 = fixture.serializeKey(new SPO(2, 2, 3));
+        byte[] k3 = fixture.serializeKey(new SPO(2, 2, 4));
         
         System.err.println("k1(1,2,2) = "+BytesUtil.toString(k1));
         System.err.println("k2(2,2,3) = "+BytesUtil.toString(k2));

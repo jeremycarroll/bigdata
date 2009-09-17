@@ -555,10 +555,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
     }
 
-    // FIXME quads : return SPO or SPOC as appropriate.
     final public SPOKeyOrder getPrimaryKeyOrder() {
         
-        return SPOKeyOrder.SPO;
+        return arity == 3 ? SPOKeyOrder.SPO : SPOKeyOrder.SPOC;
         
     }
     

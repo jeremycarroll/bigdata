@@ -272,6 +272,7 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
      */
     public byte[] serializeKey(final ISPO spo) {
         
+//        return keyOrder.encodeKey(getKeyBuilder(), spo);
         return statement2Key(keyOrder, spo);
         
     }
