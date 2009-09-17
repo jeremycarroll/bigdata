@@ -140,6 +140,9 @@ import com.bigdata.relation.rule.IRule;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 
+import cutthecrap.utils.striterators.Expander;
+import cutthecrap.utils.striterators.Striterator;
+
 /**
  * <p>
  * Sesame <code>2.x</code> integration.
@@ -1726,8 +1729,8 @@ public class BigdataSail extends SailBase implements Sail {
         }
 
         public CloseableIteration<? extends Statement, SailException> getStatements(
-                Resource s, URI p, Value o, boolean includeInferred,
-                Resource... contexts) throws SailException {
+                final Resource s, final URI p, final Value o, final boolean includeInferred,
+                final Resource... contexts) throws SailException {
             
             if (INFO)
                 log.info("s=" + s + ", p=" + p + ", o=" + o
@@ -1745,7 +1748,19 @@ public class BigdataSail extends SailBase implements Sail {
             /*
              * Note: the context is being ignored.
              */
-            
+
+//            // implementation should expand each context in turn.
+//            // FIXME wrap as closeable iterator and return.
+//            return new CloseableIterator
+//            (new Striterator(Arrays.asList(contexts).iterator()).addFilter(new Expander() {
+//                
+//                @Override
+//                protected Iterator expand(Object c) {
+//                    return getStatements(s, p, o, (Resource)c, includeInferred);
+//                }
+//            })
+//            ;
+
             return getStatements(s, p, o, includeInferred);
             
         }
