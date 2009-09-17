@@ -1529,8 +1529,7 @@ public class AsynchronousStatementBufferWithoutSids2<S extends BigdataStatement,
                                     "Not fully bound: " + spo.toString());
 
                         // generate key for the index.
-                        final byte[] key = tupleSer
-                                .statement2Key(keyOrder, spo);
+                        final byte[] key = tupleSer.serializeKey(spo);
 
                         // generate value for the index.
                         final byte[] val = spo.serializeValue(vbuf);

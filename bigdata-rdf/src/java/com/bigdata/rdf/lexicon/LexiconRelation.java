@@ -19,7 +19,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -53,7 +52,6 @@ import com.bigdata.journal.IResourceLock;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.lexicon.Term2IdTupleSerializer.LexiconKeyBuilder;
 import com.bigdata.rdf.lexicon.Term2IdWriteProc.Term2IdWriteProcConstructor;
-import com.bigdata.rdf.load.AssignedSplits;
 import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataBNodeImpl;
 import com.bigdata.rdf.model.BigdataValue;
@@ -246,23 +244,6 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 
     public void create() {
         
-        create( null );
-        
-    }
-    
-    /**
-     * 
-     * @param assignedSplits
-     *            An map providing pre-assigned separator keys describing index
-     *            partitions and optionally the data service {@link UUID}s on
-     *            which to register the index partitions. The keys of the map
-     *            identify the index whose index partitions are described by the
-     *            corresponding value. You may specify one or all of the
-     *            indices. This parameter is optional and when <code>null</code>,
-     *            the default assignments will be used.
-     */
-    public void create(final Map<IKeyOrder, AssignedSplits> assignedSplits) {
-
         final IResourceLock resourceLock = acquireExclusiveLock();
         
         try {
@@ -273,40 +254,11 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 
             // register the indices.
 
-            {
-                final IndexMetadata md = getTerm2IdIndexMetadata(getFQN(LexiconKeyOrder.TERM2ID));
+            indexManager
+                    .registerIndex(getTerm2IdIndexMetadata(getFQN(LexiconKeyOrder.TERM2ID)));
 
-                final AssignedSplits splits = assignedSplits == null ? null
-                        : assignedSplits.get(LexiconKeyOrder.TERM2ID);
-
-                if (splits != null) {
-
-                    splits.registerIndex(indexManager, md);
-
-                } else {
-
-                    indexManager.registerIndex(md);
-
-                }
-            }
-
-            {
-
-                final IndexMetadata md = getId2TermIndexMetadata(getFQN(LexiconKeyOrder.ID2TERM));
-
-                final AssignedSplits splits = assignedSplits == null ? null
-                        : assignedSplits.get(LexiconKeyOrder.ID2TERM);
-
-                if (splits != null) {
-
-                    splits.registerIndex(indexManager, md);
-
-                } else {
-
-                    indexManager.registerIndex(md);
-
-                }
-            }
+            indexManager
+                    .registerIndex(getId2TermIndexMetadata(getFQN(LexiconKeyOrder.ID2TERM)));
 
             if (textIndex) {
 
@@ -963,7 +915,7 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
         }
         
     }
-    
+
     /**
      * Assign unique statement identifiers to triples.
      * <p>
@@ -976,8 +928,8 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
      * Note: Statement identifiers are NOT inserted into the reverse (id:term)
      * index. Instead, they are written into the values associated with the
      * {s,p,o} in each of the statement indices. That is handled by
-     * {@link AbstractTripleStore#addStatements(AbstractTripleStore, boolean, IChunkedOrderedIterator, IElementFilter)},
-     * which is also responsible for invoking this method in order to have the
+     * {@link AbstractTripleStore#addStatements(AbstractTripleStore, boolean, IChunkedOrderedIterator, IElementFilter)}
+     * , which is also responsible for invoking this method in order to have the
      * statement identifiers on hand before it writes on the statement indices.
      * <p>
      * Note: The caller's {@link ISPO}[] is sorted into SPO order as a
@@ -985,6 +937,9 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
      * <p>
      * Note: The statement identifiers are assigned to the {@link ISPO}s as a
      * side-effect.
+     * <p>
+     * Note: SIDs are NOT supported for quads, so this code is never executed
+     * for quads.
      */
     public void addStatementIdentifiers(final ISPO[] a, final int n) {
 
@@ -1048,8 +1003,8 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
             final long _begin = System.currentTimeMillis();
 
             // local instance, no unicode support.
-            final IKeyBuilder keyBuilder = KeyBuilder.newInstance(1
-                    + IRawTripleStore.N * Bytes.SIZEOF_LONG);
+            final IKeyBuilder keyBuilder = KeyBuilder
+                    .newInstance(1/* statement byte */+ (3/* triple */* Bytes.SIZEOF_LONG));
 
             for (int i = 0; i < n; i++) {
 

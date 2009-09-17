@@ -89,17 +89,18 @@ public class BulkFilterConverter implements IChunkConverter<ISPO,ISPO> {
 
     }
 
-    public ISPO[] convert(IChunkedOrderedIterator<ISPO> src) {
+    public ISPO[] convert(final IChunkedOrderedIterator<ISPO> src) {
 
         if (src == null)
             throw new IllegalArgumentException();
         
         final ISPO[] chunk = src.nextChunk();
         
+        // FIXME quads : SPO vs SPOC for primary order and comparator.
         if (!SPOKeyOrder.SPO.equals(src.getKeyOrder())) {
             
             // Sort unless already in SPO order.
-            
+            // FIXME quads : use tupleSer.getKeyOrder().getComparator()?            
             Arrays.sort(chunk, SPOComparator.INSTANCE);
             
         }

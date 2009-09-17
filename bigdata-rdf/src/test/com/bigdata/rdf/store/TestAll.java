@@ -33,7 +33,6 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-
 /**
  * Runs tests for each {@link ITripleStore} implementation.
  * 
@@ -72,6 +71,7 @@ public class TestAll extends TestCase {
         suite.addTest( com.bigdata.rdf.store.TestTempTripleStore.suite() );
         
         suite.addTest( com.bigdata.rdf.store.TestLocalTripleStore.suite() );
+
         suite.addTest( com.bigdata.rdf.store.TestLocalTripleStoreWithoutStatementIdentifiers.suite() );
 
 //        suite.addTest( com.bigdata.rdf.store.TestLocalTripleStoreWithIsolatableIndices.suite() );

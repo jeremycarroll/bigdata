@@ -40,7 +40,6 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.TemporaryRawStore;
 import com.bigdata.journal.TemporaryStore;
-import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.IKeyOrder;
 
@@ -138,7 +137,7 @@ abstract public class AbstractRelation<E> extends AbstractResource<IRelation<E>>
      *       themselves invalid (this really only applies to the unisolated
      *       index and to indices isolated by a transaction).
      */
-    protected IIndex getIndex(String name) {
+    protected IIndex getIndex(final String name) {
 
         if (name == null)
             throw new IllegalArgumentException();

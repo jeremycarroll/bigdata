@@ -188,6 +188,11 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
     protected final AbstractTripleStore database;
     
     /**
+     * The arity of the SPORelation for the {@link #getDatabase()}.
+     */
+    private final int arity;
+    
+    /**
      * The database that will be used to resolve terms.  When {@link #getStatementStore()}
      * is <code>null</code>, statements will be written into this store as well.
      */
@@ -350,13 +355,15 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
         
         this.database = database;
 
+        this.arity = database.getSPOArity();
+        
         this.valueFactory = database.getValueFactory();
         
         this.capacity = capacity;
 
         this.writeBuffer = writeBuffer;
         
-        values = new BigdataValue[capacity * database.N];
+        values = new BigdataValue[capacity * arity];
         
         stmts = new BigdataStatement[capacity];
 
@@ -372,7 +379,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
              * hash map.
              */
             
-            distinctTermMap = new HashMap<Value, BigdataValue>(capacity * database.N);
+            distinctTermMap = new HashMap<Value, BigdataValue>(capacity * arity);
             
         } else {
             
@@ -1064,7 +1071,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
         if (numStmts + 1 > capacity)
             return true;
 
-        if (numValues + database.N > values.length)
+        if (numValues + arity > values.length)
             return true;
 
         return false;

@@ -59,7 +59,6 @@ import com.bigdata.rdf.model.BigdataValueFactoryImpl;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rio.IStatementBuffer;
 import com.bigdata.rdf.rio.StatementBuffer;
-import com.bigdata.rdf.rules.InferenceEngine.Options;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOKeyOrder;
@@ -586,11 +585,11 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
             assertEquals(rdfType_id, store.getTermId(rdfType));
             assertEquals(rdfsSubClassOf_id, store.getTermId(rdfsSubClassOf));
     
-            assertEquals("statementCount", 5, store.getSPOIndex().rangeCount(null,
+            assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex().rangeCount(null,
                     null));
-            assertEquals("statementCount", 5, store.getPOSIndex().rangeCount(null,
+            assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex().rangeCount(null,
                     null));
-            assertEquals("statementCount", 5, store.getOSPIndex().rangeCount(null,
+            assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex().rangeCount(null,
                     null));
             assertTrue(store.hasStatement(x, rdfType, C));
             assertTrue(store.hasStatement(y, rdfType, B));
@@ -600,11 +599,11 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
     
             store.commit();// Note: Should not make any difference.
     
-            assertEquals("statementCount", 5, store.getSPOIndex().rangeCount(null,
+            assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex().rangeCount(null,
                     null));
-            assertEquals("statementCount", 5, store.getPOSIndex().rangeCount(null,
+            assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex().rangeCount(null,
                     null));
-            assertEquals("statementCount", 5, store.getOSPIndex().rangeCount(null,
+            assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex().rangeCount(null,
                     null));
             assertTrue(store.hasStatement(x, rdfType, C));
             assertTrue(store.hasStatement(y, rdfType, B));
@@ -865,13 +864,16 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
             store.addTerms(new BigdataValue[] { A, B, C, rdfType });
             
             {
+
                 // load statements into db.
-                IStatementBuffer buffer = new StatementBuffer(store, 2);
+                final IStatementBuffer<Statement> buffer = new StatementBuffer<Statement>(
+                        store, 2);
 
                 buffer.add(A, rdfType, B);
                 buffer.add(A, rdfType, C);
 
                 buffer.flush();
+
             }
 
             // store.commit();
@@ -990,12 +992,15 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
             final BigdataURI rdfType = f.asValue(RDF.TYPE);
             
             {
-                IStatementBuffer buffer = new StatementBuffer(store, 100);
+                
+                final IStatementBuffer<Statement> buffer = new StatementBuffer<Statement>(
+                        store, 100);
 
                 buffer.add(A, rdfType, B);
                 buffer.add(A, rdfType, C);
 
                 buffer.flush();
+            
             }
 
             assertSameStatements(new Statement[]{

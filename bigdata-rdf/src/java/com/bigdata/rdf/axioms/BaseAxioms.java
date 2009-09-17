@@ -124,7 +124,7 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
      * @param db
      *            The database.
      */
-    protected BaseAxioms(AbstractTripleStore db) {
+    protected BaseAxioms(final AbstractTripleStore db) {
      
         this.db = db;
         
@@ -241,8 +241,8 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
 
                 for (SPO spo : stmts) {
 
-                    btree.insert(tupleSer.statement2Key(SPOKeyOrder.SPO, spo),
-                            spo.getStatementType().serialize());
+                    btree.insert(tupleSer.serializeKey(spo), spo
+                            .getStatementType().serialize());
 
                 }
 
@@ -288,16 +288,16 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
 
     }
 
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    public void readExternal(final ObjectInput in) throws IOException, ClassNotFoundException {
         
         final long naxioms = LongPacker.unpackLong(in);
         
         if (naxioms < 0 || naxioms > Integer.MAX_VALUE)
             throw new IOException();
-        
-        createBTree((int)naxioms);
-        
-        for(int i=0; i<naxioms; i++) {
+
+        createBTree((int) naxioms);
+
+        for (int i = 0; i < naxioms; i++) {
             
 //            final long s = LongPacker.unpackLong(in);
 //            
@@ -313,9 +313,9 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
             
             final SPO spo = new SPO(s, p, o, StatementEnum.Axiom);
             
-            btree.insert(tupleSer.statement2Key(SPOKeyOrder.SPO, spo),
-                    spo.getStatementType().serialize());
-            
+            btree.insert(tupleSer.serializeKey(spo), spo.getStatementType()
+                    .serialize());
+
         }
         
     }
@@ -431,7 +431,7 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
         }
 
         /**
-         * Overriden to save off a copy of the axioms in SPO order on
+         * Overridden to save off a copy of the axioms in SPO order on
          * {@link #stmts} where we can access them afterwards.
          */
         @Override

@@ -60,6 +60,16 @@ public class SPO implements ISPO, Comparable<SPO> {
     /** The term identifier for the object position. */
     public final long o;
     
+    final public long get(final int index) {
+        switch(index) {
+        case 0: return s;
+        case 1: return p;
+        case 2: return o;
+        case 3: return sid; // FIXME quads aware.
+        default: throw new IllegalArgumentException();
+        }
+    }
+    
     final public long s() {
         return s;
     }
@@ -72,6 +82,11 @@ public class SPO implements ISPO, Comparable<SPO> {
         return o;
     }
 
+    // FIXME quads aware.
+    final public long c() {
+        return sid;
+    }
+    
     /**
      * Statement type (inferred, explicit, or axiom).
      */
@@ -131,7 +146,8 @@ public class SPO implements ISPO, Comparable<SPO> {
         return sid;
         
     }
-    
+
+    // FIXME quads aware
     final public boolean hasStatementIdentifier() {
         
         return sid != NULL;

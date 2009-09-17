@@ -43,7 +43,6 @@ import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.io.ByteArrayBuffer;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.model.StatementEnum;
-import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.striterator.IKeyOrder;
 
 /**
@@ -71,8 +70,6 @@ import com.bigdata.striterator.IKeyOrder;
 public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 
     private static final long serialVersionUID = 2893830958762265104L;
-
-    private static transient final int N = IRawTripleStore.N;
     
     /**
      * The natural order for the index.
@@ -84,17 +81,11 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
      */
     private final transient ByteArrayBuffer buf = new ByteArrayBuffer(0);
 
-//    /**
-//     * Used to format the key.
-//     */
-//    private final transient IKeyBuilderFactory keyBuilderFactory = new ThreadLocalKeyBuilderFactory(
-//            new ASCIIKeyBuilderFactory(N * Bytes.SIZEOF_LONG));
-//
-//    public IKeyBuilder getKeyBuilder() {
-//      
-//        return keyBuilderFactory.getKeyBuilder();
-//        
-//    };
+    public SPOKeyOrder getKeyOrder() {
+
+        return keyOrder;
+        
+    }
     
     /**
      * De-serialization constructor.
@@ -109,7 +100,7 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
      * @param keyOrder
      *            The access path.
      */
-    public SPOTupleSerializer(SPOKeyOrder keyOrder) {
+    public SPOTupleSerializer(final SPOKeyOrder keyOrder) {
 
         this(keyOrder, getDefaultLeafKeysCoder(), getDefaultValuesCoder());
 
@@ -123,11 +114,11 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
      * @param leafKeySer
      * @param leafValSer
      */
-    public SPOTupleSerializer(SPOKeyOrder keyOrder, IRabaCoder leafKeySer,
-            IRabaCoder leafValSer) {
+    public SPOTupleSerializer(final SPOKeyOrder keyOrder,
+            final IRabaCoder leafKeySer, final IRabaCoder leafValSer) {
 
-        super(new ASCIIKeyBuilderFactory(N * Bytes.SIZEOF_LONG), leafKeySer,
-                leafValSer);
+        super(new ASCIIKeyBuilderFactory(keyOrder.getKeyArity()
+                * Bytes.SIZEOF_LONG), leafKeySer, leafValSer);
         
         if (keyOrder == null)
             throw new IllegalArgumentException();
@@ -136,6 +127,7 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
         
     }
     
+    // FIXME quads : decode key.
     public SPO deserialize(final ITuple tuple) {
 
         if (tuple == null)
@@ -153,7 +145,7 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
          * Note: GTE since the key is typically a reused buffer which may be
          * larger than the #of bytes actually holding valid data.
          */
-        assert key.length >= 8 * N;
+        assert key.length >= 8 * keyOrder.getKeyArity();
 //      assert key.length == 8 * IRawTripleStore.N + 1;
         
 //        final long _0 = KeyBuilder.decodeLong(key, 1);
@@ -263,12 +255,22 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
         if (obj instanceof SPO)
             return serializeKey((SPO) obj);
 
-        //@todo could allow long[3].
         throw new UnsupportedOperationException();
         
     }
 
-    public byte[] serializeKey(final SPO spo) {
+    /**
+     * @param spo
+     * @return
+     * 
+     *         FIXME quads : serialize key (and role into this method).
+     * 
+     * @todo review the use of the thread-local key builder.  If the caller
+     * is single threaded, and {@link #serializeKey(ISPO)} SHOULD be, then
+     * that method is overhead and we should use a single instance of the
+     * {@link IKeyBuilder}.
+     */
+    public byte[] serializeKey(final ISPO spo) {
         
         return statement2Key(keyOrder, spo);
         
@@ -283,6 +285,8 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
      *            The statement.
      * 
      * @return The key.
+     * 
+     * @deprecated by {@link #serializeKey(ISPO)}
      */
     public byte[] statement2Key(final IKeyOrder<ISPO> keyOrder, final ISPO spo) {
         
