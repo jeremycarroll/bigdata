@@ -2798,7 +2798,8 @@ abstract public class AbstractTripleStore extends
 
         if (numStmts == 0) {
 
-            return new EmptyChunkedIterator<ISPO>(SPOKeyOrder.SPO);
+            return new EmptyChunkedIterator<ISPO>(getSPORelation()
+                    .getPrimaryKeyOrder());
 
         }
 
@@ -2811,8 +2812,9 @@ abstract public class AbstractTripleStore extends
             final IChunkedOrderedIterator<ISPO> itr, final boolean present) {
 
         return new ChunkedConvertingIterator<ISPO, ISPO>(itr,
-                new BulkFilterConverter(getSPORelation().getSPOIndex(), present));
-        
+                new BulkFilterConverter(getSPORelation().getPrimaryIndex(),
+                        present));
+
     }
 
     public IChunkedOrderedIterator<ISPO> bulkCompleteStatements(
@@ -2820,7 +2822,8 @@ abstract public class AbstractTripleStore extends
         
         if (numStmts == 0) {
 
-            return new EmptyChunkedIterator<ISPO>(SPOKeyOrder.SPO);
+            return new EmptyChunkedIterator<ISPO>(getSPORelation()
+                    .getPrimaryKeyOrder());
 
         }
 
@@ -2829,20 +2832,21 @@ abstract public class AbstractTripleStore extends
         
     }
 
-    public IChunkedOrderedIterator<ISPO> bulkCompleteStatements(final IChunkedOrderedIterator<ISPO> itr) {
-        
-        return new ChunkedConvertingIterator(itr, new BulkCompleteConverter(
-                getSPORelation().getSPOIndex()));
-
-    }
-
     public ISPO[] bulkCompleteStatements(final ISPO[] stmts) {
 
-        return new BulkCompleteConverter(getSPORelation().getSPOIndex())
+        return new BulkCompleteConverter(getSPORelation().getPrimaryIndex())
                 .convert(stmts);
 
     }
     
+    public IChunkedOrderedIterator<ISPO> bulkCompleteStatements(
+            final IChunkedOrderedIterator<ISPO> itr) {
+
+        return new ChunkedConvertingIterator(itr, new BulkCompleteConverter(
+                getSPORelation().getPrimaryIndex()));
+
+    }
+
     public long addStatements(final ISPO[] stmts, final int numStmts) {
 
         if (numStmts == 0)

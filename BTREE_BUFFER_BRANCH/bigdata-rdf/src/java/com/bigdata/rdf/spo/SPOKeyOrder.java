@@ -258,10 +258,15 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
         return index;
         
     }
-    
+
     /**
      * Return the comparator that places {@link ISPO}s into the natural order
      * for the associated index.
+     * 
+     * @todo performance comparison if we get rid of the {@link SPOComparator},
+     *       {@link POSComparator}, and {@link OSPComparator} and just use the
+     *       {@link GeneralComparator}.  Will the hot spot compiler do better
+     *       with just one class handling all of those comparisons?
      */
     final public Comparator<ISPO> getComparator() {
 

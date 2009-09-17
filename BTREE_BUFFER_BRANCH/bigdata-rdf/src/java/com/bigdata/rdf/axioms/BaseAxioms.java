@@ -232,6 +232,14 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
         
         /*
          * Fill the btree with the axioms in SPO order.
+         * 
+         * FIXME quads : This should ALWAYS use the SPO key order even for quads
+         * since we just want to test on the long[3].
+         * 
+         * @todo This would be faster with a hashmap on the SPOs.
+         * 
+         * @todo there is no need to put the statement type into the in-memory
+         * axioms. they are axioms after all.
          */
         {
 
