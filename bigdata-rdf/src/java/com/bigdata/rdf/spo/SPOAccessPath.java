@@ -1,7 +1,9 @@
 package com.bigdata.rdf.spo;
 
 import com.bigdata.btree.IIndex;
+import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.journal.IIndexManager;
+import com.bigdata.rdf.magic.MagicKeyOrder;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.relation.accesspath.AbstractAccessPath;
@@ -172,91 +174,67 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
     // FIXME quads : must form quad pattern.
     public SPOAccessPath init() {
 
-        final SPOTupleSerializer tupleSer = getTupleSerializer();
-        
-        final byte[] fromKey;
-        final byte[] toKey;
-
         /*
          * The minimum value that a term identifier may take on.
          */
         long MIN = Long.MIN_VALUE;
-
-        final long s = get(0/* S */);
-        final long p = get(1/* P */);
-        final long o = get(2/* O */);
-
-        if (s != NULL && p != NULL && o != NULL) {
+        final int arity = predicate.arity();
+        SPOKeyOrder keyOrder = (SPOKeyOrder) this.keyOrder;
+        //int[] keyMap = keyOrder.getKeyMap();
+        
+        { // do the from key
             
-            assert keyOrder == SPOKeyOrder.SPO;
+            IKeyBuilder keyBuilder =
+                    getTupleSerializer().getKeyBuilder().reset();
+            boolean noneBound = true;
+            for (int i = 0; i < arity; i++) {
+                IVariableOrConstant<Long> term = 
+                    predicate.get(keyOrder.getKeyOrder(i));
+                long l;
+                if (term.isVar()) {
+                    l = MIN;
+                } else {
+                    l = term.get();
+                    noneBound = false;
+                }
+                keyBuilder.append(l);
+            }
+            final byte[] fromKey = noneBound ? null : keyBuilder.getKey();
+            setFromKey(fromKey);
             
-            fromKey = tupleSer.statement2Key(s, p, o);
-
-            toKey = tupleSer.statement2Key(s, p, o + 1);
-
-        } else if (s != NULL && p != NULL) {
-
-            assert keyOrder == SPOKeyOrder.SPO;
-            
-            fromKey = tupleSer.statement2Key(s, p, MIN);
-
-            toKey = tupleSer.statement2Key(s, p + 1, MIN);
-
-        } else if (s != NULL && o != NULL) {
-
-            assert keyOrder == SPOKeyOrder.OSP;
-            
-            fromKey = tupleSer.statement2Key(o, s, MIN);
-
-            toKey = tupleSer.statement2Key(o, s + 1, MIN);
-
-        } else if (p != NULL && o != NULL) {
-
-            assert keyOrder == SPOKeyOrder.POS;
-            
-            fromKey = tupleSer.statement2Key(p, o, MIN);
-
-            toKey = tupleSer.statement2Key(p, o + 1, MIN);
-
-        } else if (s != NULL) {
-
-            assert keyOrder == SPOKeyOrder.SPO;
-            
-            fromKey = tupleSer.statement2Key(s, MIN, MIN);
-
-            toKey = tupleSer.statement2Key(s + 1, MIN, MIN);
-
-        } else if (p != NULL) {
-
-            assert keyOrder == SPOKeyOrder.POS;
-            
-            fromKey = tupleSer.statement2Key(p, MIN, MIN);
-
-            toKey = tupleSer.statement2Key(p + 1, MIN, MIN);
-
-        } else if (o != NULL) {
-
-            assert keyOrder == SPOKeyOrder.OSP;
-            
-            fromKey = tupleSer.statement2Key(o, MIN, MIN);
-
-            toKey = tupleSer.statement2Key(o + 1, MIN, MIN);
-
-        } else {
-
-            /*
-             * Note: The KeyOrder does not matter when you are fully
-             * unbound.
-             */
-            
-            fromKey = toKey = null;
-
         }
 
-        setFromKey(fromKey);
-
-        setToKey(toKey);
-
+        { // do the to key
+            
+            IKeyBuilder keyBuilder =
+                    getTupleSerializer().getKeyBuilder().reset();
+            boolean noneBound = true;
+            boolean foundFirstMin = false;
+            for (int i = 0; i < arity; i++) {
+                IVariableOrConstant<Long> term = 
+                    predicate.get(keyOrder.getKeyOrder(i));
+                long l;
+                if (term.isVar()) {
+                    l = MIN;
+                } else {
+                    l = term.get();
+                    noneBound = false;
+                }
+                if (i < arity - 1 && !foundFirstMin) {
+                    IVariableOrConstant<Long> next =
+                            predicate.get(keyOrder.getKeyOrder(i+1));
+                    if (next.isVar()) {
+                        l++;
+                        foundFirstMin = true;
+                    }
+                }
+                keyBuilder.append(l);
+            }
+            final byte[] toKey = noneBound ? null : keyBuilder.getKey();
+            setToKey(toKey);
+            
+        }
+        
         super.init();
     
         return this;
