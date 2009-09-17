@@ -1428,6 +1428,12 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
         this.pauseParserPoolStatementThreshold = pauseParsedPoolStatementThreshold;
         
+        if (tripleStore.getSPOArity() != 3) {
+
+            throw new UnsupportedOperationException("Quads not supported");
+            
+        }
+
         if (tripleStore.isStatementIdentifiers()) {
 
             throw new UnsupportedOperationException("SIDs not supported");
@@ -2906,8 +2912,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                                     "Not fully bound: " + spo.toString());
 
                         // generate key for the index.
-                        final byte[] key = tupleSer
-                                .statement2Key(keyOrder, spo);
+                        final byte[] key = tupleSer.serializeKey(spo);
 
                         // generate value for the index.
                         final byte[] val = spo.serializeValue(vbuf);

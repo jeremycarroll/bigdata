@@ -1979,7 +1979,8 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
                  * federations since the joins are performed using the index
                  * partitions not the scale-out indices.
                  */
-                final IIndex ndx = conn.getTripleStore().getSPOIndex();
+                // FIXME quads : getPrimaryIndex()
+                final IIndex ndx = conn.getTripleStore().getSPORelation().getSPOIndex();
 
                 if (ndx instanceof ILocalBTreeView) {
 

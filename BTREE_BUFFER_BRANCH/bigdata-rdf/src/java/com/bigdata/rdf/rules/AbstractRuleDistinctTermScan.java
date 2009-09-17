@@ -91,7 +91,8 @@ abstract public class AbstractRuleDistinctTermScan extends Rule {
         assert body.length == 1;
         
         // the predicate in the tail must be "none" bound.
-        assert body[0].getVariableCount() == IRawTripleStore.N;
+//        assert body[0].getVariableCount() == IRawTripleStore.N;
+        assert body[0].getVariableCount() == head.arity();
 
         // figure out which position in the head is the variable.
         if(head.s().isVar()) {

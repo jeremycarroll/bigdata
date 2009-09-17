@@ -1507,8 +1507,10 @@ public class RDFJoinNexus implements IJoinNexus {
                  * "surprise".
                  */
                 
+                final int arity = ((IRule)step).getHead().arity();
+                
                 sortKeyBuilder = new DelegateSortKeyBuilder<ISolution, ISPO>(
-                        new SPOSortKeyBuilder()) {
+                        new SPOSortKeyBuilder(arity)) {
 
                     protected ISPO resolve(ISolution solution) {
 

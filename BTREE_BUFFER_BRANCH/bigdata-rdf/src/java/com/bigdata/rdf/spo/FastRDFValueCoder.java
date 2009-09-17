@@ -42,7 +42,7 @@ import com.bigdata.rdf.store.AbstractTripleStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  * 
- * @todo Fast coder for SIDs+type?  E.g., SID[size] followed by nibble[size]?
+ * @deprecated by {@link FastRDFValueCoder2}
  */
 public class FastRDFValueCoder implements Externalizable, IRabaCoder {
 

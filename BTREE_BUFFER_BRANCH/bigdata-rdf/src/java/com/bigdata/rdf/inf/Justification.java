@@ -147,7 +147,8 @@ public class Justification implements Comparable<Justification> {
     /**
      * The #of term identifiers in a statement.
      */
-    private static final transient int N = IRawTripleStore.N;
+//    private static final transient int N = IRawTripleStore.N;
+    private final transient int N;
     
     /**
      * From the ctor, but not persisted.
@@ -280,6 +281,8 @@ public class Justification implements Comparable<Justification> {
         // the rule that licensed the entailment.
         final IRule rule = solution.getRule();
         
+        this.N = rule.getHead().arity();
+
         // the entailed statement.
         final SPO head = (SPO) solution.get();
 
@@ -404,9 +407,11 @@ public class Justification implements Comparable<Justification> {
      * @param ids
      *            The bindings on the head and tail(s).
      */
-    public Justification(long[] ids) {
+    public Justification(final int N, final long[] ids) {
         
         this.rule = null; // not serialized.
+        
+        this.N = N;
         
         this.ids = ids;
         
@@ -905,12 +910,15 @@ public class Justification implements Comparable<Justification> {
 		 *            The backing store on which the set will be maintained.
 		 *            This is the [focusStore] for {@link TruthMaintenance}.
 		 */
-        public VisitedSPOSet(TemporaryRawStore tempStore) {
+        public VisitedSPOSet(final TemporaryRawStore tempStore) {
             
-            IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
+            final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
             
             metadata.setBranchingFactor(32);
 
+            // FIXME quads : use different tupleSerializer IFF cross graph TM is supported.
+//            assert arity == 3;
+            
             // Note: keys are SPOs; no values stored for the tuples.
             tupleSer = new SPOTupleSerializer(SPOKeyOrder.SPO,
                     DefaultTupleSerializer.getDefaultLeafKeysCoder(),
@@ -929,12 +937,12 @@ public class Justification implements Comparable<Justification> {
          * @return <code>true</code> iff the set did not already contain the
          *         element (i.e., if the element was added to the set).
          */
-        public boolean add(ISPO spo) {
+        public boolean add(final ISPO spo) {
 
             if (DEBUG)
                 log.debug(spo.toString());
             
-            final byte[] key = tupleSer.statement2Key(SPOKeyOrder.SPO, spo);
+            final byte[] key = tupleSer.serializeKey(spo);
 
             if (!btree.contains(key)) {
 

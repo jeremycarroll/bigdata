@@ -76,7 +76,6 @@ import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.spo.ISPO;
-import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
 import com.bigdata.rdf.store.BNS;
@@ -608,11 +607,11 @@ public class TestRDFXMLInterchangeWithStatementIdentifiers extends
              */
             {
 
-                final SPO spo1 = store.getStatement(x.getTermId(), rdfType
+                final ISPO spo1 = store.getStatement(x.getTermId(), rdfType
                         .getTermId(), A.getTermId());
-                final SPO spo2 = store.getStatement(y.getTermId(), rdfType
+                final ISPO spo2 = store.getStatement(y.getTermId(), rdfType
                         .getTermId(), B.getTermId());
-                final SPO spo3 = store.getStatement(z.getTermId(), rdfType
+                final ISPO spo3 = store.getStatement(z.getTermId(), rdfType
                         .getTermId(), C.getTermId());
 
                 assertNotNull(spo1);
@@ -745,11 +744,11 @@ public class TestRDFXMLInterchangeWithStatementIdentifiers extends
              * care about TM here.
              */
             
-            final SPO spo1 = tempStore.getStatement(x.getTermId(), rdfType
+            final ISPO spo1 = tempStore.getStatement(x.getTermId(), rdfType
                     .getTermId(), A.getTermId());
-            final SPO spo2 = tempStore.getStatement(y.getTermId(), rdfType
+            final ISPO spo2 = tempStore.getStatement(y.getTermId(), rdfType
                     .getTermId(), B.getTermId());
-            final SPO spo3 = tempStore.getStatement(z.getTermId(), rdfType
+            final ISPO spo3 = tempStore.getStatement(z.getTermId(), rdfType
                     .getTermId(), C.getTermId());
 
             assertNotNull(spo1);

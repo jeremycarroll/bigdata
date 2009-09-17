@@ -1640,12 +1640,14 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      *            Data and metadata for the old value under the key will be
      *            copied onto this object (optional).
      * 
-     * @return <i>tuple</i> -or- <code>null</code> if there was no entry
-     *         under that key. See {@link ITuple#isDeletedVersion()} to
-     *         determine whether or not the entry is marked as deleted.
-     *         
+     * @return <i>tuple</i> -or- <code>null</code> if there was no entry under
+     *         that key. See {@link ITuple#isDeletedVersion()} to determine
+     *         whether or not the entry is marked as deleted.
+     * 
      * @throws UnsupportedOperationException
      *             if the index is read-only.
+     * 
+     * @todo add putIfAbsent() variant for insert methods?
      */
     final public Tuple insert(final byte[] key, final byte[] value,
             final boolean delete, final long timestamp, final Tuple tuple) {

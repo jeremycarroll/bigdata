@@ -59,7 +59,7 @@ import com.bigdata.rdf.spo.SPOIndexWriteProc.IndexWriteProcConstructor;
 import com.bigdata.relation.accesspath.IElementFilter;
 
 /**
- * Helper class writes an {@link SPO}[] on one of the statement indices.
+ * Helper class writes an {@link ISPO}[] on one of the statement indices.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -92,7 +92,7 @@ public class SPOIndexWriter implements Callable<Long> {
      * @param statementStore
      *            The store on which the statements will be written.
      * @param a
-     *            The {@link SPO}[].
+     *            The {@link ISPO}[].
      * @param numStmts
      *            The #of elements in <i>a</i> to be written.
      * @param clone
@@ -242,7 +242,7 @@ public class SPOIndexWriter implements Callable<Long> {
                 continue;
 
             // generate key for the index.
-            keys[numToAdd] = tupleSer.statement2Key(keyOrder, spo);
+            keys[numToAdd] = tupleSer.serializeKey(spo);
             
             // generate value for the index.
             vals[numToAdd] = spo.serializeValue(vbuf);
@@ -269,7 +269,8 @@ public class SPOIndexWriter implements Callable<Long> {
         insertTime.addAndGet(System.currentTimeMillis()
                 - _begin);
         
-        if (keyOrder == SPOKeyOrder.SPO) {
+        if (keyOrder.isPrimaryIndex()) {
+//        if (keyOrder == SPOKeyOrder.SPO) {
 
             /*
              * Note: Only the task writing on the SPO index takes responsibility

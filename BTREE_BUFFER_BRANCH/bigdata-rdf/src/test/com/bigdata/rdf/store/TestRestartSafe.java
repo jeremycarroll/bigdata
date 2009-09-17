@@ -158,11 +158,11 @@ public class TestRestartSafe extends AbstractTripleStoreTestCase {
             assertEquals(rdfType_id, store.getTermId(rdfType));
             assertEquals(rdfsSubClassOf_id, store.getTermId(rdfsSubClassOf));
 
-            assertEquals("statementCount", 5, store.getSPOIndex().rangeCount(
+            assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex().rangeCount(
                     null, null));
-            assertEquals("statementCount", 5, store.getPOSIndex().rangeCount(
+            assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex().rangeCount(
                     null, null));
-            assertEquals("statementCount", 5, store.getOSPIndex().rangeCount(
+            assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex().rangeCount(
                     null, null));
             assertTrue(store.hasStatement(x, rdfType, C));
             assertTrue(store.hasStatement(y, rdfType, B));
@@ -201,11 +201,11 @@ public class TestRestartSafe extends AbstractTripleStoreTestCase {
                 assertEquals(rdfType_id, store.getTermId(rdfType));
                 assertEquals(rdfsSubClassOf_id, store.getTermId(rdfsSubClassOf));
 
-                assertEquals("statementCount", 5, store.getSPOIndex()
+                assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex()
                         .rangeCount(null, null));
-                assertEquals("statementCount", 5, store.getPOSIndex()
+                assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex()
                         .rangeCount(null, null));
-                assertEquals("statementCount", 5, store.getOSPIndex()
+                assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex()
                         .rangeCount(null, null));
                 assertTrue(store.hasStatement(x, rdfType, C));
                 assertTrue(store.hasStatement(y, rdfType, B));

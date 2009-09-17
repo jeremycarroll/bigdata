@@ -214,7 +214,7 @@ public class SPOPredicate implements IPredicate<ISPO> {
      * @param s
      * @param p
      * @param o
-     * @parma c MAY be <code>null</code>.
+     * @param c MAY be <code>null</code>.
      * @param optional
      * @param constraint
      *            MAY be <code>null</code>.
@@ -675,21 +675,4 @@ public class SPOPredicate implements IPredicate<ISPO> {
      */
     private int hash = 0;
 
-//    /**
-//     * Cached access path reference for this predicate.
-//     * <p>
-//     * Note: Does needs to be volatile unless ALL code is synchronized when this
-//     * field is set/read.
-//     * <p>
-//     * Note: This field IS NOT copied when we specialize the predicate since the
-//     * bindings may have been specialized as well.
-//     * 
-//     * FIXME There is some danger associated with this cached reference since
-//     * the access path is really linked to the timestamp of the view. However
-//     * the timestamp is not part of the predicate state and we are not enforcing
-//     * anywhere the constraint that predicate instances are distinct per
-//     * timestamp.
-//     */
-//    volatile SPOAccessPath accessPath = null;
-    
 }

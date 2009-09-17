@@ -221,6 +221,32 @@ public class BigdataStatementImpl implements BigdataStatement {
         
     }
     
+    final public long c() {
+
+        if (c == null)
+            return NULL;
+        
+        return c.getTermId();
+        
+    }
+
+    public long get(final int index) {
+
+        switch (index) {
+        case 0:
+            return s.getTermId();
+        case 1:
+            return p.getTermId();
+        case 2:
+            return o.getTermId();
+        case 3:
+            return c.getTermId();
+        default:
+            throw new IllegalArgumentException();
+        }
+
+    }
+    
     final public boolean isFullyBound() {
         
         return s() != NULL && p() != NULL && o() != NULL;

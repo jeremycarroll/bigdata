@@ -292,7 +292,7 @@ public class TruthMaintenance {
                     final SPO spo = (SPO)chunk[i];
 
                     // Lookup the statement in the database.
-                    final SPO tmp = database.getStatement(spo.s, spo.p, spo.o);
+                    final ISPO tmp = database.getStatement(spo.s, spo.p, spo.o);
                     
                     if (tmp != null) {
 

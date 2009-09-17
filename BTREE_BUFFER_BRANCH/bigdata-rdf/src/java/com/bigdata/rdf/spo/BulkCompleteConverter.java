@@ -50,9 +50,9 @@ package com.bigdata.rdf.spo;
 import java.util.Arrays;
 
 import com.bigdata.btree.IIndex;
-import com.bigdata.btree.proc.AbstractKeyArrayIndexProcedure.ResultBuffer;
 import com.bigdata.btree.proc.AbstractKeyArrayIndexProcedure.ResultBufferHandler;
 import com.bigdata.btree.proc.BatchLookup.BatchLookupConstructor;
+import com.bigdata.btree.raba.IRaba;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.striterator.IChunkConverter;
 import com.bigdata.striterator.IChunkedOrderedIterator;
@@ -70,6 +70,8 @@ public class BulkCompleteConverter implements IChunkConverter<ISPO,ISPO> {
 
     private final SPOTupleSerializer tupleSer;
     
+//    private final boolean isQuad; 
+    
     /**
      * 
      * @param ndx
@@ -82,19 +84,22 @@ public class BulkCompleteConverter implements IChunkConverter<ISPO,ISPO> {
         tupleSer = (SPOTupleSerializer) ndx.getIndexMetadata()
                 .getTupleSerializer();
 
+//        this.isQuad = tupleSer.isQuad();
+        
     }
 
-    public ISPO[] convert(IChunkedOrderedIterator<ISPO> src) {
+    public ISPO[] convert(final IChunkedOrderedIterator<ISPO> src) {
 
         if (src == null)
             throw new IllegalArgumentException();
         
         final ISPO[] chunk = src.nextChunk();
         
+        // FIXME quads : SPO vs SPOC for primary order and comparator.
         if (!SPOKeyOrder.SPO.equals(src.getKeyOrder())) {
             
             // Sort unless already in SPO order.
-            
+            // FIXME quads : use tupleSer.getKeyOrder().getComparator()?
             Arrays.sort(chunk, SPOComparator.INSTANCE);
             
         }
@@ -103,7 +108,7 @@ public class BulkCompleteConverter implements IChunkConverter<ISPO,ISPO> {
         
     }
     
-    public ISPO[] convert(ISPO[] chunk) {
+    public ISPO[] convert(final ISPO[] chunk) {
 
 //        // Thread-local key builder.
 //        final RdfKeyBuilder keyBuilder = getKeyBuilder();
@@ -113,6 +118,7 @@ public class BulkCompleteConverter implements IChunkConverter<ISPO,ISPO> {
         
         for (int i = 0; i < chunk.length; i++) {
             
+            // FIXME quads : SPO vs SPOC key order (or just use tupleSer.getKeyOrder())?
             keys[i] = tupleSer.statement2Key(SPOKeyOrder.SPO, chunk[i]);
             
         }
@@ -132,11 +138,11 @@ public class BulkCompleteConverter implements IChunkConverter<ISPO,ISPO> {
         
         // get the values from lookup
         
-        final ResultBuffer vals = resultHandler.getResult();
+        final IRaba vals = resultHandler.getResult().getValues();
         
         for (int i = 0; i < chunk.length; i++) {
             
-            final byte[] val = vals.getResult(i);
+            final byte[] val = vals.get(i);
             
             if (val != null) {
                 

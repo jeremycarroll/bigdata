@@ -137,7 +137,7 @@ public class JustificationTupleSerializer extends
             
         }
 
-        return new Justification(ids);
+        return new Justification(N,ids);
         
     }
 

@@ -63,6 +63,23 @@ public interface ISPO {
     long o();
 
     /**
+     * The term identifier for the context position -or- {@link #NULL}. This
+     * method is "polymorphic", meaning it always returns the 4th position
+     * value. For arity=3 with SIDs, that is the statement identifier. For
+     * arity=3 w/o SIDs it is {@link IRawTripleStore#NULL}. For arity==4, it is
+     * the context and null iff the context was not bound.
+     * 
+     * @see AbstractTripleStore.Options#STATEMENT_IDENTIFIERS
+     * @see AbstractTripleStore.Options#ARITY
+     */
+    long c();
+    
+    /**
+     * Return the s,p,o, or c value.
+     */
+    long get(int index);
+
+    /**
      * Return true iff all position (s,p,o) are non-{@link #NULL}.
      * <p>
      * Note: {@link SPO}s are sometimes used to represent triple patterns,

@@ -36,13 +36,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -86,7 +84,6 @@ import com.bigdata.rdf.inf.Justification;
 import com.bigdata.rdf.inf.JustificationIterator;
 import com.bigdata.rdf.lexicon.ITermIndexCodes;
 import com.bigdata.rdf.lexicon.LexiconRelation;
-import com.bigdata.rdf.load.AssignedSplits;
 import com.bigdata.rdf.model.BigdataResource;
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.BigdataURI;
@@ -183,16 +180,16 @@ import com.bigdata.striterator.IKeyOrder;
  *       the operation.
  *       <p>
  *       The fix will be the use of a read-historical <em>transaction</em>
- *       which will explictly coordinate the release time for the
+ *       which will explicitly coordinate the release time for the
  *       {@link IBigdataFederation}.
- * 
- * @todo Run the Sesame 2.x TCK (technology compatibility kit).
  * 
  * @todo Support rules (IF TripleExpr THEN ...) This is basically encapsulating
  *       the rule execution layer.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
+ * 
+ * FIXME quads : finish code review of entire class.
  */
 abstract public class AbstractTripleStore extends
         AbstractResource<IDatabase<AbstractTripleStore>> implements ITripleStore,
@@ -226,14 +223,34 @@ abstract public class AbstractTripleStore extends
      */
     final protected boolean lexicon;
 
+//    /**
+//     * The #of term identifiers in the key for a statement index (3 is a triple
+//     * store, 4 is a quad store).
+//     * 
+//     * @deprecated by {@link #arity()}
+//     */
+//    final public int N = IRawTripleStore.N;
+
     /**
      * The #of term identifiers in the key for a statement index (3 is a triple
      * store, 4 is a quad store).
      * 
-     * @see #statementIdentifiers
+     * @see Options#ARITY
      */
-    final public int N = IRawTripleStore.N;
-
+    final private int arity;
+    
+    /**
+     * Indicate whether this is a triple or a quad store (3 is a triple store, 4
+     * is a quad store).
+     * 
+     * @return The #of elements in the key for the {@link SPORelation} (3 or 4).
+     */
+    final public int getSPOArity() {
+        
+        return arity;
+        
+    }
+    
     /**
      * When <code>true</code> the database will support statement identifiers.
      * A statement identifier is a unique 64-bit integer taken from the same
@@ -722,6 +739,14 @@ abstract public class AbstractTripleStore extends
                 + ".statementIdentifiers";
 
         String DEFAULT_STATEMENT_IDENTIFIERS = "true";
+
+        /**
+         * The arity of the KB. This indicates a triple store (3) vs a quad
+         * store (4).
+         */
+        String ARITY = AbstractTripleStore.class.getName() + ".arity";
+        
+        String DEFAULT_ARITY = "3";
         
     }
 
@@ -748,6 +773,9 @@ abstract public class AbstractTripleStore extends
         this.lexicon = Boolean.parseBoolean(getProperty(Options.LEXICON,
                 Options.DEFAULT_LEXICON));
 
+        this.arity = Integer.valueOf(getProperty(Options.ARITY,
+                Options.DEFAULT_ARITY));
+        
         this.statementIdentifiers = Boolean.parseBoolean(getProperty(
                 Options.STATEMENT_IDENTIFIERS,
                 Options.DEFAULT_STATEMENT_IDENTIFIERS));
@@ -953,23 +981,6 @@ abstract public class AbstractTripleStore extends
     
     public void create() {
 
-        create( null );
-        
-    }
-
-    /**
-     * 
-     * @param assignedSplits
-     *            An map providing pre-assigned separator keys describing index
-     *            partitions and optionally the data service {@link UUID}s on
-     *            which to register the index partitions. The keys of the map
-     *            identify the index whose index partitions are described by the
-     *            corresponding value. You may specify one or all of the
-     *            indices. This parameter is optional and when <code>null</code>,
-     *            the default assignments will be used.
-     */
-    public void create(final Map<IKeyOrder, AssignedSplits> assignedSplits) {
-    
         assertWritable();
         
         final Properties tmp = getProperties();
@@ -989,7 +1000,7 @@ abstract public class AbstractTripleStore extends
                         getNamespace() + "."+LexiconRelation.NAME_LEXICON_RELATION, getTimestamp(),
                         tmp);
 
-                lexiconRelation.create(assignedSplits);
+                lexiconRelation.create();//assignedSplits);
                 
                 valueFactory = lexiconRelation.getValueFactory();
 
@@ -998,7 +1009,7 @@ abstract public class AbstractTripleStore extends
             spoRelation = new SPORelation(getIndexManager(), getNamespace()
                     + "." + SPORelation.NAME_SPO_RELATION, getTimestamp(), tmp);
 
-            spoRelation.create(assignedSplits);
+            spoRelation.create();//assignedSplits);
 
             /*
              * The axioms and the vocabulary both require the lexicon to
@@ -1310,57 +1321,62 @@ abstract public class AbstractTripleStore extends
         
     }
 
-    final public IIndex getTerm2IdIndex() {
+//    final public IIndex getTerm2IdIndex() {
+//
+//        if (!lexicon)
+//            return null;
+//
+//        return getLexiconRelation().getTerm2IdIndex();
+//
+//    }
+//
+//    final public IIndex getId2TermIndex() {
+//
+//        if (!lexicon)
+//            return null;
+//
+//        return getLexiconRelation().getId2TermIndex();
+//
+//    }
 
-        if (!lexicon)
-            return null;
+//    /** @deprecated by getSPORelation#getSPOIndex() or getPrimaryIndex(). */
+//    final public IIndex getSPOIndex() {
+//
+//        return getSPORelation().getSPOIndex();
+//
+//    }
+//
+//    /** @deprecated by getSPORelation(). */
+//    final public IIndex getPOSIndex() {
+//        
+//        return getSPORelation().getPOSIndex();
+//
+//    }
+//
+//    /** @deprecated by getSPORelation(). */
+//    final public IIndex getOSPIndex() {
+//
+//        return getSPORelation().getOSPIndex();
+//
+//    }
 
-        return getLexiconRelation().getTerm2IdIndex();
-
-    }
-
-    final public IIndex getId2TermIndex() {
-
-        if (!lexicon)
-            return null;
-
-        return getLexiconRelation().getId2TermIndex();
-
-    }
-
-    final public IIndex getSPOIndex() {
-
-        return getSPORelation().getSPOIndex();
-
-    }
-
-    final public IIndex getPOSIndex() {
-        
-        return getSPORelation().getPOSIndex();
-
-    }
-
-    final public IIndex getOSPIndex() {
-
-        return getSPORelation().getOSPIndex();
-
-    }
-
-    final public IIndex getStatementIndex(IKeyOrder<ISPO> keyOrder) {
+    /** @deprecated by getSPORelation(). */
+    final public IIndex getStatementIndex(final IKeyOrder<ISPO> keyOrder) {
 
         return getSPORelation().getIndex(keyOrder);
         
     }
 
-    final public IIndex getJustificationIndex() {
-        
-        return getSPORelation().getJustificationIndex();
-
-    }
+//    /** @deprecated by getSPORelation(). */
+//    final public IIndex getJustificationIndex() {
+//        
+//        return getSPORelation().getJustificationIndex();
+//
+//    }
 
     final public long getStatementCount() {
 
-        return getSPOIndex().rangeCount(null, null);
+        return getSPORelation().getSPOIndex().rangeCount(null, null);
 
     }
 
@@ -1526,7 +1542,8 @@ abstract public class AbstractTripleStore extends
     
     final public long getStatementCount(final boolean exact) {
 
-        final IIndex ndx = getSPOIndex();
+        // FIXME quads : getPrimaryIndex()
+        final IIndex ndx = getSPORelation().getSPOIndex();
 
         if (exact) {
 
@@ -1544,7 +1561,7 @@ abstract public class AbstractTripleStore extends
 
         if (justify) {
 
-            return getJustificationIndex().rangeCount(null, null);
+            return getSPORelation().getJustificationIndex().rangeCount(null, null);
 
         }
 
@@ -1716,7 +1733,7 @@ abstract public class AbstractTripleStore extends
 
     }
 
-    final public SPO getStatement(long s, long p, long o) {
+    final public ISPO getStatement(final long s, final long p, final long o) {
 
         if (s == NULL || p == NULL || o == NULL) {
 
@@ -1724,13 +1741,17 @@ abstract public class AbstractTripleStore extends
 
         }
 
+        final ISPO spo = new SPO(s,p,o);
+        
         final IIndex ndx = getStatementIndex(SPOKeyOrder.SPO);
-        
-        final SPOTupleSerializer tupleSer = (SPOTupleSerializer)ndx.getIndexMetadata().getTupleSerializer();
-        
-        final byte[] key = tupleSer.statement2Key(s, p, o);
 
-        final byte[] val = getStatementIndex(SPOKeyOrder.SPO).lookup(key);
+        final SPOTupleSerializer tupleSer = (SPOTupleSerializer) ndx
+                .getIndexMetadata().getTupleSerializer();
+
+        final byte[] key = tupleSer.serializeKey(spo);
+//        final byte[] key = tupleSer.statement2Key(s, p, o);
+
+        final byte[] val = ndx.lookup(key);
 
         if (val == null) {
 
@@ -1739,8 +1760,12 @@ abstract public class AbstractTripleStore extends
 
         }
 
+        // decode the value and set it on the SPO.
+        SPO.decodeValue(spo, val);
+        
         // The statement is known to the database.
-        return new SPO(s, p, o, val);
+        return spo;
+//        return new SPO(s, p, o, val);
 
     }
 
@@ -2554,7 +2579,7 @@ abstract public class AbstractTripleStore extends
 
         if (justifications && justify) {
 
-            final IIndex ndx = getJustificationIndex();
+            final IIndex ndx = getSPORelation().getJustificationIndex();
 
             final ITupleIterator itrj = ndx.rangeIterator();
 
@@ -2711,7 +2736,7 @@ abstract public class AbstractTripleStore extends
             if (justify) {
 
                 final IJustificationIterator jitr = new JustificationIterator(
-                        getJustificationIndex(), 0/* capacity */, true/* async */);
+                        getSPORelation().getJustificationIndex(), 0/* capacity */, true/* async */);
 
                 tasks.add(new JustificationWriter(dst, jitr, nwrittenj));
 
@@ -2786,7 +2811,7 @@ abstract public class AbstractTripleStore extends
             final IChunkedOrderedIterator<ISPO> itr, final boolean present) {
 
         return new ChunkedConvertingIterator<ISPO, ISPO>(itr,
-                new BulkFilterConverter(getSPOIndex(), present));
+                new BulkFilterConverter(getSPORelation().getSPOIndex(), present));
         
     }
 
@@ -2807,16 +2832,15 @@ abstract public class AbstractTripleStore extends
     public IChunkedOrderedIterator<ISPO> bulkCompleteStatements(final IChunkedOrderedIterator<ISPO> itr) {
         
         return new ChunkedConvertingIterator(itr, new BulkCompleteConverter(
-                getSPOIndex()));
+                getSPORelation().getSPOIndex()));
 
     }
 
     public ISPO[] bulkCompleteStatements(final ISPO[] stmts) {
-        
-        BulkCompleteConverter converter = new BulkCompleteConverter(getSPOIndex());
-        
-        return converter.convert(stmts);
-        
+
+        return new BulkCompleteConverter(getSPORelation().getSPOIndex())
+                .convert(stmts);
+
     }
     
     public long addStatements(final ISPO[] stmts, final int numStmts) {

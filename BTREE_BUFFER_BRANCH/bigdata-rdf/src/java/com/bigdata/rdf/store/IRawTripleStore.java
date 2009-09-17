@@ -30,7 +30,6 @@ package com.bigdata.rdf.store;
 import org.openrdf.model.Value;
 
 import com.bigdata.btree.IIndex;
-import com.bigdata.rdf.inf.Justification;
 import com.bigdata.rdf.lexicon.ITermIdCodes;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.BigdataValue;
@@ -65,19 +64,23 @@ public interface IRawTripleStore extends ITripleStore, ITermIdCodes {
     /**
      * The #of terms in a statement (3 is a triple store, 4 is a quad store).
      * 
-     * @todo use this constant throughout and then change over to a quad store.
+     * @deprecated 
      */
     int N = 3;
 
-    /** @todo deprecate these methods in favor of {@link SPORelation}? */
-    abstract public IIndex getSPOIndex();
-    abstract public IIndex getPOSIndex();
-    abstract public IIndex getOSPIndex();
+//    /** @deprecated by {@link SPORelation} */
+//    abstract public IIndex getSPOIndex();
+//    /** @deprecated by {@link SPORelation} */
+//    abstract public IIndex getPOSIndex();
+//    /** @deprecated by {@link SPORelation} */
+//    abstract public IIndex getOSPIndex();
     
-    /**
-     * The optional index on which {@link Justification}s are stored.
-     */
-    abstract public IIndex getJustificationIndex();
+//    /**
+//     * The optional index on which {@link Justification}s are stored.
+//     * 
+//     * @deprecated by {@link SPORelation}
+//     */
+//    abstract public IIndex getJustificationIndex();
 
     /**
      * Return the statement index identified by the {@link IKeyOrder}.
@@ -315,7 +318,7 @@ public interface IRawTripleStore extends ITripleStore, ITermIdCodes {
     public IChunkedOrderedIterator<ISPO> bulkCompleteStatements(final IChunkedOrderedIterator<ISPO> itr);
     
     /**
-     * Externalizes a statement using an appreviated syntax.
+     * Externalizes a statement using an abbreviated syntax.
      */
     public String toString(long s, long p, long o);
 
