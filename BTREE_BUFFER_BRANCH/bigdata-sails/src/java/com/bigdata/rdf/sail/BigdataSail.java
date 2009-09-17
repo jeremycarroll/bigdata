@@ -81,8 +81,8 @@ import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
+import org.openrdf.model.impl.ContextStatementImpl;
 import org.openrdf.model.impl.NamespaceImpl;
-import org.openrdf.model.impl.StatementImpl;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.Dataset;
 import org.openrdf.query.QueryEvaluationException;
@@ -139,9 +139,6 @@ import com.bigdata.relation.accesspath.IElementFilter;
 import com.bigdata.relation.rule.IRule;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.IChunkedOrderedIterator;
-
-import cutthecrap.utils.striterators.Expander;
-import cutthecrap.utils.striterators.Striterator;
 
 /**
  * <p>
@@ -1334,7 +1331,7 @@ public class BigdataSail extends SailBase implements Sail {
 
                 // Notify listener(s).
                 
-                fireSailChangedEvent(true, new StatementImpl(s, p, o));
+                fireSailChangedEvent(true, new ContextStatementImpl(s, p, o, c));
                 
             }
 
@@ -1363,7 +1360,13 @@ public class BigdataSail extends SailBase implements Sail {
             } else {
 
                 /*
-                 * Named graphs are not supported.
+                 * FIXME quads : Named graphs are not supported.
+                 * 
+                 * foreach(Resource c : contexts) {
+                 *    
+                 *    getAccessPath(NULL,NULL,NULL,c).removeAll()
+                 *    
+                 * }
                  */
 
                 throw new UnsupportedOperationException();
@@ -1425,7 +1428,7 @@ public class BigdataSail extends SailBase implements Sail {
          * {@link IAccessPath#rangeCount()} for efficient methods for reporting
          * on the #of statements in the database or within a specific context.
          */
-        public long size(Resource... contexts) throws SailException {
+        public long size(final Resource... contexts) throws SailException {
 
             flushStatementBuffers(true/* assertions */, true/* retractions */);
             
@@ -1434,7 +1437,17 @@ public class BigdataSail extends SailBase implements Sail {
                 return database.getExplicitStatementCount();
                 
             } else {
-                
+
+                // FIXME quads : all this needs is [c] on getAccessPath()
+//                long size = 0;
+//
+//                for (Resource c : contexts) {
+//
+//                    size += database.getAccessPath(null/* s */, null/* p */,
+//                            null/* o */, c).rangeCount(true/* exact */);
+//
+//                }
+//                
                 throw new UnsupportedOperationException();
                 
             }
@@ -1528,6 +1541,7 @@ public class BigdataSail extends SailBase implements Sail {
                  * buffered).
                  */
                 
+                // FIXME quads : if keyArity==3, pass in [c] otherwise pass in [null].
                 n = database.removeStatements(s, p, o);
 
             }
@@ -1750,7 +1764,7 @@ public class BigdataSail extends SailBase implements Sail {
              */
 
 //            // implementation should expand each context in turn.
-//            // FIXME wrap as closeable iterator and return.
+//            // FIXME quads : wrap as CloseableIterator and return.
 //            return new CloseableIterator
 //            (new Striterator(Arrays.asList(contexts).iterator()).addFilter(new Expander() {
 //                
@@ -1902,6 +1916,13 @@ public class BigdataSail extends SailBase implements Sail {
             
             flushStatementBuffers(true/* assertions */, true/* retractions */);
 
+            if (database.getSPOKeyArity() == 4) {
+
+                // quads materalized inferences not supported yet. 
+                throw new UnsupportedOperationException();
+                
+            }
+            
             database
                     .getAccessPath(NULL, NULL, NULL, InferredSPOFilter.INSTANCE)
                     .removeAll();
@@ -2005,7 +2026,7 @@ public class BigdataSail extends SailBase implements Sail {
          * data and MUST NOT be executed since a ZERO (0L) will be interpreted
          * as a variable!
          */
-        protected void replaceValues(TupleExpr tupleExpr) throws SailException {
+        protected void replaceValues(final TupleExpr tupleExpr) throws SailException {
 
             /*
              * Resolve the values used by this query.
