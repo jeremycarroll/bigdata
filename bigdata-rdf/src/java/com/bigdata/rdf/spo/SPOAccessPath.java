@@ -26,24 +26,24 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
     /** Relation (resolved lazily if not specified to the ctor). */
     private SPORelation relation;
 
-    /**
-     * Set by the ctor to the term identifier appearing in the subject position
-     * or {@link IRawTripleStore#NULL} if the subject position is unbound.
-     */
-    public final long s;
-
-    /**
-     * Set by the ctor to the term identifier appearing in the predicate
-     * position or {@link IRawTripleStore#NULL} if the predicate position is
-     * unbound.
-     */
-    public final long p;
-
-    /**
-     * Set by the ctor to the term identifier appearing in the object position
-     * or {@link IRawTripleStore#NULL} if the object position is unbound.
-     */
-    public final long o;
+//    /**
+//     * Set by the ctor to the term identifier appearing in the subject position
+//     * or {@link IRawTripleStore#NULL} if the subject position is unbound.
+//     */
+//    public final long s;
+//
+//    /**
+//     * Set by the ctor to the term identifier appearing in the predicate
+//     * position or {@link IRawTripleStore#NULL} if the predicate position is
+//     * unbound.
+//     */
+//    public final long p;
+//
+//    /**
+//     * Set by the ctor to the term identifier appearing in the object position
+//     * or {@link IRawTripleStore#NULL} if the object position is unbound.
+//     */
+//    public final long o;
 
     /**
      * Variant when the {@link SPORelation} has already been materialized.
@@ -98,32 +98,51 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
                 chunkOfChunksCapacity, chunkCapacity,
                 fullyBufferedReadThreshold);
 
-        {
-
-            final IVariableOrConstant<Long> t = predicate.get(0);
-
-            s = t.isVar() ? NULL : t.get();
-
-        }
-
-        {
-
-            final IVariableOrConstant<Long> t = predicate.get(1);
-
-            p = t.isVar() ? NULL : t.get();
-
-        }
-        
-        {
-
-            final IVariableOrConstant<Long> t = predicate.get(2);
-
-            o = t.isVar() ? NULL : t.get();
-
-        }
+//        {
+//
+//            final IVariableOrConstant<Long> t = predicate.get(0);
+//
+//            s = t.isVar() ? NULL : t.get();
+//
+//        }
+//
+//        {
+//
+//            final IVariableOrConstant<Long> t = predicate.get(1);
+//
+//            p = t.isVar() ? NULL : t.get();
+//
+//        }
+//        
+//        {
+//
+//            final IVariableOrConstant<Long> t = predicate.get(2);
+//
+//            o = t.isVar() ? NULL : t.get();
+//
+//        }
 
     }
 
+    /**
+     * Return the constant bound on the {@link #getPredicate() predicate} for
+     * this access path at the specified index -or- {@link #NULL} iff the
+     * predicate is not bound at that position.
+     * 
+     * @param index
+     *            The index.
+     *            
+     * @return Either the bound value -or- {@link #NULL} iff the index is
+     *         unbound for the predicate for this access path.
+     */
+    public long get(int index) {
+
+        final IVariableOrConstant<Long> t = predicate.get(index);
+
+        return t.isVar() ? NULL : t.get();
+
+    }
+    
 //    /**
 //     * Helper method returns {@link IRawTripleStore#NULL} if the argument is an
 //     * {@link IVariable} and otherwise the value of the {@link IConstant}.
@@ -162,6 +181,10 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
          * The minimum value that a term identifier may take on.
          */
         long MIN = Long.MIN_VALUE;
+
+        final long s = get(0/* S */);
+        final long p = get(1/* P */);
+        final long o = get(2/* O */);
 
         if (s != NULL && p != NULL && o != NULL) {
             
@@ -274,6 +297,13 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
         final AbstractTripleStore db = r.getContainer();
 
         return db.removeStatements(iterator());
+        
+    }
+
+    @Override
+    public SPOPredicate getPredicate() {
+
+        return (SPOPredicate) super.getPredicate();
         
     }
     
