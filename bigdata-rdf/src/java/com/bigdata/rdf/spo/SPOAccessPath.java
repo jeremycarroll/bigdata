@@ -209,7 +209,7 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
             IKeyBuilder keyBuilder =
                     getTupleSerializer().getKeyBuilder().reset();
             boolean noneBound = true;
-            boolean foundFirstMin = false;
+            boolean foundLastBound = false;
             for (int i = 0; i < arity; i++) {
                 IVariableOrConstant<Long> term = 
                     predicate.get(keyOrder.getKeyOrder(i));
@@ -219,13 +219,18 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
                 } else {
                     l = term.get();
                     noneBound = false;
-                }
-                if (i < arity - 1 && !foundFirstMin) {
-                    IVariableOrConstant<Long> next =
-                            predicate.get(keyOrder.getKeyOrder(i+1));
-                    if (next.isVar()) {
-                        l++;
-                        foundFirstMin = true;
+                    if (!foundLastBound) {
+                        if (i == arity-1) {
+                            l++;
+                            foundLastBound = true;
+                        } else {
+                            IVariableOrConstant<Long> next = 
+                                predicate.get(keyOrder.getKeyOrder(i+1));
+                            if (next.isVar()) {
+                                l++;
+                                foundLastBound = true;
+                            }
+                        }
                     }
                 }
                 keyBuilder.append(l);

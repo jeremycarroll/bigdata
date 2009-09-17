@@ -130,7 +130,7 @@ public class MagicAccessPath extends AbstractAccessPath<IMagicTuple> {
             IKeyBuilder keyBuilder =
                     getTupleSerializer().getKeyBuilder().reset();
             boolean noneBound = true;
-            boolean foundFirstMin = false;
+            boolean foundLastBound = false;
             for (int i = 0; i < arity; i++) {
                 IVariableOrConstant<Long> term = predicate.get(keyMap[i]);
                 long l;
@@ -139,13 +139,18 @@ public class MagicAccessPath extends AbstractAccessPath<IMagicTuple> {
                 } else {
                     l = term.get();
                     noneBound = false;
-                }
-                if (i < arity - 1 && !foundFirstMin) {
-                    IVariableOrConstant<Long> next =
-                            predicate.get(keyMap[i + 1]);
-                    if (next.isVar()) {
-                        l++;
-                        foundFirstMin = true;
+                    if (!foundLastBound) {
+                        if (i == arity-1) {
+                            l++;
+                            foundLastBound = true;
+                        } else {
+                            IVariableOrConstant<Long> next = 
+                                predicate.get(keyMap[i+1]);
+                            if (next.isVar()) {
+                                l++;
+                                foundLastBound = true;
+                            }
+                        }
                     }
                 }
                 keyBuilder.append(l);
