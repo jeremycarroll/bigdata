@@ -63,6 +63,10 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
     public static final transient int _PCSO = 7;
     public static final transient int _SOPC = 8;
 
+    public static final transient int FIRST_QUAD_INDEX = _SPOC;
+    public static final transient int LAST_QUAD_INDEX = _SPOC;
+    public static final transient int MAX_INDEX_COUNT = 9;
+    
     /*
      * The three perfect natural orders for triples.
      */
@@ -245,6 +249,21 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
         }
 
     }
+
+    /**
+     * Return the index of the slot in the {@link ISPO} tuple which appears at
+     * the specified position in the key.
+     * 
+     * @param keyPos
+     *            The index into the key that is being generated.
+     *            
+     * @return The index of the slot in the {@link ISPO}.
+     */
+    public int getKeyOrder(final int keyPos) {
+
+        return orders[index][keyPos];
+
+    }
     
     /**
      * The integer used to represent the {@link SPOKeyOrder}. For a triple
@@ -346,8 +365,8 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
 
         for (int i = 0; i < a.length; i++) {
 
-            keyBuilder.append(spo.get(i));
-            
+            keyBuilder.append(spo.get(a[i]));
+
         }
         
         return keyBuilder.getKey();

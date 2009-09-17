@@ -43,7 +43,6 @@ import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.io.ByteArrayBuffer;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.model.StatementEnum;
-import com.bigdata.striterator.IKeyOrder;
 
 /**
  * (De-)serializes {@link SPO}s for statement indices.
@@ -260,57 +259,54 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
     }
 
     /**
-     * @param spo
-     * @return
-     * 
-     *         FIXME quads : serialize key (and role into this method).
-     * 
-     * @todo review the use of the thread-local key builder.  If the caller
-     * is single threaded, and {@link #serializeKey(ISPO)} SHOULD be, then
-     * that method is overhead and we should use a single instance of the
-     * {@link IKeyBuilder}.
-     */
-    public byte[] serializeKey(final ISPO spo) {
-        
-//        return keyOrder.encodeKey(getKeyBuilder(), spo);
-        return statement2Key(keyOrder, spo);
-        
-    }
-
-    /**
      * Forms the statement key.
      * 
-     * @param keyOrder
-     *            The key order.
      * @param spo
      *            The statement.
      * 
      * @return The key.
-     * 
-     * @deprecated by {@link #serializeKey(ISPO)}
      */
-    public byte[] statement2Key(final IKeyOrder<ISPO> keyOrder, final ISPO spo) {
+    public byte[] serializeKey(final ISPO spo) {
         
-        switch (((SPOKeyOrder)keyOrder).index()) {
-
-        case SPOKeyOrder._SPO:
-        
-            return statement2Key(spo.s(), spo.p(), spo.o());
-            
-        case SPOKeyOrder._POS:
-            
-            return statement2Key(spo.p(), spo.o(), spo.s());
-            
-        case SPOKeyOrder._OSP:
-            
-            return statement2Key(spo.o(), spo.s(), spo.p());
-            
-        default:
-            throw new UnsupportedOperationException("keyOrder=" + keyOrder);
-        
-        }
+        return keyOrder.encodeKey(getKeyBuilder(), spo);
+//        return statement2Key(keyOrder, spo);
         
     }
+
+//    /**
+//     * Forms the statement key.
+//     * 
+//     * @param keyOrder
+//     *            The key order.
+//     * @param spo
+//     *            The statement.
+//     * 
+//     * @return The key.
+//     * 
+//     * @deprecated by {@link #serializeKey(ISPO)}
+//     */
+//    public byte[] statement2Key(final IKeyOrder<ISPO> keyOrder, final ISPO spo) {
+//        
+//        switch (((SPOKeyOrder)keyOrder).index()) {
+//
+//        case SPOKeyOrder._SPO:
+//        
+//            return statement2Key(spo.s(), spo.p(), spo.o());
+//            
+//        case SPOKeyOrder._POS:
+//            
+//            return statement2Key(spo.p(), spo.o(), spo.s());
+//            
+//        case SPOKeyOrder._OSP:
+//            
+//            return statement2Key(spo.o(), spo.s(), spo.p());
+//            
+//        default:
+//            throw new UnsupportedOperationException("keyOrder=" + keyOrder);
+//        
+//        }
+//        
+//    }
     
     /**
      * Encodes a statement represented as three long integers as an unsigned

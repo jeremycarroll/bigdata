@@ -238,8 +238,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 AbstractTripleStore.Options.BLOOM_FILTER,
                 AbstractTripleStore.Options.DEFAULT_BLOOM_FILTER));
 
-        // FIXME quads : set of defined indices.
+        // declare the various indices.
         {
+         
             final Set<String> set = new HashSet<String>();
 
             if (arity == 3) {
@@ -264,10 +265,21 @@ public class SPORelation extends AbstractRelation<ISPO> {
             } else {
                 
                 // six indices for a quad store w/ ids in [3:8].
-                this.indices = new IIndex[9];
+                this.indices = new IIndex[SPOKeyOrder.MAX_INDEX_COUNT];
 
-                // FIXME quads : declare indices.
-                throw new UnsupportedOperationException();
+                if (oneAccessPath) {
+
+                    set.add(getFQN(SPOKeyOrder.SPOC));
+                    
+                } else {
+
+                    for (int i = SPOKeyOrder.FIRST_QUAD_INDEX; i <= SPOKeyOrder.LAST_QUAD_INDEX; i++) {
+
+                        set.add(getFQN(SPOKeyOrder.valueOf(i)));
+
+                    }
+
+                }
                 
             }
 
@@ -342,8 +354,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
                 // attempt to resolve the index and set the index reference.
                 indices[SPOKeyOrder.SPO.index()] = super.getIndex(SPOKeyOrder.SPO);
-                indices[SPOKeyOrder.POS.index()] = null;
-                indices[SPOKeyOrder.OSP.index()]= null;
+//                indices[SPOKeyOrder.POS.index()] = null;
+//                indices[SPOKeyOrder.OSP.index()] = null;
 
             } else {
 
@@ -356,8 +368,20 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         } else {
 
-            // FIXME quads.
-            throw new UnsupportedOperationException();
+            if(oneAccessPath) {
+            
+                indices[SPOKeyOrder.SPOC.index()] = super.getIndex(SPOKeyOrder.SPOC);
+                
+            } else {
+
+                for (int i = SPOKeyOrder.FIRST_QUAD_INDEX; i <= SPOKeyOrder.LAST_QUAD_INDEX; i++) {
+
+                    indices[i] = super.getIndex(SPOKeyOrder.valueOf(i)
+                            .getIndexName());
+
+                }
+
+            }
             
         }
 
@@ -452,8 +476,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
     /*
      * @todo force drop of all indices rather than throwing an exception if an
      * index does not exist?
-     * 
-     * FIXME quads : destroy() appropriate indices (all registered in GRS?)
      */
     public void destroy() {
 
