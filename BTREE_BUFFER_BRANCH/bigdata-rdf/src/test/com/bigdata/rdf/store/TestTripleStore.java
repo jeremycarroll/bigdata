@@ -704,9 +704,12 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
             }
 
             // verify range count on each of the statement indices.
-            assertEquals(2,store.getStatementIndex(SPOKeyOrder.SPO).rangeCount());
-            assertEquals(2,store.getStatementIndex(SPOKeyOrder.POS).rangeCount());
-            assertEquals(2,store.getStatementIndex(SPOKeyOrder.OSP).rangeCount());
+            assertEquals(2, store.getSPORelation().getIndex(SPOKeyOrder.SPO)
+                    .rangeCount());
+            assertEquals(2, store.getSPORelation().getIndex(SPOKeyOrder.POS)
+                    .rangeCount());
+            assertEquals(2, store.getSPORelation().getIndex(SPOKeyOrder.OSP)
+                    .rangeCount());
 
             /*
              * check indices for spo1.

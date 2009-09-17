@@ -79,7 +79,7 @@ public class TestStatementBuffer extends AbstractTripleStoreTestCase {
             assertEquals(store, buffer.getDatabase());
             assertTrue(buffer.distinct);
             assertEquals(capacity, buffer.capacity);
-            assertEquals(capacity * store.getSPOArity(), buffer.values.length);
+            assertEquals(capacity * store.getSPOKeyArity(), buffer.values.length);
             assertEquals(capacity, buffer.stmts.length);
             assertEquals(0, buffer.numURIs);
             assertEquals(0, buffer.numLiterals);

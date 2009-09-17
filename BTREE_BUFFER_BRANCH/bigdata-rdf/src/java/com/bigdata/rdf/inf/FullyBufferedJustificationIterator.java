@@ -85,7 +85,7 @@ public class FullyBufferedJustificationIterator implements IJustificationIterato
         
         this.ndx = db.getSPORelation().getJustificationIndex();
         
-        keyBuilder = new KeyBuilder(db.getSPOArity() * (1 + 3)
+        keyBuilder = new KeyBuilder(db.getSPOKeyArity() * (1 + 3)
                 * Bytes.SIZEOF_LONG);
 
         final byte[] fromKey = keyBuilder.reset().append(head.s()).append(
