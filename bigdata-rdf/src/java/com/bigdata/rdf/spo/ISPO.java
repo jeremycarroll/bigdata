@@ -162,10 +162,20 @@ public interface ISPO {
      *             {@link ISPO}.
      */
     long getStatementIdentifier();
-    
+
     /**
      * <code>true</code> iff this {@link ISPO} has an assigned statement
      * identifier.
+     * 
+     * FIXME quads : review all callers. Probably drop this method and replace
+     * {@link #getStatementIdentifier()} with {@link #c()}. Whether the 4th
+     * position exists or not is a function of the arity of the
+     * {@link SPORelation}. Whether it represents context (c) or a statement
+     * identifier (SID) is a function of the arity of the keys for the statement
+     * indices and is configured by {@link AbstractTripleStore.Options#ARITY}.
+     * 
+     * @see AbstractTripleStore#Options
+     * @see SPOKeyOrder#getKeyArity()
      */
     boolean hasStatementIdentifier();
 

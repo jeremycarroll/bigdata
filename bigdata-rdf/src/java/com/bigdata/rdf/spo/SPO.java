@@ -147,7 +147,7 @@ public class SPO implements ISPO, Comparable<SPO> {
         
     }
 
-    // FIXME quads aware
+    // FIXME quads : review all callers!!!
     final public boolean hasStatementIdentifier() {
         
         return sid != NULL;
@@ -184,7 +184,25 @@ public class SPO implements ISPO, Comparable<SPO> {
         this.type = null;
         
     }
-    
+
+    /**
+     * Quads constructor.
+     * 
+     * @param s
+     * @param p
+     * @param o
+     * @param c
+     */
+    public SPO(long s, long p, long o, long c) {
+
+        this.s = s;
+        this.p = p;
+        this.o = o;
+        this.sid = c;
+        this.type = null;
+
+    }
+
     /**
      * Construct a statement.
      * <p>
@@ -205,6 +223,28 @@ public class SPO implements ISPO, Comparable<SPO> {
         this.s = s;
         this.p = p;
         this.o = o;
+        
+        this.type = type;
+        
+    }
+    
+    /**
+     * Quads constructor with {@link StatementEnum}.
+     * @param s
+     * @param p
+     * @param o
+     * @param c
+     * @param type
+     */
+    public SPO(long s, long p, long o, long c, StatementEnum type) {
+
+        if (type == null)
+            throw new IllegalArgumentException();
+        
+        this.s = s;
+        this.p = p;
+        this.o = o;
+        this.sid = c;
         
         this.type = type;
         
