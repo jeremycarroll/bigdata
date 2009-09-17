@@ -115,8 +115,6 @@ import cutthecrap.utils.striterators.Striterator;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
- * 
- * FIXME quads : finish code review of entire class.
  */
 public class SPORelation extends AbstractRelation<ISPO> {
 
@@ -353,16 +351,14 @@ public class SPORelation extends AbstractRelation<ISPO> {
             if (oneAccessPath) {
 
                 // attempt to resolve the index and set the index reference.
-                indices[SPOKeyOrder.SPO.index()] = super.getIndex(SPOKeyOrder.SPO);
-//                indices[SPOKeyOrder.POS.index()] = null;
-//                indices[SPOKeyOrder.OSP.index()] = null;
+                indices[SPOKeyOrder._SPO] = super.getIndex(SPOKeyOrder.SPO);
 
             } else {
 
                 // attempt to resolve the index and set the index reference.
-                indices[SPOKeyOrder.SPO.index()] = super.getIndex(SPOKeyOrder.SPO);
-                indices[SPOKeyOrder.POS.index()] = super.getIndex(SPOKeyOrder.POS);
-                indices[SPOKeyOrder.OSP.index()] = super.getIndex(SPOKeyOrder.OSP);
+                indices[SPOKeyOrder._SPO] = super.getIndex(SPOKeyOrder.SPO);
+                indices[SPOKeyOrder._POS] = super.getIndex(SPOKeyOrder.POS);
+                indices[SPOKeyOrder._OSP] = super.getIndex(SPOKeyOrder.OSP);
 
             }
 
@@ -370,7 +366,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
             if(oneAccessPath) {
             
-                indices[SPOKeyOrder.SPOC.index()] = super.getIndex(SPOKeyOrder.SPOC);
+                indices[SPOKeyOrder._SPOC] = super.getIndex(SPOKeyOrder.SPOC);
                 
             } else {
 
@@ -385,20 +381,19 @@ public class SPORelation extends AbstractRelation<ISPO> {
             
         }
 
-        if(justify) {
+        if (justify) {
 
             // attempt to resolve the index and set the index reference.
-            just     = super.getIndex(getNamespace()+"."+NAME_JUST);
-            
+            just = super.getIndex(getNamespace() + "." + NAME_JUST);
+
         } else {
-            
+
             just = null;
-            
+
         }
 
     }
 
-    // FIXME quads : create appropriate indices.
     public void create() {
       
         final IResourceLock resourceLock = acquireExclusiveLock();
@@ -412,6 +407,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
             if (arity == 3) {
 
+                // triples
+                
                 if (oneAccessPath) {
 
                     indexManager
@@ -433,21 +430,29 @@ public class SPORelation extends AbstractRelation<ISPO> {
                     indexManager
                             .registerIndex(getStatementIndexMetadata(SPOKeyOrder.OSP));
 
-                    // // resolve the index and set the index reference.
-                    // spo = super.getIndex(SPOKeyOrder.SPO);
-                    //
-                    // pos = super.getIndex(SPOKeyOrder.POS);
-                    //
-                    // osp = super.getIndex(SPOKeyOrder.OSP);
-                    //                
-                    // assert spo != null;
-                    // assert pos != null;
-                    // assert osp != null;
-
                 }
 
             } else {
 
+                // quads
+                
+                if(oneAccessPath) {
+
+                    indexManager
+                            .registerIndex(getStatementIndexMetadata(SPOKeyOrder.SPOC));
+
+                } else {
+
+                    for (int i = SPOKeyOrder.FIRST_QUAD_INDEX; i <= SPOKeyOrder.LAST_QUAD_INDEX; i++) {
+
+                        indexManager
+                                .registerIndex(getStatementIndexMetadata(SPOKeyOrder
+                                        .valueOf(i)));
+
+                    }
+
+                }
+                
                 throw new UnsupportedOperationException();
 
             }
@@ -499,24 +504,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 
             }
             
-//            if (oneAccessPath) {
-//
-//                indexManager.dropIndex(getFQN(SPOKeyOrder.SPO));
-//                spo = null;
-//
-//            } else {
-//
-//                indexManager.dropIndex(getFQN(SPOKeyOrder.SPO));
-//                spo = null;
-//
-//                indexManager.dropIndex(getFQN(SPOKeyOrder.POS));
-//                pos = null;
-//
-//                indexManager.dropIndex(getFQN(SPOKeyOrder.OSP));
-//                osp = null;
-//
-//            }
-
             if (justify) {
 
                 indexManager.dropIndex(getNamespace() + "."+ NAME_JUST);
@@ -541,39 +528,14 @@ public class SPORelation extends AbstractRelation<ISPO> {
     @Override
     public IIndex getIndex(final IKeyOrder<? extends ISPO> keyOrder) {
 
-        // @todo raise index() onto IKeyOrder?
-        
         final int n = ((SPOKeyOrder)keyOrder).index();
         
-        if (arity == 3)
-            assert n >= 0 && n <= 2;
-        else
-            assert n >= 3 && n <= 8;
-            
         final IIndex ndx = indices[ n ];
         
         if(ndx == null)
             throw new IllegalArgumentException();
         
         return ndx;
-
-//        if (keyOrder == SPOKeyOrder.SPO) {
-//     
-//            return getSPOIndex();
-//            
-//        } else if (keyOrder == SPOKeyOrder.POS) {
-//            
-//            return getPOSIndex();
-//            
-//        } else if (keyOrder == SPOKeyOrder.OSP) {
-//            
-//            return getOSPIndex();
-//            
-//        } else {
-//            
-//            throw new AssertionError("keyOrder=" + keyOrder);
-//            
-//        }
 
     }
 
@@ -757,6 +719,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
      * @param p
      * @param o
      */
+    // FIXME quads : getAccessPath()
     public IAccessPath<ISPO> getAccessPath(final long s, final long p, final long o) {
      
         return getAccessPath(s, p, o, null/*filter*/);
@@ -773,6 +736,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
      * @return
      */
     @SuppressWarnings("unchecked")
+    // FIXME quads : getAccessPath()
     public IAccessPath<ISPO> getAccessPath(final long s, final long p,
             final long o, final IElementFilter<ISPO> filter) {
 
@@ -826,6 +790,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
          * filter could be modified in the same manner.  That could cut down
          * on allocation costs, formatting the from/to keys, etc.
          */
+
         return _getAccessPath(predicate);
               
     }
@@ -858,6 +823,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
      *            
      * @return The {@link SPOKeyOrder}
      */
+    // FIXME quads : getKeyOrder() - probably move to SPOKeyOrder.
     static public SPOKeyOrder getKeyOrder(final IPredicate<ISPO> predicate) {
 
         final long s = predicate.get(0).isVar() ? NULL : (Long) predicate.get(0).get();
@@ -1348,6 +1314,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
         
         final List<Callable<Long>> tasks = new ArrayList<Callable<Long>>(3);
 
+        // FIXME quads : insert(ISPO[])
         tasks.add(new SPOIndexWriter(this, a, numStmts, false/* clone */,
                 SPOKeyOrder.SPO, filter, sortTime, insertTime, mutationCount));
 
@@ -1447,6 +1414,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         final List<Callable<Long>> tasks = new ArrayList<Callable<Long>>(3);
 
+        // FIXME quads : delete(ISPO[]).
         tasks.add(new SPOIndexRemover(this, stmts, numStmts,
                 SPOKeyOrder.SPO, false/* clone */, sortTime, writeTime));
 
@@ -1556,7 +1524,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
      *       source of latency, SLD/magic sets will translate into an immediate
      *       performance boost for data load.
      */
-    public long addJustifications(IChunkedIterator<Justification> itr) {
+    public long addJustifications(final IChunkedIterator<Justification> itr) {
 
         try {
 
@@ -1644,6 +1612,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
         
         {
             
+            // FIXME quads : dump SPOPredicate requires variable for [c].
             final IPredicate<ISPO> pred = new SPOPredicate(getNamespace(), Var
                     .var("s"), Var.var("p"), Var.var("o"));
 

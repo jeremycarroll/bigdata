@@ -232,7 +232,7 @@ abstract public class AbstractStatementBuffer<F extends Statement, G extends Big
 //        this.distinctValues = new HashMap<Value, BigdataValue>(capacity
 //                * IRawTripleStore.N);
         this.distinctValues = new HashMap<Value, BigdataValue>(capacity
-                * db.getSPOArity());
+                * db.getSPOKeyArity());
 
         this.deferredStatementBuffer = db.getStatementIdentifiers() ? new LinkedList<G>()
                 : null;

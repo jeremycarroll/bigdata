@@ -1428,7 +1428,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
         this.pauseParserPoolStatementThreshold = pauseParsedPoolStatementThreshold;
         
-        if (tripleStore.getSPOArity() != 3) {
+        if (tripleStore.getSPOKeyArity() != 3) {
 
             throw new UnsupportedOperationException("Quads not supported");
             

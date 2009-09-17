@@ -355,7 +355,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
         
         this.database = database;
 
-        this.arity = database.getSPOArity();
+        this.arity = database.getSPOKeyArity();
         
         this.valueFactory = database.getValueFactory();
         
