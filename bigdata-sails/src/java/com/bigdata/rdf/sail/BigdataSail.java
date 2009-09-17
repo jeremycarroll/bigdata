@@ -1765,6 +1765,7 @@ public class BigdataSail extends SailBase implements Sail {
 
 //            // implementation should expand each context in turn.
 //            // FIXME quads : wrap as CloseableIterator and return.
+              // See QueryEvaluationIterator for an example of how to do this.
 //            return new CloseableIterator
 //            (new Striterator(Arrays.asList(contexts).iterator()).addFilter(new Expander() {
 //                
