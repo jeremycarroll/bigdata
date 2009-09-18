@@ -740,6 +740,13 @@ public class SPORelation extends AbstractRelation<ISPO> {
     public IAccessPath<ISPO> getAccessPath(final long s, final long p,
             final long o, final IElementFilter<ISPO> filter) {
 
+        return getAccessPath(s, p, o, NULL, filter);
+        
+    }
+    
+    public IAccessPath<ISPO> getAccessPath(final long s, final long p,
+            final long o, final long c, IElementFilter<ISPO> filter) {
+        
         final IVariableOrConstant<Long> S = (s == NULL ? Var.var("s")
                 : new Constant<Long>(s));
 
@@ -749,10 +756,17 @@ public class SPORelation extends AbstractRelation<ISPO> {
         final IVariableOrConstant<Long> O = (o == NULL ? Var.var("o")
                 : new Constant<Long>(o));
         
+        IVariableOrConstant<Long> C = null;
+        
+        if (arity == 4) {
+
+            C = (c == NULL ? Var.var("c") : new Constant<Long>(c));
+            
+        }
+        
         return getAccessPath(new SPOPredicate(new String[] { getNamespace() },
                 -1, // partitionId
-                S, P, O,
-                null, // context
+                S, P, O, C,
                 false, // optional
                 filter,//
                 null // expander
