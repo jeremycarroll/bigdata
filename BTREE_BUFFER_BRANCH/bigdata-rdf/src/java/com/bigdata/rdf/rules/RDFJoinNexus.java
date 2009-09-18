@@ -819,8 +819,9 @@ public class RDFJoinNexus implements IJoinNexus {
          * Find the best access path for that predicate.
          * 
          * @todo hardcoded to the SPORelation.
+         * FIXME hardcoded for triples
          */
-        final IKeyOrder keyOrder = SPORelation.getKeyOrder(predicate);
+        final IKeyOrder keyOrder = SPORelation.getKeyOrder(predicate, 3);
 
         // The name of the desired index partition.
         final String name = DataService

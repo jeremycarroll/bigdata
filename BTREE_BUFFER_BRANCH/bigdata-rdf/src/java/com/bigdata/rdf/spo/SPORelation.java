@@ -802,7 +802,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
      */
     final private SPOAccessPath _getAccessPath(final IPredicate<ISPO> predicate) {
 
-        final SPOKeyOrder keyOrder = getKeyOrder(predicate);
+        final SPOKeyOrder keyOrder = getKeyOrder(predicate, arity);
         
         final SPOAccessPath accessPath = getAccessPath(keyOrder, predicate);
 
@@ -824,45 +824,75 @@ public class SPORelation extends AbstractRelation<ISPO> {
      * @return The {@link SPOKeyOrder}
      */
     // FIXME quads : getKeyOrder() - probably move to SPOKeyOrder.
-    static public SPOKeyOrder getKeyOrder(final IPredicate<ISPO> predicate) {
+    static public SPOKeyOrder getKeyOrder(final IPredicate<ISPO> predicate, int arity) {
 
+        // FIX ME
+        
         final long s = predicate.get(0).isVar() ? NULL : (Long) predicate.get(0).get();
         final long p = predicate.get(1).isVar() ? NULL : (Long) predicate.get(1).get();
         final long o = predicate.get(2).isVar() ? NULL : (Long) predicate.get(2).get();
         // Note: Context is ignored!
 
-        if (s != NULL && p != NULL && o != NULL) {
-
-            return SPOKeyOrder.SPO;
-
-        } else if (s != NULL && p != NULL) {
-
-            return SPOKeyOrder.SPO;
-
-        } else if (s != NULL && o != NULL) {
-
-            return SPOKeyOrder.OSP;
-
-        } else if (p != NULL && o != NULL) {
-
-            return SPOKeyOrder.POS;
-
-        } else if (s != NULL) {
-
-            return SPOKeyOrder.SPO;
-
-        } else if (p != NULL) {
-
-            return SPOKeyOrder.POS;
-
-        } else if (o != NULL) {
-
-            return SPOKeyOrder.OSP;
-
+        if (arity == 3) {
+        
+            if (s != NULL && p != NULL && o != NULL) {
+                return SPOKeyOrder.SPO;
+            } else if (s != NULL && p != NULL) {
+                return SPOKeyOrder.SPO;
+            } else if (s != NULL && o != NULL) {
+                return SPOKeyOrder.OSP;
+            } else if (p != NULL && o != NULL) {
+                return SPOKeyOrder.POS;
+            } else if (s != NULL) {
+                return SPOKeyOrder.SPO;
+            } else if (p != NULL) {
+                return SPOKeyOrder.POS;
+            } else if (o != NULL) {
+                return SPOKeyOrder.OSP;
+            } else {
+                return SPOKeyOrder.SPO;
+            }
+            
         } else {
 
-            return SPOKeyOrder.SPO;
-
+            final long c = predicate.get(3).isVar() ? NULL : (Long) predicate.get(3).get();
+/*            
+            if ((s == NULL && p == NULL && o == NULL && c == NULL) ||
+                (s != NULL && p == NULL && o == NULL && c == NULL) ||
+                (s != NULL && p != NULL && o == NULL && c == NULL) ||
+                (s != NULL && p != NULL && o != NULL && c == NULL) ||
+                (s != NULL && p != NULL && o != NULL && c != NULL)) {
+                return SPOKeyOrder.SPOC;
+            } 
+*/            
+            if ((s == NULL && p != NULL && o == NULL && c == NULL) ||
+                (s == NULL && p != NULL && o != NULL && c == NULL) ||
+                (s == NULL && p != NULL && o != NULL && c != NULL)) {
+                return SPOKeyOrder.POCS;
+            }
+            
+            if ((s == NULL && p == NULL && o != NULL && c == NULL) ||
+                (s == NULL && p == NULL && o != NULL && c != NULL) ||
+                (s != NULL && p == NULL && o != NULL && c != NULL)) {
+                return SPOKeyOrder.OCSP;
+            }
+            
+            if ((s == NULL && p == NULL && o == NULL && c != NULL) ||
+                (s != NULL && p == NULL && o == NULL && c != NULL) ||
+                (s != NULL && p != NULL && o == NULL && c != NULL)) {
+                return SPOKeyOrder.CSPO;
+            }
+                
+            if ((s == NULL && p != NULL && o == NULL && c != NULL)) {
+                return SPOKeyOrder.PCSO;
+            }
+                    
+            if ((s != NULL && p == NULL && o != NULL && c == NULL)) {
+                return SPOKeyOrder.SOPC;
+            }
+            
+            return SPOKeyOrder.SPOC;
+                    
         }
 
     }
@@ -1314,18 +1344,47 @@ public class SPORelation extends AbstractRelation<ISPO> {
         
         final List<Callable<Long>> tasks = new ArrayList<Callable<Long>>(3);
 
-        // FIXME quads : insert(ISPO[])
-        tasks.add(new SPOIndexWriter(this, a, numStmts, false/* clone */,
-                SPOKeyOrder.SPO, filter, sortTime, insertTime, mutationCount));
+        if (arity == 3) {
 
-        if (!oneAccessPath) {
-
-            tasks.add(new SPOIndexWriter(this, a, numStmts, true/* clone */,
-                    SPOKeyOrder.POS, filter, sortTime, insertTime, mutationCount));
-
-            tasks.add(new SPOIndexWriter(this, a, numStmts, true/* clone */,
-                    SPOKeyOrder.OSP, filter, sortTime, insertTime, mutationCount));
-
+            // FIXME quads : insert(ISPO[])
+            tasks.add(new SPOIndexWriter(this, a, numStmts, false/* clone */,
+                    SPOKeyOrder.SPO, filter, sortTime, insertTime, mutationCount));
+    
+            if (!oneAccessPath) {
+    
+                tasks.add(new SPOIndexWriter(this, a, numStmts, true/* clone */,
+                        SPOKeyOrder.POS, filter, sortTime, insertTime, mutationCount));
+    
+                tasks.add(new SPOIndexWriter(this, a, numStmts, true/* clone */,
+                        SPOKeyOrder.OSP, filter, sortTime, insertTime, mutationCount));
+    
+            }
+            
+        } else {
+            
+            // FIXME quads : insert(ISPO[])
+            tasks.add(new SPOIndexWriter(this, a, numStmts, false/* clone */,
+                    SPOKeyOrder.SPOC, filter, sortTime, insertTime, mutationCount));
+    
+            if (!oneAccessPath) {
+    
+                tasks.add(new SPOIndexWriter(this, a, numStmts, true/* clone */,
+                        SPOKeyOrder.POCS, filter, sortTime, insertTime, mutationCount));
+    
+                tasks.add(new SPOIndexWriter(this, a, numStmts, true/* clone */,
+                        SPOKeyOrder.OCSP, filter, sortTime, insertTime, mutationCount));
+    
+                tasks.add(new SPOIndexWriter(this, a, numStmts, true/* clone */,
+                        SPOKeyOrder.CSPO, filter, sortTime, insertTime, mutationCount));
+    
+                tasks.add(new SPOIndexWriter(this, a, numStmts, true/* clone */,
+                        SPOKeyOrder.PCSO, filter, sortTime, insertTime, mutationCount));
+    
+                tasks.add(new SPOIndexWriter(this, a, numStmts, true/* clone */,
+                        SPOKeyOrder.SOPC, filter, sortTime, insertTime, mutationCount));
+    
+            }
+            
         }
 
         // if(numStmts>1000) {
@@ -1335,14 +1394,19 @@ public class SPORelation extends AbstractRelation<ISPO> {
         // }
 
         final List<Future<Long>> futures;
+/*
         final long elapsed_SPO;
         final long elapsed_POS;
         final long elapsed_OSP;
-
+*/
         try {
 
             futures = getExecutorService().invokeAll(tasks);
 
+            for (int i = 0; i < tasks.size(); i++) {
+                futures.get(i);
+            }
+/*
             elapsed_SPO = futures.get(0).get();
             if (!oneAccessPath) {
                 elapsed_POS = futures.get(1).get();
@@ -1351,17 +1415,19 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 elapsed_POS = 0;
                 elapsed_OSP = 0;
             }
-
+*/
         } catch (InterruptedException ex) {
 
             throw new RuntimeException(ex);
 
+        }
+/*        
         } catch (ExecutionException ex) {
 
             throw new RuntimeException(ex);
 
         }
-
+*/
         final long elapsed = System.currentTimeMillis() - begin;
 
         if (log.isInfoEnabled() && numStmts > 1000) {
@@ -1370,9 +1436,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
                     + mutationCount + ") in " + elapsed + "ms" //
                     + "; sort=" + sortTime + "ms" //
                     + ", keyGen+insert=" + insertTime + "ms" //
-                    + "; spo=" + elapsed_SPO + "ms" //
-                    + ", pos=" + elapsed_POS + "ms" //
-                    + ", osp=" + elapsed_OSP + "ms" //
+//                    + "; spo=" + elapsed_SPO + "ms" //
+//                    + ", pos=" + elapsed_POS + "ms" //
+//                    + ", osp=" + elapsed_OSP + "ms" //
             );
 
         }
@@ -1414,22 +1480,60 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         final List<Callable<Long>> tasks = new ArrayList<Callable<Long>>(3);
 
-        // FIXME quads : delete(ISPO[]).
-        tasks.add(new SPOIndexRemover(this, stmts, numStmts,
-                SPOKeyOrder.SPO, false/* clone */, sortTime, writeTime));
+        if (arity == 3) {
+        
+            // FIXME quads : delete(ISPO[]).
+            tasks.add(new SPOIndexRemover(this, stmts, numStmts,
+                    SPOKeyOrder.SPO, false/* clone */, sortTime, writeTime));
+    
+            if (!oneAccessPath) {
+    
+                tasks
+                        .add(new SPOIndexRemover(this, stmts, numStmts,
+                                SPOKeyOrder.POS, true/* clone */, sortTime,
+                                writeTime));
+    
+                tasks
+                        .add(new SPOIndexRemover(this, stmts, numStmts,
+                                SPOKeyOrder.OSP, true/* clone */, sortTime,
+                                writeTime));
+    
+            }
+            
+        } else {
+            
+            tasks.add(new SPOIndexRemover(this, stmts, numStmts,
+                    SPOKeyOrder.SPOC, false/* clone */, sortTime, writeTime));
+    
+            if (!oneAccessPath) {
+    
+                tasks
+                        .add(new SPOIndexRemover(this, stmts, numStmts,
+                                SPOKeyOrder.POCS, true/* clone */, sortTime,
+                                writeTime));
+    
+                tasks
+                        .add(new SPOIndexRemover(this, stmts, numStmts,
+                                SPOKeyOrder.OCSP, true/* clone */, sortTime,
+                                writeTime));
+    
+                tasks
+                        .add(new SPOIndexRemover(this, stmts, numStmts,
+                                SPOKeyOrder.CSPO, true/* clone */, sortTime,
+                                writeTime));
+        
+                        tasks
+                        .add(new SPOIndexRemover(this, stmts, numStmts,
+                                SPOKeyOrder.PCSO, true/* clone */, sortTime,
+                                writeTime));
+        
+                        tasks
+                        .add(new SPOIndexRemover(this, stmts, numStmts,
+                                SPOKeyOrder.SOPC, true/* clone */, sortTime,
+                                writeTime));
 
-        if (!oneAccessPath) {
-
-            tasks
-                    .add(new SPOIndexRemover(this, stmts, numStmts,
-                            SPOKeyOrder.POS, true/* clone */, sortTime,
-                            writeTime));
-
-            tasks
-                    .add(new SPOIndexRemover(this, stmts, numStmts,
-                            SPOKeyOrder.OSP, true/* clone */, sortTime,
-                            writeTime));
-
+            }
+            
         }
 
         if (justify) {
@@ -1444,15 +1548,21 @@ public class SPORelation extends AbstractRelation<ISPO> {
         }
 
         final List<Future<Long>> futures;
+        /*
         final long elapsed_SPO;
         final long elapsed_POS;
         final long elapsed_OSP;
         final long elapsed_JST;
+        */
 
         try {
 
             futures = getExecutorService().invokeAll(tasks);
-
+            
+            for (int i = 0; i < tasks.size(); i++) {
+                futures.get(i);
+            }
+/*
             elapsed_SPO = futures.get(0).get();
 
             if (!oneAccessPath) {
@@ -1478,26 +1588,30 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 elapsed_JST = 0;
 
             }
-
+*/
         } catch (InterruptedException ex) {
 
             throw new RuntimeException(ex);
 
+        }
+/*        
         } catch (ExecutionException ex) {
 
             throw new RuntimeException(ex);
 
         }
-
+*/
         long elapsed = System.currentTimeMillis() - begin;
 
         if (log.isInfoEnabled() && numStmts > 1000) {
 
             log.info("Removed " + numStmts + " in " + elapsed
                     + "ms; sort=" + sortTime + "ms, keyGen+delete="
-                    + writeTime + "ms; spo=" + elapsed_SPO + "ms, pos="
-                    + elapsed_POS + "ms, osp=" + elapsed_OSP
-                    + "ms, jst=" + elapsed_JST);
+                    + writeTime + "ms" 
+//                    + "; spo=" + elapsed_SPO + "ms, pos="
+//                    + elapsed_POS + "ms, osp=" + elapsed_OSP
+//                    + "ms, jst=" + elapsed_JST
+                    );
 
         }
 
