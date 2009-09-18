@@ -362,6 +362,30 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
      * _:z  foaf:nick     "Robert" .
      * 
      * <http://example.org/foaf/bobFoaf> rdf:type foaf:PersonalProfileDocument .
+     * 
+     * The query below matches the graph pattern against each of the named 
+     * graphs in the dataset and forms solutions which have the src variable 
+     * bound to IRIs of the graph being matched. The graph pattern is matched 
+     * with the active graph being each of the named graphs in the dataset.
+     * 
+     * PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+     * 
+     * SELECT ?src ?bobNick
+     * FROM NAMED <http://example.org/foaf/aliceFoaf>
+     * FROM NAMED <http://example.org/foaf/bobFoaf>
+     * WHERE
+     *   {
+     *     GRAPH ?src
+     *     { ?x foaf:mbox <mailto:bob@work.example> .
+     *       ?x foaf:nick ?bobNick
+     *     }
+     *   }
+     * 
+     * The query result gives the name of the graphs where the information was 
+     * found and the value for Bob's nick:
+     * src     bobNick
+     * <http://example.org/foaf/aliceFoaf>     "Bobby"
+     * <http://example.org/foaf/bobFoaf>   "Robert"
      */
     public void test_8_3_1() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
@@ -457,7 +481,18 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     );
             cxn.commit();
             
-            String query = ""; 
+            String query = 
+                "PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
+                "SELECT ?src ?bobNick " +
+                "FROM NAMED <http://example.org/foaf/aliceFoaf> " +
+                "FROM NAMED <http://example.org/foaf/bobFoaf> " +
+                "WHERE " +
+                "  { " +
+                "    GRAPH ?src " +
+                "    { ?x foaf:mbox <mailto:bob@work.example> . " +
+                "      ?x foaf:nick ?bobNick " +
+                "    } " +
+                "  }"; 
             
             final TupleQuery tupleQuery = 
                 cxn.prepareTupleQuery(QueryLanguage.SPARQL, query);
@@ -507,6 +542,28 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
      * _:z  foaf:nick     "Robert" .
      * 
      * <http://example.org/foaf/bobFoaf> rdf:type foaf:PersonalProfileDocument .
+     * 
+     * The query can restrict the matching applied to a specific graph by 
+     * supplying the graph IRI. This sets the active graph to the graph named 
+     * by the IRI. This query looks for Bob's nick as given in the graph 
+     * http://example.org/foaf/bobFoaf.
+     * 
+     * PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+     * PREFIX data: <http://example.org/foaf/>
+     * 
+     * SELECT ?nick
+     * FROM NAMED <http://example.org/foaf/aliceFoaf>
+     * FROM NAMED <http://example.org/foaf/bobFoaf>
+     * WHERE
+     *   {
+     *      GRAPH data:bobFoaf {
+     *          ?x foaf:mbox <mailto:bob@work.example> .
+     *          ?x foaf:nick ?nick }
+     *   }
+     * 
+     * which yields a single solution:
+     * nick
+     * "Robert"
      */
     public void test_8_3_2() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
@@ -602,7 +659,18 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     );
             cxn.commit();
             
-            String query = ""; 
+            String query = 
+                "PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
+                "PREFIX data: <http://example.org/foaf/> " +
+                "SELECT ?nick " +
+                "FROM NAMED <http://example.org/foaf/aliceFoaf> " +
+                "FROM NAMED <http://example.org/foaf/bobFoaf> " +
+                "WHERE " +
+                "  { " +
+                "     GRAPH data:bobFoaf { " +
+                "         ?x foaf:mbox <mailto:bob@work.example> . " +
+                "         ?x foaf:nick ?nick } " +
+                "  }";
             
             final TupleQuery tupleQuery = 
                 cxn.prepareTupleQuery(QueryLanguage.SPARQL, query);
@@ -652,6 +720,50 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
      * _:z  foaf:nick     "Robert" .
      * 
      * <http://example.org/foaf/bobFoaf> rdf:type foaf:PersonalProfileDocument .
+     * 
+     * A variable used in the GRAPH clause may also be used in another GRAPH 
+     * clause or in a graph pattern matched against the default graph in the 
+     * dataset.
+     *
+     * The query below uses the graph with IRI http://example.org/foaf/aliceFoaf 
+     * to find the profile document for Bob; it then matches another pattern 
+     * against that graph. The pattern in the second GRAPH clause finds the 
+     * blank node (variable w) for the person with the same mail box (given by 
+     * variable mbox) as found in the first GRAPH clause (variable whom), 
+     * because the blank node used to match for variable whom from Alice's FOAF 
+     * file is not the same as the blank node in the profile document (they are 
+     * in different graphs).
+     * 
+     * PREFIX  data:  <http://example.org/foaf/>
+     * PREFIX  foaf:  <http://xmlns.com/foaf/0.1/>
+     * PREFIX  rdfs:  <http://www.w3.org/2000/01/rdf-schema#>
+     * 
+     * SELECT ?mbox ?nick ?ppd
+     * FROM NAMED <http://example.org/foaf/aliceFoaf>
+     * FROM NAMED <http://example.org/foaf/bobFoaf>
+     * WHERE
+     * {
+     *   GRAPH data:aliceFoaf
+     *   {
+     *     ?alice foaf:mbox <mailto:alice@work.example> ;
+     *            foaf:knows ?whom .
+     *     ?whom  foaf:mbox ?mbox ;
+     *            rdfs:seeAlso ?ppd .
+     *     ?ppd  a foaf:PersonalProfileDocument .
+     *   } .
+     *   GRAPH ?ppd
+     *   {
+     *       ?w foaf:mbox ?mbox ;
+     *          foaf:nick ?nick
+     *   }
+     * }
+     * 
+     * mbox    nick    ppd
+     * <mailto:bob@work.example>   "Robert"    <http://example.org/foaf/bobFoaf>
+     * 
+     * Any triple in Alice's FOAF file giving Bob's nick is not used to provide 
+     * a nick for Bob because the pattern involving variable nick is restricted 
+     * by ppd to a particular Personal Profile Document.
      */
     public void test_8_3_3() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
@@ -747,7 +859,29 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     );
             cxn.commit();
             
-            String query = ""; 
+            String query = 
+                "PREFIX  data:  <http://example.org/foaf/> " +
+                "PREFIX  foaf:  <http://xmlns.com/foaf/0.1/> " +
+                "PREFIX  rdfs:  <http://www.w3.org/2000/01/rdf-schema#> " +
+                "SELECT ?mbox ?nick ?ppd " +
+                "FROM NAMED <http://example.org/foaf/aliceFoaf> " +
+                "FROM NAMED <http://example.org/foaf/bobFoaf> " +
+                "WHERE " +
+                "{ " +
+                "  GRAPH data:aliceFoaf " +
+                "  { " +
+                "    ?alice foaf:mbox <mailto:alice@work.example> ; " +
+                "           foaf:knows ?whom . " +
+                "    ?whom  foaf:mbox ?mbox ; " +
+                "           rdfs:seeAlso ?ppd . " +
+                "    ?ppd  a foaf:PersonalProfileDocument . " +
+                "  } . " +
+                "  GRAPH ?ppd " +
+                "  { " +
+                "      ?w foaf:mbox ?mbox ; " +
+                "         foaf:nick ?nick " +
+                "  } " +
+                "}"; 
             
             final TupleQuery tupleQuery = 
                 cxn.prepareTupleQuery(QueryLanguage.SPARQL, query);
