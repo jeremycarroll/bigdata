@@ -27,13 +27,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.store;
 
+import com.bigdata.rdf.spo.SPOAccessPath;
 import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.relation.accesspath.AbstractAccessPath;
-import com.bigdata.relation.accesspath.IAccessPath;
 
 /**
- * Test suite for {@link IAccessPath}.
+ * Test suite for {@link SPOAccessPath}.
  * <p>
  * See also {@link TestTripleStore} which tests some of this stuff.
  * 
@@ -46,19 +46,19 @@ import com.bigdata.relation.accesspath.IAccessPath;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAccessPath extends AbstractTripleStoreTestCase {
+public class TestSPOAccessPath extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestAccessPath() {
+    public TestSPOAccessPath() {
         super();
     }
 
     /**
      * @param name
      */
-    public TestAccessPath(String name) {
+    public TestSPOAccessPath(String name) {
         super(name);
     }
 

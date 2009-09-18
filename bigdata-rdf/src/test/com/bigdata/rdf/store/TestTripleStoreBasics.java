@@ -52,7 +52,7 @@ public class TestTripleStoreBasics extends TestCase2 {
      */
     public static Test suite() {
 
-        TestSuite suite = new TestSuite("Triple store basics");
+        final TestSuite suite = new TestSuite("Triple store basics");
 
         // test adding terms and statements.
         suite.addTestSuite(TestTripleStore.class);
@@ -73,7 +73,7 @@ public class TestTripleStoreBasics extends TestCase2 {
         suite.addTestSuite(TestFullTextIndex.class);
         
         // test suite for the access path api.
-        suite.addTestSuite(TestAccessPath.class);
+        suite.addTestSuite(TestSPOAccessPath.class);
 
         // test suite for the completion scan (prefix match for literals).
         suite.addTestSuite(TestCompletionScan.class);

@@ -38,7 +38,6 @@ import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleSerializer;
 import com.bigdata.btree.keys.ASCIIKeyBuilderFactory;
 import com.bigdata.btree.keys.IKeyBuilder;
-import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.io.ByteArrayBuffer;
 import com.bigdata.rawstore.Bytes;
@@ -129,7 +128,6 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
         
     }
     
-    // FIXME quads : decode SPO
     public SPO deserialize(final ITuple tuple) {
 
         if (tuple == null)
@@ -138,116 +136,12 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
         // copy of the key in a reused buffer.
         final byte[] key = tuple.getKeyBuffer().array();
 
-        /*
-         * Note: GTE since the key is typically a reused buffer which may be
-         * larger than the #of bytes actually holding valid data.
-         */
-        final int keyArity = keyOrder.getKeyArity();
-
-        assert key.length >= 8 * keyArity;
-
-        final long _0 = KeyBuilder.decodeLong(key, 0);
-        
-        final long _1 = KeyBuilder.decodeLong(key, 8);
-      
-        final long _2 = KeyBuilder.decodeLong(key, 8+8);
-
-        // 4th key position exists iff quad keys.
-        final long _3 = keyArity == 4 ? KeyBuilder.decodeLong(key, 8 + 8 + 8)
-                : NULL;
-
-        /*
-         * Re-order the key into SPO order.
-         */
-        
-        final long s, p, o, c;
-        
-        switch (keyOrder.index()) {
-
-        /*
-         * Triples
-         * 
-         * [c] will be NULL for triples, but the SID may be read from the value
-         * associated with the key below and set on the SPO object.
-         */
-
-        case SPOKeyOrder._SPO:
-            s = _0;
-            p = _1;
-            o = _2;
-            c = NULL;
-            break;
-            
-        case SPOKeyOrder._POS:
-            p = _0;
-            o = _1;
-            s = _2;
-            c = NULL;
-            break;
-            
-        case SPOKeyOrder._OSP:
-            o = _0;
-            s = _1;
-            p = _2;
-            c = NULL;
-            break;
-
-        /*
-         * Quads
-         */
-
-        case SPOKeyOrder._SPOC:
-            s = _0;
-            p = _1;
-            o = _2;
-            c = _3;
-            break;
-            
-        case SPOKeyOrder._POCS:
-            p = _0;
-            o = _1;
-            c = _2;
-            s = _3;
-            break;
-
-        case SPOKeyOrder._OCSP:
-            o = _0;
-            c = _1;
-            s = _2;
-            p = _3;
-            break;
-
-        case SPOKeyOrder._CSPO:
-            c = _0;
-            s = _1;
-            p = _2;
-            o = _3;
-            break;
-
-        case SPOKeyOrder._PCSO:
-            p = _0;
-            c = _1;
-            s = _2;
-            o = _3;
-            break;
-
-        case SPOKeyOrder._SOPC:
-            s = _0;
-            o = _1;
-            p = _2;
-            c = _3;
-            break;
-
-        default:
-
-            throw new UnsupportedOperationException();
-
-        }
-        
+        final SPO spo = keyOrder.decodeKey(key);
+    
         if ((tuple.flags() & IRangeQuery.VALS) == 0) {
 
             // Note: No type or statement identifier information.
-            return new SPO(s, p, o, c);
+            return spo;
             
         }
 
@@ -259,7 +153,7 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 
         final StatementEnum type = StatementEnum.decode(vbuf.array()[0]);
 
-        final SPO spo = new SPO(s, p, o, c, type);
+        spo.setStatementType(type);
 
         if (vbuf.limit() == 1 + 8) {
 
@@ -269,8 +163,8 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
              */
 
             // SIDs only valid for triples.
-            assert keyArity == 3;
-            
+            assert keyOrder.getKeyArity() == 3;
+
             spo.setStatementIdentifier(vbuf.getLong(1));
 
         }

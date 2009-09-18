@@ -47,7 +47,7 @@ import com.bigdata.rdf.store.TestScaleOutTripleStoreWithEmbeddedFederation;
 import com.bigdata.rdf.vocab.NoVocabulary;
 
 /**
- * Test suite for {@link AsynchronousStatementBufferWithoutSids2}.
+ * Test suite for {@link AsynchronousStatementBufferFactory}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -62,19 +62,19 @@ import com.bigdata.rdf.vocab.NoVocabulary;
  * @see TestScaleOutTripleStoreWithEmbeddedFederation
  * @see RDFFileLoadTask
  */
-public class TestAsynchronousStatementBufferWithoutSids2 extends
+public class TestAsynchronousStatementBuffer extends
         AbstractRIOTestCase {
 
     /**
      * 
      */
-    public TestAsynchronousStatementBufferWithoutSids2() {
+    public TestAsynchronousStatementBuffer() {
     }
 
     /**
      * @param name
      */
-    public TestAsynchronousStatementBufferWithoutSids2(String name) {
+    public TestAsynchronousStatementBuffer(String name) {
         super(name);
     }
 
@@ -103,6 +103,9 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
 
         properties.setProperty(
                 AbstractTripleStore.Options.STATEMENT_IDENTIFIERS, "false");
+
+        properties.setProperty(
+                AbstractTripleStore.Options.QUADS, "false");
 
         // no closure so we don't need the axioms either.
         properties.setProperty(
@@ -250,7 +253,9 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
         
         if(!(store instanceof ScaleOutTripleStore)) {
             
-            fail("Test requires scale-out index views.");
+            log.warn("Test requires scale-out index views.");
+            
+            return;
             
         }
         
@@ -298,7 +303,7 @@ public class TestAsynchronousStatementBufferWithoutSids2 extends
     }
 
     /**
-     * Load using {@link AsynchronousStatementBufferWithoutSids2}.
+     * Load using {@link AsynchronousStatementBufferFactory}.
      */
     protected AsynchronousStatementBufferFactory<BigdataStatement,File> doLoad2(
             final AbstractTripleStore store, final File resource,

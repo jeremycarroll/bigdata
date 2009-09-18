@@ -40,7 +40,6 @@ import org.apache.zookeeper.KeeperException;
 import org.openrdf.model.Value;
 import org.openrdf.rio.RDFFormat;
 
-import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.IResourceLock;
 import com.bigdata.journal.ITx;
 import com.bigdata.rawstore.Bytes;
@@ -48,7 +47,6 @@ import com.bigdata.rdf.inf.ClosureStats;
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.store.AbstractTripleStore;
-import com.bigdata.rdf.store.ITripleStore;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
 import com.bigdata.service.IBigdataClient;

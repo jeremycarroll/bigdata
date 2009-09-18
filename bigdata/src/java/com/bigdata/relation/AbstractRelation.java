@@ -137,7 +137,7 @@ abstract public class AbstractRelation<E> extends AbstractResource<IRelation<E>>
      *       themselves invalid (this really only applies to the unisolated
      *       index and to indices isolated by a transaction).
      */
-    protected IIndex getIndex(final String name) {
+    public IIndex getIndex(final String name) {
 
         if (name == null)
             throw new IllegalArgumentException();

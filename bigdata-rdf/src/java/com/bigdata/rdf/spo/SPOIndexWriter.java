@@ -118,10 +118,12 @@ public class SPOIndexWriter implements Callable<Long> {
      *            incremented when writing on the SPO index to avoid double
      *            counting).
      */
-    public SPOIndexWriter(SPORelation spoRelation, ISPO[] a, int numStmts,
-            boolean clone, SPOKeyOrder keyOrder, IElementFilter<ISPO> filter,
-            AtomicLong sortTime, AtomicLong insertTime, AtomicLong numWritten) {
-        
+    public SPOIndexWriter(final SPORelation spoRelation, final ISPO[] a,
+            final int numStmts, final boolean clone,
+            final SPOKeyOrder keyOrder, final IElementFilter<ISPO> filter,
+            final AtomicLong sortTime, final AtomicLong insertTime,
+            final AtomicLong numWritten) {
+
         if (spoRelation == null)
             throw new IllegalArgumentException();
         
@@ -161,12 +163,8 @@ public class SPOIndexWriter implements Callable<Long> {
         // Note: Use the index on [statementStore]!
         this.ndx = spoRelation.getIndex(keyOrder);
         
-        if (ndx == null) {
-            
-            throw new IllegalStateException("No index? keyOrder=" + keyOrder);
-            
-        }
-
+        assert ndx != null;
+        
     }
 
     /**
@@ -185,11 +183,9 @@ public class SPOIndexWriter implements Callable<Long> {
 
         { // sort
 
-            final long _begin = System.currentTimeMillis();
-
             Arrays.sort(stmts, 0, numStmts, comparator);
 
-            sortTime.addAndGet(System.currentTimeMillis() - _begin);
+            sortTime.addAndGet(System.currentTimeMillis() - begin);
 
         }
 
@@ -266,9 +262,8 @@ public class SPOIndexWriter implements Callable<Long> {
         
         final long writeCount = aggregator.getResult();
 
-        insertTime.addAndGet(System.currentTimeMillis()
-                - _begin);
-        
+        insertTime.addAndGet(System.currentTimeMillis() - _begin);
+
         if (keyOrder.isPrimaryIndex()) {
 //        if (keyOrder == SPOKeyOrder.SPO) {
 
@@ -283,9 +278,7 @@ public class SPOIndexWriter implements Callable<Long> {
 
         }
 
-        final long elapsed = System.currentTimeMillis() - begin;
-
-        return elapsed;
+        return System.currentTimeMillis() - begin;
 
     }
 

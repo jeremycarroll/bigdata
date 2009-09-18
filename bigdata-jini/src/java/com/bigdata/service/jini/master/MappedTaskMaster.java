@@ -43,7 +43,6 @@ import com.bigdata.btree.BigdataMap;
 import com.bigdata.btree.BigdataSet;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.rdf.load.RDFDataLoadMaster;
-import com.bigdata.rdf.store.ITripleStore;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.jini.JiniFederation;

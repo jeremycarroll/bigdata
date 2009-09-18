@@ -364,7 +364,8 @@ public class SPOPredicate implements IPredicate<ISPO> {
         case 2:
             return o;
         case 3:
-            if(c!=null) return c;
+            return c;
+//            if(c!=null) return c;
             // fall through
         default:
             throw new IndexOutOfBoundsException(""+index);

@@ -80,9 +80,7 @@ public class TestAll extends TestCase {
          * Correctness tests for the asynchronous bulk data loader variant
          * which does not support SIDs.
          */
-        suite.addTestSuite(TestAsynchronousStatementBufferWithoutSids.class);
-        // and for a variant that should fix the blocking parser problems.
-        suite.addTestSuite(TestAsynchronousStatementBufferWithoutSids2.class);
+        suite.addTestSuite(TestAsynchronousStatementBuffer.class);
         
         return suite;
         

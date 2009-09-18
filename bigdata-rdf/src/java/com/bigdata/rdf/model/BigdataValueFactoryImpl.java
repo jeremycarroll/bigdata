@@ -355,7 +355,7 @@ public class BigdataValueFactoryImpl implements BigdataValueFactory {
 
     }
 
-    final public BigdataValue asValue(Value v) {
+    final public BigdataValue asValue(final Value v) {
 
         if (v == null)
             return null;

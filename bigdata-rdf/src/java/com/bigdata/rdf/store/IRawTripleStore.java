@@ -60,37 +60,11 @@ public interface IRawTripleStore extends ITripleStore, ITermIdCodes {
      */
     long NULL = 0L;
     
-//    /**
-//     * The #of terms in a statement (3 is a triple store, 4 is a quad store).
-//     * 
-//     * @deprecated 
-//     */
-//    int N = 3;
-
-//    /** @deprecated by {@link SPORelation} */
-//    abstract public IIndex getSPOIndex();
-//    /** @deprecated by {@link SPORelation} */
-//    abstract public IIndex getPOSIndex();
-//    /** @deprecated by {@link SPORelation} */
-//    abstract public IIndex getOSPIndex();
+    /**
+     * The constant <code>NULL</code>.
+     */
+    String NULLSTR = "NULL";
     
-//    /**
-//     * The optional index on which {@link Justification}s are stored.
-//     * 
-//     * @deprecated by {@link SPORelation}
-//     */
-//    abstract public IIndex getJustificationIndex();
-
-//    /**
-//     * Return the statement index identified by the {@link IKeyOrder}.
-//     * 
-//     * @param keyOrder
-//     *            The key order.
-//     * 
-//     * @return The statement index for that access path.
-//     */
-//    abstract public IIndex getStatementIndex(IKeyOrder<ISPO> keyOrder);
-
     /**
      * Add a term into the term:id index and the id:term index, returning the
      * assigned term identifier (non-batch API).
@@ -171,16 +145,22 @@ public interface IRawTripleStore extends ITripleStore, ITermIdCodes {
      *            The term identifier for the predicate.
      * @param o
      *            The term identifier for the object.
+     * @param c
+     *            The term identifier for the context (required for quads and
+     *            ignored for triples).
      * 
      * @return The {@link SPO} for that statement, including its
      *         {@link StatementEnum} -or- <code>null</code> iff the statement is
      *         not in the database.
      * 
      * @exception IllegalArgumentException
-     *                if any of the arguments is {@link #NULL}.
-     * 
-     * @deprecated does not support quads.
+     *                if the s, p, or o is {@link #NULL}.
+     * @exception IllegalArgumentException
+     *                if the c is {@link #NULL} and {@link #isQuads()} would
+     *                return <code>true</code>.
      */
+    public ISPO getStatement(long s, long p, long o, long c);
+    /** @deprecated does not support quads. */
     public ISPO getStatement(long s, long p, long o);
     
     /**
@@ -324,7 +304,15 @@ public interface IRawTripleStore extends ITripleStore, ITermIdCodes {
             final IChunkedOrderedIterator<ISPO> itr);
 
     /**
-     * Externalizes a statement using an abbreviated syntax.
+     * Externalizes a quad or a triple with a statement identifier using an
+     * abbreviated syntax.
+     */
+    public String toString(long s, long p, long o, long c);
+
+    /**
+     * Externalizes a triple using an abbreviated syntax.
+     * 
+     * @deprecated by {@link #toString(long, long, long, long)}
      */
     public String toString(long s, long p, long o);
 

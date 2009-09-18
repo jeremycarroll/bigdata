@@ -87,7 +87,7 @@ public class TestAll extends TestCase {
             
         }
         
-        TestSuite suite = new TestSuite("Sesame 2.x integration");
+        final TestSuite suite = new TestSuite("Sesame 2.x integration");
        
         // bootstrap tests for the BigdataSail
         suite.addTestSuite(TestBootstrapBigdataSail.class);
@@ -98,6 +98,7 @@ public class TestAll extends TestCase {
         // run the test suite without statement identifiers enabled.
         suite.addTest(TestBigdataSailWithoutSids.suite());
         
+        suite.addTest(TestBigdataSailWithQuads.suite());
         
 // Restore the following tests after adapting to Sesame 2.x
 //        

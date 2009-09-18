@@ -92,16 +92,19 @@ public class TestLocalTripleStoreWithoutStatementIdentifiers extends AbstractTes
     }
 
     public Properties getProperties() {
+        
+        final Properties properties = super.getProperties();
 
-        /*
-         * Note: nothing needs to be overriden.  This test corresponds to the
-         * default configuration for the LocalTripleStore.
-         */
-        
-        Properties properties = super.getProperties();
-        
         // turn off statement identifiers.
-        properties.setProperty(com.bigdata.rdf.store.AbstractTripleStore.Options.STATEMENT_IDENTIFIERS,"false");
+        properties
+                .setProperty(
+                        com.bigdata.rdf.store.AbstractTripleStore.Options.STATEMENT_IDENTIFIERS,
+                        "false");
+
+        // triples only.
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.QUADS,
+                "false");
 
         return properties;
         

@@ -33,10 +33,21 @@ import java.io.Serializable;
 import java.util.Comparator;
 
 import com.bigdata.btree.keys.IKeyBuilder;
+import com.bigdata.btree.keys.KeyBuilder;
+import com.bigdata.rdf.model.StatementEnum;
+import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.striterator.IKeyOrder;
 
 /**
  * Represents the key order used by an index for a triple relation.
+ * 
+ * @serial The serialization of the class is quite small since the only instance
+ *         field is {@link #index()}. All other data are static. However, it is
+ *         still MUCH more efficient to only transmit the {@link #index()} byte
+ *         without the overhead of the class metadata, which is an additional
+ *         <strong>60</strong> bytes! Classes embedding serialized
+ *         {@link SPOKeyOrder} are strongly encouraged to make this
+ *         optimization.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -63,8 +74,12 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
     public static final transient int _PCSO = 7;
     public static final transient int _SOPC = 8;
 
+    public static final transient int FIRST_TRIPLE_INDEX = _SPO;
+    public static final transient int LAST_TRIPLE_INDEX = _POS;
+
     public static final transient int FIRST_QUAD_INDEX = _SPOC;
-    public static final transient int LAST_QUAD_INDEX = _SPOC;
+    public static final transient int LAST_QUAD_INDEX = _SOPC;
+
     public static final transient int MAX_INDEX_COUNT = 9;
     
     /*
@@ -379,16 +394,142 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
     }
     
     /**
-     * Imposes the canonicalizing mapping during object de-serialization.
+     * Decode the key into an {@link SPO}. The {@link StatementEnum} and the
+     * optional SID will not be decoded, since it is carried in the B+Tree
+     * value. However, if the {@link SPOKeyOrder} is a quad order then the
+     * {@link SPO#c()} will be bound.
      * 
-     * @todo The serialization is fatter than is necessary. All we need to
-     *       transmit is a single byte coding the {@link #index()}. To do that
-     *       we need to implement {@link Externalizable}, but we also must make
-     *       sure to resolve the byte to the singleton.
-     *       <p>
-     *       Note: Serialization breaks with the introduction of quads as the
-     *       name field is no longer serialized and the {@link #index()} is
-     *       serialized as a byte field.
+     * @param keyOrder
+     *            The natural order of the key.
+     * @param key
+     *            The key.
+     * 
+     * @return The decoded key.
+     */
+    public SPO decodeKey(final byte[] key) {
+        
+        /*
+         * Note: GTE since the key is typically a reused buffer which may be
+         * larger than the #of bytes actually holding valid data.
+         */
+        final int keyArity = getKeyArity();
+
+        assert key.length >= 8 * keyArity;
+
+        final long _0 = KeyBuilder.decodeLong(key, 0);
+        
+        final long _1 = KeyBuilder.decodeLong(key, 8);
+      
+        final long _2 = KeyBuilder.decodeLong(key, 8+8);
+
+        // 4th key position exists iff quad keys.
+        final long _3 = keyArity == 4 ? KeyBuilder.decodeLong(key, 8 + 8 + 8)
+                : IRawTripleStore.NULL;
+
+        /*
+         * Re-order the key into SPO order.
+         */
+        
+        final long s, p, o, c;
+        
+        switch (index) {
+
+        /*
+         * Triples
+         * 
+         * [c] will be NULL for triples, but the SID may be read from the value
+         * associated with the key below and set on the SPO object.
+         */
+
+        case SPOKeyOrder._SPO:
+            s = _0;
+            p = _1;
+            o = _2;
+            c = IRawTripleStore.NULL;
+            break;
+            
+        case SPOKeyOrder._POS:
+            p = _0;
+            o = _1;
+            s = _2;
+            c = IRawTripleStore.NULL;
+            break;
+            
+        case SPOKeyOrder._OSP:
+            o = _0;
+            s = _1;
+            p = _2;
+            c = IRawTripleStore.NULL;
+            break;
+
+        /*
+         * Quads
+         */
+
+        case SPOKeyOrder._SPOC:
+            s = _0;
+            p = _1;
+            o = _2;
+            c = _3;
+            break;
+            
+        case SPOKeyOrder._POCS:
+            p = _0;
+            o = _1;
+            c = _2;
+            s = _3;
+            break;
+
+        case SPOKeyOrder._OCSP:
+            o = _0;
+            c = _1;
+            s = _2;
+            p = _3;
+            break;
+
+        case SPOKeyOrder._CSPO:
+            c = _0;
+            s = _1;
+            p = _2;
+            o = _3;
+            break;
+
+        case SPOKeyOrder._PCSO:
+            p = _0;
+            c = _1;
+            s = _2;
+            o = _3;
+            break;
+
+        case SPOKeyOrder._SOPC:
+            s = _0;
+            o = _1;
+            p = _2;
+            c = _3;
+            break;
+
+        default:
+
+            throw new UnsupportedOperationException();
+
+        }
+    
+        return new SPO(s, p, o, c);
+
+    }
+
+    /**
+     * Imposes the canonicalizing mapping during object de-serialization.
+     * <p>
+     * Note: implementing {@link Externalizable} drops the serialized size from
+     * 61 bytes per instance to 56 bytes per instance. On the other hand, if the
+     * class embedding the {@link SPOKeyOrder} serializes the {@link #index} as
+     * a <code>byte</code>, it only take a single byte to serialize each
+     * instance.
+     * <p>
+     * Note: Serialization breaks with the introduction of quads as the
+     * <code>name</code> field is no longer serialized and the {@link #index()}
+     * is serialized as a byte field.
      */
     private Object readResolve() throws ObjectStreamException {
 

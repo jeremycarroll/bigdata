@@ -263,6 +263,9 @@ public class BigdataSailHelper {
          */
         properties.setProperty(Options.STATEMENT_IDENTIFIERS, "false");
 
+        // Triples only.
+        properties.setProperty(Options.QUADS, "false");
+
         /*
          * Turn off justifications (impacts only the load performance, but it is
          * a big impact and only required if you will be doing TM). (Actually,
@@ -439,16 +442,18 @@ public class BigdataSailHelper {
     }
     
     /**
-     * Shows some interesting details about the SPO index.
+     * Shows some interesting details about the primary index for the {@link SPORelation}.
      * 
      * @param sail
      */
-    public static void showSPOIndexDetails(BigdataSail sail) {
+    public static void showSPOIndexDetails(final BigdataSail sail) {
         
-        IIndex ndx = sail.getDatabase().getSPORelation().getSPOIndex();
-        IndexMetadata md = ndx.getIndexMetadata();
-        
-        System.out.println("SPO:");
+        final IIndex ndx = sail.getDatabase().getSPORelation()
+                .getPrimaryIndex();
+
+        final IndexMetadata md = ndx.getIndexMetadata();
+
+        System.out.println(md.getName()+":");
         System.out.println(md.toString());
         System.out.println(md.getTupleSerializer().toString());
         

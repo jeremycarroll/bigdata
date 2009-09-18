@@ -316,11 +316,11 @@ public class BigdataRepository implements Repository {
         sb.append("bnodeCount\t" + tripleStore.getBNodeCount()+"\n");
 
         sb.append("branchingFactor\t"
-                + tripleStore.getSPORelation().getSPOIndex()
+                + tripleStore.getSPORelation().getPrimaryIndex()
                         .getIndexMetadata().getBranchingFactor() + "\n");
 
         sb.append("writeRetentionCapacity\t"
-                + tripleStore.getSPORelation().getSPOIndex()
+                + tripleStore.getSPORelation().getPrimaryIndex()
                         .getIndexMetadata()
                         .getWriteRetentionQueueCapacity() + "\n");
 
@@ -1233,7 +1233,8 @@ public class BigdataRepository implements Repository {
                  * federations since the joins are performed using the index
                  * partitions not the scale-out indices.
                  */
-                final IIndex ndx = conn.getTripleStore().getSPORelation().getSPOIndex();
+                final IIndex ndx = conn.getTripleStore().getSPORelation()
+                        .getPrimaryIndex();
 
                 if (ndx instanceof ILocalBTreeView) {
 
