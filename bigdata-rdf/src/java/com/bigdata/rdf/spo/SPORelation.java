@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -1419,7 +1420,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
             futures = getExecutorService().invokeAll(tasks);
 
             for (int i = 0; i < tasks.size(); i++) {
-                futures.get(i);
+                
+                futures.get(i).get();
+                
             }
 /*
             elapsed_SPO = futures.get(0).get();
@@ -1435,14 +1438,12 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
             throw new RuntimeException(ex);
 
-        }
-/*        
         } catch (ExecutionException ex) {
 
             throw new RuntimeException(ex);
 
         }
-*/
+
         final long elapsed = System.currentTimeMillis() - begin;
 
         if (log.isInfoEnabled() && numStmts > 1000) {
@@ -1574,7 +1575,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
             futures = getExecutorService().invokeAll(tasks);
             
             for (int i = 0; i < tasks.size(); i++) {
-                futures.get(i);
+                
+                futures.get(i).get();
+                
             }
 /*
             elapsed_SPO = futures.get(0).get();
@@ -1607,15 +1610,13 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
             throw new RuntimeException(ex);
 
-        }
-/*        
         } catch (ExecutionException ex) {
 
             throw new RuntimeException(ex);
 
         }
-*/
-        long elapsed = System.currentTimeMillis() - begin;
+
+        final long elapsed = System.currentTimeMillis() - begin;
 
         if (log.isInfoEnabled() && numStmts > 1000) {
 
