@@ -369,7 +369,7 @@ public class SampleCode {
     /**
      * Run a simple LUBM load and query benchmark.
      * 
-     * @param lubmResource the ZIP file containng the LUBM data files
+     * @param lubmResource the ZIP file containing the LUBM data files
      * @param filter helps filter out non-data files in the ZIP file
      * @throws Exception
      */
@@ -536,7 +536,8 @@ public class SampleCode {
             Properties properties = 
                 sampleCode.loadProperties("fullfeature.properties");
                 //sampleCode.loadProperties("rdfonly.properties");
-            //sampleCode.loadProperties("fastload.properties");
+          //sampleCode.loadProperties("fastload.properties");
+          sampleCode.loadProperties("quads.properties");
             
             // create a backing file
             File journal = File.createTempFile("bigdata", ".jnl");
