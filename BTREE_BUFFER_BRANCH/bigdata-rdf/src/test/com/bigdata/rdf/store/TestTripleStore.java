@@ -94,6 +94,19 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
     public TestTripleStore(String name) {
         super(name);
     }
+
+    /**
+     * Verify that {@link AbstractTripleStore#isLiteral(long)} and friends all
+     * reported <code>false</code> for {@link IRawTripleStore#NULL}.
+     */
+    public void test_bitFlagsReportFalseForNULL() {
+
+        assertFalse(AbstractTripleStore.isStatement(NULL));
+        assertFalse(AbstractTripleStore.isLiteral(NULL));
+        assertFalse(AbstractTripleStore.isURI(NULL));
+        assertFalse(AbstractTripleStore.isBNode(NULL));
+
+    }
     
     /**
      * Test helper verifies that the term is not in the lexicon, adds the term
@@ -104,7 +117,8 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
      * @param term
      *            The term.
      */
-    protected void doAddTermTest(AbstractTripleStore store, Value term) {
+    protected void doAddTermTest(final AbstractTripleStore store,
+            final Value term) {
 
         assertEquals(NULL, store.getTermId(term));
 
@@ -585,12 +599,16 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
             assertEquals(rdfType_id, store.getTermId(rdfType));
             assertEquals(rdfsSubClassOf_id, store.getTermId(rdfsSubClassOf));
     
-            assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex().rangeCount(null,
-                    null));
-            assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex().rangeCount(null,
-                    null));
-            assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex().rangeCount(null,
-                    null));
+            for (String fqn : store.getSPORelation().getIndexNames()) {
+                assertEquals("statementCount", 5, store.getSPORelation()
+                        .getIndex(fqn).rangeCount(null, null));
+            }
+//            assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex().rangeCount(null,
+//                    null));
+//            assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex().rangeCount(null,
+//                    null));
+//            assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex().rangeCount(null,
+//                    null));
             assertTrue(store.hasStatement(x, rdfType, C));
             assertTrue(store.hasStatement(y, rdfType, B));
             assertTrue(store.hasStatement(z, rdfType, A));
@@ -599,12 +617,16 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
     
             store.commit();// Note: Should not make any difference.
     
-            assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex().rangeCount(null,
-                    null));
-            assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex().rangeCount(null,
-                    null));
-            assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex().rangeCount(null,
-                    null));
+            for (String fqn : store.getSPORelation().getIndexNames()) {
+                assertEquals("statementCount", 5, store.getSPORelation()
+                        .getIndex(fqn).rangeCount(null, null));
+            }
+//            assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex().rangeCount(null,
+//                    null));
+//            assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex().rangeCount(null,
+//                    null));
+//            assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex().rangeCount(null,
+//                    null));
             assertTrue(store.hasStatement(x, rdfType, C));
             assertTrue(store.hasStatement(y, rdfType, B));
             assertTrue(store.hasStatement(z, rdfType, A));

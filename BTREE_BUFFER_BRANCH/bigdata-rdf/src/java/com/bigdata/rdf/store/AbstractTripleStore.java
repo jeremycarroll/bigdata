@@ -188,8 +188,6 @@ import com.bigdata.striterator.IKeyOrder;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
- * 
- * FIXME quads : finish code review of entire class.
  */
 abstract public class AbstractTripleStore extends
         AbstractResource<IDatabase<AbstractTripleStore>> implements ITripleStore,
@@ -223,22 +221,19 @@ abstract public class AbstractTripleStore extends
      */
     final protected boolean lexicon;
 
-//    /**
-//     * The #of term identifiers in the key for a statement index (3 is a triple
-//     * store, 4 is a quad store).
-//     * 
-//     * @deprecated by {@link #arity()}
-//     */
-//    final public int N = IRawTripleStore.N;
-
     /**
      * The #of term identifiers in the key for a statement index (3 is a triple
      * store, 4 is a quad store).
      * 
-     * @see Options#ARITY
+     * @see Options#QUADS
      */
     final private int spoKeyArity;
-    
+
+    /**
+     * <code>true</code> iff this is a quad store.
+     */
+    final private boolean quads;
+
     /**
      * Indicate whether this is a triple or a quad store (3 is a triple store, 4
      * is a quad store).
@@ -248,6 +243,17 @@ abstract public class AbstractTripleStore extends
     final public int getSPOKeyArity() {
         
         return spoKeyArity;
+        
+    }
+
+    /**
+     * Return <code>true</code> iff this is a quad store.
+     * 
+     * @see Options#QUADS
+     */
+    final public boolean isQuads() {
+        
+        return quads;
         
     }
     
@@ -643,7 +649,7 @@ abstract public class AbstractTripleStore extends
         String JUSTIFY = AbstractTripleStore.class.getName() + ".justify";
 
         String DEFAULT_JUSTIFY = "true";
-        
+
         /**
          * Boolean option (default {@value #DEFAULT_STATEMENT_IDENTIFIERS})
          * enables support for statement identifiers. A statement identifier is
@@ -651,12 +657,12 @@ abstract public class AbstractTripleStore extends
          * identifiers may be used to make statements about statements without
          * using RDF style reification.
          * <p>
-         * Statement identifers are assigned consistently when {@link Statement}s
-         * are mapped into the database. This is done using an extension of the
-         * <code>term:id</code> index to map the statement as if it were a
+         * Statement identifiers are assigned consistently when {@link Statement}
+         * s are mapped into the database. This is done using an extension of
+         * the <code>term:id</code> index to map the statement as if it were a
          * term onto a unique statement identifier. While the statement
-         * identifier is assigned canonically by the <code>term:id</code>
-         * index, it is stored redundently in the value position for each of the
+         * identifier is assigned canonically by the <code>term:id</code> index,
+         * it is stored redundantly in the value position for each of the
          * statement indices. While the statement identifier is, in fact, a term
          * identifier, the reverse mapping is NOT stored in the id:term index
          * and you CAN NOT translate from a statement identifier back to the
@@ -681,72 +687,28 @@ abstract public class AbstractTripleStore extends
          * concatenation of the subject, predicate, and object (or a hash of
          * their concatenation) as the value in the context position. While this
          * approach can be used with any quad store, it is less transparent and
-         * requires <em>twice</em> the amount of data on the disk since you
-         * need an additional three statement indices to cover the quad access
-         * paths.
-         * 
-         * @see ITermIndexCodes#TERM_CODE_STMT
-         * 
-         * @todo A design alternative is to use the SPO index to assign
-         *       statement identifiers and to NOT store them in the value
-         *       positions on the other indices (POS, OSP). The advantage of
-         *       this approach is less redundency (the statement is not present
-         *       in the forward and reverse indices for the lexicon is not
-         *       present in the other statement indices) - the drawback is not
-         *       having the statement identifier "on hand" regardless of the
-         *       index on which you are reading.
-         *       <p>
-         *       Regardless of whether the statement identifier is assigned by
-         *       the lexicon or the SPO index, the presence of source markers in
-         *       RDF/XML necessitates a two stage process to (a) resolve the
-         *       source Resource {URI or BNode} to the statement identifier; and
-         *       (b) utilize that statement identifier as the resolved "term
-         *       identifier" for other statements in the RDF/XML document with a
-         *       reference to the same Resource.
-         *       <p>
-         *       For example:
-         * 
-         * <pre>
-         *                     (joe, loves, mary):_a.
-         *                     (_a, reportedBy, tom).
-         * </pre>
-         * 
-         * where _a is a BNode identifying the source for (joe, loves, mary).
-         * The second statement uses _a to add provenance for the assertion
-         * (joe, loves, mary) - namely that the assertion was reported by tom.
-         * 
-         * @todo consider renaming as "provenance" mode and allowing a
-         *       "tripleStore" and "namedGraph" (or quadStore) mode as well.
-         *       <p>
-         *       The provenance mode supports statement metadata, including an
-         *       extension to the truth maintenance to remove statement metadata
-         *       when the statement about which it was asserted are removed and
-         *       an extension when reading or writing RDF/XML. The provenance
-         *       mode can function as if it were a quadStore as a SPARQL end
-         *       point, but it only uses 3 statement indices (the statement
-         *       identifiers are stored as values in the statement indices, not
-         *       as part of the key), and it will insist that the "source"
-         *       identifiers is a BNode and that there is a 1:1 correspondence
-         *       between a "source" and an explicit triple.
-         *       <p>
-         *       The tripleStore mode is a plain triple store using 3 statement
-         *       indices.
-         *       <p>
-         *       The quadStore mode is a plain quad store using 6 statement
-         *       indices (not implemented yet).
+         * requires <em>twice</em> the amount of data on the disk since you need
+         * an additional three statement indices to cover the quad access paths.
+         * <p>
+         * The provenance mode (SIDs) IS NOT compatible with the {@link #QUADS}
+         * mode. You may use either one, but not both in the same KB instance.
+         * <p>
+         * There are examples for using the provenance mode online.
          */
         String STATEMENT_IDENTIFIERS = AbstractTripleStore.class.getName()
                 + ".statementIdentifiers";
 
-        String DEFAULT_STATEMENT_IDENTIFIERS = "true";
+        String DEFAULT_STATEMENT_IDENTIFIERS = "false";
 
         /**
-         * The arity of the KB. This indicates a triple store (3) vs a quad
-         * store (4).
+         * Boolean option determines whether the KB instance will be a quad
+         * store or a triple store. For a triple store only, the
+         * {@link #STATEMENT_IDENTIFIERS} option determines whether or not the
+         * provenance mode is enabled.
          */
-        String ARITY = AbstractTripleStore.class.getName() + ".arity";
+        String QUADS = AbstractTripleStore.class.getName() + ".quads";
         
-        String DEFAULT_ARITY = "3";
+        String DEFAULT_QUADS = "false";
         
     }
 
@@ -755,6 +717,7 @@ abstract public class AbstractTripleStore extends
      * 
      * @see Options
      */
+    @SuppressWarnings("unchecked")
     protected AbstractTripleStore(IIndexManager indexManager, String namespace,
             Long timestamp, Properties properties) {
 
@@ -773,12 +736,22 @@ abstract public class AbstractTripleStore extends
         this.lexicon = Boolean.parseBoolean(getProperty(Options.LEXICON,
                 Options.DEFAULT_LEXICON));
 
-        this.spoKeyArity = Integer.valueOf(getProperty(Options.ARITY,
-                Options.DEFAULT_ARITY));
-        
+        this.quads = Boolean.valueOf(getProperty(Options.QUADS,
+                Options.DEFAULT_QUADS));
+
+        this.spoKeyArity = quads ? 4 : 3;
+
         this.statementIdentifiers = Boolean.parseBoolean(getProperty(
                 Options.STATEMENT_IDENTIFIERS,
                 Options.DEFAULT_STATEMENT_IDENTIFIERS));
+
+        if (statementIdentifiers && quads) {
+
+            throw new UnsupportedOperationException(Options.QUADS
+                    + " does not support the provenance mode ("
+                    + Options.STATEMENT_IDENTIFIERS + ")");
+            
+        }
 
         if (lexicon) {
 
@@ -829,6 +802,15 @@ abstract public class AbstractTripleStore extends
                     throw new RuntimeException(Options.AXIOMS_CLASS
                             + ": Must extend: " + BaseAxioms.class.getName());
                 }
+
+                if (cls != NoAxioms.class && quads) {
+
+                    throw new UnsupportedOperationException(Options.QUADS
+                            + " does not support inference ("
+                            + Options.AXIOMS_CLASS + ")");
+
+                }
+
                 axiomClass = cls;
 
             }
@@ -993,12 +975,13 @@ abstract public class AbstractTripleStore extends
         try {
 
             super.create();
-            
+
             if (lexicon) {
 
                 lexiconRelation = new LexiconRelation(getIndexManager(),
-                        getNamespace() + "."+LexiconRelation.NAME_LEXICON_RELATION, getTimestamp(),
-                        tmp);
+                        getNamespace() + "."
+                                + LexiconRelation.NAME_LEXICON_RELATION,
+                        getTimestamp(), tmp);
 
                 lexiconRelation.create();//assignedSplits);
                 
@@ -1275,6 +1258,7 @@ abstract public class AbstractTripleStore extends
         return spoRelation;
 
     }
+
     private SPORelation spoRelation;
 
     /**
@@ -1287,13 +1271,14 @@ abstract public class AbstractTripleStore extends
 
             lexiconRelation = (LexiconRelation) getIndexManager()
                     .getResourceLocator().locate(
-                            getNamespace()+"."
-                                    + LexiconRelation.NAME_LEXICON_RELATION, getTimestamp());
-            
+                            getNamespace() + "."
+                                    + LexiconRelation.NAME_LEXICON_RELATION,
+                            getTimestamp());
+
         }
 
         return lexiconRelation;
-        
+
     }
     private LexiconRelation lexiconRelation;
         
@@ -1320,26 +1305,86 @@ abstract public class AbstractTripleStore extends
         return getLexiconRelation().getSearchEngine();
         
     }
+    
+    final public long getNamedGraphCount() {
 
-//    /** @deprecated by getSPORelation(). */
-//    final public IIndex getStatementIndex(final IKeyOrder<ISPO> keyOrder) {
-//
-//        return getSPORelation().getIndex(keyOrder);
-//        
-//    }
+        if(!isQuads())
+            throw new UnsupportedOperationException();
+
+        final Iterator<?> itr = getSPORelation().distinctTermScan(
+                SPOKeyOrder.CSPO);
+
+        long n = 0;
+
+        while(itr.hasNext()) {
+            
+            itr.next();
+            
+            n++;
+            
+        }
+        
+        return n;
+
+    }
 
     final public long getStatementCount() {
 
-        return getSPORelation().getPrimaryIndex().rangeCount(null, null);
+        return getStatementCount(null/* c */, false/* exact */);
 
     }
 
-    final public long getExactStatementCount() {
-        
-        return getStatementCount(true/* exact */);
-        
+    final public long getStatementCount(final boolean exact) {
+
+        return getStatementCount(null/*c*/, exact);
+
     }
 
+    final public long getStatementCount(final Resource c) {
+
+        return getStatementCount(c, false/* exact */);
+
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Core implementation.
+     */
+    final public long getStatementCount(final Resource c, final boolean exact) {
+
+        if (exact) {
+
+            return getAccessPath(null/* s */, null/* p */, null/* o */, c, null/* filter */)
+                    .rangeCount(true/* exact */);
+
+        } else {
+
+            return getAccessPath(null/* s */, null/* p */, null/* o */, c, null/* filter */)
+                    .rangeCount(true/* exact */);
+
+        }
+
+    }
+
+    /**
+     * The #of explicit statements in the database (exact count based on
+     * key-range scan).
+     * <p>
+     * Note: In order to get the #of explicit statements in the repository we
+     * have to actually do a range scan and figure out for each statement
+     * whether or not it is explicit.
+     * 
+     * @param c
+     *            The context (optional). When not given, the count is reported
+     *            across all named graphs.
+     */
+    public long getExplicitStatementCount(final Resource c) {
+
+        return getAccessPath(null/* s */, null/* p */, null/* o */, c,
+                ExplicitSPOFilter.INSTANCE).rangeCount(true/* exact */);
+
+    }
     
     /**
      * Clears hard references to any indices, relations, etc. MUST be extended
@@ -1348,6 +1393,7 @@ abstract public class AbstractTripleStore extends
      * @throws IllegalStateException
      *             if the view is read only.
      */
+    @SuppressWarnings("unchecked")
     public void abort() {
 
         if (isReadOnly())
@@ -1426,7 +1472,6 @@ abstract public class AbstractTripleStore extends
      * point) vs read-committed (writes become immediately visible once they are
      * committed).
      */
-    @SuppressWarnings("unchecked")
     final public AbstractTripleStore asReadCommittedView() {
 
         if (getTimestamp() == ITx.READ_COMMITTED) {
@@ -1456,37 +1501,6 @@ abstract public class AbstractTripleStore extends
     }
     private SoftReference<AbstractTripleStore> readCommittedRef;
     
-    /**
-     * The #of explicit statements in the database (exact count based on
-     * key-range scan).
-     * <p>
-     * Note: In order to get the #of explicit statements in the repository we
-     * have to actually do a range scan and figure out for each statement
-     * whether or not it is explicit.
-     */
-    public long getExplicitStatementCount() {
-
-        return getAccessPath(SPOKeyOrder.SPO, ExplicitSPOFilter.INSTANCE)
-                .rangeCount(true/* exact */);
-        
-    }
-    
-    final public long getStatementCount(final boolean exact) {
-
-        final IIndex ndx = getSPORelation().getPrimaryIndex();
-
-        if (exact) {
-
-            return ndx.rangeCountExact(null/* fromKey */, null/* toKey */);
-
-        } else {
-
-            return ndx.rangeCount(null/* fromKey */, null/* toKey */);
-
-        }
-
-    }
-
     final public long getJustificationCount() {
 
         if (justify) {
@@ -1650,9 +1664,25 @@ abstract public class AbstractTripleStore extends
      * Sesame integration.
      */
 
-    // FIXME quads : addStatement(s,p,o,...c)
     final public void addStatement(final Resource s, final URI p, final Value o) {
+        
+        addStatement(s, p, o, null);
 
+    }
+
+    final public void addStatement(final Resource s, final URI p,
+            final Value o, final Resource c) {
+
+        if (spoKeyArity == 4 && c == null) {
+
+            /*
+             * The context position MUST be bound for a quad store.
+             */
+
+            throw new UnsupportedOperationException();
+            
+        }
+        
         /*
          * Note: This uses the batch API.
          */
@@ -1660,47 +1690,57 @@ abstract public class AbstractTripleStore extends
         final IStatementBuffer<Statement> buffer = new StatementBuffer<Statement>(
                 this, 1);
 
-        buffer.add(s, p, o);
+        buffer.add(s, p, o, c);
 
         buffer.flush();
 
     }
 
-    // FIXME quads : getStatement(s,p,o,...c)
     final public ISPO getStatement(final long s, final long p, final long o) {
+        
+        return getStatement(s, p, o, NULL/* c */);
 
-        if (s == NULL || p == NULL || o == NULL) {
+    }
+    
+    final public ISPO getStatement(final long s, final long p, final long o,
+            final long c) {
+
+        if (s == NULL || p == NULL || o == NULL
+                || (c == NULL && spoKeyArity == 4)) {
 
             throw new IllegalArgumentException();
 
         }
 
-        final ISPO spo = new SPO(s,p,o);
-        
+        final ISPO spo = spoKeyArity == 4 ? new SPO(s, p, o) : new SPO(s, p, o,
+                c);
+
         final IIndex ndx = getSPORelation().getPrimaryIndex();
 
         final SPOTupleSerializer tupleSer = (SPOTupleSerializer) ndx
                 .getIndexMetadata().getTupleSerializer();
 
         final byte[] key = tupleSer.serializeKey(spo);
-//        final byte[] key = tupleSer.statement2Key(s, p, o);
 
         final byte[] val = ndx.lookup(key);
 
         if (val == null) {
 
-            // statement is not in the database.
+            // The statement is not in the database.
+            
             return null;
 
         }
 
-        // decode the value and set it on the SPO.
-        SPO.decodeValue(spo, val);
+        /*
+         * Decode the value, set it on the SPO, and return the SPO.
+         * 
+         * Note: If SIDs are enabled, then this will set the statement
+         * identifier on the SID if it is an explicit statement.
+         */
         
-        // The statement is known to the database.
-        return spo;
-//        return new SPO(s, p, o, val);
-
+        return SPO.decodeValue(spo, val);
+        
     }
 
     /**
@@ -1713,15 +1753,39 @@ abstract public class AbstractTripleStore extends
      * @param s
      * @param p
      * @param o
+     * 
+     * @deprecated by {@link #hasStatement(long, long, long, long)}
      */
-    // FIXME quads : hasStatement(s,p,o,...c).
     final public boolean hasStatement(final long s, final long p, final long o) {
 
-        if (s != NULL && p != NULL && o != NULL) {
+        return hasStatement(s, p, o, NULL/* c */);
 
+    }
+
+    /**
+     * Return true if the statement pattern matches any statement(s) in the store
+     * (non-batch API).
+     * <p>
+     * Note: This method does not verify whether or not the statement is
+     * explicit.
+     * 
+     * @param s
+     * @param p
+     * @param o
+     * @param c
+     */
+    final public boolean hasStatement(final long s, final long p, final long o,
+            final long c) {
+
+        if (s != NULL && p != NULL && o != NULL && (!quads || c != NULL)) {
+
+            /*
+             * Point test.
+             */
+            
             final IIndex ndx = getSPORelation().getPrimaryIndex();
 
-            final SPO spo = new SPO(s, p, o);
+            final SPO spo = new SPO(s, p, o, c);
 
             final byte[] key = ndx.getIndexMetadata().getTupleSerializer()
                     .serializeKey(spo);
@@ -1740,20 +1804,22 @@ abstract public class AbstractTripleStore extends
         }
 
         /*
-         * Use a range scan over the triple pattern and see if there are any
-         * matches.
+         * This uses a range scan over the statement pattern to see if there are
+         * any matches.
          */
-        
-        final IAccessPath<ISPO> accessPath = getAccessPath(s, p, o);
-        
-        final boolean isEmpty = accessPath.isEmpty();
 
-        return !isEmpty;
+        return getSPORelation().getAccessPath(s, p, o, c).isEmpty();
 
     }
 
-    // FIXME quads : hasStatement(s,p,o,...c)
-    final public boolean hasStatement(Resource s, URI p, Value o) {
+    final public boolean hasStatement(final Resource s, final URI p,
+            final Value o) {
+
+        return hasStatement(s, p, o, null/* c */);
+
+    }
+    
+    final public boolean hasStatement(Resource s, URI p, Value o, Resource c) {
 
         /*
          * convert other Value object types to our object types.
@@ -1766,18 +1832,18 @@ abstract public class AbstractTripleStore extends
 
         o = valueFactory.asValue(o);
 
+        c = valueFactory.asValue(c);
+
         /*
          * Convert our object types to internal identifiers.
          * 
          * Note: If a value was specified and it is not in the terms index then
          * the statement can not exist in the KB.
          */
+
         final long _s = getTermId(s);
 
         if (_s == NULL && s != null) {
-         
-            if(log.isDebugEnabled())
-                log.debug("Subject not in kb: "+s);
             
             return false;
             
@@ -1786,9 +1852,6 @@ abstract public class AbstractTripleStore extends
         final long _p = getTermId(p);
 
         if (_p == NULL && p != null) {
-
-            if(log.isDebugEnabled())
-                log.debug("Predicate not in kb: "+s);            
             
             return false;
             
@@ -1797,45 +1860,62 @@ abstract public class AbstractTripleStore extends
         final long _o = getTermId(o);
 
         if (_o == NULL && o != null) {
-
-            if(log.isDebugEnabled())
-                log.debug("Object not in kb: "+s);
             
             return false;
             
         }
 
-        final boolean found = hasStatement(_s, _p, _o);
-        
-        if(log.isDebugEnabled()) {
+        final long _c = getTermId(c);
+
+        if (_c == NULL && c != null) {
             
-            log.debug("<" + s + "," + p + "," + o + "> : found=" + found);
+            return false;
             
         }
+
+        final boolean found = hasStatement(_s, _p, _o, _c);
+        
+//        if(log.isDebugEnabled()) {
+//            
+//            log.debug("<" + s + "," + p + "," + o + "> : found=" + found);
+//            
+//        }
         
         return found;
 
     }
 
-    // FIXME quads : removeStatements(s,p,o,...)
     final public long removeStatements(final Resource s, final URI p,
             final Value o) {
 
-        return getAccessPath(s, p, o).removeAll();
+        return removeStatements(s, p, o, null/* c */);
 
     }
 
-    // FIXME quads : getStatements(s,p,o,...c)
-    public BigdataStatement getStatement(final Resource s, final URI p,
+    final public long removeStatements(final Resource s, final URI p,
+            final Value o, final Resource c) {
+
+        return getAccessPath(s, p, o, c, null/* filter */).removeAll();
+
+    }
+
+    final public BigdataStatement getStatement(final Resource s, final URI p,
             final Value o) throws SailException {
 
-        if (s == null || p == null || o == null) {
+        return getStatement(s, p, o, null/* c */);
+        
+    }
+
+    final public BigdataStatement getStatement(final Resource s, final URI p,
+            final Value o, final Resource c) throws SailException {
+
+        if (s == null || p == null || o == null || (quads && c == null)) {
 
             throw new IllegalArgumentException();
 
         }
 
-        final BigdataStatementIterator itr = getStatements(s, p, o);
+        final BigdataStatementIterator itr = getStatements(s, p, o, c);
 
         try {
 
@@ -1855,11 +1935,17 @@ abstract public class AbstractTripleStore extends
 
     }
 
-    // FIXME quads : getStatements(s,p,o,...c)
-    public BigdataStatementIterator getStatements(final Resource s,
+    final public BigdataStatementIterator getStatements(final Resource s,
             final URI p, final Value o) {
 
-        return asStatementIterator(getAccessPath(s, p, o).iterator());
+        return getStatements(s, p, o, null/* c */);
+
+    }
+
+    final public BigdataStatementIterator getStatements(final Resource s,
+            final URI p, final Value o, final Resource c) {
+
+        return asStatementIterator(getAccessPath(s, p, o, c).iterator());
 
     }
 
@@ -1869,7 +1955,6 @@ abstract public class AbstractTripleStore extends
 
     }
 
-    // FIXME quads : asStatement(ISPO)
     public BigdataStatement asStatement(final ISPO spo) {
 
         /*
@@ -1882,24 +1967,28 @@ abstract public class AbstractTripleStore extends
         ids.add(spo.p());
         
         ids.add(spo.o());
-        
-        if (spo.hasStatementIdentifier()) {
 
-            ids.add(spo.getStatementIdentifier());
-            
+        final long c = spo.c();
+        
+        if (c != NULL) {
+
+            ids.add(c);
+
         }
-        
-        final Map<Long,BigdataValue> terms = getLexiconRelation().getTerms(ids);
-        
+
+        final Map<Long, BigdataValue> terms = getLexiconRelation()
+                .getTerms(ids);
+
         /*
          * Expose as a Sesame compatible Statement object.
          */
+
         return getValueFactory().createStatement(//
                 (BigdataResource)  terms.get(spo.s()),//
-                (BigdataURI)       terms.get(spo.p()),
-                (BigdataValue)     terms.get(spo.o()),
-                (BigdataResource)  (spo.hasStatementIdentifier() ? terms.get(spo.getStatementIdentifier()) : null),//
-                spo.getStatementType()
+                (BigdataURI)       terms.get(spo.p()),//
+                (BigdataValue)     terms.get(spo.o()),//
+                (BigdataResource)  (c != NULL ? terms.get(c) : null),//
+                spo.getStatementType()//
                 );
         
     }
@@ -1912,35 +2001,61 @@ abstract public class AbstractTripleStore extends
 
     }
 
-    // FIXME quads : getAccessPath()
     public IAccessPath<ISPO> getAccessPath(final Resource s, final URI p,
             final Value o) {
 
-        return getAccessPath(s, p, o, null/* filter */);
+        return getAccessPath(s, p, o, null/*c*/, null/* filter */);
 
     }
-    
-    // FIXME quads : getAccessPath()
+
     public IAccessPath<ISPO> getAccessPath(final Resource s, final URI p,
             final Value o, final IElementFilter<ISPO> filter) {
 
+        return getAccessPath(s, p, o, null/* c */, filter);
+        
+    }
+    
+    final public IAccessPath<ISPO> getAccessPath(final Resource s, final URI p,
+            final Value o, Resource c) {
+
+        return getAccessPath(s, p, o, c, null/* filter */);
+
+    }
+
+    final public IAccessPath<ISPO> getAccessPath(final Resource s, final URI p,
+            final Value o, final Resource c, final IElementFilter<ISPO> filter) {
+
         /*
-         * convert other Value object types to our object types.
+         * Convert other Value object types to our object types.
+         * 
+         * Note: the value factory is not requested unless we need to translate
+         * some value. This hack allows temporary stores without a lexicon to
+         * use the same entry points as those with one. Without this methods
+         * such as getStatementCount(c,exact) would throw exceptions when the
+         * lexicon was not associated with the store.
          */
 
-        final BigdataValueFactory valueFactory = getValueFactory();
+        final BigdataValueFactory valueFactory = (s != null || p != null || o != null
+                | c != null) ? getValueFactory() : null;
         
-        final BigdataResource _s = valueFactory.asValue(s);
+        final BigdataResource _s = valueFactory == null ? null : valueFactory
+                .asValue(s);
 
-        final BigdataURI      _p = valueFactory.asValue(p);
+        final BigdataURI _p = valueFactory == null ? null : valueFactory
+                .asValue(p);
 
-        final BigdataValue    _o = valueFactory.asValue(o);
+        final BigdataValue _o = valueFactory == null ? null : valueFactory
+                .asValue(o);
+
+        // Note: _c is null unless quads.
+        final BigdataValue _c = quads ? valueFactory == null ? null
+                : valueFactory.asValue(c) : null;
 
         /*
          * Batch resolve all non-null values to get their term identifiers.
          */
         int nnonNull = 0;
-        final BigdataValue[] values = new BigdataValue[3];
+        final BigdataValue[] values = new BigdataValue[spoKeyArity];
         {
 
             if (s != null)
@@ -1952,8 +2067,13 @@ abstract public class AbstractTripleStore extends
             if (o != null)
                 values[nnonNull++] = _o;
 
-            getLexiconRelation().addTerms(values, nnonNull, true/* readOnly */);
-            
+            if (c != null && quads)
+                values[nnonNull++] = _c;
+
+            if (nnonNull > 0)
+                getLexiconRelation()
+                        .addTerms(values, nnonNull, true/* readOnly */);
+
         }
 
         /*
@@ -1961,6 +2081,7 @@ abstract public class AbstractTripleStore extends
          * empty access path since no statements can exist for the given
          * statement pattern.
          */
+
         if (s != null && _s.getTermId() == NULL)
             return new EmptyAccessPath<ISPO>();
 
@@ -1968,6 +2089,9 @@ abstract public class AbstractTripleStore extends
             return new EmptyAccessPath<ISPO>();
 
         if (o != null && _o.getTermId() == NULL)
+            return new EmptyAccessPath<ISPO>();
+
+        if (quads && c != null && _c.getTermId() == NULL)
             return new EmptyAccessPath<ISPO>();
 
 //        /*
@@ -1995,36 +2119,35 @@ abstract public class AbstractTripleStore extends
          * Return the access path.
          */
 
-        return getAccessPath(//
+        return getSPORelation().getAccessPath(//
                 s == null ? NULL : _s.getTermId(), //
                 p == null ? NULL : _p.getTermId(),//
                 o == null ? NULL : _o.getTermId(),//
+                c == null ? NULL : _c.getTermId(),//
                 filter//
         );
 
     }
 
-    // FIXME quads : getAccessPath(); move to SPORelation?
     final public IAccessPath<ISPO> getAccessPath(final long s, final long p,
             final long o) {
 
-        return getSPORelation().getAccessPath(s, p, o, null/* filter */);
+        return getSPORelation()
+                .getAccessPath(s, p, o, NULL/* c */, null/* filter */);
 
     }
 
-    // FIXME quads : getAccessPath(); move to SPORelation?
     final public IAccessPath<ISPO> getAccessPath(final long s, final long p,
             final long o, final IElementFilter<ISPO> filter) {
 
-        return getSPORelation().getAccessPath(s, p, o, filter);
+        return getSPORelation().getAccessPath(s, p, o, NULL/* c */, filter);
 
     }
 
-    // FIXME quads : getAccessPath(); move to SPORelation?
     final public IAccessPath<ISPO> getAccessPath(final IKeyOrder<ISPO> keyOrder) {
 
-        return getAccessPath(keyOrder, null/*filter*/);
-        
+        return getAccessPath(keyOrder, null/* filter */);
+
     }
     
     /**
@@ -2036,6 +2159,7 @@ abstract public class AbstractTripleStore extends
      *            evaluated close to the data.
      * @return
      */
+    @SuppressWarnings("unchecked")
     final public IAccessPath<ISPO> getAccessPath(
             final IKeyOrder<ISPO> keyOrder, final IElementFilter<ISPO> filter) {
 
@@ -2047,13 +2171,13 @@ abstract public class AbstractTripleStore extends
                 Var.var("s"),//
                 Var.var("p"),//
                 Var.var("o"),//
-                null, // context // FIXME quads : (arity==4) ?Var.var("c") :null
+                quads ? Var.var("c") : null,//
                 false, // optional
                 filter,//
                 null // expander
         );
 
-        return getSPORelation().getAccessPath(keyOrder, p);
+        return r.getAccessPath(keyOrder, p);
 
     }
 
@@ -2164,10 +2288,17 @@ abstract public class AbstractTripleStore extends
 
     }
 
-    // FIXME quads : toString(s,p,o,...c)
     final public String toString(final long s, final long p, final long o) {
 
-        return ("< " + toString(s) + ", " + toString(p) + ", " + toString(o) + " >");
+        return toString(s, p, o, NULL);
+
+    }
+
+    final public String toString(final long s, final long p, final long o,
+            final long c) {
+
+        return ("< " + toString(s) + ", " + toString(p) + ", " + toString(o)
+                + toString(c) + " >");
 
     }
 
@@ -2228,7 +2359,13 @@ abstract public class AbstractTripleStore extends
      */
     static final public boolean isURI(final long termId) {
 
-        return (termId & TERMID_CODE_MASK) == TERMID_CODE_URI;
+        /*
+         * Note: The additional != NULL test is necessary for a URI term
+         * identifier so that it will not report 'true' for 0L since the two low
+         * order bits used to mark a URI are both zero.
+         */
+        
+        return (termId & TERMID_CODE_MASK) == TERMID_CODE_URI && termId != NULL;
 
     }
 
@@ -2255,7 +2392,14 @@ abstract public class AbstractTripleStore extends
     final public String toString(final long termId) {
 
         if (termId == NULL)
-            return "NULL";
+            return IRawTripleStore.NULLSTR;
+
+        if(isStatement(termId)){
+
+            // Note: SIDs are not stored in the reverse lexicon.
+            return Long.toString(termId) + "S";
+        
+        }
 
         final BigdataValue v = getTerm(termId);
 
@@ -2312,18 +2456,19 @@ abstract public class AbstractTripleStore extends
      *            dump a {@link TempTripleStore} that is using the term
      *            dictionary of the main database).
      */
-    final public StringBuilder predicateUsage(final AbstractTripleStore resolveTerms) {
+    final public StringBuilder predicateUsage(
+            final AbstractTripleStore resolveTerms) {
 
-        if(getSPORelation().oneAccessPath) {
-            
-            // The POS index does not exist.
+        if (getSPORelation().oneAccessPath) {
+
+            // The necessary index (POS or POCS) does not exist.
             throw new UnsupportedOperationException();
             
         }
         
         // visit distinct term identifiers for the predicate position.
         final IChunkedIterator<Long> itr = getSPORelation().distinctTermScan(
-                SPOKeyOrder.POS);
+                quads ? SPOKeyOrder.POCS : SPOKeyOrder.POS);
 
         // resolve term identifiers to terms efficiently during iteration.
         final BigdataValueIterator itr2 = new BigdataValueIteratorImpl(
@@ -2339,9 +2484,8 @@ abstract public class AbstractTripleStore extends
 
                 final long p = term.getTermId();
                 
-                // FIXME quads : pass c=NULL for quads.
-                final long n = getAccessPath(NULL, p, NULL)
-                        .rangeCount(false/* exact */);
+                final long n = getSPORelation().getAccessPath(NULL, p, NULL,
+                        NULL, null/* filter */).rangeCount(false/* exact */);
 
                 sb.append(n + "\t" + resolveTerms.toString(p) + "\n");
 
@@ -2584,18 +2728,6 @@ abstract public class AbstractTripleStore extends
         
     }
     
-//    /**
-//     * Returns some usage information for the database.
-//     * 
-//     * @deprecated by the {@link CounterSet}s exposed by the database which
-//     *             provide live, historical and post-mortem data.
-//     */
-//    public String usage() {
-//
-//        return "usage summary: class=" + getClass().getSimpleName();
-//
-//    }
-
     /*
      * IRawTripleStore
      */
@@ -2643,95 +2775,100 @@ abstract public class AbstractTripleStore extends
                 getSPORelation().getPrimaryKeyOrder(), filter).iterator();
 
         try {
-        
-        if (!copyJustifications) {
 
-            // add statements to the target store.
-            return dst
-                    .addStatements(dst, true/* copyOnly */, itr, null/* filter */);
+            if (!copyJustifications) {
 
-        } else {
+                // add statements to the target store.
+                return dst
+                        .addStatements(dst, true/* copyOnly */, itr, null/* filter */);
 
-            /*
-             * Use a thread pool to write out the statement and the
-             * justifications concurrently. This drammatically reduces the
-             * latency when also writing justifications.
-             */
+            } else {
 
-            final List<Callable<Long>> tasks = new ArrayList<Callable<Long>>(2);
+                /*
+                 * Use a thread pool to write out the statement and the
+                 * justifications concurrently. This drammatically reduces the
+                 * latency when also writing justifications.
+                 */
 
-            /*
-             * Note: we reject using the filter before stmts or justifications
-             * make it into the buffer so we do not need to apply the filter
-             * again here.
-             */
+                final List<Callable<Long>> tasks = new ArrayList<Callable<Long>>(
+                        2);
 
-            // set as a side-effect.
-            final AtomicLong nwritten = new AtomicLong();
+                /*
+                 * Note: we reject using the filter before stmts or
+                 * justifications make it into the buffer so we do not need to
+                 * apply the filter again here.
+                 */
 
-            // task will write SPOs on the statement indices.
-            tasks.add(new StatementWriter(this, dst, true/* copyOnly */, itr,
-                    nwritten));
+                // set as a side-effect.
+                final AtomicLong nwritten = new AtomicLong();
 
-            // task will write justifications on the justifications index.
-            final AtomicLong nwrittenj = new AtomicLong();
+                // task will write SPOs on the statement indices.
+                tasks.add(new StatementWriter(this, dst, true/* copyOnly */,
+                        itr, nwritten));
 
-            if (justify) {
-
-                final IJustificationIterator jitr = new JustificationIterator(
-                        getSPORelation().getJustificationIndex(), 0/* capacity */, true/* async */);
-
-                tasks.add(new JustificationWriter(dst, jitr, nwrittenj));
-
-            }
-
-            final List<Future<Long>> futures;
-            final long elapsed_SPO;
-            final long elapsed_JST;
-
-            try {
-
-                futures = getIndexManager().getExecutorService().invokeAll(tasks);
-
-                elapsed_SPO = futures.get(0).get();
+                // task will write justifications on the justifications index.
+                final AtomicLong nwrittenj = new AtomicLong();
 
                 if (justify) {
 
-                    elapsed_JST = futures.get(1).get();
+                    final IJustificationIterator jitr = new JustificationIterator(
+                            getSPORelation().getJustificationIndex(),
+                            0/* capacity */, true/* async */);
 
-                } else {
-
-                    elapsed_JST = 0;
+                    tasks.add(new JustificationWriter(dst, jitr, nwrittenj));
 
                 }
 
-            } catch (InterruptedException ex) {
+                final List<Future<Long>> futures;
+                final long elapsed_SPO;
+                final long elapsed_JST;
 
-                throw new RuntimeException(ex);
+                try {
 
-            } catch (ExecutionException ex) {
+                    futures = getIndexManager().getExecutorService().invokeAll(
+                            tasks);
 
-                throw new RuntimeException(ex);
+                    elapsed_SPO = futures.get(0).get();
+
+                    if (justify) {
+
+                        elapsed_JST = futures.get(1).get();
+
+                    } else {
+
+                        elapsed_JST = 0;
+
+                    }
+
+                } catch (InterruptedException ex) {
+
+                    throw new RuntimeException(ex);
+
+                } catch (ExecutionException ex) {
+
+                    throw new RuntimeException(ex);
+
+                }
+
+                if (log.isInfoEnabled())
+                    log
+                            .info("Copied "
+                                    + nwritten
+                                    + " statements in "
+                                    + elapsed_SPO
+                                    + "ms"
+                                    + (justify ? (" and " + nwrittenj
+                                            + " justifications in "
+                                            + elapsed_JST + "ms") : ""));
+
+                return nwritten.get();
 
             }
 
-            if(log.isInfoEnabled())
-            log.info("Copied "
-                    + nwritten
-                    + " statements in "
-                    + elapsed_SPO
-                    + "ms"
-                    + (justify ? (" and " + nwrittenj + " justifications in "
-                            + elapsed_JST + "ms") : ""));
-
-            return nwritten.get();
-
-        }
-        
         } finally {
-            
+
             itr.close();
-            
+
         }
 
     }
@@ -2748,7 +2885,7 @@ abstract public class AbstractTripleStore extends
 
         return bulkFilterStatements(new ChunkedArrayIterator<ISPO>(numStmts,
                 stmts, null/* keyOrder */), present);
-        
+
     }
 
     public IChunkedOrderedIterator<ISPO> bulkFilterStatements(
@@ -3011,12 +3148,12 @@ abstract public class AbstractTripleStore extends
 
         long mutationCount = 0;
 
-        if( statementIdentifiers && computeClosureForStatementIdentifiers) {
-            
-            itr = computeClosureForStatementIdentifiers( itr );
-            
+        if (statementIdentifiers && computeClosureForStatementIdentifiers) {
+
+            itr = computeClosureForStatementIdentifiers(itr);
+
         }
-        
+
         try {
 
             while (itr.hasNext()) {
@@ -3283,12 +3420,13 @@ abstract public class AbstractTripleStore extends
      */
     public IJoinNexusFactory newJoinNexusFactory(RuleContextEnum ruleContext,
             ActionEnum action, int solutionFlags, IElementFilter filter) {
-        
+
         return newJoinNexusFactory(ruleContext, action, solutionFlags, filter,
-                isJustify(), false/*backchain*/, DefaultEvaluationPlanFactory2.INSTANCE);
-        
+                isJustify(), false/* backchain */,
+                DefaultEvaluationPlanFactory2.INSTANCE);
+
     }
-    
+
     /**
      * 
      * @param solutionFlags
@@ -3421,20 +3559,26 @@ abstract public class AbstractTripleStore extends
         final boolean isOwlSameAsUsed = getAxioms().isOwlSameAs()
                 && !getAccessPath(NULL, getVocabulary().get(OWL.SAMEAS), NULL)
                         .isEmpty();
-        
-        final IRuleTaskFactory defaultRuleTaskFactory = isNestedSubquery() ? DefaultRuleTaskFactory.SUBQUERY
-                : DefaultRuleTaskFactory.PIPELINE;
-        
-        return new RDFJoinNexusFactory(ruleContext, action, //
-                writeTimestamp, readTimestamp, //
-                isForceSerialExecution(), getMaxParallelSubqueries(), //
+
+        final IRuleTaskFactory defaultRuleTaskFactory = isNestedSubquery() //
+                ? DefaultRuleTaskFactory.SUBQUERY//
+                : DefaultRuleTaskFactory.PIPELINE//
+                ;
+
+        return new RDFJoinNexusFactory(
+                ruleContext,
+                action, //
+                writeTimestamp,
+                readTimestamp, //
+                isForceSerialExecution(),
+                getMaxParallelSubqueries(), //
                 justify, backchain, isOwlSameAsUsed,
-                getChunkOfChunksCapacity(), getChunkCapacity(), getChunkTimeout(),
-                getFullyBufferedReadThreshold(), solutionFlags,
-                filter, planFactory, defaultRuleTaskFactory);
-        
+                getChunkOfChunksCapacity(), getChunkCapacity(),
+                getChunkTimeout(), getFullyBufferedReadThreshold(),
+                solutionFlags, filter, planFactory, defaultRuleTaskFactory);
+
     }
-    
+
     /**
      * Specialized {@link IRule} execution using the full text index to identify
      * possible completions of the given literals for which there exists a
@@ -3466,14 +3610,18 @@ abstract public class AbstractTripleStore extends
      *            All subjects visited by the iterator will be instances of this
      *            class.
      * 
-     * @return An {@link ICloseableIterator} visiting {@link IBindingSet}s.
-     *         Each {@link IBindingSet} will have bound {@link BigdataValue}s
-     *         for <code>s</code>, <code>t</code>, <code>p</code>, and
+     * @return An {@link ICloseableIterator} visiting {@link IBindingSet}s. Each
+     *         {@link IBindingSet} will have bound {@link BigdataValue}s for
+     *         <code>s</code>, <code>t</code>, <code>p</code>, and
      *         <code>lit</code> where those variables are defined per the
      *         pseudo-code JOIN above.
      * 
      * @throws InterruptedException
      *             if the operation is interrupted.
+     * 
+     *             FIXME quads : Modify match() to allow an optional context
+     *             argument. When present, the match would be restricted to the
+     *             specified context.
      */
     public ICloseableIterator<IBindingSet> match(final Literal[] lits,
             final URI[] preds, final URI cls) {
@@ -3496,8 +3644,8 @@ abstract public class AbstractTripleStore extends
 
             final BigdataValueFactory valueFactory = getValueFactory();
             
-            for(int i=0; i<preds.length; i++) {
-                
+            for (int i = 0; i < preds.length; i++) {
+
                 // pred[i] is in terms[i].
                 terms[i] = valueFactory.asValue(preds[i]); 
                 

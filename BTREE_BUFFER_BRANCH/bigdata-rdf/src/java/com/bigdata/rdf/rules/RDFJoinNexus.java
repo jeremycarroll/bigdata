@@ -818,8 +818,7 @@ public class RDFJoinNexus implements IJoinNexus {
         /*
          * Find the best access path for that predicate.
          * 
-         * @todo hardcoded to the SPORelation.
-         * FIXME hardcoded for triples
+         * FIXME quads : hardcoded for triples and the SPORelation.
          */
         final IKeyOrder keyOrder = SPORelation.getKeyOrder(predicate, 3);
 
@@ -978,19 +977,18 @@ public class RDFJoinNexus implements IJoinNexus {
         
         if (predicate.arity() == 4) {
 
-            // context position (the statement identifier).
+            // context position / statement identifier.
 
             final IVariableOrConstant<Long> t = predicate.get(3);
             
-            if (t != null && t.isVar() && spo.hasStatementIdentifier()) {
+            if (t != null && t.isVar()) {
 
                 final IVariable<Long> var = (IVariable<Long>) t;
 
-                final Constant newval = new Constant<Long>(spo
-                        .getStatementIdentifier());
+                final Constant newval = new Constant<Long>(spo.c());
 
                 bindingSet.set(var, newval);
-                
+
             }
 
         }

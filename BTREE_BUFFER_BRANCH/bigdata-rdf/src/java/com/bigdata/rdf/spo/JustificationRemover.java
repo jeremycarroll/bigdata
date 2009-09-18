@@ -101,7 +101,7 @@ public class JustificationRemover implements Callable<Long> {
         sortTime.addAndGet(beginWrite - begin);
 
         // thread-local key builder.
-        final IKeyBuilder keyBuilder = KeyBuilder.newInstance(db.arity()*Bytes.SIZEOF_LONG);
+        final IKeyBuilder keyBuilder = KeyBuilder.newInstance(db.getKeyArity()*Bytes.SIZEOF_LONG);
 
         // remove statements from the index.
         for (int i = 0; i < numStmts; i++) {

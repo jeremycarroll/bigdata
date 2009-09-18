@@ -32,7 +32,6 @@
 package com.bigdata.rdf.sail;
 
 import java.io.IOException;
-import java.util.Properties;
 
 import org.openrdf.model.BNode;
 import org.openrdf.model.URI;
@@ -51,10 +50,14 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
 /**
- * Unit tests for named graphs.
+ * Unit tests for named graphs. Specify
+ * <code>-DtestClass=com.bigdata.rdf.sail.TestBigdataSailWithQuads</code> to
+ * run this test suite.
  * 
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
+ * 
+ *          FIXME quads : "tests" do not test correctness.
  */
 public class TestNamedGraphs extends ProxyBigdataSailTestCase {
 
@@ -143,7 +146,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
     public void test_8_2_1() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
 
-        log.info("testing: 8.2.1 Specifying the Default Graph");
+        if(log.isInfoEnabled())
+            log.info("testing: 8.2.1 Specifying the Default Graph");
         
         final BigdataSail sail = getSail();
         sail.initialize();
@@ -156,7 +160,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
         
             final BNode a = new BNodeImpl("_:a");
             final URI graph = new URIImpl("http://example.org/foaf/aliceFoaf");
-/*            
+/**/            
             cxn.add(
                     a,
                     new URIImpl(FOAF+"name"),
@@ -170,7 +174,10 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     graph
                     );
             cxn.commit();
-*/            
+/**/            
+            if(log.isInfoEnabled()) {
+                log.info(sail.getDatabase().dumpStore().toString());
+            }
             String query = 
                 "PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
                 "SELECT  ?name " +
@@ -184,7 +191,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             // do something with the results
             while (result.hasNext()) {
                 BindingSet bindingSet = result.next();
-                log.info(bindingSet);
+                if(log.isInfoEnabled())
+                    log.info(bindingSet);
             }
 
         } finally {
@@ -246,7 +254,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
     public void test_8_2_3() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
 
-        log.info("testing: 8.2.3 Combining FROM and FROM NAMED");
+        if(log.isInfoEnabled())
+            log.info("testing: 8.2.3 Combining FROM and FROM NAMED");
         
         final BigdataSail sail = getSail();
         sail.initialize();
@@ -262,7 +271,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             final URI bob = new URIImpl("http://example.org/bob");
             final URI alice = new URIImpl("http://example.org/alice");
             final URI graph = new URIImpl("http://example.org/dft.ttl");
-/*            
+/**/            
             cxn.add(
                     bob,
                     DC_PUBLISHER,
@@ -300,7 +309,10 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     bob
                     );
             cxn.commit();
-*/            
+            if(log.isInfoEnabled()) {
+                log.info(sail.getDatabase().dumpStore().toString());
+            }
+/**/            
             String query = 
                 "PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
                 "PREFIX dc: <http://purl.org/dc/elements/1.1/> " +
@@ -321,7 +333,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             // do something with the results
             while (result.hasNext()) {
                 BindingSet bindingSet = result.next();
-                log.info(bindingSet);
+                if(log.isInfoEnabled())
+                        log.info(bindingSet);
             }
 
         } finally {
@@ -390,7 +403,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
     public void test_8_3_1() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
 
-        log.info("testing: 8.3.1 Accessing Graph Names");
+        if(log.isInfoEnabled())
+            log.info("testing: 8.3.1 Accessing Graph Names");
         
         final BigdataSail sail = getSail();
         sail.initialize();
@@ -480,6 +494,9 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     bob
                     );
             cxn.commit();
+            if(log.isInfoEnabled()) {
+                log.info(sail.getDatabase().dumpStore().toString());
+            }
             
             String query = 
                 "PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
@@ -501,7 +518,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             // do something with the results
             while (result.hasNext()) {
                 BindingSet bindingSet = result.next();
-                log.info(bindingSet);
+                if(log.isInfoEnabled())
+                    log.info(bindingSet);
             }
 
         } finally {
@@ -568,7 +586,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
     public void test_8_3_2() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
 
-        log.info("testing: 8.3.2 Restricting by Graph IRI");
+        if(log.isInfoEnabled())
+            log.info("testing: 8.3.2 Restricting by Graph IRI");
         
         final BigdataSail sail = getSail();
         sail.initialize();
@@ -658,6 +677,9 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     bob
                     );
             cxn.commit();
+            if(log.isInfoEnabled()) {
+                log.info(sail.getDatabase().dumpStore().toString());
+            }
             
             String query = 
                 "PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
@@ -679,7 +701,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             // do something with the results
             while (result.hasNext()) {
                 BindingSet bindingSet = result.next();
-                log.info(bindingSet);
+                if(log.isInfoEnabled())
+                    log.info(bindingSet);
             }
 
         } finally {
@@ -768,7 +791,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
     public void test_8_3_3() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
 
-        log.info("testing: 8.3.3 Restricting Possible Graph IRIs");
+        if(log.isInfoEnabled())
+            log.info("testing: 8.3.3 Restricting Possible Graph IRIs");
         
         final BigdataSail sail = getSail();
         sail.initialize();
@@ -858,6 +882,9 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     bob
                     );
             cxn.commit();
+            if(log.isInfoEnabled()) {
+                log.info(sail.getDatabase().dumpStore().toString());
+            }
             
             String query = 
                 "PREFIX  data:  <http://example.org/foaf/> " +
@@ -890,7 +917,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             // do something with the results
             while (result.hasNext()) {
                 BindingSet bindingSet = result.next();
-                log.info(bindingSet);
+                if(log.isInfoEnabled())
+                    log.info(bindingSet);
             }
 
         } finally {

@@ -48,15 +48,15 @@ public class Bigdata2SesameIteration<T, E extends Exception> implements
 
     private final ICloseableIterator<T> src;
     
-    public Bigdata2SesameIteration(ICloseableIterator<T> src) {
-    
+    public Bigdata2SesameIteration(final ICloseableIterator<T> src) {
+        
         if (src == null)
             throw new IllegalArgumentException();
         
         this.src = src;
         
     }
-    
+
     public void close() throws E {
         
         src.close();

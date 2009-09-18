@@ -158,12 +158,10 @@ public class TestRestartSafe extends AbstractTripleStoreTestCase {
             assertEquals(rdfType_id, store.getTermId(rdfType));
             assertEquals(rdfsSubClassOf_id, store.getTermId(rdfsSubClassOf));
 
-            assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex().rangeCount(
-                    null, null));
-            assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex().rangeCount(
-                    null, null));
-            assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex().rangeCount(
-                    null, null));
+            for (String fqn : store.getSPORelation().getIndexNames()) {
+                assertEquals("statementCount", 5, store.getSPORelation()
+                        .getIndex(fqn).rangeCount(null, null));
+            }
             assertTrue(store.hasStatement(x, rdfType, C));
             assertTrue(store.hasStatement(y, rdfType, B));
             assertTrue(store.hasStatement(z, rdfType, A));
@@ -201,12 +199,16 @@ public class TestRestartSafe extends AbstractTripleStoreTestCase {
                 assertEquals(rdfType_id, store.getTermId(rdfType));
                 assertEquals(rdfsSubClassOf_id, store.getTermId(rdfsSubClassOf));
 
-                assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex()
-                        .rangeCount(null, null));
-                assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex()
-                        .rangeCount(null, null));
-                assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex()
-                        .rangeCount(null, null));
+                for (String fqn : store.getSPORelation().getIndexNames()) {
+                    assertEquals("statementCount", 5, store.getSPORelation()
+                            .getIndex(fqn).rangeCount(null, null));
+                }
+//                assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex()
+//                        .rangeCount(null, null));
+//                assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex()
+//                        .rangeCount(null, null));
+//                assertEquals("statementCount", 5, store.getSPORelation().getOSPIndex()
+//                        .rangeCount(null, null));
                 assertTrue(store.hasStatement(x, rdfType, C));
                 assertTrue(store.hasStatement(y, rdfType, B));
                 assertTrue(store.hasStatement(z, rdfType, A));

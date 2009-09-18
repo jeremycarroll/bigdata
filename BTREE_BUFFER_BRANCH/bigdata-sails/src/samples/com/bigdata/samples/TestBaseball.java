@@ -37,7 +37,13 @@ public class TestBaseball extends SampleCode {
             properties.setProperty(BigdataSail.Options.TEXT_INDEX, "false");
 
             // no statement identifiers
-            properties.setProperty(BigdataSail.Options.STATEMENT_IDENTIFIERS, "false");
+            properties.setProperty(BigdataSail.Options.STATEMENT_IDENTIFIERS,
+                    "false");
+
+            // triples only.
+            properties.setProperty(
+                    com.bigdata.rdf.store.AbstractTripleStore.Options.QUADS,
+                    "false");
 
             // create a backing file
             File journal = File.createTempFile("baseball", ".jnl");

@@ -41,7 +41,6 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
      * @param ndx
      * @param flags
      */
-    @SuppressWarnings("unchecked")
     public SPOAccessPath(final SPORelation relation,
             final IPredicate<ISPO> predicate, final IKeyOrder<ISPO> keyOrder,
             final IIndex ndx, final int flags, final int chunkOfChunksCapacity,
@@ -120,22 +119,21 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
         /*
          * The minimum value that a term identifier may take on.
          */
-        long MIN = Long.MIN_VALUE;
         final SPOKeyOrder keyOrder = (SPOKeyOrder) this.keyOrder;
-        final int arity = keyOrder.getKeyArity(); // use the key's "arity".
-        //int[] keyMap = keyOrder.getKeyMap();
+        final int keyArity = keyOrder.getKeyArity(); // use the key's "arity".
+        final IKeyBuilder keyBuilder = getTupleSerializer().getKeyBuilder();
         
         { // do the from key
             
-            IKeyBuilder keyBuilder =
-                    getTupleSerializer().getKeyBuilder().reset();
+            keyBuilder.reset();
             boolean noneBound = true;
-            for (int i = 0; i < arity; i++) {
+            for (int i = 0; i < keyArity; i++) {
                 IVariableOrConstant<Long> term = 
                     predicate.get(keyOrder.getKeyOrder(i));
                 long l;
-                if (term.isVar()) {
-                    l = MIN;
+                // Note: term MAY be null for the context position.
+                if (term == null || term.isVar()) {
+                    l = Long.MIN_VALUE;
                 } else {
                     l = term.get();
                     noneBound = false;
@@ -148,28 +146,29 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
         }
 
         { // do the to key
-            
-            IKeyBuilder keyBuilder =
-                    getTupleSerializer().getKeyBuilder().reset();
+
+            keyBuilder.reset();
             boolean noneBound = true;
             boolean foundLastBound = false;
-            for (int i = 0; i < arity; i++) {
+            for (int i = 0; i < keyArity; i++) {
                 IVariableOrConstant<Long> term = 
                     predicate.get(keyOrder.getKeyOrder(i));
                 long l;
-                if (term.isVar()) {
-                    l = MIN;
+                // Note: term MAY be null for context.
+                if (term == null || term.isVar()) {
+                    l = Long.MAX_VALUE; // FIXME verify should be MAX here vs MIN.
                 } else {
                     l = term.get();
                     noneBound = false;
                     if (!foundLastBound) {
-                        if (i == arity-1) {
+                        if (i == keyArity-1) {
                             l++;
                             foundLastBound = true;
                         } else {
                             IVariableOrConstant<Long> next = 
                                 predicate.get(keyOrder.getKeyOrder(i+1));
-                            if (next.isVar()) {
+                            // Note: next can be null for quads (context pos).
+                            if (next == null || next.isVar()) {
                                 l++;
                                 foundLastBound = true;
                             }
@@ -218,11 +217,7 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
     @Override
     public long removeAll() {
         
-        final SPORelation r = getRelation();
-
-        final AbstractTripleStore db = r.getContainer();
-
-        return db.removeStatements(iterator());
+        return getRelation().getContainer().removeStatements(iterator());
         
     }
 

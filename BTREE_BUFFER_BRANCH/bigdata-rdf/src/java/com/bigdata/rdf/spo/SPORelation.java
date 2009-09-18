@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -96,17 +95,18 @@ import cutthecrap.utils.striterators.Striterator;
  * inserted into the statement indices in parallel. There is one statement index
  * for each of the three possible access paths for a triple store. The key is
  * formed from the corresponding permutation of the subject, predicate, and
- * object, e.g., {s,p,o}, {p,o,s}, and {o,s,p}. The statement type (inferred,
- * axiom, or explicit) and the optional statement identifier are stored under the
- * key. All state for a statement is replicated in each of the statement
- * indices.
+ * object, e.g., {s,p,o}, {p,o,s}, and {o,s,p} for triples or {s,p,o,c}, etc for
+ * quads. The statement type (inferred, axiom, or explicit) and the optional
+ * statement identifier are stored under the key. All state for a statement is
+ * replicated in each of the statement indices.
  * 
- * @todo When materializing a relation, such as the {@link SPORelation} or the
- *       {@link LexiconRelation}, on a {@link DataService} we may not want to
- *       have all indices resolved eager. The {@link AbstractTask} will actually
- *       return <code>null</code> rather than throwing an exception, but eager
- *       resolution of the indices will force {@link IClientIndex}s to spring
- *       into existence when we might only want a single index for the relation.
+ * @todo Optimization. When materializing a relation, such as the
+ *       {@link SPORelation} or the {@link LexiconRelation}, on a
+ *       {@link DataService} we may not want to have all indices resolved eager.
+ *       The {@link AbstractTask} will actually return <code>null</code> rather
+ *       than throwing an exception, but eager resolution of the indices will
+ *       force {@link IClientIndex}s to spring into existence when we might only
+ *       want a single index for the relation.
  * 
  * @todo integration with package providing magic set rewrites of rules in order
  *       to test whether or not a statement is still provable when it is
@@ -118,26 +118,35 @@ import cutthecrap.utils.striterators.Striterator;
  */
 public class SPORelation extends AbstractRelation<ISPO> {
 
-    protected static final Logger log = Logger.getLogger(SPORelation.class);
-    
+    protected static final transient Logger log = Logger
+            .getLogger(SPORelation.class);
+
     private static transient final long NULL = IRawTripleStore.NULL;
-    
+
     private final Set<String> indexNames;
 
-    private final int arity;
-    
-    public int arity() {
+    private final int keyArity;
+
+    /**
+     * The arity of the key for the statement indices: <code>3</code> is a
+     * triple store, with or without statement identifiers; <code>4</code> is a
+     * quad store, which does not support statement identifiers as the 4th
+     * position of the (s,p,o,c) is interpreted as context and located in the
+     * B+Tree statement index key rather than the value associated with the key.
+     */
+    public int getKeyArity() {
         
-        return arity;
+        return keyArity;
         
     }
-    
 
-    /** Hard references for the possible indices. */
+    /**
+     * Hard references for the possible statement indices. The index into the
+     * array is {@link SPOKeyOrder#index()}.
+     */
     private final IIndex[] indices;
-//    private IIndex spo;
-//    private IIndex pos;
-//    private IIndex osp;
+    
+    /** Hard reference to the justifications index iff used. */
     private IIndex just;
 
     /**
@@ -209,10 +218,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         super(indexManager, namespace, timestamp, properties);
         
-        this.arity = Integer.valueOf(getProperty(
-                AbstractTripleStore.Options.ARITY,
-                AbstractTripleStore.Options.DEFAULT_ARITY));
-
         /*
          * Reads off the property for the inference engine that tells us whether
          * or not the justification index is being used. This is used to
@@ -232,6 +237,20 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 AbstractTripleStore.Options.STATEMENT_IDENTIFIERS,
                 AbstractTripleStore.Options.DEFAULT_STATEMENT_IDENTIFIERS));
 
+        this.keyArity = Boolean.valueOf(getProperty(
+                AbstractTripleStore.Options.QUADS,
+                AbstractTripleStore.Options.DEFAULT_QUADS)) ? 4 : 3;
+
+        if (statementIdentifiers && keyArity == 4) {
+
+            throw new UnsupportedOperationException(
+                    AbstractTripleStore.Options.QUADS
+                            + " does not support the provenance mode ("
+                            + AbstractTripleStore.Options.STATEMENT_IDENTIFIERS
+                            + ")");
+
+        }
+
         this.bloomFilter = Boolean.parseBoolean(getProperty(
                 AbstractTripleStore.Options.BLOOM_FILTER,
                 AbstractTripleStore.Options.DEFAULT_BLOOM_FILTER));
@@ -241,7 +260,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
          
             final Set<String> set = new HashSet<String>();
 
-            if (arity == 3) {
+            if (keyArity == 3) {
 
                 // three indices for a triple store and the have ids in [0:2].
                 this.indices = new IIndex[3];
@@ -281,8 +300,11 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 
             }
 
-            // @todo removed justifications index from this set. Does this break
-            // anything?
+            /*
+             * Note: I removed justifications index from this set (bbt;
+             * 9/17/09). since it is not an index based on the SPORelation's
+             * data (it is a proof chains relation).
+             */
 //        if(justify) {
 //            
 //            set.add(getNamespace() + "." + NAME_JUST);
@@ -321,15 +343,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
             
         }
         
-//        if (oneAccessPath && spo == null)
-//            return false;
-//        
-//        if (spo == null || pos == null || osp == null)
-//            return false;
-//        
-//        if (justify && just == null)
-//            return false;
-        
         return true;
         
     }
@@ -346,7 +359,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
          * identifier.
          */
 
-        if (arity == 3) {
+        if (keyArity == 3) {
 
             if (oneAccessPath) {
 
@@ -372,8 +385,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
                 for (int i = SPOKeyOrder.FIRST_QUAD_INDEX; i <= SPOKeyOrder.LAST_QUAD_INDEX; i++) {
 
-                    indices[i] = super.getIndex(SPOKeyOrder.valueOf(i)
-                            .getIndexName());
+                    indices[i] = super.getIndex(SPOKeyOrder.valueOf(i));
 
                 }
 
@@ -405,7 +417,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
             final IIndexManager indexManager = getIndexManager();
 
-            if (arity == 3) {
+            if (keyArity == 3) {
 
                 // triples
                 
@@ -414,21 +426,15 @@ public class SPORelation extends AbstractRelation<ISPO> {
                     indexManager
                             .registerIndex(getStatementIndexMetadata(SPOKeyOrder.SPO));
 
-                    // // resolve the index and set the index reference.
-                    // spo = super.getIndex(SPOKeyOrder.SPO);
-                    //
-                    // assert spo != null;
-
                 } else {
 
-                    indexManager
-                            .registerIndex(getStatementIndexMetadata(SPOKeyOrder.SPO));
+                    for (int i = SPOKeyOrder.FIRST_TRIPLE_INDEX; i <= SPOKeyOrder.LAST_TRIPLE_INDEX; i++) {
 
-                    indexManager
-                            .registerIndex(getStatementIndexMetadata(SPOKeyOrder.POS));
+                        indexManager
+                                .registerIndex(getStatementIndexMetadata(SPOKeyOrder
+                                        .valueOf(i)));
 
-                    indexManager
-                            .registerIndex(getStatementIndexMetadata(SPOKeyOrder.OSP));
+                    }
 
                 }
 
@@ -453,8 +459,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
                 }
                 
-                throw new UnsupportedOperationException();
-
             }
 
             if (justify) {
@@ -462,9 +466,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 final String fqn = getNamespace() + "." + NAME_JUST;
 
                 indexManager.registerIndex(getJustIndexMetadata(fqn));
-
-                // resolve the index and set the index reference.
-                just = getIndex(fqn);
 
             }
 
@@ -533,7 +534,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
         final IIndex ndx = indices[ n ];
         
         if(ndx == null)
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException(keyOrder.toString());
         
         return ndx;
 
@@ -541,7 +542,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
     final public SPOKeyOrder getPrimaryKeyOrder() {
         
-        return arity == 3 ? SPOKeyOrder.SPO : SPOKeyOrder.SPOC;
+        return keyArity == 3 ? SPOKeyOrder.SPO : SPOKeyOrder.SPOC;
         
     }
     
@@ -551,48 +552,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
         
     }
     
-    /** @deprecated by {@link #getIndex(IKeyOrder)} and #getPrimaryIndex(). */
-    final public IIndex getSPOIndex() {
-
-        return getIndex(SPOKeyOrder.SPO);
-        
-//        if (spo == null)
-//            throw new IllegalStateException();
-//
-//        return spo;
-
-    }
-
-    /** @deprecated by {@link #getIndex(IKeyOrder)}. */
-    final public IIndex getPOSIndex() {
-
-        return getIndex(SPOKeyOrder.POS);
-
-//        if (oneAccessPath)
-//            return null;
-//
-//        if (pos == null)
-//            throw new IllegalStateException();
-//
-//        return pos;
-
-    }
-
-    /** @deprecated by {@link #getIndex(IKeyOrder)}. */
-    final public IIndex getOSPIndex() {
-
-        return getIndex(SPOKeyOrder.OSP);
-
-//        if (oneAccessPath)
-//            return null;
-//        
-//        if (osp == null)
-//            throw new IllegalStateException();
-//
-//        return osp;
-
-    }
-
     /**
      * The optional index on which {@link Justification}s are stored.
      * 
@@ -701,7 +660,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         final IndexMetadata metadata = newIndexMetadata(name);
 
-        metadata.setTupleSerializer(new JustificationTupleSerializer(arity));
+        metadata.setTupleSerializer(new JustificationTupleSerializer(keyArity));
 
         return metadata;
 
@@ -712,38 +671,66 @@ public class SPORelation extends AbstractRelation<ISPO> {
         return indexNames;
         
     }
-    
+
     /**
+     * Return the access path for a triple pattern.
      * 
      * @param s
      * @param p
      * @param o
+     * @throws UnsupportedOperationException
+     *             unless the {@link #getKeyArity()} is <code>3</code>.
+     * 
+     * @deprecated by {@link #getAccessPath(long, long, long, long)}
      */
-    // FIXME quads : getAccessPath()
-    public IAccessPath<ISPO> getAccessPath(final long s, final long p, final long o) {
-     
-        return getAccessPath(s, p, o, null/*filter*/);
+    public IAccessPath<ISPO> getAccessPath(final long s, final long p,
+            final long o) {
+
+        if (keyArity != 3)
+            throw new UnsupportedOperationException();
+
+        return getAccessPath(s, p, o, NULL/* c */, null/* filter */);
+
+    }
+
+    /**
+     * Return the access path for a triple or quad pattern with an optional
+     * filter.
+     */
+    public IAccessPath<ISPO> getAccessPath(final long s, final long p,
+            final long o, final long c) {
+        
+        return getAccessPath(s, p, o, c, null/*filter*/);
         
     }
 
     /**
+     * Return the access path for a triple or quad pattern with an optional
+     * filter (core implementation). All arguments are optional. Any bound
+     * argument will restrict the returned access path. For a triple pattern,
+     * <i>c</i> WILL BE IGNORED as there is no index over the statement
+     * identifiers, even when they are enabled. For a quad pattern, any argument
+     * MAY be bound.
      * 
      * @param s
+     *            The subject position (optional).
      * @param p
+     *            The predicate position (optional).
      * @param o
+     *            The object position (optional).
+     * @param c
+     *            The context position (optional and ignored for a triple
+     *            store).
      * @param filter
-     *            Optional filter to be evaluated close to the data.
-     * @return
+     *            The filter (optional).
+     * 
+     * @return The best access path for that triple or quad pattern.
+     * 
+     * @throws UnsupportedOperationException
+     *             for a triple store without statement identifiers if the
+     *             <i>c</i> is non-{@link #NULL}.
      */
     @SuppressWarnings("unchecked")
-    // FIXME quads : getAccessPath()
-    public IAccessPath<ISPO> getAccessPath(final long s, final long p,
-            final long o, final IElementFilter<ISPO> filter) {
-
-        return getAccessPath(s, p, o, NULL, filter);
-        
-    }
-    
     public IAccessPath<ISPO> getAccessPath(final long s, final long p,
             final long o, final long c, IElementFilter<ISPO> filter) {
         
@@ -757,13 +744,26 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 : new Constant<Long>(o));
         
         IVariableOrConstant<Long> C = null;
-        
-        if (arity == 4) {
 
+        switch (keyArity) {
+
+        case 3:
+            if (!statementIdentifiers && c != NULL) {
+                /*
+                 * The 4th position should never become bound for a triple store
+                 * without statement identifiers.
+                 */
+                throw new UnsupportedOperationException();
+            }
+            break;
+        case 4:
             C = (c == NULL ? Var.var("c") : new Constant<Long>(c));
-            
+            break;
+        default:
+            throw new AssertionError();
+
         }
-        
+
         return getAccessPath(new SPOPredicate(new String[] { getNamespace() },
                 -1, // partitionId
                 S, P, O, C,
@@ -816,7 +816,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
      */
     final private SPOAccessPath _getAccessPath(final IPredicate<ISPO> predicate) {
 
-        final SPOKeyOrder keyOrder = getKeyOrder(predicate, arity);
+        final SPOKeyOrder keyOrder = getKeyOrder(predicate, keyArity);
         
         final SPOAccessPath accessPath = getAccessPath(keyOrder, predicate);
 
@@ -837,18 +837,18 @@ public class SPORelation extends AbstractRelation<ISPO> {
      *            
      * @return The {@link SPOKeyOrder}
      */
-    // FIXME quads : getKeyOrder() - probably move to SPOKeyOrder.
-    static public SPOKeyOrder getKeyOrder(final IPredicate<ISPO> predicate, int arity) {
+    @SuppressWarnings("unchecked")
+    static public SPOKeyOrder getKeyOrder(final IPredicate<ISPO> predicate,
+            final int keyArity) {
 
-        // FIX ME
-        
         final long s = predicate.get(0).isVar() ? NULL : (Long) predicate.get(0).get();
         final long p = predicate.get(1).isVar() ? NULL : (Long) predicate.get(1).get();
         final long o = predicate.get(2).isVar() ? NULL : (Long) predicate.get(2).get();
-        // Note: Context is ignored!
-
-        if (arity == 3) {
         
+        if (keyArity == 3) {
+
+            // Note: Context is ignored!
+            
             if (s != NULL && p != NULL && o != NULL) {
                 return SPOKeyOrder.SPO;
             } else if (s != NULL && p != NULL) {
@@ -869,7 +869,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
             
         } else {
 
-            final long c = predicate.get(3).isVar() ? NULL : (Long) predicate.get(3).get();
+            final IVariableOrConstant<Long> t = predicate.get(3);
+            final long c = t == null ? NULL : (t.isVar() ? NULL : t.get());
 /*            
             if ((s == NULL && p == NULL && o == NULL && c == NULL) ||
                 (s != NULL && p == NULL && o == NULL && c == NULL) ||
@@ -1017,7 +1018,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
          * Layer in the logic to advance to the tuple that will have the
          * next distinct term identifier in the first position of the key.
          */
-        filter.addFilter(new DistinctTermAdvancer(arity));
+        filter.addFilter(new DistinctTermAdvancer(keyArity));
 
         if (termIdFilter != null) {
 
@@ -1043,10 +1044,12 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         }
 
+        @SuppressWarnings("unchecked")
         final Iterator<Long> itr = new Striterator(getIndex(keyOrder)
                 .rangeIterator(null/* fromKey */, null/* toKey */,
                         0/* capacity */, IRangeQuery.KEYS | IRangeQuery.CURSOR,
                         filter)).addFilter(new Resolver() {
+                    private static final long serialVersionUID = 1L;
                     /**
                      * Resolve SPO key to Long.
                      */
@@ -1358,9 +1361,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
         
         final List<Callable<Long>> tasks = new ArrayList<Callable<Long>>(3);
 
-        if (arity == 3) {
+        if (keyArity == 3) {
 
-            // FIXME quads : insert(ISPO[])
             tasks.add(new SPOIndexWriter(this, a, numStmts, false/* clone */,
                     SPOKeyOrder.SPO, filter, sortTime, insertTime, mutationCount));
     
@@ -1376,7 +1378,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
             
         } else {
             
-            // FIXME quads : insert(ISPO[])
             tasks.add(new SPOIndexWriter(this, a, numStmts, false/* clone */,
                     SPOKeyOrder.SPOC, filter, sortTime, insertTime, mutationCount));
     
@@ -1494,9 +1495,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         final List<Callable<Long>> tasks = new ArrayList<Callable<Long>>(3);
 
-        if (arity == 3) {
+        if (keyArity == 3) {
         
-            // FIXME quads : delete(ISPO[]).
             tasks.add(new SPOIndexRemover(this, stmts, numStmts,
                     SPOKeyOrder.SPO, false/* clone */, sortTime, writeTime));
     
@@ -1734,34 +1734,38 @@ public class SPORelation extends AbstractRelation<ISPO> {
     /**
      * Dumps the specified index.
      */
+    @SuppressWarnings("unchecked")
     public StringBuilder dump(final IKeyOrder<ISPO> keyOrder) {
-        
+
         final StringBuilder sb = new StringBuilder();
-        
-        {
-            
-            // FIXME quads : dump SPOPredicate requires variable for [c].
-            final IPredicate<ISPO> pred = new SPOPredicate(getNamespace(), Var
-                    .var("s"), Var.var("p"), Var.var("o"));
 
-            final IChunkedOrderedIterator<ISPO> itr = getAccessPath(keyOrder,
-                    pred).iterator();
+        final IPredicate<ISPO> pred = new SPOPredicate(
+                new String[] { getNamespace() }, -1, // partitionId
+                Var.var("s"),//
+                Var.var("p"),//
+                Var.var("o"),//
+                keyArity == 3 ? null : Var.var("c"),//
+                false, // optional
+                null, // filter,
+                null // expander
+        );
 
-            try {
+        final IChunkedOrderedIterator<ISPO> itr = getAccessPath(keyOrder, pred)
+                .iterator();
 
-                while (itr.hasNext()) {
+        try {
 
-                    sb.append(itr.next());
+            while (itr.hasNext()) {
 
-                    sb.append("\n");
+                sb.append(itr.next());
 
-                }
-                
-            } finally {
-
-                itr.close();
+                sb.append("\n");
 
             }
+
+        } finally {
+
+            itr.close();
 
         }
 

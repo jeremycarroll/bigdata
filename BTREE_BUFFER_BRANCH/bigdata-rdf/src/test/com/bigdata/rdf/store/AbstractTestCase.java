@@ -673,21 +673,44 @@ abstract public class AbstractTestCase
     static public void assertStatementIndicesConsistent(AbstractTripleStore db, final int maxerrors) {
 
         if (log.isInfoEnabled())
-        log.info("Verifying statement indices");
-        
-        AtomicInteger nerrs = new AtomicInteger(0);
+            log.info("Verifying statement indices");
 
-        // scan SPO, checking...
-        assertSameStatements(db, SPOKeyOrder.SPO, SPOKeyOrder.POS, nerrs, maxerrors);
-        assertSameStatements(db, SPOKeyOrder.SPO, SPOKeyOrder.OSP, nerrs, maxerrors);
+        final AtomicInteger nerrs = new AtomicInteger(0);
 
-        // scan POS, checking...
-        assertSameStatements(db, SPOKeyOrder.POS, SPOKeyOrder.SPO, nerrs, maxerrors);
-        assertSameStatements(db, SPOKeyOrder.POS, SPOKeyOrder.OSP, nerrs, maxerrors);
+        final int from, to;
+        if (db.getSPOKeyArity() == 3) {
+            from = SPOKeyOrder.FIRST_TRIPLE_INDEX;
+            to = SPOKeyOrder.LAST_TRIPLE_INDEX;
+        } else {
+            from = SPOKeyOrder.FIRST_QUAD_INDEX;
+            to = SPOKeyOrder.LAST_QUAD_INDEX;
+        }
         
-        // scan OSP, checking...
-        assertSameStatements(db, SPOKeyOrder.OSP, SPOKeyOrder.SPO, nerrs, maxerrors);
-        assertSameStatements(db, SPOKeyOrder.OSP, SPOKeyOrder.POS, nerrs, maxerrors);
+        for (int i = from; i <= to; i++) {
+
+            for (int j = from; j <= to; j++) {
+
+                if (i == j)
+                    continue;
+
+                assertSameStatements(db, SPOKeyOrder.valueOf(i), SPOKeyOrder
+                        .valueOf(j), nerrs, maxerrors);
+
+            }
+
+        }
+        
+//        // scan SPO, checking...
+//        assertSameStatements(db, SPOKeyOrder.SPO, SPOKeyOrder.POS, nerrs, maxerrors);
+//        assertSameStatements(db, SPOKeyOrder.SPO, SPOKeyOrder.OSP, nerrs, maxerrors);
+//
+//        // scan POS, checking...
+//        assertSameStatements(db, SPOKeyOrder.POS, SPOKeyOrder.SPO, nerrs, maxerrors);
+//        assertSameStatements(db, SPOKeyOrder.POS, SPOKeyOrder.OSP, nerrs, maxerrors);
+//        
+//        // scan OSP, checking...
+//        assertSameStatements(db, SPOKeyOrder.OSP, SPOKeyOrder.SPO, nerrs, maxerrors);
+//        assertSameStatements(db, SPOKeyOrder.OSP, SPOKeyOrder.POS, nerrs, maxerrors);
         
         assertEquals(0,nerrs.get());
         
@@ -723,8 +746,8 @@ abstract public class AbstractTestCase
     ) {
 
         if (log.isInfoEnabled())
-        log.info("Verifying " + keyOrderExpected + " against "
-                        + keyOrderActual);
+            log.info("Verifying " + keyOrderExpected + " against "
+                    + keyOrderActual);
 
         // the access path that is being tested.
         final IIndex actualIndex = db.getSPORelation().getIndex(keyOrderActual);

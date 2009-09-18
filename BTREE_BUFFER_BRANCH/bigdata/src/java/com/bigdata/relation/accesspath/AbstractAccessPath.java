@@ -563,7 +563,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
      * need to be tested with SLICE.
      * 
      * Those tests should be located in
-     * {@link com.bigdata.rdf.store.TestAccessPath}.
+     * {@link com.bigdata.rdf.store.TestSPOAccessPath}.
      */
     @SuppressWarnings("unchecked")
     final public IChunkedOrderedIterator<R> iterator(long offset, long limit,

@@ -265,6 +265,9 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
          */
         properties.setProperty(Options.STATEMENT_IDENTIFIERS, "false");
 
+        // Triples only.
+        properties.setProperty(Options.QUADS, "false");
+
         /*
          * Turn off justifications (impacts only the load performance, but
          * it is a big impact and only required if you will be doing TM).
@@ -555,7 +558,7 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
                         + p.getProperty(Options.QUERY_TIME_EXPANDER));
                 
                 System.err.println("bloomFilterFactory="
-                        + tripleStore.getSPORelation().getSPOIndex()
+                        + tripleStore.getSPORelation().getPrimaryIndex()
                                 .getIndexMetadata().getBloomFilterFactory());
                 
             }

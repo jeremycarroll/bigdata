@@ -64,8 +64,10 @@ public class TestAll extends TestCase {
     public static Test suite()
     {
 
-        TestSuite suite = new TestSuite("SPORelation");
+        final TestSuite suite = new TestSuite("SPORelation");
 
+        suite.addTestSuite(TestSPO.class);
+        
         // test predicate impls.
         suite.addTestSuite(TestSPOPredicate.class);
         

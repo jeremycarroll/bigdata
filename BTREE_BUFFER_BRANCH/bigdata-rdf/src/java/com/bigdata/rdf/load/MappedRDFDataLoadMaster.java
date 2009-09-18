@@ -46,7 +46,6 @@ import com.bigdata.rdf.inf.ClosureStats;
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.store.AbstractTripleStore;
-import com.bigdata.rdf.store.ITripleStore;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
 import com.bigdata.service.IBigdataClient;

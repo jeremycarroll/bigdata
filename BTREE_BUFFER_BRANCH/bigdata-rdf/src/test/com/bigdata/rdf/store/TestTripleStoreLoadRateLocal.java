@@ -80,6 +80,11 @@ public class TestTripleStoreLoadRateLocal extends ProxyTestCase {
         // turn off statement identifiers.
         properties.setProperty(AbstractTripleStore.Options.STATEMENT_IDENTIFIERS, "false");
         
+        // triples only.
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.QUADS,
+                "false");
+
         return properties;
 
     }

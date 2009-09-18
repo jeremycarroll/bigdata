@@ -668,15 +668,14 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
                 c = null;
             } else {
                 final Value val = var.getValue();
-                if (val != null) {
+                if (val != null && database.isStatementIdentifiers()) {
                     /*
                      * Note: The context position is used as a statement
-                     * identifier (SID). SIDs may be used to retrieve
-                     * provenance statements (statements about statement)
-                     * using high-level query. SIDs are represented as blank
-                     * nodes and is not possible to have them bound in the
-                     * original query. They only become bound during query
-                     * evaluation.
+                     * identifier (SID). SIDs may be used to retrieve provenance
+                     * statements (statements about statement) using high-level
+                     * query. SIDs are represented as blank nodes and is not
+                     * possible to have them bound in the original query. They
+                     * only become bound during query evaluation.
                      */
                     throw new QueryEvaluationException(
                             "Context position is a statement identifier and may not be bound in the original query: "

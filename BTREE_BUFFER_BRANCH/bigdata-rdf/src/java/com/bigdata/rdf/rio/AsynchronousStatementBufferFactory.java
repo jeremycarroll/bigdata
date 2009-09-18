@@ -294,6 +294,9 @@ import cutthecrap.utils.striterators.Striterator;
  * 
  * }
  * </pre>
+ *
+ * FIXME Modify to support quads.  This is easier than SIDs.  All we need to do
+ * is maintain buffers for the 6 quad indices rather than the 3 triple indices.
  * 
  * @todo evaluate this approach for writing on a local triple store. if there is
  *       a performance benefit then refactor accordingly (requires asynchronous
@@ -499,7 +502,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
         }
 
-        buffer_spo = ((IScaleOutClientIndex) spoRelation.getSPOIndex())
+        buffer_spo = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.SPO))
                 .newWriteBuffer(statementResultHandler,
                         new DefaultDuplicateRemover<ISPO>(true/* testRefs */),
                         SPOIndexWriteProc.IndexWriteProcConstructor.INSTANCE);
@@ -514,7 +517,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
             }
 
-            buffer_pos = ((IScaleOutClientIndex) spoRelation.getPOSIndex())
+            buffer_pos = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.POS))
                     .newWriteBuffer(
                             null/* resultHandler */,
                             new DefaultDuplicateRemover<ISPO>(true/* testRefs */),
@@ -528,7 +531,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
             }
 
-            buffer_osp = ((IScaleOutClientIndex) spoRelation.getOSPIndex())
+            buffer_osp = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.POS))
                     .newWriteBuffer(
                             null/* resultHandler */,
                             new DefaultDuplicateRemover<ISPO>(true/* testRefs */),

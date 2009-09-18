@@ -104,9 +104,11 @@ public class BigdataStatementIteratorImpl
 
             ids.add(spo.o());
 
-            if (spo.hasStatementIdentifier()) {
+            final long c = spo.c();
 
-                ids.add(spo.getStatementIdentifier());
+            if (c != IRawTripleStore.NULL) {
+
+                ids.add(c);
 
             }
 
@@ -139,8 +141,9 @@ public class BigdataStatementIteratorImpl
             final BigdataResource s = (BigdataResource) terms.get(spo.s());
             final BigdataURI p = (BigdataURI) terms.get(spo.p());
             final BigdataValue o = terms.get(spo.o());
-            final BigdataResource c = (spo.hasStatementIdentifier() ? (BigdataResource) terms
-                    .get(spo.getStatementIdentifier())
+            final long _c = spo.c();
+            final BigdataResource c = (_c != IRawTripleStore.NULL //
+                    ? (BigdataResource) terms.get(_c)
                     : null);
 
             if (spo.hasStatementType() == false) {
