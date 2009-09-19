@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import junit.extensions.proxy.ProxyTestSuite;
 import junit.framework.Test;
 
+import com.bigdata.LRUNexus;
 import com.bigdata.journal.ITx;
 import com.bigdata.service.DataService;
 import com.bigdata.service.EmbeddedClient;
@@ -151,7 +152,7 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
             
         }
 
-        Properties properties = new Properties(getProperties());
+        final Properties properties = new Properties(getProperties());
         
         // Note: directory named for the unit test (name is available from the
         // proxy test case).

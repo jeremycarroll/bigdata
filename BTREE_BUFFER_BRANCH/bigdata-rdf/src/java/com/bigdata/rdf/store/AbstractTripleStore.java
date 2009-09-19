@@ -2487,6 +2487,11 @@ abstract public class AbstractTripleStore extends
                 final long n = getSPORelation().getAccessPath(NULL, p, NULL,
                         NULL, null/* filter */).rangeCount(false/* exact */);
 
+                /*
+                 * FIXME do efficient term resolution for scale-out. This will
+                 * require an expander pattern where we feed one iterator into
+                 * another and both are chunked.
+                 */
                 sb.append(n + "\t" + resolveTerms.toString(p) + "\n");
 
             }

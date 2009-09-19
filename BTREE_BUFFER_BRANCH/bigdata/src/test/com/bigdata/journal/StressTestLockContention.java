@@ -86,50 +86,59 @@ public class StressTestLockContention extends ProxyTestCase {
      */
     public void test_lockContention() throws InterruptedException {
 
+        final int ntasks = 20000;
+
+        final List<Future> futures;
+        
         final Properties properties = getProperties();
         
         final Journal journal = new Journal(properties);
-        
-        final String[] resource = new String[]{"foo","bar","baz"};
 
-        final int ntasks = 20000;
-        
-        final Collection<AbstractTask> tasks = new HashSet<AbstractTask>(ntasks);
+        try {
 
-        for (int i = 0; i < ntasks; i++) {
+            final String[] resource = new String[] { "foo", "bar", "baz" };
 
-            tasks.add(new AbstractTask(journal, ITx.UNISOLATED,resource) {
+            final Collection<AbstractTask> tasks = new HashSet<AbstractTask>(
+                    ntasks);
 
-                protected Object doTask() throws Exception {
+            for (int i = 0; i < ntasks; i++) {
 
-                    return null;
+                tasks.add(new AbstractTask(journal, ITx.UNISOLATED, resource) {
 
-                }
+                    protected Object doTask() throws Exception {
 
-            });
+                        return null;
 
+                    }
+
+                });
+
+            }
+
+            /*
+             * Submit all tasks. Tasks can begin executing right away. If the
+             * write service is using a blocking queue with a limited capacity
+             * then some or all of the tasks may complete before this method
+             * returns.
+             */
+
+            futures = journal.invokeAll(tasks, 3, TimeUnit.SECONDS);
+
+        } finally {
+            
+            /*
+             * Shutdown the journal.
+             * 
+             * Note: It is possible for shutdownNow() to close the store before
+             * all worker threads have been canceled, in which case you may see
+             * some strange errors being thrown.
+             */
+
+            journal.shutdownNow();
+
+            journal.deleteResources();
+            
         }
-
-        /*
-         * Submit all tasks. Tasks can begin executing right away. If the write
-         * service is using a blocking queue with a limited capacity then some
-         * or all of the tasks may complete before this method returns.
-         */
-        
-        final List<Future> futures = journal.invokeAll(tasks, 3,
-                TimeUnit.SECONDS);
-
-        /*
-         * Shutdown the journal.
-         * 
-         * Note: It is possible for shutdownNow() to close the store before all
-         * worker threads have been cancelled, in which case you may see some
-         * strange errors being thrown.
-         */
-
-        journal.shutdownNow();
-        
-        journal.deleteResources();
 
         final Iterator<Future> itr = futures.iterator();
 

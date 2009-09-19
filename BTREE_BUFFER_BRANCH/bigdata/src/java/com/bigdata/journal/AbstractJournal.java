@@ -1795,13 +1795,35 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
      * JDK. Since some {@link IBufferStrategy}s use a {@link FileChannel} to
      * access the backing store, this means that we need to re-open the backing
      * store transparently so that we can continue operations after the commit
-     * group was aborted. This is done automatially when we re-load the current
+     * group was aborted. This is done automatically when we re-load the current
      * {@link ICommitRecord} from the root blocks of the store.
      */
     public void abort() {
 
         if (log.isInfoEnabled())
             log.info("start");
+
+        if (LRUNexus.INSTANCE != null) {
+
+            /*
+             * Discard the LRU for this store. It may contain writes which have
+             * been discarded. The same addresses may be reissued by the WORM
+             * store after an abort, which could lead to incorrect reads from a
+             * dirty cache.
+             * 
+             * FIXME An optimization would essentially isolate the writes on the
+             * cache per BTree or between commits. At the commit point, the
+             * written records would be migrated into the "committed" cache for
+             * the store. The caller would read on the uncommitted cache, which
+             * would read through to the "committed" cache. This would prevent
+             * incorrect reads without requiring us to throw away valid records
+             * in the cache. This could be a significant performance gain if
+             * aborts are common on a machine with a lot of RAM.
+             */
+
+            LRUNexus.INSTANCE.getCache(this).clear();
+
+        }
         
         /*
          * Discard hard references to any indices. The Name2Addr reference will

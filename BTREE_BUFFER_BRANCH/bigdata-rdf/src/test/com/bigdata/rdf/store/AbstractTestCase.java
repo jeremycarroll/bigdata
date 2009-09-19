@@ -50,6 +50,7 @@ import org.openrdf.rio.RDFHandler;
 import org.openrdf.rio.helpers.RDFHandlerBase;
 import org.openrdf.sail.SailException;
 
+import com.bigdata.LRUNexus;
 import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;
@@ -73,6 +74,8 @@ import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.spo.SPOTupleSerializer;
 import com.bigdata.relation.accesspath.AbstractArrayBuffer;
 import com.bigdata.relation.accesspath.IBuffer;
+import com.bigdata.service.AbstractClient;
+import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.Split;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
@@ -119,6 +122,9 @@ abstract public class AbstractTestCase
         log.info("\n\n================:BEGIN:" + testCase.getName()
                 + ":BEGIN:====================");
 
+        // flush everything before/after a unit test.
+        LRUNexus.INSTANCE.discardAllCaches();
+        
     }
 
     /**
@@ -126,7 +132,10 @@ abstract public class AbstractTestCase
      */
     protected void tearDown(ProxyTestCase testCase) throws Exception {
 
-        long elapsed = System.currentTimeMillis() - begin;
+        // flush everything before/after a unit test.
+        LRUNexus.INSTANCE.discardAllCaches();
+        
+        final long elapsed = System.currentTimeMillis() - begin;
         
         if (log.isInfoEnabled())
         log.info("\n================:END:" + testCase.getName()
@@ -171,6 +180,12 @@ abstract public class AbstractTestCase
 //            m_properties = new Properties();
             
 //            m_properties = new Properties( m_properties );
+
+            // disable platform statistics collection.
+            m_properties
+                    .setProperty(
+                            AbstractClient.Options.COLLECT_PLATFORM_STATISTICS,
+                            "false");
 
             m_properties.setProperty(Options.BUFFER_MODE,BufferMode.Disk.toString());
 //            m_properties.setProperty(Options.BUFFER_MODE,BufferMode.Transient.toString());
