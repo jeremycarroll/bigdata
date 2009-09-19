@@ -38,6 +38,7 @@ import com.bigdata.cache.HardReferenceGlobalLRU;
 import com.bigdata.cache.IGlobalLRU;
 import com.bigdata.cache.StoreAndAddressLRUCache;
 import com.bigdata.cache.WeakReferenceGlobalLRU;
+import com.bigdata.journal.AbstractJournal;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
 
@@ -47,12 +48,36 @@ import com.bigdata.rawstore.IRawStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  * 
+ *          FIXME LRUNexus : writes MUST must be "isolated" until the commit.
+ *          Isolated indices MUST have their own cache backed by the shared LRU
+ *          (actually, they are on the shared temporary store so that helps).
+ *          Unisolated indices SHOULD have their own cache backed by the shared
+ *          LRU. At commit, any records in the "isolated" cache for a B+Tree
+ *          should be putAll() onto the unisolated cache for the backing store.
+ *          This way, we do not need to do anything if there is an abort().
+ *          <p>
+ *          There are two quick fixes: (1) Disable the Global LRU; and (2)
+ *          discard the cache if there is an abort on a store. The latter is
+ *          pretty easy since we only have one store with abort semantics, which
+ *          is the {@link AbstractJournal}, so that is how this is being handled
+ *          right now by {@link AbstractJournal#abort()}.
+ *          <p>
+ *          An optimization would essentially isolate the writes on the cache
+ *          per BTree or between commits. At the commit point, the written
+ *          records would be migrated into the "committed" cache for the store.
+ *          The caller would read on the uncommitted cache, which would read
+ *          through to the "committed" cache. This would prevent incorrect reads
+ *          without requiring us to throw away valid records in the cache. This
+ *          could be a significant performance gain if aborts are common on a
+ *          machine with a lot of RAM.
+ * 
+ * 
  * @todo Test w/ G1 <code>-XX:+UnlockExperimentalVMOptions -XX:+UseG1GC</code>
  *       <p>
  *       G1 appears faster for query, but somewhat slower for load. This is
  *       probably related to the increased memory demand during load (more of
- *       the data winds up buffered).  G1 might work for both use cases with
- *       a smaller portion of the heap given over to buffers.
+ *       the data winds up buffered). G1 might work for both use cases with a
+ *       smaller portion of the heap given over to buffers.
  *       <p>
  *       G1 can also trip a crash, at least during load. There is a Sun incident
  *       ID# 1609804 for this.

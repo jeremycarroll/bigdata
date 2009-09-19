@@ -585,6 +585,13 @@ abstract public class LoadBalancerService extends AbstractService
                         logDir, "events" + com.bigdata.journal.Options.JNL)
                         .toString());
 
+                /*
+                 * FIXME This is causing problems for the unit tests. Either DO
+                 * NOT maintain this for unit tests or make it a temporary store
+                 * for unit tests so it gets cleaned up when the LBS is shutdown
+                 * and different LBS instances do not collide with pre-existing
+                 * event journals.
+                 */
                 eventStore = new Journal(p);
                 
             }

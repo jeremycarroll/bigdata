@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.UUID;
 
+import com.bigdata.LRUNexus;
 import com.bigdata.bfs.BigdataFileSystem;
 import com.bigdata.bfs.BigdataFileSystem.Options;
 import com.bigdata.btree.AbstractBTreeTestCase;
@@ -104,11 +105,13 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
          * statistics or if you are testing index partition moves, since moves
          * rely on the per-host counters collected from the o/s.
          */
-        properties.setProperty(EmbeddedClient.Options.COLLECT_PLATFORM_STATISTICS,"false");
+        properties.setProperty(
+                AbstractClient.Options.COLLECT_PLATFORM_STATISTICS, "false");
 
         // disable moves.
-        properties.setProperty(ResourceManager.Options.MAXIMUM_MOVES_PER_TARGET,"0");
-        
+        properties.setProperty(
+                ResourceManager.Options.MAXIMUM_MOVES_PER_TARGET, "0");
+
         return properties;
         
     }
@@ -121,6 +124,11 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
      */
     public void setUp() throws Exception {
       
+        super.setUp();
+        
+        // flush everything before/after a unit test.
+        LRUNexus.INSTANCE.discardAllCaches();
+
         dataDir = new File( getName() );
         
         if(dataDir.exists() && dataDir.isDirectory()) {
@@ -149,6 +157,7 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
             
         }
         
+
     }
     
     public void tearDown() throws Exception {
@@ -166,6 +175,9 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
             
         }
         
+        // flush everything before/after a unit test.
+        LRUNexus.INSTANCE.discardAllCaches();
+
         super.tearDown();
 
     }

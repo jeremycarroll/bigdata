@@ -70,7 +70,7 @@ public class TestAll extends TestCase {
          */
         {
 
-            Logger log = Logger.getRootLogger();
+            final Logger log = Logger.getRootLogger();
 
             if (log.getLevel().equals(Level.DEBUG)) {
 
