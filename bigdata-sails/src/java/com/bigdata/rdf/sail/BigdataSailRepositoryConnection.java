@@ -1,5 +1,6 @@
 package com.bigdata.rdf.sail;
 
+import org.apache.log4j.Logger;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.parser.ParsedGraphQuery;
@@ -15,6 +16,9 @@ import com.bigdata.rdf.store.AbstractTripleStore;
 
 public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
    
+    protected Logger log = Logger.getLogger(BigdataSailRepositoryConnection.class);
+    
+    
     public BigdataSailRepositoryConnection(BigdataSailRepository repository,
             SailConnection sailConnection) {
     
@@ -40,7 +44,7 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
         // auto-commit is heinously inefficient
         if (isAutoCommit()) {
             
-            throw new RuntimeException(
+            log.warn(
                     "auto-commit not supported, please setAutoCommit(false)");
             
         }

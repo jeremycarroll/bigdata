@@ -52,5 +52,7 @@
 	<classpathentry kind="lib" path="bigdata-rdf/lib/openrdf-sesame-2.2.4-onejar.jar"/>
 	<classpathentry kind="lib" path="bigdata/lib/unimi/dsiutils-1.0.10.jar" sourcepath="/dsiutils-1.0.10/src"/>
 	<classpathentry kind="lib" path="bigdata/lib/unimi/fastutil-5.1.5.jar"/>
+	<classpathentry kind="lib" path="bigdata-sails/lib/sesame-sparql-testsuite-2.2.4.jar"/>
+	<classpathentry kind="lib" path="bigdata-sails/lib/sesame-store-testsuite-2.2.4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
