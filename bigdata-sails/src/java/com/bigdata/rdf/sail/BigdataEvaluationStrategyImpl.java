@@ -685,13 +685,14 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
                 c = com.bigdata.relation.rule.Var.var(name);
             }
         } else {
-            if (expander == null) {
-                c = generateVariableOrConstant(stmtPattern.getContextVar());
+            if (stmtPattern.getContextVar() == null) {
+                c = null;
             } else {
-                c = new Constant<Long>(database.NULL);
-            }
-            if (c == null) {
-                return null;
+                if (expander == null) {
+                    c = generateVariableOrConstant(stmtPattern.getContextVar());
+                } else {
+                    c = new Constant<Long>(database.NULL);
+                }
             }
         }
         
