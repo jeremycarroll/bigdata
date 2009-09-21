@@ -661,7 +661,7 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
             return null;
         }
         final IVariableOrConstant<Long> c;
-        {
+        if (database.isQuads() == false) {
             final Var var = stmtPattern.getContextVar();
             if (var == null) {
                 // context position is not used.
@@ -683,6 +683,15 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
                 }
                 final String name = var.getName();
                 c = com.bigdata.relation.rule.Var.var(name);
+            }
+        } else {
+            if (expander == null) {
+                c = generateVariableOrConstant(stmtPattern.getContextVar());
+            } else {
+                c = new Constant<Long>(database.NULL);
+            }
+            if (c == null) {
+                return null;
             }
         }
         
