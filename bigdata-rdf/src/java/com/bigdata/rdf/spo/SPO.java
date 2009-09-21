@@ -612,8 +612,9 @@ public class SPO implements ISPO, Comparable<SPO> {
     public String toString() {
 
         return ("< " + toString(s) + ", " + toString(p) + ", " + toString(o))
-                + (type == null ? "" : " : " + type+(override?", override":"")
-                        + (c == NULL ? "" : ", c=" + c)) + " >";
+                + (c == NULL ? "" : ", c=" + c)
+                + (type == null ? "" : " : " + type
+                        + (override ? ", override" : "") + " >");
 
     }
 
