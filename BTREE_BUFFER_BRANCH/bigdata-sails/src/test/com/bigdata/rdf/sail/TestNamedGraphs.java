@@ -725,7 +725,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     alice
                     );
             cxn.add(
-                    b,
+                    bob,
                     RDF.TYPE,
                     FOAF_PPD,
                     alice
@@ -749,7 +749,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     bob
                     );
             cxn.add(
-                    z,
+                    bob,
                     RDF.TYPE,
                     FOAF_PPD,
                     bob
@@ -776,12 +776,12 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                 cxn.prepareTupleQuery(QueryLanguage.SPARQL, query);
             tupleQuery.setIncludeInferred(true /* includeInferred */);
             TupleQueryResult result = tupleQuery.evaluate();
-            // do something with the results
-            while (result.hasNext()) {
-                BindingSet bindingSet = result.next();
-                if(log.isInfoEnabled())
-                    log.info(bindingSet);
-            }
+
+            Collection<BindingSet> answer = new LinkedList<BindingSet>();
+            answer.add(createBindingSet(
+                    new BindingImpl("nick", new LiteralImpl("Robert"))));
+            
+            compare(result, answer);
 
         } finally {
             cxn.close();
@@ -930,7 +930,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     alice
                     );
             cxn.add(
-                    b,
+                    bob,
                     RDF.TYPE,
                     FOAF_PPD,
                     alice
@@ -954,7 +954,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     bob
                     );
             cxn.add(
-                    z,
+                    bob,
                     RDF.TYPE,
                     FOAF_PPD,
                     bob
@@ -992,12 +992,14 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                 cxn.prepareTupleQuery(QueryLanguage.SPARQL, query);
             tupleQuery.setIncludeInferred(true /* includeInferred */);
             TupleQueryResult result = tupleQuery.evaluate();
-            // do something with the results
-            while (result.hasNext()) {
-                BindingSet bindingSet = result.next();
-                if(log.isInfoEnabled())
-                    log.info(bindingSet);
-            }
+
+            Collection<BindingSet> answer = new LinkedList<BindingSet>();
+            answer.add(createBindingSet(
+                    new BindingImpl("mbox", new URIImpl("mailto:bob@work.example")),
+                    new BindingImpl("nick", new LiteralImpl("Robert")),
+                    new BindingImpl("ppd", bob)));
+            
+            compare(result, answer);
 
         } finally {
             cxn.close();
