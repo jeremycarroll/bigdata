@@ -234,8 +234,15 @@ public class SPOIndexWriter implements Callable<Long> {
                 continue;
 
             // skip duplicate records.
-            if (last != null && last.equals(spo))
-                continue;
+            if (last != null && last.equals(spo)) {
+                if (keyOrder.getKeyArity() == 4) {
+                    // must also compare context for quads.
+                    if (last.c() == spo.c())
+                        continue;
+
+                } else
+                    continue;
+            }
 
             // generate key for the index.
             keys[numToAdd] = tupleSer.serializeKey(spo);
