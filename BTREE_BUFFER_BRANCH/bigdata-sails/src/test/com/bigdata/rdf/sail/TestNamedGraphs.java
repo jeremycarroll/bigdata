@@ -32,7 +32,13 @@
 package com.bigdata.rdf.sail;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.openrdf.model.BNode;
 import org.openrdf.model.URI;
 import org.openrdf.model.impl.BNodeImpl;
@@ -40,12 +46,15 @@ import org.openrdf.model.impl.LiteralImpl;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
+import org.openrdf.query.Binding;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.TupleQuery;
 import org.openrdf.query.TupleQueryResult;
+import org.openrdf.query.algebra.evaluation.QueryBindingSet;
+import org.openrdf.query.impl.BindingImpl;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
@@ -61,6 +70,8 @@ import org.openrdf.sail.SailException;
  */
 public class TestNamedGraphs extends ProxyBigdataSailTestCase {
 
+    protected static final Logger log = Logger.getLogger(TestNamedGraphs.class);
+    
     /**
      * 
      */
@@ -114,6 +125,59 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
      */
     final URI DC_PUBLISHER = new URIImpl(DC+"publisher"); 
     
+    
+    protected BindingSet createBindingSet(Binding... bindings) {
+        QueryBindingSet bindingSet = new QueryBindingSet();
+        if (bindings != null) {
+            for (Binding b : bindings) {
+                bindingSet.addBinding(b);
+            }
+        }
+        return bindingSet;
+    }
+    
+    protected void compare(TupleQueryResult result, Collection<BindingSet> answer) throws QueryEvaluationException {
+        
+        Collection<BindingSet> extraResults = new LinkedList<BindingSet>();
+        Collection<BindingSet> missingResults = new LinkedList<BindingSet>();
+        
+        int resultCount = 0;
+        while (result.hasNext()) {
+            BindingSet bindingSet = result.next();
+            resultCount++;
+            boolean match = false;
+            if(log.isInfoEnabled())
+                log.info(bindingSet);
+            Iterator<BindingSet> it = answer.iterator();
+            while (it.hasNext()) {
+                if (it.next().equals(bindingSet)) {
+                    it.remove();
+                    match = true;
+                    break;
+                }
+            }
+            if (match == false) {
+                extraResults.add(bindingSet);
+            }
+        }
+        missingResults = answer;
+
+        for (BindingSet bs : extraResults) {
+            if (log.isInfoEnabled()) {
+                log.info("extra result: " + bs);
+            }
+        }
+        
+        for (BindingSet bs : missingResults) {
+            if (log.isInfoEnabled()) {
+                log.info("missing result: " + bs);
+            }
+        }
+        
+        assertTrue("extra result count: " + extraResults.size(), extraResults.size() == 0);
+        assertTrue("missing result count: " + missingResults.size(), missingResults.size() == 0);
+        
+    }
     
     /**
      * 8.2.1 Specifying the Default Graph
@@ -176,7 +240,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             cxn.commit();
 /**/            
             if(log.isInfoEnabled()) {
-                log.info(sail.getDatabase().dumpStore().toString());
+                log.info("\n"+sail.getDatabase().dumpStore().toString());
             }
             String query = 
                 "PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
@@ -189,12 +253,13 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             tupleQuery.setIncludeInferred(true /* includeInferred */);
             TupleQueryResult result = tupleQuery.evaluate();
             // do something with the results
-            while (result.hasNext()) {
-                BindingSet bindingSet = result.next();
-                if(log.isInfoEnabled())
-                    log.info(bindingSet);
-            }
 
+            Collection<BindingSet> answer = new LinkedList<BindingSet>();
+            answer.add(createBindingSet(
+                    new BindingImpl("name", new LiteralImpl("Alice"))));
+            
+            compare(result, answer);
+            
         } finally {
             cxn.close();
             sail.shutdownAndDelete();
@@ -271,6 +336,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             final URI bob = new URIImpl("http://example.org/bob");
             final URI alice = new URIImpl("http://example.org/alice");
             final URI graph = new URIImpl("http://example.org/dft.ttl");
+            final URI aliceMbox = new URIImpl("mailto:alice@work.example.org");
+            final URI bobMbox = new URIImpl("mailto:bob@oldcorp.example.org");
 /**/            
             cxn.add(
                     bob,
@@ -293,24 +360,24 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             cxn.add(
                     b,
                     FOAF_MBOX,
-                    new URIImpl("mailto:bob@oldcorp.example.org"),
+                    bobMbox,
                     bob
                     );
             cxn.add(
                     a,
                     FOAF_NAME,
                     new LiteralImpl("Alice"),
-                    bob
+                    alice
                     );
             cxn.add(
                     a,
                     FOAF_MBOX,
-                    new URIImpl("mailto:alice@work.example.org"),
-                    bob
+                    aliceMbox,
+                    alice
                     );
             cxn.commit();
             if(log.isInfoEnabled()) {
-                log.info(sail.getDatabase().dumpStore().toString());
+                log.info("\n"+sail.getDatabase().dumpStore().toString());
             }
 /**/            
             String query = 
@@ -331,12 +398,19 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             tupleQuery.setIncludeInferred(true /* includeInferred */);
             TupleQueryResult result = tupleQuery.evaluate();
             // do something with the results
-            while (result.hasNext()) {
-                BindingSet bindingSet = result.next();
-                if(log.isInfoEnabled())
-                        log.info(bindingSet);
-            }
-
+            
+            Collection<BindingSet> answer = new LinkedList<BindingSet>();
+            answer.add(createBindingSet(
+                    new BindingImpl("g", alice),
+                    new BindingImpl("mbox", aliceMbox),
+                    new BindingImpl("who", new LiteralImpl("Alice Hacker"))));
+            answer.add(createBindingSet(
+                    new BindingImpl("g", bob),
+                    new BindingImpl("mbox", bobMbox),
+                    new BindingImpl("who", new LiteralImpl("Bob Hacker"))));
+            
+            compare(result, answer);
+            
         } finally {
             cxn.close();
             sail.shutdownAndDelete();
@@ -464,7 +538,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     alice
                     );
             cxn.add(
-                    b,
+                    bob,
                     RDF.TYPE,
                     FOAF_PPD,
                     alice
@@ -488,21 +562,21 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     bob
                     );
             cxn.add(
-                    z,
+                    bob,
                     RDF.TYPE,
                     FOAF_PPD,
                     bob
                     );
             cxn.commit();
             if(log.isInfoEnabled()) {
-                log.info(sail.getDatabase().dumpStore().toString());
+                log.info("\n"+sail.getDatabase().dumpStore().toString());
             }
             
             String query = 
                 "PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
                 "SELECT ?src ?bobNick " +
-                "FROM NAMED <http://example.org/foaf/aliceFoaf> " +
                 "FROM NAMED <http://example.org/foaf/bobFoaf> " +
+                "FROM NAMED <http://example.org/foaf/aliceFoaf> " +
                 "WHERE " +
                 "  { " +
                 "    GRAPH ?src " +
@@ -515,12 +589,16 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                 cxn.prepareTupleQuery(QueryLanguage.SPARQL, query);
             tupleQuery.setIncludeInferred(true /* includeInferred */);
             TupleQueryResult result = tupleQuery.evaluate();
-            // do something with the results
-            while (result.hasNext()) {
-                BindingSet bindingSet = result.next();
-                if(log.isInfoEnabled())
-                    log.info(bindingSet);
-            }
+
+            Collection<BindingSet> answer = new LinkedList<BindingSet>();
+            answer.add(createBindingSet(
+                    new BindingImpl("src", alice),
+                    new BindingImpl("bobNick", new LiteralImpl("Bobby"))));
+            answer.add(createBindingSet(
+                    new BindingImpl("src", bob),
+                    new BindingImpl("bobNick", new LiteralImpl("Robert"))));
+            
+            compare(result, answer);
 
         } finally {
             cxn.close();
@@ -678,7 +756,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     );
             cxn.commit();
             if(log.isInfoEnabled()) {
-                log.info(sail.getDatabase().dumpStore().toString());
+                log.info("\n"+sail.getDatabase().dumpStore().toString());
             }
             
             String query = 
@@ -883,7 +961,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                     );
             cxn.commit();
             if(log.isInfoEnabled()) {
-                log.info(sail.getDatabase().dumpStore().toString());
+                log.info("\n"+sail.getDatabase().dumpStore().toString());
             }
             
             String query = 
