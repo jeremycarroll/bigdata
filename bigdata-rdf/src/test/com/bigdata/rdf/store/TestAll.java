@@ -76,6 +76,9 @@ public class TestAll extends TestCase {
 
 //        suite.addTest( com.bigdata.rdf.store.TestLocalTripleStoreWithIsolatableIndices.suite() );
 
+        // @todo test quad store for LDS and EDS.
+        suite.addTest( com.bigdata.rdf.store.TestLocalQuadStore.suite() );
+
         suite.addTest( TestScaleOutTripleStoreWithLocalDataServiceFederation.suite() );
 
         suite.addTest(com.bigdata.rdf.store.TestScaleOutTripleStoreWithEmbeddedFederation

@@ -30,6 +30,7 @@ package com.bigdata.service.jini;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -84,6 +85,7 @@ import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.jini.util.JiniUtil;
 import com.bigdata.service.AbstractService;
 import com.bigdata.service.IBigdataFederation;
+import com.bigdata.service.IService;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.jini.DataServer.AdministrableDataService;
 import com.bigdata.service.mapred.jini.MapServer;
@@ -184,6 +186,11 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
      * The file where the {@link ServiceID} will be written / read.
      */
     private File serviceIdFile;
+
+    /**
+     * The file on which the PID was written.
+     */
+    private File pidFile;
 
     /**
      * An attempt is made to obtain an exclusive lock on a file in the same
@@ -373,7 +380,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
      * resources, wraps the throwable as a runtime exception and rethrows the
      * wrapped exception.
      * <p>
-     * This implementation MAY be overriden to invoke {@link System#exit(int)}
+     * This implementation MAY be overridden to invoke {@link System#exit(int)}
      * IFF it is known that the server is being invoked from a command line
      * context. However in no case should execution be allowed to return to the
      * caller.
@@ -384,8 +391,8 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
         
         try {
 
-            shutdownNow();
-            
+            shutdownNow(false/* destroy */);
+
         } catch (Throwable t2) {
             
             log.error(this, t2);
@@ -493,7 +500,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
              */
             acquireFileLock();
             
-            writePIDFile();
+            writePIDFile(pidFile = new File(serviceDir, "pid"));
             
             // convert Entry[] to a mutable list.
             entries = new LinkedList<Entry>(Arrays
@@ -976,9 +983,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
      * be the pid of the server. If you are running multiple servers inside of
      * the same JVM, then the pid will be the same for each of those servers.
      */
-    private void writePIDFile() {
-
-        final File file = new File(serviceDir, "pid");
+    private void writePIDFile(final File file) {
 
         try {
 
@@ -1623,15 +1628,19 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
      * Note: Normally, extended shutdown behavior is handled by the service
      * implementation, not the server. However, subclasses MAY extend this
      * method to terminate any additional processing and release any additional
-     * resources, taking care to (a) declare the method as <strong>synchronized</strong>,
-     * conditionally halt any asynchonrous processing not already halted,
-     * conditionally release any resources not already released, and trap, log,
-     * and ignored all errors.
+     * resources, taking care to (a) declare the method as
+     * <strong>synchronized</strong>, conditionally halt any asynchonrous
+     * processing not already halted, conditionally release any resources not
+     * already released, and trap, log, and ignored all errors.
      * <p>
      * Note: This is run from within the {@link ShutdownThread} in response to a
      * request to destroy the service.
+     * 
+     * @param destroy
+     *            When <code>true</code> the persistent state associated with
+     *            the service is also destroyed/
      */
-    synchronized public void shutdownNow() {
+    synchronized public void shutdownNow(final boolean destroy) {
 
         if (shuttingDown) {
             
@@ -1700,11 +1709,33 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
 //
 //        }
 
+        if (destroy && impl != null && impl instanceof IService) {
+
+            final IService tmp = (IService) impl;
+
+            /*
+             * Delegate to the service to destroy its persistent state.
+             */
+
+            try {
+
+                ((IService) tmp).destroy();
+
+            } catch (Throwable ex) {
+
+                log.error("Problem with service destroy: " + this, ex);
+
+                // ignore.
+
+            }
+
+        }
+        
         /*
          * Invoke the service's own logic to shutdown its processing.
          */
         if (impl != null && impl instanceof IServiceShutdown) {
-            
+
             try {
                 
                 final IServiceShutdown tmp = (IServiceShutdown) impl;
@@ -1730,13 +1761,12 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
                 
                 // ignore.
                 
-            } finally {
-                
-                impl = null;
-                
-            }
+            } 
             
         }
+        
+        // discard reference to the service implementation object.
+        impl = null;
         
         /*
          * Terminate manager threads.
@@ -1778,6 +1808,32 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
 
         }
         
+        if(destroy) {
+
+            // Delete any files that we recognize in the service directory.
+            recursiveDelete(serviceDir);
+
+            /*
+             * Delete files created by this class.
+             */
+            
+            // delete the serviceId file.
+            if (serviceIdFile.exists() && !serviceIdFile.delete()) {
+
+                log.warn("Could not delete: " + serviceIdFile);
+
+            }
+
+            // delete the pid file.
+            if (pidFile.exists() && !pidFile.delete()) {
+
+                log.warn("Could not delete: " + pidFile);
+
+            }
+
+        }
+        
+        // release the file lock.
         if (lockFileRAF != null && lockFileRAF.getChannel().isOpen()) {
 
             /*
@@ -1796,7 +1852,14 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
             }
             
         }
-        
+
+        // delete the service directory after we have released the lock.
+        if (destroy && serviceDir.exists() && !serviceDir.delete()) {
+
+            log.warn("Could not delete: " + serviceDir);
+
+        }
+
         // wake up so that run() will exit.
         synchronized(keepAlive) {
             
@@ -1943,7 +2006,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
                 
                 // terminate.
                 
-                shutdownNow();
+                shutdownNow(false/* destroy */);
                 
             }
             
@@ -1955,12 +2018,13 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
     }
 
     private Object keepAlive = new Object();
-    
+
     /**
      * Runs {@link AbstractServer#shutdownNow()} and terminates all asynchronous
-     * processing, including discovery.
+     * processing, including discovery. This is used for the shutdown hook (^C).
      * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
      * @version $Id$
      */
     static class ShutdownThread extends Thread {
@@ -1993,7 +2057,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
                  * service and termination of jini processing.
                  */
                 
-                server.shutdownNow();
+                server.shutdownNow(false/* destroy */);
                 
             } catch (Exception ex) {
 
@@ -2016,26 +2080,64 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
      */
     synchronized public void destroy() {
 
-        shutdownNow();
-        
-        if (log.isInfoEnabled())
-            log.info("Deleting: " + serviceIdFile);
+        shutdownNow(true/*destroy*/);
 
-        if (!serviceIdFile.delete()) {
-
-            log.warn("Could not delete file: " + serviceIdFile);
-
-        }
-        
-        // wake up so that run() will exit. 
-        synchronized(keepAlive) {
-            
-            keepAlive.notify();
-            
-        }
-        
     }
 
+    /**
+     * Recursively removes any files and subdirectories and then removes the
+     * file (or directory) itself. Only files recognized by
+     * {@link #getFileFilter()} will be deleted.
+     * 
+     * @param f
+     *            A file or directory.
+     */
+    private void recursiveDelete(File f) {
+
+        if (f.isDirectory()) {
+
+            final File[] children = f.listFiles(getFileFilter());
+
+            for (int i = 0; i < children.length; i++) {
+
+                recursiveDelete(children[i]);
+
+            }
+
+        }
+
+        if (log.isInfoEnabled())
+            log.info("Removing: " + f);
+
+        if (f.exists() && !f.delete()) {
+
+            log.warn("Could not remove: " + f);
+
+        }
+
+    }
+
+    /**
+     * Method may be overriden to recognize files in the service directory so
+     * they may be automatically deleted by {@link #destroy()} after the
+     * {@link IService#destroy()} has been invoked to destroy any files claimed
+     * by the service implementation. The default implementation of this method
+     * does not recognize any files.
+     */
+    protected FileFilter getFileFilter() {
+        
+        return new FileFilter() {
+
+            public boolean accept(File pathname) {
+
+                return false;
+                
+            }
+            
+        };
+        
+    }
+    
     /**
      * Runs {@link #destroy()} and logs start and end events.
      */

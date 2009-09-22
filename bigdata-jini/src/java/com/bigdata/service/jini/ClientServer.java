@@ -229,7 +229,7 @@ public class ClientServer extends AbstractServer {
          * 
          * @throws RemoteException
          */
-        public void destroy() throws RemoteException {
+        public void destroy() {
 
             server.runDestroy();
 
@@ -241,7 +241,7 @@ public class ClientServer extends AbstractServer {
             super.shutdown();
             
             // jini service and server shutdown.
-            server.shutdownNow();
+            server.shutdownNow(false/*destroy*/);
             
         }
         
@@ -251,7 +251,7 @@ public class ClientServer extends AbstractServer {
             super.shutdownNow();
             
             // jini service and server shutdown.
-            server.shutdownNow();
+            server.shutdownNow(false/*destroy*/);
             
         }
 

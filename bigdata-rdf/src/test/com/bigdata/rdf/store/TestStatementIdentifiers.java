@@ -396,7 +396,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
             
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 
@@ -513,7 +513,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
             
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
         
@@ -657,7 +657,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
             
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
         
@@ -774,7 +774,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -838,7 +838,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -894,7 +894,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
 
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         

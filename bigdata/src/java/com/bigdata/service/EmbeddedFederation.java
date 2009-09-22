@@ -54,8 +54,27 @@ import com.bigdata.service.EmbeddedClient.Options;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
+ * 
+ @todo The EDS/LDS should use their own options in their own namespace to
+ *       specify the data directory for the federation. Ditto for the
+ *       "transient" or "createTempFile" properties. Everything is namespaced
+ *       now and the overridden semantics of
+ *       com.bigdata.journal.Options.CREATE_TEMP_FILE and StoreManager#DATA_DIR
+ *       are just getting us into trouble. Look at all uses of these options in
+ *       the unit tests and decouple them from the journal's options.
  */
 public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
+
+    /**
+     * Text of the warning message used when a file or directory could not be
+     * deleted during {@link #destroy()}.
+     */
+    private static final String ERR_COULD_NOT_DELETE = "Could not delete: ";
+
+    /**
+     * The name of the file used to mark an MDS vs DS service.
+     */
+    static private final String MDS = ".mds";
 
     /**
      * The #of data service instances.
@@ -75,25 +94,39 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
     private final File dataDir;
     
     /**
+     * The directory in which the data files will reside. Each directory
+     * is named for the service {@link UUID} - restart depends on this.
+     */
+    public final File getDataDir() {
+        
+        return dataDir;
+        
+    }
+    
+    /**
      * The (in process) {@link AbstractTransactionService}.
      */
-    private AbstractTransactionService abstractTransactionService;
+    private final AbstractTransactionService abstractTransactionService;
     
     /** The (in process) {@link IResourceLockService} */
-    private ResourceLockService resourceLockManager;
+    private final ResourceLockService resourceLockManager;
     
     /**
      * The (in process) {@link LoadBalancerService}.
      */
-    private LoadBalancerService loadBalancerService;
+    private final LoadBalancerService loadBalancerService;
     
     /**
      * The (in process) {@link MetadataService}.
+     * <p>
+     * Note: Not final because not initialized in the constructor.
      */
     private MetadataService metadataService;
     
     /**
      * The (in process) {@link DataService}s.
+     * <p>
+     * Note: Not final because not initialized in the constructor.
      */
     private DataService[] dataService;
     
@@ -372,11 +405,40 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
          */
         resourceLockManager = new ResourceLockService();
         
-        /*
-         * Start the load balancer.
-         */
-        loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID.randomUUID(),
-                properties).start();
+        {
+
+            final Properties p = new Properties(properties);
+            
+            if (isTransient) {
+
+                /*
+                 * FIXME The LBS needs to support a 'transient' option in which
+                 * it (a) does not log counters; and (b) keeps the events in a
+                 * transient B+Tree (not backed by a file on the disk).
+                 */
+                throw new UnsupportedOperationException(
+                        "LBS does not support transient option yet.");
+
+            } else {
+                
+                // specify the data directory for the load balancer.
+                p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR,
+                        new File(dataDir, "lbs").toString());
+                
+            }
+
+            /*
+             * Start the load balancer.
+             */
+            try {
+            loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID
+                    .randomUUID(), p).start();
+            } catch(Throwable t) {
+                log.error(t,t);
+                throw new RuntimeException(t);
+            }
+
+        }
 
         /*
          * The directory in which the data files will reside.
@@ -470,9 +532,9 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
                     p.setProperty(MetadataService.Options.DATA_DIR, serviceDir.toString());
 //                    p.setProperty(Options.FILE, new File(serviceDir,"journal"+Options.JNL).toString());
 
-                    if(new File(serviceDir,".mds").exists()) {
+                    if(new File(serviceDir,MDS).exists()) {
                         
-                        /*
+                        /*`
                          * metadata service.
                          */
                         metadataService = new EmbeddedMetadataService(this,
@@ -617,7 +679,7 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
                  */
                 try {
 
-                    new RandomAccessFile(new File(serviceDir, ".mds"), "rw")
+                    new RandomAccessFile(new File(serviceDir, MDS), "rw")
                             .close();
 
                 } catch (IOException e) {
@@ -771,24 +833,30 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
 
         for (int i = 0; i < dataService.length; i++) {
 
-            DataService ds = this.dataService[i];
+            if (dataService[i] != null) {
 
-            ds.shutdownNow();
+                dataService[i].shutdown();
+
+            }
             
         }
 
-        metadataService.shutdownNow();
+        if (metadataService != null) {
+
+            metadataService.shutdown();
+            
+        }
         
         if (loadBalancerService != null) {
 
             loadBalancerService.shutdown();
 
-            loadBalancerService = null;
+//            loadBalancerService = null;
             
         }
         
-        // Note: don't clear ref until all down since nextTimestamp() still active.
-        abstractTransactionService = null;
+//        // Note: don't clear ref until all down since nextTimestamp() still active.
+//        abstractTransactionService = null;
 
         if (log.isInfoEnabled())
             log.info("done");
@@ -813,10 +881,12 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
 
         for (int i = 0; i < dataService.length; i++) {
 
-            DataService ds = this.dataService[i];
-            
-            ds.shutdownNow();
-            
+            if (dataService[i] != null) {
+
+                dataService[i].shutdownNow();
+
+            }
+
         }
 
         metadataService.shutdownNow();
@@ -825,12 +895,12 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
 
             loadBalancerService.shutdownNow();
 
-            loadBalancerService = null;
+//            loadBalancerService = null;
             
         }
         
-        // Note: don't clear ref until all down since nextTimestamp() still active.
-        abstractTransactionService = null;
+//        // Note: don't clear ref until all down since nextTimestamp() still active.
+//        abstractTransactionService = null;
 
         if (log.isInfoEnabled())
             log.info("done");
@@ -839,51 +909,46 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
 
     public void destroy() {
 
-        if (log.isInfoEnabled())
-            log.info("");
+        super.destroy();
 
-        abstractTransactionService.shutdownNow();
+        abstractTransactionService.destroy();
         
         for (int i = 0; i < dataService.length; i++) {
 
-            IDataService ds = dataService[i];
-            
-            try {
-                
-                ds.destroy();
-            
-            } catch (IOException e) {
-             
-                log.error("Could not destroy dataService", e );
+            if (dataService[i] != null) {
+
+                dataService[i].destroy();
                 
             }
-            
-            dataService[i] = null;
-
+ 
         }
 
-        {
+        if (metadataService != null) {
 
-            try {
+            // the file flagging this as the MDS rather than a DS.
+            final File tmp = new File(metadataService.getResourceManager()
+                    .getDataDir(), EmbeddedFederation.MDS);
 
-                metadataService.destroy();
+            if(!tmp.delete()) {
 
-            } catch (IOException e) {
-
-                log.error("Could not destroy dataService", e);
+                log.warn(ERR_COULD_NOT_DELETE + tmp);
 
             }
 
-            metadataService = null;
-            
+            metadataService.destroy();
+
         }
 
-        loadBalancerService.shutdownNow();
+        loadBalancerService.destroy();
+
+        if (!isTransient && !dataDir.delete()) {
+
+            log.warn(ERR_COULD_NOT_DELETE + dataDir);
+            
+        }
         
-        loadBalancerService = null;
-
-        // Note: don't clear ref until all down since nextTimestamp() still active.
-        abstractTransactionService = null;
+//        // Note: don't clear ref until all down since nextTimestamp() still active.
+//        abstractTransactionService = null;
         
     }
     

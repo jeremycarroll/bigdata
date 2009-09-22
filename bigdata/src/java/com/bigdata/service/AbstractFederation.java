@@ -189,6 +189,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
             log.info("done: elapsed=" + (System.currentTimeMillis() - begin));
         
         client = null;
+
+        tempStoreFactory.closeAll();
         
     }
 
@@ -250,6 +252,17 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
             log.info("done: elapsed=" + (System.currentTimeMillis() - begin));
         
         client = null;
+        
+        tempStoreFactory.closeAll();
+
+    }
+
+    synchronized public void destroy() {
+
+        if (isOpen())
+            shutdownNow();
+        
+        tempStoreFactory.closeAll();
         
     }
     

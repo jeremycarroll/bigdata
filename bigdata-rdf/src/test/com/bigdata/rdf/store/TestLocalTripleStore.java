@@ -86,8 +86,12 @@ public class TestLocalTripleStore extends AbstractTestCase {
          * this test class and its optional .properties file.
          */
 
+        // basic test suite.
         suite.addTest(TestTripleStoreBasics.suite());
         
+        // rules, inference, and truth maintenance test suite.
+        suite.addTest( com.bigdata.rdf.rules.TestAll.suite() );
+
         return suite;
         
     }
@@ -122,33 +126,34 @@ public class TestLocalTripleStore extends AbstractTestCase {
      *                be re-opened, e.g., from failure to obtain a file lock,
      *                etc.
      */
-    protected AbstractTripleStore reopenStore(AbstractTripleStore store) {
-        
+    protected AbstractTripleStore reopenStore(final AbstractTripleStore store) {
+
         // close the store.
         store.close();
-        
+
         if (!store.isStable()) {
-            
-            throw new UnsupportedOperationException("The backing store is not stable");
-            
+
+            throw new UnsupportedOperationException(
+                    "The backing store is not stable");
+
         }
-        
+
         // Note: clone to avoid modifying!!!
-        final Properties properties = (Properties)getProperties().clone();
-        
+        final Properties properties = (Properties) getProperties().clone();
+
         // Turn this off now since we want to re-open the same store.
-        properties.setProperty(Options.CREATE_TEMP_FILE,"false");
-        
+        properties.setProperty(Options.CREATE_TEMP_FILE, "false");
+
         // The backing file that we need to re-open.
         final File file = ((LocalTripleStore) store).store.getFile();
-        
+
         assertNotNull(file);
-        
-        // Set the file property explictly.
-        properties.setProperty(Options.FILE,file.toString());
-        
-        return new LocalTripleStore( properties );
-        
+
+        // Set the file property explicitly.
+        properties.setProperty(Options.FILE, file.toString());
+
+        return new LocalTripleStore(properties);
+
     }
 
 }

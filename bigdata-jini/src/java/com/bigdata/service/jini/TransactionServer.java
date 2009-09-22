@@ -306,7 +306,7 @@ public class TransactionServer extends AbstractServer {
             super.shutdown();
 
             // jini service and server shutdown.
-            server.shutdownNow();
+            server.shutdownNow(false/*destroy*/);
 
         }
 
@@ -316,7 +316,7 @@ public class TransactionServer extends AbstractServer {
             super.shutdownNow();
 
             // jini service and server shutdown.
-            server.shutdownNow();
+            server.shutdownNow(false/*destroy*/);
 
         }
 

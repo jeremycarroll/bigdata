@@ -114,17 +114,17 @@ public class LocalTripleStore extends AbstractLocalTripleStore {
         
     }
     
-    public void closeAndDelete() {
-        
-        super.closeAndDelete();
-
-        if(!isReadOnly()) {
-
-            store.destroy();
-            
-        }
-        
-    }
+//    public void __tearDownUnitTest() {
+//        
+//        super.__tearDownUnitTest();
+//
+//        if(!isReadOnly()) {
+//
+//            store.destroy();
+//            
+//        }
+//        
+//    }
 
     /**
      * Options understood by the {@link LocalTripleStore}.

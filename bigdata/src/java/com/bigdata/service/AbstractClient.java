@@ -163,7 +163,7 @@ abstract public class AbstractClient<T> implements IBigdataClient<T> {
      * @param properties
      *            See {@link IBigdataClient.Options}
      */
-    protected AbstractClient(Properties properties) {
+    protected AbstractClient(final Properties properties) {
         
         // show the copyright banner during statup.
         Banner.banner();

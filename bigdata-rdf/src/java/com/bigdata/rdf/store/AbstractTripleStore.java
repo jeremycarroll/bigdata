@@ -142,6 +142,7 @@ import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
 import com.bigdata.relation.rule.eval.IRuleTaskFactory;
 import com.bigdata.relation.rule.eval.ISolution;
+import com.bigdata.resources.IndexManager;
 import com.bigdata.search.FullTextIndex;
 import com.bigdata.search.IHit;
 import com.bigdata.service.AbstractEmbeddedDataService;
@@ -899,15 +900,16 @@ abstract public class AbstractTripleStore extends
     abstract public boolean isConcurrent();
 
     /**
-     * Disconnect from and drop the {@link ITripleStore}.
-     * <p>
-     * Note: This is mainly used by the test suites.
-     * <p>
-     * Note: The default implementation merely terminates some thread pools.
+     * <strong>DO NOT INVOKE FROM APPLICATION CODE</strong> - this method
+     * deletes the KB instance and destroys the backing database instance. It is
+     * used to help tear down unit tests.
      */
-    public void closeAndDelete() {
+    public void __tearDownUnitTest() {
 
-        shutdown();
+        if(isOpen())
+            destroy();
+        
+        getIndexManager().destroy();
 
     }
 
@@ -925,7 +927,7 @@ abstract public class AbstractTripleStore extends
 
     /**
      * Default is a NOP - invoked by {@link #close()} and
-     * {@link #closeAndDelete()}
+     * {@link #__tearDownUnitTest()}
      */
     final protected void shutdown() {
 
@@ -1100,6 +1102,9 @@ abstract public class AbstractTripleStore extends
 
         assertWritable();
 
+        // FIXME unit tests fail here during tear down if the federation has
+        // already been disconnected/destroyed since they can not reach the
+        // lock service.  The code should handle this better.
         final IResourceLock resourceLock = acquireExclusiveLock();
 
         try {

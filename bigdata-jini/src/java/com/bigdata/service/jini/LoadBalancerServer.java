@@ -569,7 +569,7 @@ public class LoadBalancerServer extends AbstractServer {
          * 
          * @throws RemoteException
          */
-        public void destroy() throws RemoteException {
+        public void destroy() {
 
             server.runDestroy();
 
@@ -581,7 +581,7 @@ public class LoadBalancerServer extends AbstractServer {
             super.shutdown();
             
             // jini service and server shutdown.
-            server.shutdownNow();
+            server.shutdownNow(false/*destroy*/);
             
         }
         
@@ -591,7 +591,7 @@ public class LoadBalancerServer extends AbstractServer {
             super.shutdownNow();
             
             // jini service and server shutdown.
-            server.shutdownNow();
+            server.shutdownNow(false/*destroy*/);
             
         }
         

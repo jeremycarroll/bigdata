@@ -694,8 +694,11 @@ public class BigdataSail extends SailBase implements Sail {
     }
 
     /**
-     * Shuts down the sail and deletes the backing database (used by the unit
-     * tests).
+     * <strong>DO NOT INVOKE FROM APPLICATION CODE</strong> - this method
+     * deletes the KB instance and destroys the backing database instance. It is
+     * used to help tear down unit tests.
+     * 
+     * FIXME rename as __tearDownUnitTest.
      */
     void shutdownAndDelete() {
         
@@ -705,7 +708,7 @@ public class BigdataSail extends SailBase implements Sail {
 
             shutDown();
 
-            database.closeAndDelete();
+            database.__tearDownUnitTest();
 
         } catch (Throwable t) {
 

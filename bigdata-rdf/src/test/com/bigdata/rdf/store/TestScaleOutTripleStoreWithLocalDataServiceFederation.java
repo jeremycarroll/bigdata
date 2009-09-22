@@ -36,6 +36,8 @@ import junit.framework.Test;
 
 import com.bigdata.journal.ITx;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
+import com.bigdata.service.EmbeddedClient;
+import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.LocalDataServiceClient;
 import com.bigdata.service.LocalDataServiceFederation;
 
@@ -95,7 +97,11 @@ public class TestScaleOutTripleStoreWithLocalDataServiceFederation extends Abstr
          * this test class and its optional .properties file.
          */
         
+        // basic test suite.
         suite.addTest(TestTripleStoreBasics.suite());
+        
+        // rules, inference, and truth maintenance test suite.
+        suite.addTest( com.bigdata.rdf.rules.TestAll.suite() );
 
         return suite;
 
@@ -106,7 +112,7 @@ public class TestScaleOutTripleStoreWithLocalDataServiceFederation extends Abstr
      */
     public Properties getProperties() {
 
-        Properties properties = new Properties( super.getProperties() );
+        final Properties properties = new Properties( super.getProperties() );
 
 //         Note: this reduces the disk usage at the expense of memory usage.
 //        properties.setProperty(EmbeddedBigdataFederation.Options.BUFFER_MODE,
@@ -114,7 +120,7 @@ public class TestScaleOutTripleStoreWithLocalDataServiceFederation extends Abstr
 
 //        properties.setProperty(Options.BUFFER_MODE, BufferMode.Disk.toString());
 
-        properties.setProperty(Options.CREATE_TEMP_FILE,"false");
+        properties.setProperty(Options.CREATE_TEMP_FILE, "false");
 
 //        properties.setProperty(Options.DELETE_ON_EXIT,"true");
 
@@ -138,7 +144,7 @@ public class TestScaleOutTripleStoreWithLocalDataServiceFederation extends Abstr
      * Data files are placed into a directory named by the test. If the
      * directory exists, then it is removed before the federation is set up.
      */
-    public void setUp(ProxyTestCase testCase) throws Exception {
+    public void setUp(final ProxyTestCase testCase) throws Exception {
     
         super.setUp(testCase);
 
@@ -157,20 +163,27 @@ public class TestScaleOutTripleStoreWithLocalDataServiceFederation extends Abstr
         properties.setProperty(LocalDataServiceClient.Options.DATA_DIR,
                 testCase.getName());
 
+        // disable platform statistics collection.
+        properties.setProperty(
+                EmbeddedClient.Options.COLLECT_PLATFORM_STATISTICS, "false");
+
         client = new LocalDataServiceClient(properties);
 
         client.connect();
         
     }
     
-    public void tearDown(ProxyTestCase testCase) throws Exception {
+    public void tearDown(final ProxyTestCase testCase) throws Exception {
 
-        // Note: also closes the embedded federation.
-        client.disconnect(true/*immediateShutdown*/);
+//        // Note: also closes the embedded federation.
+//        client.disconnect(true/*immediateShutdown*/);
+//
+//        // delete on disk federation (if any).
+//        recursiveDelete(new File(testCase.getName()));
 
-        // delete on disk federation (if any).
-        recursiveDelete(new File(testCase.getName()));
-
+        if(client.isConnected())
+            client.getFederation().destroy();
+        
         client = null;
         
         super.tearDown();
@@ -210,7 +223,7 @@ public class TestScaleOutTripleStoreWithLocalDataServiceFederation extends Abstr
      *                be re-opened, e.g., from failure to obtain a file lock,
      *                etc.
      */
-    protected AbstractTripleStore reopenStore(AbstractTripleStore store) {
+    protected AbstractTripleStore reopenStore(final AbstractTripleStore store) {
 
         final String namespace = store.getNamespace();
 

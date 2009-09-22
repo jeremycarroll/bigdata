@@ -294,7 +294,7 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
 
         } finally {
             
-            db.closeAndDelete();
+            db.__tearDownUnitTest();
             
         }
         
@@ -442,7 +442,7 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
 
         } finally {
             
-            db.closeAndDelete();
+            db.__tearDownUnitTest();
             
         }
         

@@ -170,7 +170,7 @@ public class TestDistinctTermScan extends AbstractRuleTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 

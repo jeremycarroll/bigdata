@@ -96,6 +96,7 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.resources.OverflowManager;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.EmbeddedClient;
+import com.bigdata.service.IBigdataClient;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.LocalDataServiceClient;
 import com.bigdata.service.jini.util.JiniServicesHelper;
@@ -552,6 +553,10 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
             properties.setProperty(
                     com.bigdata.service.EmbeddedClient.Options.DATA_DIR, file
                             .toString());
+            
+            // disable platform statistics collection.
+            properties.setProperty(
+                    EmbeddedClient.Options.COLLECT_PLATFORM_STATISTICS, "false");
             
             /*
              * Delete the temp file before running since EDS will create a
@@ -2377,6 +2382,11 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
              */
 
             final Map<String, String> defaultProperties = new HashMap<String, String>();
+
+            // disable platform statistics collection.
+            defaultProperties
+                    .put(IBigdataClient.Options.COLLECT_PLATFORM_STATISTICS,
+                            "false");
 
             defaultProperties.putAll(PropertyUtil
                     .flatten(getDefaultProperties()));

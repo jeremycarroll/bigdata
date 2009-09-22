@@ -103,7 +103,7 @@ abstract public class AbstractRIOTestCase extends AbstractTripleStoreTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 

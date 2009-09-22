@@ -30,7 +30,11 @@ package com.bigdata.journal;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.UUID;
 
+import com.bigdata.cache.ConcurrentWeakValueCache;
 import com.bigdata.rawstore.Bytes;
 
 /**
@@ -108,6 +112,10 @@ public class TemporaryStoreFactory {
 
             t = new TemporaryStore();
 
+            // put into the weak value cache.
+            stores.put(t.getUUID(), t);
+            
+            // return weak reference.
             ref = new WeakReference<TemporaryStore>(t);
 
         }
@@ -115,4 +123,46 @@ public class TemporaryStoreFactory {
         return t;
     }
 
+    /**
+     * Weak value cache of the open temporary stores. Temporary stores are
+     * automatically cleared from this cache after they have become only weakly
+     * reachable. Temporary stores are closed by a finalizer, and are deleted
+     * when closed. It is possible that a temporary store will not be finalized
+     * if the store is shutdown and that {@link File#deleteOnExit()} will not be
+     * called, in which case you may have dead temporary stores lying around.
+     */
+    private ConcurrentWeakValueCache<UUID, TemporaryStore> stores = new ConcurrentWeakValueCache<UUID, TemporaryStore>(
+            0);
+
+    /**
+     * Close all open temporary stores allocated by this factory.
+     */
+    synchronized public void closeAll() {
+        
+        final Iterator<Map.Entry<UUID,WeakReference<TemporaryStore>>> itr = stores.entryIterator();
+        
+        while(itr.hasNext()) {
+            
+            final Map.Entry<UUID,WeakReference<TemporaryStore>> entry = itr.next();
+            
+            final TemporaryStore store = entry.getValue().get();
+            
+            if (store == null) {
+
+                // The weak reference has been cleared.
+                continue;
+                
+            }
+
+            // close the temporary store (it will be deleted synchronously).
+            if(store.isOpen()) {
+
+                store.close();
+            
+            }
+            
+        }
+        
+    }
+    
 }

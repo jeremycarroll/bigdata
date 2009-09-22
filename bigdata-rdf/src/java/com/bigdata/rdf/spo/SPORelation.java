@@ -58,6 +58,7 @@ import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IResourceLock;
+import com.bigdata.journal.ITx;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.rdf.inf.Justification;
 import com.bigdata.rdf.lexicon.ITermIdFilter;
@@ -79,8 +80,6 @@ import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.relation.rule.Var;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.relation.rule.eval.AbstractSolutionBuffer.InsertSolutionBuffer;
-import com.bigdata.service.DataService;
-import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.striterator.ChunkedWrappedIterator;
 import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
@@ -101,15 +100,7 @@ import cutthecrap.utils.striterators.Striterator;
  * statement identifier are stored under the key. All state for a statement is
  * replicated in each of the statement indices.
  * 
- * @todo Optimization. When materializing a relation, such as the
- *       {@link SPORelation} or the {@link LexiconRelation}, on a
- *       {@link DataService} we may not want to have all indices resolved eager.
- *       The {@link AbstractTask} will actually return <code>null</code> rather
- *       than throwing an exception, but eager resolution of the indices will
- *       force {@link IClientIndex}s to spring into existence when we might only
- *       want a single index for the relation.
- * 
- * @todo integration with package providing magic set rewrites of rules in order
+ *  * @todo integration with package providing magic set rewrites of rules in order
  *       to test whether or not a statement is still provable when it is
  *       retracted during TM. this will reduce the cost of loading data, since
  *       much of that is writing the justifications index.
@@ -148,7 +139,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
     private final IIndex[] indices;
     
     /** Hard reference to the justifications index iff used. */
-    private IIndex just;
+    private volatile IIndex just;
 
     /**
      * Constant for the {@link SPORelation} namespace component.
@@ -316,7 +307,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         }
 
-        lookupIndices();
+//        lookupIndices();
         
     }
     
@@ -348,64 +339,78 @@ public class SPORelation extends AbstractRelation<ISPO> {
         
     }
 
-    /**
-     * Attempt to resolve each index for the {@link SPORelation} and cache a
-     * hard reference to that index.
-     */
-    private void lookupIndices() {
-
-        /*
-         * Note: if full transactions are to be used then the statement indices
-         * and the justification indices should be assigned the transaction
-         * identifier.
-         */
-
-        if (keyArity == 3) {
-
-            if (oneAccessPath) {
-
-                // attempt to resolve the index and set the index reference.
-                indices[SPOKeyOrder._SPO] = super.getIndex(SPOKeyOrder.SPO);
-
-            } else {
-
-                // attempt to resolve the index and set the index reference.
-                indices[SPOKeyOrder._SPO] = super.getIndex(SPOKeyOrder.SPO);
-                indices[SPOKeyOrder._POS] = super.getIndex(SPOKeyOrder.POS);
-                indices[SPOKeyOrder._OSP] = super.getIndex(SPOKeyOrder.OSP);
-
-            }
-
-        } else {
-
-            if(oneAccessPath) {
-            
-                indices[SPOKeyOrder._SPOC] = super.getIndex(SPOKeyOrder.SPOC);
-                
-            } else {
-
-                for (int i = SPOKeyOrder.FIRST_QUAD_INDEX; i <= SPOKeyOrder.LAST_QUAD_INDEX; i++) {
-
-                    indices[i] = super.getIndex(SPOKeyOrder.valueOf(i));
-
-                }
-
-            }
-            
-        }
-
-        if (justify) {
-
-            // attempt to resolve the index and set the index reference.
-            just = super.getIndex(getNamespace() + "." + NAME_JUST);
-
-        } else {
-
-            just = null;
-
-        }
-
-    }
+//    /**
+//     * Attempt to resolve each index for the {@link SPORelation} and cache a
+//     * hard reference to that index.
+//     * 
+//     * FIXME The LDS unit tests are failing when attempting to resolve the JUST
+//     * index from the SPORelation when it was not declared for the AbstractTask.
+//     * The eager resolution of indices is going to break all of the LDS
+//     * execution.
+//     * 
+//     * @todo Optimization. When materializing a relation, such as the
+//     *       {@link SPORelation} or the {@link LexiconRelation}, on a
+//     *       {@link DataService} we may not want to have all indices resolved
+//     *       eager. The {@link AbstractTask} will actually return
+//     *       <code>null</code> rather than throwing an exception, but eager
+//     *       resolution of the indices will force {@link IClientIndex}s to
+//     *       spring into existence when we might only want a single index for
+//     *       the relation.
+//     */
+//    private void lookupIndices() {
+//
+//        /*
+//         * Note: if full transactions are to be used then the statement indices
+//         * and the justification indices should be assigned the transaction
+//         * identifier.
+//         */
+//
+//        if (keyArity == 3) {
+//
+//            if (oneAccessPath) {
+//
+//                // attempt to resolve the index and set the index reference.
+//                indices[SPOKeyOrder._SPO] = super.getIndex(SPOKeyOrder.SPO);
+//
+//            } else {
+//
+//                // attempt to resolve the index and set the index reference.
+//                indices[SPOKeyOrder._SPO] = super.getIndex(SPOKeyOrder.SPO);
+//                indices[SPOKeyOrder._POS] = super.getIndex(SPOKeyOrder.POS);
+//                indices[SPOKeyOrder._OSP] = super.getIndex(SPOKeyOrder.OSP);
+//
+//            }
+//
+//        } else {
+//
+//            if(oneAccessPath) {
+//            
+//                indices[SPOKeyOrder._SPOC] = super.getIndex(SPOKeyOrder.SPOC);
+//                
+//            } else {
+//
+//                for (int i = SPOKeyOrder.FIRST_QUAD_INDEX; i <= SPOKeyOrder.LAST_QUAD_INDEX; i++) {
+//
+//                    indices[i] = super.getIndex(SPOKeyOrder.valueOf(i));
+//
+//                }
+//
+//            }
+//            
+//        }
+//
+//        if (justify) {
+//
+//            // attempt to resolve the index and set the index reference.
+//            just = super.getIndex(getNamespace() + "." + NAME_JUST);
+//
+//        } else {
+//
+//            just = null;
+//
+//        }
+//
+//    }
 
     public void create() {
       
@@ -470,7 +475,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
             }
 
-            lookupIndices();
+//            lookupIndices();
 
         } finally {
 
@@ -525,17 +530,33 @@ public class SPORelation extends AbstractRelation<ISPO> {
     }
 
     /**
-     * Overridden to return the hard reference for the index.
+     * Overridden to return the hard reference for the index, which is cached
+     * the first time it is resolved. This class does not eagerly resolve the
+     * indices to (a) avoid a performance hit when running in a context where
+     * the index view is not required; and (b) to avoid exceptions when running
+     * as an {@link ITx#UNISOLATED} {@link AbstractTask} where the index was not
+     * declared and hence can not be materialized.
      */
     @Override
     public IIndex getIndex(final IKeyOrder<? extends ISPO> keyOrder) {
 
-        final int n = ((SPOKeyOrder)keyOrder).index();
-        
-        final IIndex ndx = indices[ n ];
-        
-        if(ndx == null)
-            throw new IllegalArgumentException(keyOrder.toString());
+        final int n = ((SPOKeyOrder) keyOrder).index();
+
+        IIndex ndx = indices[n];
+
+        if (ndx == null) {
+
+            synchronized (indices) {
+
+                if ((ndx = indices[n] = super.getIndex(keyOrder)) == null) {
+
+                    throw new IllegalArgumentException(keyOrder.toString());
+
+                }
+
+            }
+
+        }
         
         return ndx;
 
@@ -552,7 +573,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
         return getIndex(getPrimaryKeyOrder());
         
     }
-    
+
     /**
      * The optional index on which {@link Justification}s are stored.
      * 
@@ -572,8 +593,20 @@ public class SPORelation extends AbstractRelation<ISPO> {
         if (!justify)
             return null;
 
-        if (just == null)
-            throw new IllegalStateException();
+        if (just == null) {
+
+            synchronized (this) {
+
+                // attempt to resolve the index and set the index reference.
+                if ((just = super.getIndex(getNamespace() + "." + NAME_JUST)) == null) {
+
+                    throw new IllegalStateException();
+
+                }
+
+            }
+
+        }
 
         return just;
 

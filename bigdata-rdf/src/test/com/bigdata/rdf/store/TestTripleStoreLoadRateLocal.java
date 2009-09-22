@@ -205,7 +205,7 @@ public class TestTripleStoreLoadRateLocal extends ProxyTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
             if (BigdataStatics.debug)
                 System.err.println("\n-------LRUNexus after test:" + getName()
@@ -238,7 +238,7 @@ public class TestTripleStoreLoadRateLocal extends ProxyTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
             if (BigdataStatics.debug)
                 System.err.println("\n-------LRUNexus after test:" + getName()

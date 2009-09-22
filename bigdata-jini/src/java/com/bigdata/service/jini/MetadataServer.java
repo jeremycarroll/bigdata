@@ -230,7 +230,7 @@ public class MetadataServer extends DataServer {
          * 
          * @throws RemoteException
          */
-        public void destroy() throws RemoteException {
+        public void destroy() {
 
             server.runDestroy();
 
@@ -242,7 +242,7 @@ public class MetadataServer extends DataServer {
             super.shutdown();
             
             // jini service and server shutdown.
-            server.shutdownNow();
+            server.shutdownNow(false/*destroy*/);
             
         }
         
@@ -252,7 +252,7 @@ public class MetadataServer extends DataServer {
             super.shutdownNow();
             
             // jini service and server shutdown.
-            server.shutdownNow();
+            server.shutdownNow(false/*destroy*/);
             
         }
 

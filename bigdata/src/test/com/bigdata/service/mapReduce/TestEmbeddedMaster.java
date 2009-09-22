@@ -88,8 +88,9 @@ public class TestEmbeddedMaster extends TestCase {
         // Note: Option does not buffer data in RAM.
         properties.setProperty(Options.BUFFER_MODE, BufferMode.Disk.toString());
 
+        // disable platform statistics collection.
         properties.setProperty(
-                AbstractClient.Options.COLLECT_PLATFORM_STATISTICS, "false");
+                EmbeddedClient.Options.COLLECT_PLATFORM_STATISTICS, "false");
 
         // Note: No disk at all, but consumes more RAM to buffer the data.
 //        properties.setProperty(Options.BUFFER_MODE, BufferMode.Transient.toString());

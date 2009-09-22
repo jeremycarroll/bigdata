@@ -418,7 +418,7 @@ public interface Options {
      * <p>
      * Note: This option is often used when preparing a journal for a unit test.
      * <p>
-     * Note: The default temporary directory is used unless it is overriden by
+     * Note: The default temporary directory is used unless it is overridden by
      * the {@link #TMP_DIR} option.
      * <p>
      * Note: In order to re-open a journal that was created with this option you

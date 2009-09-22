@@ -103,7 +103,7 @@ public class TestSPOAccessPath extends AbstractTripleStoreTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 

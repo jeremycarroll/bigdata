@@ -36,6 +36,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
 import com.bigdata.counters.Instrument;
@@ -270,6 +271,14 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
             // if cache exists, the clear it.
             cache.clear();
+
+            if (BigdataStatics.debug)
+                System.err.println("Cleared cache: " + store.getUUID());
+
+        } else {
+
+            if (BigdataStatics.debug)
+                System.err.println("No cache: " + store.getUUID());
 
         }
         

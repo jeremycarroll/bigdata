@@ -437,7 +437,7 @@ public class TestOwlSameAsPropertiesExpandingIterator extends AbstractInferenceE
           
         } finally {
             
-            db.closeAndDelete();
+            db.__tearDownUnitTest();
             
         }
         

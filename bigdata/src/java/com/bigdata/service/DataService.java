@@ -649,17 +649,17 @@ abstract public class DataService extends AbstractService
 
         if (concurrencyManager != null) {
             concurrencyManager.shutdown();
-            concurrencyManager = null;
+//            concurrencyManager = null;
         }
 
         if (localTransactionManager != null) {
             localTransactionManager.shutdown();
-            localTransactionManager = null;
+//            localTransactionManager = null;
         }
 
         if (resourceManager != null) {
             resourceManager.shutdown();
-            resourceManager = null;
+//            resourceManager = null;
         }
 
         super.shutdown();
@@ -677,21 +677,31 @@ abstract public class DataService extends AbstractService
 
         if (concurrencyManager != null) {
             concurrencyManager.shutdownNow();
-            concurrencyManager = null;
+//            concurrencyManager = null;
         }
 
         if (localTransactionManager != null) {
             localTransactionManager.shutdownNow();
-            localTransactionManager = null;
+//            localTransactionManager = null;
         }
 
         if (resourceManager != null) {
             resourceManager.shutdownNow();
-            resourceManager = null;
+//            resourceManager = null;
         }
 
         super.shutdownNow();
 
+    }
+    
+    synchronized public void destroy() {
+        
+        super.destroy();
+        
+        resourceManager.deleteResources();
+        
+//        super.destroy();
+        
     }
 
     /**

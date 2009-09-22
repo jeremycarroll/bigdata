@@ -2965,7 +2965,8 @@ abstract public class StoreManager extends ResourceEvents implements
         if (isTransient())
             return;
 
-        log.warn("Deleting all resources: " + dataDir);
+        if (log.isInfoEnabled())
+            log.info("Deleting all resources: " + dataDir);
 
         recursiveDelete(dataDir);
 

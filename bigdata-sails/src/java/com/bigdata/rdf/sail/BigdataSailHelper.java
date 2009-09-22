@@ -593,6 +593,10 @@ public class BigdataSailHelper {
                     com.bigdata.service.LocalDataServiceClient.Options.DATA_DIR,
                     filename);
             
+            // disable platform statistics collection.
+            properties.setProperty(
+                    LocalDataServiceClient.Options.COLLECT_PLATFORM_STATISTICS, "false");
+
             fed = new LocalDataServiceClient(properties).connect();
 
             sail = helper.getSail(fed, namespace, timestamp);
@@ -611,6 +615,10 @@ public class BigdataSailHelper {
                     com.bigdata.service.EmbeddedClient.Options.DATA_DIR,
                     filename);
             
+            // disable platform statistics collection.
+            properties.setProperty(
+                    EmbeddedClient.Options.COLLECT_PLATFORM_STATISTICS, "false");
+
             fed = new EmbeddedClient(properties).connect();
 
             sail = helper.getSail(fed, namespace, timestamp);
