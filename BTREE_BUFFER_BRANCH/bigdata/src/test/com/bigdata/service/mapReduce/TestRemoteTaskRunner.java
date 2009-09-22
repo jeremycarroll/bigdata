@@ -107,8 +107,9 @@ public class TestRemoteTaskRunner extends TestCase {
 
         final Properties properties = new Properties();
         
+        // disable platform statistics collection.
         properties.setProperty(
-                AbstractClient.Options.COLLECT_PLATFORM_STATISTICS, "false");
+                EmbeddedClient.Options.COLLECT_PLATFORM_STATISTICS, "false");
 
         properties
                 .setProperty(

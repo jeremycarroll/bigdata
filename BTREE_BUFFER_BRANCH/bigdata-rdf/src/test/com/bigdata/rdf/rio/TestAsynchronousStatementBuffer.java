@@ -45,6 +45,7 @@ import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.rdf.store.TestScaleOutTripleStoreWithEmbeddedFederation;
 import com.bigdata.rdf.vocab.NoVocabulary;
+import com.bigdata.service.AbstractScaleOutFederation;
 
 /**
  * Test suite for {@link AsynchronousStatementBufferFactory}. To run this test
@@ -175,7 +176,7 @@ public class TestAsynchronousStatementBuffer extends
         final AbstractTripleStore store = getStore();
         try {
             
-            if(!(store instanceof ScaleOutTripleStore)) {
+            if(!(store.getIndexManager() instanceof AbstractScaleOutFederation)) {
                 
                 log.warn("Test requires scale-out index views.");
                 
@@ -255,8 +256,8 @@ public class TestAsynchronousStatementBuffer extends
 
         final AbstractTripleStore store = getStore();
         
-        if(!(store instanceof ScaleOutTripleStore)) {
-            
+        if (!(store.getIndexManager() instanceof AbstractScaleOutFederation)) {
+
             log.warn("Test requires scale-out index views.");
             
             return;
@@ -290,7 +291,7 @@ public class TestAsynchronousStatementBuffer extends
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 

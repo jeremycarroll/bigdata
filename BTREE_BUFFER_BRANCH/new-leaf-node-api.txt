@@ -67,6 +67,10 @@ Full tx support for RDF
        bring the tx write set to a fixed point, then resolve conflicts
        during validation and merge down for the commit.
 
+     - Parallel validating and merge down during the commit protocol
+       for all indices isolated by the tx.  This will reduce the tx
+       commit latency, which is critical.
+
      - Reconcile adds but reject conflicting retractions.
 
      - Connection point for disconnected synchronization.
@@ -85,6 +89,16 @@ Full tx support for RDF
 
      - TERM2ID and ID2TERM will be non-transactional.  How about the
        text index?
+
+     - Integration point for migrating recent history onto a new
+       journal and either migrating sufficiently journals to tertiary
+       storage or releasing them.  This provides an immortal database
+       option for an application with a moderate steady state and
+       ongoing transients.  This does not work for applications which
+       only grow their comitted set size.
+
+     - Global LRU.  This really needs to be isolated to a specific tx
+       so we can discard records from the LRU if the tx aborts.
 
 --------------------
 
@@ -122,6 +136,11 @@ HA
        we need to replicate all the state of the existing LDS.  The
        state could be read from any of the existing PDS for that LDS,
        or from a combination of those instances.
+
+     - Integration for backup.
+
+     - Integration point for migrating old history (journals and index
+       segments) onto tertiary storage.
 
 --------------------
 Monitoring.  
@@ -256,6 +275,206 @@ Examples:
    index partition within some key-range.
 
 ------------------------------------------------------------
+HBase
+
+UTD has developed a prototype integration using HBase to support RDF.
+There are similar efforts underway elsewhere, but no results have been
+reported for any implementation.  The UTD integration defines a single
+HTable with three column families.  Each column family corresponds to
+one of the spo, pos, osp orderings.  So in principle they have an
+"index" per column family.  
+
+- The joins will be done in ram on the client with triples flooding
+  back from all nodes in the cluster having data for a given triple
+  pattern.  That was the main problem with Sesame 1.x -- in memory
+  joins.  Bigdata distributes the join processing.
+
+- They are not normalizing the RDF Values (URIs, literals, etc).  This
+  stuff is all stored as string values in hbase.  Even the blank nodes
+  (based on their ID, which has broken semantics).  This means that
+  the indices will be fatter.  It also means that there will be more
+  network IO to transfer those strings around and that joins have to
+  compare strings rather than long integers.  Unless HBase is unicode
+  clean, this could also cause problems with efficient triple pattern
+  visitation. this The only upsides to this approach are that they do
+  not need to resolve the race condition on the Value -> Id mapping
+  (we handle this specially) and that they do not need to join against
+  the Id -> Value index before rendering the results as RDF/XML.
+  However, it is going to be a big penalty on the index size, network
+  IO and join performance.
+
+- As far as I can tell they have no way to order the joins for
+  efficient processing.  This is HUGE penalty.  The wrong join order
+  can be orders of magnitude slower.  Different RDF DBs address this
+  problem differently.  We have fast key range counts using just two
+  B+Tree probes.  YARs pre-compiled this information in a post-load
+  operation.
+
+Recommendations:
+
+	- head to head tests of bigdata, hbase, cassandra, etc.,
+          etc. to gain insight on the underlying performance and
+          scalability of these platforms.
+
+	- head to head tests of bigdata/rdf and utd/rdf-hbase
+          integrations to gain insight into their performance on data
+          load and query.
+
+------------------------------------------------------------
+PRIORITIES
+
+	- Quads and Sesame test suites for same.
+
+	  - run the basic test suite for quads.
+
+	    - use base IRI as the context during load.
+
+	    - cross-validation of indices.
+
+	  - @todo delete [bigdata-trunk].  rename
+            [bigdata-trunk-no-branch] as [bigdata-trunk].
+
+	  - done. quad store unit tests and test suite refactor so we
+            can run just the store level and not the inference level
+            tests. [*** run the quad store tests.]
+
+	  - done. turn off performance counter collection for all
+            local / embedded federation unit tests.
+
+ 	  - (****) unit tests are not cleaning up correctly.  rename
+            closeAndDelete() as tearDownUnitTest() and cleanup close()
+            and destory() implementations.
+
+		- (***) use __teatDownUnitTest() to keep down the
+                  temporary stores that are not being deleted.
+
+		- done. embedded federation appears to be creating a
+                  one-up federation name and a distinct instance on
+                  restart.  it is supported to be creating an instance
+                  named for the unit test.
+
+		   - done. The EDS problem with restart is linked to
+                     the global LRU.  I am not seeing the cache
+                     cleared for the LBS's journal backing the events
+                     history.
+
+		   - done. set the LBS logDir to "lbs"
+
+	  - The services need IService#destroy() throws
+	    RemoteException.  All service impls and federations need
+	    to provide this. TempStoreFactory for Journal and
+	    AbstractFederation needs to implement closeAll() and be
+	    invoked from those contexts to close out temporary stores
+	    for which we still have hard references.
+
+	  - AbstractServer must keep reference to service and then
+	    issue destroy against the service to delete the persistent
+	    resources and finally destroy the service directory.
+
+	  - (***) LDS: The "JUST" index needs to be declared for LDS
+            rule execution.  It was getting a free ride for LDS from
+            AbstractRelation#getIndexNames().  That no longer returns
+            the name of the "JUST" index.  Review and fix.
+
+	  - QUADS : bigdata and Sesame TCK test suites.
+
+	  - 
+
+	- The whitepaper must be finished now.
+
+	- Support glitter integration, performance optimizations
+          against sample data sets, and hot backup for the Journal.
+
+	- Errors introduced into the federation test suites by the LRU
+          nexus and test suite clean up issues for the same.
+
+	- Retest on the cluster.
+
+	- Continued large data set load testing.
+
+	- Tx with reconcile of RDF writes.
+
+	  - Fast computation of delta between commit points.
+
+	  - Fast notification mechanism of delta in each tx.
+
+	- Record compression will change the performance for the
+          simple value raba, will change the binary format of the
+          record (a header coding the compression scheme and header
+          length), and will change the serialization for
+          IndexMetadata.  This needs to happen SOON.
+
+	  ------------------------------------------------------------
+
+Cluster setup
+
+	- done [I think; used setup action] install JDK1.6.0_16 on all
+          hosts.
+	
+	- use compressed pointers on WinXP64?  try 32-bit dpp server.
+
+	- setup profiler in the environment and monitor from localhost
+          or blade2.
+
+	- Run single server U8000.  Try on 32-bit server also, but be
+          prepared that it may require a 64-bit server.  Why?  We used
+          to run 1B on a 32-bit server without a problem.
+
+	- try U8000 on cluster (looks Ok, but peaking ~275k tps rather
+          than ~300k tps), do some performance tuning (LRUNexus, m,
+          writeQ; also seg.m (was 64 in the bigdataCluster16 file but
+          256 in the bigdataCluster file) for load and query).  Look
+          at LRU cache, RAM and GC statistics over time [drop
+          seg.bytesOnDisk]. G1?
+
+	  retry @ 6:30. if works, the LBS bias (start/round robin)
+	  problem is severe.
+
+	  throughput drops through the floor after 10 minutes.  why?
+	  Is this GC?  Move of POS; bad start; start after LBS initial
+	  round robin period?  hot spot on blades 3 and 13?
+
+	- try large pre-generated data set (U100000 failed during
+          generation, so try U50000 or just load anyway).
+
+	- There are a lot of duplicate strings in the LBS.  They come
+          from the incoming events.  There is no normalization for
+          those de-serialized values.  Things like "summary", the
+          names of the indices, the DataService paths, etc. occur 10k+
+          times.
+
+  There are 15 instances of com.bigdata.jini.start.IServicesManagerService on 15 hosts
+  There are 1 instances of com.bigdata.journal.ITransactionService on 1 hosts
+  There are 8 instances of com.bigdata.service.IClientService on 4 hosts
+  There are 20 instances of com.bigdata.service.IDataService on 10 hosts
+  There are 1 instances of com.bigdata.service.ILoadBalancerService on 1 hosts
+  There are 1 instances of com.bigdata.service.IMetadataService on 1 hosts
+
+	  ------------------------------------------------------------
+
+Remote profiling:
+
+
+	  How to run the profiler on another machine or a remote
+	  application?
+
+	  http://www.yourkit.com/docs/80/help/running_with_profiler.jsp	  
+
+	  http://www.yourkit.com/docs/80/help/agent.jsp
+
+	  To make sure that Java can load the profiler agent, you can
+	  invoke the following command that prints a description of
+	  agent parameters: java -agentlib:yjpagent=help
+
+	  -agentpath:<Profiler Directory>/bin/linux-x86-64/libyjpagent.so
+
+	  -agentpath:<Profiler Directory>\bin\win64\yjpagent.dll
+
+	  Startup options:
+	  http://www.yourkit.com/docs/80/help/additional_agent_options.jsp
+
+
+	  ------------------------------------------------------------
 Other:
 
 - Examine opportunities for "rack aware" selection of the CS or DS
@@ -276,6 +495,124 @@ Revision: Head
 Commit message: Merging trunk into branch BTREE_BUFFER_BRANCH [2004]:[2048].
 
 Goals:
+
+------------------------------------------------------------
+
+     FIXME Retest on cluster now that the LRU is no longer causing us
+     to run out of memory.  Try a higher BTree branching factor for a
+     faster journal.  Explore more LRU buffering (maxPercent).
+
+     FIXME TestAsynchronousStatementBuffer is broken (the problem is
+     actually with the global LRU not being cleaned on an abort and/or
+     the test case reusing the same store).
+
+          The problem is inconsistent results even on a triple store
+	  when we compare the indices!!!!
+
+     FIXME LDS test suite failures, at least for the RDF store and
+	   perhaps for the core modules as well.  Check EDF also.
+	   Problems are the events file and the LRUNexus.  Perhaps
+	   disable the events journal for the unit tests?
+
+	   Federations (LDS/EDF?) are are not cleaning up after
+	   themselves in the unit tests, at least on test failures.
+
+	   Ah.  Also disable typeperf on Windows for unit
+	   tests. Basically, do not collect OS counters in the unit
+	   tests.  I have 400 typeperf processes running and can not
+	   do anything else.
+
+     FIXME Embedded federation crashes on
+           TestRestartSafe.test_restartSafe and thereafter throws
+           java.nio.channels.OverlappingFileLockException.  I already
+           modified the test harness to destroy the LRUNexus.  I need
+           to look into this!!!
+
+java.lang.IllegalStateException
+	at com.bigdata.service.AbstractFederation.assertOpen(AbstractFederation.java:264)
+	at com.bigdata.service.AbstractScaleOutFederation.getMetadataIndex(AbstractScaleOutFederation.java:229)
+	at com.bigdata.service.ndx.ClientIndexView.submit(ClientIndexView.java:812)
+	at com.bigdata.service.ndx.ClientIndexView.submit(ClientIndexView.java:794)
+	at com.bigdata.sparse.SparseRowStore.delete(SparseRowStore.java:841)
+	at com.bigdata.sparse.SparseRowStore.delete(SparseRowStore.java:779)
+	at com.bigdata.relation.AbstractResource.destroy(AbstractResource.java:668)
+	at com.bigdata.rdf.lexicon.LexiconRelation.destroy(LexiconRelation.java:295)
+	at com.bigdata.rdf.store.AbstractTripleStore.destroy(AbstractTripleStore.java:1113)
+	at com.bigdata.rdf.store.ScaleOutTripleStore.closeAndDelete(ScaleOutTripleStore.java:152)
+	at com.bigdata.rdf.store.TestRestartSafe.test_restartSafe(TestRestartSafe.java:257)
+
+java.nio.channels.OverlappingFileLockException
+	at sun.nio.ch.FileChannelImpl$SharedFileLockTable.checkList(FileChannelImpl.java:1170)
+	at sun.nio.ch.FileChannelImpl$SharedFileLockTable.add(FileChannelImpl.java:1072)
+	at sun.nio.ch.FileChannelImpl.tryLock(FileChannelImpl.java:878)
+	at com.bigdata.journal.FileMetadata.reopenChannel(FileMetadata.java:827)
+	at com.bigdata.journal.FileMetadata.access$0(FileMetadata.java:794)
+	at com.bigdata.journal.FileMetadata$1.reopenChannel(FileMetadata.java:779)
+	at com.bigdata.journal.FileMetadata.<init>(FileMetadata.java:410)
+	at com.bigdata.journal.AbstractJournal.<init>(AbstractJournal.java:953)
+	at com.bigdata.journal.AbstractJournal.<init>(AbstractJournal.java:563)
+	at com.bigdata.journal.Journal.<init>(Journal.java:136)
+	at com.bigdata.service.LoadBalancerService.<init>(LoadBalancerService.java:588)
+	at com.bigdata.service.AbstractEmbeddedLoadBalancerService.<init>(AbstractEmbeddedLoadBalancerService.java:22)
+	at com.bigdata.service.EmbeddedFederation$EmbeddedLoadBalancerServiceImpl.<init>(EmbeddedFederation.java:711)
+	at com.bigdata.service.EmbeddedFederation.<init>(EmbeddedFederation.java:379)
+	at com.bigdata.service.EmbeddedClient.connect(EmbeddedClient.java:102)
+	at com.bigdata.service.EmbeddedClient.connect(EmbeddedClient.java:1)
+	at com.bigdata.rdf.store.TestScaleOutTripleStoreWithEmbeddedFederation.setUp(TestScaleOutTripleStoreWithEmbeddedFederation.java:166)
+
+
+
+Quads:
+
+- Revisions:
+
+  - Starting revision is 2078 on the B+Tree refactor branch.
+
+  - Revision 2079 adds support for compressed (.gz,.zip) files to the
+    DataLoader.  I am using that to test on U8000 on machines that do
+    not otherwise have enough disk for the SOURCE data.
+
+  -------------------- quads trouble spots --------------------
+
+   - Note: I changed the provenance mode default to [false].  People
+     should explicitly enable this if they want to be provenance
+     aware.  We should consider renaming the mode to "PROVENANCE"
+     while we are doing this and update the wiki.
+
+   - Review all explicit use of SPOKeyOrder.SPO (92), POS (39), or
+     OSP(31).  These uses are probably wrong.
+
+   - ISPO:isFullyBound() and SPOPredicate:isFullyBound() MIGHT need to
+     be database mode aware.  Review all uses of these methods.
+
+   - SPOPredicate#arity() depends on whether or not [c] is bound!
+     SPOPredicate#get() was throwing an exception if [c] was null
+     rather than returning null.  How does this effect everything?
+
+   - SPO#compare(), SPO#equals() and SPO#hashCode() : These methods
+     implement the Sesame definitions which only consider the (s,p,o).
+     SPO#equals() does also consider the statement type (explicit,
+     inferred, axiom).
+
+   - inference is not quad aware.
+
+     - backchainers / expanders are not quad aware.
+
+     - BaseAxioms : SPO or SPOC?  
+
+     - Justification#VisitedSPOSet : Cross graph TM will probably
+       never be supported so this can use an SPO index.
+
+     - The Justification index itself must be (s,p,o,c) if we are
+       going to store proof chains for named graphs and not allow
+       interactions among those proof chains.
+
+------------------------------------------------------------
+
+x. Windows performance tips:
+
+   Bushee?  Set to optimize peformance for programs and programs?  For
+   programs and system cache?
 
 x. TM Bug.
 
@@ -303,6 +640,15 @@ x. TM Bug.
 	  that "override" SPO needs to be written onto the DB, where
 	  it is responsible for changing the SPO state from Explicit
 	  to Inferred -- and that is what is not happening.
+
+	  (***) Verify that asserting an explicit statement over an
+	  inferred statement will cause the SID to be assigned and
+	  then test downgrade also.
+	  
+	    - Should downgrade on retraction of the explicit statement
+	      to an inferred statement removes the SID from the
+	      inferred statement (probably not - that sounds like it
+	      would be a concurrency issue for scale-out).
 
 x. Transient B+Tree issues.
 
@@ -435,6 +781,11 @@ java.lang.OutOfMemoryError: unable to create new native thread
 
    - Make sure all records and Externalizable interfaces are versioned.
        
+   - The NodeSerializer or the NodeCoder and LeafCoder SHOULD be
+     configuration parameters so we can evolve the node/leaf data
+     record at will.  There are still a lot of performance benefits to
+     be had from tweaks in this area.
+
    - Compare the size on disk of the trunk and this branch.
   
   	 - Code the version timestamp[].
@@ -481,6 +832,19 @@ java.lang.OutOfMemoryError: unable to create new native thread
 	  
 	- Compare simple vs huffman coding of ID2TERM at m<33 (e.g.,
           on the journal).
+
+	- global prefix for front-coded raba?  most nodes and leaves
+          will have a non-zero prefix shared by their keys.  we could
+          save time and space if that prefix was factored out either
+          by the front-coded byte[] list or by the front-coded raba.
+
+	- keys front coded canonical huffman raba?  The canonical
+	  huffman raba coder does not factor out the common prefix, if
+	  any, for the raba.  That would be useful for a keys raba
+	  since a common prefix is ... common and that would reduce
+	  the storage requirements and increase search speed.  In
+	  fact, we could do a front-coded huffman coded approach for
+	  keys.
 
         - IndexMetadata.
 
@@ -986,7 +1350,8 @@ ICachedStore extends ICompressedStore
        in the header data as well.  This means that writing a B+Tree
        node or leaf will always use IRawStore#write(int,ByteBuffer).
 
-10. Performance tuning:
+------------------------------------------------------------
+Performance tuning:
 
          - trunk vs branch performance comparisons (also compare the
            space on the disk).  For scale-out, also look at the RAM
@@ -1198,20 +1563,34 @@ thesaurus : 1086012 stmts added in 66.375 secs, rate= 16361, commitLatency=3531m
 alibaba	  : 45655 stmts added in 1.5 secs, rate= 30436, commitLatency=406ms
 NCIOnc	  : 464841 stmts added in 21.687 secs, rate= 21434, commitLatency=4344ms (bytesOnDisk=62560799)
 
-(****) Examine % Memory Used and % LRU Distinct for data load
-       situations!!!
+	  --------------------
 
-/LRU Percent Distinct=1.54
-/LRU Percent Used=48.86
-/bytesInMemory Percent Used=1.6
+Baseline  : laptop 9/16/09 : m=32, writeQ=500, percentHeap=.1, bufferSize=100,977,872, HardRefGlobalLRU
+U10	  : 1316700 stmts added in 107.252 secs, rate= 12276, commitLatency=0ms, height=4
+U5	  : 645835 stmts added in 45.812 secs, rate= 14097, commitLatency=0ms, height=4(TERM2ID=3)
+U1	  : 103104 stmts added in 6.795 secs, rate= 15173, commitLatency=0ms, height=3
+wordnet	  : 273681 stmts added in 16.172 secs, rate= 16923, commitLatency=312ms, height=4(TERM2ID=3)
+thesaurus : 1086012 stmts added in 75.844 secs, rate= 14319, commitLatency=531ms, height=4
+alibaba	  : 45655 stmts added in 1.828 secs, rate= 24975, commitLatency=265ms, height=3
+NCIOnc	  : 464841 stmts added in 29.641 secs, rate= 15682, commitLatency=500ms, height=4
 
-       **** Statistics are not solid.  I have seen - percent used for
-            the LRU (perhaps a synchronization issue with concurrent
-            GC?)
+quads     : laptop 9/17/09 : 
+U10	  : 1316700 stmts added in 103.937 secs, rate= 12668, commitLatency=0ms
+U5	  : 645835 stmts added in 45.034 secs, rate= 14341, commitLatency=0ms
+U1	  : 103104 stmts added in 4.955 secs, rate= 20808, commitLatency=0ms
+wordnet	  : 273681 stmts added in 15.875 secs, rate= 17239, commitLatency=484ms
+thesaurus : 1086012 stmts added in 72.859 secs, rate= 14905, commitLatency=766ms
+alibaba	  : 45655 stmts added in 1.75 secs, rate= 26088, commitLatency=281ms
+NCIOnc	  : 464841 stmts added in 26.375 secs, rate= 17624, commitLatency=406ms
 
-       **** Try the standard java open linked hash map as the LRU - it
-            will always be dense even if it is single threaded.  There
-            are also native long maps from fastutil and RT java maps.
+quads     : laptop 9/XX/09 : 
+U10	  : 
+U5	  : 
+U1	  : 
+wordnet	  : 
+thesaurus : 
+alibaba	  :
+NCIOnc	  : 
 
        **** Cache dialog (move to the write retention queue).
 
@@ -1257,55 +1636,139 @@ NCIOnc	  : 464841 stmts added in 21.687 secs, rate= 21434, commitLatency=4344ms 
             and leaves which are written out in response to a check
             point. NOTE: If mutable node or leaf data records are
             placed into the cache then they MUST be overriden to mark
-            them as read-only since they will be shared by multiple
+            them as read-only sinces they will be shared by multiple
             B+Tree instances and MUST NOT be used for mutations!!!
+        
+     - Heap and GC costs.
 
-PRIORITIES
+       - copyOnWrite(). A lot of time and allocation costs are driven
+         by copyOnWrite().  A larger write retention queue can reduce
+         those costs.  This should be applied to specific B+Tree
+         instances so we do not inflate the queue for Name2Addr and
+         such.  A larger queue can also increase heap utilization and
+         commit latency, so there are tradeoffs here.
 
-	- The B+Tree errors are a priority (rare, but can be triggered 
-	  by U50 Query9 or the G1 garbage collector).  This might be
-	  linked to the global LRU in some odd fashion or just to the
-	  other changes I had made.  The symptom is a node/leaf whose
-	  data record reference is null.
+	 copyOnWrite for SPO indices is now cheap.  Copy on write for
+	 the ID2TERM and TERM2ID indices still shows up as a cost, but
+	 it is way down.
 
-	  - Try w/ G1 and see if I can get them to show up.  U50 query
-            can also do it.  Try w/ G1 plus starvation (not enough
-            given to the Global LRU (starves the buffer) or too much
-            give to the Global LRU (starves the JVM)).
+         - Optimized values raba for Term2Id (long[]).
 
-	  - Verify comparison of HardRef vs WeakRef GlobalLRU on
-	    machine doing nothing else.
+         - Test w/ simple vs huffman for Id2Term (BigdataValue has its
+           own serialization format and includes plenty of Unicode
+           data).
 
-	  - Performance tuning can not go much further until I fix the
-            twin issues in RDFJoinNexus#getTailAccessPath().  That is
-            adding so much cost that it is hiding some other benefits.
-            This is less critical since it does not touch the APIs or
-            the binary format.
+	   Compare performance against disk usage and consider in
+	   tandom with record level compression, which could make the
+	   simple raba coder much more appealing.
 
-	- Extensive testing must be performed to identify B+Tree
-	  errors, memory management problems, or scaling issues with
-	  the new rabas and branching factor (1-2B on Journal, 10B on
-	  cluster).
+	   [If ASCII only for the index, then we could store the value
+           as ASCII as well.  Normalization should occur during the
+           parse I guess.]
 
-	- Quads and Sesame test suites for same.
+	 - Raba backed by a single byte[] for encoding keys or values
+           in a linear projection onto the backing byte[].  In
+           combination with a modification of the ITupleSerializer API
+           to return the KeyBuilder rather than the key (or the
+           DataOutputBuffer), this could be used to avoid allocation
+           of the 1000s of very small byte[]s involved in RMI
+           operations on the statement indices.  This approach would
+           not work for indices with variable length keys or values.
+           The raba could be transmitted as its backing byte[],
+           compressed in its Externalizable using some fast
+           compression technique before transmission, or coded over to
+           another raba impl for transmission.
 
-	- The whitepaper must be finished now.
+       - LRUNexus: Better ergonomics: percentHeap = .3 can be too much
+         memory on a machine with limited RAM loading a large data
+         set.  Put a profiler on a RAM limited (1g) JVM on a large
+         data set load (U50) and see where the memory is going and why
+         it gets into high GC overhead. The issue is likely to be that
+         the write retention queue (8000) is too large for the higher
+         branching factor (64) with a larger data set on a machine
+         with little memory. Also back down the branching factor to 32
+         since the write retention queue will then reserve much less
+         data. E.g., 100000k bytes for buffers, branchingFactor=32,
+         writeRetentionQueue=500 would be a good profile for a 32-bit
+         machine. Does this problem happen once the bloom filter gets
+         shut off? [Maybe the coded records are actually taking more
+         heap space? For some coders, e.g., huffman? Could code only
+         for write and otherwise leave mutable as a low-memory
+         option?]  Try favoring less heap space, smaller write
+         retention buffer, smaller global buffer, and doing more IO.
+         The IO seems to be the easier cost to bear when compared with
+         GC.
 
-	- Record compression will change the performance for the
-          simple value raba, will change the binary format of the
-          record (a header coding the compression scheme and header
-          length), and will change the serialization for
-          IndexMetadata.  This needs to happen SOON.
+         - Try native long maps from fastutil and RT java maps.
 
-	- Support glitter integration, performance optimizations, and
-          hot backup for the Journal.
+       - writeQ : better ergonomics.  Auto-extend the write queue
+         after some nubmer of touches from a default (500) to a big
+         value (8000).  This will automatically and dynamically give
+         us better performance for sustained data loads.  Just be sure
+         not to do this if we are running out of available RAM or
+         having a lot of GC activity.
 
-	  ------------------------------------------------------------
+       - Compression API
+       
+         - IRawStore makes ByteBuffers read-only.  This means that we
+           will create an extra byte[] from each ByteBuffer in order
+           to decode the record.
 
-(****) The NodeSerializer or the NodeCoder and LeafCoder SHOULD be
-       configuration parameters so we can evolve the node/leaf data
-       record at will.  There are still a lot of performance benefits
-       to be had from tweaks in this area.       
+------------------------------------------------------------
+Query performance tuning:
+
+	    - Optimization could reuse a caller's SPOAccessPath
+	      instance, setting only the changed data on the
+	      fromKey/toKey.  That could be done with setS(long),
+	      setO(long), setP(long) methods.  The filter could be
+	      modified in the same manner.  That could cut down on
+	      allocation costs, formatting the from/to keys, etc.
+
+	    - (*) Reduce query latency
+
+	      - Compare overhead for starting nexted subquery joins or
+		pipeline joins.  Does one have higher overhead?  How
+		can it be eliminated?
+
+		The pipeline joins have more latency but are faster.
+		They are significantly faster when the G1 collector is
+		used.  Nexted subquery is faster when it uses limited
+		parallelism for subquery evaluation.
+
+              - Examine subtask setup costs for pipeline joins and
+                look for better reuse of things such as the tail
+                relation view.
+
+	    - Try different ratio for front coding.  All cost appears
+              in the binarySearch().  Play with the ratio until some
+              cost is moved into search(), which includes the linear
+              search.  Keep that ratio if the total cost is thereby
+              decreased.  Within node/leaf key search is 16% of query.
+
+	      A front-coded long[] could reduce the search time as
+	      well since we would then be doing comparison on long
+	      values.
+
+	    - Factor out the BackingBufferArray abstraction from the
+	      custom front coded raba implementation, but remember to
+	      roll the offset into all addressing into the backing
+	      byte[].
+
+	    - WeakReference traversal for prior/next leaf and changing
+              the eviction order could improve the standard case of a
+              forward iterator scan.  The problem with this that we
+              can not always lookup the next leaf by its address so we
+              would have to re-locate the successor of the key if the
+              weak reference was null or had been cleared.
+
+	    - Look at GC costs and the allocation patterns which drive
+              them.
+
+	      Constant<Long> : Do a ConstantLong implementation that
+	      avoids wrapping the long as a Long.  Make sure that
+	      native long comparisons occur where ever possible or we
+	      will be better off wrapping as a Long just once rather
+	      than many times.
 
 (****) m=64 may be better for the index segments as well.  Test this
        out. 
@@ -1313,37 +1776,35 @@ PRIORITIES
 (****) try out m=64 on U8000 and U50000 on a single server.  Where are
        the limits? how is the performance?
 
-       - Optimized values raba for Term2Id (long[]).
-
-       - Test w/ simple vs huffman for Id2Term (BigdataValue has its
-         own serialization format and includes plenty of Unicode
-         data).
-
-	 Compare performance against disk usage and consider in tandom
-	 with record level compression, which could make the simple
-	 raba coder much more appealing.
-
-	 [If ASCII only for the index, then we could store the value
-         as ASCII as well.  Normalization should occur during the
-         parse I guess.]
-
-copyOnWrite for SPO indices is now cheap.  Copy on write for the
-ID2TERM and TERM2ID indices still shows up as a cost, but it is way
-down.
-
-The canonical huffman raba coder does not factor out the common
-prefix, if any, for the raba.  That would be useful for a keys raba
-since a common prefix is ... common and that would reduce the storage
-requirements and increase search speed.  In fact, we could do a
-front-coded huffman coded approach for keys.
-
-
-
 New options:
+
+    Note: If the JVM heap is too large, then it can create HUGE pause
+    times if the JVM needs to read parts of the heap which have been
+    swapped out.  This does not always show up as swapping.  For
+    example, on a Windows XP Professional x64 machine it shows up as a
+    sustained low CPU usage correlated to a sustained high average
+    disk queue length, but not as page/sec.  No clue why.  That
+    machine had 8G of RAM, but even with the machine configured to
+    given priority to programs for scheduling and memory, it could not
+    use more than a 4G JVM heap without running into trouble.  Ah! It
+    appears that eclipse is swapping, perhaps due to its console
+    output log.  I am going to rerun from the command line w/o
+    eclipse.
+
+    Also of interest, the 100% CPU utilization peaks on all cores are
+    the ParallelOldGen GC running.
 
     -XX:+UseCompressedOops (64-bit only)
 
-    -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC
+    Lower throughput, but shorter pauses.  Note that parallel young GC
+    (the default for J6+) generally does better if there are GT 1-2
+    processors.
+    
+      -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode
+
+    G1
+
+      -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC
 
          -XX:MaxGCPauseMillis=<X>
 

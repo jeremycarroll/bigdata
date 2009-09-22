@@ -573,7 +573,7 @@ public class ServicesManagerServer extends AbstractServer {
          * DestroyAdmin
          */
 
-        public void destroy() throws RemoteException {
+        public void destroy() {
 
             server.runDestroy();
 
@@ -585,7 +585,7 @@ public class ServicesManagerServer extends AbstractServer {
             super.shutdown();
 
             // jini service and server shutdown.
-            server.shutdownNow();
+            server.shutdownNow(false/*destroy*/);
             
         }
         
@@ -595,7 +595,7 @@ public class ServicesManagerServer extends AbstractServer {
             super.shutdownNow();
             
             // jini service and server shutdown.
-            server.shutdownNow();
+            server.shutdownNow(false/*destroy*/);
             
         }
 

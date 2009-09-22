@@ -178,8 +178,8 @@ public class TestCompareFullAndFastClosure extends AbstractRuleTestCase {
 
         } finally {
 
-            store1.closeAndDelete();
-            store2.closeAndDelete();
+            store1.__tearDownUnitTest();
+            store2.__tearDownUnitTest();
             
         }
         

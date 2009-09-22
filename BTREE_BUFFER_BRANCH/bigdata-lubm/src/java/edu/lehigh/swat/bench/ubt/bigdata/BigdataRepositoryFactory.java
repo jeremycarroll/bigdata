@@ -300,14 +300,15 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
              * configurations.
              */
 
-//            /*
-//             * Don't collect statistics from the OS for either the
-//             * IBigdataClient or the DataService.
-//             */
-//            properties
-//                    .setProperty(
-//                            IBigdataClient.Options.COLLECT_PLATFORM_STATISTICS,
-//                            "false");
+            /*
+             * Don't collect statistics from the OS for either the
+             * IBigdataClient or the DataService.
+             */
+            properties
+                    .setProperty(
+                            IBigdataClient.Options.COLLECT_PLATFORM_STATISTICS,
+                            "false");
+            
 //            /*
 //             * Don't sample the various queues.
 //             */

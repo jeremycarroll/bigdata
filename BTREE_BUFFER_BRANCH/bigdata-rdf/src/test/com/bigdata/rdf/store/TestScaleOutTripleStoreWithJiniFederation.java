@@ -139,7 +139,11 @@ public class TestScaleOutTripleStoreWithJiniFederation extends AbstractTestCase 
          * this test class and its optional .properties file.
          */
         
+        // basic test suite.
         suite.addTest(TestTripleStoreBasics.suite());
+        
+        // rules, inference, and truth maintenance test suite.
+        suite.addTest( com.bigdata.rdf.rules.TestAll.suite() );
 
         return suite;
 
@@ -479,24 +483,24 @@ public class TestScaleOutTripleStoreWithJiniFederation extends AbstractTestCase 
      *                be re-opened, e.g., from failure to obtain a file lock,
      *                etc.
      */
-    protected AbstractTripleStore reopenStore(AbstractTripleStore store) {
+    protected AbstractTripleStore reopenStore(final AbstractTripleStore store) {
 
         final String namespace = store.getNamespace();
-        
+
         store.close();
 
-//        final Properties properties = store.getProperties();
-        
+        // final Properties properties = store.getProperties();
+
         // close the client connection to the federation.
-        helper.client.disconnect(true/*immediateShutdown*/);
-        
+        helper.client.disconnect(true/* immediateShutdown */);
+
         // re-connect to the federation.
         helper.client.connect();
-        
+
         // obtain view of the triple store.
         return new ScaleOutTripleStore(helper.client.getFederation(),
                 namespace, ITx.UNISOLATED, store.getProperties());
-        
+
     }
 
 }

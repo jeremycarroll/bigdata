@@ -154,7 +154,7 @@ public class TruthMaintenance {
      * {@link #retractAll(TempTripleStore)} to update the closure of the
      * database.
      * <p>
-     * Note: DO NOT use {@link TempTripleStore#closeAndDelete()} since the
+     * Note: DO NOT use {@link TempTripleStore#__tearDownUnitTest()} since the
      * backing store is shared!
      */
     public TempTripleStore newTempTripleStore() {

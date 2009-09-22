@@ -144,7 +144,7 @@ public class TestRDFXMLInterchangeWithStatementIdentifiers extends
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 
@@ -172,7 +172,7 @@ public class TestRDFXMLInterchangeWithStatementIdentifiers extends
             
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
         
@@ -530,7 +530,7 @@ public class TestRDFXMLInterchangeWithStatementIdentifiers extends
 
             } finally {
 
-                tempStore.closeAndDelete();
+                tempStore.__tearDownUnitTest();
 
             }
 
@@ -774,7 +774,7 @@ public class TestRDFXMLInterchangeWithStatementIdentifiers extends
             
         } finally {
             
-            tempStore.closeAndDelete();
+            tempStore.__tearDownUnitTest();
             
         }
 

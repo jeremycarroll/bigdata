@@ -3,6 +3,7 @@ package com.bigdata.service;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -300,12 +301,19 @@ abstract public class LoadBalancerService extends AbstractService
     final protected Journal eventStore;
 
     protected final EventReceiver eventReceiver;
-    
+
     /**
      * Options understood by the {@link LoadBalancerService}.
      * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
      * @version $Id$
+     * 
+     * @todo The LBS needs to support a 'transient' option in which it (a) does
+     *       not log counters; and (b) keeps the events in a transient B+Tree
+     *       (not backed by a file on the disk). Without this we can not have a
+     *       transient {@link EmbeddedFederation} or
+     *       {@link LocalDataServiceFederation} instances.
      */
     public interface Options {
 
@@ -435,7 +443,7 @@ abstract public class LoadBalancerService extends AbstractService
      * @param properties
      *            See {@link Options}
      */
-    public LoadBalancerService(Properties properties) {
+    public LoadBalancerService(final Properties properties) {
 
         if (properties == null)
             throw new IllegalArgumentException();
@@ -696,6 +704,39 @@ abstract public class LoadBalancerService extends AbstractService
 
     }
 
+    synchronized public void destroy() {
+        
+        super.destroy();
+        
+        eventStore.destroy();
+        
+        final File[] logFiles = logDir.listFiles(new FileFilter() {
+
+            public boolean accept(File pathname) {
+             
+                return pathname.getName().startsWith("counters")
+                        && pathname.getName().endsWith(".xml");
+                
+            }
+            
+        });
+
+        if (logFiles != null) {
+           
+            for (File file : logFiles) {
+
+                if (!file.delete())
+                    log.warn("Could not delete: " + file);
+
+            }
+
+        }
+
+        // delete the log directory (works iff it is empty).
+        logDir.delete();
+
+    }
+    
     /**
      * Returns {@link ILoadBalancerService}.
      */

@@ -148,7 +148,7 @@ public class TestVocabulary extends AbstractTripleStoreTestCase {
 
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
 
@@ -214,7 +214,7 @@ public class TestVocabulary extends AbstractTripleStoreTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         

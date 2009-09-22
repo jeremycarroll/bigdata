@@ -394,7 +394,7 @@ public class TestBackchainOwlSameAsPropertiesIterator extends AbstractInferenceE
           
         } finally {
             
-            noClosure.closeAndDelete();
+            noClosure.__tearDownUnitTest();
             
         }
         

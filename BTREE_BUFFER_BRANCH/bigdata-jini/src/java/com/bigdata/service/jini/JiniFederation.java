@@ -782,7 +782,7 @@ public class JiniFederation<T> extends AbstractDistributedFederation<T> implemen
 
     public void destroy() {
 
-        assertOpen();
+        super.destroy();
 
         try {
 

@@ -44,7 +44,7 @@ public class TestTripleStoreBasics extends TestCase2 {
     /**
      * Aggregates the test suites into something approximating increasing
      * dependency. This is designed to run as a <em>proxy test suite</em> in
-     * which all tests are run using a common configuration and a delegatation
+     * which all tests are run using a common configuration and a delegation
      * mechanism. You MUST add the returned {@link Test} into a properly
      * configured {@link ProxyTestSuite}.
      * 
@@ -63,6 +63,9 @@ public class TestTripleStoreBasics extends TestCase2 {
         // test adding terms and statements is restart safe.
         suite.addTestSuite(TestRestartSafe.class);
 
+        // test suite for the vocabulary models and their persistence.
+        suite.addTest( com.bigdata.rdf.vocab.TestAll.suite() );
+        
         // test of the statement identifier semantics.
         suite.addTestSuite(TestStatementIdentifiers.class);
 
@@ -93,15 +96,6 @@ public class TestTripleStoreBasics extends TestCase2 {
          * statement identifiers are NOT enabled.
          */
         suite.addTest(com.bigdata.rdf.rio.TestAll.suite());
-
-        // test suite for the vocabulary models and their persistence.
-        suite.addTest( com.bigdata.rdf.vocab.TestAll.suite() );
-        
-        // test suite for the axiom models and their persistence.
-        suite.addTest( com.bigdata.rdf.axioms.TestAll.suite() );
-        
-        // test suite for the rule execution layer (query and closure operations).
-        suite.addTest( com.bigdata.rdf.rules.TestAll.suite() );
 
         return suite;
         

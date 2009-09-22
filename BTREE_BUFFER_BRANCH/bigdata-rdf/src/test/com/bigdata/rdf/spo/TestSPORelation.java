@@ -278,7 +278,7 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 
@@ -483,7 +483,7 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
         
@@ -732,7 +732,7 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 

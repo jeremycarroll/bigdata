@@ -40,7 +40,6 @@ import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataLiteral;
 import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValueFactory;
-import com.bigdata.rdf.rules.InferenceEngine.Options;
 import com.bigdata.rdf.vocab.NoVocabulary;
 
 /**
@@ -254,7 +253,7 @@ public class TestRestartSafe extends AbstractTripleStoreTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
         

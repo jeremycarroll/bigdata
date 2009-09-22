@@ -1304,6 +1304,20 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
         // report event.
         ResourceManager.closeJournal(getFile() == null ? null : getFile()
                 .toString());
+
+        if (LRUNexus.INSTANCE != null) {
+
+            try {
+
+                LRUNexus.INSTANCE.deleteCache(this);
+
+            } catch (Throwable t) {
+
+                log.error(t, t);
+
+            }
+
+        }
         
         if (deleteOnClose) {
 
@@ -1620,13 +1634,11 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
 
     synchronized public void destroy() {
 
-        // Note: per contract for close().
-        if(!isOpen()) throw new IllegalStateException();
-
         if (log.isInfoEnabled())
             log.info("");
         
-        shutdownNow();
+        if(isOpen()) 
+            shutdownNow();
         
         if (!deleteOnClose) {
 
@@ -2791,7 +2803,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
         assertOpen();
         
         synchronized (name2Addr) {
-                
+            
             // add to the persistent name map.
             name2Addr.registerIndex(name, ndx);
 

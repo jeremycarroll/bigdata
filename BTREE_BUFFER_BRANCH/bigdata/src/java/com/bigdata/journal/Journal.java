@@ -844,6 +844,14 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
         super.shutdownNow();
         
     }
+    
+    public void deleteResources() {
+        
+        super.deleteResources();
+        
+        tempStoreFactory.closeAll();
+        
+    }
 
     public <T> Future<T> submit(AbstractTask<T> task) {
 

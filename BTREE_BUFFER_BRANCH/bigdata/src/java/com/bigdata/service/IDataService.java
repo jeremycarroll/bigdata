@@ -580,12 +580,12 @@ public interface IDataService extends ITxCommitProtocol, IService, IRemoteExecut
      */
     public boolean isOverflowActive() throws IOException;
     
-    /**
-     * Shutdown the service immediately and destroy any persistent data
-     * associated with the service.
-     * 
-     * @todo move to {@link IService}?
-     */
-    public void destroy() throws IOException;
+//    /**
+//     * Shutdown the service immediately and destroy any persistent data
+//     * associated with the service.
+//     * 
+//     * moved to {@link IService}?
+//     */
+//    public void destroy() throws IOException;
     
 }

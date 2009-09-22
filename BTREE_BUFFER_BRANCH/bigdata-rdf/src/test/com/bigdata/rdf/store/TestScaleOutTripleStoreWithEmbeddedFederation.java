@@ -34,12 +34,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import junit.extensions.proxy.ProxyTestSuite;
 import junit.framework.Test;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.journal.ITx;
 import com.bigdata.service.DataService;
 import com.bigdata.service.EmbeddedClient;
 import com.bigdata.service.EmbeddedFederation;
-import com.bigdata.service.IBigdataClient;
+import com.bigdata.service.IBigdataFederation;
 
 /**
  * Proxy test suite for {@link ScaleOutTripleStore} running against an
@@ -97,7 +96,11 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
          * this test class and its optional .properties file.
          */
         
+        // basic test suite.
         suite.addTest(TestTripleStoreBasics.suite());
+        
+        // rules, inference, and truth maintenance test suite.
+        suite.addTest( com.bigdata.rdf.rules.TestAll.suite() );
 
         return suite;
 
@@ -122,6 +125,10 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
 
         properties.setProperty(DataService.Options.OVERFLOW_ENABLED,"false");
         
+        // disable platform statistics collection.
+        properties.setProperty(
+                EmbeddedClient.Options.COLLECT_PLATFORM_STATISTICS, "false");
+
         /*
          * Note: there are also properties to control the #of data services
          * created in the embedded federation.
@@ -134,7 +141,7 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
     /**
      * An embedded federation is setup and torn down per unit test.
      */
-    IBigdataClient client;
+    EmbeddedClient client;
 
     /**
      * Data files are placed into a directory named by the test. If the
@@ -143,21 +150,21 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
     public void setUp(final ProxyTestCase testCase) throws Exception {
     
         super.setUp(testCase);
-        
-        final File dataDir = new File( testCase.getName() );
-        
-        if(dataDir.exists() && dataDir.isDirectory()) {
 
-            recursiveDelete( dataDir );
-            
+        final File dataDir = new File(testCase.getName());
+
+        if (dataDir.exists() && dataDir.isDirectory()) {
+
+            recursiveDelete(dataDir);
+
         }
 
         final Properties properties = new Properties(getProperties());
         
-        // Note: directory named for the unit test (name is available from the
-        // proxy test case).
-        properties.setProperty(EmbeddedClient.Options.DATA_DIR,
-                testCase.getName());
+//        // Note: directory named for the unit test (name is available from the
+//        // proxy test case).
+//        properties.setProperty(EmbeddedClient.Options.DATA_DIR, testCase
+//                .getName());
 
         // new client
         client = new EmbeddedClient(properties);
@@ -169,11 +176,15 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
     
     public void tearDown(final ProxyTestCase testCase) throws Exception {
 
-        // Note: also closes the embedded federation.
-        client.disconnect(true/*immediateShutdown*/);
+//        // Note: also closes the embedded federation.
+//        client.disconnect(true/*immediateShutdown*/);
 
-        // delete on disk federation (if any).
-        recursiveDelete(new File(testCase.getName()));
+        // destroy the federation under test.
+        if(client.isConnected())
+            client.getFederation().destroy();
+        
+//        // delete on disk federation (if any).
+//        recursiveDelete(new File(testCase.getName()));
         
         super.tearDown();
         
@@ -210,18 +221,28 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
      *                be re-opened, e.g., from failure to obtain a file lock,
      *                etc.
      */
-    protected AbstractTripleStore reopenStore(AbstractTripleStore store) {
+    protected AbstractTripleStore reopenStore(final AbstractTripleStore store) {
 
         final String namespace = store.getNamespace();
         
-//        // Note: properties we need to re-start the client.
-//        final Properties properties = client.getProperties();
+        // Note: properties we need to re-start the client.
+        final Properties properties = new Properties(client.getProperties());
         
         // Note: also shutdown the embedded federation.
         client.disconnect(true/*immediateShutdown*/);
 
+        // Turn this off now since we want to re-open the same store.
+        properties.setProperty(com.bigdata.journal.Options.CREATE_TEMP_FILE, "false");
+
+        // The data directory for the embedded fedetation.
+        final File file = ((EmbeddedFederation) ((ScaleOutTripleStore) store)
+                .getIndexManager()).getDataDir();
+
+        // Set the file property explictly.
+        properties.setProperty(EmbeddedClient.Options.DATA_DIR, file.toString());
+
         // new client.
-        client = new EmbeddedClient( client.getProperties() );
+        client = new EmbeddedClient( properties );
      
         // connect.
         client.connect();

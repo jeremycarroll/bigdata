@@ -72,7 +72,7 @@ public class TestLocalTripleStoreTransactionSemantics extends ProxyTestCase {
             
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
         
@@ -123,7 +123,7 @@ public class TestLocalTripleStoreTransactionSemantics extends ProxyTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 

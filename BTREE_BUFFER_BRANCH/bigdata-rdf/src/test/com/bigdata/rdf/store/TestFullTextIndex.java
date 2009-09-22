@@ -164,7 +164,7 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
             
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 

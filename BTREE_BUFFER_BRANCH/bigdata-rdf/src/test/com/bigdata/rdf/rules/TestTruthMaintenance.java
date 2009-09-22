@@ -218,7 +218,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -284,7 +284,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -431,7 +431,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -575,7 +575,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
 
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -694,7 +694,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
 
@@ -803,7 +803,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
 
                 } finally {
 
-                    controlStore.closeAndDelete();
+                    controlStore.__tearDownUnitTest();
 
                 }
 
@@ -811,7 +811,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
 
@@ -901,7 +901,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
 
@@ -1009,7 +1009,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
 

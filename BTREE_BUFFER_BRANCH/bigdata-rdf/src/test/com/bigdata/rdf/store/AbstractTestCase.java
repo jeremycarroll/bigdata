@@ -341,7 +341,7 @@ abstract public class AbstractTestCase
      * 
      * @param store
      */
-    void dumpTerms(AbstractTripleStore store) {
+    void dumpTerms(final AbstractTripleStore store) {
 
         /*
          * Note: it is no longer true that all terms are stored in the reverse

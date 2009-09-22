@@ -185,11 +185,14 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
         final Properties properties = super.getProperties();
         
         // override the default vocabulary.
-        properties.setProperty(AbstractTripleStore.Options.VOCABULARY_CLASS, NoVocabulary.class.getName());
+        properties.setProperty(AbstractTripleStore.Options.VOCABULARY_CLASS,
+                NoVocabulary.class.getName());
 
         // override the default axiom model.
-        properties.setProperty(com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS, NoAxioms.class.getName());
-        
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
+                NoAxioms.class.getName());
+
         final AbstractTripleStore store = getStore(properties);
         
         try {
@@ -230,7 +233,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
 
         }
 
@@ -326,7 +329,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
 
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
 
@@ -391,7 +394,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -481,7 +484,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -494,13 +497,16 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
     public void test_statements() {
 
         final Properties properties = super.getProperties();
-        
+
         // override the default vocabulary.
-        properties.setProperty(AbstractTripleStore.Options.VOCABULARY_CLASS, NoVocabulary.class.getName());
+        properties.setProperty(AbstractTripleStore.Options.VOCABULARY_CLASS,
+                NoVocabulary.class.getName());
 
         // override the default axiom model.
-        properties.setProperty(com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS, NoAxioms.class.getName());
-        
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
+                NoAxioms.class.getName());
+
         final AbstractTripleStore store = getStore(properties);
 
         try {
@@ -645,7 +651,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
     
         } finally {
 
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
 
@@ -660,8 +666,10 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
         final Properties properties = super.getProperties();
         
         // override the default axiom model.
-        properties.setProperty(com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS, NoAxioms.class.getName());
-        
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
+                NoAxioms.class.getName());
+       
         final AbstractTripleStore store = getStore(properties);
         
         try {
@@ -853,7 +861,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
             
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
 
@@ -868,10 +876,12 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
         final Properties properties = super.getProperties();
         
         // override the default axiom model.
-        properties.setProperty(com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS, NoAxioms.class.getName());
-        
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
+                NoAxioms.class.getName());
+
         final AbstractTripleStore store = getStore(properties);
-        
+
         try {
 
             // verify nothing in the store.
@@ -932,7 +942,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
 
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -945,10 +955,12 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
     public void test_addInferredExplicitAxiom() {
 
         final Properties properties = super.getProperties();
-        
+
         // override the default axiom model.
-        properties.setProperty(com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS, NoAxioms.class.getName());
-        
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
+                NoAxioms.class.getName());
+
         final AbstractTripleStore store = getStore(properties);
 
         try {
@@ -984,7 +996,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
 
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -995,29 +1007,31 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
      * partly bound triple patterns using the Sesame compatible API.
      */
     public void test_addRemove_sesameAPI() throws SailException {
-        
+
         final Properties properties = super.getProperties();
-        
+
         // override the default axiom model.
-        properties.setProperty(com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS, NoAxioms.class.getName());
-        
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
+                NoAxioms.class.getName());
+
         final AbstractTripleStore store = getStore(properties);
 
         try {
 
             // verify nothing in the store.
-            assertSameIterator(new Statement[]{},
-                    store.getAccessPath(null,null,null).iterator());
-            
+            assertSameIterator(new Statement[] {}, store.getAccessPath(null,
+                    null, null).iterator());
+
             final BigdataValueFactory f = store.getValueFactory();
-            
+
             final BigdataURI A = f.createURI("http://www.bigdata.com/A");
             final BigdataURI B = f.createURI("http://www.bigdata.com/B");
             final BigdataURI C = f.createURI("http://www.bigdata.com/C");
             final BigdataURI rdfType = f.asValue(RDF.TYPE);
-            
+
             {
-                
+
                 final IStatementBuffer<Statement> buffer = new StatementBuffer<Statement>(
                         store, 100);
 
@@ -1051,7 +1065,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
 
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
         
@@ -1066,8 +1080,10 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
         final Properties properties = super.getProperties();
         
         // override the default axiom model.
-        properties.setProperty(com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS, NoAxioms.class.getName());
-        
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
+                NoAxioms.class.getName());
+
         final AbstractTripleStore store = getStore(properties);
         
         try {
@@ -1128,7 +1144,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
 
         } finally {
             
-            store.closeAndDelete();
+            store.__tearDownUnitTest();
             
         }
 

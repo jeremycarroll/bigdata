@@ -57,8 +57,11 @@ public class TestAll extends TestCase {
     public static Test suite()
     {
 
-        TestSuite suite = new TestSuite("Inference and truth maintenance");
+        final TestSuite suite = new TestSuite("Inference and truth maintenance");
 
+        // test suite for the axiom models and their persistence.
+        suite.addTest( com.bigdata.rdf.axioms.TestAll.suite() );
+        
         /*
          * test ability to insert, update, or remove elements from a relation
          * and the ability to select the right access path given a predicate for
