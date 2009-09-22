@@ -31,7 +31,9 @@ import java.util.Locale;
 
 import junit.framework.TestCase2;
 
+import org.openrdf.model.Literal;
 import org.openrdf.model.Value;
+import org.openrdf.model.impl.LiteralImpl;
 import org.openrdf.model.vocabulary.XMLSchema;
 
 import com.bigdata.btree.BytesUtil;
@@ -162,6 +164,28 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         
         assertTrue(BytesUtil.compareBytes(k1, k2)<0);
         assertTrue(BytesUtil.compareBytes(k2, k3)<0);
+        
+    }
+    
+    public void test_plain_vs_languageCode_literal() {
+    
+        final String en = "en";
+//        String de = "de";
+        
+        final String lit1 = "abc";
+//        String lit2 = "abc";
+//        String lit3 = "abce";
+//        final Literal a = new LiteralImpl("foo");
+//        final Literal b = new LiteralImpl("foo", "en");
+
+        final byte[] k1 = fixture.plainLiteral2key(lit1);
+        final byte[] k2 = fixture.languageCodeLiteral2key(en, lit1);
+        
+        // not encoded onto the same key.
+        assertFalse(BytesUtil.bytesEqual(k1, k2));
+        
+        // the plain literals are ordered before the language code literals.
+        assertTrue(BytesUtil.compareBytes(k1, k2)<0);
         
     }
     

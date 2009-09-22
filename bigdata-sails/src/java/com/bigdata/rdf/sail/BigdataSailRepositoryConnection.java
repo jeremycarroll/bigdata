@@ -17,8 +17,7 @@ import com.bigdata.rdf.store.AbstractTripleStore;
 public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
    
     protected Logger log = Logger.getLogger(BigdataSailRepositoryConnection.class);
-    
-    
+   
     public BigdataSailRepositoryConnection(BigdataSailRepository repository,
             SailConnection sailConnection) {
     
@@ -38,15 +37,18 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
         
     }
 
+    /**
+     * Note: auto-commit is an EXTREMELY bad idea. Performance will be terrible.
+     * The database will swell to an outrageous size. TURN OFF AUTO COMMIT.
+     */
     @Override
     public void commit() throws RepositoryException {
         
         // auto-commit is heinously inefficient
         if (isAutoCommit()) {
             
-            log.warn(
-                    "auto-commit not supported, please setAutoCommit(false)");
-            
+            log.warn("auto-commit is very inefficient, please setAutoCommit(false)");
+
         }
         
         super.commit();

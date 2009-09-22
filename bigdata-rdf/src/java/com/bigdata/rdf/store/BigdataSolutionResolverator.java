@@ -37,6 +37,10 @@ public class BigdataSolutionResolverator
      * @param src
      *            The source iterator (will be closed when this iterator is
      *            closed).
+     * 
+     *            FIXME must accept reverse bnodes map (from term identifier to
+     *            blank nodes) for resolution of blank nodes within a Sesame
+     *            connection context.
      */
     public BigdataSolutionResolverator(AbstractTripleStore db,
             IChunkedOrderedIterator<ISolution> src) {

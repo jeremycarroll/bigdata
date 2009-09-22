@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Nov 6, 2007
  */
 
-package com.bigdata.rdf.vocab;
+package com.bigdata.rdf.lexicon;
 
 import java.util.Iterator;
 import java.util.Properties;
@@ -40,6 +40,9 @@ import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
+import com.bigdata.rdf.vocab.NoVocabulary;
+import com.bigdata.rdf.vocab.RDFSVocabulary;
+import com.bigdata.rdf.vocab.Vocabulary;
 
 /**
  * Test suite for the {@link Vocabulary} implementations.
@@ -67,10 +70,11 @@ public class TestVocabulary extends AbstractTripleStoreTestCase {
 
     public void test_NoVocabulary() {
 
-        Properties properties = getProperties();
+        final Properties properties = getProperties();
         
         // override the default.
-        properties.setProperty(Options.VOCABULARY_CLASS, NoVocabulary.class.getName());
+        properties.setProperty(Options.VOCABULARY_CLASS, NoVocabulary.class
+                .getName());
         
         AbstractTripleStore store = getStore(properties);
         

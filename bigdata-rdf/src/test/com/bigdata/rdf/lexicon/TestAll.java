@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.lexicon;
 
 
+import com.bigdata.rdf.store.TestFullTextIndex;
+
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -72,9 +74,18 @@ public class TestAll extends TestCase {
 
         suite.addTestSuite(TestId2TermTupleSerializer.class);
 
+        // basic unit tests for adding terms to the lexicon.
+        suite.addTestSuite(TestAddTerms.class);
+        
+        // test suite for the vocabulary models and their persistence.
+        suite.addTestSuite(TestVocabulary.class);
+
         // test suite for the completion scan (prefix match for literals).
         suite.addTestSuite(TestCompletionScan.class);
         
+        // test suite for the full-text indexer integration.
+        suite.addTestSuite(TestFullTextIndex.class);
+
         return suite;
         
     }
