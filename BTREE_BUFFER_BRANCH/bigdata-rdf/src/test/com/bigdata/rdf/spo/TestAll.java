@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.spo;
 
 
+
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -84,6 +85,9 @@ public class TestAll extends TestCase {
         // key and value (de-)serialization of SPO tuples for B+Tree.
         suite.addTestSuite(TestSPOTupleSerializer.class);
         
+        // test suite for the access path api.
+        suite.addTestSuite(TestSPOAccessPath.class);
+
         return suite;
         
     }

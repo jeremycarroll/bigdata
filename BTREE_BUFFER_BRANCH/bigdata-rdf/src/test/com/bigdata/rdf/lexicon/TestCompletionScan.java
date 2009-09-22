@@ -45,7 +45,7 @@ Modifications:
  * Created on Jun 17, 2008
  */
 
-package com.bigdata.rdf.store;
+package com.bigdata.rdf.lexicon;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -57,6 +57,8 @@ import org.openrdf.model.impl.LiteralImpl;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
+import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
 
 /**
  * Unit tests for

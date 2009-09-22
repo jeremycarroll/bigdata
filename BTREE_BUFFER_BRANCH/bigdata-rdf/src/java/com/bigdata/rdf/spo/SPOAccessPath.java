@@ -132,6 +132,7 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
                     predicate.get(keyOrder.getKeyOrder(i));
                 long l;
                 // Note: term MAY be null for the context position.
+                // FIXME this is not coding unbound in cSPO correctly.  The SPO wind up as 0L rather than MIN_VALUE?!?
                 if (term == null || term.isVar()) {
                     l = Long.MIN_VALUE;
                 } else {

@@ -1,7 +1,5 @@
 package com.bigdata.rdf.store;
 
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -10,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.openrdf.model.Value;
 
+import com.bigdata.rdf.model.BigdataBNodeImpl;
 import com.bigdata.rdf.model.BigdataResource;
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.BigdataURI;
@@ -32,6 +31,14 @@ public class BigdataStatementIteratorImpl
         extends
         AbstractChunkedResolverator<ISPO, BigdataStatement, AbstractTripleStore>
         implements BigdataStatementIterator {
+
+    /**
+     * An optional map of known blank node term identifiers and the
+     * corresponding {@link BigdataBNodeImpl} objects. This map may be used to
+     * resolve term identifiers to the corresponding blank node objects across a
+     * "connection" context.
+     */
+    private final Map<Long, BigdataBNodeImpl> bnodes;
 
 //    final protected static Logger log = Logger.getLogger(BigdataStatementIteratorImpl.class);
 //
@@ -56,18 +63,41 @@ public class BigdataStatementIteratorImpl
     public BigdataStatementIteratorImpl(final AbstractTripleStore db,
             final IChunkedOrderedIterator<ISPO> src) {
 
+        this(db, null/* bnodes */, src);
+        
+    }
+
+    /**
+     * 
+     * @param db
+     *            Used to resolve term identifiers to {@link Value} objects.
+     * @param bnodes
+     *            An optional map of known blank node term identifiers and the
+     *            corresponding {@link BigdataBNodeImpl} objects. This map may
+     *            be used to resolve blank node term identifiers to blank node
+     *            objects across a "connection" context.
+     * @param src
+     *            The source iterator (will be closed when this iterator is
+     *            closed).
+     */
+    public BigdataStatementIteratorImpl(final AbstractTripleStore db,
+            final Map<Long, BigdataBNodeImpl> bnodes,
+                final IChunkedOrderedIterator<ISPO> src) {
+        
         super(db, src, new BlockingBuffer<BigdataStatement[]>(
                 db.getChunkOfChunksCapacity(), 
                 db.getChunkCapacity(),
                 db.getChunkTimeout(),
                 TimeUnit.MILLISECONDS));
+
+        this.bnodes = bnodes;
         
     }
 
     /**
      * Strengthens the return type.
      */
-    public BigdataStatementIteratorImpl start(ExecutorService service) {
+    public BigdataStatementIteratorImpl start(final ExecutorService service) {
 
         return (BigdataStatementIteratorImpl) super.start(service);
         
@@ -94,21 +124,38 @@ public class BigdataStatementIteratorImpl
 
 //        final LongOpenHashSet ids = new LongOpenHashSet(chunk.length*4);
         
-        final Collection<Long> ids = new LinkedHashSet<Long>(chunk.length * 4);
+        final Collection<Long> ids = new LinkedHashSet<Long>(chunk.length
+                * state.getSPOKeyArity());
 
         for (ISPO spo : chunk) {
 
-            ids.add(spo.s());
+            {
+                
+                final long s = spo.s();
+
+                if (bnodes == null || !bnodes.containsKey(s))
+                    ids.add(s);
+            
+            }
 
             ids.add(spo.p());
 
-            ids.add(spo.o());
+            {
 
-            final long c = spo.c();
+                final long o = spo.o();
 
-            if (c != IRawTripleStore.NULL) {
+                if (bnodes == null || !bnodes.containsKey(o))
+                    ids.add(o);
 
-                ids.add(c);
+            }
+
+            {
+             
+                final long c = spo.c();
+
+                if (c != IRawTripleStore.NULL
+                        && (bnodes == null || !bnodes.containsKey(c)))
+                    ids.add(c);
 
             }
 
@@ -135,15 +182,15 @@ public class BigdataStatementIteratorImpl
         for (ISPO spo : chunk) {
 
             /*
-             * Resolve term identifiers to terms using the map populated
-             * when we fetched the current chunk.
+             * Resolve term identifiers to terms using the map populated when we
+             * fetched the current chunk.
              */
-            final BigdataResource s = (BigdataResource) terms.get(spo.s());
-            final BigdataURI p = (BigdataURI) terms.get(spo.p());
-            final BigdataValue o = terms.get(spo.o());
+            final BigdataResource s = (BigdataResource) resolve(terms, spo.s());
+            final BigdataURI p = (BigdataURI) resolve(terms, spo.p());
+            final BigdataValue o = resolve(terms, spo.o());
             final long _c = spo.c();
             final BigdataResource c = (_c != IRawTripleStore.NULL //
-                    ? (BigdataResource) terms.get(_c)
+            ? (BigdataResource) resolve(terms, _c)
                     : null);
 
             if (spo.hasStatementType() == false) {
@@ -163,6 +210,37 @@ public class BigdataStatementIteratorImpl
         }
 
         return stmts;
+
+    }
+
+    /**
+     * Resolve a term identifier to the {@link BigdataValue}, checking the
+     * {@link #bnodes} map if it is defined.
+     * 
+     * @param terms
+     *            The terms mapping obtained from the lexicon.
+     * @param termId
+     *            The term identifier.
+     *            
+     * @return The {@link BigdataValue}.
+     */
+    private BigdataValue resolve(final Map<Long, BigdataValue> terms,
+            final long termId) {
+
+        BigdataValue v = null;
+        if (bnodes != null) {
+
+            v = bnodes.get(termId);
+
+        }
+
+        if (v == null) {
+
+            v = terms.get(termId);
+
+        }
+
+        return v;
 
     }
 

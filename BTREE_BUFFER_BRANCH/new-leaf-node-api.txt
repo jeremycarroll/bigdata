@@ -323,70 +323,41 @@ Recommendations:
 ------------------------------------------------------------
 PRIORITIES
 
-	- Quads and Sesame test suites for same.
+	- (****) Quads and Sesame test suites for same.
 
-	  - run the basic test suite for quads.
-
-	    - use base IRI as the context during load.
+	    - use base IRI as the context during load?
 
 	    - cross-validation of indices.
 
-	  - @todo delete [bigdata-trunk].  rename
-            [bigdata-trunk-no-branch] as [bigdata-trunk].
+	    - problems appearing for async data load for quads?  for
+              triples too?
 
-	  - done. quad store unit tests and test suite refactor so we
-            can run just the store level and not the inference level
-            tests. [*** run the quad store tests.]
+	    - Many of the test failures are due to the background
+              graph concept in Sesame.
 
-	  - done. turn off performance counter collection for all
-            local / embedded federation unit tests.
+	    - Exact range count or range count with filter MUST do
+              scan passing in the filter.
 
- 	  - (****) unit tests are not cleaning up correctly.  rename
-            closeAndDelete() as tearDownUnitTest() and cleanup close()
-            and destory() implementations.
+	    - Problems with count of statement in nullGraph vs other
+              contexts.
 
-		- (***) use __teatDownUnitTest() to keep down the
-                  temporary stores that are not being deleted.
-
-		- done. embedded federation appears to be creating a
-                  one-up federation name and a distinct instance on
-                  restart.  it is supported to be creating an instance
-                  named for the unit test.
-
-		   - done. The EDS problem with restart is linked to
-                     the global LRU.  I am not seeing the cache
-                     cleared for the LBS's journal backing the events
-                     history.
-
-		   - done. set the LBS logDir to "lbs"
-
-	  - The services need IService#destroy() throws
-	    RemoteException.  All service impls and federations need
-	    to provide this. TempStoreFactory for Journal and
-	    AbstractFederation needs to implement closeAll() and be
-	    invoked from those contexts to close out temporary stores
-	    for which we still have hard references.
-
-	  - AbstractServer must keep reference to service and then
-	    issue destroy against the service to delete the persistent
-	    resources and finally destroy the service directory.
+	  - (****) TEST THIS: AbstractServer must keep reference to
+	    service and then issue destroy against the service to
+	    delete the persistent resources and finally destroy the
+	    service directory.
 
 	  - (***) LDS: The "JUST" index needs to be declared for LDS
             rule execution.  It was getting a free ride for LDS from
             AbstractRelation#getIndexNames().  That no longer returns
             the name of the "JUST" index.  Review and fix.
 
-	  - QUADS : bigdata and Sesame TCK test suites.
-
-	  - 
+	  - @todo delete [bigdata-trunk].  rename
+            [bigdata-trunk-no-branch] as [bigdata-trunk].
 
 	- The whitepaper must be finished now.
 
 	- Support glitter integration, performance optimizations
           against sample data sets, and hot backup for the Journal.
-
-	- Errors introduced into the federation test suites by the LRU
-          nexus and test suite clean up issues for the same.
 
 	- Retest on the cluster.
 

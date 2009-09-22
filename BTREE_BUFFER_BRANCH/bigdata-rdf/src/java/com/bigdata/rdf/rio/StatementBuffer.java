@@ -653,7 +653,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
     /**
      * @todo could be replaced with {@link BigdataValueFactory
      */
-    public void setBNodeMap(Map<String, BigdataBNodeImpl> bnodes) {
+    public void setBNodeMap(final Map<String, BigdataBNodeImpl> bnodes) {
     
         if (bnodes == null)
             throw new IllegalArgumentException();
@@ -773,7 +773,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
      * @param p
      * @param o
      */
-    public void add(Resource s, URI p, Value o) {
+    public void add(final Resource s, final URI p, final Value o) {
         
         add(s, p, o, null, StatementEnum.Explicit);
         
@@ -787,7 +787,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
      * @param o
      * @param c
      */
-    public void add(Resource s, URI p, Value o, Resource c) {
+    public void add(final Resource s, final URI p, final Value o, final Resource c) {
         
         add(s, p, o, c, StatementEnum.Explicit);
         

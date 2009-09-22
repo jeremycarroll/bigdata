@@ -2190,9 +2190,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 
         }
 
-        int ret = toIndex - fromIndex;
-
-        return ret;
+        return (toIndex - fromIndex);
 
     }
 

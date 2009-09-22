@@ -32,7 +32,6 @@ import junit.framework.Test;
 import junit.framework.TestCase2;
 import junit.framework.TestSuite;
 
-
 /**
  * Aggregates test that are run for each {@link ITripleStore} implementation.
  * 
@@ -59,13 +58,13 @@ public class TestTripleStoreBasics extends TestCase2 {
 
         // make sure that the db can find the relations and they their container
         suite.addTestSuite(TestRelationLocator.class);
-        
+
         // test adding terms and statements is restart safe.
         suite.addTestSuite(TestRestartSafe.class);
 
         // test suite for the vocabulary models and their persistence.
-        suite.addTest( com.bigdata.rdf.vocab.TestAll.suite() );
-        
+        suite.addTest(com.bigdata.rdf.vocab.TestAll.suite());
+
         // test of the statement identifier semantics.
         suite.addTestSuite(TestStatementIdentifiers.class);
 
@@ -74,22 +73,16 @@ public class TestTripleStoreBasics extends TestCase2 {
 
         // test suite for the full-text indexer integration.
         suite.addTestSuite(TestFullTextIndex.class);
-        
-        // test suite for the access path api.
-        suite.addTestSuite(TestSPOAccessPath.class);
 
-        // test suite for the completion scan (prefix match for literals).
-        suite.addTestSuite(TestCompletionScan.class);
-        
         // somewhat dated test of sustained insert rate on synthetic data.
         suite.addTestSuite(TestInsertRate.class);
 
         // test suite for the LexiconRelation.
-        suite.addTest( com.bigdata.rdf.lexicon.TestAll.suite() );
+        suite.addTest(com.bigdata.rdf.lexicon.TestAll.suite());
 
         // test suite for the SPORelation.
-        suite.addTest( com.bigdata.rdf.spo.TestAll.suite() );
-        
+        suite.addTest(com.bigdata.rdf.spo.TestAll.suite());
+
         /*
          * test suite for the rio parser and data loading integration, including
          * support for statement identifiers and handling of blank nodes when
@@ -98,7 +91,7 @@ public class TestTripleStoreBasics extends TestCase2 {
         suite.addTest(com.bigdata.rdf.rio.TestAll.suite());
 
         return suite;
-        
+
     }
-    
+
 }

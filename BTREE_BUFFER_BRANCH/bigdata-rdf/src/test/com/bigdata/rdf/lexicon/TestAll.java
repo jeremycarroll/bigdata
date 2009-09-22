@@ -56,7 +56,7 @@ public class TestAll extends TestCase {
     public static Test suite()
     {
 
-        TestSuite suite = new TestSuite("lexicon");
+        final TestSuite suite = new TestSuite("lexicon");
 
         /*
          * Non-proxy tests.
@@ -72,13 +72,8 @@ public class TestAll extends TestCase {
 
         suite.addTestSuite(TestId2TermTupleSerializer.class);
 
-        /*
-         * FIXME proxy tests should be defined or relocated to this package in
-         * order to test the LexiconRelation. These non-proxy test can just be
-         * run with the proxy tests - it does not hurt anything and it makes it
-         * easier to verify that all tests are being executed.
-         * 
-         */
+        // test suite for the completion scan (prefix match for literals).
+        suite.addTestSuite(TestCompletionScan.class);
         
         return suite;
         
