@@ -131,8 +131,8 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
         // quads
         SPOC,
         POCS,
-        CSPO,
         OCSP,
+        CSPO,
         PCSO,
         SOPC,
         
@@ -146,8 +146,8 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
             // quads
             new GeneralComparator(_SPOC),//
             new GeneralComparator(_POCS),//
-            new GeneralComparator(_CSPO),//
             new GeneralComparator(_OCSP),//
+            new GeneralComparator(_CSPO),//
             new GeneralComparator(_PCSO),//
             new GeneralComparator(_SOPC) };
 

@@ -157,7 +157,7 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
                 long l;
                 // Note: term MAY be null for context.
                 if (term == null || term.isVar()) {
-                    l = Long.MAX_VALUE; // FIXME verify should be MAX here vs MIN.
+                    l = Long.MIN_VALUE;
                 } else {
                     l = term.get();
                     noneBound = false;
