@@ -179,9 +179,9 @@ public class BigdataValueSerializer<V extends Value> {
      * 
      * @see {@link #serialize()}
      */
-    public V deserialize(byte[] b) {
+    public V deserialize(final byte[] b) {
 
-        return deserialize( new DataInputBuffer(b) );
+        return deserialize(new DataInputBuffer(b));
         
     }
 
@@ -202,7 +202,7 @@ public class BigdataValueSerializer<V extends Value> {
      * 
      * @see {@link #serialize()}
      */
-    public V deserialize(DataInputBuffer in) {
+    public V deserialize(final DataInputBuffer in) {
         
         try {
 
@@ -247,8 +247,8 @@ public class BigdataValueSerializer<V extends Value> {
      * 
      * @throws IOException
      */
-    protected void serialize(V val, short version, byte termCode, DataOutput out)
-            throws IOException {
+    protected void serialize(final V val, final short version,
+            final byte termCode, final DataOutput out) throws IOException {
     
         switch(termCode) {
  
@@ -371,8 +371,8 @@ public class BigdataValueSerializer<V extends Value> {
      * @throws IOException
      */
     @SuppressWarnings("unchecked")
-    protected V deserialize(short version, byte termCode, DataInput in)
-            throws IOException {
+    protected V deserialize(final short version, final byte termCode,
+            final DataInput in) throws IOException {
     
         switch(termCode) {
         

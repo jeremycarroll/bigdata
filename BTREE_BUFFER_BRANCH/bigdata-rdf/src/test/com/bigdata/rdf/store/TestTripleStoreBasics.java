@@ -53,35 +53,38 @@ public class TestTripleStoreBasics extends TestCase2 {
 
         final TestSuite suite = new TestSuite("Triple store basics");
 
-        // test adding terms and statements.
-        suite.addTestSuite(TestTripleStore.class);
-
+        /*
+         * Bootstrap test suites.
+         */
+        
         // make sure that the db can find the relations and they their container
         suite.addTestSuite(TestRelationLocator.class);
-
-        // test adding terms and statements is restart safe.
-        suite.addTestSuite(TestRestartSafe.class);
-
-        // test suite for the vocabulary models and their persistence.
-        suite.addTest(com.bigdata.rdf.vocab.TestAll.suite());
-
-        // test of the statement identifier semantics.
-        suite.addTestSuite(TestStatementIdentifiers.class);
-
-        // test suite for bulk filter of statements absent/present in the kb.
-        suite.addTestSuite(TestBulkFilter.class);
-
-        // test suite for the full-text indexer integration.
-        suite.addTestSuite(TestFullTextIndex.class);
-
-        // somewhat dated test of sustained insert rate on synthetic data.
-        suite.addTestSuite(TestInsertRate.class);
 
         // test suite for the LexiconRelation.
         suite.addTest(com.bigdata.rdf.lexicon.TestAll.suite());
 
         // test suite for the SPORelation.
         suite.addTest(com.bigdata.rdf.spo.TestAll.suite());
+
+        /*
+         * Tests at the RDF Statement level, requiring use of both the
+         * LexiconRelation and the SPORelation.
+         */
+        
+        // test adding terms and statements.
+        suite.addTestSuite(TestTripleStore.class);
+
+        // test adding terms and statements is restart safe.
+        suite.addTestSuite(TestRestartSafe.class);
+
+        // somewhat dated test of sustained insert rate on synthetic data.
+        suite.addTestSuite(TestInsertRate.class);
+
+        // test of the statement identifier semantics.
+        suite.addTestSuite(TestStatementIdentifiers.class);
+
+        // test suite for bulk filter of statements absent/present in the kb.
+        suite.addTestSuite(TestBulkFilter.class);
 
         /*
          * test suite for the rio parser and data loading integration, including

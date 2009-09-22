@@ -72,7 +72,11 @@ public class TestAll extends TestCase {
 
         suite.addTestSuite(BigdataStoreTest.class);
         suite.addTestSuite(BigdataConnectionTest.class);
-        suite.addTestSuite(BigdataSparqlTest.class);
+        try {
+            suite.addTest(BigdataSparqlTest.suite());
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
         
         return suite;
         

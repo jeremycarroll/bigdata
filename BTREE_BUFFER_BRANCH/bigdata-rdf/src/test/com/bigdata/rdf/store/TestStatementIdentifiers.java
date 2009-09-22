@@ -105,10 +105,12 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
     public void test_statementIdentifiers() {
 
         final Properties properties = super.getProperties();
-        
+
         // override the default axiom model.
-        properties.setProperty(com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS, NoAxioms.class.getName());
-        
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
+                NoAxioms.class.getName());
+
         AbstractTripleStore store = getStore(properties);
 
         try {

@@ -716,7 +716,7 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
      * operation.
      * <p>
      * Note: This implementation is designed to use unisolated batch writes on
-     * the terms and ids index that guarentee consistency.
+     * the terms and ids index that guarantee consistency.
      * <p>
      * If the full text index is enabled, then the terms will also be inserted
      * into the full text index.
@@ -1172,10 +1172,6 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
      * @return A map from term identifier to the {@link BigdataValue}. If a
      *         term identifier was not resolved then the map will not contain an
      *         entry for that term identifier.
-     * 
-     * @todo write unit tests getTerms(ids) - it's mainly used by the
-     *       {@link BigdataStatementIteratorImpl} and
-     *       {@link BigdataSolutionResolverator}.
      * 
      * @todo performance tuning for statement pattern scans with resolution to
      *       terms, e.g., LUBM Q6.
@@ -1656,7 +1652,7 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 //    }
 
     /**
-     * Recently resolved term identifers are cached to improve performance when
+     * Recently resolved term identifiers are cached to improve performance when
      * externalizing statements.
      * 
      * @todo consider using this cache in the batch API as well or simply modify

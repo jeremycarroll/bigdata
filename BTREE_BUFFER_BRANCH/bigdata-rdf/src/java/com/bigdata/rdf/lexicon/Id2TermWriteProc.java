@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.rdf.lexicon;
 
+import org.openrdf.model.Value;
 import org.openrdf.model.impl.ValueFactoryImpl;
 
 import com.bigdata.btree.BytesUtil;
@@ -67,8 +68,22 @@ public class Id2TermWriteProc extends AbstractKeyArrayIndexProcedure implements
      * <p>
      * Validation may be disabled for releases, however it is not really that
      * much overhead since the operation is on the in-memory representation.
+     * 
+     * @deprecared Validation is broken for datatype literals since different
+     *             lexical forms are all mapped onto the same key,e.g.,
+     * 
+     *             <pre>
+     * 12&circ;&circ;&lt;xsd:float&gt;
+     * 12.0&circ;&circ;&lt;xsd:float&gt;
+     * 12.00&circ;&circ;&lt;xsd:float&gt;
+     * </pre>
+     * 
+     *             will all be mapped to the same key and hence would give the
+     *             appearance of a conflict if we were to reject any of these
+     *             forms when another of the forms was already present under the
+     *             key.
      */
-    static protected transient final boolean validate = true;
+    static private transient final boolean validate = false;
     
     public final boolean isReadOnly() {
         
@@ -200,20 +215,44 @@ public class Id2TermWriteProc extends AbstractKeyArrayIndexProcedure implements
                         else
                             suffix = '?';
 
-                        // note: solely for de-serialization of values for error logging.
+                        /*
+                         * We have to go one step further and compare the
+                         * deserialized value in order to decide if there is
+                         * really an inconsistency in the index. For example,
+                         * "abc@en" and "abc@EN" encode as different byte[]s,
+                         * but they are EQUALS() for RDF since the language code
+                         * comparison is case insensitive. The same problem can
+                         * occur for data type literals, since lexically
+                         * distinct literals are are mapped onto the same point
+                         * in the data type space (the same key). However,
+                         * comparison based on data type equality is not really
+                         * provided for by BigdataLiteral, so we get into
+                         * trouble if we attempt to detect errors based on
+                         * datatype literals.
+                         */
                         final BigdataValueSerializer valSer = new BigdataValueSerializer(
                                 new ValueFactoryImpl());
-                        log.error("id=" + id + suffix);
-                        log.error("val=" + BytesUtil.toString(val));
-                        log.error("oldval=" + BytesUtil.toString(oldval));
-                        log.error("val=" + valSer.deserialize(val));
-                        log.error("oldval=" + valSer.deserialize(oldval));
-                        if(ndx.getIndexMetadata().getPartitionMetadata()!=null)
-                            log.error(ndx.getIndexMetadata().getPartitionMetadata().toString());
+
+                        final Value term = valSer.deserialize(val);
+                        final Value oldterm = valSer.deserialize(oldval);
                         
-                        throw new RuntimeException("Consistency problem: id="+ id);
-                        
-                        
+                        if (!term.equals(oldterm)) {
+                            
+                            log.error("term=" + valSer.deserialize(val));
+                            log.error("oldterm=" + valSer.deserialize(oldval));
+
+                            log.error("id=" + id + suffix);
+                            log.error("key=" + BytesUtil.toString(key));
+                            log.error("val=" + BytesUtil.toString(val));
+                            log.error("oldval=" + BytesUtil.toString(oldval));
+                            if (ndx.getIndexMetadata().getPartitionMetadata() != null)
+                                log.error(ndx.getIndexMetadata()
+                                        .getPartitionMetadata().toString());
+
+                            throw new RuntimeException(
+                                    "Consistency problem: id=" + id);
+                        }
+
                     }
                     
                 }

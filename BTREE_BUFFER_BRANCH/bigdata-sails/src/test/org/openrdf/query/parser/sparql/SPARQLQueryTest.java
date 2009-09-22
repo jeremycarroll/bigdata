@@ -332,7 +332,7 @@ public abstract class SPARQLQueryTest extends TestCase {
 		graphURIs.addAll(dataset.getNamedGraphs());
 
 		for (Resource graphURI : graphURIs) {
-			upload(((URI)graphURI), graphURI);
+		    upload(((URI)graphURI), graphURI);
 		}
 	}
 
@@ -353,6 +353,7 @@ public abstract class SPARQLQueryTest extends TestCase {
 			rdfParser.setRDFHandler(rdfInserter);
 
 			URL graphURL = new URL(graphURI.toString());
+			if(logger.isInfoEnabled())logger.info("graphURI: "+graphURI);
 			InputStream in = graphURL.openStream();
 			try {
 				rdfParser.parse(in, graphURI.toString());

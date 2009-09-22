@@ -274,7 +274,7 @@ public class Term2IdTupleSerializer extends DefaultTupleSerializer {
 //            
 //        }
 
-        public byte[] plainLiteral2key(String text) {
+        public byte[] plainLiteral2key(final String text) {
             
             return keyBuilder.reset().append(TERM_CODE_LIT).append(text).getKey();
             
@@ -292,8 +292,9 @@ public class Term2IdTupleSerializer extends DefaultTupleSerializer {
          * 
          * @see Literal#getLanguage()
          */
-        public byte[] languageCodeLiteral2key(String languageCode, String text) {
-            
+        public byte[] languageCodeLiteral2key(final String languageCode,
+                final String text) {
+
             assert languageCode.length() > 0;
             
             keyBuilder.reset().append(TERM_CODE_LCL);
@@ -397,9 +398,9 @@ public class Term2IdTupleSerializer extends DefaultTupleSerializer {
             
             if (value instanceof URI) {
 
-                URI uri = (URI) value;
+                final URI uri = (URI) value;
 
-                String term = uri.toString();
+                final String term = uri.toString();
 
                 return uri2key(term);
 

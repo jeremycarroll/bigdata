@@ -130,6 +130,7 @@ import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.BNS;
 import com.bigdata.rdf.store.Bigdata2SesameIteration;
+import com.bigdata.rdf.store.BigdataSolutionResolverator;
 import com.bigdata.rdf.store.BigdataStatementIterator;
 import com.bigdata.rdf.store.BigdataStatementIteratorImpl;
 import com.bigdata.rdf.store.BigdataValueIterator;
@@ -940,7 +941,11 @@ public class BigdataSail extends SailBase implements Sail {
          * 
          * FIXME bnodes : maintain the dual of this map, {@link #bnodes2}.
          * 
-         * FIXME bnodes : resolution of term identifiers to blank nodes for JOINs.
+         * FIXME bnodes : resolution of term identifiers to blank nodes for
+         * access path scans and CONSTRUCT in {@link BigdataStatementIterator}.
+         * 
+         * FIXME bnodes : resolution of term identifiers to blank nodes for
+         * JOINs in {@link BigdataSolutionResolverator}.
          */
         private final Map<String, BigdataBNodeImpl> bnodes;
 
@@ -1529,6 +1534,10 @@ public class BigdataSail extends SailBase implements Sail {
                 }
 
             }
+            
+            bnodes.clear();
+            
+            bnodes2.clear();
 
         }
 
