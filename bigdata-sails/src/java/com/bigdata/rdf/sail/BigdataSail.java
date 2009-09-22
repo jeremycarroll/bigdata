@@ -83,6 +83,7 @@ import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.impl.ContextStatementImpl;
 import org.openrdf.model.impl.NamespaceImpl;
+import org.openrdf.model.impl.URIImpl;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.Dataset;
 import org.openrdf.query.QueryEvaluationException;
@@ -127,8 +128,10 @@ import com.bigdata.rdf.spo.SPOAccessPath;
 import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.BNS;
 import com.bigdata.rdf.store.Bigdata2SesameIteration;
 import com.bigdata.rdf.store.BigdataStatementIterator;
+import com.bigdata.rdf.store.BigdataStatementIteratorImpl;
 import com.bigdata.rdf.store.BigdataValueIterator;
 import com.bigdata.rdf.store.BigdataValueIteratorImpl;
 import com.bigdata.rdf.store.EmptyStatementIterator;
@@ -214,14 +217,11 @@ import cutthecrap.utils.striterators.Striterator;
  *       programmatically. You are free to add whatever initialization method to
  *       your Sail class.)
  * 
- *       FIXME run against the "Technology Compatibility Kit"
- *       https://src.aduna-software.org/svn/org.openrdf/projects/sesame2-tck/
- * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
 public class BigdataSail extends SailBase implements Sail {
-
+    
     /**
      * Additional parameters understood by the Sesame 2.x SAIL implementation.
      * 
@@ -313,7 +313,22 @@ public class BigdataSail extends SailBase implements Sail {
     final protected static boolean INFO = log.isInfoEnabled();
 
     final protected static boolean DEBUG = log.isDebugEnabled();
-    
+
+    /**
+     * Sesame has the notion of a "null" graph. Any time you insert a statement
+     * into a quad store and the context position is not specified, it is
+     * actually inserted into this "null" graph. If SPARQL <code>DATASET</code>
+     * is not specified, then all contexts are queried and you will see
+     * statements from the "null" graph as well as from any other context.
+     * {@link BigdataSailConnection#getStatements(Resource, URI, Value, boolean, Resource...)}
+     * will return statements from the "null" graph if the context is either
+     * unbound or is an array whose sole element is <code>null</code>.
+     * 
+     * @see BigdataSailConnection#addStatement(Resource, URI, Value, Resource...)
+     * @see BigdataSailConnection#getStatements(Resource, URI, Value, boolean, Resource...)
+     */
+    public static final transient URI NULL_GRAPH = new URIImpl(BNS.NULL_GRAPH);
+
     /**
      * The equivalent of a null identifier for an internal RDF Value.
      */
@@ -918,12 +933,25 @@ public class BigdataSail extends SailBase implements Sail {
          * @see #getRetractionBuffer()
          */
         private StatementBuffer<Statement> retractBuffer = null;
-        
+
         /**
          * A canonicalizing mapping for blank nodes whose life cycle is the same
          * as that of the {@link SailConnection}.
+         * 
+         * FIXME bnodes : maintain the dual of this map, {@link #bnodes2}.
+         * 
+         * FIXME bnodes : resolution of term identifiers to blank nodes for JOINs.
          */
         private final Map<String, BigdataBNodeImpl> bnodes;
+
+        /**
+         * A reverse mapping from the assigned term identifiers for blank nodes
+         * to the {@link BigdataBNodeImpl} object. This is used to resolve blank
+         * nodes recovered during query from within the same
+         * {@link SailConnection} without loosing the blank node identifier.
+         * This behavior is required by the contract for {@link SailConnection}.
+         */
+        private final Map<Long, BigdataBNodeImpl> bnodes2;
 
         /**
          * Return the assertion buffer.
@@ -960,6 +988,7 @@ public class BigdataSail extends SailBase implements Sail {
 
                 }
 
+                // FIXME bnodes : must also track the reverse mapping [bnodes2].
                 assertBuffer.setBNodeMap(bnodes);
 
             }
@@ -1023,6 +1052,7 @@ public class BigdataSail extends SailBase implements Sail {
 
                 }
 
+                // FIXME bnodes : Must also track the reverse mapping [bnodes2].
                 retractBuffer.setBNodeMap(bnodes);
                 
             }
@@ -1054,6 +1084,8 @@ public class BigdataSail extends SailBase implements Sail {
                 tm = null;
                 
                 bnodes = null;
+
+                bnodes2 = null;
                 
             } else {
 
@@ -1069,8 +1101,8 @@ public class BigdataSail extends SailBase implements Sail {
                  * explicit synchronization during iterators, which breaks
                  * encapsulation.
                  */
-                bnodes = new ConcurrentHashMap<String, BigdataBNodeImpl>(
-                        bufferCapacity);
+                bnodes = new ConcurrentHashMap<String, BigdataBNodeImpl>();
+                bnodes2 = new ConcurrentHashMap<Long, BigdataBNodeImpl>();
 //                bnodes = Collections
 //                        .synchronizedMap(new HashMap<String, BigdataBNodeImpl>(
 //                                bufferCapacity));
@@ -1360,8 +1392,18 @@ public class BigdataSail extends SailBase implements Sail {
         /*
          * Statement CRUD
          */
-        
-        public void addStatement(Resource s, URI p, Value o, Resource... contexts) throws SailException {
+
+        /**
+         * Sesame has a concept of a "null" graph. Any statement inserted whose
+         * context position is NOT bound will be inserted into the "null" graph.
+         * Statements inserted into the "null" graph are visible from the SPARQL
+         * default graph, when no data set is specified (in this case all
+         * statements in all contexts are visible).
+         * 
+         * @see BigdataSail#NULL_GRAPH
+         */
+        public void addStatement(final Resource s, final URI p, final Value o,
+                final Resource... contexts) throws SailException {
 
             if (contexts == null || contexts.length == 0 || contexts[0] == null) {
 
@@ -1382,13 +1424,23 @@ public class BigdataSail extends SailBase implements Sail {
         private void addStatement(final Resource s, final URI p, final Value o,
                 final Resource c) throws SailException {
 
+            if(!isOpen()) {
+
+                /*
+                 * Note: While this exception is not declared by the javadoc,
+                 * it is required by the Sesame TCK.
+                 */
+                throw new IllegalStateException();
+                
+            }
+            
             assertWritable();
 
             // flush any pending retractions first!
             flushStatementBuffers(false/* flushAssertBuffer */, true/* flushRetractBuffer */);
             
             // buffer the assertion.
-            getAssertionBuffer().add(s, p, o, c);
+            getAssertionBuffer().add(s, p, o, c == null ? NULL_GRAPH : c);
             
             if (m_listeners != null) {
 
@@ -1635,7 +1687,6 @@ public class BigdataSail extends SailBase implements Sail {
             final BigdataValueIterator itr2 = new BigdataValueIteratorImpl(
                     database, itr);
 
-            // FIXME quads : write unit test for this to make sure generics do not have runtime problem.
             return (CloseableIteration<? extends Resource, SailException>) itr2;
 
         }
@@ -1834,6 +1885,11 @@ public class BigdataSail extends SailBase implements Sail {
             
         }
 
+        /**
+         * Note: if the context is <code>null</code>, then you will see data
+         * from each context in a quad store, including anything in the
+         * {@link BigdataSail#NULL_GRAPH}.
+         */
         @SuppressWarnings("unchecked")
         public CloseableIteration<? extends Statement, SailException> getStatements(
                 final Resource s, final URI p, final Value o,
@@ -1957,8 +2013,26 @@ public class BigdataSail extends SailBase implements Sail {
                 src = accessPath.iterator();
                 
             }
-            
-            return database.asStatementIterator(src);
+
+            /*
+             * Resolve SPOs containing term identifiers to BigdataStatementImpls
+             * containing BigdataValue objects. The blank node term identifiers
+             * will be recognized if they have been seen in the context of this
+             * session and will be resolved to the corresponding blank node
+             * object in order to preserve their blank node IDs across the scope
+             * of the connection.
+             * 
+             * FIXME bnodes : Also fix in BigdataConstructIterator.
+             * 
+             * FIXME bnodes : Consider simplifying by passing along the desired
+             * valueFactory with the forward and reverse bnode mappings into
+             * database.asStatementIterator(src). Note that this is essentially
+             * a transactional isolation issue.
+             */
+            return new BigdataStatementIteratorImpl(database, bnodes2, src)
+                    .start(database.getExecutorService());
+
+//            return database.asStatementIterator(src);
 
         }
 

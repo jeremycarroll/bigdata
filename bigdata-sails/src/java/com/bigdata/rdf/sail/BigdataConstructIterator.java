@@ -28,6 +28,11 @@ public class BigdataConstructIterator implements
             final CloseableIteration<? extends BindingSet, QueryEvaluationException> src) {
         assert db != null && src != null;
         this.db = db;
+        /*
+         * FIXME This must reuse the reverse blank nodes mapping for the
+         * SailConnection to resolve blank node term identifiers to blank node
+         * objects across the scope of the SailConnection.
+         */
         stmtIt = db.asStatementIterator(db
                 .bulkCompleteStatements(new ChunkedWrappedIterator<ISPO>(
                         new SPOConverter(src))));

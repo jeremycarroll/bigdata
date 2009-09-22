@@ -386,7 +386,7 @@ public class TripleStoreUtility {
         
         final TempTripleStore tmp = new TempTripleStore(properties);
     
-        final StatementBuffer sb = new StatementBuffer(tmp, 100000/* capacity */);
+        final StatementBuffer<Statement> sb = new StatementBuffer<Statement>(tmp, 100000/* capacity */);
     
         final IChunkedOrderedIterator<ISPO> itr1 = new BackchainAccessPath(db,
                 db.getAccessPath(NULL, NULL, NULL)).iterator();

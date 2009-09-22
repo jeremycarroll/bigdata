@@ -42,7 +42,8 @@ import org.apache.log4j.Logger;
 /**
  * Test suite.
  * 
- * FIXME integrate the Sesame 2 TCK (technology compatibility kit).
+ * FIXME integrate the Sesame 2 TCK (technology compatibility kit) as a proxy
+ * test suite for each database mode.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
