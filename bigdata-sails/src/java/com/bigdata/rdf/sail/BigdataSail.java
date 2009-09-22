@@ -109,6 +109,9 @@ import org.openrdf.sail.SailConnectionListener;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.helpers.SailBase;
 
+import com.bigdata.btree.IRangeQuery;
+import com.bigdata.btree.ITuple;
+import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.rdf.axioms.NoAxioms;
@@ -150,6 +153,7 @@ import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 
 import cutthecrap.utils.striterators.Expander;
+import cutthecrap.utils.striterators.Resolver;
 import cutthecrap.utils.striterators.Striterator;
 
 /**
@@ -1566,7 +1570,7 @@ public class BigdataSail extends SailBase implements Sail {
 
                     size += database.getAccessPath(null/* s */, null/* p */,
                             null/* o */, c).rangeCount(true/* exact */);
-
+                     
                 }
 
                 return size;
@@ -1695,8 +1699,34 @@ public class BigdataSail extends SailBase implements Sail {
             // Resolve the term identifiers to terms efficiently during iteration.
             final BigdataValueIterator itr2 = new BigdataValueIteratorImpl(
                     database, itr);
+            
+            return new CloseableIteration<? extends Resource, SailException>() {
+                Resource next = null;
+                public void close() throws SailException {
+                    itr2.close();
+                }
+                public boolean hasNext() throws SailException {
+                    if (itr2.hasNext()) {
+                        next = (Resource) itr2.next();
+                        if (next.stringValue().equals(BNS.NULL_GRAPH)) {
+                            if (itr2.hasNext()) {
+                                next = (Resource) itr2.next();
+                            } else {
+                                next = null;
+                            }
+                        }
+                    }
+                    return next != null;
+                }
+                public Resource next() throws SailException{
+                    return next;
+                }
+                public void remove() throws SailException {
+                    itr2.remove();
+                }
+            };
 
-            return (CloseableIteration<? extends Resource, SailException>) itr2;
+//            return (CloseableIteration<? extends Resource, SailException>) itr2;
 
         }
 
