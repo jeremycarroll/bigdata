@@ -83,14 +83,18 @@ public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
         // test of high-level query on a graph with statements about statements.
         suite.addTestSuite(TestProvenanceQuery.class);
 
+        // unit tests for custom evaluation of high-level query
         suite.addTestSuite(TestBigdataSailEvaluationStrategyImpl.class);
+
+        // The Sesame TCK, including the SPARQL test suite.
+        suite.addTest(com.bigdata.rdf.sail.tck.TestAll.suite());
         
         return suite;
         
     }
     
     @Override
-    protected BigdataSail getSail(Properties properties) {
+    protected BigdataSail getSail(final Properties properties) {
         
         return new BigdataSail(properties);
         

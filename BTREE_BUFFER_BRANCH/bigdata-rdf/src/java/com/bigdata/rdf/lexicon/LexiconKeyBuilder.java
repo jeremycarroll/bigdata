@@ -972,10 +972,17 @@ public class LexiconKeyBuilder implements ITermIndexCodes {
             
         }
         
-        // clear out any existing key and add prefix for the DTL space.
-        keyBuilder.reset().append(TERM_CODE_DTL);
-
         if (coders == null) {
+
+            /*
+             * Note: This is the original DTL code space. The full lexical form
+             * of the data type URI is serialized into the key as a Unicode sort
+             * key followed by a nul byte and then a Unicode sort key formed
+             * from the lexical form of the data type value.
+             */
+            
+            // clear out any existing key and add prefix for the DTL space.
+            keyBuilder.reset().append(TERM_CODE_DTL);
 
             // encode the datatype URI as Unicode sort key to make all data
             // types disjoint.
@@ -984,7 +991,14 @@ public class LexiconKeyBuilder implements ITermIndexCodes {
             // encode the datatype value as Unicode sort key.
             keyBuilder.append(value);
 
+            keyBuilder.appendNul();
+
+            return keyBuilder.getKey();
+            
         } else {
+
+            // clear out any existing key and add prefix for the DTL space.
+            keyBuilder.reset().append(TERM_CODE_DTL2);
 
             final IDatatypeKeyCoder coder = coders.get(datatype);
 
@@ -1022,11 +1036,10 @@ public class LexiconKeyBuilder implements ITermIndexCodes {
 
             }
 
-        }
-        
-        keyBuilder.appendNul();
+            keyBuilder.appendNul();
 
-        return keyBuilder.getKey();
+            return keyBuilder.getKey();
+        }
 
     }
 
