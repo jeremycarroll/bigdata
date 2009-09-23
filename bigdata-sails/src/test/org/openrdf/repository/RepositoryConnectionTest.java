@@ -204,9 +204,10 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		throws Exception;
 
     /**
-     * This fails for the same reason as {@link #testStatementSerialization()} -
-     * the statement pattern query with a blank node in the subject position
-     * does not recognize the statement as existing in the temporary store.
+     * @todo This fails for the same reason as
+     *       {@link #testStatementSerialization()} - the statement pattern query
+     *       with a blank node in the subject position does not recognize the
+     *       statement as existing in the temporary store.
      * 
      * @throws Exception
      */
