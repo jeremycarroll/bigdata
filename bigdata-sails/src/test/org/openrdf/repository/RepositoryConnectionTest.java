@@ -5,6 +5,9 @@
  */
 package org.openrdf.repository;
 
+import info.aduna.iteration.CloseableIteration;
+import info.aduna.iteration.Iterations;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,13 +34,11 @@ import javax.xml.datatype.XMLGregorianCalendar;
 
 import junit.framework.TestCase;
 
-import info.aduna.iteration.CloseableIteration;
-import info.aduna.iteration.Iterations;
-
 import org.openrdf.model.BNode;
 import org.openrdf.model.Graph;
 import org.openrdf.model.Literal;
 import org.openrdf.model.Namespace;
+import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
@@ -60,6 +61,15 @@ import org.openrdf.rio.RDFParseException;
 import org.openrdf.rio.helpers.RDFHandlerBase;
 import org.openrdf.sail.memory.MemoryStore;
 
+import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
+import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
+import com.bigdata.rdf.spo.ISPO;
+import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.BigdataStatementIterator;
+import com.bigdata.relation.accesspath.EmptyAccessPath;
+import com.bigdata.relation.accesspath.IAccessPath;
+
 public abstract class RepositoryConnectionTest extends TestCase {
 
 	protected static final String FOAF_NS = "http://xmlns.com/foaf/0.1/";
@@ -76,9 +86,18 @@ public abstract class RepositoryConnectionTest extends TestCase {
 
 	protected ValueFactory vf;
 
-	protected BNode bob;
+    /*
+     * @todo Note: bob is a blank node in the Sesame test suite. It may be
+     * conditionally changed to a URI in order to verify that various tests run
+     * when the blank node getStatements() query issue is removed from
+     * consideration.
+     */
+    protected Resource bob;
+//    protected BNode bob;
 
-	protected BNode alice;
+    // @todo ditto for alice.
+//    protected BNode alice;
+	protected Resource alice;
 
 	protected BNode alexander;
 
@@ -128,8 +147,16 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		vf = testRepository.getValueFactory();
 
 		// Initialize values
+        /*
+         * FIXME Many of these tests have problems with passing a blank node
+         * (bob) into getStatements(). You can verify that those tests work for
+         * non-blank nodes by changing how [bob] is initialized here. Just
+         * change it back to a blank node when you are done!
+         */
 		bob = vf.createBNode();
-		alice = vf.createBNode();
+//		bob = vf.createURI("http://www.bigdata.com/NoBNode_bob");
+        alice = vf.createBNode();
+//        alice = vf.createURI("http://www.bigdata.com/NoBNode_alice");
 		alexander = vf.createBNode();
 
 		name = vf.createURI(FOAF_NS + "name");
@@ -176,6 +203,13 @@ public abstract class RepositoryConnectionTest extends TestCase {
 	protected abstract Repository createRepository()
 		throws Exception;
 
+    /**
+     * This fails for the same reason as {@link #testStatementSerialization()} -
+     * the statement pattern query with a blank node in the subject position
+     * does not recognize the statement as existing in the temporary store.
+     * 
+     * @throws Exception
+     */
 	public void testAddStatement()
 		throws Exception
 	{
@@ -195,14 +229,45 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		tempRep.initialize();
 		RepositoryConnection con = tempRep.getConnection();
 
-		con.add(testCon.getStatements(null, null, null, false));
+		// inspect the source.
+        {
+            System.err.println("source:");
+            CloseableIteration itr = testCon.getStatements(null, null, null,
+                    false);
+            try {
+                while (itr.hasNext()) {
+                    System.err.println(itr.next());
+                }
+            } finally {
+                itr.close();
+            }
+        }
 
+        con.add(testCon.getStatements(null, null, null, false));
+
+        // inspect the dest.
+        {
+            System.err.println("dest:");
+            CloseableIteration itr = con.getStatements(null, null, null, false);
+            try {
+                while (itr.hasNext()) {
+                    System.err.println(itr.next());
+                }
+            } finally {
+                itr.close();
+            }
+        }
 		assertTrue("Temp Repository should contain newly added statement", con.hasStatement(bob, name, nameBob,
 				false));
 		con.close();
 		tempRep.shutDown();
 	}
 
+    /**
+     * @todo test is failing because the 2nd connection is not being created in
+     *       {@link #setUp()} because we do not support concurrent write
+     *       connections at this time.
+     */
 	public void testTransactionIsolation()
 		throws Exception
 	{
@@ -452,6 +517,9 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		}
 	}
 
+    /**
+     * @todo blank nodes must be scoped to the {@link BigdataSailConnection}.
+     */
 	public void testPreparedTupleQuery()
 		throws Exception
 	{
@@ -495,6 +563,9 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @todo blank nodes must be scoped to the {@link BigdataSailConnection}.
+	 */
 	public void testPreparedTupleQueryUnicode()
 		throws Exception
 	{
@@ -713,6 +784,12 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		assertTrue(query.evaluate());
 	}
 
+    /**
+     * Note: This test was failing because the {@link BigdataSail#NULL_GRAPH}
+     * was not stripped from the getStatements iteration.
+     * 
+     * @throws Exception
+     */
 	public void testGetStatements()
 		throws Exception
 	{
@@ -743,6 +820,12 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		assertFalse("List should not be empty", list.isEmpty());
 	}
 
+    /**
+     * @todo The problem here is handling a blank node in query for
+     *       getStatements().
+     *       
+     * @throws Exception
+     */
 	public void testGetStatementsInSingleContext()
 		throws Exception
 	{
@@ -1087,6 +1170,19 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		assertEquals("Repository contains incorrect number of statements", 1, testCon.size());
 	}
 
+    /**
+     * @todo blank node context scope issue.
+     *       <p>
+     *       The problem with this unit test is that the subject is a blank
+     *       node. When the blank node is deserialized it is using a different
+     *       value serializer. Thus, even though the term identifier is
+     *       deserialized it is THROWN AWAY by
+     *       {@link AbstractTripleStore#getAccessPath(org.openrdf.model.Resource, URI, Value, org.openrdf.model.Resource)}
+     *       . Since blank nodes can not be mapped onto the lexicon in the
+     *       absence of additional information, the returned access path does
+     *       not recognize the subject as existing in the lexicon is in fact an
+     *       {@link EmptyAccessPath}.
+     */
 	public void testStatementSerialization()
 		throws Exception
 	{
@@ -1113,11 +1209,73 @@ public abstract class RepositoryConnectionTest extends TestCase {
 
 		assertTrue(st.equals(deserializedStatement));
 
+      {
+		
+		            final BigdataStatementIterator itr = ((BigdataSailRepositoryConnection) testCon)
+		                    .getTripleStore().getStatements(
+		                            st.getSubject(),//
+		                            st.getPredicate(),//
+		                            st.getObject(),//
+		                            // false/*includeInferred*/,
+		                            st.getContext());
+		
+		            try {
+		
+		                if (itr.hasNext())
+		                    System.err.println("yes.");
+		                else
+		                    System.err.println("no.");
+		            } finally {
+		                itr.close();
+		            }
+		            
+		        }
+		
+		
+		        {
+		
+		            final IAccessPath<ISPO> accessPath = ((BigdataSailRepositoryConnection) testCon)
+                    .getTripleStore().getAccessPath(
+                            deserializedStatement.getSubject(),//
+//                          st.getSubject(),
+                            deserializedStatement.getPredicate(),//
+                            deserializedStatement.getObject(),//
+                            // false/*includeInferred*/,
+                            deserializedStatement.getContext());
+        
+		            assertFalse(accessPath.isEmpty());
+		            
+		            final BigdataStatementIterator itr = ((BigdataSailRepositoryConnection) testCon)
+		                    .getTripleStore().getStatements(
+		                            deserializedStatement.getSubject(),//
+//		                            st.getSubject(),
+		                            deserializedStatement.getPredicate(),//
+		                            deserializedStatement.getObject(),//
+		                            // false/*includeInferred*/,
+		                            deserializedStatement.getContext());
+		
+		            try {
+		
+		                if (itr.hasNext())
+		                    System.err.println("yes.");
+		                else
+		                    System.err.println("no.");
+		            } finally {
+		                itr.close();
+		            }
+		            
+		        }
+		
 		assertTrue(testCon.hasStatement(st, true));
 		assertTrue(testCon.hasStatement(deserializedStatement, true));
 	}
 
-	public void testBNodeSerialization()
+	/**
+	 * @todo blank node query problem in getStatements().
+	 * 
+	 * @throws Exception
+	 */
+    public void testBNodeSerialization()
 		throws Exception
 	{
 		testCon.add(bob, name, nameBob);
@@ -1213,6 +1371,10 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		assertTrue(testCon.hasStatement(bob, name, deserializedLiteral, true));
 	}
 
+	/**
+	 * @todo blank node handling issue on bob/alice.
+	 * @throws Exception
+	 */
 	public void testGraphSerialization()
 		throws Exception
 	{
@@ -1246,6 +1408,7 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		}
 	}
 
+	/** @todo concurrent transaction issue. */
 	public void testEmptyRollback()
 		throws Exception
 	{
@@ -1260,6 +1423,7 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		assertTrue(testCon2.isEmpty());
 	}
 
+    /** @todo concurrent transaction issue. */
 	public void testEmptyCommit()
 		throws Exception
 	{
@@ -1274,6 +1438,7 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		assertFalse(testCon2.isEmpty());
 	}
 
+    /** @todo concurrent transaction issue. */
 	public void testOpen()
 		throws Exception
 	{
@@ -1284,6 +1449,7 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		assertTrue(testCon2.isOpen());
 	}
 
+    /** @todo concurrent transaction issue. */
 	public void testSizeRollback()
 		throws Exception
 	{
@@ -1301,6 +1467,7 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		assertEquals(0, testCon2.size());
 	}
 
+    /** @todo concurrent transaction issue. */
 	public void testSizeCommit()
 		throws Exception
 	{
@@ -1377,6 +1544,11 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		assertEquals(Arrays.asList(context2), testCon.getContextIDs().asList());
 	}
 
+    /**
+     * @todo I have not diagnosed this error yet. It would be no surprise at all
+     *       if it was poor handling of the XSD calendar data type.  The test is
+     *       supposed to find 7 solutions, but it is in fact finding zero.
+     */
 	public void testXmlCalendarZ()
 		throws Exception
 	{

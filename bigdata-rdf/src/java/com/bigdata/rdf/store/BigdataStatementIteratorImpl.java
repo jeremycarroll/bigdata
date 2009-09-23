@@ -14,6 +14,7 @@ import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
+import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.rule.eval.ISolution;
@@ -189,9 +190,26 @@ public class BigdataStatementIteratorImpl
             final BigdataURI p = (BigdataURI) resolve(terms, spo.p());
             final BigdataValue o = resolve(terms, spo.o());
             final long _c = spo.c();
-            final BigdataResource c = (_c != IRawTripleStore.NULL //
-            ? (BigdataResource) resolve(terms, _c)
-                    : null);
+            final BigdataResource c;
+            if (_c != IRawTripleStore.NULL) {
+                /*
+                 * FIXME This kludge to strip off the null graph should be
+                 * isolated to the BigdataSail's package. Our own code should be
+                 * protected from this behavior. Also see the
+                 * BigdataSolutionResolverator.
+                 */
+                final BigdataResource tmp = (BigdataResource) resolve(terms, _c);
+                if(tmp.stringValue().equals(BNS.NULL_GRAPH)) {
+                    /*
+                     * Strip off the "nullGraph" context.
+                     */
+                    c = null;
+                } else {
+                    c = tmp;
+                }
+            } else {
+                c = null;
+            }
 
             if (spo.hasStatementType() == false) {
 

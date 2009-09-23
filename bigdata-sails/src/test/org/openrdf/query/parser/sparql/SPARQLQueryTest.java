@@ -235,6 +235,25 @@ public abstract class SPARQLQueryTest extends TestCase {
 			message.append(getName());
 			message.append(" =======================\n");
 
+            // @todo conditionally enabled additional data on the test failure. 
+            if (true) {
+                if (dataset != null) {
+
+                    // Merge default and named graphs to filter duplicates
+                    Set<URI> graphURIs = new HashSet<URI>();
+                    graphURIs.addAll(dataset.getDefaultGraphs());
+                    graphURIs.addAll(dataset.getNamedGraphs());
+
+                    for (Resource graphURI : graphURIs) {
+                        message.append("graph: " + graphURI+"\n");
+                    }
+
+                }
+
+                message.append("queryFile: " + queryFileURL+"\n");
+                message.append("resultFile: " + resultFileURL+"\n");
+            }
+			
 			if (!missingBindings.isEmpty()) {
 				message.append("Missing bindings: \n");
 				for (BindingSet bs : missingBindings) {

@@ -81,6 +81,15 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
 
     }
 
+    /**
+     * Return the backing {@link AbstractTripleStore} object. Caution MUST be
+     * used when accessing this object as the access goes around the SAIL API.
+     */
+    public AbstractTripleStore getTripleStore() {
+
+        return ((BigdataSailConnection) getSailConnection()).database;
+
+    }
 
     /**
      * Computes the closure of the triple store for RDF(S)+ entailments.

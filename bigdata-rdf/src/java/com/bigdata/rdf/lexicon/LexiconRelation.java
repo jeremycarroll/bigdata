@@ -50,7 +50,6 @@ import com.bigdata.io.DataInputBuffer;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IResourceLock;
 import com.bigdata.rawstore.Bytes;
-import com.bigdata.rdf.lexicon.Term2IdTupleSerializer.LexiconKeyBuilder;
 import com.bigdata.rdf.lexicon.Term2IdWriteProc.Term2IdWriteProcConstructor;
 import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataBNodeImpl;

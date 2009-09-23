@@ -75,6 +75,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 
 import org.apache.log4j.Logger;
+import org.openrdf.OpenRDFUtil;
 import org.openrdf.model.Namespace;
 import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
@@ -109,9 +110,6 @@ import org.openrdf.sail.SailConnectionListener;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.helpers.SailBase;
 
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITuple;
-import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.rdf.axioms.NoAxioms;
@@ -146,6 +144,7 @@ import com.bigdata.rdf.store.TempTripleStore;
 import com.bigdata.relation.accesspath.EmptyAccessPath;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.accesspath.IElementFilter;
+import com.bigdata.relation.rule.EmptyBindingSet;
 import com.bigdata.relation.rule.IRule;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.CloseableIteratorWrapper;
@@ -153,7 +152,6 @@ import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 
 import cutthecrap.utils.striterators.Expander;
-import cutthecrap.utils.striterators.Resolver;
 import cutthecrap.utils.striterators.Striterator;
 
 /**
@@ -315,9 +313,9 @@ public class BigdataSail extends SailBase implements Sail {
      */
     final protected static Logger log = Logger.getLogger(BigdataSail.class);
 
-    final protected static boolean INFO = log.isInfoEnabled();
+//    final protected static boolean INFO = log.isInfoEnabled();
 
-    final protected static boolean DEBUG = log.isDebugEnabled();
+//    final protected static boolean DEBUG = log.isDebugEnabled();
 
     /**
      * Sesame has the notion of a "null" graph. Any time you insert a statement
@@ -564,7 +562,7 @@ public class BigdataSail extends SailBase implements Sail {
                     BigdataSail.Options.TRUTH_MAINTENANCE,
                     BigdataSail.Options.DEFAULT_TRUTH_MAINTENANCE));
 
-            if (INFO)
+            if (log.isInfoEnabled())
                 log.info(BigdataSail.Options.TRUTH_MAINTENANCE + "="
                         + truthMaintenance);
             
@@ -577,7 +575,7 @@ public class BigdataSail extends SailBase implements Sail {
                     BigdataSail.Options.BUFFER_CAPACITY,
                     BigdataSail.Options.DEFAULT_BUFFER_CAPACITY));
 
-            if (INFO)
+            if (log.isInfoEnabled())
                 log.info(BigdataSail.Options.BUFFER_CAPACITY + "="
                         + bufferCapacity);
 
@@ -592,7 +590,7 @@ public class BigdataSail extends SailBase implements Sail {
                     BigdataSail.Options.NATIVE_JOINS,
                     BigdataSail.Options.DEFAULT_NATIVE_JOINS));
 
-            if (INFO)
+            if (log.isInfoEnabled())
                 log.info(BigdataSail.Options.NATIVE_JOINS + "=" + nativeJoins);
 
         }
@@ -604,7 +602,7 @@ public class BigdataSail extends SailBase implements Sail {
                     BigdataSail.Options.QUERY_TIME_EXPANDER,
                     BigdataSail.Options.DEFAULT_QUERY_TIME_EXPANDER));
 
-            if (INFO)
+            if (log.isInfoEnabled())
                 log.info(BigdataSail.Options.QUERY_TIME_EXPANDER + "="
                         + queryTimeExpander);
 
@@ -648,7 +646,7 @@ public class BigdataSail extends SailBase implements Sail {
          * NOP (nothing to invoke in the SailBase).
          */
         
-        if(INFO) {
+        if(log.isInfoEnabled()) {
             
             log.info("closeOnShutdown=" + closeOnShutdown);
             
@@ -665,7 +663,7 @@ public class BigdataSail extends SailBase implements Sail {
         
         if(isOpen()) {
             
-            if (INFO)
+            if (log.isInfoEnabled())
                 log.info("");
             
             shutDown();
@@ -696,7 +694,7 @@ public class BigdataSail extends SailBase implements Sail {
             
                 if (closeOnShutdown) {
 
-                    if (INFO)
+                    if (log.isInfoEnabled())
                         log.info("Closing the backing database");
 
                     database.close();
@@ -1087,7 +1085,7 @@ public class BigdataSail extends SailBase implements Sail {
          
             if (database.isReadOnly()) {
                 
-                if (INFO)
+                if (log.isInfoEnabled())
                     log.info("Read-only view");
                 
                 tm = null;
@@ -1098,7 +1096,7 @@ public class BigdataSail extends SailBase implements Sail {
                 
             } else {
 
-                if (INFO)
+                if (log.isInfoEnabled())
                     log.info("Read-write view");
 
                 /*
@@ -1414,18 +1412,41 @@ public class BigdataSail extends SailBase implements Sail {
         public void addStatement(final Resource s, final URI p, final Value o,
                 final Resource... contexts) throws SailException {
 
-            if (contexts == null || contexts.length == 0 || contexts[0] == null) {
+            if (log.isInfoEnabled())
+                log.info("s=" + s + ", p=" + p + ", o=" + o + ", contexts="
+                        + Arrays.toString(contexts));
 
-                addStatement(s, p, o, (Resource) null);
+            OpenRDFUtil.verifyContextNotNull(contexts);
+
+            if (contexts.length == 0) {
+
+                /*
+                 * Operate on just the nullGraph.
+                 * 
+                 * Note: When no contexts are specified, the intention for
+                 * addStatements() is that a statement with no associated
+                 * context is added to the store.
+                 */
                 
-            } else {
+                addStatement(s, p, o, NULL_GRAPH/* c */);
 
-                for (Resource c : contexts) {
+            }
 
-                    addStatement(s, p, o, c);
+            if (contexts.length == 1 && contexts[0] == null) {
 
-                }
+                // Operate on just the nullGraph.
+
+                addStatement(s, p, o, NULL_GRAPH/* c */);
+
+            }
+
+            for (Resource c : contexts) {
+
+                if (c == null)
+                    c = NULL_GRAPH;
                 
+                addStatement(s, p, o, c);
+
             }
             
         }
@@ -1462,6 +1483,11 @@ public class BigdataSail extends SailBase implements Sail {
         }
 
         public void clear(final Resource... contexts) throws SailException {
+
+            OpenRDFUtil.verifyContextNotNull(contexts);
+            
+            if (log.isInfoEnabled())
+                log.info("contexts=" + Arrays.toString(contexts));
             
             assertWritable();
 
@@ -1473,27 +1499,48 @@ public class BigdataSail extends SailBase implements Sail {
              * everything that is going to be removed....
              */
             
-            if (contexts == null || contexts.length == 0 || contexts[0] == null) {
+            if (contexts.length == 0) {
+
+                // Operates on all contexts
+
+                /*
+                 * Note: This deliberately removes the statements from each
+                 * access path rather than doing a drop/add on the triple/quad
+                 * store instance.
+                 */
                 
-                // clear the database.
+                database.getAccessPath(null/* s */, null/* p */, null/* o */,
+                        null/* c */, null/* filter */).removeAll();
 
-                // @todo obtain exclusive lock 1st.
-                database.destroy();
-                database.create();
-                
-            } else {
-
-                for (Resource c : contexts) {
-
-                    database.getAccessPath(null/* s */, null/* p */,
-                            null/* o */, c, null/* filter */).removeAll();
-
-                }
-
-                throw new UnsupportedOperationException();
+                return;
                 
             }
+
+            if (contexts.length == 1 && contexts[0] == null) {
+
+                // Operate on just the nullGraph.
                 
+                database.getAccessPath(null/* s */, null/* p */, null/* o */,
+                        NULL_GRAPH, null/* filter */).removeAll();
+
+                return;
+
+            }
+
+            // FIXME parallelize this in chunks as per getStatements()
+            long size = 0;
+            for (Resource c : contexts) {
+
+                if(c == null)
+                    c = NULL_GRAPH;
+                
+                size += database.getAccessPath(null/* s */, null/* p */,
+                        null/* o */, c, null/* filter */).removeAll();
+
+            }
+
+            return;
+            
         }
         
         /**
@@ -1556,45 +1603,78 @@ public class BigdataSail extends SailBase implements Sail {
         public long size(final Resource... contexts) throws SailException {
 
             flushStatementBuffers(true/* assertions */, true/* retractions */);
-            
-            if (contexts == null || contexts.length == 0 || contexts[0] == null) {
 
+            OpenRDFUtil.verifyContextNotNull(contexts);
+            
+            if (log.isInfoEnabled())
+                log.info("contexts=" + Arrays.toString(contexts));
+
+            if (contexts.length == 0 ) {
+                
+                // Operates on all contexts.
+                
                 return database.getExplicitStatementCount(null/* c */);
 
-            } else {
-
-                // FIXME parallelize this in chunks as per getStatements()
-                long size = 0;
-
-                for (Resource c : contexts) {
-
-                    size += database.getAccessPath(null/* s */, null/* p */,
-                            null/* o */, c).rangeCount(true/* exact */);
-                     
-                }
-
-                return size;
-                
             }
+
+            if (contexts.length == 1 && contexts[0] == null) {
+
+                // Operate on just the nullGraph.
+                
+                return database.getExplicitStatementCount(NULL_GRAPH/* c */);
+
+            }
+
+            // FIXME parallelize this in chunks as per getStatements()
+            long size = 0;
+
+            for (Resource c : contexts) {
+
+                if(c == null)
+                    c = NULL_GRAPH;
+                
+                size += database.getAccessPath(null/* s */, null/* p */,
+                        null/* o */, c).rangeCount(true/* exact */);
+
+            }
+
+            return size;
             
         }
 
         public void removeStatements(final Resource s, final URI p,
                 final Value o, final Resource... contexts) throws SailException {
 
-            if (contexts == null || contexts.length == 0 || contexts[0] == null) {
+            OpenRDFUtil.verifyContextNotNull(contexts);
+            
+            if (log.isInfoEnabled())
+                log.info("s=" + s + ", p=" + p + ", o=" + o + ", contexts="
+                        + Arrays.toString(contexts));
 
-                removeStatements(s, p, o, (Resource) null);
+            if (contexts.length == 0 ) {
+                
+                // Operates on all contexts.
+                
+                removeStatements(s, p, o, (Resource) null/* c */);
 
-            } else {
+            }
 
-                // FIXME parallelize this in chunks as per getStatements()
-                for (Resource c : contexts) {
+            if (contexts.length == 1 && contexts[0] == null) {
 
-                    removeStatements(s, p, o, c);
+                // Operate on just the nullGraph.
+                
+                removeStatements(s, p, o, NULL_GRAPH/* c */);
 
-                }
-                    
+            }
+
+            // FIXME parallelize this in chunks as per getStatements()
+            for (Resource c : contexts) {
+
+                if(c == null)
+                    c = NULL_GRAPH;
+                
+                removeStatements(s, p, o, c);
+
             }
             
         }
@@ -1691,6 +1771,9 @@ public class BigdataSail extends SailBase implements Sail {
                 throw new UnsupportedOperationException();
 
             }
+
+            // flush before query.
+            flushStatementBuffers(true/* assertions */, true/* retractions */);
             
             // Visit the distinct term identifiers for the context position.
             final IChunkedIterator<Long> itr = database.getSPORelation()
@@ -1702,27 +1785,42 @@ public class BigdataSail extends SailBase implements Sail {
             
             return new CloseableIteration<? extends Resource, SailException>() {
                 Resource next = null;
+
                 public void close() throws SailException {
+                    next = null;
                     itr2.close();
                 }
+
                 public boolean hasNext() throws SailException {
-                    if (itr2.hasNext()) {
+                    if (next != null)
+                        return true;
+                    while (itr2.hasNext()) {
                         next = (Resource) itr2.next();
                         if (next.stringValue().equals(BNS.NULL_GRAPH)) {
-                            if (itr2.hasNext()) {
-                                next = (Resource) itr2.next();
-                            } else {
-                                next = null;
-                            }
+                            next = null;
+                            continue;
                         }
+                        return true;
                     }
-                    return next != null;
+                    return false;
                 }
-                public Resource next() throws SailException{
-                    return next;
+
+                public Resource next() throws SailException {
+                    if (next == null)
+                        throw new SailException();
+                    final Resource tmp = next;
+                    next = null;
+                    return tmp;
                 }
+
                 public void remove() throws SailException {
-                    itr2.remove();
+                    /*
+                     * Note: remove is not supported. The semantics would
+                     * require that we removed all statements for the last
+                     * visited context.
+                     */
+                    throw new UnsupportedOperationException();
+//                    itr2.remove();
                 }
             };
 
@@ -1935,16 +2033,26 @@ public class BigdataSail extends SailBase implements Sail {
                 final boolean includeInferred, final Resource... contexts)
                 throws SailException {
 
-            if (INFO)
+            OpenRDFUtil.verifyContextNotNull(contexts);
+            
+            if (log.isInfoEnabled())
                 log.info("s=" + s + ", p=" + p + ", o=" + o
                         + ", includeInferred=" + includeInferred
                         + ", contexts=" + Arrays.toString(contexts));
 
-            if (contexts == null || contexts.length == 0 || contexts[0] == null) {
+            if (contexts.length == 0) {
                 
                 // Operates on all contexts.
                 
                 return getStatements(s, p, o, null/* c */, includeInferred);
+
+            }
+
+            if (contexts.length == 1 && contexts[0] == null) {
+
+                // Operate on just the nullGraph.
+                
+                return getStatements(s, p, o, NULL_GRAPH/* c */, includeInferred);
 
             }
 
@@ -1970,6 +2078,8 @@ public class BigdataSail extends SailBase implements Sail {
                 private static final long serialVersionUID = 1L;
                 @Override
                 protected Iterator expand(Object c) {
+                    if(c == null)
+                        c = NULL_GRAPH;
                     return getStatements(s, p, o, (Resource) c, includeInferred);
                 }
             })));
@@ -2149,7 +2259,7 @@ public class BigdataSail extends SailBase implements Sail {
         /*
          * High-level query.
          */
-        
+
         /**
          * Note: The <i>includeInferred</i> argument is applied in two ways.
          * First, inferences are stripped out of the {@link SPOAccessPath}.
@@ -2158,13 +2268,20 @@ public class BigdataSail extends SailBase implements Sail {
          * <p>
          * Note: Query time expansion can be disabled independently using
          * {@link Options#QUERY_TIME_EXPANDER}, but not on a per-query basis.
+         * 
+         * @todo The [bindings] are supposed to be inputs to the query
+         *       evaluation, but I am still not quite clear what the role of the
+         *       "input" binding set is here. Based on their own code, e.g.,
+         *       MemoryStore, and the Sesame TCK, it is clear that evaluation
+         *       needs to proceed against an empty binding set once it gets
+         *       started.
          */
         public CloseableIteration<? extends BindingSet, QueryEvaluationException> evaluate(
                 TupleExpr tupleExpr, final Dataset dataset,
                 final BindingSet bindings, final boolean includeInferred)
                 throws SailException {
 
-            if (INFO)
+            if (log.isInfoEnabled())
                 log.info("Evaluating query: " + tupleExpr + ", dataSet="
                         + dataset + ", includeInferred=" + includeInferred);
 
@@ -2211,11 +2328,15 @@ public class BigdataSail extends SailBase implements Sail {
 
                 optimizerList.optimize(tupleExpr, dataset, bindings);
 
-                if (INFO)
-                    log.info("Optimized query: "+tupleExpr);
+                if (log.isInfoEnabled())
+                    log.info("Optimized query: " + tupleExpr);
 
+                // Note: evaluation begins with an empty binding set NOT the
+                // caller's bindingSet.
                 final CloseableIteration<BindingSet, QueryEvaluationException> itr = strategy
-                        .evaluate(tupleExpr, bindings);
+                        .evaluate(tupleExpr,
+                                org.openrdf.query.impl.EmptyBindingSet
+                                        .getInstance());
 
                 return itr;
 
@@ -2308,7 +2429,7 @@ public class BigdataSail extends SailBase implements Sail {
 
                         assert val2 != null : "value not found: "+var.getValue();
                         
-                        if (DEBUG)
+                        if (log.isDebugEnabled())
                             log.debug("value: " + val + " : " + val2 + " ("
                                     + val2.getTermId() + ")");
 
@@ -2319,7 +2440,7 @@ public class BigdataSail extends SailBase implements Sail {
                              * not known to the kb.
                              */
                             
-                            if(INFO)
+                            if(log.isInfoEnabled())
                                 log.info("Not in knowledge base: " + val2);
                             
                         }

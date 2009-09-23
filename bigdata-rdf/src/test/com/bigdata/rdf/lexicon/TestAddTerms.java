@@ -94,7 +94,7 @@ public class TestAddTerms extends AbstractTripleStoreTestCase {
             terms.add(f.asValue(RDF.PROPERTY));
             terms.add(f.createLiteral("test"));
             terms.add(f.createLiteral("test", "en"));
-            terms.add(f.createLiteral("test", f
+            terms.add(f.createLiteral("10", f
                     .createURI("http://www.w3.org/2001/XMLSchema#int")));
 
             terms.add(f.createLiteral("12", f
