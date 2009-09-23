@@ -334,9 +334,9 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
 //        this.distinct = true;
 //        return super.evaluate(distinct, bindings);
 //    }
-    
+
     /**
-     * Overriden to recognize magic predicates.
+     * Overridden to recognize magic predicates.
      */
     @Override
     public CloseableIteration<BindingSet, QueryEvaluationException> evaluate(

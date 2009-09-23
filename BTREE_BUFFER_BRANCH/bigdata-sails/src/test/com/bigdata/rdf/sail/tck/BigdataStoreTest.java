@@ -74,8 +74,12 @@ public class BigdataStoreTest extends RDFStoreTest {
     }
 
     /**
-     * FIXME remove overridden method when concurrent connnections are
-     * supported.
+     * @todo The problem here is that the {@link BigdataSail} uses a semaphore
+     *       to grant the unisolated write connection. If a thread requests two
+     *       sail connections then it will deadlock. This could be fixed either
+     *       by supporting full transactions in the sail or by allowing more
+     *       than one connection but having them interleave their incremental
+     *       writes.
      */
     @Override
     public void testDualConnections(){

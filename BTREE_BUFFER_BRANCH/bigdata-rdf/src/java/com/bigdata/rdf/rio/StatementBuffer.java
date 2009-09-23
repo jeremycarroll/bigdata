@@ -1342,7 +1342,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
             
         }
 
-        if (c != null && !duplicateC && ((BigdataValue) s).getTermId() == NULL) {
+        if (c != null && !duplicateC && ((BigdataValue) c).getTermId() == NULL) {
 
             if (c instanceof URI) {
 

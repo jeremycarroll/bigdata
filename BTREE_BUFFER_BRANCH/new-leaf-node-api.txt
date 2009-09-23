@@ -329,17 +329,63 @@ PRIORITIES
 
 	    - cross-validation of indices.
 
-	    - problems appearing for async data load for quads?  for
-              triples too?
+	    - (***) Problems appearing for async data load for quads?
+              for triples too?
 
-	    - Many of the test failures are due to the background
-              graph concept in Sesame.
+	    - (***) Exact range count or range count with filter MUST
+              do scan passing in the filter.
 
-	    - Exact range count or range count with filter MUST do
-              scan passing in the filter.
+	    - Fixed issues related to handling Resource[0] vs
+              Resource[...] for add/remove/get statements.  When any
+              element of the Resource[] is null, we have to direct
+              that operation to the nullGraph.
 
-	    - Problems with count of statement in nullGraph vs other
-              contexts.
+	    - Fixed issue in StatementBuffer where the context
+              position could be lost since it was checking s.termId
+              rather than c.termId to identify new terms.
+
+	      Oops.  This broke something with the statement identifiers:
+
+java.lang.IllegalStateException: Different statement identifier already defined: < 168U, 44U, 172U, c=176U : Explicit >, new=183
+	at com.bigdata.rdf.spo.SPO.setStatementIdentifier(SPO.java:137)
+	at com.bigdata.rdf.lexicon.LexiconRelation$3.aggregate(LexiconRelation.java:1065)
+	at com.bigdata.rdf.lexicon.LexiconRelation$3.aggregate(LexiconRelation.java:1)
+	at com.bigdata.btree.UnisolatedReadWriteIndex.submit(UnisolatedReadWriteIndex.java:800)
+	at com.bigdata.rdf.lexicon.LexiconRelation.addStatementIdentifiers(LexiconRelation.java:1049)
+	at com.bigdata.rdf.store.AbstractTripleStore.addStatements(AbstractTripleStore.java:3057)
+	at com.bigdata.rdf.rio.StatementBuffer.writeSPOs(StatementBuffer.java:1024)
+	at com.bigdata.rdf.rio.StatementBuffer.addStatements(StatementBuffer.java:890)
+	at com.bigdata.rdf.rio.StatementBuffer.incrementalWrite(StatementBuffer.java:749)
+	at com.bigdata.rdf.rio.StatementBuffer.flush(StatementBuffer.java:423)
+	at com.bigdata.rdf.sail.BigdataSail$BigdataSailConnection.flushStatementBuffers(BigdataSail.java:1970)
+	at com.bigdata.rdf.sail.BigdataSail$BigdataSailConnection.commit(BigdataSail.java:1869)
+	at org.openrdf.repository.sail.SailRepositoryConnection.commit(SailRepositoryConnection.java:81)
+	at com.bigdata.rdf.sail.BigdataSailRepositoryConnection.commit(BigdataSailRepositoryConnection.java:54)
+	at com.bigdata.rdf.sail.TestSearchQuery.test_restart(TestSearchQuery.java:394)
+
+
+	    - Fixed BigdataSail#clear().
+
+	    - Modified BigdataSail#getStatements(...) to strip off the
+              NULL_GRAPH context during visitation.  The change was to
+              the BigdataStatementIterator.
+
+	      (***) Must also do this for the
+	      BigdataSolutionResolverator.
+
+	    - Fixed problem where BigdataSailConnection#evaluate(...)
+              was using the caller's binding set to evaluate the
+              query. This is supposed to be an "input" to query
+              evaluation, but evaluation needs to be against an empty
+              binding set.
+
+	    - done. Fixed some issues with data type literals and
+              modified the generated key to use a 4-byte integer to
+              divide the key space into disjoint value spaces.
+
+	    - Test the LexiconRelation's termCache.  This should be a
+              big help for scale-out query.  Does it work?
+
 
 	  - (****) TEST THIS: AbstractServer must keep reference to
 	    service and then issue destroy against the service to
