@@ -62,8 +62,8 @@ public class TestLocalQuadStore extends AbstractTestCase {
          * Use a proxy test suite and specify the delegate.
          */
 
-        ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Local Triple Store Test Suite");
+        final ProxyTestSuite suite = new ProxyTestSuite(delegate,
+                "Local Quad Store Test Suite");
 
         /*
          * List any non-proxied tests (typically bootstrapping tests).

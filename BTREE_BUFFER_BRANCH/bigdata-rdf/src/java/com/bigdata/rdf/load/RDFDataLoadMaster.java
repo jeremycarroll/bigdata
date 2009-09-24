@@ -45,7 +45,6 @@ import com.bigdata.journal.ITx;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.inf.ClosureStats;
 import com.bigdata.rdf.rules.InferenceEngine;
-import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
@@ -108,7 +107,7 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          * <p>
          * Note: This is intended for the one-time load of ontologies pertaining
          * to the data to be loaded. If you need to do additional non-bulk data
-         * loads you can always use the {@link BigdataSail}.
+         * loads you can always use the {@link com.bigdata.rdf.sail.BigdataSail}.
          */
         String ONTOLOGY = "ontology";
 
@@ -223,10 +222,10 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
          * When <code>true</code>, the closure of the data set will be
          * computed.
          * 
-         * @see BigdataSail.Options#TRUTH_MAINTENANCE
+         * @see com.bigdata.rdf.sail.BigdataSail.Options#TRUTH_MAINTENANCE
          * 
          * @todo Note that the closure will be computed ANYWAY if the
-         *       {@link BigdataSail} is configured for incremental truth
+         *       {@link com.bigdata.rdf.sail.BigdataSail} is configured for incremental truth
          *       maintenance. (Create w/o incremental TM).
          * 
          * @todo Change to an enum type with support for justification chains,
@@ -1004,8 +1003,8 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         log.info(Options.MAX_PARALLEL_SUBQUERIES + "="
                 + p.getProperty(Options.MAX_PARALLEL_SUBQUERIES));
 
-        // log.info(BigdataSail.Options.QUERY_TIME_EXPANDER + "="
-        // + p.getProperty(BigdataSail.Options.QUERY_TIME_EXPANDER));
+        // log.info(com.bigdata.rdf.sail.BigdataSail.Options.QUERY_TIME_EXPANDER + "="
+        // + p.getProperty(com.bigdata.rdf.sail.BigdataSail.Options.QUERY_TIME_EXPANDER));
 
 //        log.info("bloomFilterFactory="
 //                + tripleStore.getSPORelation().getSPOIndex().getIndexMetadata()

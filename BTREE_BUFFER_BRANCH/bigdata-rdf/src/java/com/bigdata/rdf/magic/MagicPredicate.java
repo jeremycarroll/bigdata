@@ -49,11 +49,11 @@ public class MagicPredicate implements IPredicate<IMagicTuple> {
 
     protected static final Logger log = Logger.getLogger(MagicPredicate.class);
     
-    public MagicPredicate copy() {
-        
-        return new MagicPredicate(this, relationName);
-        
-    }
+//    public MagicPredicate copy() {
+//        
+//        return new MagicPredicate(this, relationName);
+//        
+//    }
 
     /**
      * 

@@ -65,7 +65,7 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
 
     protected static final Logger log = Logger.getLogger(TemporaryRawStore.class);
 
-    protected static final boolean INFO = log.isInfoEnabled();
+//    protected static final boolean INFO = log.isInfoEnabled();
     
     /**
      * Note: various things must be synchronized on {@link #buf} in order to
@@ -179,7 +179,7 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
         
         super(offsetBits);
         
-        if(INFO) {
+        if(log.isInfoEnabled()) {
             
             log.info("offsetBits=" + offsetBits + ", file=" + file
 //            ,new RuntimeException()
@@ -239,7 +239,7 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
                 0, // readCacheCapacity
                 0, // readCacheMaxRecordSize
                 writeCache,//
-                false, // validateChecksum (deperation option for restart).
+                false, // validateChecksum (desperation option for restart).
                 createTime,//
                 new ChecksumUtility(), // checker (root blocks generated but not saved).
                 false // alternateRootBlock
@@ -262,7 +262,7 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
 
                     close();
 
-                    if (INFO)
+                    if (log.isInfoEnabled())
                         log.info("Finalized temp store");
 
                 }
@@ -298,7 +298,7 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
 
         synchronized (buf) {
 
-            if (INFO)
+            if (log.isInfoEnabled())
                 log.info("Closing temp store");
             
             try {
@@ -521,4 +521,5 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
         return buf.getCounters();
         
     }
+
 }

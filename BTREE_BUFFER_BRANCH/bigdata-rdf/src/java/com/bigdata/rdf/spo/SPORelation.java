@@ -293,21 +293,21 @@ public class SPORelation extends AbstractRelation<ISPO> {
             }
 
             /*
-             * Note: I removed justifications index from this set (bbt;
-             * 9/17/09). since it is not an index based on the SPORelation's
-             * data (it is a proof chains relation).
+             * Note: We need the justifications index in the [indexNames] set
+             * since that information is used to request the appropriate index
+             * locks when running rules as mutation program in the LDS mode.
              */
-//        if(justify) {
-//            
-//            set.add(getNamespace() + "." + NAME_JUST);
-//            
-//        }
+            if (justify) {
+
+                set.add(getNamespace() + "." + NAME_JUST);
+
+            }
 
             this.indexNames = Collections.unmodifiableSet(set);
 
         }
 
-//        lookupIndices();
+        // Note: Do not eagerly resolve the indices.
         
     }
     
@@ -511,12 +511,12 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 
             }
             
-            if (justify) {
-
-                indexManager.dropIndex(getNamespace() + "."+ NAME_JUST);
+//            if (justify) {
+//
+//                indexManager.dropIndex(getNamespace() + "."+ NAME_JUST);
                 just = null;
-
-            }
+//
+//            }
 
             // destroy the relation declaration metadata.
             super.destroy();
@@ -704,6 +704,35 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         return indexNames;
         
+    }
+
+    /**
+     * Return an iterator visiting each {@link IKeyOrder} maintained by this
+     * relation.
+     */
+    public Iterator<SPOKeyOrder> statementKeyOrderIterator() {
+
+        switch(keyArity) {
+        case 3:
+            
+            if (oneAccessPath)
+                return SPOKeyOrder.spoOnlyKeyOrderIterator();
+            
+            return SPOKeyOrder.tripleStoreKeyOrderIterator();
+            
+        case 4:
+            
+            if (oneAccessPath)
+                return SPOKeyOrder.spocOnlyKeyOrderIterator();
+            
+            return SPOKeyOrder.quadStoreKeyOrderIterator();
+            
+        default:
+            
+            throw new AssertionError();
+            
+        }
+
     }
 
     /**

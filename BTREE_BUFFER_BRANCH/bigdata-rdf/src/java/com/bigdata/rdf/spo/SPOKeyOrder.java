@@ -30,7 +30,10 @@ package com.bigdata.rdf.spo;
 import java.io.Externalizable;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
@@ -537,4 +540,112 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
 
     }
     
+    /**
+     * Iterator visits {@link #SPO}.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
+     */
+    static private class SPOOnlyKeyOrderIterator implements
+            Iterator<SPOKeyOrder> {
+
+        boolean exhausted = false;
+
+        public boolean hasNext() {
+            return !exhausted;
+        }
+
+        public SPOKeyOrder next() {
+            if (!hasNext())
+                throw new NoSuchElementException();
+            exhausted = true;
+            return SPOKeyOrder.SPO;
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+    }
+
+    /**
+     * Iterator visits {@link #SPOC}.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
+     * @version $Id$
+     */
+    static private class SPOCOnlyKeyOrderIterator implements
+            Iterator<SPOKeyOrder> {
+
+        boolean exhausted = false;
+
+        public boolean hasNext() {
+            return !exhausted;
+        }
+
+        public SPOKeyOrder next() {
+            if (!hasNext())
+                throw new NoSuchElementException();
+            exhausted = true;
+            return SPOKeyOrder.SPOC;
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+    }
+
+    /**
+     * The triple store indices.
+     */
+    static private final transient SPOKeyOrder[] tripleStoreIndices = { SPO,
+            POS, OSP };
+
+    /**
+     * The quad store indices.
+     */
+    static private final transient SPOKeyOrder[] quadStoreIndices = { SPOC,
+            POCS, OCSP, CSPO, PCSO, SOPC };
+
+    /**
+     * Return an iterator which visits the triple store indices ({@link #SPO},
+     * {@link #POS}, {@link #OSP}).
+     */
+    static public Iterator<SPOKeyOrder> tripleStoreKeyOrderIterator() {
+
+        return Arrays.asList(tripleStoreIndices).iterator();
+
+    }
+
+    /**
+     * Return an iterator which visits the quad store indices ({@link #SPOC},
+     * {@link #POCS}, {@link #OCSP}, {@link #CSPO}, {@link #PCSO}, {@link #SOPC}
+     * ).
+     */
+    static public Iterator<SPOKeyOrder> quadStoreKeyOrderIterator() {
+
+        return Arrays.asList(quadStoreIndices).iterator();
+
+    }
+
+    /**
+     * Return an iterator which visits only {@link #SPO}.
+     */
+    static public Iterator<SPOKeyOrder> spoOnlyKeyOrderIterator() {
+        
+        return new SPOOnlyKeyOrderIterator();
+        
+    }
+    
+    /**
+     * Return an iterator which visits only {@link #SPOC}.
+     */
+    static public Iterator<SPOKeyOrder> spocOnlyKeyOrderIterator() {
+        
+        return new SPOCOnlyKeyOrderIterator();
+        
+    }
+
 }

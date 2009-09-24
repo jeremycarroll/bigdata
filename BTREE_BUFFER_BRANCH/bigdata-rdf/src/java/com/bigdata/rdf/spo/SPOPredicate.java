@@ -42,11 +42,11 @@ import com.bigdata.relation.rule.IVariableOrConstant;
  */
 public class SPOPredicate implements IPredicate<ISPO> {
 
-    public SPOPredicate copy() {
-        
-        return new SPOPredicate(this, relationName);
-        
-    }
+//    public SPOPredicate copy() {
+//        
+//        return new SPOPredicate(this, relationName);
+//        
+//    }
     
     /**
      * 
@@ -81,7 +81,7 @@ public class SPOPredicate implements IPredicate<ISPO> {
         
     }
     
-    public String getRelationName(int index) {
+    public String getRelationName(final int index) {
         
         return relationName[index];
         

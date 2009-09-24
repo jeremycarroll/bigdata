@@ -323,24 +323,125 @@ Recommendations:
 ------------------------------------------------------------
 PRIORITIES
 
+	- Retest on the cluster.
+
+	- Continued large data set load testing.
+
+	- Tx with reconcile of RDF writes.
+
+	  - Fast computation of delta between commit points.
+
+	  - Fast notification mechanism of delta in each tx.
+
+        - (***) Problems appearing for async data load for quads?  for
+          triples too?
+
+        - (***) Exact range count or range count with filter MUST do
+          scan passing in the filter.
+
+	- Consider having the Journal get its write cache from the
+          DirectBufferPool.  It would then allocate and release the
+          write cache just like the TemporaryStore.  A separate pool
+          could be used if larger write caches were valuable, e.g.,
+          based on the average size of a commit group as measured by
+          bytes written on the backing store.  If a separate pool is
+          created, then report on that pool as well (counterSet).  The
+          logic in the OverflowManager could also be simplified and
+          synchronous overflow could be made much more robust.
+
+	- LDS errors in TestTruthMaintenance and
+          TestCompareFullAndFastClosure.  The underlying error is the
+          same for both cases.  I am not sure if the right fix is to
+          change IIndexStore#getTemporaryStore() to return a
+          BufferMode#Temporary Journal (more overhead, especially for
+          the internal thread pools) or if the problem is related to
+          the setup for the closure bringing the focusStore to a fixed
+          point.
+
+java.lang.RuntimeException: java.util.concurrent.ExecutionException: java.util.concurrent.ExecutionException: java.lang.UnsupportedOperationException: Not supported: timestamp=readOnly(1253806597093)
+	at com.bigdata.rdf.rules.InferenceEngine.computeClosure(InferenceEngine.java:572)
+	at com.bigdata.rdf.rules.InferenceEngine.computeClosure(InferenceEngine.java:486)
+	at com.bigdata.rdf.inf.TruthMaintenance.assertAll(TruthMaintenance.java:414)
+	at com.bigdata.rdf.rules.TestTruthMaintenance.test_assertAll_01(TestTruthMaintenance.java:272)
+Caused by: java.util.concurrent.ExecutionException: java.util.concurrent.ExecutionException: java.lang.UnsupportedOperationException: Not supported: timestamp=readOnly(1253806597093)
+	at java.util.concurrent.FutureTask$Sync.innerGet(FutureTask.java:222)
+	at java.util.concurrent.FutureTask.get(FutureTask.java:83)
+	at com.bigdata.rdf.rules.RDFJoinNexus.runDataServiceProgram(RDFJoinNexus.java:1731)
+	at com.bigdata.rdf.rules.RDFJoinNexus.runProgram(RDFJoinNexus.java:1652)
+	at com.bigdata.rdf.rules.RDFJoinNexus.runMutation(RDFJoinNexus.java:1594)
+	at com.bigdata.rdf.rules.InferenceEngine.computeClosure(InferenceEngine.java:564)
+	... 25 more
+Caused by: java.util.concurrent.ExecutionException: java.lang.UnsupportedOperationException: Not supported: timestamp=readOnly(1253806597093)
+	at java.util.concurrent.FutureTask$Sync.innerGet(FutureTask.java:222)
+	at java.util.concurrent.FutureTask.get(FutureTask.java:83)
+	at com.bigdata.relation.rule.eval.ProgramTask.executeMutation(ProgramTask.java:536)
+	at com.bigdata.relation.rule.eval.ProgramTask.executeClosure(ProgramTask.java:633)
+	at com.bigdata.relation.rule.eval.ProgramTask.executeProgramWithEmbeddedClosure(ProgramTask.java:748)
+	at com.bigdata.relation.rule.eval.ProgramTask.call(ProgramTask.java:258)
+	at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:138)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:886)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:908)
+	at java.lang.Thread.run(Thread.java:619)
+Caused by: java.lang.UnsupportedOperationException: Not supported: timestamp=readOnly(1253806597093)
+	at com.bigdata.journal.TemporaryStore.getIndex(TemporaryStore.java:334)
+	at com.bigdata.journal.TemporaryStore.getIndex(TemporaryStore.java:1)
+	at com.bigdata.relation.AbstractRelation.getIndex(AbstractRelation.java:149)
+	at com.bigdata.relation.AbstractRelation.getIndex(AbstractRelation.java:106)
+	at com.bigdata.rdf.spo.SPORelation.getIndex(SPORelation.java:551)
+	at com.bigdata.rdf.spo.SPORelation.getAccessPath(SPORelation.java:999)
+	at com.bigdata.rdf.spo.SPORelation._getAccessPath(SPORelation.java:884)
+	at com.bigdata.rdf.spo.SPORelation.getAccessPath(SPORelation.java:871)
+	at com.bigdata.rdf.rules.RDFJoinNexus.getTailAccessPath(RDFJoinNexus.java:747)
+	at com.bigdata.relation.rule.eval.RuleState.computeKeyOrderForEachTail(RuleState.java:189)
+	at com.bigdata.relation.rule.eval.RuleState.<init>(RuleState.java:114)
+	at com.bigdata.relation.rule.eval.NestedSubqueryWithJoinThreadsTask.<init>(NestedSubqueryWithJoinThreadsTask.java:236)
+	at com.bigdata.relation.rule.eval.DefaultRuleTaskFactory.newTask(DefaultRuleTaskFactory.java:88)
+	at com.bigdata.relation.rule.eval.MutationTask.newMutationTasks(MutationTask.java:390)
+	at com.bigdata.relation.rule.eval.MutationTask.call(MutationTask.java:109)
+	at com.bigdata.relation.rule.eval.AbstractStepTask$1.doTask(AbstractStepTask.java:574)
+	at com.bigdata.journal.AbstractTask$InnerWriteServiceCallable.call(AbstractTask.java:2037)
+	at com.bigdata.journal.AbstractTask.doUnisolatedReadWriteTask(AbstractTask.java:1798)
+	at com.bigdata.journal.AbstractTask.call2(AbstractTask.java:1725)
+	at com.bigdata.journal.AbstractTask.call(AbstractTask.java:1591)
+	at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:138)
+	at com.bigdata.concurrent.NonBlockingLockManagerWithNewDesign$LockFutureTask.run(NonBlockingLockManagerWithNewDesign.java:1966)
+	... 3 more
+
+
+
+	- Record compression will change the performance for the
+          simple value raba, will change the binary format of the
+          record (a header coding the compression scheme and header
+          length), and will change the serialization for
+          IndexMetadata.  This needs to happen SOON.
+
+	- (****) TEST THIS: AbstractServer must keep reference to
+	  service and then issue destroy against the service to delete
+	  the persistent resources and finally destroy the service
+	  directory.
+
+	- @todo delete [bigdata-trunk].  rename
+          [bigdata-trunk-no-branch] as [bigdata-trunk].
+
+        - Test the LexiconRelation's termCache.  This should be a big
+          help for scale-out query.  Does it work?
+
 	- (****) Quads and Sesame test suites for same.
 
 	    - use base IRI as the context during load?
 
 	    - cross-validation of indices.
 
-	    - (***) Problems appearing for async data load for quads?
-              for triples too?
+	    - Should BigdataSolutionResolverator strip off the
+	      NULL_GRAPH when it appears in the context position of a
+	      statement?
 
-	    - (***) Exact range count or range count with filter MUST
-              do scan passing in the filter.
+	    - Sparql test suites are creating temporary directories
+              which are not being cleaned up.
 
-	    - Fixed issues related to handling Resource[0] vs
-              Resource[...] for add/remove/get statements.  When any
-              element of the Resource[] is null, we have to direct
-              that operation to the nullGraph.
-
-	    - Fixed issue in StatementBuffer where the context
+	    - done. Issue in StatementBuffer where the context
               position could be lost since it was checking s.termId
               rather than c.termId to identify new terms.
 
@@ -363,63 +464,72 @@ java.lang.IllegalStateException: Different statement identifier already defined:
 	at com.bigdata.rdf.sail.BigdataSailRepositoryConnection.commit(BigdataSailRepositoryConnection.java:54)
 	at com.bigdata.rdf.sail.TestSearchQuery.test_restart(TestSearchQuery.java:394)
 
-
-	    - Fixed BigdataSail#clear().
-
-	    - Modified BigdataSail#getStatements(...) to strip off the
-              NULL_GRAPH context during visitation.  The change was to
-              the BigdataStatementIterator.
-
-	      (***) Must also do this for the
-	      BigdataSolutionResolverator.
-
-	    - Fixed problem where BigdataSailConnection#evaluate(...)
-              was using the caller's binding set to evaluate the
-              query. This is supposed to be an "input" to query
-              evaluation, but evaluation needs to be against an empty
-              binding set.
-
-	    - done. Fixed some issues with data type literals and
-              modified the generated key to use a 4-byte integer to
-              divide the key space into disjoint value spaces.
-
-	    - Test the LexiconRelation's termCache.  This should be a
-              big help for scale-out query.  Does it work?
-
-
-	  - (****) TEST THIS: AbstractServer must keep reference to
-	    service and then issue destroy against the service to
-	    delete the persistent resources and finally destroy the
-	    service directory.
-
-	  - (***) LDS: The "JUST" index needs to be declared for LDS
-            rule execution.  It was getting a free ride for LDS from
-            AbstractRelation#getIndexNames().  That no longer returns
-            the name of the "JUST" index.  Review and fix.
-
-	  - @todo delete [bigdata-trunk].  rename
-            [bigdata-trunk-no-branch] as [bigdata-trunk].
-
-	- The whitepaper must be finished now.
+==================== anzo ====================
 
 	- Support glitter integration, performance optimizations
           against sample data sets, and hot backup for the Journal.
 
-	- Retest on the cluster.
+- unit tests for datatype literal indexing option.
 
-	- Continued large data set load testing.
+- told bnode mode.
 
-	- Tx with reconcile of RDF writes.
+- union for default graph query.
 
-	  - Fast computation of delta between commit points.
+- wildcards for full text search
 
-	  - Fast notification mechanism of delta in each tx.
+- full text search with quads.
 
-	- Record compression will change the performance for the
-          simple value raba, will change the binary format of the
-          record (a header coding the compression scheme and header
-          length), and will change the serialization for
-          IndexMetadata.  This needs to happen SOON.
+- reduce to minimum sesame dependency for bigdata-rdf, remove
+  dependency on bigdata-jini if possible (isolate in the test suite).
+
+- Use autojar to extract only the necessary classes from fastutils.
+  Possibly do this as part of the lgpl-utils build.
+
+------------------------------------------------------------
+
+commit log:
+
+- done. Added
+  AbstractTripleStore.Options#TEXT_INDEX_DATATYPE_LITERALS.  You can
+  use this option to enable full text indexing of datatype literals.
+
+- done. Modified Banner to not force the resolution of the JMX mbean
+  classes if log4j JMX mbean registration was suppressed.
+
+- done. Added Options interface to com.bigdata.Banner to declare the
+  supported environment variables options understood by that class.
+
+- done. Modified LexiconRelation and FullTextIndex to not eagerly
+  resolve their indices.
+
+- done. Removed cyclic dependency for lgpl-utils.
+
+- done. Removed imports for javadoc only purposes which caused some
+  undesirable cycles in the packages.
+
+- done. Generated a new lgpl-utils jar and updated the lgpl-utils
+  dependency.
+
+- done. Fixed errors in TestTMUtility.  The code was not broken, but
+  has a dependency on SPOPredicate while the unit test was using a
+  different Predicate implementation.  At some point, we should add a
+  predicate "name" attribute, which is really the relation base name
+  (without its container) and then test on the predicate name rather
+  than its Class.  Enhanced the unit tests to check the head of the
+  rewritten rules as well.
+
+- done. The "JUST" index needs to be declared for LDS rule execution.
+  Modified the SPORelation to add this index to its indexNames set.
+  Added a method, statementKeyOrderIterator(), to visit the
+  SPOKeyOrder instances for the indices maintained by the SPORelation.
+  Modified some unit tests which were using getIndexNames() to use
+  statementKeyOrderIterator() instead. LDS closure now works
+  correctly.
+
+- done. Bug fix in TestSPOAccessPath.  It was using the wrong values
+  for the to keys for the triple store.
+
+============================================================
 
 	  ------------------------------------------------------------
 
@@ -2247,61 +2357,6 @@ com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder@9b04ac : elapsed=50066, r
 	     and the IRabaCoder APIs.
 
 ------------------------------------------------------------
-x. Packaging (ant script, dependencies).
-
-       - Done. Converge on the standard fastutil and dsi dependencies,
-         removing their variants from the lgpl-utils module and move
-         the lgpl-utils module into the bigdata project.
-
-	 - added dsiutils-1.0.10 (369k), replacing lgpl-utils.
-
-	 - updated fastutils-5.1.4 to fastutils-5.1.5.
-
-	 - colt-1.2.0 is unchanged.
-
-	 - Package change for InputBitStream and OutputBitStream from
-	   it.unimi.dsi.mg4j.io to it.unimi.dsi.io.
-
-	 - Package change for Coder, Decoder, and HuffmanCodec from
-           it.unimi.dsi.mg4j.compression to it.unimi.dsi.compression.
-
-	 - Method change for Codec.getDecoder() to Codec.decoder().
-
-	 - Method change for PrefixCodec.getCoder() to
-           PrefixCodec.coder().
-
-	 - (*) Verify use of the correct (new) ctor for
-           OutputBitStream.
-
-	   Verify new uses of FastByteArrayOutputStream in compression
-	   code and of the OutputBitStream.  Make sure that we are not
-	   allocating huge buffers when compared to the actual
-	   requirements.
-
-	 - (*) Verify requirement for additional dsiutil dependencies.
-
-	 - Feedback to dsiutils on changes introduced in the
-           CustomByteArrayFrontCodedList.  These changes are probably
-           too far reaching to expect that they will make it back into
-           dsiutils.
-
-	 - (*) Replace it.unimi.dsi.mg4j.util.BloomFilter2 with
-	   it.unimi.dsi.util.BloomFilter?
-
-	   Request changes in dsi-utils so we can use that BloomFilter
-	   class directly.
-
-         - (*) Use autojar to extract only the necessary classes from
-           fastutils.  Possibly do this as part of the lgpl-utils
-           build.
-
-	 - (***) Make sure that the ant script builds the lgpl-utils
-           jar first and then links with it to reference the classes
-           inside of that jar.  Work with the old lgpl-utils ant
-           script which correctly propagated the binary files to
-           support coding in the bit streams.
-
-------------------------------------------------------------
 
 x. Tuple revision filtering, per-child min/max tuple revision
    timestamp on Node, and overall min/max tuple revision timestamp on
@@ -2398,20 +2453,6 @@ x. Tuple revision filtering, per-child min/max tuple revision
 	   - TestDistributedTransactionService (known and deferred)
 
 	 - RDF DB test errors.
-
-These two were broken by revision# 1980, which included some magic
-predicate related edits to TMUtility.
-
-junit.framework.AssertionFailedError
-	at junit.framework.Assert.fail(Assert.java:47)
-	at junit.framework.Assert.assertTrue(Assert.java:20)
-	at junit.framework.Assert.assertTrue(Assert.java:27)
-	at com.bigdata.rdf.rules.TestTMUtility.test_rewrite1(TestTMUtility.java:91)
-
-junit.framework.ComparisonFailure: expected:<focusStor...> but was:<databas...>
-	at junit.framework.Assert.assertEquals(Assert.java:81)
-	at junit.framework.Assert.assertEquals(Assert.java:87)
-	at com.bigdata.rdf.rules.TestTMUtility.test_rewrite2(TestTMUtility.java:128)
 
 Oh, and this one which is related to an incorrect mutation count.  The
 problem is noted in the unit test.
