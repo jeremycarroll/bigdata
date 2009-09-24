@@ -251,7 +251,8 @@ import com.bigdata.util.concurrent.ExecutionHelper;
  */
 public class FullTextIndex extends AbstractRelation {
 
-    final protected static Logger log = Logger.getLogger(FullTextIndex.class);
+    final protected static transient Logger log = Logger
+            .getLogger(FullTextIndex.class);
 
 //    /**
 //     * True iff the {@link #log} level is INFO or less.
@@ -266,13 +267,26 @@ public class FullTextIndex extends AbstractRelation {
     /**
      * The backing index.
      */
-    private IIndex ndx;
+    volatile private IIndex ndx;
 
     /**
      * The index used to associate term identifiers with tokens parsed from
      * documents.
      */
     public IIndex getIndex() {
+        
+        if(ndx == null) {
+
+            synchronized (this) {
+
+                ndx = getIndex(getNamespace() + "." + NAME_SEARCH);
+
+                if (ndx == null)
+                    throw new IllegalStateException();
+                
+            }
+            
+        }
         
         return ndx;
         
@@ -394,8 +408,9 @@ public class FullTextIndex extends AbstractRelation {
      *       #of entries) are reasonable. The #of entries per split could be
      *       smaller if we know that we are storing more data in the values.
      */
-    public FullTextIndex(IIndexManager indexManager, String namespace,
-            Long timestamp, Properties properties) {
+    public FullTextIndex(final IIndexManager indexManager,
+            final String namespace, final Long timestamp,
+            final Properties properties) {
 
         super(indexManager, namespace, timestamp, properties);
         
@@ -412,17 +427,20 @@ public class FullTextIndex extends AbstractRelation {
 
         // indexer.timeout
         {
-            
+
             timeout = Long.parseLong(properties.getProperty(
                     Options.INDEXER_TIMEOUT, Options.DEFAULT_INDEXER_TIMEOUT));
 
             if (log.isInfoEnabled())
-            log.info(Options.INDEXER_TIMEOUT+ "=" + timeout);
+                log.info(Options.INDEXER_TIMEOUT + "=" + timeout);
 
         }
-        
-        // resolve index (might not exist, in which case this will be null).
-        ndx = getIndex(getNamespace()+"."+NAME_SEARCH);
+
+        /*
+         * Note: defer resolution of the index.
+         */
+//        // resolve index (might not exist, in which case this will be null).
+//        ndx = getIndex(getNamespace()+"."+NAME_SEARCH);
         
     }
 
@@ -467,7 +485,10 @@ public class FullTextIndex extends AbstractRelation {
             if (log.isInfoEnabled())
                 log.info("Registered new text index: name=" + name);
 
-            ndx = getIndex(name);
+            /*
+             * Note: defer resolution of the index.
+             */
+//            ndx = getIndex(name);
 
 //        } finally {
 //
@@ -509,7 +530,7 @@ public class FullTextIndex extends AbstractRelation {
      * 
      * @return The token analyzer best suited to the indicated language family.
      */
-    protected Analyzer getAnalyzer(String languageCode) {
+    protected Analyzer getAnalyzer(final String languageCode) {
 
         final IKeyBuilder keyBuilder = getKeyBuilder();
 
@@ -811,7 +832,7 @@ public class FullTextIndex extends AbstractRelation {
              * a B+Tree.
              */
 
-            Properties properties = getProperties();
+            final Properties properties = getProperties();
 
             properties.setProperty(KeyBuilder.Options.STRENGTH, properties
                     .getProperty(Options.INDEXER_COLLATOR_STRENGTH,
@@ -1068,7 +1089,7 @@ public class FullTextIndex extends AbstractRelation {
      * 
      * @see Options#INDEXER_TIMEOUT
      */
-    public Hiterator search(String query, String languageCode) {
+    public Hiterator search(final String query, final String languageCode) {
 
         return search(query, languageCode, false/* prefixMatch */);
         
@@ -1077,8 +1098,8 @@ public class FullTextIndex extends AbstractRelation {
     /*
      * FIXME [prefixMatch] has not been implemented yet.
      */
-    public Hiterator search(String query, String languageCode,
-            boolean prefixMatch) {
+    public Hiterator search(final String query, final String languageCode,
+            final boolean prefixMatch) {
 
         return search( //
                 query,//
@@ -1339,14 +1360,17 @@ public class FullTextIndex extends AbstractRelation {
      * @todo implement the relevant methods.
      */
 
+    @SuppressWarnings("unchecked")
     public long delete(IChunkedOrderedIterator itr) {
         throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("unchecked")
     public long insert(IChunkedOrderedIterator itr) {
         throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("unchecked")
     public IAccessPath getAccessPath(IPredicate predicate) {
         throw new UnsupportedOperationException();
     }
@@ -1355,6 +1379,7 @@ public class FullTextIndex extends AbstractRelation {
         throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("unchecked")
     public Object newElement(IPredicate predicate,
             IBindingSet bindingSet) {
         throw new UnsupportedOperationException();

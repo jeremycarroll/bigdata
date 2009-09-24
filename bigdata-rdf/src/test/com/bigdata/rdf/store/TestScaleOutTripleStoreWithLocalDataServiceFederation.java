@@ -89,7 +89,7 @@ public class TestScaleOutTripleStoreWithLocalDataServiceFederation extends Abstr
 
 //        suite.addTestSuite(TestLocalTripleStoreTransactionSemantics.class);
 
-        suite.addTestSuite(TestFullTextIndex.class);
+//        suite.addTestSuite(TestFullTextIndex.class);
         
         /*
          * Pickup the basic triple store test suite. This is a proxied test

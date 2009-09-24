@@ -558,7 +558,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
      * 
      * @see Options
      */
-    protected AbstractJournal(Properties properties) {
+    protected AbstractJournal(final Properties properties) {
         
         this(properties, getWriteCache(properties));
         

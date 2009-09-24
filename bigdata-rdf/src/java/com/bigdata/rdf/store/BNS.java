@@ -50,9 +50,6 @@ package com.bigdata.rdf.store;
 import org.openrdf.model.Resource;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
-import org.openrdf.model.impl.URIImpl;
-
-import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 
 /**
  * A vocabulary for bigdata specific extensions.
@@ -117,7 +114,7 @@ public interface BNS {
     String STATEMENT_TYPE = "statementType";
     
     /**
-     * The name of a magic predicate recognized by the {@link BigdataSail} when
+     * The name of a magic predicate recognized by the {@link com.bigdata.rdf.sail.BigdataSail} when
      * it occurs in statement patterns such as:
      * 
      * <pre>
@@ -151,12 +148,12 @@ public interface BNS {
      * actually inserted into this "null" graph. If SPARQL <code>DATASET</code>
      * is not specified, then all contexts are queried and you will see
      * statements from the "null" graph as well as from any other context.
-     * {@link BigdataSailConnection#getStatements(Resource, URI, Value, boolean, Resource...)}
+     * {@link com.bigdata.rdf.sail.BigdataSailConnection#getStatements(Resource, URI, Value, boolean, Resource...)}
      * will return statements from the "null" graph if the context is either
      * unbound or is an array whose sole element is <code>null</code>.
      * 
-     * @see BigdataSailConnection#addStatement(Resource, URI, Value, Resource...)
-     * @see BigdataSailConnection#getStatements(Resource, URI, Value, boolean, Resource...)
+     * @see com.bigdata.rdf.sail.BigdataSailConnection#addStatement(Resource, URI, Value, Resource...)
+     * @see com.bigdata.rdf.sail.BigdataSailConnection#getStatements(Resource, URI, Value, boolean, Resource...)
      */
     String NULL_GRAPH = NAMESPACE + "nullGraph";
 

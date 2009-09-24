@@ -199,8 +199,8 @@ public class TestSPOAccessPath extends AbstractTripleStoreTestCase {
                         Long.MIN_VALUE).getKey();
 
                 final byte[] toKey = keyBuilder.reset().append(P + 1).append(
-                        Long.MAX_VALUE).append(Long.MAX_VALUE).append(
-                        Long.MAX_VALUE).getKey();
+                        Long.MIN_VALUE).append(Long.MIN_VALUE).append(
+                        Long.MIN_VALUE).getKey();
 
                 if(log.isInfoEnabled()) {
                     log.info("fromKey="+BytesUtil.toString(fromKey));
@@ -230,7 +230,7 @@ public class TestSPOAccessPath extends AbstractTripleStoreTestCase {
                         Long.MIN_VALUE).append(Long.MIN_VALUE).getKey();
 
                 final byte[] toKey = keyBuilder.reset().append(P + 1).append(
-                        Long.MAX_VALUE).append(Long.MAX_VALUE).getKey();
+                        Long.MIN_VALUE).append(Long.MIN_VALUE).getKey();
 
                 if(log.isInfoEnabled()) {
                     log.info("fromKey="+BytesUtil.toString(fromKey));

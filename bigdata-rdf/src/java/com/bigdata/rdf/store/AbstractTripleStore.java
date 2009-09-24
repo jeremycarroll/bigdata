@@ -142,7 +142,6 @@ import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
 import com.bigdata.relation.rule.eval.IRuleTaskFactory;
 import com.bigdata.relation.rule.eval.ISolution;
-import com.bigdata.resources.IndexManager;
 import com.bigdata.search.FullTextIndex;
 import com.bigdata.search.IHit;
 import com.bigdata.service.AbstractEmbeddedDataService;
@@ -524,6 +523,17 @@ abstract public class AbstractTripleStore extends
         String TEXT_INDEX = AbstractTripleStore.class.getName() + ".textIndex";
 
         String DEFAULT_TEXT_INDEX = "true";
+
+        /**
+         * Boolean option (default <code>false</code>) enables support for a
+         * full text index that may be used to lookup datatype literals by
+         * tokens found in the text of those literals.
+         */
+        String TEXT_INDEX_DATATYPE_LITERALS = AbstractTripleStore.class
+                .getName()
+                + ".textIndex.datatypeLiterals";
+
+        String DEFAULT_TEXT_INDEX_DATATYPE_LITERALS = "true";
         
         /**
          * The name of the class that will establish the pre-defined
@@ -1286,14 +1296,12 @@ abstract public class AbstractTripleStore extends
 
     }
     private LexiconRelation lexiconRelation;
-        
+
     /**
-     * Full text information retrieval for RDF essentially treats the lexical
-     * terms in the RDF database (plain and language code {@link Literal}s and
-     * possibly {@link URI}s) as "documents." You can understand the items in
-     * the terms index as "documents" that are broken down into "token"s to
-     * obtain a "token frequency distribution" for that document. The full text
-     * index contains the indexed token data.
+     * Full text information retrieval for RDF essentially treats the RDF
+     * Literals as "documents." The literals are broken down into "token"s to
+     * obtain a "token frequency distribution" for that literal/document. The
+     * full text index contains the indexed token data.
      * <p>
      * Note: the {@link FullTextIndex} is implemented against the
      * {@link IBigdataFederation} API and is therefore not available for a
@@ -1301,6 +1309,9 @@ abstract public class AbstractTripleStore extends
      * 
      * @return The object managing the text search indices or <code>null</code>
      *         iff text search is not enabled.
+     * 
+     * @see Options#TEXT_INDEX
+     * @see Options#TEXT_INDEX_DATATYPE_LITERALS
      */
     final public FullTextIndex getSearchEngine() {
 

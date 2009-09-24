@@ -65,6 +65,10 @@ import com.bigdata.striterator.IChunkedIterator;
  * @todo The resolution of term identifiers to terms should happen during
  *       asynchronous read-ahead for even better performance.
  * 
+ * @todo decouple from {@link info.aduna.iteration.CloseableIteration} and just
+ *       wrap the resulting iterator as a
+ *       {@link info.aduna.iteration.CloseableIteration} in the SAIL.
+ * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
@@ -107,7 +111,8 @@ public class BigdataValueIteratorImpl implements BigdataValueIterator {
      * @param src
      *            The source iterator.
      */
-    public BigdataValueIteratorImpl(AbstractTripleStore db, IChunkedIterator<Long> src) {
+    public BigdataValueIteratorImpl(final AbstractTripleStore db,
+            final IChunkedIterator<Long> src) {
 
         if (db == null)
             throw new IllegalArgumentException();

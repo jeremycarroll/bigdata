@@ -62,8 +62,6 @@ import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPOComparator;
 import com.bigdata.rdf.store.AbstractTripleStore;
-import com.bigdata.rdf.store.BigdataSolutionResolverator;
-import com.bigdata.rdf.store.BigdataStatementIteratorImpl;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.relation.AbstractRelation;
 import com.bigdata.relation.accesspath.IAccessPath;
@@ -149,6 +147,18 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
                 properties.setProperty(AbstractTripleStore.Options.OVERWRITE,
                         "false");
 
+            if (textIndex) {
+                /*
+                 * Also index datatype literals?
+                 */
+                textIndexDatatypeLiterals = Boolean
+                        .parseBoolean(getProperty(
+                                AbstractTripleStore.Options.TEXT_INDEX_DATATYPE_LITERALS,
+                                AbstractTripleStore.Options.DEFAULT_TEXT_INDEX_DATATYPE_LITERALS));
+            } else {
+                textIndexDatatypeLiterals = false;
+            }
+
         }
         
         this.storeBlankNodes = Boolean.parseBoolean(getProperty(
@@ -158,8 +168,8 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
         {
 
             final String defaultValue;
-            if (indexManager instanceof IBigdataFederation
-                    && ((IBigdataFederation) indexManager).isScaleOut()) {
+            if (indexManager instanceof IBigdataFederation<?>
+                    && ((IBigdataFederation<?>) indexManager).isScaleOut()) {
 
                 defaultValue = AbstractTripleStore.Options.DEFAULT_TERMID_BITS_TO_REVERSE;
 
@@ -206,18 +216,26 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
         }
 
         /*
-         * cache hard references to the indices.
+         * Note: I am deferring resolution of the indices to minimize the
+         * latency and overhead required to "locate" the relation. In scale out,
+         * resolving the index will cause a ClientIndexView to spring into
+         * existence for the appropriate timestamp, and we often do not need
+         * that view for each index of the relation during query.
          */
-
-        term2id = super.getIndex(LexiconKeyOrder.TERM2ID);
-
-        id2term = super.getIndex(LexiconKeyOrder.ID2TERM);
-
-        if(textIndex) {
-            
-            getSearchEngine();
-            
-        }
+        
+//        /*
+//         * cache hard references to the indices.
+//         */
+//
+//        term2id = super.getIndex(LexiconKeyOrder.TERM2ID);
+//
+//        id2term = super.getIndex(LexiconKeyOrder.ID2TERM);
+//
+//        if(textIndex) {
+//            
+//            getSearchEngine();
+//            
+//        }
 
         // lookup/create value factory for the lexicon's namespace.
         valueFactory = BigdataValueFactoryImpl.getInstance(namespace);
@@ -269,13 +287,17 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 
             }
 
-            term2id = super.getIndex(LexiconKeyOrder.TERM2ID);
-
-            id2term = super.getIndex(LexiconKeyOrder.ID2TERM);
-
-            assert term2id != null;
-
-            assert id2term != null;
+            /*
+             * Note: defer resolution of the newly created index objects.
+             */
+            
+//            term2id = super.getIndex(LexiconKeyOrder.TERM2ID);
+//
+//            id2term = super.getIndex(LexiconKeyOrder.ID2TERM);
+//
+//            assert term2id != null;
+//
+//            assert id2term != null;
 
         } finally {
 
@@ -320,11 +342,11 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 
     }
     
-    private IIndex id2term;
-    private IIndex term2id;
+    volatile private IIndex id2term;
+    volatile private IIndex term2id;
     private final boolean textIndex;
+    private final boolean textIndexDatatypeLiterals;
     final boolean storeBlankNodes;
-//    private final boolean scaleOutTermIds;
     final int termIdBitsToReverse;
 
     /**
@@ -363,10 +385,10 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
     }
     
     /**
-     * Overriden to return the hard reference for the index.
+     * Overridden to return the hard reference for the index.
      */
     @Override
-    public IIndex getIndex(IKeyOrder<? extends BigdataValue> keyOrder) {
+    public IIndex getIndex(final IKeyOrder<? extends BigdataValue> keyOrder) {
 
         if (keyOrder == LexiconKeyOrder.ID2TERM) {
      
@@ -386,8 +408,22 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 
     final public IIndex getTerm2IdIndex() {
 
-        if (term2id == null)
-            throw new IllegalStateException();
+        if (term2id == null) {
+
+            synchronized (this) {
+
+                if (term2id == null) {
+
+                    term2id = super.getIndex(LexiconKeyOrder.TERM2ID);
+
+                    if (term2id == null)
+                        throw new IllegalStateException();
+
+                }
+
+            }
+            
+        }
 
         return term2id;
 
@@ -395,8 +431,22 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 
     final public IIndex getId2TermIndex() {
 
-        if (id2term == null)
-            throw new IllegalStateException();
+        if (id2term == null) {
+
+            synchronized (this) {
+                
+                if (id2term == null) {
+
+                    id2term = super.getIndex(LexiconKeyOrder.ID2TERM);
+                
+                    if (id2term == null)
+                        throw new IllegalStateException();
+
+                }
+
+            }
+
+        }
 
         return id2term;
 
@@ -406,6 +456,8 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
      * A factory returning the softly held singleton for the
      * {@link FullTextIndex}.
      * 
+     * @see Options#TEXT_INDEX
+     *       
      * @todo replace with the use of the {@link IResourceLocator} since it
      *       already imposes a canonicalizing mapping within for the index name
      *       and timestamp inside of a JVM.
@@ -1103,33 +1155,38 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
      * {@link Locale}.
      * </p>
      * 
-     * @param itr Iterator visiting the terms to be indexed.
+     * @param itr
+     *            Iterator visiting the terms to be indexed.
      * 
      * @see #textSearch(String, String)
      * 
      * @todo allow registeration of datatype specific tokenizers (we already
      *       have language family based lookup).
      */
-    protected void indexTermText(final int capacity, final Iterator<BigdataValue> itr) {
-        
+    protected void indexTermText(final int capacity,
+            final Iterator<BigdataValue> itr) {
+
         final FullTextIndex ndx = getSearchEngine();
 
         final TokenBuffer buffer = new TokenBuffer(capacity, ndx);
 
         int n = 0;
 
-        while(itr.hasNext()) {
+        while (itr.hasNext()) {
 
             final BigdataValue val = itr.next();
 
             if (!(val instanceof Literal))
                 continue;
-            
-            final Literal lit = (Literal)val;
 
-            // do not index datatype literals in this manner.
-            if (lit.getDatatype() != null)
+            final Literal lit = (Literal) val;
+
+            if (!textIndexDatatypeLiterals && lit.getDatatype() != null) {
+
+                // do not index datatype literals in this manner.
                 continue;
+
+            }
 
             final String languageCode = lit.getLanguage();
 

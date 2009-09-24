@@ -194,10 +194,15 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         }
         
         assertTrue(BytesUtil.compareBytes(k1, k2) != 0);
-        assertTrue(BytesUtil.compareBytes(k1, k3) == 0);
-        assertTrue(BytesUtil.compareBytes(k2, k4) == 0);
         assertTrue(BytesUtil.compareBytes(k1, k2) > 0);
-        
+
+        /*
+         * Note: if we do not normalize data type values then these are
+         * inequalities.
+         */
+        assertTrue(BytesUtil.compareBytes(k1, k3) != 0); // true != 1
+        assertTrue(BytesUtil.compareBytes(k2, k4) != 0); // false != 0
+
         // verify decode.
         final KeyBuilder keyBuilder = new KeyBuilder();
         // decode(encode(true))
@@ -234,8 +239,13 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         }
         
         assertTrue(BytesUtil.compareBytes(k1, k2) < 0);
-        assertTrue(BytesUtil.compareBytes(k2, k3) == 0);
         assertTrue(BytesUtil.compareBytes(k3, k4) < 0);
+
+        /*
+         * Note: if we do not normalize data type values then these are
+         * inequalities.
+         */
+        assertTrue(BytesUtil.compareBytes(k2, k3) != 0); // 005 != 5
 
     }
 
@@ -302,9 +312,14 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         }
 
         assertTrue(BytesUtil.compareBytes(k1, k2) < 0);
-        assertTrue(BytesUtil.compareBytes(k2, k3) == 0);
-        assertTrue(BytesUtil.compareBytes(k3, k4) == 0);
         assertTrue(BytesUtil.compareBytes(k4, k5) < 0);
+
+        /*
+         * Note: if we do not normalize data type values then these are
+         * inequalities.
+         */
+        assertTrue(BytesUtil.compareBytes(k2, k3) != 0); // 005 != 5.
+        assertTrue(BytesUtil.compareBytes(k3, k4) != 0); // 5. != 5.0
 
     }
     
@@ -334,9 +349,14 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         }
 
         assertTrue(BytesUtil.compareBytes(k1, k2) < 0);
-        assertTrue(BytesUtil.compareBytes(k2, k3) == 0);
-        assertTrue(BytesUtil.compareBytes(k3, k4) == 0);
         assertTrue(BytesUtil.compareBytes(k4, k5) < 0);
+
+        /*
+         * Note: if we do not normalize data type values then these are
+         * inequalities.
+         */
+        assertTrue(BytesUtil.compareBytes(k2, k3) != 0); // 005 != 5.
+        assertTrue(BytesUtil.compareBytes(k3, k4) != 0); // 5. != 5.0
 
     }
 

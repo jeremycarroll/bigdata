@@ -290,13 +290,17 @@ public class InputBitStream extends AbstractBooleanIterator implements Flushable
         this(a,0,a.length);
     }
 
-    /** Creates a new input bit stream wrapping a slice of a given byte array.
-    *
-    * @param a the byte array to wrap.
-    * @param off the byte offset of the first addressable byte in the array.
-    * @param len the #of addressable bytes in the array.
-    * @author BBT 8/30/2009
-    */
+    /**
+     * Creates a new input bit stream wrapping a slice of a given byte array
+     * (BBT 8/30/2009).
+     * 
+     * @param a
+     *            the byte array to wrap.
+     * @param off
+     *            the byte offset of the first addressable byte in the array.
+     * @param len
+     *            the #of addressable bytes in the array.
+     */
     public InputBitStream(final byte[] a, final int off, final int len) {
 
         if (a == null)

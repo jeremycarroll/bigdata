@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.lexicon;
 
 
-import com.bigdata.rdf.store.TestFullTextIndex;
 
 import junit.framework.Test;
 import junit.framework.TestCase;

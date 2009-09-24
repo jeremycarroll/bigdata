@@ -14,7 +14,6 @@ import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
-import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.rule.eval.ISolution;
@@ -24,6 +23,10 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
 /**
  * Efficiently resolve term identifiers in Bigdata {@link ISolution}s to RDF
  * {@link BigdataValue}s.
+ * 
+ * @todo decouple from {@link info.aduna.iteration.CloseableIteration} and just
+ *       wrap the resulting iterator as a
+ *       {@link info.aduna.iteration.CloseableIteration} in the SAIL.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$

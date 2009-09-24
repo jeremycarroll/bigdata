@@ -40,11 +40,11 @@ import com.bigdata.relation.accesspath.IElementFilter;
  */
 public class Predicate<E> implements IPredicate<E> {
 
-    public Predicate<E> copy() {
-        
-        return new Predicate(this, relationName);
-        
-    }
+//    public Predicate<E> copy() {
+//        
+//        return new Predicate(this, relationName);
+//        
+//    }
     
     /**
      * 

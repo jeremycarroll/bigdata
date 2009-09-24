@@ -712,6 +712,7 @@ public class RDFJoinNexus implements IJoinNexus {
         return relation;
         
     }
+    // FIXME we need to cache at least 2 relations for truth maintenance.
     private transient final Object relationLock = new Object();
     private transient String lastRelationName = null;
     private transient IRelation lastRelation = null;
@@ -1708,7 +1709,7 @@ public class RDFJoinNexus implements IJoinNexus {
      * {@link ConcurrencyManager} on the {@link LocalDataServiceImpl} (fast).
      * <p>
      * Note: This can only be done if all indices for the relation(s) are (a)
-     * monolithic; and (b) located on the SAME {@link DataService}. This is
+     * unpartitioned; and (b) located on the SAME {@link DataService}. This is
      * <code>true</code> for {@link LocalDataServiceFederation}. All other
      * {@link IBigdataFederation} implementations are scale-out (use key-range
      * partitioned indices).

@@ -36,7 +36,8 @@ import com.bigdata.service.DataService;
  * The {@link #Direct} and {@link #Mapped} options may not be used for files
  * exceeding {@link Integer#MAX_VALUE} bytes in length since a
  * {@link ByteBuffer} is indexed with an <code>int</code> (the pragmatic limit
- * is much lower since a JVM does not have access to more than 2G of RAM).
+ * is typically much lower and depends on the size of the JVM heap for the
+ * {@link #Direct} mode).
  * </p>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>

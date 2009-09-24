@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.store;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -40,6 +41,7 @@ import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataLiteral;
 import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValueFactory;
+import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.vocab.NoVocabulary;
 
 /**
@@ -157,9 +159,13 @@ public class TestRestartSafe extends AbstractTripleStoreTestCase {
             assertEquals(rdfType_id, store.getTermId(rdfType));
             assertEquals(rdfsSubClassOf_id, store.getTermId(rdfsSubClassOf));
 
-            for (String fqn : store.getSPORelation().getIndexNames()) {
-                assertEquals("statementCount", 5, store.getSPORelation()
-                        .getIndex(fqn).rangeCount(null, null));
+            {
+                final Iterator<SPOKeyOrder> itr = store.getSPORelation()
+                        .statementKeyOrderIterator();
+                while (itr.hasNext()) {
+                    assertEquals("statementCount", 5, store.getSPORelation()
+                            .getIndex(itr.next()).rangeCount(null, null));
+                }
             }
             assertTrue(store.hasStatement(x, rdfType, C));
             assertTrue(store.hasStatement(y, rdfType, B));
@@ -198,10 +204,18 @@ public class TestRestartSafe extends AbstractTripleStoreTestCase {
                 assertEquals(rdfType_id, store.getTermId(rdfType));
                 assertEquals(rdfsSubClassOf_id, store.getTermId(rdfsSubClassOf));
 
-                for (String fqn : store.getSPORelation().getIndexNames()) {
-                    assertEquals("statementCount", 5, store.getSPORelation()
-                            .getIndex(fqn).rangeCount(null, null));
+                {
+                    final Iterator<SPOKeyOrder> itr = store.getSPORelation()
+                            .statementKeyOrderIterator();
+                    while (itr.hasNext()) {
+                        assertEquals("statementCount", 5, store.getSPORelation()
+                                .getIndex(itr.next()).rangeCount(null, null));
+                    }
                 }
+//                for (String fqn : store.getSPORelation().getIndexNames()) {
+//                    assertEquals("statementCount", 5, store.getSPORelation()
+//                            .getIndex(fqn).rangeCount(null, null));
+//                }
 //                assertEquals("statementCount", 5, store.getSPORelation().getSPOIndex()
 //                        .rangeCount(null, null));
 //                assertEquals("statementCount", 5, store.getSPORelation().getPOSIndex()

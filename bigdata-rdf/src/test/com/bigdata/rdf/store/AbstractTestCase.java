@@ -75,7 +75,6 @@ import com.bigdata.rdf.spo.SPOTupleSerializer;
 import com.bigdata.relation.accesspath.AbstractArrayBuffer;
 import com.bigdata.relation.accesspath.IBuffer;
 import com.bigdata.service.AbstractClient;
-import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.Split;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
@@ -341,7 +340,7 @@ abstract public class AbstractTestCase
      * 
      * @param store
      */
-    void dumpTerms(final AbstractTripleStore store) {
+    protected void dumpTerms(final AbstractTripleStore store) {
 
         /*
          * Note: it is no longer true that all terms are stored in the reverse

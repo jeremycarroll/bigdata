@@ -21,7 +21,6 @@
 
 package it.unimi.dsi.fastutil.bytes;
 
-
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.objects.AbstractObjectList;
 import it.unimi.dsi.fastutil.objects.AbstractObjectListIterator;
@@ -35,9 +34,6 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
-import com.bigdata.btree.BytesUtil;
-import com.bigdata.io.ByteArrayBuffer;
 
 /**
  * Compact storage of lists of arrays using front coding.
@@ -121,7 +117,8 @@ import com.bigdata.io.ByteArrayBuffer;
  * <li>The name of the class has been changed to prevent classpath problems.</li>
  * <li>The class has a new {@link #serialVersionUID} and the serialization logic
  * has been modified to allow serialization against {@link DataOutput} by
- * defining {@link #getArray()} and a new ctor which accepts the backing array.</li>
+ * defining {@link #getBackingBuffer()} and a new constructors that operate on a
+ * byte[] slice.</li>
  * <li>The test code from main() has been isolated in a junit test suite.</li>
  * <li>The backing <code>byte[] array</code> has been replaced by an interface
  * suitable for wrapping either a <code>byte[]</code> or a {@link ByteBuffer}.
@@ -790,8 +787,8 @@ public class CustomByteArrayFrontCodedList extends AbstractObjectList<byte[]>
      * @todo Optimize this to avoid the byte[] allocation.
      * 
      * @todo An alternative optimization would be to specify a variant of
-     *       {@link #get(int)} which accepts a {@link ByteArrayBuffer} that is
-     *       automatically extended to have sufficient capacity.
+     *       {@link #get(int)} which accepts a com.bigdata.io.ByteArrayBuffer
+     *       that is automatically extended to have sufficient capacity.
      */
     public int writeOn(final OutputStream os, final int index)
             throws IOException {
@@ -987,7 +984,7 @@ public class CustomByteArrayFrontCodedList extends AbstractObjectList<byte[]>
                         + (i / ratio) + "]=" + p[i / ratio] + ", pos@rlen="
                         + pos0 + ", rlen=" + rlen + ", clen=" + clen
                         + ", pos@remainder=" + pos + " :: "
-                        + BytesUtil.toString(a) + "\n");
+                        + toString(a) + "\n");
                 pos += rlen;
             }
 //        for(int i=0; i<n; i++) {
@@ -1319,7 +1316,7 @@ public class CustomByteArrayFrontCodedList extends AbstractObjectList<byte[]>
             assert mlen == clen : "mlen=" + mlen + ", clen=" + clen + ", rlen="
                     + rlen + ", delta=" + delta + ", pret=" + pret
                     + ", poffset=" + poffset + ", searchKey="
-                    + BytesUtil.toString(a) + ", this=" + this;
+                    + toString(a) + ", this=" + this;
 
             final int ret = compareBytes(a, mlen, a.length - mlen, bb, pos,
                     rlen);
@@ -1487,4 +1484,67 @@ public class CustomByteArrayFrontCodedList extends AbstractObjectList<byte[]>
 
     }
 
+    /*
+     * Note: These toString() methods were inlined to remove a dependency on
+     * BytesUtil in the bigdata package (BBT, 9/24/2009).
+     */
+    
+    /**
+     * Formats a key as a series of comma delimited unsigned bytes.
+     * 
+     * @param key
+     *            The key.
+     * 
+     * @return The string representation of the array as unsigned bytes.
+     */
+    final public static String toString(final byte[] key) {
+        
+        if (key == null)
+            return NULL;
+        
+        return toString(key, 0, key.length);
+        
+    }
+
+    /**
+     * Formats a key as a series of comma delimited unsigned bytes.
+     * 
+     * @param key
+     *            The key.
+     * @param off
+     *            The index of the first byte that will be visited.
+     * @param len
+     *            The #of bytes to visit.
+     * 
+     * @return The string representation of the array as unsigned bytes.
+     */
+    final public static String toString(final byte[] key, final int off,
+            final int len) {
+
+        if (key == null)
+            return NULL;
+
+        final StringBuilder sb = new StringBuilder(len * 4 + 2);
+
+        sb.append("[");
+        
+        for (int i = off; i < off + len; i++) {
+            
+            if (i > 0)
+                sb.append(", ");
+            
+            // as an unsigned integer.
+//            sb.append(Integer.toHexString(key[i] & 0xff));
+            sb.append(Integer.toString(key[i] & 0xff));
+            
+        }
+        
+        sb.append("]");
+        
+        return sb.toString();
+        
+    }
+    
+    private static transient String NULL = "null";
+           
 }
