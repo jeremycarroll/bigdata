@@ -35,7 +35,6 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Statement;
-import org.openrdf.sail.SailException;
 
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.TimestampUtility;
@@ -405,15 +404,8 @@ public class TripleStoreUtility {
     
         } finally {
     
-            try {
-                itr2.close();
-                
-            } catch (SailException ex) {
-                
-                throw new RuntimeException(ex);
-                
-            }
-    
+            itr2.close();
+            
         }
     
         sb.flush();

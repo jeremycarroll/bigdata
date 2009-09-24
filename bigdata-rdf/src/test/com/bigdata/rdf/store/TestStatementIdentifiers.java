@@ -57,7 +57,6 @@ import org.openrdf.model.Statement;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
-import org.openrdf.sail.SailException;
 
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.model.BigdataBNode;
@@ -320,11 +319,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
                 
             } finally {
                 
-                try {
-                    itr.close();
-                } catch (SailException e) {
-                    throw new RuntimeException(e);
-                }
+                itr.close();
                 
             }
             

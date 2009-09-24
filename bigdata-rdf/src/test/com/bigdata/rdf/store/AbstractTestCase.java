@@ -48,7 +48,6 @@ import org.openrdf.model.Statement;
 import org.openrdf.model.Value;
 import org.openrdf.rio.RDFHandler;
 import org.openrdf.rio.helpers.RDFHandlerBase;
-import org.openrdf.sail.SailException;
 
 import com.bigdata.LRUNexus;
 import com.bigdata.btree.BytesUtil;
@@ -630,7 +629,7 @@ abstract public class AbstractTestCase
     }
     
     static public void assertSameStatements(Statement[] expected,
-            BigdataStatementIterator actual) throws SailException {
+            BigdataStatementIterator actual) {
 
         assertSameStatements("", expected, actual);
 
@@ -642,7 +641,7 @@ abstract public class AbstractTestCase
      *       this should test for the same statements in any order
      */
     static public void assertSameStatements(String msg, Statement[] expected,
-            BigdataStatementIterator actual) throws SailException {
+            BigdataStatementIterator actual) {
 
         int i = 0;
 

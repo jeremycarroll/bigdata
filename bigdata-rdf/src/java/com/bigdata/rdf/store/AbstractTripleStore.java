@@ -59,7 +59,6 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.model.vocabulary.XMLSchema;
 import org.openrdf.rio.rdfxml.RDFXMLParser;
-import org.openrdf.sail.SailException;
 
 import com.bigdata.btree.AbstractBTree;
 import com.bigdata.btree.BTree;
@@ -1302,10 +1301,6 @@ abstract public class AbstractTripleStore extends
      * Literals as "documents." The literals are broken down into "token"s to
      * obtain a "token frequency distribution" for that literal/document. The
      * full text index contains the indexed token data.
-     * <p>
-     * Note: the {@link FullTextIndex} is implemented against the
-     * {@link IBigdataFederation} API and is therefore not available for a
-     * {@link TempTripleStore}.
      * 
      * @return The object managing the text search indices or <code>null</code>
      *         iff text search is not enabled.
@@ -1689,7 +1684,7 @@ abstract public class AbstractTripleStore extends
     final public void addStatement(final Resource s, final URI p,
             final Value o, final Resource c) {
 
-        if (spoKeyArity == 4 && c == null) {
+        if (quads && c == null) {
 
             /*
              * The context position MUST be bound for a quad store.
@@ -1916,14 +1911,14 @@ abstract public class AbstractTripleStore extends
     }
 
     final public BigdataStatement getStatement(final Resource s, final URI p,
-            final Value o) throws SailException {
+            final Value o) {
 
         return getStatement(s, p, o, null/* c */);
         
     }
 
     final public BigdataStatement getStatement(final Resource s, final URI p,
-            final Value o, final Resource c) throws SailException {
+            final Value o, final Resource c) {
 
         if (s == null || p == null || o == null || (quads && c == null)) {
 
@@ -2514,21 +2509,9 @@ abstract public class AbstractTripleStore extends
         
             return sb;
         
-        } catch (SailException e) {
-
-            throw new RuntimeException(e);
-
         } finally {
 
-            try {
-
-                itr2.close();
-                
-            } catch (SailException ex) {
-                
-                throw new RuntimeException(ex);
-                
-            }
+            itr2.close();
             
         }
 
@@ -2669,15 +2652,7 @@ abstract public class AbstractTripleStore extends
                 
             } finally {
                 
-                try {
-
-                    itr.close();
-                    
-                } catch (SailException ex) {
-                    
-                    log.error(ex, ex);
-                    
-                }
+                itr.close();
                 
             }
 
@@ -2720,11 +2695,12 @@ abstract public class AbstractTripleStore extends
     public StringBuilder dumpStatements(final IAccessPath<ISPO> accessPath) {
                 
         final StringBuilder sb = new StringBuilder();
-        
-        final BigdataStatementIterator itr = asStatementIterator(accessPath.iterator());
-        
+
+        final BigdataStatementIterator itr = asStatementIterator(accessPath
+                .iterator());
+
         try {
-            
+
             while(itr.hasNext()) {
                 
                 sb.append("\n"+itr.next());
@@ -2735,15 +2711,7 @@ abstract public class AbstractTripleStore extends
             
         } finally {
             
-            try {
-
-                itr.close();
-                
-            } catch (SailException ex) {
-                
-                log.error(ex, ex);
-                
-            }
+            itr.close();
             
         }
         

@@ -82,7 +82,6 @@ import com.bigdata.relation.locator.DefaultResourceLocator;
 import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.service.IBigdataClient;
-import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.util.concurrent.ExecutionHelper;
 
@@ -166,13 +165,13 @@ import com.bigdata.util.concurrent.ExecutionHelper;
  * convention of assuming a token frequency of ONE (1) for each document in
  * which the token appears.
  * <p>
- * Tokenization is informed by the language code for a {@link Literal} (when
- * declared) and by the configured {@link Locale} for the database otherwise. An
- * appropriate {@link Analyzer} is chosen based on the language code or
- * {@link Locale} and the "document" is broken into a token-frequency
- * distribution (alternatively a set of tokens). The same process is used to
- * tokenize queries, and the API allows the caller to specify the language code
- * used to select the {@link Analyzer} to tokenize the query.
+ * Tokenization is informed by the language code (when declared) and by the
+ * configured {@link Locale} for the database otherwise. An appropriate
+ * {@link Analyzer} is chosen based on the language code or {@link Locale} and
+ * the "document" is broken into a token-frequency distribution (alternatively a
+ * set of tokens). The same process is used to tokenize queries, and the API
+ * allows the caller to specify the language code used to select the
+ * {@link Analyzer} to tokenize the query.
  * <p>
  * Once the tokens are formed the language code / {@link Locale} used to produce
  * the token is discarded (it is not represented in the index). The reason for
@@ -188,9 +187,6 @@ import com.bigdata.util.concurrent.ExecutionHelper;
  * application, the {@link Locale} for the collator is likewise not critical and
  * PRIMARY strength will produce significantly shorter Unicode sort keys.
  * <p>
- * A map from tokens extracted from {@link Literal}s to the term identifiers of
- * the literals from which those tokens were extracted.
- * 
  * The term frequency within that literal is an optional property associated
  * with each term identifier, as is the computed weight for the token in the
  * term.
@@ -324,9 +320,9 @@ public class FullTextIndex extends AbstractRelation {
          * 
          * @todo the configuration should probably come from a configuration
          *       properties stored for the full text indexer in the
-         *       {@link IBigdataFederation#getGlobalRowStore(timestamp)}. The main issue
-         *       is how you want to encode unicode strings for search, which can
-         *       be different than encoding for other purposes.
+         *       {@link IIndexManager#getGlobalRowStore()}. The main issue is
+         *       how you want to encode unicode strings for search, which can be
+         *       different than encoding for other purposes.
          * 
          * @todo consider modifying the default system so that defaults can be
          *       made on a per-index, per-application, or per-namespace basis.

@@ -58,6 +58,8 @@ import com.bigdata.service.AbstractScaleOutFederation;
  * 
  *          FIXME variant to test w/ and w/o the full text index (with lookup by
  *          tokens).
+ *          
+ *          FIXME variant to test w/ quads.
  * 
  *          FIXME variant to test async w/ sids (once written).
  * 
@@ -67,19 +69,19 @@ import com.bigdata.service.AbstractScaleOutFederation;
  * @see TestScaleOutTripleStoreWithEmbeddedFederation
  * @see RDFFileLoadTask
  */
-public class TestAsynchronousStatementBuffer extends
+public class TestAsynchronousStatementBufferFactory extends
         AbstractRIOTestCase {
 
     /**
      * 
      */
-    public TestAsynchronousStatementBuffer() {
+    public TestAsynchronousStatementBufferFactory() {
     }
 
     /**
      * @param name
      */
-    public TestAsynchronousStatementBuffer(String name) {
+    public TestAsynchronousStatementBufferFactory(String name) {
         super(name);
     }
 
@@ -184,6 +186,14 @@ public class TestAsynchronousStatementBuffer extends
                 
             }
 
+            if (store.isQuads()) {
+
+                log.warn("Quads not supported yet.");
+                
+                return;
+                
+            }
+
             // only do load since we expect an error to be reported.
             final AsynchronousStatementBufferFactory<BigdataStatement, File> factory = doLoad2(
                     store, new File(resource), parallel);
@@ -259,6 +269,14 @@ public class TestAsynchronousStatementBuffer extends
         if (!(store.getIndexManager() instanceof AbstractScaleOutFederation)) {
 
             log.warn("Test requires scale-out index views.");
+            
+            return;
+            
+        }
+        
+        if (store.isQuads()) {
+
+            log.warn("Quads not supported yet.");
             
             return;
             

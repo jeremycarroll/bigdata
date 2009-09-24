@@ -45,7 +45,6 @@ import org.openrdf.model.impl.URIImpl;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.model.vocabulary.XMLSchema;
-import org.openrdf.sail.SailException;
 
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.lexicon.Id2TermWriteProc;
@@ -1023,7 +1022,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
      * Test the ability to add and remove statements using both fully bound and
      * partly bound triple patterns using the Sesame compatible API.
      */
-    public void test_addRemove_sesameAPI() throws SailException {
+    public void test_addRemove_sesameAPI(){
 
         final Properties properties = super.getProperties();
 

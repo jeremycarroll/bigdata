@@ -47,11 +47,8 @@ Modifications:
 
 package com.bigdata.rdf.store;
 
-import info.aduna.iteration.CloseableIteration;
-
-import org.openrdf.sail.SailException;
-
 import com.bigdata.rdf.model.BigdataValue;
+import com.bigdata.striterator.ICloseableIterator;
 
 /**
  * Iterator visiting {@link BigdataValue}s.
@@ -59,7 +56,6 @@ import com.bigdata.rdf.model.BigdataValue;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface BigdataValueIterator extends
-        CloseableIteration<BigdataValue, SailException> {
+public interface BigdataValueIterator extends ICloseableIterator<BigdataValue> {
 
 }

@@ -130,7 +130,6 @@ import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.BNS;
-import com.bigdata.rdf.store.Bigdata2SesameIteration;
 import com.bigdata.rdf.store.BigdataSolutionResolverator;
 import com.bigdata.rdf.store.BigdataStatementIterator;
 import com.bigdata.rdf.store.BigdataStatementIteratorImpl;
@@ -144,7 +143,6 @@ import com.bigdata.rdf.store.TempTripleStore;
 import com.bigdata.relation.accesspath.EmptyAccessPath;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.accesspath.IElementFilter;
-import com.bigdata.relation.rule.EmptyBindingSet;
 import com.bigdata.relation.rule.IRule;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.CloseableIteratorWrapper;
@@ -1754,7 +1752,6 @@ public class BigdataSail extends SailBase implements Sail {
             
         }
 
-        @SuppressWarnings("unchecked")
         public CloseableIteration<? extends Resource, SailException> getContextIDs()
                 throws SailException {
             
@@ -2044,7 +2041,8 @@ public class BigdataSail extends SailBase implements Sail {
                 
                 // Operates on all contexts.
                 
-                return getStatements(s, p, o, null/* c */, includeInferred);
+                return new Bigdata2SesameIteration<Statement, SailException>(
+                        getStatements(s, p, o, null/* c */, includeInferred));
 
             }
 
@@ -2052,7 +2050,9 @@ public class BigdataSail extends SailBase implements Sail {
 
                 // Operate on just the nullGraph.
                 
-                return getStatements(s, p, o, NULL_GRAPH/* c */, includeInferred);
+                return new Bigdata2SesameIteration<Statement, SailException>(
+                        getStatements(s, p, o, NULL_GRAPH/* c */,
+                                includeInferred));
 
             }
 

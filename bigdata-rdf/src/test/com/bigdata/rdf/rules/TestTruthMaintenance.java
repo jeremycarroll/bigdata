@@ -42,7 +42,6 @@ import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.rio.RDFFormat;
-import org.openrdf.sail.SailException;
 
 import com.bigdata.rdf.inf.TruthMaintenance;
 import com.bigdata.rdf.model.BigdataStatement;
@@ -444,10 +443,8 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      * (this is based on rdfs11). After we verify the closure, we retract the
      * explicit statement and then verify that the closure was updated such that
      * the statement was downgraded to an inference.
-     * 
-     * @throws SailException 
      */
-    public void test_downgradeExplicitToInference() throws SailException {
+    public void test_downgradeExplicitToInference() {
         
         final AbstractTripleStore store = getStore();
         
@@ -596,7 +593,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      * <p>
      * Delete a and verify that c is NOT gone since it is an explicit statement.
      */
-    public void test_retractWhenStatementSupportsExplicitStatement() throws SailException {
+    public void test_retractWhenStatementSupportsExplicitStatement() {
      
         URI user = new URIImpl("http://www.bigdata.com/user");
         URI currentGraph = new URIImpl("http://www.bigdata.com/currentGraph");
@@ -1048,7 +1045,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      *            retracted on each recursive pass.
      */
     public void doStressTest(TempTripleStore tmp, InferenceEngine inf,
-            int ntrials, int D, int N) throws SailException {
+            int ntrials, int D, int N) {
 
         AbstractTripleStore store = inf.database;
         
@@ -1103,7 +1100,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      *            of recursion for retraction from the database.
      */
     private void retractAndAssert(InferenceEngine inf, AbstractTripleStore db,
-            int depth, final int D, final int N) throws SailException {
+            int depth, final int D, final int N) {
 
         assert depth >= 0;
         assert depth < D;

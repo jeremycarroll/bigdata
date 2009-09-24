@@ -457,7 +457,7 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
      * {@link FullTextIndex}.
      * 
      * @see Options#TEXT_INDEX
-     *       
+     * 
      * @todo replace with the use of the {@link IResourceLocator} since it
      *       already imposes a canonicalizing mapping within for the index name
      *       and timestamp inside of a JVM.
@@ -603,7 +603,7 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
         return prefixScan(new Literal[] { lit });
         
     }
-    
+
     /**
      * A scan of all literals having any of the given literals as a prefix.
      * 
@@ -624,10 +624,10 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
         if (lits == null || lits.length == 0)
             throw new IllegalArgumentException();
 
-        if(log.isInfoEnabled()) {
+        if (log.isInfoEnabled()) {
 
-            log.info("#lits="+lits.length);
-            
+            log.info("#lits=" + lits.length);
+
         }
 
         /*
@@ -641,7 +641,7 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
         final LexiconKeyBuilder keyBuilder;
         {
 
-            Properties properties = new Properties();
+            final Properties properties = new Properties();
 
             properties.setProperty(KeyBuilder.Options.STRENGTH,
                     StrengthEnum.Primary.toString());
@@ -657,7 +657,7 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
          * Note: Each key is encoded with the appropriate bytes to indicate the
          * kind of literal (plain, languageCode, or datatype literal).
          * 
-         * Note: The key builder was choosen to only encode the PRIMARY
+         * Note: The key builder was chosen to only encode the PRIMARY
          * characteristics so that we obtain a prefix[] suitable for the
          * completion scan.
          */

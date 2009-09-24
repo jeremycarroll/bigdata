@@ -24,10 +24,6 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * Efficiently resolve term identifiers in Bigdata {@link ISolution}s to RDF
  * {@link BigdataValue}s.
  * 
- * @todo decouple from {@link info.aduna.iteration.CloseableIteration} and just
- *       wrap the resulting iterator as a
- *       {@link info.aduna.iteration.CloseableIteration} in the SAIL.
- * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
@@ -43,18 +39,6 @@ public class BigdataStatementIteratorImpl
      * "connection" context.
      */
     private final Map<Long, BigdataBNodeImpl> bnodes;
-
-//    final protected static Logger log = Logger.getLogger(BigdataStatementIteratorImpl.class);
-//
-//    /**
-//     * True iff the {@link #log} level is INFO or less.
-//     */
-//    final protected static boolean INFO = log.isInfoEnabled();
-//
-//    /**
-//     * True iff the {@link #log} level is DEBUG or less.
-//     */
-//    final protected static boolean DEBUG = log.isDebugEnabled();
 
     /**
      * 

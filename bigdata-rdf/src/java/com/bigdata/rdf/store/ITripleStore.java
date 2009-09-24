@@ -31,7 +31,6 @@ import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
-import org.openrdf.sail.SailException;
 
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.BigdataStatementImpl;
@@ -260,14 +259,12 @@ interface ITripleStore {
      * 
      * @see #asValue(Value)
      */
-    BigdataStatement getStatement(Resource s, URI p, Value o, Resource c)
-            throws SailException;
+    BigdataStatement getStatement(Resource s, URI p, Value o, Resource c);
 
     /**
      * @deprecated by {@link #getStatement(Resource, URI, Value, Resource)}
      */
-    BigdataStatement getStatement(Resource s, URI p, Value o)
-            throws SailException;
+    BigdataStatement getStatement(Resource s, URI p, Value o);
 
     /**
      * Return an iterator that will visit all {@link BigdataStatement}s in the
