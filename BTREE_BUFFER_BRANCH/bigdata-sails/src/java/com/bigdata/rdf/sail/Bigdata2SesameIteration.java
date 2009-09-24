@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Sep 4, 2008
  */
 
-package com.bigdata.rdf.store;
+package com.bigdata.rdf.sail;
 
 import info.aduna.iteration.CloseableIteration;
 
@@ -46,9 +46,9 @@ import com.bigdata.striterator.ICloseableIterator;
 public class Bigdata2SesameIteration<T, E extends Exception> implements
         CloseableIteration<T, E> {
 
-    private final ICloseableIterator<T> src;
+    private final ICloseableIterator<? extends T> src;
     
-    public Bigdata2SesameIteration(final ICloseableIterator<T> src) {
+    public Bigdata2SesameIteration(final ICloseableIterator<? extends T> src) {
         
         if (src == null)
             throw new IllegalArgumentException();

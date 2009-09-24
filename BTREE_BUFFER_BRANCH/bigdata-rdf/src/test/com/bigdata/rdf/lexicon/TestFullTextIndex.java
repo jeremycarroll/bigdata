@@ -27,45 +27,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.lexicon;
 
-import info.aduna.iteration.CloseableIteration;
-
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import junit.framework.AssertionFailedError;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.model.vocabulary.XMLSchema;
-import org.openrdf.sail.SailException;
 
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.spo.TestSPOKeyOrder;
-import com.bigdata.rdf.store.AbstractLocalTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
 import com.bigdata.rdf.store.BigdataValueIteratorImpl;
-import com.bigdata.search.FullTextIndex;
 import com.bigdata.search.Hit;
 import com.bigdata.search.Hiterator;
-import com.bigdata.service.IBigdataClient;
 import com.bigdata.striterator.ChunkedWrappedIterator;
+import com.bigdata.striterator.ICloseableIterator;
 import com.bigdata.striterator.Resolver;
 import com.bigdata.striterator.Striterator;
 
 /**
  * Test of adding terms with the full text index enabled and of lookup of terms
  * by tokens which appear within those terms.
- * <p>
- * Note: The {@link FullTextIndex} is written to the {@link IBigdataClient} API
- * so it can not be tested against the {@link AbstractLocalTripleStore}s.
- * 
- * @todo test both the term at a time and the batch term insert APIs.
  * 
  * @todo test all term types (uris, bnodes, and literals). only literals are
  *       being indexed right now, but there could be a use case for tokenizing
  *       URIs. There is never going to be any reason to tokenize BNodes.
- * 
- * @todo test data type support (probably do not index data typed terms).
  * 
  * @todo test XML literal indexing (strip out CDATA and index the tokens found
  *       therein).
@@ -124,26 +116,53 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
         assertEquals(id, store.addTerm(term));
 
     }
-    
+
     private void assertExpectedHits(final AbstractTripleStore store,
-            final String languageCode, final String query,
+            final String query, final String languageCode, 
             final BigdataValue[] expected) {
-
-        final Hiterator itr = store.getLexiconRelation().getSearchEngine()
-                .search(query, languageCode);
-
-        assertEquals((long) expected.length, itr.size());
         
-//        final CloseableIteration<BigdataValue,SailException> itr2 = new BigdataValueIteratorImpl(
-//                store, new ChunkedWrappedIterator<Long>(new Striterator(itr)
-//                        .addFilter(new Resolver() {
-//                            @Override
-//                            protected Object resolve(Object e) {
-//                                return ((Hit) e).getDocId();
-//                            }
-//                        })));
-//        
-//        TestSPOKeyOrder.assertSameIteratorAnyOrder(expected, itr2);
+        assertExpectedHits(store, query, languageCode, .4f/* minCosine */,
+                expected);
+
+    }
+
+    @SuppressWarnings("unchecked")
+    private void assertExpectedHits(final AbstractTripleStore store,
+            final String query, final String languageCode,
+            final float minCosine, final BigdataValue[] expected) {
+
+        final Hiterator hitr = store.getLexiconRelation().getSearchEngine()
+                .search(query, languageCode, false/* prefixMatch */, minCosine,
+                        Integer.MAX_VALUE/* maxRank */, 2L/* timeout */,
+                        TimeUnit.SECONDS);
+
+        // assertEquals("#hits", (long) expected.length, itr.size());
+
+        final ICloseableIterator<BigdataValue> itr2 = new BigdataValueIteratorImpl(
+                store, new ChunkedWrappedIterator<Long>(new Striterator(hitr)
+                        .addFilter(new Resolver() {
+                            private static final long serialVersionUID = 1L;
+
+                            @Override
+                            protected Object resolve(Object e) {
+                                return ((Hit) e).getDocId();
+                            }
+                        })));
+
+        try {
+
+            TestSPOKeyOrder.assertSameIteratorAnyOrder(expected, itr2);
+
+        } catch (AssertionFailedError ex) {
+
+            fail("minCosine=" + minCosine + ", expected="
+                    + Arrays.toString(expected) + ", actual=" + hitr, ex);
+
+        } finally {
+
+            itr2.close();
+
+        }
         
     }
 
@@ -178,23 +197,48 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
 
             dumpTerms(store);
 
-            assertExpectedHits(store, null, "abc", new BigdataValue[] {
-                    f.createLiteral("abc"), f.createLiteral("abc", "en") });
+            /*
+             * Note: the language code is only used when tokenizing literals. It
+             * IS NOT applied as a filter to the recovered literals.
+             */
+            
+            assertExpectedHits(store, "abc", null/* languageCode */,
+                    new BigdataValue[] { //
+                    f.createLiteral("abc"),//
+                            f.createLiteral("abc", "en") //
+                    });
 
-            assertExpectedHits(store, "en", "tag", new BigdataValue[] { f
-                    .createLiteral("tag team", "en") });
+            assertExpectedHits(store, "tag", "en", new BigdataValue[] {//
+                    f.createLiteral("gutten tag", "de"), //
+                    f.createLiteral("tag team", "en") //
+                    });
 
-            assertExpectedHits(store, "de", "tag", new BigdataValue[] { f
-                    .createLiteral("gutten tag", "de") });
+            assertExpectedHits(store, "tag", "de", new BigdataValue[] {//
+                    f.createLiteral("gutten tag", "de"), //
+                    f.createLiteral("tag team", "en") //
+                    });
 
-            store.textSearch("", "abc"); // finds plain literals (@todo or anytype?)
-            store.textSearch("en", "abc");
-            store.textSearch("en", "GOOD DAY");
-            store.textSearch("de", "gutten tag");
-            store.textSearch("de", "tag");
-            store.textSearch("en", "tag");
-            store.textSearch("de", "team");
-            store.textSearch("en", "the"); // 'the' is a stopword.
+            assertExpectedHits(store, "GOOD DAY", "en", //
+                    .0f, // minCosine
+                    new BigdataValue[] {//
+                    f.createLiteral("good day", "en"), //
+                    f.createLiteral("the first day", "en") //
+                    });
+
+            assertExpectedHits(store, "GOOD DAY", "en", //
+                    .4f, // minCosine
+                    new BigdataValue[] {//
+                    f.createLiteral("good day", "en"), //
+                    });
+
+            assertExpectedHits(store, "day", "en", //
+                    .0f, // minCosine
+                    new BigdataValue[] {
+                    f.createLiteral("good day", "en"),
+                    f.createLiteral("the first day", "en") });
+
+            // 'the' is a stopword, so there are no hits.
+            assertExpectedHits(store, "the", "en", new BigdataValue[] {});
 
             /*
              * re-open the store before search to verify that the data were made
@@ -207,15 +251,41 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
                 store = reopenStore(store);
 
                 assertNotNull(store.getLexiconRelation().getSearchEngine());
+                
+                assertExpectedHits(store, "abc", null/* languageCode */,
+                        new BigdataValue[] { //
+                        f.createLiteral("abc"),//
+                                f.createLiteral("abc", "en") //
+                        });
 
-                store.textSearch("", "abc"); // finds plain literals (@todo or anytype?)
-                store.textSearch("en", "abc");
-                store.textSearch("en", "GOOD DAY");
-                store.textSearch("de", "gutten tag");
-                store.textSearch("de", "tag");
-                store.textSearch("en", "tag");
-                store.textSearch("de", "team");
-                store.textSearch("en", "the"); // 'the' is a stopword.
+                assertExpectedHits(store, "tag", "en", new BigdataValue[] {//
+                        f.createLiteral("gutten tag", "de"), //
+                        f.createLiteral("tag team", "en") //
+                        });
+
+                assertExpectedHits(store, "tag", "de", new BigdataValue[] {//
+                        f.createLiteral("gutten tag", "de"), //
+                        f.createLiteral("tag team", "en") //
+                        });
+
+                assertExpectedHits(store, "GOOD DAY", "en", //
+                        .0f, // minCosine
+                        new BigdataValue[] {//
+                        f.createLiteral("good day", "en"), //
+                        f.createLiteral("the first day", "en") //
+                        });
+
+                assertExpectedHits(store, "GOOD DAY", "en", //
+                        .4f, // minCosine
+                        new BigdataValue[] {//
+                        f.createLiteral("good day", "en"), //
+                        });
+
+                assertExpectedHits(store, "day", "en", //
+                        .0f, // minCosine
+                        new BigdataValue[] {
+                        f.createLiteral("good day", "en"),
+                        f.createLiteral("the first day", "en") });
                 
             }
             
@@ -248,15 +318,28 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
                     
                     f.createLiteral("quick brown fox"),//
 
-                    f.createLiteral("slow blue dog", f
+                    f.createLiteral("slow brown dog", f
                             .asValue(XMLSchema.STRING)),//
                     
-                    f.createLiteral("http://www.bigdata/com/mangy/yellow/cat",
+                    f.createLiteral("http://www.bigdata.com/mangy/yellow/cat",
                             f.asValue(XMLSchema.ANYURI)),//
             };
 
             store.addTerms(terms);
 
+            assertExpectedHits(store, "brown", "en", //
+                    0f, // minCosine,
+                    new BigdataValue[] {//
+                    f.createLiteral("quick brown fox"), //
+                    f.createLiteral("slow brown dog", XMLSchema.STRING) //
+                    });
+            
+            assertExpectedHits(store, "cat", "en", //
+//                    0f, // minCosine,
+                    new BigdataValue[] {//
+                    f.createLiteral("http://www.bigdata.com/mangy/yellow/cat",
+                            f.asValue(XMLSchema.ANYURI))//
+                    });
             
             if(store.isStable()) {
                 
