@@ -108,7 +108,7 @@ abstract public class TupleFilter<E> implements ITupleFilter<E> {
          */
         final private AbstractTuple returnValue;
         
-        public Filterator(ITupleIterator<E> src) {
+        public Filterator(final ITupleIterator<E> src) {
 
             this.src = src;
 

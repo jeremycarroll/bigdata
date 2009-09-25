@@ -35,6 +35,7 @@ import junit.framework.TestCase2;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.striterator.ICloseableIterator;
 
 /**
  * Test suite for {@link SPOKeyOrder}. 
@@ -220,6 +221,8 @@ public class TestSPOKeyOrder extends TestCase2 {
     static public void assertSameIteratorAnyOrder(final String msg,
             final Object[] expected, final Iterator actual) {
 
+        try {
+        
         // Populate a map that we will use to realize the match and
         // selection without replacement logic.
 
@@ -245,7 +248,7 @@ public class TestSPOKeyOrder extends TestCase2 {
 
             }
 
-            Object actualObject = actual.next();
+            final Object actualObject = actual.next();
 
             if (range.remove(actualObject) == null) {
 
@@ -260,6 +263,16 @@ public class TestSPOKeyOrder extends TestCase2 {
 
             fail("Iterator will deliver too many objects.");
 
+        }
+        
+        } finally {
+            
+            if(actual instanceof ICloseableIterator) {
+                
+                ((ICloseableIterator)actual).close();
+                
+            }
+            
         }
 
     }

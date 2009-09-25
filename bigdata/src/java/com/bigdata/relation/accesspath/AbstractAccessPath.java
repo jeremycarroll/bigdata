@@ -113,9 +113,9 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
     /** Iterator flags. */
     protected final int flags;
-    private final int chunkOfChunksCapacity;
-    private final int chunkCapacity;
-    private final int fullyBufferedReadThreshold;
+    protected final int chunkOfChunksCapacity;
+    protected final int chunkCapacity;
+    protected final int fullyBufferedReadThreshold;
     
     /**
      * The maximum <em>limit</em> that is allowed for a fully-buffered read.
@@ -154,6 +154,18 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
      */
     final protected FilterConstructor<R> filter;
 
+//    /**
+//     * A copy of the filter derived from the {@link IElementFilter}.
+//     */
+//    public FilterConstructor<R> getFilter() {
+//
+//        if (filter == null)
+//            return null;
+//
+//        return filter.clone();
+//        
+//    }
+    
     /**
      * Used to detect failure to call {@link #init()}.
      */
@@ -389,7 +401,6 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
             
         }
         
-        @SuppressWarnings("unchecked")
         public boolean isValid(final ITuple<R> tuple) {
             
             final R obj = (R) tuple.getObject();
@@ -447,6 +458,16 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         
         if(log.isDebugEnabled()) {
             
+            if (fromKey != null && toKey != null) {
+                
+                if (BytesUtil.compareBytes(fromKey, toKey) >= 0) {
+
+                    throw new AssertionError("keys are out of order: " + toString());
+
+                }
+                
+            }
+
             log.debug(toString());
             
         }
@@ -481,6 +502,13 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         
     }
 
+    /**
+     * @todo for scale-out, it may be better to implement {@link #isEmpty()}
+     *       without specifying a capacity of ONE (1) and then caching the
+     *       returned iterator. This could avoid an expensive RMI test if we
+     *       invoke {@link #iterator()} shortly after {@link #isEmpty()} returns
+     *       <code>false</code>.
+     */
     public boolean isEmpty() {
 
         assertInitialized();
@@ -532,42 +560,49 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         
     }
 
-    final public IChunkedOrderedIterator<R> iterator(int limit, int capacity) {
-    
+    final public IChunkedOrderedIterator<R> iterator(final int limit,
+            final int capacity) {
+
         return iterator(0L/* offset */, limit, capacity);
-        
+
     }
-    
+
     /**
      * @throws RejectedExecutionException
      *             if the iterator is run asynchronously and the
      *             {@link ExecutorService} is shutdown or has a maximum capacity
      *             and is saturated.
      * 
-     * FIXME Support both offset and limit for asynchronous iterators. right now
-     * this will force the use of the
-     * {@link #synchronousIterator(long, long, Iterator)} when the offset or
-     * limit are non-zero, but that is only permitted up to a limit of
-     * {@link #MAX_FULLY_BUFFERED_READ_LIMIT}.
+     *             FIXME Support both offset and limit for asynchronous
+     *             iterators. right now this will force the use of the
+     *             {@link #synchronousIterator(long, long, Iterator)} when the
+     *             offset or limit are non-zero, but that is only permitted up
+     *             to a limit of {@link #MAX_FULLY_BUFFERED_READ_LIMIT}.
      * 
-     * FIXME in order to support large limits we need to verify that the
-     * asynchronous iterator can correctly handle REMOVEALL and that incremental
-     * materialization up to the [limit] will not effect the semantics for
-     * REMOVEALL or the other iterator flags (per above). (In fact, the
-     * asynchronous iterator does not support either [offset] or [limit] at this
-     * time).
+     *             FIXME in order to support large limits we need to verify that
+     *             the asynchronous iterator can correctly handle REMOVEALL and
+     *             that incremental materialization up to the [limit] will not
+     *             effect the semantics for REMOVEALL or the other iterator
+     *             flags (per above). (In fact, the asynchronous iterator does
+     *             not support either [offset] or [limit] at this time).
      * 
-     * FIXME write unit tests for slice handling by this method and modify the
-     * SAIL integration to use it for SLICE on an {@link IAccessPath} scan. Note
-     * that there are several {@link IAccessPath} implementations and they all
-     * need to be tested with SLICE.
+     *             FIXME write unit tests for slice handling by this method and
+     *             modify the SAIL integration to use it for SLICE on an
+     *             {@link IAccessPath} scan. Note that there are several
+     *             {@link IAccessPath} implementations and they all need to be
+     *             tested with SLICE.
      * 
-     * Those tests should be located in
-     * {@link com.bigdata.rdf.spo.TestSPOAccessPath}.
+     *             Those tests should be located in
+     *             {@link com.bigdata.rdf.spo.TestSPOAccessPath}.
+     * 
+     *             FIXME The offset and limit should probably be rolled into the
+     *             predicate and removed from the {@link IAccessPath}. This way
+     *             they will be correctly applied when {@link #isEmpty()} is
+     *             implemented using the {@link #iterator()} to determine if any
      */
     @SuppressWarnings("unchecked")
-    final public IChunkedOrderedIterator<R> iterator(long offset, long limit,
-            int capacity) {
+    final public IChunkedOrderedIterator<R> iterator(final long offset,
+            long limit, int capacity) {
 
         if (offset < 0)
             throw new IllegalArgumentException();
@@ -596,7 +631,10 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
             /*
              * The access path has already been proven to be empty.
              */
-            
+
+            if (log.isDebugEnabled())
+                log.debug("Proven empty by historical range count");
+
             return new EmptyChunkedIterator<R>(keyOrder);
             
         }
@@ -1062,7 +1100,12 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         final long n;
         
         if(exact) {
-        
+
+            /*
+             * @todo we can cache exact range counts also, but we can not return
+             * a cached estimated range count when an exact range count is
+             * requested.
+             */
             n = ndx.rangeCountExact(fromKey, toKey);
 
         } else {

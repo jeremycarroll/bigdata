@@ -333,11 +333,29 @@ PRIORITIES
 
 	  - Fast notification mechanism of delta in each tx.
 
-        - (***) Problems appearing for async data load for quads?  for
-          triples too?
+	- Performance tuning for super fast query.
+
+	- Aggressive optimization and/or caching to support fast
+          query-time inference.
+
+	- Performance tuning to minimize GC and other costs during
+          load.
+
+	- (***) Make sure that bigdata can run its own bigdata-rdf
+          test suites on quads.  There are several tests which are
+          currently broken.  Run the quads tests for TTS, LTS, and EDS
+          modes.
 
         - (***) Exact range count or range count with filter MUST do
-          scan passing in the filter.
+          an index scan passing the filter into the rangeIterator.
+          This could be a parallel index scan.
+
+        - Document whether or not a non-exact range count will apply
+	  an optional filter, which would require it do to an iterator
+	  scan.  Probably no, since the purpose is generally to get a
+	  fast estimate of the cost of the access path.  However, this
+	  can effect unit tests which make assumptions about the
+	  behavior of the fast range counts.
 
 	- Consider having the Journal get its write cache from the
           DirectBufferPool.  It would then allocate and release the
@@ -349,7 +367,76 @@ PRIORITIES
           logic in the OverflowManager could also be simplified and
           synchronous overflow could be made much more robust.
 
-	- LDS errors in TestTruthMaintenance and
+        - EDS test failures.
+
+	  - TestAsynchronousStatementBufferFactory (indices are not
+            consistent).  Also, it takes WAY too long to compare the
+            indices against one another.  This should be fairly snappy
+            if we do chunked ordered comparisons of the access paths.
+            The validation logic is based on a reparse, so maybe it is
+            not as efficient as cross index validation?  Switch to the
+            latter?  Does it also report a problem?
+
+	  - TestFullTextIndex (both tests fail).
+
+	  - TestModelsEqual.
+
+java.lang.IllegalStateException
+	at com.bigdata.service.AbstractFederation.assertOpen(AbstractFederation.java:277)
+	at com.bigdata.service.AbstractScaleOutFederation.getMetadataIndex(AbstractScaleOutFederation.java:228)
+	at com.bigdata.service.ndx.ClientIndexView.submit(ClientIndexView.java:812)
+	at com.bigdata.service.ndx.ClientIndexView.submit(ClientIndexView.java:794)
+	at com.bigdata.sparse.SparseRowStore.delete(SparseRowStore.java:841)
+	at com.bigdata.sparse.SparseRowStore.delete(SparseRowStore.java:779)
+	at com.bigdata.relation.AbstractResource.destroy(AbstractResource.java:668)
+	at com.bigdata.rdf.lexicon.LexiconRelation.destroy(LexiconRelation.java:316)
+	at com.bigdata.rdf.store.AbstractTripleStore.destroy(AbstractTripleStore.java:1127)
+	at com.bigdata.rdf.store.AbstractTripleStore.__tearDownUnitTest(AbstractTripleStore.java:919)
+	at com.bigdata.rdf.rules.TestModelsEqual.test_modelsEqual(TestModelsEqual.java:188)
+
+	- TestDatabaseAtOnceClosure (1 test failure).
+          TestRuleOwlHasValue failed in the same manner.
+
+junit.framework.AssertionFailedError
+	at junit.framework.Assert.fail(Assert.java:47)
+	at junit.framework.Assert.assertTrue(Assert.java:20)
+	at junit.framework.Assert.assertTrue(Assert.java:27)
+	at com.bigdata.rdf.rules.TestDatabaseAtOnceClosure.doFixedPointTest(TestDatabaseAtOnceClosure.java:752)
+	at com.bigdata.rdf.rules.TestDatabaseAtOnceClosure.test_fixedPoint_SampleData_Full_PipelineJoins(TestDatabaseAtOnceClosure.java:233)
+
+	 - TestSlice
+
+junit.framework.AssertionFailedError: Wrong bindings: index=1, actual={x=4035225266123964416, y=-576460752303423488, z=4899916394579099648}, expected={x=-2882303761517117440, y=8646911284551352320, z=-8935141660703064064}
+	at junit.framework.Assert.fail(Assert.java:47)
+	at com.bigdata.rdf.rules.TestSlice.assertSameSolutions(TestSlice.java:321)
+	at com.bigdata.rdf.rules.TestSlice.test_slice(TestSlice.java:203)
+
+	 - TestOptionals
+
+junit.framework.AssertionFailedError: wrong # of solutions
+	at junit.framework.Assert.fail(Assert.java:47)
+	at junit.framework.Assert.assertTrue(Assert.java:20)
+	at com.bigdata.rdf.rules.TestOptionals.test_optionals(TestOptionals.java:193)
+
+	 - TestBulkFilter
+
+junit.framework.AssertionFailedError: Expecting: 1 more statements: [< -8358680908399640576U, 6052837899185946624U, -3746994889972252672U : Explicit >]
+	at junit.framework.Assert.fail(Assert.java:47)
+	at com.bigdata.rdf.store.AbstractTestCase.assertSameSPOsAnyOrder(AbstractTestCase.java:619)
+	at com.bigdata.rdf.store.TestBulkFilter.test_filterOut(TestBulkFilter.java:155)
+
+	 - TestRuleFastClosure_11_13 (both tests fail with similar symptoms).
+
+junit.framework.AssertionFailedError: mutationCount(Insert) expected:<1> but was:<0>
+	at junit.framework.Assert.fail(Assert.java:47)
+	at junit.framework.Assert.failNotEquals(Assert.java:282)
+	at junit.framework.Assert.assertEquals(Assert.java:64)
+	at junit.framework.Assert.assertEquals(Assert.java:136)
+	at com.bigdata.rdf.rules.AbstractRuleTestCase.applyRule(AbstractRuleTestCase.java:166)
+	at com.bigdata.rdf.rules.AbstractRuleTestCase.applyRule(AbstractRuleTestCase.java:67)
+	at com.bigdata.rdf.rules.TestRuleFastClosure_11_13.test_RuleFastForwardClosure11(TestRuleFastClosure_11_13.java:119)
+
+	- (****) EDS/LDS errors in TestTruthMaintenance and
           TestCompareFullAndFastClosure.  The underlying error is the
           same for both cases.  I am not sure if the right fix is to
           change IIndexStore#getTemporaryStore() to return a
@@ -409,8 +496,6 @@ Caused by: java.lang.UnsupportedOperationException: Not supported: timestamp=rea
 	at com.bigdata.concurrent.NonBlockingLockManagerWithNewDesign$LockFutureTask.run(NonBlockingLockManagerWithNewDesign.java:1966)
 	... 3 more
 
-
-
 	- Record compression will change the performance for the
           simple value raba, will change the binary format of the
           record (a header coding the compression scheme and header
@@ -427,6 +512,10 @@ Caused by: java.lang.UnsupportedOperationException: Not supported: timestamp=rea
 
         - Test the LexiconRelation's termCache.  This should be a big
           help for scale-out query.  Does it work?
+
+	- Use autojar to extract only the necessary classes from
+	  fastutils?  Possibly do this as part of the lgpl-utils
+	  build.
 
 	- (****) Quads and Sesame test suites for same.
 
@@ -464,70 +553,81 @@ java.lang.IllegalStateException: Different statement identifier already defined:
 	at com.bigdata.rdf.sail.BigdataSailRepositoryConnection.commit(BigdataSailRepositoryConnection.java:54)
 	at com.bigdata.rdf.sail.TestSearchQuery.test_restart(TestSearchQuery.java:394)
 
+
+	- What is com.bigdata.rdf.rules.TestRuleExpansion?  It defines
+          test_optionals.  There is a method by the same name in
+          TestOptionals, but the classes differ.  TestRuleExpansion is
+          not run from any test suite.  When I run it directly it
+          fails.
+
 ==================== anzo ====================
 
-	- Support glitter integration, performance optimizations
-          against sample data sets, and hot backup for the Journal.
+- Support glitter integration, performance optimizations against
+  sample data sets, and hot backup for the Journal.
 
-- unit tests for datatype literal indexing option.
+   a) Graph merge semantics for the default data set.
 
-- told bnode mode.
+      x. done. unit tests for DefaultGraphSolutionExpander
 
-- union for default graph query.
+         - write unit tests for defaultGraph query vs named graph
+           query and examine the Sesame tupleExprs.
 
-- wildcards for full text search
+	 - integrate the DefaultGraphSolutionExpander into
+           BigdataEvaluationStrategyImpl.
 
-- full text search with quads.
+         - resolve data set and named graph uris (or is this done
+           already?)
 
-- reduce to minimum sesame dependency for bigdata-rdf, remove
-  dependency on bigdata-jini if possible (isolate in the test suite).
+	 - apply iff dataset != null and parent is not a graph clause.
 
-- Use autojar to extract only the necessary classes from fastutils.
-  Possibly do this as part of the lgpl-utils build.
+         - Make sure that we do not break the triple store mode.
+
+	 - Clear the expander when overriding the context position?
+
+      x. retry the sparql test suite.  see what breaks or is fixed
+         with this change.
+
+   b) Told bnode mode. I still need to look into this, but it is not a
+      show stopper for them.  There are a couple possible issues. 
+      
+      - BigdataValueFactoryImpl needs to have the forward and reverse
+        bnode maps so that blank node mappings remain consistent for
+        Sesame.  This will also make it easier for them to be
+        consistent for anzo.
+
+   c) full text query against a named graph.  I still need to look
+      into this. The problem will be in how the magic predicate is
+      being "translated".  Unit tests for triple and quad store modes.
+
+   d) wildcard search for the full text index.  "*ell*", "?ello",
+      "hell?".  Is there anything better than a full index scan?  Of
+      course -- a prefix scan is better.  Some data types can be
+      mapped onto data type value spaces, which provide normalization,
+      and then indexed normally.  For some types, e.g., phone numbers
+      or domains, it could make sense to reverse the components for
+      search since the tail is better defined that the head.  Soundex
+      and related codes would be interesting for secondary text
+      indices.
+
+      1. can I get prefixScan to work?  If so, then I can do efficient
+         matching when the wildcard appears further down in the
+         string.
+
+      2. seconary text indices could be used for suffix matching
+         (index the reverse of the token) or "sounds like" matching.
+
+      3. term expansion through word net should not be too difficult.
 
 ------------------------------------------------------------
 
 commit log:
 
-- done. Added
-  AbstractTripleStore.Options#TEXT_INDEX_DATATYPE_LITERALS.  You can
-  use this option to enable full text indexing of datatype literals.
+- done. decoupled the Sesame CloseableIteration from bigdata-rdf.  The
+  bigdata-rdf package no longer has any references to either
+  CloseableIteration or SailException.
 
-- done. Modified Banner to not force the resolution of the JMX mbean
-  classes if log4j JMX mbean registration was suppressed.
-
-- done. Added Options interface to com.bigdata.Banner to declare the
-  supported environment variables options understood by that class.
-
-- done. Modified LexiconRelation and FullTextIndex to not eagerly
-  resolve their indices.
-
-- done. Removed cyclic dependency for lgpl-utils.
-
-- done. Removed imports for javadoc only purposes which caused some
-  undesirable cycles in the packages.
-
-- done. Generated a new lgpl-utils jar and updated the lgpl-utils
-  dependency.
-
-- done. Fixed errors in TestTMUtility.  The code was not broken, but
-  has a dependency on SPOPredicate while the unit test was using a
-  different Predicate implementation.  At some point, we should add a
-  predicate "name" attribute, which is really the relation base name
-  (without its container) and then test on the predicate name rather
-  than its Class.  Enhanced the unit tests to check the head of the
-  rewritten rules as well.
-
-- done. The "JUST" index needs to be declared for LDS rule execution.
-  Modified the SPORelation to add this index to its indexNames set.
-  Added a method, statementKeyOrderIterator(), to visit the
-  SPOKeyOrder instances for the indices maintained by the SPORelation.
-  Modified some unit tests which were using getIndexNames() to use
-  statementKeyOrderIterator() instead. LDS closure now works
-  correctly.
-
-- done. Bug fix in TestSPOAccessPath.  It was using the wrong values
-  for the to keys for the triple store.
+- done. added unit tests for full text indexing of datatype literals.
+  fixed unit tests for full text indexing of plain literals.
 
 ============================================================
 

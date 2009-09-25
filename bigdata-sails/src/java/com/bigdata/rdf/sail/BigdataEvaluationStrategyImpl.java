@@ -19,7 +19,6 @@ import org.openrdf.query.algebra.Compare;
 import org.openrdf.query.algebra.Filter;
 import org.openrdf.query.algebra.Join;
 import org.openrdf.query.algebra.Or;
-import org.openrdf.query.algebra.QueryModelNode;
 import org.openrdf.query.algebra.SameTerm;
 import org.openrdf.query.algebra.StatementPattern;
 import org.openrdf.query.algebra.TupleExpr;
@@ -38,12 +37,10 @@ import com.bigdata.rdf.rules.RuleContextEnum;
 import com.bigdata.rdf.sail.BigdataSail.Options;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
-import com.bigdata.rdf.spo.SPOAccessPath;
 import com.bigdata.rdf.spo.SPOPredicate;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.BNS;
 import com.bigdata.rdf.store.BigdataSolutionResolverator;
-import com.bigdata.rdf.store.FullTextIndexAccessPath;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.accesspath.IBuffer;
@@ -87,9 +84,8 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * enabled, then by translation of Sesame 2 query expressions into native
  * {@link IRule}s and native evaluation of those {@link IRule}s.
  * 
- * <h2>Query options</h2>
- * The following summarizes how various high-level query language feature are
- * mapped onto native {@link IRule}s.
+ * <h2>Query options</h2> The following summarizes how various high-level query
+ * language feature are mapped onto native {@link IRule}s.
  * <dl>
  * <dt>DISTINCT</dt>
  * <dd>{@link IQueryOptions#isDistinct()}, which is realized using
@@ -97,24 +93,24 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * <dt>ORDER BY</dt>
  * <dd>{@link IQueryOptions#getOrderBy()} is effected by a custom
  * {@link IKeyBuilderFactory} which generates sort keys that capture the desired
- * sort order from the bindings in an {@link ISolution}. Unless DISTINCT is
- * also specified, the generated sort keys are made unique by appending a one up
- * long integer to the key - this prevents sort keys that otherwise compare as
- * equals from dropping solutions. Note that the SORT is actually imposed by the
+ * sort order from the bindings in an {@link ISolution}. Unless DISTINCT is also
+ * specified, the generated sort keys are made unique by appending a one up long
+ * integer to the key - this prevents sort keys that otherwise compare as equals
+ * from dropping solutions. Note that the SORT is actually imposed by the
  * {@link DistinctFilter} using an {@link IKeyBuilderFactory} assembled from the
  * ORDER BY constraints.
  * 
  * FIXME BryanT - implement the {@link IKeyBuilderFactory}.
  * 
- * FIXME MikeP - assemble the {@link ISortOrder}[] from the query and set on
- * the {@link IQueryOptions}. </dd>
+ * FIXME MikeP - assemble the {@link ISortOrder}[] from the query and set on the
+ * {@link IQueryOptions}.</dd>
  * <dt>OFFSET and LIMIT</dt>
  * <dd>
  * <p>
  * {@link IQueryOptions#getSlice()}, which is effected as a conditional in
  * {@link NestedSubqueryWithJoinThreadsTask} based on the
- * {@link RuleStats#solutionCount}. Query {@link ISolution}s are counted as
- * they are generated, but they are only entered into the {@link ISolution}
+ * {@link RuleStats#solutionCount}. Query {@link ISolution}s are counted as they
+ * are generated, but they are only entered into the {@link ISolution}
  * {@link IBuffer} when the solutionCount is GE the OFFSET and LT the LIMIT.
  * Query evaluation halts once the LIMIT is reached.
  * </p>
@@ -122,10 +118,9 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * Note that when DISTINCT and either LIMIT and/or OFFSET are specified
  * together, then the LIMIT and OFFSET <strong>MUST</strong> be applied after
  * the solutions have been generated since we may have to generate more than
- * LIMIT solutions in order to have LIMIT <em>DISTINCT</em> solutions. We
- * handle this for now by NOT translating the LIMIT and OFFSET onto the
- * {@link IRule} and instead let Sesame close the iterator once it has enough
- * solutions.
+ * LIMIT solutions in order to have LIMIT <em>DISTINCT</em> solutions. We handle
+ * this for now by NOT translating the LIMIT and OFFSET onto the {@link IRule}
+ * and instead let Sesame close the iterator once it has enough solutions.
  * </p>
  * <p>
  * Note that LIMIT and SLICE requires an evaluation plan that provides stable
@@ -133,20 +128,20 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * {@link IQueryOptions#isStable()} to <code>true</code>.
  * <p>
  * For a UNION query, you must also set {@link IProgram#isParallel()} to
- * <code>false</code> to prevent parallelized execution of the {@link IRule}s
- * in the {@link IProgram}.
+ * <code>false</code> to prevent parallelized execution of the {@link IRule}s in
+ * the {@link IProgram}.
  * </p>
  * </dd>
  * <dt>UNION</dt>
  * <dd>A UNION is translated into an {@link IProgram} consisting of one
  * {@link IRule} for each clause in the UNION.
  * 
- * FIXME MikeP - implement. </dd>
+ * FIXME MikeP - implement.</dd>
  * </dl>
- * <h2>Filters</h2>
- * The following provides a summary of how various kinds of FILTER are handled.
- * A filter that is not explicitly handled is left untranslated and will be
- * applied by Sesame against the generated {@link ISolution}s.
+ * <h2>Filters</h2> The following provides a summary of how various kinds of
+ * FILTER are handled. A filter that is not explicitly handled is left
+ * untranslated and will be applied by Sesame against the generated
+ * {@link ISolution}s.
  * <p>
  * Whenever possible, a FILTER is translated into an {@link IConstraint} on an
  * {@link IPredicate} in the generated native {@link IRule}. Some filters are
@@ -172,20 +167,8 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * position is bound to a constant, the magic predicate is evaluated once and
  * the result is used to generate a set of term identifiers that are matches for
  * the token(s) extracted from the {@link Literal} in the object position. Those
- * term identifiers are then used to populate an {@link IN} constraint.
- * 
- * FIXME MikeP - integrate. I have written {@link FullTextIndexAccessPath}. It
- * needs to be imposed on the magic predicate as an {@link ISolutionExpander}
- * (just replaces the normal {@link SPOAccessPath}).
- * </p>
- * <p>
- * When the object position is an unbound variable, then the magic predicate is
- * translated as an additional {@link IPredicate} and is evaluated for each
- * {@link ISolution}. This is essentially a JOIN against a custom
- * {@link IAccessPath} for the {@link FullTextIndex}.
- * 
- * FIXME This is NOT implemented. For now the object position in the
- * {@link BNS#SEARCH} MUST be bound to a constant.
+ * term identifiers are then used to populate an {@link IN} constraint. The
+ * object position in the {@link BNS#SEARCH} MUST be bound to a constant.
  * </p>
  * 
  * FIXME We are not in fact rewriting the query operation at all, simply
@@ -196,7 +179,7 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * directly, e.g., an n-ary IProgram, n-ary IRule operator, an IPredicate
  * operator, etc. Then we can handle evaluation using their model with anything
  * re-written to our custom operators being caught by our custom evaluate()
- * methods and everything else running their default methods.  Definately the
+ * methods and everything else running their default methods. Definitely the
  * right approach, and much easier to write unit tests.
  * 
  * @todo REGEX : if there is a &quot;&circ;&quot; literal followed by a wildcard
@@ -260,27 +243,28 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
 //    // Note: defaults are illegal values.
 //    private long offset = -1L, limit = 0L;
 
-    /**
-     * @param tripleSource
-     */
-    public BigdataEvaluationStrategyImpl(BigdataTripleSource tripleSource) {
-
-        this(tripleSource, null, false);
-
-    }
+//    /**
+//     * @param tripleSource
+//     */
+//    public BigdataEvaluationStrategyImpl(final BigdataTripleSource tripleSource) {
+//
+//        this(tripleSource, null/* dataset */, false WHY FALSE? /* nativeJoins */);
+//
+//    }
 
     /**
      * @param tripleSource
      * @param dataset
      */
-    public BigdataEvaluationStrategyImpl(BigdataTripleSource tripleSource,
-            Dataset dataset, boolean nativeJoins) {
+    public BigdataEvaluationStrategyImpl(
+            final BigdataTripleSource tripleSource, final Dataset dataset,
+            final boolean nativeJoins) {
 
         super(tripleSource, dataset);
 
         this.tripleSource = tripleSource;
 
-        this.dataset = null;
+        this.dataset = dataset;
 
         this.database = tripleSource.getDatabase();
         
@@ -340,7 +324,7 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
      */
     @Override
     public CloseableIteration<BindingSet, QueryEvaluationException> evaluate(
-            StatementPattern sp, BindingSet bindings)
+            final StatementPattern sp, final BindingSet bindings)
             throws QueryEvaluationException {
 
         final Var predVar = sp.getPredicateVar();
@@ -431,8 +415,8 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
      *       sure if that is supported within Sesame/SPARQL.
      */
     protected CloseableIteration<BindingSet, QueryEvaluationException> search(
-            Var svar, String languageCode, String label, BindingSet bindings)
-            throws QueryEvaluationException {
+            final Var svar, final String languageCode, final String label,
+            final BindingSet bindings) throws QueryEvaluationException {
 
         if (INFO)
             log.info("languageCode=" + languageCode + ", label=" + label);
@@ -445,24 +429,24 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
 
     }
 
-    /** @issue make protected in openrdf. */
-    protected Value getVarValue(Var var, BindingSet bindings) {
-
-        if (var == null) {
-
-            return null;
-
-        } else if (var.hasValue()) {
-
-            return var.getValue();
-
-        } else {
-
-            return bindings.getValue(var.getName());
-
-        }
-
-    }
+//    /** @issue make protected in openrdf. */
+//    protected Value getVarValue(final Var var, final BindingSet bindings) {
+//
+//        if (var == null) {
+//
+//            return null;
+//
+//        } else if (var.hasValue()) {
+//
+//            return var.getValue();
+//
+//        } else {
+//
+//            return bindings.getValue(var.getName());
+//
+//        }
+//
+//    }
 
     /**
      * Uses native joins iff {@link BigdataSail.Options#NATIVE_JOINS} is
@@ -478,27 +462,40 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
      */
     @Override
     public CloseableIteration<BindingSet, QueryEvaluationException> evaluate(
-            Join join, BindingSet bindings) throws QueryEvaluationException
-    {
+            final Join join, final BindingSet bindings)
+            throws QueryEvaluationException {
 
         if (!nativeJoins) {
+
             // Use Sesame 2 evaluation for JOINs.
             return super.evaluate(join, bindings);
+            
         }
        
         if (INFO)
             log.info("evaluating native join:\n" + join);
         
-        Collection<StatementPattern> stmtPatterns = 
-            new LinkedList<StatementPattern>();
-        Collection<Filter> filters = new LinkedList<Filter>();
-        
+        final Collection<StatementPattern> stmtPatterns = new LinkedList<StatementPattern>();
+
+        final Collection<Filter> filters = new LinkedList<Filter>();
+
         try {
+
             collectStatementPatterns(join, stmtPatterns, filters);
+            
         } catch (EncounteredUnionException ex) {
-            // Use Sesame 2 evaluation for JOINs with unions.
+
+            /*
+             * Use Sesame 2 evaluation for JOINs with unions.
+             * 
+             * FIXME We should really implement native Unions. All it requires
+             * is running the rules as part of a parallel program writing on the
+             * same query buffer.
+             */
             log.warn("we should really implement native Unions");
+            
             return super.evaluate(join, bindings);
+            
         }
         
         if (INFO) {
@@ -582,15 +579,17 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
                 constraints.toArray(new IConstraint[constraints.size()]) : null
         );
 
-        CloseableIteration<BindingSet, QueryEvaluationException> result = 
-            runQuery(join, rule);
+        CloseableIteration<BindingSet, QueryEvaluationException> result = runQuery(
+                join, rule);
 
         // use the basic filter iterator for remaining filters
         if (INFO && filters.size() > 0) {
-            log.info("could not translate " + filters.size() + " filters into native constraints:");
+            log.info("could not translate " + filters.size()
+                    + " filters into native constraints:");
         }
         for (Filter filter : filters) {
-            if (INFO) log.info("\n"+filter.getCondition());
+            if (INFO)
+                log.info("\n" + filter.getCondition());
             result = new FilterIterator(filter, result, this);
         }
 

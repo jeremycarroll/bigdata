@@ -60,7 +60,7 @@ public class ExecutionHelper<T> {
      * @param service
      *            The service on which the tasks will be executed.
      */
-    public ExecutionHelper(ExecutorService service) {
+    public ExecutionHelper(final ExecutorService service) {
 
         this(service, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
 
@@ -76,7 +76,8 @@ public class ExecutionHelper<T> {
      * @param unit
      *            The unit in which that timeout is expressed.
      */
-    public ExecutionHelper(ExecutorService service, long timeout, TimeUnit unit) {
+    public ExecutionHelper(final ExecutorService service, final long timeout,
+            final TimeUnit unit) {
 
         if (service == null) {
 
