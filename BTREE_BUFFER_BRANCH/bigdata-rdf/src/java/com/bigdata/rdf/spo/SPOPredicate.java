@@ -27,6 +27,7 @@ import java.util.Arrays;
 
 import com.bigdata.relation.accesspath.IElementFilter;
 import com.bigdata.relation.rule.IBindingSet;
+import com.bigdata.relation.rule.IConstant;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.ISolutionExpander;
 import com.bigdata.relation.rule.IVariable;
@@ -119,8 +120,9 @@ public class SPOPredicate implements IPredicate<ISPO> {
      * @param p
      * @param o
      */
-    public SPOPredicate(String relationName, IVariableOrConstant<Long> s,
-            IVariableOrConstant<Long> p, IVariableOrConstant<Long> o) {
+    public SPOPredicate(final String relationName,
+            final IVariableOrConstant<Long> s,
+            final IVariableOrConstant<Long> p, final IVariableOrConstant<Long> o) {
 
         this(new String[] { relationName }, -1/* partitionId */, s, p, o,
                 null/* c */, false/* optional */, null/* constraint */, null/* expander */);
@@ -137,8 +139,9 @@ public class SPOPredicate implements IPredicate<ISPO> {
      * @param p
      * @param o
      */
-    public SPOPredicate(String[] relationName, IVariableOrConstant<Long> s,
-            IVariableOrConstant<Long> p, IVariableOrConstant<Long> o) {
+    public SPOPredicate(final String[] relationName,
+            final IVariableOrConstant<Long> s,
+            final IVariableOrConstant<Long> p, final IVariableOrConstant<Long> o) {
 
         this(relationName, -1/* partitionId */, s, p, o,
                 null/* c */, false/* optional */, null/* constraint */, null/* expander */);
@@ -155,9 +158,10 @@ public class SPOPredicate implements IPredicate<ISPO> {
      * @param o
      * @param optional
      */
-    public SPOPredicate(String relationName, IVariableOrConstant<Long> s,
-            IVariableOrConstant<Long> p, IVariableOrConstant<Long> o,
-            final boolean optional) {
+    public SPOPredicate(final String relationName,
+            final IVariableOrConstant<Long> s,
+            final IVariableOrConstant<Long> p,
+            final IVariableOrConstant<Long> o, final boolean optional) {
 
         this(new String[] { relationName }, -1/* partitionId */, s, p, o,
                 null/* c */, optional, null/* constraint */, null/* expander */);
@@ -175,9 +179,11 @@ public class SPOPredicate implements IPredicate<ISPO> {
      * @param expander
      *            MAY be <code>null</code>.
      */
-    public SPOPredicate(String relationName, IVariableOrConstant<Long> s,
-            IVariableOrConstant<Long> p, IVariableOrConstant<Long> o, 
-            ISolutionExpander<ISPO> expander) {
+    public SPOPredicate(final String relationName,
+            final IVariableOrConstant<Long> s,
+            final IVariableOrConstant<Long> p,
+            final IVariableOrConstant<Long> o,
+            final ISolutionExpander<ISPO> expander) {
 
         this(new String[] { relationName }, -1/* partitionId */, s, p, o,
                 null/* c */, false/* optional */, null/* constraint */,
@@ -197,9 +203,11 @@ public class SPOPredicate implements IPredicate<ISPO> {
      * @param expander
      *            MAY be <code>null</code>.
      */
-    public SPOPredicate(String relationName, IVariableOrConstant<Long> s,
-            IVariableOrConstant<Long> p, IVariableOrConstant<Long> o,
-            final boolean optional, ISolutionExpander<ISPO> expander) {
+    public SPOPredicate(final String relationName,
+            final IVariableOrConstant<Long> s,
+            final IVariableOrConstant<Long> p,
+            final IVariableOrConstant<Long> o, final boolean optional,
+            final ISolutionExpander<ISPO> expander) {
 
         this(new String[] { relationName }, -1/* partitionId */, s, p, o,
                 null/* c */, optional, null/* constraint */, expander);
@@ -354,7 +362,93 @@ public class SPOPredicate implements IPredicate<ISPO> {
         this.expander = src.expander;
         
     }
+    
+    /**
+     * Constrain the predicate by setting the context position.
+     */
+    public SPOPredicate setC(final IConstant<Long> c) {
 
+        if(c == null)
+            throw new IllegalArgumentException();
+
+        return new SPOPredicate(//
+                relationName, //
+                partitionId, //
+                s,//
+                p,//
+                o,//
+                c, // override.
+                optional, //
+                constraint,//
+                expander//
+        );
+
+    }
+    
+    /**
+     * Constrain the predicate by layering on another constraint (the existing
+     * constraint, if any, is combined with the new constraint).
+     */
+    public SPOPredicate setConstraint(final IElementFilter<ISPO> newConstraint) {
+
+        if(c == null)
+            throw new IllegalArgumentException();
+
+        final IElementFilter<ISPO> tmp = this.constraint == null ? newConstraint
+                : new WrappedSPOFilter(newConstraint, this.constraint);
+
+        return new SPOPredicate(//
+                relationName, //
+                partitionId, //
+                s,//
+                p,//
+                o,//
+                c, // 
+                optional, //
+                tmp,// override.
+                expander//
+        );
+
+    }
+
+    /**
+     * Wraps two {@link IElementFilter}s as a single logical filter.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
+     */
+    private static class WrappedSPOFilter extends SPOFilter {
+
+        /**
+         * 
+         */
+        private static final long serialVersionUID = 3946650536738814437L;
+        
+        private final IElementFilter<ISPO> a;
+        private final IElementFilter<ISPO> b;
+        
+        public WrappedSPOFilter(final IElementFilter<ISPO> a,
+                final IElementFilter<ISPO> b) {
+
+            this.a = a;
+            this.b = b;
+            
+        }
+
+        public boolean accept(final ISPO e) {
+
+            if (a.canAccept(e) && a.accept(e) && b.canAccept(e) && b.accept(e)) {
+
+                return true;
+                
+            }
+
+            return false;
+
+        }
+        
+    }
+    
     public final IVariableOrConstant<Long> get(final int index) {
         switch (index) {
         case 0:

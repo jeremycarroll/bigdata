@@ -1499,9 +1499,9 @@ public class BigdataSail extends SailBase implements Sail {
             
             if (contexts.length == 0) {
 
-                // Operates on all contexts
-
                 /*
+                 * Operates on all contexts.
+                 * 
                  * Note: This deliberately removes the statements from each
                  * access path rather than doing a drop/add on the triple/quad
                  * store instance.
