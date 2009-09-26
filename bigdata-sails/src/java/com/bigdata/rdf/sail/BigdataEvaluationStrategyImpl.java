@@ -35,6 +35,7 @@ import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.rules.RuleContextEnum;
 import com.bigdata.rdf.sail.BigdataSail.Options;
+import com.bigdata.rdf.spo.DefaultGraphSolutionExpander;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPOPredicate;
@@ -521,8 +522,8 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
         final Collection<IConstraint> constraints = new LinkedList<IConstraint>();
         final Iterator<Filter> filterIt = filters.iterator();
         while (filterIt.hasNext()) {
-            Filter filter = filterIt.next();
-            IConstraint constraint = generateConstraint(filter);
+            final Filter filter = filterIt.next();
+            final IConstraint constraint = generateConstraint(filter);
             if (constraint != null) {
                 // remove if we are able to generate a native constraint for it
                 if (INFO) {
@@ -597,20 +598,20 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
 
     }
     
-    private void collectStatementPatterns(TupleExpr tupleExpr, 
-            Collection<StatementPattern> stmtPatterns,
-            Collection<Filter> filters) {
+    private void collectStatementPatterns(final TupleExpr tupleExpr, 
+            final Collection<StatementPattern> stmtPatterns,
+            final Collection<Filter> filters) {
         if (tupleExpr instanceof StatementPattern) {
             stmtPatterns.add((StatementPattern) tupleExpr);
         } else if (tupleExpr instanceof Filter) {
-            Filter filter = (Filter) tupleExpr;
+            final Filter filter = (Filter) tupleExpr;
             filters.add(filter);
-            TupleExpr arg = filter.getArg();
+            final TupleExpr arg = filter.getArg();
             collectStatementPatterns(arg, stmtPatterns, filters);
         } else if (tupleExpr instanceof Join) {
-            Join join = (Join) tupleExpr;
-            TupleExpr left = join.getLeftArg();
-            TupleExpr right = join.getRightArg();
+            final Join join = (Join) tupleExpr;
+            final TupleExpr left = join.getLeftArg();
+            final TupleExpr right = join.getRightArg();
             collectStatementPatterns(left, stmtPatterns, filters);
             collectStatementPatterns(right, stmtPatterns, filters);
         } else if (tupleExpr instanceof Union) {
@@ -621,7 +622,7 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
         }
     }
 
-    private IPredicate generateTail(StatementPattern stmtPattern) 
+    private IPredicate generateTail(final StatementPattern stmtPattern) 
         throws QueryEvaluationException {
 
         // create a solution expander for free text search if necessary
@@ -636,7 +637,8 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
             }
         }
         
-        IVariableOrConstant<Long> s = 
+        // @todo why is [s] handled differently?
+        final IVariableOrConstant<Long> s = 
             generateVariableOrConstant(stmtPattern.getSubjectVar());
         if (s == null) {
             return null;
@@ -645,7 +647,7 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
         if (expander == null) {
             p = generateVariableOrConstant(stmtPattern.getPredicateVar());
         } else {
-            p = new Constant<Long>(database.NULL);
+            p = new Constant<Long>(IRawTripleStore.NULL);
         }
         if (p == null) {
             return null;
@@ -654,13 +656,16 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
         if (expander == null) {
             o = generateVariableOrConstant(stmtPattern.getObjectVar());
         } else {
-            o = new Constant<Long>(database.NULL);
+            o = new Constant<Long>(IRawTripleStore.NULL);
         }
         if (o == null) {
             return null;
         }
         final IVariableOrConstant<Long> c;
-        if (database.isQuads() == false) {
+        if (!database.isQuads()) {
+            /*
+             * Either triple store mode or provenance mode.
+             */
             final Var var = stmtPattern.getContextVar();
             if (var == null) {
                 // context position is not used.
@@ -684,17 +689,111 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
                 c = com.bigdata.relation.rule.Var.var(name);
             }
         } else {
-            if (stmtPattern.getContextVar() == null) {
-                c = null;
+            /*
+             * Quad store mode.
+             * 
+             * if [dataset==null]; [cvar] will be null (it can only be specified
+             * by a GRAPH clause). [c] will be null as well so the access path
+             * will be unbound on the context dimension. The query is evaluated
+             * against the RDF Merge of ALL graphs.
+             * 
+             * FIXME To do this efficiently we use an "expander" which strips
+             * off the context information and filters out the distinct (s,p,o)
+             * triples. Since the query result volume can be large, the distinct
+             * filter will use a BTree so it can spill over onto the disk if
+             * necessary.
+             * 
+             * otherwise;
+             * 
+             * if scope==DEFAULT_CONTEXTS; then [cvar] is ignored (it will not
+             * occur in the StatementPattern and [c] gets set to null) and we
+             * query the RDF merge of the default graph access paths using an
+             * expander.
+             * 
+             * else if(cvar.isBound()); then query the named graph identified by
+             * the value of cvar.
+             * 
+             * else cvar is unbound; query the union of the access paths for the
+             * named graphs in the data set. [c] will be a variable that gets
+             * bound to the context identifier for the statements in each graph.
+             * 
+             * FIXME To do this efficiently we either query each access path
+             * with limited parallelism using an expander which DOES NOT filter
+             * out anything -or- we leave [c] unbound on the access path and set
+             * a filter on the predicate so that we visit only the named graphs
+             * specified in the SPARQL data set. In order to decide which
+             * approach will be more efficient for any given query we need to
+             * consider the #of named graphs to be visited and compare that to
+             * the percentage of the index which would be visited if [c] was
+             * unbound but filtered by a constraint.
+             */
+            final Var cvar = stmtPattern.getContextVar();
+            System.err.println(dataset==null?"No dataset.":dataset.toString());
+            System.err.println(stmtPattern.toString());
+            if (cvar == null) {//|| !cvar.hasValue()) {
+                if (dataset == null) {
+                    c = null;
+                } else {
+                    switch (stmtPattern.getScope()) {
+                    case DEFAULT_CONTEXTS: {
+                        /*
+                         * The access path must read from the RDF merge of the
+                         * graphs in the SPARQL defaultGraph data set.  This is
+                         * accomplished using an expander pattern which filters
+                         * for the distinct (s,p,o) triples across the set of
+                         * default graphs.
+                         */
+                        if (expander != null) {
+                            /*
+                             * @todo can this happen? If it does then we need to
+                             * look at how to layer the expanders.
+                             */
+                            throw new AssertionError("expander already set");
+                        }
+                        expander = new DefaultGraphSolutionExpander(dataset
+                                .getDefaultGraphs());
+                        if (cvar == null)
+                            c = null;
+                        else
+                            c = generateVariableOrConstant(cvar);
+                        break;
+                    }
+                    case NAMED_CONTEXTS: {
+                        /*
+                         * FIXME This case probably corresponds to a query with
+                         * multiple FROM NAMED clauses with an unbound graph
+                         * variable in a GRAPH clause. If so, then the
+                         * "expansion" should run the join against the union of
+                         * the access paths for each named graph.
+                         * 
+                         * Note: The case where the graph variable is bound is
+                         * presumably handled by [c] being bound, but it is not
+                         * for this code path.
+                         * 
+                         * Note: In fact, [c] is likely to be an unbound
+                         * variable for this situation, so
+                         * stmtPattern.getContextVar() will return non-null but
+                         * it will be an unbound variable and we will want to
+                         * preserve that unbound variable while layering in the
+                         * expander in order to allow the graph variable to
+                         * become bound.
+                         */
+                        c = null; // FIXME expand!
+                        break;
+                    }
+                    default:
+                        throw new AssertionError();
+                    }
+                }
             } else {
                 if (expander == null) {
-                    c = generateVariableOrConstant(stmtPattern.getContextVar());
+                    c = generateVariableOrConstant(cvar);
                 } else {
-                    c = new Constant<Long>(database.NULL);
+                    c = new Constant<Long>(NULL);
                 }
             }
         }
-        
+
         /*
          * This applies a filter to the access path to remove any inferred
          * triples when [includeInferred] is false.
@@ -706,7 +805,7 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
          */
         final IElementFilter<ISPO> filter = !tripleSource.includeInferred ? ExplicitSPOFilter.INSTANCE
                 : null;
-        
+
         return new SPOPredicate(
                 new String[] { database.getSPORelation().getNamespace() },//
                 -1, // partitionId
@@ -717,10 +816,10 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
                 );
     }
 
-    private IVariableOrConstant<Long> generateVariableOrConstant(Var var) {
+    private IVariableOrConstant<Long> generateVariableOrConstant(final Var var) {
         final IVariableOrConstant<Long> result;
-        Value val = var.getValue();
-        String name = var.getName();
+        final Value val = var.getValue();
+        final String name = var.getName();
         if (val == null) {
             result = com.bigdata.relation.rule.Var.var(name);
         } else {
@@ -732,11 +831,11 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
         return result;
     }
     
-    private IConstraint generateConstraint(Filter filter) {
+    private IConstraint generateConstraint(final Filter filter) {
         return generateConstraint(filter.getCondition());
     }
     
-    private IConstraint generateConstraint(ValueExpr valueExpr) {
+    private IConstraint generateConstraint(final ValueExpr valueExpr) {
         if (valueExpr instanceof Or) {
             return generateConstraint((Or) valueExpr);
         } else if (valueExpr instanceof SameTerm) {

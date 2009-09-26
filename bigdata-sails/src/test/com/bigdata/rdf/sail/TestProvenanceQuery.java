@@ -260,7 +260,7 @@ public class TestProvenanceQuery extends ProxyBigdataSailTestCase {
 
         } finally {
             
-            sail.shutdownAndDelete();
+            sail.__tearDownUnitTest();
             
         }
         

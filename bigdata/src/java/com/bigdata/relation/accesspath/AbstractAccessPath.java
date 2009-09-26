@@ -52,6 +52,7 @@ import com.bigdata.btree.proc.AbstractKeyRangeIndexProcedure;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.relation.AbstractResource;
 import com.bigdata.relation.IRelation;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.service.IDataService;
@@ -116,6 +117,24 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
     protected final int chunkOfChunksCapacity;
     protected final int chunkCapacity;
     protected final int fullyBufferedReadThreshold;
+
+    /**
+     * @see AbstractResource#getChunkCapacity()
+     */
+    public int getChunkCapacity() {
+        
+        return chunkCapacity;
+        
+    }
+
+    /**
+     * @see AbstractResource#getChunkOfChunksCapacity()
+     */
+    public int getChunkOfChunksCapacity() {
+        
+        return chunkOfChunksCapacity;
+        
+    }
     
     /**
      * The maximum <em>limit</em> that is allowed for a fully-buffered read.

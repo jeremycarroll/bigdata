@@ -103,6 +103,7 @@ import org.openrdf.query.algebra.evaluation.impl.QueryJoinOptimizer;
 import org.openrdf.query.algebra.evaluation.impl.SameTermFilterOptimizer;
 import org.openrdf.query.algebra.evaluation.util.QueryOptimizerList;
 import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
+import org.openrdf.query.impl.DatasetImpl;
 import org.openrdf.sail.NotifyingSailConnection;
 import org.openrdf.sail.Sail;
 import org.openrdf.sail.SailConnection;
@@ -716,7 +717,7 @@ public class BigdataSail extends SailBase implements Sail {
      * 
      * FIXME rename as __tearDownUnitTest.
      */
-    void shutdownAndDelete() {
+    void __tearDownUnitTest() {
         
         closeOnShutdown = false;
         
@@ -2058,16 +2059,13 @@ public class BigdataSail extends SailBase implements Sail {
 
             /*
              * Note: The Striterator pattern expands each context in turn. The
-             * Striterator iself is wrapped as ICloseableIterator, and that gets
-             * wrapped for the Sesame CloseableIteration and returned.
+             * Striterator itself is wrapped as ICloseableIterator, and that
+             * gets wrapped for the Sesame CloseableIteration and returned.
              * 
-             * FIXME parallelize this in chunks using a thread pool.
-             * 
-             * There should be a limit on the parallelism for that thread pool.
-             * This can be achieved by submitting the next N contexts in
-             * parallel against database.getIndexManager().getExecutorService()
-             * and stepping through chunks of contexts to be evaluated at a
-             * time.  The ClientIndexView already does this for scale-out.
+             * FIXME parallelize this in chunks using a thread pool. See
+             * DefaultGraphSolutionExpander for examples. Or we could have a
+             * thread pool specifically for this purpose on the Sail, which
+             * tends to have a nice long life cycle so that could make sense.
              */
 
             // See QueryEvaluationIterator for an example of how to do this.
@@ -2277,7 +2275,7 @@ public class BigdataSail extends SailBase implements Sail {
          *       started.
          */
         public CloseableIteration<? extends BindingSet, QueryEvaluationException> evaluate(
-                TupleExpr tupleExpr, final Dataset dataset,
+                TupleExpr tupleExpr, Dataset dataset,
                 final BindingSet bindings, final boolean includeInferred)
                 throws SailException {
 
@@ -2303,7 +2301,7 @@ public class BigdataSail extends SailBase implements Sail {
                  * native joins and the BigdataEvaluationStatistics rely on
                  * this.
                  */
-                replaceValues(tupleExpr);
+                    dataset = replaceValues(dataset, tupleExpr);
 
                 final TripleSource tripleSource = new BigdataTripleSource(this,
                         includeInferred);
@@ -2350,9 +2348,9 @@ public class BigdataSail extends SailBase implements Sail {
 
         /**
          * Batch resolve and replace all {@link Value} objects stored in
-         * variables with {@link BigdataValue} objects, which have access to the
-         * 64-bit internal term identifier associated with each value in the
-         * database.
+         * variables or in the {@link Dataset} with {@link BigdataValue}
+         * objects, which have access to the 64-bit internal term identifier
+         * associated with each value in the database.
          * <p>
          * Note: The native rule execution must examine the resulting
          * {@link BigdataValue}s. If any value does not exist in the lexicon
@@ -2361,8 +2359,8 @@ public class BigdataSail extends SailBase implements Sail {
          * data and MUST NOT be executed since a ZERO (0L) will be interpreted
          * as a variable!
          */
-        protected void replaceValues(final TupleExpr tupleExpr)
-                throws SailException {
+        protected Dataset replaceValues(final Dataset dataset,
+                final TupleExpr tupleExpr) throws SailException {
 
             /*
              * Resolve the values used by this query.
@@ -2375,11 +2373,21 @@ public class BigdataSail extends SailBase implements Sail {
             final HashMap<Value, BigdataValue> values = new HashMap<Value, BigdataValue>();
 
             final BigdataValueFactory valueFactory = database.getValueFactory();
-            
+
+            if (dataset != null) {
+
+                for(URI uri : dataset.getDefaultGraphs())
+                    values.put(uri, valueFactory.asValue(uri));
+                
+                for(URI uri : dataset.getNamedGraphs())
+                    values.put(uri, valueFactory.asValue(uri));
+                
+            }
+
             tupleExpr.visit(new QueryModelVisitorBase<SailException>() {
 
                 @Override
-                public void meet(Var var) {
+                public void meet(final Var var) {
                     
                     if (var.hasValue()) {
 
@@ -2453,6 +2461,22 @@ public class BigdataSail extends SailBase implements Sail {
                 
             });
             
+            if (dataset != null) {
+                
+                final DatasetImpl dataset2 = new DatasetImpl();
+                
+                for(URI uri : dataset.getDefaultGraphs())
+                    dataset2.addDefaultGraph((URI)values.get(uri));
+                
+                for(URI uri : dataset.getNamedGraphs())
+                    dataset2.addNamedGraph((URI)values.get(uri));
+                
+                return dataset2;
+                
+            }
+            
+            return dataset;
+
         }
 
     }

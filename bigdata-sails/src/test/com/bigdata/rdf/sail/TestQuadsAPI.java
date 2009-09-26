@@ -176,7 +176,7 @@ public class TestQuadsAPI extends ProxyBigdataSailTestCase {
 
         } finally {
             cxn.close();
-            sail.shutdownAndDelete();
+            sail.__tearDownUnitTest();
         }
 
     }
