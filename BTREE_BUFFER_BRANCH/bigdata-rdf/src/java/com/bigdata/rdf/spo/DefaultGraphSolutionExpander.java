@@ -53,7 +53,7 @@ import com.bigdata.relation.accesspath.IAsynchronousIterator;
 import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.ISolutionExpander;
-import com.bigdata.relation.rule.eval.IJoinNexus;
+import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.striterator.ChunkedWrappedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.ICloseableIterator;
@@ -64,13 +64,13 @@ import com.bigdata.util.concurrent.MappedTaskExecutor;
  * Solution expander provides an efficient merged access path for the graphs in
  * the SPARQL default graph. This expander should only be used when a join is
  * run against the default graph and the default graph is non-empty (e.g., one
- * or more FROM clauses). The expander operates by merging the ordered results
- * from the access path iterator for each graph included in the set of graphs
- * comprising the SPARQL default graph. The context position of the visited
- * {@link ISPO}s is discarded (set to null). Duplicate triples are discarded.
- * The result is the distinct union of the access paths and hence provides a
- * view of the graphs in the default graph as if they had been merged according
- * to <a href="http://www.w3.org/TR/rdf-mt/#graphdefs>RDF Semantics</a>.
+ * or more FROM clauses). The expander apply the access path to the graph
+ * associated with each specified URI, visiting the distinct (s,p,o) tuples
+ * found in those graph(s). The context position of the visited {@link ISPO}s is
+ * discarded (set to null). Duplicate triples are discarded. The result is the
+ * distinct union of the access paths and hence provides a view of the graphs in
+ * the default graph as if they had been merged according to <a
+ * href="http://www.w3.org/TR/rdf-mt/#graphdefs>RDF Semantics</a>.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -84,8 +84,6 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
      * 
      */
     private static final long serialVersionUID = 3092400550324170339L;
-
-    private final IJoinNexus joinNexus;
     
     /**
      * The set of graphs in the SPARQL DATASET's default graph. The {@link URI}
@@ -97,7 +95,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
      * identify a graph which does not exist, in which case an access path will
      * be created for that {@link URI}s but will no visit any data.
      */
-    final Iterable<BigdataURI> defaultGraphs;
+    final Iterable<? extends URI> defaultGraphs;
 
     /**
      * The caller SHOULD NOT use this expander when the default graph is known
@@ -110,7 +108,9 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
      * default graph can yield any data.
      * 
      * @param defaultGraphs
-     *            The set of default graphs in the SPARQL DATASET.
+     *            The set of default graphs in the SPARQL DATASET. A runtime
+     *            exception will be thrown during evaluation of the if the
+     *            {@link URI}s are not {@link BigdataURI}s.
      * 
      * @throws IllegalArgumentException
      *             if <i>defaultGraphs</i> is <code>null</code>.
@@ -119,14 +119,8 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 //    *             if <i>defaultGraphs</i> is empty (the caller should optimize
 //    *             this expander out when the default graph is known to be
 //    *             empty).
-    public DefaultGraphSolutionExpander(final IJoinNexus joinNexus,
-            final Iterable<BigdataURI> defaultGraphs) {
-
-        if (joinNexus == null) {
-
-            throw new IllegalArgumentException();
-            
-        }
+    public DefaultGraphSolutionExpander(
+            final Iterable<? extends URI> defaultGraphs) {
         
         if (defaultGraphs == null) {
 
@@ -148,8 +142,6 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 //            throw new IllegalArgumentException();
 //
 //        }
-
-        this.joinNexus = joinNexus;
         
         this.defaultGraphs = defaultGraphs;
         
@@ -198,7 +190,9 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
         if (accessPath == null)
             throw new IllegalArgumentException();
 
-        if(!accessPath.getPredicate().get(3).isVar()) {
+        @SuppressWarnings("unchecked")
+        final IVariableOrConstant<Long> c = accessPath.getPredicate().get(3);
+        if (c != null && c.isConstant()) {
 
             // the context position should not be bound.
             throw new IllegalArgumentException();
@@ -271,6 +265,9 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
         private final MappedTaskExecutor executor;
 
+        /**
+         * The original access path.
+         */
         private final SPOAccessPath accessPath;
 
         public String toString() {
@@ -279,15 +276,16 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
                     + accessPath.toString() + "}";
 
         }
-        
+
         /**
          * @param accessPath
+         *            The original access path.
          */
         public DefaultGraphAccessPath(final SPOAccessPath accessPath) {
 
             this.accessPath = accessPath;
 
-            this.executor = new MappedTaskExecutor(joinNexus.getIndexManager()
+            this.executor = new MappedTaskExecutor(accessPath.getIndexManager()
                     .getExecutorService());
 
             /*
@@ -298,7 +296,8 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
              * the ClientIndexView through the IBigdataClient.Options.
              */
 
-            this.maxParallel = joinNexus.getMaxParallelSubqueries();
+            this.maxParallel = accessPath.getRelation()
+                    .getMaxParallelSubqueries();
 
         }
 
@@ -364,6 +363,16 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
         /**
          * This is the common entry point for all iterator implementations.
+         * 
+         * @todo For large volume result sets the distinct (s,p,o) filter must
+         *       spill out onto the disk. This means using a BTree rather than a
+         *       HashSet. The BTree can use the {@link SPOTupleSerializer}, but
+         *       should turn off SIDs and statement type storage. This is
+         *       probably easiest to configure as a {@link TempTripleStore}
+         *       where the lexicon is off, where quads is false, where sids is
+         *       false, etc.
+         * 
+         * @todo Cache the fast range count.
          * 
          * @todo Alternative implementation using limited parallel evaluation of
          *       the access paths to reduce latency and a hash set to filter out
@@ -480,7 +489,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
                 this.set = new HashSet<ISPO>();
 
-                this.buffer = new BlockingBuffer<ISPO>(joinNexus
+                this.buffer = new BlockingBuffer<ISPO>(accessPath
                         .getChunkCapacity());
 
                 Future<Void> future = null;
@@ -501,7 +510,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
                      */
 
                     // run the task.
-                    future = joinNexus.getIndexManager().getExecutorService()
+                    future = accessPath.getIndexManager().getExecutorService()
                             .submit(newRunIteratorsTask(buffer));
 
                     // set the future on the BlockingBuffer.
@@ -649,9 +658,9 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
                         final List<Callable<Void>> tasks = new LinkedList<Callable<Void>>();
 
-                        for (BigdataURI g : defaultGraphs) {
+                        for (URI g : defaultGraphs) {
 
-                            final long termId = g.getTermId();
+                            final long termId = ((BigdataURI)g).getTermId();
 
                             if (termId == IRawTripleStore.NULL) {
 
@@ -801,9 +810,9 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
              
                 final List<Callable<Long>> tasks = new LinkedList<Callable<Long>>();
                 
-                for(BigdataURI g : defaultGraphs) {
+                for(URI g : defaultGraphs) {
 
-                    final long termId = g.getTermId();
+                    final long termId = ((BigdataURI)g).getTermId();
 
                     if (termId == IRawTripleStore.NULL) {
                         

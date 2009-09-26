@@ -217,7 +217,7 @@ public class TestSearchQuery extends ProxyBigdataSailTestCase {
             
         } finally {
 
-            sail.shutdownAndDelete();
+            sail.__tearDownUnitTest();
 
         }
         
@@ -488,7 +488,7 @@ public class TestSearchQuery extends ProxyBigdataSailTestCase {
 
         } finally {
 
-            sail.shutdownAndDelete();
+            sail.__tearDownUnitTest();
 
         }
 

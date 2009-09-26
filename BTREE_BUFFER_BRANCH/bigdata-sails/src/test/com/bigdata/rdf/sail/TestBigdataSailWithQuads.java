@@ -70,7 +70,7 @@ public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
 
         // misc named graph API stuff.
         suite.addTestSuite(TestQuadsAPI.class);
-        
+
         // SPARQL named graphs tests.
         suite.addTestSuite(TestNamedGraphs.class);
         

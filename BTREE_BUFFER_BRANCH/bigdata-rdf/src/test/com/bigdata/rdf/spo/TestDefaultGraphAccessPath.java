@@ -35,11 +35,8 @@ import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.rio.StatementBuffer;
-import com.bigdata.rdf.rules.RuleContextEnum;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
-import com.bigdata.relation.rule.eval.ActionEnum;
-import com.bigdata.relation.rule.eval.IJoinNexus;
 
 /**
  * Test suite for {@link DefaultGraphSolutionExpander}. These tests are written
@@ -125,10 +122,10 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
             assertTrue(store.hasStatement(john, loves, mary, c1));
             assertTrue(store.hasStatement(mary, loves, paul, c2));
 
-            final IJoinNexus joinNexus = store.newJoinNexusFactory(
-                    RuleContextEnum.HighLevelQuery, ActionEnum.Query,
-                    IJoinNexus.ELEMENT/* solutionFlags */, null/* filter */)
-                    .newInstance(store.getIndexManager());
+//            final IJoinNexus joinNexus = store.newJoinNexusFactory(
+//                    RuleContextEnum.HighLevelQuery, ActionEnum.Query,
+//                    IJoinNexus.ELEMENT/* solutionFlags */, null/* filter */)
+//                    .newInstance(store.getIndexManager());
 
             {
                 
@@ -137,7 +134,7 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                  */
                 
                 final DefaultGraphSolutionExpander expander = new DefaultGraphSolutionExpander(
-                        joinNexus, Arrays
+                        Arrays
                                 .asList(new BigdataURI[] {}/* defaultGraphs */));
 
                 final SPOAccessPath baseAccessPath = (SPOAccessPath) store
@@ -169,8 +166,8 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                  */
                 
                 final DefaultGraphSolutionExpander expander = new DefaultGraphSolutionExpander(
-                        joinNexus, Arrays
-                                .asList(new BigdataURI[] {c1}/* defaultGraphs */));
+                        Arrays
+                                .asList(new BigdataURI[] { c1 }/* defaultGraphs */));
 
                 final SPOAccessPath baseAccessPath = (SPOAccessPath) store
                         .getAccessPath(SPOKeyOrder.SPOC);
@@ -203,7 +200,6 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                  */
 
                 final DefaultGraphSolutionExpander expander = new DefaultGraphSolutionExpander(
-                        joinNexus,
                         Arrays
                                 .asList(new BigdataURI[] { c1, c2 }/* defaultGraphs */));
 
@@ -241,7 +237,6 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                  */
 
                 final DefaultGraphSolutionExpander expander = new DefaultGraphSolutionExpander(
-                        joinNexus,
                         Arrays
                                 .asList(new BigdataURI[] { c1, c2 }/* defaultGraphs */));
 
@@ -277,7 +272,6 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                  */
 
                 final DefaultGraphSolutionExpander expander = new DefaultGraphSolutionExpander(
-                        joinNexus,
                         Arrays
                                 .asList(new BigdataURI[] { c1, c2 }/* defaultGraphs */));
 
@@ -313,7 +307,6 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                  */
 
                 final DefaultGraphSolutionExpander expander = new DefaultGraphSolutionExpander(
-                        joinNexus,
                         Arrays
                                 .asList(new BigdataURI[] { c1, c2 }/* defaultGraphs */));
 
@@ -350,7 +343,6 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                  */
 
                 final DefaultGraphSolutionExpander expander = new DefaultGraphSolutionExpander(
-                        joinNexus,
                         Arrays
                                 .asList(new BigdataURI[] { c1, c2 }/* defaultGraphs */));
 

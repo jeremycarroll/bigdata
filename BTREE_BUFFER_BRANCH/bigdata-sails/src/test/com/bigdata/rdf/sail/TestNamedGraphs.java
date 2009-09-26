@@ -33,10 +33,8 @@ package com.bigdata.rdf.sail;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.BNode;
@@ -65,8 +63,6 @@ import org.openrdf.sail.SailException;
  * 
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
- * 
- *          FIXME quads : "tests" do not test correctness.
  */
 public class TestNamedGraphs extends ProxyBigdataSailTestCase {
 
@@ -126,8 +122,8 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
     final URI DC_PUBLISHER = new URIImpl(DC+"publisher"); 
     
     
-    protected BindingSet createBindingSet(Binding... bindings) {
-        QueryBindingSet bindingSet = new QueryBindingSet();
+    protected BindingSet createBindingSet(final Binding... bindings) {
+        final QueryBindingSet bindingSet = new QueryBindingSet();
         if (bindings != null) {
             for (Binding b : bindings) {
                 bindingSet.addBinding(b);
@@ -136,12 +132,15 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
         return bindingSet;
     }
     
-    protected void compare(TupleQueryResult result, Collection<BindingSet> answer) throws QueryEvaluationException {
-        
-        Collection<BindingSet> extraResults = new LinkedList<BindingSet>();
+    protected void compare(final TupleQueryResult result,
+            final Collection<BindingSet> answer)
+            throws QueryEvaluationException {
+
+        final Collection<BindingSet> extraResults = new LinkedList<BindingSet>();
         Collection<BindingSet> missingResults = new LinkedList<BindingSet>();
-        
+
         int resultCount = 0;
+        int nmatched = 0;
         while (result.hasNext()) {
             BindingSet bindingSet = result.next();
             resultCount++;
@@ -153,6 +152,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                 if (it.next().equals(bindingSet)) {
                     it.remove();
                     match = true;
+                    nmatched++;
                     break;
                 }
             }
@@ -174,8 +174,11 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             }
         }
         
-        assertTrue("extra result count: " + extraResults.size(), extraResults.size() == 0);
-        assertTrue("missing result count: " + missingResults.size(), missingResults.size() == 0);
+        if (!extraResults.isEmpty() || !missingResults.isEmpty()) {
+            fail("matchedResults=" + nmatched + ", extraResults="
+                    + extraResults.size() + ", missingResults="
+                    + missingResults.size());
+        }
         
     }
     
@@ -262,7 +265,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             
         } finally {
             cxn.close();
-            sail.shutdownAndDelete();
+            sail.__tearDownUnitTest();
         }
 
     }
@@ -413,7 +416,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
             
         } finally {
             cxn.close();
-            sail.shutdownAndDelete();
+            sail.__tearDownUnitTest();
         }
 
     }
@@ -602,7 +605,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
 
         } finally {
             cxn.close();
-            sail.shutdownAndDelete();
+            sail.__tearDownUnitTest();
         }
 
     }
@@ -785,7 +788,7 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
 
         } finally {
             cxn.close();
-            sail.shutdownAndDelete();
+            sail.__tearDownUnitTest();
         }
 
     }
@@ -1003,9 +1006,627 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
 
         } finally {
             cxn.close();
-            sail.shutdownAndDelete();
+            sail.__tearDownUnitTest();
         }
 
     }
-    
+
+    /**
+     * A series of tests for querying SPARQL default graphs. The expander should
+     * apply the access path to the graph associated with each specified URI,
+     * visiting the distinct (s,p,o) tuples found in those graph(s).
+     * 
+     * @throws RepositoryException
+     * @throws SailException
+     * @throws QueryEvaluationException
+     * @throws MalformedQueryException
+     */
+    public void test_defaultGraphs_accessPathScan() throws RepositoryException,
+            SailException, QueryEvaluationException, MalformedQueryException {
+
+        final BigdataSail sail = getSail();
+        sail.initialize();
+        final BigdataSailRepository repo = new BigdataSailRepository(sail);
+        final BigdataSailRepositoryConnection cxn = 
+            (BigdataSailRepositoryConnection) repo.getConnection();
+        cxn.setAutoCommit(false);
+
+        try {
+            
+            if(!sail.getDatabase().isQuads()) {
+                
+                log.warn("test requires quads.");
+
+                return;
+                
+            }
+
+            final URI john = new URIImpl("http://www.bigdata.com/john");
+            final URI loves= new URIImpl("http://www.bigdata.com/loves");
+            final URI mary = new URIImpl("http://www.bigdata.com/mary");
+            final URI paul = new URIImpl("http://www.bigdata.com/paul");
+            final URI c1 = new URIImpl("http://www.bigdata.com/context1");
+            final URI c2 = new URIImpl("http://www.bigdata.com/context2");
+            final URI c3 = new URIImpl("http://www.bigdata.com/context3");
+
+            /*
+             * Setup the data for the test.
+             */
+            {
+                // add statements to the store.
+                cxn.add(john, loves, mary, c1);
+                cxn.add(mary, loves, paul, c2);
+                cxn.commit();
+            }
+
+            {
+
+                /*
+                 * One graph in the defaultGraphs set, but the specified graph
+                 * has no data. Since there are no joins this is executed
+                 * directly by the BigdataSailConnection.
+                 */
+                
+                final String query = 
+                    "SELECT  ?x " +
+                    "FROM    <"+c3+"> " +
+                    "WHERE   { ?x <"+loves+"> ?y }";
+                
+                final TupleQuery tupleQuery = 
+                    cxn.prepareTupleQuery(QueryLanguage.SPARQL, query);
+                
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+  
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                compare(result, answer);
+
+            }
+
+            {
+
+                /*
+                 * One graph in the defaultGraphs set. Since there are no joins
+                 * this is executed directly by the BigdataSailConnection.
+                 */
+
+                final String query = "SELECT  ?x ?y " + //
+                        "FROM    <" + c1 + "> " + //
+                        "WHERE   { ?x <" + loves + "> ?y }"//
+                ;
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                answer.add(createBindingSet(new BindingImpl("x", john),
+                        new BindingImpl("y", mary)));
+
+                compare(result, answer);
+
+            }
+
+            {
+
+                /*
+                 * Two graphs in the defaultGraphs set.
+                 */
+
+                final String query = "SELECT  ?x ?y " + //
+                        "FROM    <" + c1 + "> " + //
+                        "FROM    <" + c2 + "> " + //
+                        "WHERE   { ?x <" + loves + "> ?y }"//
+                ;
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                answer.add(createBindingSet(new BindingImpl("x", john),
+                        new BindingImpl("y", mary)));
+
+                answer.add(createBindingSet(new BindingImpl("x", mary),
+                        new BindingImpl("y", paul)));
+
+                compare(result, answer);
+
+            }
+
+            {
+
+                /*
+                 * Query with more restricted predicate bindings (john is bound
+                 * as the subject).
+                 */
+
+                final String query = "SELECT  ?y " + //
+                        "FROM    <" + c1 + "> " + //
+                        "FROM    <" + c2 + "> " + //
+                        "WHERE   { <"+john+"> <" + loves + "> ?y } "//
+                ;
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                answer.add(createBindingSet(new BindingImpl("y", mary)));
+
+                compare(result, answer);
+
+            }
+
+            {
+
+                /*
+                 * Query with more restricted predicate bindings (mary is bound
+                 * as the subject).
+                 */
+
+                final String query = "SELECT  ?y " + //
+                        "FROM    <" + c1 + "> " + //
+                        "FROM    <" + c2 + "> " + //
+                        "WHERE   { <" + mary + "> <" + loves + "> ?y } "//
+                ;
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                answer.add(createBindingSet(new BindingImpl("y", paul)));
+
+                compare(result, answer);
+
+            }
+            
+            {
+
+                /*
+                 * Query with more restricted predicate bindings (mary is
+                 * bound as the object).
+                 */
+
+                final String query = "SELECT  ?x " + //
+                        "FROM    <" + c1 + "> " + //
+                        "FROM    <" + c2 + "> " + //
+                        "WHERE   { ?x <" + loves + "> <" + mary + "> } "//
+                ;
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                answer.add(createBindingSet(new BindingImpl("x", john)));
+
+                compare(result, answer);
+
+            }
+
+            {
+
+                /*
+                 * Query with more restricted predicate bindings (john is bound
+                 * as the subject and paul is bound as the object, so there are
+                 * no solutions).
+                 */
+
+                final String query = "SELECT  ?x " + //
+                        "FROM    <" + c1 + "> " + //
+                        "FROM    <" + c2 + "> " + //
+                        "WHERE   { <"+john+"> <" + loves + "> <" + paul + "> } "//
+                ;
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                compare(result, answer);
+
+            }
+
+        } finally {
+
+            cxn.close();
+            sail.__tearDownUnitTest();
+
+        }
+
+    }
+
+    /**
+     * Unit test focusing on queries against a default graph comprised of the
+     * RDF merge of zero or more graphs where the query involves joins and hence
+     * is routed through the {@link BigdataEvaluationStrategyImpl}.
+     * 
+     * @throws RepositoryException
+     * @throws SailException
+     * @throws QueryEvaluationException
+     * @throws MalformedQueryException
+     */
+    public void test_defaultGraphs_joins() throws RepositoryException,
+            SailException, QueryEvaluationException, MalformedQueryException {
+
+        final BigdataSail sail = getSail();
+        sail.initialize();
+        final BigdataSailRepository repo = new BigdataSailRepository(sail);
+        final BigdataSailRepositoryConnection cxn = (BigdataSailRepositoryConnection) repo
+                .getConnection();
+        cxn.setAutoCommit(false);
+
+        try {
+
+            if (!sail.getDatabase().isQuads()) {
+
+                log.warn("test requires quads.");
+
+                return;
+
+            }
+
+            final URI john = new URIImpl("http://www.bigdata.com/john");
+            final URI loves = new URIImpl("http://www.bigdata.com/loves");
+            final URI livesIn = new URIImpl("http://www.bigdata.com/liveIn");
+            final URI mary = new URIImpl("http://www.bigdata.com/mary");
+            final URI paul = new URIImpl("http://www.bigdata.com/paul");
+            final URI sam = new URIImpl("http://www.bigdata.com/sam");
+            final URI DC = new URIImpl("http://www.bigdata.com/DC");
+            final URI VA = new URIImpl("http://www.bigdata.com/VA");
+            final URI MD = new URIImpl("http://www.bigdata.com/MD");
+            final URI UT = new URIImpl("http://www.bigdata.com/UT");
+            final URI c1 = new URIImpl("http://www.bigdata.com/context1");
+            final URI c2 = new URIImpl("http://www.bigdata.com/context2");
+            final URI c3 = new URIImpl("http://www.bigdata.com/context3");
+            final URI c4 = new URIImpl("http://www.bigdata.com/context3");
+
+            /*
+             * Setup the data for the test.
+             */
+            {
+                // add statements to the store.
+                cxn.add(john, loves, mary, c1);
+                cxn.add(john, loves, mary, c2);
+                cxn.add(mary, loves, paul, c2);
+                cxn.add(john, livesIn, DC, c1);
+                cxn.add(mary, livesIn, VA, c2);
+                cxn.add(paul, livesIn, MD, c2);
+                cxn.add(paul, loves, sam, c4);
+                cxn.add(sam, livesIn, UT, c4);
+                cxn.commit();
+            }
+
+            {
+
+                /*
+                 * One graph in the defaultGraphs set, but the specified graph
+                 * has no data.  There should be no solutions.
+                 */
+
+                final String query = "SELECT  ?x ?y ?z \n" + //
+                        "FROM    <" + c3 + ">\n" + //
+                        "WHERE   { ?x <" + loves + "> ?y .\n" + //
+                        "          ?y <" + loves + "> ?z .\n" + //
+                        "}";
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                compare(result, answer);
+
+            }
+
+            {
+
+                /*
+                 * The data set is not specified. The query will run against the
+                 * "default" defaultGraph. For Sesame, I am assuming that the
+                 * query is run against the RDF merge of all graphs, including
+                 * the null graph. Rather than expanding the access path, we put
+                 * a distinct triple filter on the access path. The filter will
+                 * strip off the context information and filter for distinct
+                 * (s,p,o). If the query has a large result set, then the
+                 * distinct filter must spill over from memory onto the disk.
+                 * E.g., by using a BTree on a temporary store rather than a
+                 * HashSet.
+                 * 
+                 * Note: In this case there is a duplicate solution based on the
+                 * duplicate (john,loves,mary) triple which gets filtered out.
+                 */
+
+                final String query = "SELECT  ?x ?y ?z \n" + //
+                        "WHERE   { ?x <" + loves + "> ?y .\n" + //
+                        "          ?y <" + loves + "> ?z .\n" + //
+                        "}";
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                answer.add(createBindingSet(//
+                        new BindingImpl("x", john),//
+                        new BindingImpl("y", mary), //
+                        new BindingImpl("z", paul)//
+                        ));
+                answer.add(createBindingSet(//
+                        new BindingImpl("x", mary),//
+                        new BindingImpl("y", paul), //
+                        new BindingImpl("z", sam)//
+                        ));
+
+                /*
+                 * @todo this test is failing because the code is leaving [c]
+                 * unbound but failing to filter for the distinct (s,p,o)
+                 * triples.
+                 */
+                compare(result, answer);
+
+            }
+
+            {
+
+                /*
+                 * Two graphs (c1,c2) are used. There should be one solution.
+                 * There is a second solution if c4 is considered, but it should
+                 * not be since it is not in the default graph.
+                 */
+
+                final String query = "SELECT  ?x ?y ?z \n" + //
+                        "FROM    <" + c1 + ">\n" + //
+                        "FROM    <" + c2 + ">\n" + //
+                        "WHERE   { ?x <" + loves + "> ?y .\n" + //
+                        "          ?y <" + loves + "> ?z .\n" + //
+                        "}";
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                answer.add(createBindingSet(//
+                        new BindingImpl("x", john),//
+                        new BindingImpl("y", mary), //
+                        new BindingImpl("z", paul)//
+                        ));
+
+                compare(result, answer);
+
+            }
+
+            {
+
+                /*
+                 * Named graph query finds everyone who loves someone and the
+                 * graph in which that relationship was asserted.
+                 * 
+                 * Note: There is an additional occurrence of the relationship
+                 * in [c4], but the query does not consider that graph and that
+                 * occurrence should not be matched.
+                 * 
+                 * Note: there is a statement duplicated in two of the named
+                 * graphs (john,loves,mary) so we can verify that both
+                 * occurrences are reported.
+                 * 
+                 * Note: This query DOES NOT USE JOINS.  See the next example
+                 * below for one that does.
+                 */
+
+                final String query = "SELECT  ?g ?x ?y \n" + //
+                        "FROM NAMED <" + c1 + ">\n" + //
+                        "FROM NAMED <" + c2 + ">\n" + //
+                        "WHERE { \n"+
+                        "  GRAPH ?g {\n" +
+                        "     ?x <" + loves + "> ?y .\n" + //
+                        "     }\n"+//
+                        "  }";
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                answer.add(createBindingSet(//
+                        new BindingImpl("g", c1),//
+                        new BindingImpl("x", john),//
+                        new BindingImpl("y", mary))//
+                        );
+                answer.add(createBindingSet(//
+                        new BindingImpl("g", c2),//
+                        new BindingImpl("x", john),//
+                        new BindingImpl("y", mary))//
+                        );
+                answer.add(createBindingSet(//
+                        new BindingImpl("g", c2),//
+                        new BindingImpl("x", mary),//
+                        new BindingImpl("y", paul))//
+                        );
+
+                compare(result, answer);
+
+            }
+
+            {
+
+                /*
+                 * Named graph query finds everyone who loves someone and the
+                 * state in which they live.  Each side of the join is drawn
+                 * from one of the two named graphs (the graph variables are
+                 * bound).
+                 */
+
+                final String query = "SELECT ?x ?y ?z \n" + //
+                        "FROM NAMED <" + c1 + ">\n" + //
+                        "FROM NAMED <" + c2 + ">\n" + //
+                        "WHERE { \n"+
+                        "  GRAPH <"+c1+"> {\n" +
+                        "     ?x <" + loves + "> ?y .\n" + //
+                        "     }\n"+//
+                        "  GRAPH <"+c2+"> {\n" +
+                        "     ?y <" + livesIn + "> ?z .\n" + //
+                        "     }\n"+//
+                        "  }";
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+                answer.add(createBindingSet(//
+                        new BindingImpl("x", john),//
+                        new BindingImpl("y", mary), //
+                        new BindingImpl("z", VA)//
+                        ));
+
+                compare(result, answer);
+
+            }
+
+            {
+
+                /*
+                 * Named graph query finds everyone who loves someone and the
+                 * graph in which that relationship was asserted, and the state
+                 * in which they live.
+                 * 
+                 * Note: There is an additional occurrence of the relationship
+                 * in [c4], but the query does not consider that graph and that
+                 * occurrence should not be matched.
+                 * 
+                 * Note: there is a statement duplicated in two of the named
+                 * graphs (john,loves,mary) so we can verify that both
+                 * occurrences are reported.
+                 * 
+                 * @todo query pattern involving a defaultGraph and one or more
+                 * named graphs.
+                 */
+
+                final String query = "SELECT  ?g1 ?x ?y ?g2 ?z \n" + //
+                        "FROM NAMED <" + c1 + ">\n" + //
+                        "FROM NAMED <" + c2 + ">\n" + //
+                        "WHERE { \n"+
+                        "  GRAPH ?g1 {\n" +
+                        "     ?x <" + loves + "> ?y .\n" + //
+                        "     }\n"+//
+                        "  GRAPH ?g2 {\n" +
+                        "     ?x <" + livesIn + "> ?z .\n" + //
+                        "     }\n"+//
+                        "  }";
+
+                final TupleQuery tupleQuery = cxn.prepareTupleQuery(
+                        QueryLanguage.SPARQL, query);
+
+                tupleQuery.setIncludeInferred(true /* includeInferred */);
+
+                final TupleQueryResult result = tupleQuery.evaluate();
+
+                final Collection<BindingSet> answer = new LinkedList<BindingSet>();
+
+//                cxn.add(john, loves, mary, c1);
+//                cxn.add(john, loves, mary, c2);
+//                cxn.add(mary, loves, paul, c2);
+//                cxn.add(john, livesIn, DC, c1);
+//                cxn.add(mary, livesIn, VA, c2);
+//                cxn.add(paul, livesIn, MD, c2);
+//                cxn.add(paul, loves, sam, c4);
+//                cxn.add(sam, livesIn, UT, c4);
+
+// extra result: failed to restrict the named graph search.
+// [g2=http://www.bigdata.com/context2;
+//  g1=http://www.bigdata.com/context3;
+//   z=http://www.bigdata.com/MD;
+//   y=http://www.bigdata.com/sam;
+//   x=http://www.bigdata.com/paul]
+                    
+                answer.add(createBindingSet(//
+                        new BindingImpl("g1", c1),//
+                        new BindingImpl("x", john),//
+                        new BindingImpl("y", mary), //
+                        new BindingImpl("g2", c1),//
+                        new BindingImpl("z", DC)//
+                        ));
+                answer.add(createBindingSet(//
+                        new BindingImpl("g1", c2),//
+                        new BindingImpl("x", john),//
+                        new BindingImpl("y", mary),//
+                        new BindingImpl("g2", c1),//
+                        new BindingImpl("z", DC)//
+                        ));
+                answer.add(createBindingSet(//
+                        new BindingImpl("g1", c2),//
+                        new BindingImpl("x", mary),//
+                        new BindingImpl("y", paul),//
+                        new BindingImpl("g2", c2),//
+                        new BindingImpl("z", VA)//
+                        ));
+
+                /*
+                 * @todo This case is failing because the logic is leaving [c]
+                 * unbound when it should be restricting [c] to the specific
+                 * graphs in the FROM NAMED clauses.
+                 */
+                compare(result, answer);
+
+            }
+
+        } finally {
+
+            cxn.close();
+            sail.__tearDownUnitTest();
+
+        }
+
+    }
+
 }
