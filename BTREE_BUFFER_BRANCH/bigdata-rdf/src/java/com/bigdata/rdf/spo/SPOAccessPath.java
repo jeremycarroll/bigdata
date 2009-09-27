@@ -7,6 +7,7 @@ import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.relation.accesspath.AbstractAccessPath;
 import com.bigdata.relation.accesspath.IAccessPath;
+import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.striterator.IChunkedOrderedIterator;
@@ -227,5 +228,49 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
         return (SPOPredicate) super.getPredicate();
         
     }
-    
+
+    /**
+     * Return a new {@link SPOAccessPath} where the context position has been
+     * bound to the specified constant. This is used to constrain an access path
+     * to each graph in the set of default graphs when evaluating a SPARQL query
+     * against the "default graph".
+     * <p>
+     * Note: The added constraint may mean that a different index provides more
+     * efficient traversal.  For scale-out, this means that the data may be on
+     * different index partition.
+     * 
+     * @param c
+     *            The context term identifier.
+     * 
+     * @return The constrained {@link IAccessPath}.
+     */
+    public SPOAccessPath bindContext(final long c) {
+
+        if (c == IRawTripleStore.NULL) {
+
+            // or return EmptyAccessPath.
+            throw new IllegalArgumentException();
+
+        }
+
+        /*
+         * Constrain the access path by setting the context position on its
+         * predicate.
+         * 
+         * Note: This option will always do better when you are running against
+         * local data (LocalTripleStore).
+         */
+
+        final SPOPredicate p = ((SPOPredicate) getPredicate())
+                .setC(new Constant<Long>(Long.valueOf(c)));
+
+        /*
+         * Let the relation figure out which access path is best given that
+         * added constraint.
+         */
+
+        return (SPOAccessPath) this.getRelation().getAccessPath(p);
+
+    }
+
 }

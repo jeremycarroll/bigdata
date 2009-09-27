@@ -1394,11 +1394,6 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
                         new BindingImpl("z", sam)//
                         ));
 
-                /*
-                 * @todo this test is failing because the code is leaving [c]
-                 * unbound but failing to filter for the distinct (s,p,o)
-                 * triples.
-                 */
                 compare(result, answer);
 
             }

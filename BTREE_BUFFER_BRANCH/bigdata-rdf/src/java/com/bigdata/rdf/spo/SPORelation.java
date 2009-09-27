@@ -34,8 +34,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -43,6 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.btree.BTree;
 import com.bigdata.btree.BloomFilterFactory;
 import com.bigdata.btree.DefaultTupleSerializer;
 import com.bigdata.btree.IIndex;
@@ -54,12 +57,15 @@ import com.bigdata.btree.filter.TupleFilter;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.proc.BatchRemove;
 import com.bigdata.btree.proc.LongAggregator;
+import com.bigdata.btree.raba.codec.EmptyRabaValueCoder;
 import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IResourceLock;
 import com.bigdata.journal.ITx;
+import com.bigdata.journal.TemporaryStore;
 import com.bigdata.journal.TimestampUtility;
+import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.inf.Justification;
 import com.bigdata.rdf.lexicon.ITermIdFilter;
 import com.bigdata.rdf.lexicon.LexiconRelation;
@@ -81,8 +87,10 @@ import com.bigdata.relation.rule.Var;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.relation.rule.eval.AbstractSolutionBuffer.InsertSolutionBuffer;
 import com.bigdata.striterator.ChunkedWrappedIterator;
+import com.bigdata.striterator.EmptyChunkedIterator;
 import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import com.bigdata.striterator.ICloseableIterator;
 import com.bigdata.striterator.IKeyOrder;
 
 import cutthecrap.utils.striterators.Resolver;
@@ -610,6 +618,222 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         return just;
 
+    }
+
+    /**
+     * Iterator using a {@link BTree} filter out duplicate (s,p,o) tuples.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
+     * @version $Id$
+     */
+    private class DistinctSPOIterator implements ICloseableIterator<ISPO> {
+
+        /**
+         * The source iterator.
+         */
+        private final ICloseableIterator<ISPO> src;
+
+        /**
+         * The set of distinct {@link ISPO}s that have been accepted by
+         * {@link #hasNext()}, which is responsible for pulling the
+         * {@link #next()} {@link ISPO} from the {@link #src} iterator.
+         */
+        private final BTree btreeSet;
+
+        /**
+         * Buffer reused for each (s,p,o) key. The buffer is allocated to the
+         * exact size.
+         */
+        private final KeyBuilder keyBuilder = new KeyBuilder(
+                3 * Bytes.SIZEOF_LONG);
+
+        /**
+         * The next element to be visited or <code>null</code> if we need to
+         * scan ahead.
+         */
+        private ISPO next = null;
+
+        /**
+         * <code>true</code> iff the iterator has been proven to be exhausted.
+         */
+        private boolean exhausted = false;
+
+        /**
+         * 
+         * @param src
+         *            The source iterator.
+         */
+        public DistinctSPOIterator(final ICloseableIterator<ISPO> src) {
+
+            if (src == null)
+                throw new IllegalArgumentException();
+
+            this.src = src;
+
+            this.btreeSet = getSPOOnlyBTree(true/* bloomFilter */);
+
+        }
+
+        public void close() {
+
+            /*
+             * Close the source iterator.
+             */
+
+            src.close();
+
+            /*
+             * Close the btree. This will discard all of its buffers.
+             */
+
+            btreeSet.close();
+
+        }
+
+        /**
+         * Returns immediately if there is an element waiting. Otherwise, scans
+         * ahead until it finds an element which has not already been visited.
+         * It then add the element to the set of elements already seen and saves
+         * a reference to that element to be returned by {@link #next()}.
+         */
+        public boolean hasNext() {
+
+            if (exhausted)
+                return false;
+
+            if (next != null)
+                return true;
+
+            while (next == null && src.hasNext()) {
+
+                ISPO tmp = src.next();
+
+                /*
+                 * Strip off the context position.
+                 * 
+                 * Note: distinct is enforced on (s,p,o). By stripping off the
+                 * context and statement type information first, we ensure that
+                 * (s,p,o) duplicates will be recognized as such.
+                 * 
+                 * Note: this approach requires us to discard the statement type
+                 * metadata.
+                 */
+
+                tmp = new SPO(tmp.s(), tmp.p(), tmp.o(), IRawTripleStore.NULL);
+
+                final byte[] key = SPOKeyOrder.SPO.encodeKey(keyBuilder, tmp);
+
+                if (btreeSet.contains(key)) {
+
+                    continue;
+
+                }
+
+                btreeSet.insert(key, null);
+
+                next = tmp;
+
+            }
+
+            if (next == null) {
+
+                exhausted = true;
+
+            }
+
+            return next != null;
+
+        }
+
+        public ISPO next() {
+
+            if (!hasNext())
+                throw new NoSuchElementException();
+
+            final ISPO tmp = next;
+
+            next = null;
+
+            return tmp;
+
+        }
+
+        public void remove() {
+
+            throw new UnsupportedOperationException();
+
+        }
+
+    }
+
+    /**
+     * Return an iterator that will visit the distinct (s,p,o) tuples in the
+     * source iterator. The context and statement type information will be
+     * stripped from the visited {@link ISPO}s. The iterator will be backed by a
+     * {@link BTree} on a {@link TemporaryStore} and will use a bloom filter for
+     * fast point tests. The {@link BTree} and the source iterator will be
+     * closed when the returned iterator is closed.
+     * 
+     * @param src
+     *            The source iterator.
+     * 
+     * @return The filtered iterator.
+     */
+    public ICloseableIterator<ISPO> distinctSPOIterator(
+            final ICloseableIterator<ISPO> src) {
+
+        if (!src.hasNext())
+            return new EmptyChunkedIterator<ISPO>(SPOKeyOrder.SPO);
+
+        return new DistinctSPOIterator(src);
+        
+    }
+
+    /**
+     * Return a new unnamed {@link BTree} instance for the
+     * {@link SPOKeyOrder#SPO} key order backed by a {@link TemporaryStore}. The
+     * index will only store (s,p,o) triples (not quads) and will not store
+     * either the SID or {@link StatementEnum}. This is a good choice when you
+     * need to impose a "distinct" filter on (s,p,o) triples.
+     * 
+     * @param bloomFilter
+     *            When <code>true</code>, a bloom filter is enabled for the
+     *            index. The bloom filter provides fast correct rejection tests
+     *            for point lookups up to ~2M triples and then shuts off
+     *            automatically. See {@link BloomFilterFactory#DEFAULT} for more
+     *            details.
+     * 
+     * @return The SPO index.
+     */
+    public BTree getSPOOnlyBTree(final boolean bloomFilter) {
+        
+        final TemporaryStore tempStore = getIndexManager().getTempStore();
+        
+        final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
+        
+        // leading key compression works great.
+        final IRabaCoder leafKeySer = DefaultTupleSerializer
+                .getDefaultLeafKeysCoder();
+
+        // nothing is stored under the values.
+        final IRabaCoder leafValSer = EmptyRabaValueCoder.INSTANCE;
+        
+        // setup the tuple serializer.
+        metadata.setTupleSerializer(new SPOTupleSerializer(SPOKeyOrder.SPO,
+                leafKeySer, leafValSer));
+
+        if(bloomFilter) {
+
+            // optionally enable the bloom filter.
+            metadata.setBloomFilterFactory(BloomFilterFactory.DEFAULT);
+            
+        }
+
+        final BTree ndx = BTree.create(tempStore, metadata); 
+        
+        return ndx;
+        
     }
     
     /**

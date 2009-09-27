@@ -94,8 +94,11 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
             final BigdataURI loves= f.createURI("http://www.bigdata.com/loves");
             final BigdataURI mary = f.createURI("http://www.bigdata.com/mary");
             final BigdataURI paul = f.createURI("http://www.bigdata.com/paul");
+            final BigdataURI sam = f.createURI("http://www.bigdata.com/sam");
             final BigdataURI c1 = f.createURI("http://www.bigdata.com/context1");
             final BigdataURI c2 = f.createURI("http://www.bigdata.com/context2");
+//            final BigdataURI c3 = f.createURI("http://www.bigdata.com/context3");
+            final BigdataURI c4 = f.createURI("http://www.bigdata.com/context4");
 
             /*
              * Setup the data for the test.
@@ -112,20 +115,18 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                 // add statements to the store.
                 buffer.add(john, loves, mary, c1);
                 buffer.add(mary, loves, paul, c2);
+                buffer.add(paul, loves, sam, c4);
                 buffer.flush();
 
             }
 
             assertTrue(c1.getTermId() != 0L);
             assertTrue(c2.getTermId() != 0L);
+            assertTrue(c4.getTermId() != 0L);
 
             assertTrue(store.hasStatement(john, loves, mary, c1));
             assertTrue(store.hasStatement(mary, loves, paul, c2));
-
-//            final IJoinNexus joinNexus = store.newJoinNexusFactory(
-//                    RuleContextEnum.HighLevelQuery, ActionEnum.Query,
-//                    IJoinNexus.ELEMENT/* solutionFlags */, null/* filter */)
-//                    .newInstance(store.getIndexManager());
+            assertTrue(store.hasStatement(paul, loves, sam, c4));
 
             {
                 
@@ -163,6 +164,8 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                 
                 /*
                  * One graph in the defaultGraphs set.
+                 * 
+                 * Note: This case gets handled specially.
                  */
                 
                 final DefaultGraphSolutionExpander expander = new DefaultGraphSolutionExpander(
@@ -180,7 +183,8 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                         new ISPO[] { //
                         new SPO(john.getTermId(), loves.getTermId(), mary
                                 .getTermId()) //
-                        }, expander.getAccessPath(baseAccessPath).iterator());
+                        }, expander.getAccessPath(baseAccessPath)
+                        .iterator());
 
                 assertFalse("isEmpty", expander.getAccessPath(baseAccessPath)
                         .isEmpty());
@@ -364,6 +368,45 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                         baseAccessPath).rangeCount(false/* exact */));
 
                 assertEquals("rangeCount(exact)", 0L, expander.getAccessPath(
+                        baseAccessPath).rangeCount(true/* exact */));
+
+            }
+
+            {
+
+                /*
+                 * Default graph is null.
+                 * 
+                 * Note: This case gets handled specially.
+                 */
+
+                final DefaultGraphSolutionExpander expander = new DefaultGraphSolutionExpander(
+                        null/* defaultGraphs */);
+
+                final SPOAccessPath baseAccessPath = (SPOAccessPath) store
+                        .getAccessPath(SPOKeyOrder.SPOC);
+
+                if (log.isInfoEnabled()) {
+                    log.info(expander.getAccessPath(baseAccessPath).toString());
+                }
+
+                TestSPOKeyOrder.assertSameIteratorAnyOrder("iterator()",
+                        new ISPO[] { //
+                                new SPO(john.getTermId(), loves.getTermId(),
+                                        mary.getTermId()), //
+                                new SPO(mary.getTermId(), loves.getTermId(),
+                                        paul.getTermId()), //
+                                new SPO(paul.getTermId(), loves.getTermId(),
+                                        sam.getTermId()) //
+                        }, expander.getAccessPath(baseAccessPath).iterator());
+
+                assertFalse("isEmpty", expander.getAccessPath(baseAccessPath)
+                        .isEmpty());
+
+//                assertEquals("rangeCount()", 2L, expander.getAccessPath(
+//                        baseAccessPath).rangeCount(false/* exact */));
+
+                assertEquals("rangeCount(exact)", 3L, expander.getAccessPath(
                         baseAccessPath).rangeCount(true/* exact */));
 
             }

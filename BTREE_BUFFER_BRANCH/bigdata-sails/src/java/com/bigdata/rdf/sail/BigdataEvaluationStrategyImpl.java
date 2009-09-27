@@ -697,12 +697,6 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
              * will be unbound on the context dimension. The query is evaluated
              * against the RDF Merge of ALL graphs.
              * 
-             * FIXME To do this efficiently we use an "expander" which strips
-             * off the context information and filters out the distinct (s,p,o)
-             * triples. Since the query result volume can be large, the distinct
-             * filter will use a BTree so it can spill over onto the disk if
-             * necessary.
-             * 
              * otherwise;
              * 
              * if scope==DEFAULT_CONTEXTS; then [cvar] is ignored (it will not
@@ -726,13 +720,31 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
              * consider the #of named graphs to be visited and compare that to
              * the percentage of the index which would be visited if [c] was
              * unbound but filtered by a constraint.
+             * 
+             * FIXME Scale-out joins depend on knowledge of the best access path
+             * and the index partitions (aka shards) which it will traverse.
+             * Review all of the new expanders and make sure that they do not
+             * violate this principle. Expanders tend to lazily determine the
+             * access path, and I believe that RDFJoinNexus#getTailAccessPath()
+             * may even refuse to operate with expanders. If this is the case,
+             * then the choice of the access path needs to be completely coded
+             * into the predicate as a combination of binding or clearing the
+             * context variable and setting an appropriate constraint (filter).
              */
-            final Var cvar = stmtPattern.getContextVar();
             System.err.println(dataset==null?"No dataset.":dataset.toString());
             System.err.println(stmtPattern.toString());
+            final Var cvar = stmtPattern.getContextVar();
             if (cvar == null) {//|| !cvar.hasValue()) {
                 if (dataset == null) {
+                    /*
+                     * There is no dataset, so the default graph will be the RDF
+                     * Merge of ALL graphs in the quad store. This code path
+                     * uses an "expander" which strips off the context
+                     * information and filters out the distinct (s,p,o) triples.
+                     */
                     c = null;
+                    expander = new DefaultGraphSolutionExpander(null/* dataset */
+                    );
                 } else {
                     switch (stmtPattern.getScope()) {
                     case DEFAULT_CONTEXTS: {
