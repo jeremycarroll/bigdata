@@ -28,11 +28,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.spo;
 
-import java.util.HashSet;
+
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -45,12 +45,11 @@ import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.BigdataURI;
+import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.store.IRawTripleStore;
-import com.bigdata.rdf.store.TempTripleStore;
 import com.bigdata.relation.accesspath.BlockingBuffer;
+import com.bigdata.relation.accesspath.EmptyAccessPath;
 import com.bigdata.relation.accesspath.IAccessPath;
-import com.bigdata.relation.accesspath.IAsynchronousIterator;
-import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.ISolutionExpander;
 import com.bigdata.relation.rule.IVariableOrConstant;
@@ -67,13 +66,48 @@ import com.bigdata.util.concurrent.MappedTaskExecutor;
  * or more FROM clauses). The expander apply the access path to the graph
  * associated with each specified URI, visiting the distinct (s,p,o) tuples
  * found in those graph(s). The context position of the visited {@link ISPO}s is
- * discarded (set to null). Duplicate triples are discarded. The result is the
- * distinct union of the access paths and hence provides a view of the graphs in
- * the default graph as if they had been merged according to <a
- * href="http://www.w3.org/TR/rdf-mt/#graphdefs>RDF Semantics</a>.
+ * discarded (set to null). Duplicate triples are discarded using a
+ * {@link BTree} for the {@link SPOKeyOrder#SPO} key order with its bloom filter
+ * enabled. The result is the distinct union of the access paths and hence
+ * provides a view of the source graphs as if they had been merged according to
+ * <a href="http://www.w3.org/TR/rdf-mt/#graphdefs>RDF Semantics</a>.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
+ * 
+ * @todo This class will have to be revisited if want to support quad store
+ *       inference and expose information about inferred vs explicit statements
+ *       when reading on the default graph. All of its access paths strip out
+ *       the {@link StatementEnum}.
+ * 
+ *       FIXME Scale-out joins depend on knowledge of the best access path and
+ *       the index partitions (shards) which it will traverse. Review all of the
+ *       new expanders and make sure that they do not violate this principle.
+ *       Expanders tend to lazily determine the access path, and I believe that
+ *       RDFJoinNexus#getTailAccessPath() may even refuse to operate with
+ *       expanders. If this is the case, then the choice of the access path
+ *       needs to be completely coded into the predicate as a combination of
+ *       binding or clearing the context variable and setting an appropriate
+ *       constraint (filter).
+ *       <p>
+ *       For scale-out this could place us onto a different shard and hence a
+ *       different data service with the consequence that we wind up doing RMI
+ *       for the access path. In order to avoid that we need to rewrite the rule
+ *       to use a nested query along the lines of:
+ * 
+ *       <pre>
+ * DISTINCT (s,p,o)
+ *  UNION
+ *      SELECT s,p,o FROM g1
+ *      SELECT s,p,o FROM g2
+ *      ...
+ *      SELECT s,p,o FROM gn
+ * </pre>
+ * 
+ *       The alternative approach for scale-out is to add a filter so that only
+ *       the specific context is accepted. This filter MUST applied for ALL
+ *       possible contexts (or all on that shard) so we only run the access path
+ *       once rather than once per context.
  */
 public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
@@ -98,6 +132,26 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
     final Iterable<? extends URI> defaultGraphs;
 
     /**
+     * The #of source graphs in {@link #defaultGraphs} whose term identifier is
+     * known. While this is not proof that there is data in the quad store for a
+     * graph having the corresponding {@link URI}, it does allow the possibility
+     * that a graph could exist for that {@link URI}. If {@link #nknown} is ZERO
+     * (0), then the {@link EmptyAccessPath} should be used. If {@link #nknown}
+     * is ONE (1), then the caller's {@link IAccessPath} should be used and
+     * filtered to remove the context information. If {@link #defaultGraphs} is
+     * <code>null</code>, which implies that ALL graphs in the quad store will
+     * be used as the default graph, then {@link #nknown} will be
+     * {@link Integer#MAX_VALUE}.
+     */
+    final int nknown;
+
+    /**
+     * The term identifier for the first graph and {@link IRawTripleStore#NULL}
+     * if no graphs were specified having a term identifier.
+     */
+    final long firstContext;
+    
+    /**
      * The caller SHOULD NOT use this expander when the default graph is known
      * to be empty as it will only impose unnecessary overhead. However, using
      * the expander makes sense even when there is a single graph in the default
@@ -108,43 +162,54 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
      * default graph can yield any data.
      * 
      * @param defaultGraphs
-     *            The set of default graphs in the SPARQL DATASET. A runtime
-     *            exception will be thrown during evaluation of the if the
-     *            {@link URI}s are not {@link BigdataURI}s.
+     *            The set of default graphs in the SPARQL DATASET (optional). A
+     *            runtime exception will be thrown during evaluation of the if
+     *            the {@link URI}s are not {@link BigdataURI}s. If this is
+     *            <code>null</code>, then the default graph is understood to
+     *            be the RDF merge of ALL graphs in the quad store.
      * 
      * @throws IllegalArgumentException
      *             if <i>defaultGraphs</i> is <code>null</code>.
      */
-//    * @throws IllegalArgumentException
-//    *             if <i>defaultGraphs</i> is empty (the caller should optimize
-//    *             this expander out when the default graph is known to be
-//    *             empty).
     public DefaultGraphSolutionExpander(
             final Iterable<? extends URI> defaultGraphs) {
         
-        if (defaultGraphs == null) {
-
-            /*
-             * No data set?
-             */
-
-            throw new IllegalArgumentException();
-
-        }
-
-//        if (!defaultGraphs.iterator().hasNext()) {
-//
-//            /*
-//             * The default graph is an empty graph. The caller should optimize
-//             * out this expander when the default graph is known to be empty.
-//             */
-//
-//            throw new IllegalArgumentException();
-//
-//        }
-        
         this.defaultGraphs = defaultGraphs;
         
+        long firstContext = IRawTripleStore.NULL;
+        
+        if(defaultGraphs == null) {
+            
+            nknown = Integer.MAX_VALUE;
+            
+        } else {
+
+            final Iterator<? extends URI> itr = defaultGraphs.iterator();
+
+            int nknown = 0;
+
+            while (itr.hasNext()) {
+
+                final BigdataURI uri = (BigdataURI) itr.next();
+
+                if (uri.getTermId() != IRawTripleStore.NULL) {
+
+                    if (++nknown == 1) {
+
+                        firstContext = uri.getTermId();
+
+                    }
+
+                }
+
+            } // while
+            
+            this.nknown = nknown;
+            
+        }
+        
+        this.firstContext = firstContext;
+
     }
     
     public boolean backchain() {
@@ -162,36 +227,23 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
     /**
      * @throws IllegalArgumentException
      *             if the context position is bound.
-     * 
-     * 
-     *             FIXME For scale-out this could place us onto a different
-     *             shard and hence a different data service with the consequence
-     *             that we wind up doing RMI for the access path. In order to
-     *             avoid that we either need to rewrite the rule to use a nested
-     *             query along the lines of:
-     * 
-     *             <pre>
-     * DISTINCT (s,p,o)
-     *  UNION
-     *      SELECT s,p,o FROM g1
-     *      SELECT s,p,o FROM g2
-     *      ...
-     *      SELECT s,p,o FROM gn
-     * </pre>
-     * 
-     *             The alternative approach for scale-out is to add a filter so
-     *             that only the specific context is accepted. This filter MUST
-     *             applied for ALL possible contexts (or all on that shard) so
-     *             we only run the access path once rather than once per
-     *             context.
      */
-    public IAccessPath<ISPO> getAccessPath(final IAccessPath<ISPO> accessPath) {
+    public IAccessPath<ISPO> getAccessPath(final IAccessPath<ISPO> accessPath1) {
 
-        if (accessPath == null)
+        if (accessPath1 == null)
             throw new IllegalArgumentException();
 
-        @SuppressWarnings("unchecked")
+        if(!(accessPath1 instanceof SPOAccessPath)) {
+            
+            // The logic relies on wrapping an SPOAccessPath, at least for now.
+            throw new IllegalArgumentException();
+            
+        }
+
+        final SPOAccessPath accessPath = (SPOAccessPath) accessPath1;
+        
         final IVariableOrConstant<Long> c = accessPath.getPredicate().get(3);
+
         if (c != null && c.isConstant()) {
 
             // the context position should not be bound.
@@ -199,47 +251,85 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
             
         }
         
-        if(!(accessPath instanceof SPOAccessPath)) {
-            
-            // The logic relies on wrapping an SPOAccessPath, at least for now.
-            throw new IllegalArgumentException();
-            
+        if (nknown == 0) {
+
+            /*
+             * The default graph is an empty graph.
+             */
+
+            return new EmptyAccessPath<ISPO>(accessPath.getPredicate(),
+                    accessPath.getKeyOrder());
+
         }
 
+        if (nknown == 1) {
+
+            /*
+             * There is just one source graph for the default graph. The RDF
+             * Merge of a single graph is itself. We bind the context on the
+             * access path and strip out the context from the visited SPOs.
+             */
+
+            return new StripContextAccessPath(firstContext, accessPath);
+
+        }
+
+        if (defaultGraphs == null) {
+
+            /*
+             * RDF merge of all graphs in the quad store.
+             * 
+             * Note: We handle the single graph case first since it scales
+             * better if there is only one graph.
+             */
+            
+            return new MergeAllGraphsAccessPath(accessPath);
+
+        }
+
+        if (false) {
+
+            /*
+             * FIXME choose this approach when we need to visit most of the
+             * index anyway.
+             * 
+             * RDF merge of the graphs whose term identifiers are defined based
+             * on an access path in which the context position is unbound and an
+             * IN filter which restricts the selected quads to those found in
+             * the set of source graphs. The access path must also strip off the
+             * context position and then filter for the distinct (s,p,o) tuples.
+             * 
+             * Note: One advantage of this approach is that it does not require
+             * us to use a remote read on a different shard. This approach may
+             * also perform better when reading against a significant fraction
+             * of the KB, e.g., 20% or better.
+             * 
+             * Note: When using this code path, rangeCount(false) will
+             * overestimate the count because it is not using the iterator and
+             * applying the filter and therefore will see all contexts, not just
+             * the one specified by [c].
+             */
+
+            final SPOPredicate p = accessPath.getPredicate().setConstraint(
+                    new InGraphHashSetFilter(defaultGraphs));
+
+            /*
+             * Wrap with access path that leaves [c] unbound but strips off the
+             * context position and filters for the distinct (s,p,o) tuples.
+             * 
+             * Note: This will wind up assigning the same index since we have
+             * not changed the bindings on the predicate, only made the filter
+             * associated with the predicate more restrictive.
+             */
+
+            return new MergeAllGraphsAccessPath((SPOAccessPath) accessPath
+                    .getRelation().getAccessPath(p));
+
+        }
+        
         // @todo should we check accessPath.isEmpty() here?
 
-        return new DefaultGraphAccessPath((SPOAccessPath) accessPath);
-
-        /*
-         * FIXME scale-out or high-volumn visitation alternative : filter all
-         * contexts at once.
-         * 
-         * Constrain the access path by adding a filter on the context position.
-         * 
-         * Note: One advantage of this approach is that it does not require us
-         * to use a remote read on a different shard. This approach may also
-         * perform better when reading against a significant fraction of the KB,
-         * e.g., 20% or better.
-         * 
-         * Note: When using this code path, rangeCount(false) will overestimate
-         * the count because it is not using the iterator and applying the
-         * filter and therefore will see all contexts, not just the one
-         * specified by [c].
-         */
-//        final Set<Long> contextSet = ....; // set of contexts we will accept.
-//        final SPOPredicate p = ((SPOPredicate) getPredicate())
-//                .setConstraint(new SPOFilter() {
-//                    private static final long serialVersionUID = 1L;
-//                    public boolean accept(final ISPO spo) {
-//                        return contextSet.contains(spo.c());
-//                    }
-//                });
-        /*
-         * This will wind up assigning the same index since we have not
-         * changed the bindings on the predicate, only made the filter
-         * associated with the predicate more restrictive.
-         */
-//        return (SPOAccessPath) accessPath.getRelation().getAccessPath(p);
+        return new DefaultGraphAccessPath(accessPath);
 
     }
 
@@ -268,12 +358,12 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
         /**
          * The original access path.
          */
-        private final SPOAccessPath accessPath;
+        private final SPOAccessPath sourceAccessPath;
 
         public String toString() {
 
             return super.toString() + "{baseAccessPath="
-                    + accessPath.toString() + "}";
+                    + sourceAccessPath.toString() + "}";
 
         }
 
@@ -283,7 +373,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
          */
         public DefaultGraphAccessPath(final SPOAccessPath accessPath) {
 
-            this.accessPath = accessPath;
+            this.sourceAccessPath = accessPath;
 
             this.executor = new MappedTaskExecutor(accessPath.getIndexManager()
                     .getExecutorService());
@@ -303,19 +393,19 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
         public IIndex getIndex() {
  
-            return accessPath.getIndex();
+            return sourceAccessPath.getIndex();
             
         }
 
         public IKeyOrder<ISPO> getKeyOrder() {
 
-            return accessPath.getKeyOrder();
+            return sourceAccessPath.getKeyOrder();
             
         }
 
         public IPredicate<ISPO> getPredicate() {
 
-            return accessPath.getPredicate();
+            return sourceAccessPath.getPredicate();
             
         }
 
@@ -338,10 +428,17 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
         public ITupleIterator<ISPO> rangeIterator() {
 
-            return null;
+            return sourceAccessPath.rangeIterator();
             
         }
 
+        /**
+         * Unsupported operation.
+         * <p>
+         * Note: this could be implemented by delegation but it is not used from
+         * the context of SPARQL which lacks SELECT ... INSERT or SELECT ...
+         * DELETE constructions, at least at this time.
+         */
         public long removeAll() {
 
             throw new UnsupportedOperationException();
@@ -364,28 +461,6 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
         /**
          * This is the common entry point for all iterator implementations.
          * 
-         * @todo For large volume result sets the distinct (s,p,o) filter must
-         *       spill out onto the disk. This means using a BTree rather than a
-         *       HashSet. The BTree can use the {@link SPOTupleSerializer}, but
-         *       should turn off SIDs and statement type storage. This is
-         *       probably easiest to configure as a {@link TempTripleStore}
-         *       where the lexicon is off, where quads is false, where sids is
-         *       false, etc.
-         * 
-         * @todo Cache the fast range count.
-         * 
-         * @todo Alternative implementation using limited parallel evaluation of
-         *       the access paths to reduce latency and a hash set to filter out
-         *       the duplicates.
-         * 
-         * @todo initialCapacity for the hash sets?
-         * 
-         * @todo Alternative implementations based on filtering the distinct
-         *       triples using a {@link BTree} with an (s,p,o) key to filter
-         *       duplicates since that can spill onto the disk and handle larger
-         *       result sets (e.g., a {@link TempTripleStore} with only the SPO
-         *       index and no lexicon).
-         * 
          * @todo Alternative implementation using fully parallel evaluation of
          *       the access paths and a merge sort to combine chunks drawn from
          *       each access path, and then an iterator which skips over
@@ -400,11 +475,6 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
          *       has already be visited. (The constraint allows us to use a
          *       closed world assumption to filter duplicates after the merge
          *       sort.)
-         * 
-         * @todo Performance comparisons among these implementations and logic
-         *       to choose the right implementation for the combination of the
-         *       deployment, the cardinality of the default graph set size, and
-         *       the scale of the data.
          */
         @SuppressWarnings("unchecked")
         public IChunkedOrderedIterator<ISPO> iterator(final long offset,
@@ -426,8 +496,8 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
         /**
          * Iterator implementation based on limited parallelism over the
          * iterators for the {@link IAccessPath} associated with each graph in
-         * the default graphs set and using a hash map to filter out duplicate
-         * (s,p,o) tuples.
+         * the default graphs set and using a {@link BTree} to filter out
+         * duplicate (s,p,o) tuples.
          * 
          * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
          *         Thompson</a>
@@ -452,26 +522,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
             /**
              * The source iterator.
              */
-            private final IAsynchronousIterator<ISPO> src;
-            
-            /**
-             * The set of distinct {@link ISPO}s that have been accepted by
-             * {@link #hasNext()}, which is responsible for pulling the {@link #next()}
-             * {@link ISPO} from the #src iterator.
-             */
-            private final Set<ISPO> set;
-
-            /**
-             * The next element to be visited or <code>null</code> if we need to
-             * scan ahead.
-             */
-            private ISPO next = null;
-
-            /**
-             * <code>true</code> iff the iterator has been proven to be
-             * exhausted.
-             */
-            private boolean exhausted = false;
+            private final ICloseableIterator<ISPO> src;
 
             /**
              * @param offset
@@ -487,9 +538,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
                 
                 this.capacity = capacity;
 
-                this.set = new HashSet<ISPO>();
-
-                this.buffer = new BlockingBuffer<ISPO>(accessPath
+                this.buffer = new BlockingBuffer<ISPO>(sourceAccessPath
                         .getChunkCapacity());
 
                 Future<Void> future = null;
@@ -510,14 +559,18 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
                      */
 
                     // run the task.
-                    future = accessPath.getIndexManager().getExecutorService()
+                    future = sourceAccessPath.getIndexManager().getExecutorService()
                             .submit(newRunIteratorsTask(buffer));
 
                     // set the future on the BlockingBuffer.
                     buffer.setFuture(future);
 
-                    // save reference to the asynchronous iterator.
-                    src = buffer.iterator();
+                    /*
+                     * Wrap the asynchronous iterator with one that imposes a
+                     * distinct (s,p,o) filter.
+                     */
+                    src = sourceAccessPath.getRelation().distinctSPOIterator(
+                            buffer.iterator());
 
                 } catch (Throwable ex) {
 
@@ -563,53 +616,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
              */
             public boolean hasNext() {
 
-                if (exhausted)
-                    return false;
-                
-                if (next != null)
-                    return true;
-                
-                while (next == null && src.hasNext()) {
-
-                    ISPO tmp = src.next();
-
-                    /*
-                     * Strip off the context position.
-                     * 
-                     * Note: distinct is enforced on (s,p,o). By stripping off
-                     * the context and statement type information first, we
-                     * ensure that (s,p,o) duplicates will be recognized as
-                     * such.
-                     * 
-                     * @todo Notice that this approach requires us to discard
-                     * the statement type metadata. The merge sort approach
-                     * could retain that metadata, returning the maximum over
-                     * the statement types for duplicates (always promoting to
-                     * explicit if any of the duplicates are explicit, and
-                     * otherwise to axiom if any of the duplicates are axioms).
-                     */
-                    tmp = new SPO(tmp.s(), tmp.p(), tmp.o(),
-                            IRawTripleStore.NULL);
-                    
-                    if(set.contains(tmp)) {
-                        
-                        continue;
-                        
-                    }
-                    
-                    set.add(tmp);
-
-                    next = tmp; 
-
-                }
-                
-                if(next == null) {
-                    
-                    exhausted = true;
-                    
-                }
-                
-                return next != null;
+                return src.hasNext();
                 
             }
 
@@ -618,11 +625,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
                 if (!hasNext())
                     throw new NoSuchElementException();
 
-                final ISPO tmp = next;
-
-                next = null;
-
-                return tmp;
+                return src.next();
                 
             }
 
@@ -719,10 +722,9 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
                     if (log.isDebugEnabled())
                         log.debug("Running iterator: c=" + termId);
 
-                    final IAccessPath<ISPO> ap = bindContext(termId);
-
-                    final IChunkedOrderedIterator<ISPO> itr = ap.iterator(
-                            offset, limit, capacity);
+                    final IChunkedOrderedIterator<ISPO> itr = sourceAccessPath
+                            .bindContext(termId).iterator(offset, limit,
+                                    capacity);
 
                     try {
 
@@ -756,7 +758,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
         } // class InnerIterator
 
         /**
-         * FIXME cache the range counts for reuse.
+         * FIXME cache historical range counts (exact and fast) for reuse.
          */
         public long rangeCount(final boolean exact) {
             
@@ -766,11 +768,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
                  * Exact range count.
                  * 
                  * Note: The only way to get the exact range count is to run the
-                 * iterator so we can decide which triples are duplicates by the
-                 * graphs in the default graphs set.
-                 * 
-                 * How efficient this is therefore depends directly on how the
-                 * iterator is implemented.
+                 * iterator so we can decide which triples are duplicates.
                  */
                 
                 final IChunkedOrderedIterator<ISPO> itr = iterator();
@@ -873,57 +871,305 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
             public Long call() throws Exception {
 
-                final IAccessPath<ISPO> ap = bindContext(c);
-
-                return Long.valueOf(ap.rangeCount(false/* exact */));
-
-            }
-
-        }
-
-        /**
-         * Return a new {@link SPOAccessPath} where the context position has
-         * been bound to the specified constant. This is used to constrain an
-         * access path to each graph in the set of default graphs when
-         * evaluating a SPARQL query against the "default graph".
-         * <p>
-         * Note: The added constraint may mean that a different index provides
-         * more efficient traversal.
-         * 
-         * @param c
-         *            The context term identifier.
-         * 
-         * @return The constrained {@link IAccessPath}.
-         */
-        public SPOAccessPath bindContext(final long c) {
-
-            if (c == IRawTripleStore.NULL) {
-
-                // or return EmptyAccessPath.
-                throw new IllegalArgumentException();
+                return Long.valueOf(sourceAccessPath.bindContext(c).rangeCount(
+                        false/* exact */));
 
             }
-
-            /*
-             * Constrain the access path by setting the context position on its
-             * predicate.
-             * 
-             * Note: This option will always do better when you are running
-             * against local data (LocalTripleStore).
-             */
-
-            final SPOPredicate p = ((SPOPredicate) getPredicate())
-                    .setC(new Constant<Long>(Long.valueOf(c)));
-
-            /*
-             * Let the relation figure out which access path is best given that
-             * added constraint.
-             */
-
-            return (SPOAccessPath) accessPath.getRelation().getAccessPath(p);
 
         }
 
     } // class DefaultGraphAccessPath
+
+    /**
+     * An access path which is used when the RDF merge of all graphs in the quad
+     * store is required. The access path leaves [c] unbound, strips off the
+     * context information, and filters for distinct (s,p,o) triples.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
+     * @version $Id$
+     */
+    private class MergeAllGraphsAccessPath implements IAccessPath<ISPO> {
+
+        private final SPOAccessPath sourceAccessPath;
+        
+        public MergeAllGraphsAccessPath(final SPOAccessPath accessPath) {
+
+            final IVariableOrConstant<?> cvar = accessPath.getPredicate()
+                    .get(3);
+
+            if (cvar != null && cvar.isConstant()) {
+
+                // The context position must not be bound.
+                throw new IllegalArgumentException();
+                
+            }
+            
+            this.sourceAccessPath = accessPath;
+            
+        }
+        
+        public IIndex getIndex() {
+            
+            return sourceAccessPath.getIndex();
+            
+        }
+
+        public IKeyOrder<ISPO> getKeyOrder() {
+         
+            return sourceAccessPath.getKeyOrder();
+            
+        }
+
+        public IPredicate<ISPO> getPredicate() {
+            
+            return sourceAccessPath.getPredicate();
+            
+        }
+
+        public boolean isEmpty() {
+         
+            return sourceAccessPath.isEmpty();
+            
+        }
+
+        public IChunkedOrderedIterator<ISPO> iterator() {
+            
+            return iterator(0L/* offset */, 0L/* limit */, 0/* capacity */);
+            
+        }
+
+        public IChunkedOrderedIterator<ISPO> iterator(final int limit,
+                final int capacity) {
+
+            return iterator(0L/* offset */, limit, capacity);
+
+        }
+
+        public ITupleIterator<ISPO> rangeIterator() {
+
+            return sourceAccessPath.rangeIterator();
+            
+        }
+
+        /**
+         * Unsupported operation.
+         * <p>
+         * Note: this could be implemented by delegation but it is not used from
+         * the context of SPARQL which lacks SELECT ... INSERT or SELECT ...
+         * DELETE constructions, at least at this time.
+         */
+        public long removeAll() {
+
+            throw new UnsupportedOperationException();
+            
+        }
+        
+        /**
+         * FIXME cache historical range counts (exact and fast) for reuse.
+         */
+        public long rangeCount(final boolean exact) {
+            
+            if (exact) {
+
+                /*
+                 * Exact range count.
+                 * 
+                 * Note: The only way to get the exact range count is to run the
+                 * iterator so we can decide which triples are duplicates.
+                 */
+                
+                final IChunkedOrderedIterator<ISPO> itr = iterator();
+
+                long n = 0;
+
+                try {
+
+                    while(itr.hasNext()) {
+                        
+                        itr.next();
+                        
+                        n++;
+                        
+                    }
+                    
+                } finally {
+
+                    itr.close();
+
+                }
+
+                return n;
+
+            } else {
+
+                /*
+                 * Estimated range count.
+                 * 
+                 * Note: The estimate is the maximum since it does not filter
+                 * duplicates.
+                 */
+
+                return sourceAccessPath.rangeCount(false/* exact */);
+                
+            }
+            
+        }
+
+        /**
+         * Core implementation delegates the iterator to the source access path
+         * and then applies a filter such that only the distinct (s,p,o) tuples
+         * will be visited.
+         */
+        public IChunkedOrderedIterator<ISPO> iterator(final long offset,
+                final long limit, final int capacity) {
+
+            final ICloseableIterator<ISPO> src = sourceAccessPath.iterator(
+                    offset, limit, capacity);
+
+            return new ChunkedWrappedIterator<ISPO>(sourceAccessPath
+                    .getRelation().distinctSPOIterator(src));
+
+        }
+        
+    } // MergeAllGraphsAccessPath
+
+    /**
+     * Delegates everything but strips the context position and the statement
+     * type from the visited (s,p,o)s.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
+     * @version $Id$
+     */
+    private class StripContextAccessPath implements IAccessPath<ISPO> {
+
+        private final IAccessPath<ISPO> sourceAccessPath;
+
+        /**
+         * 
+         * @param c
+         *            The term identifier for the graph.
+         * 
+         * @param sourceAccessPath
+         *            The original access path.
+         */
+        public StripContextAccessPath(final long c,
+                final SPOAccessPath sourceAccessPath) {
+
+            this.sourceAccessPath = sourceAccessPath.bindContext(c);
+            
+        }
+        
+        public IIndex getIndex() {
+            
+            return sourceAccessPath.getIndex();
+            
+        }
+
+        public IKeyOrder<ISPO> getKeyOrder() {
+            
+            return sourceAccessPath.getKeyOrder();
+            
+        }
+
+        public IPredicate<ISPO> getPredicate() {
+
+            return sourceAccessPath.getPredicate();
+            
+        }
+
+        public boolean isEmpty() {
+            
+            return sourceAccessPath.isEmpty();
+            
+        }
+
+        public IChunkedOrderedIterator<ISPO> iterator() {
+            
+            return iterator(0L/* offset */, 0L/* limit */, 0/* capacity */);
+            
+        }
+
+        public IChunkedOrderedIterator<ISPO> iterator(final int limit,
+                final int capacity) {
+
+            return iterator(0L/* offset */, limit, capacity);
+
+        }
+
+        public long rangeCount(final boolean exact) {
+            
+            return sourceAccessPath.rangeCount(exact);
+            
+        }
+
+        public ITupleIterator<ISPO> rangeIterator() {
+            
+            return sourceAccessPath.rangeIterator();
+            
+        }
+
+        public long removeAll() {
+            
+            return sourceAccessPath.removeAll();
+            
+        }
+
+        public IChunkedOrderedIterator<ISPO> iterator(final long offset,
+                final long limit, final int capacity) {
+
+            return new ChunkedWrappedIterator<ISPO>(new StripContextIterator(
+                    sourceAccessPath.iterator(offset, limit, capacity)));
+
+        }
+
+    }
+
+    /**
+     * Strips off the context information.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
+     * @version $Id$
+     */
+    private static class StripContextIterator implements
+            ICloseableIterator<ISPO> {
+
+        private final ICloseableIterator<ISPO> src;
+        
+        public StripContextIterator(final ICloseableIterator<ISPO> src){ 
+        
+            this.src = src;
+            
+        }
+        
+        public void close() {
+        
+            src.close();
+            
+        }
+
+        public boolean hasNext() {
+            
+            return src.hasNext();
+            
+        }
+
+        public ISPO next() {
+
+            final ISPO tmp = src.next();
+
+            return new SPO(tmp.s(), tmp.p(), tmp.o());
+
+        }
+
+        public void remove() {
+
+            src.remove();
+            
+        }
+
+    }
 
 }
