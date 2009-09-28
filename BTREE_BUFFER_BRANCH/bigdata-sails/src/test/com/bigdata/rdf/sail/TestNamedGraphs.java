@@ -64,7 +64,7 @@ import org.openrdf.sail.SailException;
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
-public class TestNamedGraphs extends ProxyBigdataSailTestCase {
+public class TestNamedGraphs extends QuadsTestCase {
 
     protected static final Logger log = Logger.getLogger(TestNamedGraphs.class);
     
@@ -121,66 +121,6 @@ public class TestNamedGraphs extends ProxyBigdataSailTestCase {
      */
     final URI DC_PUBLISHER = new URIImpl(DC+"publisher"); 
     
-    
-    protected BindingSet createBindingSet(final Binding... bindings) {
-        final QueryBindingSet bindingSet = new QueryBindingSet();
-        if (bindings != null) {
-            for (Binding b : bindings) {
-                bindingSet.addBinding(b);
-            }
-        }
-        return bindingSet;
-    }
-    
-    protected void compare(final TupleQueryResult result,
-            final Collection<BindingSet> answer)
-            throws QueryEvaluationException {
-
-        final Collection<BindingSet> extraResults = new LinkedList<BindingSet>();
-        Collection<BindingSet> missingResults = new LinkedList<BindingSet>();
-
-        int resultCount = 0;
-        int nmatched = 0;
-        while (result.hasNext()) {
-            BindingSet bindingSet = result.next();
-            resultCount++;
-            boolean match = false;
-            if(log.isInfoEnabled())
-                log.info(bindingSet);
-            Iterator<BindingSet> it = answer.iterator();
-            while (it.hasNext()) {
-                if (it.next().equals(bindingSet)) {
-                    it.remove();
-                    match = true;
-                    nmatched++;
-                    break;
-                }
-            }
-            if (match == false) {
-                extraResults.add(bindingSet);
-            }
-        }
-        missingResults = answer;
-
-        for (BindingSet bs : extraResults) {
-            if (log.isInfoEnabled()) {
-                log.info("extra result: " + bs);
-            }
-        }
-        
-        for (BindingSet bs : missingResults) {
-            if (log.isInfoEnabled()) {
-                log.info("missing result: " + bs);
-            }
-        }
-        
-        if (!extraResults.isEmpty() || !missingResults.isEmpty()) {
-            fail("matchedResults=" + nmatched + ", extraResults="
-                    + extraResults.size() + ", missingResults="
-                    + missingResults.size());
-        }
-        
-    }
     
     /**
      * 8.2.1 Specifying the Default Graph

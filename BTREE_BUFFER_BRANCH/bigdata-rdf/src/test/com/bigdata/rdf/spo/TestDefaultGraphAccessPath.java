@@ -29,6 +29,7 @@ package com.bigdata.rdf.spo;
 
 import java.util.Arrays;
 
+import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 
 import com.bigdata.rdf.model.BigdataURI;
@@ -247,7 +248,7 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                                 .asList(new BigdataURI[] { c1, c2 }/* defaultGraphs */));
 
                 final SPOAccessPath baseAccessPath = (SPOAccessPath) store
-                        .getAccessPath(john, null, null, null);
+                        .getAccessPath(john, null, null, (Resource) null);
 
                 if (log.isInfoEnabled()) {
                     log.info(expander.getAccessPath(baseAccessPath).toString());
@@ -282,7 +283,7 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                                 .asList(new BigdataURI[] { c1, c2 }/* defaultGraphs */));
 
                 final SPOAccessPath baseAccessPath = (SPOAccessPath) store
-                        .getAccessPath(mary, null, null, null);
+                        .getAccessPath(mary, null, null, (Resource) null);
 
                 if (log.isInfoEnabled()) {
                     log.info(expander.getAccessPath(baseAccessPath).toString());
@@ -317,7 +318,7 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                                 .asList(new BigdataURI[] { c1, c2 }/* defaultGraphs */));
 
                 final SPOAccessPath baseAccessPath = (SPOAccessPath) store
-                        .getAccessPath(null, null, mary, null);
+                        .getAccessPath(null, null, mary, (Resource) null);
 
                 if (log.isInfoEnabled()) {
                     log.info(expander.getAccessPath(baseAccessPath).toString());
@@ -353,7 +354,7 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
                                 .asList(new BigdataURI[] { c1, c2 }/* defaultGraphs */));
 
                 final SPOAccessPath baseAccessPath = (SPOAccessPath) store
-                        .getAccessPath(john, null, paul, null);
+                        .getAccessPath(john, null, paul, (Resource) null);
 
                 if (log.isInfoEnabled()) {
                     log.info(expander.getAccessPath(baseAccessPath).toString());

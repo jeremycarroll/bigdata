@@ -31,12 +31,19 @@
 
 package com.bigdata.rdf.sail;
 
+import java.util.Collection;
+import java.util.LinkedList;
 import org.openrdf.model.BNode;
 import org.openrdf.model.Resource;
 import org.openrdf.model.URI;
 import org.openrdf.model.impl.BNodeImpl;
 import org.openrdf.model.impl.LiteralImpl;
 import org.openrdf.model.impl.URIImpl;
+import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryLanguage;
+import org.openrdf.query.TupleQuery;
+import org.openrdf.query.TupleQueryResult;
+import org.openrdf.query.impl.BindingImpl;
 
 /**
  * Unit tests the quads aspects of the {@link BigdataSail} implementation.
@@ -47,7 +54,7 @@ import org.openrdf.model.impl.URIImpl;
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
-public class TestQuadsAPI extends ProxyBigdataSailTestCase {
+public class TestQuadsAPI extends QuadsTestCase {
 
     /**
      * 
@@ -180,5 +187,90 @@ public class TestQuadsAPI extends ProxyBigdataSailTestCase {
         }
 
     }
+    
+    /**
+     * Test loads data into two graphs and verifies some access to those
+     * graphs.
+     * @throws Exception 
+     */
+    public void testSCequality() throws Exception {
+
+        final BigdataSail sail = getSail();
+        sail.initialize();
+        final BigdataSailRepository repo = new BigdataSailRepository(sail);
+        final BigdataSailRepositoryConnection cxn = 
+            (BigdataSailRepositoryConnection) repo.getConnection();
+        cxn.setAutoCommit(false);
+        
+        try {
+    
+            assertEquals(0, sail.database.getNamedGraphCount());
+            
+            assertFalse(cxn.getContextIDs().hasNext());
+            
+            final BNode a = new BNodeImpl("_:a");
+            final BNode b = new BNodeImpl("_:b");
+            final URI graphA = new URIImpl("http://www.bigdata.com/rdf#graphA");
+            final URI graphB = new URIImpl("http://www.bigdata.com/rdf#graphB");
+            final URI s = new URIImpl("http://www.bigdata.com/rdf#s");
+            final URI p = new URIImpl("http://www.bigdata.com/rdf#p");
+            final URI o = new URIImpl("http://www.bigdata.com/rdf#o");
+/**/            
+            cxn.add(
+                    graphA,
+                    p,
+                    o,
+                    graphA
+                    );
+            
+            cxn.add(
+                    s,
+                    p,
+                    o,
+                    graphB
+                    );
+/**/
+
+            /*
+             * Note: The either flush() or commit() is required to flush the
+             * statement buffers to the database before executing any operations
+             * that go around the sail.
+             */
+            cxn.flush();//commit();
+            
+            assertEquals(2, sail.database.getNamedGraphCount());
+            
+            assertSameIterationAnyOrder(new Resource[] { graphA, graphB }, cxn
+                    .getContextIDs());
+
+/**/            
+            if (log.isInfoEnabled()) {
+                log.info("\n" + sail.getDatabase().dumpStore());
+            }
+            
+            String query = 
+                "SELECT  * " +
+                "WHERE { GRAPH ?g { ?g <"+p+"> <"+o+"> }}";
+            
+            final TupleQuery tupleQuery = 
+                cxn.prepareTupleQuery(QueryLanguage.SPARQL, query);
+            tupleQuery.setIncludeInferred(true /* includeInferred */);
+            TupleQueryResult result = tupleQuery.evaluate();
+
+            Collection<BindingSet> answer = new LinkedList<BindingSet>();
+            answer.add(createBindingSet(
+                    new BindingImpl("g", graphA)));
+            
+            compare(result, answer);
+            
+
+        } finally {
+            cxn.close();
+            sail.__tearDownUnitTest();
+        }
+
+    }
+    
+    
         
 }
