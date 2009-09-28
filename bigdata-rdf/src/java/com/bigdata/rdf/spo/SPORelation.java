@@ -54,6 +54,7 @@ import com.bigdata.btree.ITuple;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.filter.FilterConstructor;
 import com.bigdata.btree.filter.TupleFilter;
+import com.bigdata.btree.isolation.IConflictResolver;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.proc.BatchRemove;
 import com.bigdata.btree.proc.LongAggregator;
@@ -66,6 +67,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.TemporaryStore;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.inf.Justification;
 import com.bigdata.rdf.lexicon.ITermIdFilter;
 import com.bigdata.rdf.lexicon.LexiconRelation;
@@ -907,7 +909,103 @@ public class SPORelation extends AbstractRelation<ISPO> {
             
         }
         
+        if(TimestampUtility.isReadWriteTx(getTimestamp())) {
+
+            // enable isolatable indices.
+            metadata.setIsolatable(true);
+
+            /*
+             * This tests to see whether or not the axiomsClass is NoAxioms. If
+             * so, then we understand inference to be disabled and can use a
+             * conflict resolver for plain triples, plain quads, or even plain
+             * sids (SIDs are assigned by the lexicon using unisolated
+             * operations).
+             * 
+             * @todo we should have an explicit "no inference" property. this
+             * jumps through hoops since we can not call getAxioms() on the
+             * AbstractTripleStore has been created, and SPORelation#create()
+             * is invoked from within AbstractTripleStore#create().  When
+             * adding that property, update a bunch of unit tests and code
+             * which tests on the axioms class or BaseAxioms#isNone().
+             */
+            if (NoAxioms.class.getName().equals(
+                    getContainer().getProperties().getProperty(
+                            AbstractTripleStore.Options.AXIOMS_CLASS,
+                            AbstractTripleStore.Options.DEFAULT_AXIOMS_CLASS))) {
+
+                metadata.setConflictResolver(new SPOWriteWriteResolver());
+                
+            }
+            
+        }
+        
         return metadata;
+
+    }
+
+    /**
+     * Conflict resolver for add/add conflicts and retract/retract conflicts for
+     * any of (triple store, triple store with SIDs or quad store) but without
+     * inference. For an add/retract conflict, the writes can not be reconciled
+     * and the transaction can not be validated. Write-write conflict
+     * reconciliation is not supported if inference is enabled. The truth
+     * maintenance behavior makes this too complex.
+     * 
+     * @todo It is really TM, not inference, which makes this complicated.
+     *       However, if we allow statement type information into the statement
+     *       index values then we must also deal with that information in the
+     *       conflict resolver.
+     * 
+     * @todo In both cases where we can resolve the conflict, the tuple could be
+     *       withdrawn from the writeSet since the desired tuple is already in
+     *       the unisolated index rather than causing it to be touched on the
+     *       unisolated index. This would have the advantage of minimizing
+     *       writes on the unisolated index.
+     */
+    private static class SPOWriteWriteResolver implements IConflictResolver {
+
+        /**
+         * 
+         */
+        private static final long serialVersionUID = -1591732801502917983L;
+
+        public SPOWriteWriteResolver() {
+
+        }
+        
+        public boolean resolveConflict(IIndex writeSet, ITuple txTuple,
+                ITuple currentTuple) throws Exception {
+
+            if (txTuple.isDeletedVersion() && currentTuple.isDeletedVersion()) {
+
+//                System.err.println("Resolved retract/retract conflict");
+                
+                // retract/retract is not a conflict.
+                return true;
+
+            }
+
+            if (!txTuple.isDeletedVersion() && !currentTuple.isDeletedVersion()) {
+
+//                System.err.println("Resolved add/add conflict");
+
+                // add/add is not a conflict.
+                return true;
+
+            }
+
+            /*
+             * Note: We don't need to materialize the SPOs to resolve the
+             * conflict, but this is how you would do that.
+             */
+            // final ISPO txSPO = (ISPO) txTuple.getObject();
+            //                
+            // final ISPO currentSPO = (ISPO) txTuple.getObject();
+
+            // either delete/add or add/delete is a conflict.
+            return false;
+
+        }
 
     }
 

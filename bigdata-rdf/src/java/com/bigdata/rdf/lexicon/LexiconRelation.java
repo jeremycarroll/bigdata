@@ -237,7 +237,13 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 //            
 //        }
 
-        // lookup/create value factory for the lexicon's namespace.
+        /*
+         * Lookup/create value factory for the lexicon's namespace.
+         * 
+         * Note: The same instance is used for read-only tx, read-write tx,
+         * read-committed, and unisolated views of the lexicon for a given
+         * triple store.
+         */
         valueFactory = BigdataValueFactoryImpl.getInstance(namespace);
         
     }
