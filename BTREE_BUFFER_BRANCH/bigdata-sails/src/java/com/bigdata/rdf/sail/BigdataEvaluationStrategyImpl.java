@@ -30,6 +30,7 @@ import org.openrdf.query.algebra.Compare.CompareOp;
 import org.openrdf.query.algebra.evaluation.impl.EvaluationStrategyImpl;
 import org.openrdf.query.algebra.evaluation.iterator.FilterIterator;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.btree.keys.IKeyBuilderFactory;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.BigdataValue;
@@ -703,8 +704,10 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
              * into the predicate as a combination of binding or clearing the
              * context variable and setting an appropriate constraint (filter).
              */
+            if(BigdataStatics.debug) {
             System.err.println(dataset==null?"No dataset.":dataset.toString());
             System.err.println(stmtPattern.toString());
+            }
             if (expander != null) {
                 /*
                  * @todo can this happen? If it does then we need to
