@@ -1420,7 +1420,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
              * The expectation is that the tasks that succeed make it into the
              * same commit group while the task that throws an exception does
              * not cause the commit group to be aborted. Therefore there should
-             * be ONE (1) commit more than we we submitted the tasks.
+             * be ONE (1) commit more than when we submitted the tasks.
              * 
              * Note: The tasks will make it into the same commit group iff the
              * first task that completes is willing to wait for the others to

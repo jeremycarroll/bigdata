@@ -71,7 +71,7 @@ import com.bigdata.util.NV;
  * In order for there to be a commit, each task must write some data. In the
  * current design each task creates a named index. This means that there is some
  * data to write, but also that some synchronization is required on
- * {@link AbstractJournal#name2Addr}.
+ * {@link AbstractJournal#_name2Addr}.
  * 
  * @todo another way to do this is to pre-generate all the indices, note the
  *       current commit counter, and then submit a bunch of simple index write
