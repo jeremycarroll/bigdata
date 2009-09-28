@@ -38,6 +38,7 @@ import com.bigdata.rdf.sail.BigdataSail.Options;
 import com.bigdata.rdf.spo.DefaultGraphSolutionExpander;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
+import com.bigdata.rdf.spo.NamedGraphSolutionExpander;
 import com.bigdata.rdf.spo.SPOPredicate;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.BNS;
@@ -692,35 +693,6 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
             /*
              * Quad store mode.
              * 
-             * if [dataset==null]; [cvar] will be null (it can only be specified
-             * by a GRAPH clause). [c] will be null as well so the access path
-             * will be unbound on the context dimension. The query is evaluated
-             * against the RDF Merge of ALL graphs.
-             * 
-             * otherwise;
-             * 
-             * if scope==DEFAULT_CONTEXTS; then [cvar] is ignored (it will not
-             * occur in the StatementPattern and [c] gets set to null) and we
-             * query the RDF merge of the default graph access paths using an
-             * expander.
-             * 
-             * else if(cvar.isBound()); then query the named graph identified by
-             * the value of cvar.
-             * 
-             * else cvar is unbound; query the union of the access paths for the
-             * named graphs in the data set. [c] will be a variable that gets
-             * bound to the context identifier for the statements in each graph.
-             * 
-             * FIXME To do this efficiently we either query each access path
-             * with limited parallelism using an expander which DOES NOT filter
-             * out anything -or- we leave [c] unbound on the access path and set
-             * a filter on the predicate so that we visit only the named graphs
-             * specified in the SPARQL data set. In order to decide which
-             * approach will be more efficient for any given query we need to
-             * consider the #of named graphs to be visited and compare that to
-             * the percentage of the index which would be visited if [c] was
-             * unbound but filtered by a constraint.
-             * 
              * FIXME Scale-out joins depend on knowledge of the best access path
              * and the index partitions (aka shards) which it will traverse.
              * Review all of the new expanders and make sure that they do not
@@ -733,75 +705,62 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
              */
             System.err.println(dataset==null?"No dataset.":dataset.toString());
             System.err.println(stmtPattern.toString());
+            if (expander != null) {
+                /*
+                 * @todo can this happen? If it does then we need to
+                 * look at how to layer the expanders.
+                 */
+                throw new AssertionError("expander already set");
+            }
             final Var cvar = stmtPattern.getContextVar();
-            if (cvar == null) {//|| !cvar.hasValue()) {
-                if (dataset == null) {
+            if (dataset == null) {
+                /*
+                 * There is no dataset, so the default graph will be the RDF
+                 * Merge of ALL graphs in the quad store. We can ignore [cvar]
+                 * and set [c] to null since we will disregard the context and
+                 * [cvar] can not become bound when querying the default graph.
+                 * 
+                 * This code path uses an "expander" which strips off the
+                 * context information and filters for the distinct (s,p,o)
+                 * triples to realize the RDF Merge of the source graphs for the
+                 * default graph.
+                 */
+                c = null;
+                expander = new DefaultGraphSolutionExpander(null/* dataset */);
+            } else { // dataset != null
+                switch (stmtPattern.getScope()) {
+                case DEFAULT_CONTEXTS: {
                     /*
-                     * There is no dataset, so the default graph will be the RDF
-                     * Merge of ALL graphs in the quad store. This code path
-                     * uses an "expander" which strips off the context
-                     * information and filters out the distinct (s,p,o) triples.
+                     * Query against the RDF merge of zero or more source
+                     * graphs.
                      */
-                    c = null;
-                    expander = new DefaultGraphSolutionExpander(null/* dataset */
-                    );
-                } else {
-                    switch (stmtPattern.getScope()) {
-                    case DEFAULT_CONTEXTS: {
-                        /*
-                         * The access path must read from the RDF merge of the
-                         * graphs in the SPARQL defaultGraph data set.  This is
-                         * accomplished using an expander pattern which filters
-                         * for the distinct (s,p,o) triples across the set of
-                         * default graphs.
-                         */
-                        if (expander != null) {
-                            /*
-                             * @todo can this happen? If it does then we need to
-                             * look at how to layer the expanders.
-                             */
-                            throw new AssertionError("expander already set");
-                        }
-                        expander = new DefaultGraphSolutionExpander(dataset
-                                .getDefaultGraphs());
-                        if (cvar == null)
-                            c = null;
-                        else
-                            c = generateVariableOrConstant(cvar);
-                        break;
-                    }
-                    case NAMED_CONTEXTS: {
-                        /*
-                         * FIXME This case probably corresponds to a query with
-                         * multiple FROM NAMED clauses with an unbound graph
-                         * variable in a GRAPH clause. If so, then the
-                         * "expansion" should run the join against the union of
-                         * the access paths for each named graph.
-                         * 
-                         * Note: The case where the graph variable is bound is
-                         * presumably handled by [c] being bound, but it is not
-                         * for this code path.
-                         * 
-                         * Note: In fact, [c] is likely to be an unbound
-                         * variable for this situation, so
-                         * stmtPattern.getContextVar() will return non-null but
-                         * it will be an unbound variable and we will want to
-                         * preserve that unbound variable while layering in the
-                         * expander in order to allow the graph variable to
-                         * become bound.
-                         */
-                        c = null; // FIXME expand!
-                        break;
-                    }
-                    default:
-                        throw new AssertionError();
-                    }
+                    expander = new DefaultGraphSolutionExpander(dataset
+                            .getDefaultGraphs());
+                    /*
+                     * Note: cvar can not become bound since context is stripped
+                     * for the default graph.
+                     */
+                    if (cvar == null)
+                        c = null;
+                    else
+                        c = generateVariableOrConstant(cvar);
+                    break;
                 }
-            } else {
-                if (expander == null) {
-                    c = generateVariableOrConstant(cvar);
-                } else {
-                    c = new Constant<Long>(NULL);
+                case NAMED_CONTEXTS: {
+                    /*
+                     * Query against zero or more named graphs.
+                     */
+                    expander = new NamedGraphSolutionExpander(dataset
+                            .getNamedGraphs());
+                    if (cvar == null) {// || !cvar.hasValue()) {
+                        c = null;
+                    } else {
+                        c = generateVariableOrConstant(cvar);
+                    }
+                    break;
+                }
+                default:
+                    throw new AssertionError();
                 }
             }
         }

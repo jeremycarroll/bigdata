@@ -751,7 +751,7 @@ public class RDFJoinNexus implements IJoinNexus {
         
         if (expander != null) {
             
-            // allow the predicate to wrap the access path.
+            // allow the predicate to wrap the access path : @todo caching on AP?
             accessPath = expander.getAccessPath(accessPath);
             
         }

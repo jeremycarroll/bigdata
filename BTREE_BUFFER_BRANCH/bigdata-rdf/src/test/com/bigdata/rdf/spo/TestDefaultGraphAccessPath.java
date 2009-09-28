@@ -46,6 +46,8 @@ import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
  * processing to the index partitions (shards) while the LDS mode runs query
  * inside of the embedded data service.
  * 
+ * @todo write unit tests for {@link NamedGraphSolutionExpander}
+ * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
