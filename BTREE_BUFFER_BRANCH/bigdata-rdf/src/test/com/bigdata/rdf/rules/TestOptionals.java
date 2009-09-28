@@ -29,7 +29,10 @@ package com.bigdata.rdf.rules;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
+
 import org.openrdf.model.Literal;
+import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.impl.LiteralImpl;
@@ -37,12 +40,13 @@ import org.openrdf.model.impl.URIImpl;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
-import com.bigdata.rdf.inf.BackchainOwlSameAsPropertiesIterator;
+
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOPredicate;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.relation.AbstractRelation;
 import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.IRule;
@@ -77,20 +81,37 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
     public TestOptionals(String name) {
         super(name);
     }
-
-    /**
-     * Test the various access paths for backchaining the property collection
-     * normally done through owl:sameAs {2,3}.
-     */
-    public void test_optionals() 
+    
+    public void test_optionals_nextedSubquery() 
     {
      
+        final Properties p = new Properties(getProperties());
+
+        p.setProperty(AbstractRelation.Options.NESTED_SUBQUERY, "true");
+        
+        doOptionalsTest(p);
+
+    } 
+    
+    public void test_optionals_pipeline() 
+    {
+     
+        final Properties p = new Properties(getProperties());
+
+        p.setProperty(AbstractRelation.Options.NESTED_SUBQUERY, "false");
+        
+        doOptionalsTest(p);
+        
+    } 
+    
+    protected void doOptionalsTest(final Properties p) {
+        
         // store with no owl:sameAs closure
-        AbstractTripleStore db = getStore();
+        AbstractTripleStore db = getStore(p);
         
         try {
 
-            Map<Value, Long> termIds = new HashMap<Value, Long>();
+            final Map<Value, Long> termIds = new HashMap<Value, Long>();
             
             final URI A = new URIImpl("http://www.bigdata.com/A");
             final URI B = new URIImpl("http://www.bigdata.com/B");
@@ -308,7 +329,7 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
         
         try {
 
-            Map<Value, Long> termIds = new HashMap<Value, Long>();
+            final Map<Value, Long> termIds = new HashMap<Value, Long>();
             
             final URI A = new URIImpl("http://www.bigdata.com/A");
             final URI B = new URIImpl("http://www.bigdata.com/B");
@@ -323,7 +344,7 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
             final URI Z = new URIImpl("http://www.bigdata.com/Z");
 
             {
-                StatementBuffer buffer = new StatementBuffer
+                final StatementBuffer<Statement> buffer = new StatementBuffer<Statement>
                     ( db, 100/* capacity */
                       );
 
@@ -357,7 +378,7 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
             final long property = db.getTermId(RDF.PROPERTY); termIds.put(RDF.PROPERTY, property);
             final long subpropof = db.getTermId(RDFS.SUBPROPERTYOF); termIds.put(RDFS.SUBPROPERTYOF, subpropof);
             
-            SPO[] dbGroundTruth = new SPO[]{
+            final SPO[] dbGroundTruth = new SPO[]{
                     new SPO(x,a,z,
                             StatementEnum.Explicit),
                     new SPO(y,b,w,
