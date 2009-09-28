@@ -36,7 +36,9 @@ import org.openrdf.rio.RDFFormat;
 
 import com.bigdata.BigdataStatics;
 import com.bigdata.LRUNexus;
+import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.Journal;
+import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.store.DataLoader.ClosureEnum;
 
 /**
@@ -79,11 +81,29 @@ public class TestTripleStoreLoadRateLocal extends ProxyTestCase {
 
         // turn off statement identifiers.
         properties.setProperty(AbstractTripleStore.Options.STATEMENT_IDENTIFIERS, "false");
-        
-        // triples only.
+
+        // 8000 is much faster; 500 is the default.
         properties.setProperty(
-                com.bigdata.rdf.store.AbstractTripleStore.Options.QUADS,
-                "false");
+                IndexMetadata.Options.WRITE_RETENTION_QUEUE_CAPACITY, "8000");
+
+        // triples vs quads.
+        final boolean quads = false;
+
+        if (quads) {
+        
+            properties.setProperty(
+                    com.bigdata.rdf.store.AbstractTripleStore.Options.QUADS,
+                    "true");
+            
+            properties
+                    .setProperty(
+                            com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
+                            NoAxioms.class.getName());
+            
+        }
+
+        if (log.isInfoEnabled())
+            log.info("quads=" + quads);
 
         return properties;
 

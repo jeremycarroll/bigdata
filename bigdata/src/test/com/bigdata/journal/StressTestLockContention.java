@@ -86,7 +86,7 @@ public class StressTestLockContention extends ProxyTestCase {
      */
     public void test_lockContention() throws InterruptedException {
 
-        final int ntasks = 20000;
+        final int ntasks = 500;
 
         final List<Future> futures;
         
@@ -122,16 +122,27 @@ public class StressTestLockContention extends ProxyTestCase {
              * returns.
              */
 
-            futures = journal.invokeAll(tasks, 3, TimeUnit.SECONDS);
+            futures = journal.invokeAll(tasks, 20, TimeUnit.SECONDS);
 
         } finally {
-            
+
             /*
              * Shutdown the journal.
              * 
              * Note: It is possible for shutdownNow() to close the store before
              * all worker threads have been canceled, in which case you may see
              * some strange errors being thrown.
+             * 
+             * Note: The simplest way to fix this is to adjust the #of tasks
+             * that are submitted concurrently and the timeout in
+             * invokeAll(tasks,....) above.
+             * 
+             * Note: 500 tasks that will be serialized due to their lock
+             * requirements executes in ~8 seconds on my laptop.
+             * 
+             * Note: This test is not CPU intensive. The delay comes from the
+             * commits. Since the resource locks cause the tasks to be
+             * serialized, there is one commit per task.
              */
 
             journal.shutdownNow();

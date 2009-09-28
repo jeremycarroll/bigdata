@@ -447,7 +447,7 @@ public class TestAddDropIndexTask extends ProxyTestCase {
      * verify that we see {@link NoSuchIndexException}s rather than something
      * odder. This is an edge case since {@link Journal#getCommitRecord()} will
      * have 0L for all root addresses until the first commit - this means that
-     * the {@link AbstractJournal#name2Addr} can not be loaded from the commit
+     * the {@link AbstractJournal#_name2Addr} can not be loaded from the commit
      * record!
      * 
      * @throws InterruptedException

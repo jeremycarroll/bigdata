@@ -363,14 +363,14 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
         commitList = new ConcurrentHashMap<String,DirtyListener>(resource.length);
         
         // the unisolated name2Addr object.
-        final Name2Addr name2Addr = resourceManager.getLiveJournal().name2Addr;
+        final Name2Addr name2Addr = resourceManager.getLiveJournal()._getName2Addr();
 
         if (name2Addr == null) {
             
             /*
              * Note: I have seen name2Addr be [null] here on a system with too
              * many files open which caused a cascade of failures. I added this
-             * thrown exception so that we could have a referant if the problem
+             * thrown exception so that we could have a referent if the problem
              * shows up again.
              */
 
@@ -598,7 +598,7 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
             BTree btree;
             
             // the unisolated name2Addr object.
-            final Name2Addr name2Addr = resourceManager.getLiveJournal().name2Addr;
+            final Name2Addr name2Addr = resourceManager.getLiveJournal()._getName2Addr();
 
             synchronized (name2Addr) {
 
@@ -958,7 +958,7 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
                     + TimeUnit.NANOSECONDS.toMillis(elapsed) + "ms");
             
         }
-        
+
         /*
          * Atomically apply changes to Name2Addr. When the next groupCommit
          * rolls around it will cause name2addr to run its commit protocol
@@ -970,10 +970,10 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
          * Name2Addr here will become visible as soon as we leave the
          * synchronized(name2addr) block.
          * 
-         * Note: I've choosen to apply the changes to Name2Addr after the
-         * indices have been checkpointed. This means that you will do all the
-         * IO for the index checkpoints before you learn whether or not there is
-         * a conflict with an add/drop for an index. However, the alternative is
+         * Note: I've chosen to apply the changes to Name2Addr after the indices
+         * have been checkpointed. This means that you will do all the IO for
+         * the index checkpoints before you learn whether or not there is a
+         * conflict with an add/drop for an index. However, the alternative is
          * to remain synchronized on [name2addr] during the index checkpoint,
          * which is overly constraining on concurrency. (If you validate first
          * but do not remained synchronized on name2addr then the validation can
@@ -989,7 +989,7 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
          */
 
         // the unisolated name2Addr object.
-        final Name2Addr name2Addr = resourceManager.getLiveJournal().name2Addr;
+        final Name2Addr name2Addr = resourceManager.getLiveJournal()._getName2Addr();
 
         synchronized(name2Addr) {
 
