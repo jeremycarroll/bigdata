@@ -95,6 +95,13 @@ public class BigdataSolutionResolverator
 
                 final Long termId = (Long) entry.getValue().get();
 
+                if (termId.longValue() == IRawTripleStore.NULL) {
+
+                    throw new RuntimeException("NULL? : var=" + entry.getKey()
+                            + ", " + bindingSet);
+                    
+                }
+                
                 ids.add(termId);
 
             }
