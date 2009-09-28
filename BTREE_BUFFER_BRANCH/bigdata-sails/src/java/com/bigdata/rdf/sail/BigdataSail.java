@@ -1781,6 +1781,7 @@ public class BigdataSail extends SailBase implements Sail {
             final BigdataValueIterator itr2 = new BigdataValueIteratorImpl(
                     database, itr);
             
+//            return new CloseableIteration</*? extends*/ Resource, SailException>() {
             return new CloseableIteration<Resource, SailException>() {
                 Resource next = null;
 

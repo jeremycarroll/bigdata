@@ -144,12 +144,13 @@ public class LocalTripleStore extends AbstractLocalTripleStore {
      * @param timestamp
      * @param properties
      */
-    public LocalTripleStore(IIndexManager indexManager, String namespace,
-            Long timestamp, Properties properties) {
+    public LocalTripleStore(final IIndexManager indexManager,
+            final String namespace, final Long timestamp,
+            final Properties properties) {
 
         super(indexManager, namespace, timestamp, properties);
 
-        store = (Journal)indexManager;
+        store = (Journal) indexManager;
         
     }
     

@@ -76,6 +76,7 @@ import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IResourceLock;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.TemporaryStore;
+import com.bigdata.journal.TimestampUtility;
 import com.bigdata.relation.AbstractRelation;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.locator.DefaultResourceLocator;
@@ -374,7 +375,7 @@ public class FullTextIndex extends AbstractRelation {
      */
     final public boolean isReadOnly() {
         
-        return getTimestamp() != ITx.UNISOLATED;
+        return TimestampUtility.isReadOnly(getTimestamp());
         
     }
 

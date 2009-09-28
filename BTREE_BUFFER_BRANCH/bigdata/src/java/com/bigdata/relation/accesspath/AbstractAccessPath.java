@@ -1112,11 +1112,17 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
     }
 
+    /**
+     * Note: When there is a {@link IPredicate#getConstraint()} on the
+     * {@link IPredicate} the exact range count will apply that constraint as a
+     * filter during traversal. However, the constraint is ignored for the fast
+     * range count.
+     */
     final public long rangeCount(final boolean exact) {
 
         assertInitialized();
 
-        final long n;
+        long n = 0L;
         
         if(exact) {
 
@@ -1125,7 +1131,35 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
              * a cached estimated range count when an exact range count is
              * requested.
              */
-            n = ndx.rangeCountExact(fromKey, toKey);
+            
+            if (filter != null) {
+
+                /*
+                 * If there is a filter, then we need to visit the elements and
+                 * apply the filter to those elements.
+                 * 
+                 * FIXME If the filter is properly driven through to the indices
+                 * then the index should be able to enable the flags locally and
+                 * we can avoid sending back the full tuple when just doing a
+                 * range count. This could be done using a
+                 * rangeCount(exact,filter) method on IIndex.
+                 */
+                
+                final IChunkedOrderedIterator<R> itr = iterator();
+
+                while (itr.hasNext()) {
+
+                    itr.next();
+
+                    n++;
+
+                }
+
+            } else {
+            
+                n = ndx.rangeCountExact(fromKey, toKey);
+            
+            }
 
         } else {
 
@@ -1145,7 +1179,8 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
         if (log.isDebugEnabled()) {
 
-            log.debug("exact=" + exact + ", n=" + n + " : " + toString());
+            log.debug("exact=" + exact + ", filter=" + (filter != null)
+                    + ", n=" + n + " : " + toString());
 
         }
 

@@ -728,8 +728,9 @@ abstract public class AbstractTripleStore extends
      * @see Options
      */
     @SuppressWarnings("unchecked")
-    protected AbstractTripleStore(IIndexManager indexManager, String namespace,
-            Long timestamp, Properties properties) {
+    protected AbstractTripleStore(final IIndexManager indexManager,
+            final String namespace, final Long timestamp,
+            final Properties properties) {
 
         super(indexManager, namespace, timestamp, properties);
         
@@ -953,12 +954,9 @@ abstract public class AbstractTripleStore extends
      */
     abstract public boolean isStable();
 
-    /**
-     * <code>true</code> unless {{@link #getTimestamp()} is {@link ITx#UNISOLATED}.
-     */
     public boolean isReadOnly() {
 
-        return getTimestamp() != ITx.UNISOLATED;
+        return TimestampUtility.isReadOnly(getTimestamp());
         
     }
     
@@ -1283,11 +1281,22 @@ abstract public class AbstractTripleStore extends
 
         if (lexiconRelation == null && lexicon) {
 
+            long t = getTimestamp();
+            
+            if (TimestampUtility.isReadWriteTx(t)) {
+             
+                /*
+                 * A read-write tx must use the unisolated view of the lexicon.
+                 */
+                t = ITx.UNISOLATED;
+                
+            }
+
             lexiconRelation = (LexiconRelation) getIndexManager()
                     .getResourceLocator().locate(
                             getNamespace() + "."
-                                    + LexiconRelation.NAME_LEXICON_RELATION,
-                            getTimestamp());
+                                    + LexiconRelation.NAME_LEXICON_RELATION, 
+                                    t);
 
         }
 
