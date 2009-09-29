@@ -958,7 +958,7 @@ public class NestedSubqueryWithJoinThreadsTask implements IStepTask {
     }
 
     /**
-     * Consider each element in the chunk in turn. If the element satisifies the
+     * Consider each element in the chunk in turn. If the element satisfies the
      * JOIN criteria, then emit an {@link ISolution} for the {@link IRule}.
      * 
      * @param orderIndex
