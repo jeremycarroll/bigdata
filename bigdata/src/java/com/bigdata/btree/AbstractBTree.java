@@ -42,6 +42,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.bigdata.Banner;
+import com.bigdata.BigdataStatics;
 import com.bigdata.LRUNexus;
 import com.bigdata.btree.AbstractBTreeTupleCursor.MutableBTreeTupleCursor;
 import com.bigdata.btree.AbstractBTreeTupleCursor.ReadOnlyBTreeTupleCursor;
@@ -3104,23 +3105,32 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
             writeNodeOrLeaf(t);
 
             ndirty++;
+            
+            if (BigdataStatics.debug && ndirty > 0 && ndirty % 1000 == 0) {
+				System.out.println("nwritten=" + ndirty + " in "
+						+ (System.currentTimeMillis() - begin) + "ms");
+            }
 
             if (t instanceof Leaf)
                 nleaves++;
 
         }
 
-        if (log.isInfoEnabled()) {
+        final long elapsed = System.currentTimeMillis() - begin;
+        
+        if (log.isInfoEnabled()||elapsed>1000) {
 
-            final long elapsed = System.currentTimeMillis() - begin;
-            
             final int nnodes = ndirty - nleaves;
             
-            final String s = "wrote: " + ndirty + " records (#nodes=" + nnodes
+            final String s = "wrote: "+(metadata.getName()!=null?"name="+metadata.getName()+", ":"") + ndirty + " records (#nodes=" + nnodes
                     + ", #leaves=" + nleaves + ") in " + elapsed
                     + "ms : addrRoot=" + node.getIdentity();
             
-            if (elapsed > 500/*ms*/) {
+            if(elapsed>1000) {
+
+            	System.err.println(s);
+
+            } else if (elapsed > 500/*ms*/) {
 
                 // log at warning level when significant latency results.
                 log.warn(s);

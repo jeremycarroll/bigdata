@@ -35,7 +35,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.LRUNexus;
 import com.bigdata.btree.BTree.Counter;
 import com.bigdata.cache.LRUCache;
@@ -2205,7 +2207,7 @@ public class DiskOnlyStrategy extends AbstractBufferStrategy implements
      *            <code>true</code> iff the write is an append (most record
      *            writes are appends).
      */
-    void writeOnDisk(final ByteBuffer data, final long offset, final boolean append) {
+    private void writeOnDisk(final ByteBuffer data, final long offset, final boolean append) {
 
         final long begin = System.nanoTime();
 
@@ -2250,9 +2252,29 @@ public class DiskOnlyStrategy extends AbstractBufferStrategy implements
             
         }
 
+        final long elapsed = (System.nanoTime() - begin);
         storeCounters.bytesWrittenOnDisk += nbytes;
-        storeCounters.elapsedDiskWriteNanos += (System.nanoTime() - begin);
+        storeCounters.elapsedDiskWriteNanos += elapsed;
 
+        if (BigdataStatics.debug) {
+			/*
+			 * Note: There are only two places where the journal writes on the
+			 * disk using this backing buffer implementation. Here and when it
+			 * updates the root blocks. It only syncs the disk at the commit.
+			 */
+			System.err.println("wrote on disk: bytes="
+					+ nbytes
+					+ ", elapsed="
+					+ TimeUnit.NANOSECONDS.toMillis(elapsed)
+					+ "ms; totals: write="
+					+ TimeUnit.NANOSECONDS
+							.toMillis(storeCounters.elapsedDiskWriteNanos)
+					+ "ms, read="
+					+ TimeUnit.NANOSECONDS
+							.toMillis(storeCounters.elapsedDiskReadNanos)
+					+ "ms");
+		}
+        
     }
 
     public ByteBuffer readRootBlock(final boolean rootBlock0) {
