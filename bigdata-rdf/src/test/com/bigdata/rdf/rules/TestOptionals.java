@@ -143,8 +143,8 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
                 // write statements on the database.
                 buffer.flush();
                 
-                // database at once closure.
-                db.getInferenceEngine().computeClosure(null/*focusStore*/);
+//                // database at once closure.
+//                db.getInferenceEngine().computeClosure(null/*focusStore*/);
 
                 // write on the store.
 //                buffer.flush();
@@ -211,7 +211,7 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
                         
                     }
                     
-                    assertTrue("wrong # of solutions", numSolutions == 2);
+                    assertEquals("wrong # of solutions", 2, numSolutions);
                     
                 } catch(Exception ex) {
                     
@@ -259,7 +259,7 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
                         
                     }
                     
-                    assertTrue("wrong # of solutions", numSolutions == 2);
+                    assertEquals("wrong # of solutions", 2, numSolutions);
                     
                 } catch(Exception ex) {
                     
@@ -304,155 +304,7 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
                         
                     }
                     
-                    assertTrue("wrong # of solutions", numSolutions == 2);
-                    
-                } catch(Exception ex) {
-                    
-                    ex.printStackTrace();
-                    
-                }
-            }
-
-        } finally {
-            
-            db.__tearDownUnitTest();
-            
-        }
-        
-    }
-
-    private void __test_owlsameas() 
-    {
-     
-        // store with no owl:sameAs closure
-        AbstractTripleStore db = getStore();
-        
-        try {
-
-            final Map<Value, Long> termIds = new HashMap<Value, Long>();
-            
-            final URI A = new URIImpl("http://www.bigdata.com/A");
-            final URI B = new URIImpl("http://www.bigdata.com/B");
-//            final URI C = new URIImpl("http://www.bigdata.com/C");
-//            final URI D = new URIImpl("http://www.bigdata.com/D");
-//            final URI E = new URIImpl("http://www.bigdata.com/E");
-
-//            final URI V = new URIImpl("http://www.bigdata.com/V");
-            final URI W = new URIImpl("http://www.bigdata.com/W");
-            final URI X = new URIImpl("http://www.bigdata.com/X");
-            final URI Y = new URIImpl("http://www.bigdata.com/Y");
-            final URI Z = new URIImpl("http://www.bigdata.com/Z");
-
-            {
-                final StatementBuffer<Statement> buffer = new StatementBuffer<Statement>
-                    ( db, 100/* capacity */
-                      );
-
-                buffer.add(X, A, Z);
-                buffer.add(Y, B, W);
-                buffer.add(X, OWL.SAMEAS, Y);
-                buffer.add(Z, OWL.SAMEAS, W);
-                
-                // write statements on the database.
-                buffer.flush();
-                
-                // database at once closure.
-                db.getInferenceEngine().computeClosure(null/*focusStore*/);
-
-                // write on the store.
-//                buffer.flush();
-            }
-            
-            final long a = db.getTermId(A); termIds.put(A, a);
-            final long b = db.getTermId(B); termIds.put(B, b);
-//            final long c = noClosure.getTermId(C);
-//            final long d = noClosure.getTermId(D);
-//            final long e = noClosure.getTermId(E);
-//            final long v = noClosure.getTermId(V);
-            final long w = db.getTermId(W); termIds.put(W, w);
-            final long x = db.getTermId(X); termIds.put(X, x);
-            final long y = db.getTermId(Y); termIds.put(Y, y);
-            final long z = db.getTermId(Z); termIds.put(Z, z);
-            final long sameAs = db.getTermId(OWL.SAMEAS); termIds.put(OWL.SAMEAS, sameAs);
-            final long type = db.getTermId(RDF.TYPE); termIds.put(RDF.TYPE, type);
-            final long property = db.getTermId(RDF.PROPERTY); termIds.put(RDF.PROPERTY, property);
-            final long subpropof = db.getTermId(RDFS.SUBPROPERTYOF); termIds.put(RDFS.SUBPROPERTYOF, subpropof);
-            
-            final SPO[] dbGroundTruth = new SPO[]{
-                    new SPO(x,a,z,
-                            StatementEnum.Explicit),
-                    new SPO(y,b,w,
-                            StatementEnum.Explicit),
-                    new SPO(x,sameAs,y,
-                            StatementEnum.Explicit),
-                    new SPO(z,sameAs,w,
-                            StatementEnum.Explicit),
-                    // forward closure
-                    new SPO(a,type,property,
-                            StatementEnum.Inferred),
-                    new SPO(a,subpropof,a,
-                            StatementEnum.Inferred),
-                    new SPO(b,type,property,
-                            StatementEnum.Inferred),
-                    new SPO(b,subpropof,b,
-                            StatementEnum.Inferred),
-                    new SPO(w,sameAs,z,
-                            StatementEnum.Inferred),
-                    new SPO(y,sameAs,x,
-                            StatementEnum.Inferred),
-                    // backward chaining        
-                    new SPO(x,a,w,
-                            StatementEnum.Inferred),
-                    new SPO(x,b,z,
-                            StatementEnum.Inferred),
-                    new SPO(x,b,w,
-                            StatementEnum.Inferred),
-                    new SPO(y,a,z,
-                            StatementEnum.Inferred),
-                    new SPO(y,a,w,
-                            StatementEnum.Inferred),
-                    new SPO(y,b,z,
-                            StatementEnum.Inferred),
-                };
-
-            
-            if (log.isInfoEnabled())
-                log.info("\n" +db.dumpStore(true, true, false));
-  
-            for (Map.Entry<Value, Long> e : termIds.entrySet()) {
-                System.err.println(e.getKey() + " = " + e.getValue());
-            }
-            
-            { // test S
-            
-                final String SPO = db.getSPORelation().getNamespace();
-                final IVariableOrConstant<Long> S = new Constant<Long>(x);
-                final IVariableOrConstant<Long> P = Var.var("p");
-                final IVariableOrConstant<Long> O = Var.var("o");
-                final IVariableOrConstant<Long> SAMES = Var.var("sameS");
-                final IVariableOrConstant<Long> SAMEO = Var.var("sameO");
-                final IVariableOrConstant<Long> SAMEAS = new Constant<Long>(sameAs);
-                final IRule rule =
-                        new Rule("sameas", new SPOPredicate(SPO, S, P, SAMEO), // head
-                                new IPredicate[] {
-                                        new SPOPredicate(SPO, SAMES, SAMEAS, S),
-                                        new SPOPredicate(SPO, SAMEO, SAMEAS, O, false),
-                                        new SPOPredicate(SPO, SAMES, P, SAMEO) },
-                                // constraints on the rule.
-                                null
-                                );
-                
-                try {
-                
-                    IChunkedOrderedIterator<ISolution> solutions = runQuery(db, rule);
-                    
-                    while (solutions.hasNext()) {
-                        
-                        ISolution solution = solutions.next();
-                        
-                        System.err.println(solution);
-                        
-                    }
+                    assertEquals("wrong # of solutions", 2, numSolutions);
                     
                 } catch(Exception ex) {
                     

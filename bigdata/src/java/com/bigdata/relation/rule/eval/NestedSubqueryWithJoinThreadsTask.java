@@ -856,7 +856,7 @@ public class NestedSubqueryWithJoinThreadsTask implements IStepTask {
             /*
              * Then bind this statement, which propagates bindings to the next
              * predicate (if the bindings are rejected then the solution would
-             * violate the constaints on the JOIN).
+             * violate the constraints on the JOIN).
              */
 
             // clone the binding set.
