@@ -976,7 +976,7 @@ public class RDFJoinNexus implements IJoinNexus {
 
         }
         
-        if (predicate.arity() == 4) {
+        /*if (predicate.arity() == 4)*/ {
 
             // context position / statement identifier.
 

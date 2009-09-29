@@ -907,7 +907,7 @@ abstract public class JoinTask implements Callable<Void> {
                     final Map<IPredicate, Collection<IBindingSet>> map = combineBindingSets(chunk);
 
                     /*
-                     * Generate an AbstractPathTask from each distinct
+                     * Generate an AccessPathTask from each distinct
                      * asBound predicate that will consume all of the source
                      * bindingSets in the chunk which resulted in the same
                      * asBound predicate.
@@ -1320,8 +1320,12 @@ abstract public class JoinTask implements Callable<Void> {
                     stats.chunkCount++;
 
                     // process the chunk in the caller's thread.
-                    if (new ChunkTask(bindingSets, unsyncBuffer, chunk).call()) {
+                    final boolean somethingAccepted = new ChunkTask(
+                            bindingSets, unsyncBuffer, chunk).call();
+                    
+                    if (somethingAccepted) {
 
+                        // something in the chunk was accepted.
                         nothingAccepted = false;
 
                     }
@@ -1389,7 +1393,7 @@ abstract public class JoinTask implements Callable<Void> {
      *         Thompson</a>
      * @version $Id$
      */
-    protected class ChunkTask implements Callable {
+    protected class ChunkTask implements Callable<Boolean> {
 
         /**
          * The index of the predicate for the access path that is being
@@ -1518,7 +1522,8 @@ abstract public class JoinTask implements Callable<Void> {
                                 + rule.getName());
                 }
 
-                return nothingAccepted ? Boolean.TRUE : Boolean.FALSE;
+                // if something is accepted in the chunk return true.
+                return nothingAccepted ? Boolean.FALSE: Boolean.TRUE;
 
             } catch (Throwable t) {
 

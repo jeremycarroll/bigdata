@@ -47,6 +47,11 @@ import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IResourceLock;
 import com.bigdata.journal.IResourceLockService;
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.rdf.rules.FastClosure;
+import com.bigdata.rdf.rules.FullClosure;
+import com.bigdata.rdf.rules.RuleFastClosure5;
+import com.bigdata.rdf.rules.RuleFastClosure6;
+import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.relation.accesspath.AbstractAccessPath;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.accesspath.IAccessPath;
@@ -177,6 +182,7 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
      */
     public boolean isNestedSubquery() {
 
+//        return false;
         return nestedSubquery;
         
     }
