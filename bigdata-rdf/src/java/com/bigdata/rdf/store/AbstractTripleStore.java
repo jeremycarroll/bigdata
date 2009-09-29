@@ -2653,7 +2653,12 @@ abstract public class AbstractTripleStore extends
 
                     }
 
-                    sb.append("#" + (i + 1) + "\t" + stmt + "\n");
+                    sb.append("#"
+                            + (i + 1)
+                            + "\t"
+                            + stmt
+                            + (" (" + stmt.s() + "," + stmt.p() + "," + stmt.o()
+                                    + "," + stmt.c() + ")") + "\n");
 
                     i++;
 
