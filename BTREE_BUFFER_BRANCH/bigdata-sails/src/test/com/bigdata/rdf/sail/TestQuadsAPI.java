@@ -229,7 +229,7 @@ public class TestQuadsAPI extends QuadsTestCase {
                     s,
                     p1,
                     o1,
-                    graphB
+                    graphA// was graphB
                     );
             
             cxn.add(

@@ -42,26 +42,27 @@ import com.bigdata.relation.AbstractResource;
 
 /**
  * Test suite for the {@link BigdataSail} with quads enabled. The provenance
- * mode is disabled. Inference is disabled.
+ * mode is disabled. Inference is disabled. This version of the test suite uses
+ * the pipeline join algorithm.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
+public class TestBigdataSailWithQuadsAndPipelineJoins extends AbstractBigdataSailTestCase {
 
     /**
      * 
      */
-    public TestBigdataSailWithQuads() {
+    public TestBigdataSailWithQuadsAndPipelineJoins() {
     }
 
-    public TestBigdataSailWithQuads(String name) {
+    public TestBigdataSailWithQuadsAndPipelineJoins(String name) {
         super(name);
     }
     
     public static Test suite() {
         
-        final TestBigdataSailWithQuads delegate = new TestBigdataSailWithQuads(); // !!!! THIS CLASS !!!!
+        final TestBigdataSailWithQuadsAndPipelineJoins delegate = new TestBigdataSailWithQuadsAndPipelineJoins(); // !!!! THIS CLASS !!!!
 
         /*
          * Use a proxy test suite and specify the delegate.
@@ -111,7 +112,7 @@ public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
 
         properties.setProperty(Options.AXIOMS_CLASS, NoAxioms.class.getName());
 
-        properties.setProperty(AbstractResource.Options.NESTED_SUBQUERY, "true");
+        properties.setProperty(AbstractResource.Options.NESTED_SUBQUERY, "false");
 
         return properties;
         
