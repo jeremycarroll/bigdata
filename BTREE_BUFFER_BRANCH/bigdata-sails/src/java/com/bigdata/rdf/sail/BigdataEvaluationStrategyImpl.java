@@ -582,6 +582,11 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
                 constraints.toArray(new IConstraint[constraints.size()]) : null
         );
 
+        if(BigdataStatics.debug) {
+            System.err.println(join.toString());
+            System.err.println(rule.toString());
+        }
+        
         CloseableIteration<BindingSet, QueryEvaluationException> result = runQuery(
                 join, rule);
 
@@ -704,9 +709,22 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
              * into the predicate as a combination of binding or clearing the
              * context variable and setting an appropriate constraint (filter).
              */
-            if(BigdataStatics.debug) {
-            System.err.println(dataset==null?"No dataset.":dataset.toString());
-            System.err.println(stmtPattern.toString());
+            if (BigdataStatics.debug) {
+                if (dataset == null) {
+                    System.err.println("No dataset.");
+                } else {
+                    final int defaultGraphSize = dataset.getDefaultGraphs()
+                            .size();
+                    final int namedGraphSize = dataset.getNamedGraphs().size();
+                    if (defaultGraphSize > 10 || namedGraphSize > 10) {
+                        System.err.println("large dataset: defaultGraphs="
+                                + defaultGraphSize + ", namedGraphs="
+                                + namedGraphSize);
+                    } else {
+                        System.err.println(dataset.toString());
+                    }
+                }
+                System.err.println(stmtPattern.toString());
             }
             if (expander != null) {
                 /*

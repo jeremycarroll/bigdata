@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.spo;
 
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 import org.openrdf.model.URI;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITupleIterator;
@@ -49,6 +51,7 @@ import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.accesspath.EmptyAccessPath;
 import com.bigdata.relation.accesspath.IAccessPath;
+import com.bigdata.relation.accesspath.IElementFilter;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.ISolutionExpander;
 import com.bigdata.relation.rule.IVariableOrConstant;
@@ -126,7 +129,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
      * identify a graph which does not exist, in which case an access path will
      * be created for that {@link URI}s but will no visit any data.
      */
-    final Iterable<? extends URI> defaultGraphs;
+    private final Iterable<? extends URI> defaultGraphs;
 
     /**
      * The #of source graphs in {@link #defaultGraphs} whose term identifier is
@@ -140,14 +143,20 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
      * be used as the default graph, then {@link #nknown} will be
      * {@link Integer#MAX_VALUE}.
      */
-    final int nknown;
+    private final int nknown;
 
     /**
      * The term identifier for the first graph and {@link IRawTripleStore#NULL}
      * if no graphs were specified having a term identifier.
      */
-    final long firstContext;
+    private final long firstContext;
 
+    /**
+     * Filter iff we will leave [c] unbound and filter for graphs which are in
+     * the source graph set.
+     */
+    private final IElementFilter<ISPO> filter;
+    
     /**
      * Using the expander makes sense even when there is a single graph in the
      * default graph since the expander will strip the context information from
@@ -202,6 +211,13 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
         }
         
         this.firstContext = firstContext;
+
+        // @todo configure threshold or pass into this constructor.
+        if (defaultGraphs != null && nknown > 200) {
+
+            filter = new InGraphHashSetFilter(nknown, defaultGraphs);
+            
+        } else filter = null;
 
     }
     
@@ -280,7 +296,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
         }
 
-        if (false) {
+        if (filter != null) {
 
             /*
              * FIXME choose this approach when we need to visit most of the
@@ -304,7 +320,7 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
              */
 
             final SPOPredicate p = accessPath.getPredicate().setConstraint(
-                    new InGraphHashSetFilter(defaultGraphs));
+                    filter);
 
             /*
              * Wrap with access path that leaves [c] unbound but strips off the
@@ -633,6 +649,36 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
             private Callable<Void> newRunIteratorsTask(
                     final BlockingBuffer<ISPO> buffer) {
 
+                /*
+                 * Put the graphs into termId order. Since the individual access
+                 * paths will be formed by binding [c] to each graphId in turn,
+                 * evaluating those access paths in graphId order will make
+                 * better use of the B+Tree cache as the reads will tend to be
+                 * more clustered.
+                 * 
+                 * FIXME ordered visitation for named graphs also.
+                 */
+                final long[] a = new long[nknown];
+                
+                int i = 0;
+                
+                for (URI g : defaultGraphs) {
+
+                    final long termId = ((BigdataURI)g).getTermId();
+
+                    if (termId == IRawTripleStore.NULL) {
+
+                        // unknown URI means no data for that graph.
+                        continue;
+
+                    }
+
+                    a[i++] = termId;
+
+                }
+
+                Arrays.sort(a);
+                
                 return new Callable<Void>() {
 
                     /**
@@ -642,21 +688,12 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
                         final List<Callable<Void>> tasks = new LinkedList<Callable<Void>>();
 
-                        for (URI g : defaultGraphs) {
-
-                            final long termId = ((BigdataURI)g).getTermId();
-
-                            if (termId == IRawTripleStore.NULL) {
-
-                                // unknown URI means no data for that graph.
-                                continue;
-
-                            }
+                        for (long termId : a) {
 
                             tasks.add(new DrainIteratorTask(termId));
 
                         }
-
+                        
                         try {
 
                             if (log.isDebugEnabled())
@@ -703,9 +740,22 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
                     if (log.isDebugEnabled())
                         log.debug("Running iterator: c=" + termId);
 
+                    /*
+                     * Note: don't pass the top-level offset, limit, capacity
+                     * into the per-graph AP iterator or it will skip over
+                     * offset results per graph! The limit needs to be imposed
+                     * on the data pulled from the blocking buffer, not here.
+                     * 
+                     * FIXME verify offset/limit iterators patterns for this
+                     * class and that the tasks are properly shutdown. In fact,
+                     * we will need a halt() method since we want to not only
+                     * interrupt the running tasks but also not start new tasks.
+                     * Further, it would be better to incrementally schedule
+                     * tasks rather than scheduling them all to run up front.
+                     */
+
                     final IChunkedOrderedIterator<ISPO> itr = sourceAccessPath
-                            .bindContext(termId).iterator(offset, limit,
-                                    capacity);
+                            .bindContext(termId).iterator();
 
                     try {
 
@@ -722,6 +772,10 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
                         if (log.isDebugEnabled())
                             log.debug("Ran iterator: c=" + termId
+                                    + ", nvisited=" + n);
+                        
+                        if (BigdataStatics.debug)
+                            System.err.println("Ran iterator: c=" + termId
                                     + ", nvisited=" + n);
                         
                     } finally {

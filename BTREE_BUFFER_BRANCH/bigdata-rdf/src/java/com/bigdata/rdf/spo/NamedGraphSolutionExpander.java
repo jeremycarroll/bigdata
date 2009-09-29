@@ -47,6 +47,7 @@ import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.accesspath.EmptyAccessPath;
 import com.bigdata.relation.accesspath.IAccessPath;
+import com.bigdata.relation.accesspath.IElementFilter;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.ISolutionExpander;
 import com.bigdata.relation.rule.IVariableOrConstant;
@@ -87,7 +88,7 @@ public class NamedGraphSolutionExpander implements ISolutionExpander<ISPO> {
      * which does not exist, in which case an access path will be created for
      * that {@link URI}s but will no visit any data.
      */
-    final Iterable<? extends URI> namedGraphs;
+    private final Iterable<? extends URI> namedGraphs;
 
     /**
      * The #of source graphs in {@link #namedGraphs} whose term identifier is
@@ -101,14 +102,20 @@ public class NamedGraphSolutionExpander implements ISolutionExpander<ISPO> {
      * be used as the default graph, then {@link #nknown} will be
      * {@link Integer#MAX_VALUE}.
      */
-    final int nknown;
+    private final int nknown;
 
     /**
      * The term identifier for the first graph and {@link IRawTripleStore#NULL}
      * if no graphs were specified having a term identifier.
      */
-    final long firstContext;
+    private final long firstContext;
 
+    /**
+     * Filter iff we will leave [c] unbound and filter for graphs which are in
+     * the source graph set.
+     */
+    private final IElementFilter<ISPO> filter;
+    
     /**
      * If the caller can identify that some graph URIs are not known to the
      * database, then they may be safely removed from the namedGraphs (and query
@@ -159,6 +166,13 @@ public class NamedGraphSolutionExpander implements ISolutionExpander<ISPO> {
         }
         
         this.firstContext = firstContext;
+        
+        // @todo configure threshold or pass into this constructor.
+        if (namedGraphs != null && nknown > 200) {
+
+            filter = new InGraphHashSetFilter(nknown, namedGraphs);
+            
+        } else filter = null;
 
     }
     
@@ -244,7 +258,7 @@ public class NamedGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
         }
 
-        if (false) {
+        if (filter != null) {
 
             /*
              * FIXME choose this approach when we need to visit most of the
@@ -268,7 +282,7 @@ public class NamedGraphSolutionExpander implements ISolutionExpander<ISPO> {
              */
 
             final SPOPredicate p = accessPath.getPredicate().setConstraint(
-                    new InGraphHashSetFilter(namedGraphs));
+                    filter);
 
             /*
              * Wrap with access path that leaves [c] unbound.

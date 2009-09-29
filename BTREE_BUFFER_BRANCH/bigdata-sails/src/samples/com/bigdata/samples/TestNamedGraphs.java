@@ -37,7 +37,6 @@ import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.TupleQuery;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.impl.DatasetImpl;
-import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryResult;
 
@@ -64,42 +63,64 @@ public class TestNamedGraphs extends SampleCode {
         properties.setProperty(BigdataSail.Options.FILE, journal.getAbsolutePath());
 
         BigdataSail sail = new BigdataSail(properties);
-        Repository repo = new BigdataSailRepository(sail);
+        BigdataSailRepository repo = new BigdataSailRepository(sail);
         repo.initialize();
 
-        RepositoryConnection cxn = repo.getConnection();
-        System.err.println("Statement Count:" + cxn.size());
+        try {
 
-        RepositoryResult<Resource> graphs = cxn.getContextIDs();
-        HashSet<URI> ngs = new HashSet<URI>();
-        while (graphs.hasNext()) {
-            Resource g = graphs.next();
-            if (g instanceof URI) {
-                ngs.add((URI) g);
+//            final RepositoryConnection cxn = repo.getConnection();
+            final RepositoryConnection cxn = repo.getQueryConnection();
+            
+            System.err.println("Statement Count: " + cxn.size());
+
+            RepositoryResult<Resource> graphs = cxn.getContextIDs();
+            HashSet<URI> ngs = new HashSet<URI>();
+            while (graphs.hasNext()) {
+                Resource g = graphs.next();
+                if (g instanceof URI) {
+                    ngs.add((URI) g);
+                }
             }
-        }
-        System.err.println(ngs.size());
-        TupleQuery actorQuery = cxn.prepareTupleQuery(QueryLanguage.SPARQL, "SELECT DISTINCT ?actID ?actor  WHERE { ?movie a <http://cambridgesemantics.com/ontologies/2009/08/Film#Movie>. ?movie <http://cambridgesemantics.com/ontologies/2009/08/Film#performance> ?actID . ?actID <http://cambridgesemantics.com/ontologies/2009/08/Film#mpName> ?actor . ?actID a <http://cambridgesemantics.com/ontologies/2009/08/Film#Actor>}");
-        DatasetImpl ds = new DatasetImpl();
-        for (URI g : ngs) {
-            ds.addDefaultGraph(g);
-        }
-        actorQuery.setDataset(ds);
-        actorQuery.setIncludeInferred(false /* includeInferred */);
-        long start = System.currentTimeMillis();
-        TupleQueryResult rs2 = actorQuery.evaluate();
-        int size = 0;
-
-        while (rs2.hasNext()) {
-            rs2.next();
-            size++;
-            if (size % 100 == 0) {
-                System.err.println(size);
+            System.err.println("graphCount: " + ngs.size());
+            TupleQuery actorQuery = cxn
+                    .prepareTupleQuery(
+                            QueryLanguage.SPARQL,
+                            "SELECT "
+                                    + "DISTINCT"
+                                    + " ?actID ?actor  WHERE {"
+                                    + " ?movie a <http://cambridgesemantics.com/ontologies/2009/08/Film#Movie>. "
+                                    + " ?movie <http://cambridgesemantics.com/ontologies/2009/08/Film#performance> ?actID ."
+                                    + " ?actID <http://cambridgesemantics.com/ontologies/2009/08/Film#mpName> ?actor ."
+                                    + " ?actID a <http://cambridgesemantics.com/ontologies/2009/08/Film#Actor>"
+                                    + "}");
+            DatasetImpl ds = new DatasetImpl();
+            for (URI g : ngs) {
+                ds.addDefaultGraph(g);
             }
-        }
-        System.err.println("Query time/size:" + (System.currentTimeMillis() - start) + "/" + size);
+            actorQuery.setDataset(ds);
+            actorQuery.setIncludeInferred(false /* includeInferred */);
+            long start = System.currentTimeMillis();
+            TupleQueryResult rs2 = actorQuery.evaluate();
+            int size = 0;
 
-        cxn.close();
+            while (rs2.hasNext()) {
+                rs2.next();
+                size++;
+                if (size % 100 == 0) {
+                    System.err.println(size);
+                }
+            }
+            System.err.println("Query time/size:"
+                    + (System.currentTimeMillis() - start) + "/" + size);
+
+            cxn.close();
+
+        } finally {
+
+            sail.shutDown();
+
+        }
+
     }
 
     /**

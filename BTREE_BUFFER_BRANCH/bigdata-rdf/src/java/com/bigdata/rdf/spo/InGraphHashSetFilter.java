@@ -35,14 +35,15 @@ public final class InGraphHashSetFilter extends SPOFilter {
      * @param graphs
      *            The set of acceptable graph identifiers.
      */
-    public InGraphHashSetFilter(final Iterable<? extends URI> graphs) {
+    public InGraphHashSetFilter(final int initialCapacity,
+            final Iterable<? extends URI> graphs) {
 
         /*
          * Create a sorted array of term identifiers for the set of contexts
          * we will accept.
          */
 
-        contextSet = new LongLinkedOpenHashSet();
+        contextSet = new LongLinkedOpenHashSet(initialCapacity);
         
         for (URI uri : graphs) {
         

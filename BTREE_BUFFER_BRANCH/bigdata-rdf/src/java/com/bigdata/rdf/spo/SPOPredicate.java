@@ -391,7 +391,7 @@ public class SPOPredicate implements IPredicate<ISPO> {
      */
     public SPOPredicate setConstraint(final IElementFilter<ISPO> newConstraint) {
 
-        if(c == null)
+        if(newConstraint == null)
             throw new IllegalArgumentException();
 
         final IElementFilter<ISPO> tmp = this.constraint == null ? newConstraint
