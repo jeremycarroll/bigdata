@@ -820,8 +820,10 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
         if (root.dirty) {
 
 //            throw new IllegalStateException("Root node is dirty");
-            log.warn("Root is dirty - discarding writes: name="
-                    + metadata.getName()
+            if(log.isInfoEnabled()) log.info
+//            log.warn
+            ("Root is dirty - discarding writes: name="
+                    + metadata.getName()+ " : nentries="+getEntryCount()+" : "
                     + (this instanceof BTree ? ((BTree) this).getCheckpoint()
                             .toString() : getClass().getSimpleName()));
 

@@ -2161,7 +2161,7 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
          * owl:inverseOf, owl:TransitiveProperty), but not owl:sameAs.
          */
         properties.setProperty(Options.FORWARD_CHAIN_OWL_INVERSE_OF, "true");
-        properties.setProperty(Options.FORWARD_CHAIN_OWL_TRANSITIVE_PROPERY, "true");
+        properties.setProperty(Options.FORWARD_CHAIN_OWL_TRANSITIVE_PROPERTY, "true");
 
         // Note: FastClosure is the default.
 //        properties.setProperty(Options.CLOSURE_CLASS, FullClosure.class.getName());
