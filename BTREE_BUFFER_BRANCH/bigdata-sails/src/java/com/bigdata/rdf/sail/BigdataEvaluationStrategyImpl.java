@@ -5,7 +5,9 @@ import info.aduna.iteration.EmptyIteration;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
@@ -18,6 +20,7 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.algebra.Compare;
 import org.openrdf.query.algebra.Filter;
 import org.openrdf.query.algebra.Join;
+import org.openrdf.query.algebra.LeftJoin;
 import org.openrdf.query.algebra.Or;
 import org.openrdf.query.algebra.SameTerm;
 import org.openrdf.query.algebra.StatementPattern;
@@ -478,7 +481,7 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
         if (INFO)
             log.info("evaluating native join:\n" + join);
 
-        final Collection<StatementPattern> stmtPatterns = new LinkedList<StatementPattern>();
+        final Map<StatementPattern, Boolean> stmtPatterns = new LinkedHashMap<StatementPattern, Boolean>();
 
         final Collection<Filter> filters = new LinkedList<Filter>();
 
@@ -486,7 +489,7 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
 
             collectStatementPatterns(join, stmtPatterns, filters);
 
-        } catch (EncounteredUnionException ex) {
+        } catch (EncounteredUnknownTupleExprException ex) {
 
             /*
              * Use Sesame 2 evaluation for JOINs with unions.
@@ -495,15 +498,15 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
              * is running the rules as part of a parallel program writing on the
              * same query buffer.
              */
-            log.warn("we should really implement native Unions");
+            log.warn("need to implement native TupleExpr: " + ex.getTupleExpr());
 
             return super.evaluate(join, bindings);
 
         }
 
         if (INFO) {
-            for (StatementPattern stmtPattern : stmtPatterns) {
-                log.info(stmtPattern);
+            for (Map.Entry<StatementPattern, Boolean> entry : stmtPatterns.entrySet()) {
+                log.info(entry.getKey() + ", optional=" + entry.getValue());
             }
             for (Filter filter : filters) {
                 log.info(filter.getCondition());
@@ -512,8 +515,8 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
 
         // generate tails
         final Collection<IPredicate> tails = new LinkedList<IPredicate>();
-        for (StatementPattern stmtPattern : stmtPatterns) {
-            IPredicate tail = generateTail(stmtPattern);
+        for (Map.Entry<StatementPattern, Boolean> entry : stmtPatterns.entrySet()) {
+            IPredicate tail = generateTail(entry.getKey(), entry.getValue());
             if (tail == null) {
                 return new EmptyIteration<BindingSet, QueryEvaluationException>();
             }
@@ -605,10 +608,10 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
     }
 
     private void collectStatementPatterns(final TupleExpr tupleExpr,
-            final Collection<StatementPattern> stmtPatterns,
+            final Map<StatementPattern, Boolean> stmtPatterns,
             final Collection<Filter> filters) {
         if (tupleExpr instanceof StatementPattern) {
-            stmtPatterns.add((StatementPattern) tupleExpr);
+            stmtPatterns.put((StatementPattern) tupleExpr, Boolean.FALSE);
         } else if (tupleExpr instanceof Filter) {
             final Filter filter = (Filter) tupleExpr;
             filters.add(filter);
@@ -621,15 +624,26 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
             collectStatementPatterns(left, stmtPatterns, filters);
             collectStatementPatterns(right, stmtPatterns, filters);
         } else if (tupleExpr instanceof Union) {
-            throw new EncounteredUnionException();
+            throw new EncounteredUnknownTupleExprException(tupleExpr);
+        } else if (tupleExpr instanceof LeftJoin) {
+            //throw new EncounteredUnknownTupleExprException(tupleExpr);
+            final LeftJoin leftJoin = (LeftJoin) tupleExpr;
+            final StatementPattern left = (StatementPattern) leftJoin.getLeftArg();
+            final StatementPattern right = (StatementPattern) leftJoin.getRightArg();
+            final ValueExpr condition = leftJoin.getCondition();
+            if (condition != null) {
+                // fake a filter, we just need the value expr later
+                filters.add(new Filter(right, condition));
+            }
+            stmtPatterns.put(left, Boolean.FALSE);
+            stmtPatterns.put(right, Boolean.TRUE);
         } else {
-            throw new RuntimeException("encountered unexpected TupleExpr: "
-                    + tupleExpr.getClass());
+            throw new EncounteredUnknownTupleExprException(tupleExpr);
         }
     }
 
-    private IPredicate generateTail(final StatementPattern stmtPattern)
-            throws QueryEvaluationException {
+    private IPredicate generateTail(final StatementPattern stmtPattern, final boolean optional) 
+        throws QueryEvaluationException {
 
         // create a solution expander for free text search if necessary
         ISolutionExpander<ISPO> expander = null;
@@ -816,7 +830,7 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
                 .getNamespace() },//
                 -1, // partitionId
                 s, p, o, c, //
-                false, // optional
+                optional, // optional
                 filter, // filter on elements visited by the access path.
                 expander);
     }
@@ -1001,7 +1015,16 @@ public class BigdataEvaluationStrategyImpl extends EvaluationStrategyImpl {
     }
 
     @SuppressWarnings("serial")
-    private class EncounteredUnionException extends RuntimeException {
+    private class EncounteredUnknownTupleExprException extends RuntimeException {
+        private TupleExpr tupleExpr;
+        
+        public EncounteredUnknownTupleExprException(TupleExpr tupleExpr) {
+            this.tupleExpr = tupleExpr;
+        }
+        
+        public TupleExpr getTupleExpr() {
+            return tupleExpr;
+        }
     }
 
 }
