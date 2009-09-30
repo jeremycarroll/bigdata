@@ -188,11 +188,6 @@ public class TestQuadsAPI extends QuadsTestCase {
 
     }
     
-    /**
-     * Test loads data into two graphs and verifies some access to those
-     * graphs.
-     * @throws Exception 
-     */
     public void testSCequality() throws Exception {
 
         final BigdataSail sail = getSail();
@@ -229,7 +224,7 @@ public class TestQuadsAPI extends QuadsTestCase {
                     s,
                     p1,
                     o1,
-                    graphA// was graphB
+                    graphA
                     );
             
             cxn.add(
@@ -290,93 +285,4 @@ public class TestQuadsAPI extends QuadsTestCase {
 
     }
     
-    /**
-     * Test loads data into two graphs and verifies some access to those
-     * graphs.
-     * @throws Exception 
-     */
-    public void testSOequality() throws Exception {
-
-        final BigdataSail sail = getSail();
-        sail.initialize();
-        final BigdataSailRepository repo = new BigdataSailRepository(sail);
-        final BigdataSailRepositoryConnection cxn = 
-            (BigdataSailRepositoryConnection) repo.getConnection();
-        cxn.setAutoCommit(false);
-        
-        try {
-    
-            assertEquals(0, sail.database.getNamedGraphCount());
-            
-            assertFalse(cxn.getContextIDs().hasNext());
-            
-            final BNode a = new BNodeImpl("_:a");
-            final BNode b = new BNodeImpl("_:b");
-            final URI graphA = new URIImpl("http://www.bigdata.com/rdf#graphA");
-            final URI graphB = new URIImpl("http://www.bigdata.com/rdf#graphB");
-            final URI s = new URIImpl("http://www.bigdata.com/rdf#s");
-            final URI p1 = new URIImpl("http://www.bigdata.com/rdf#p1");
-            final URI o1 = new URIImpl("http://www.bigdata.com/rdf#o1");
-            final URI p2 = new URIImpl("http://www.bigdata.com/rdf#p2");
-            final URI o2 = new URIImpl("http://www.bigdata.com/rdf#o2");
-/**/            
-            cxn.add(
-                    s,
-                    p1,
-                    o1,
-                    graphA
-                    );
-            
-            cxn.add(
-                    s,
-                    p1,
-                    s,
-                    graphA
-                    );
-/**/
-
-            /*
-             * Note: The either flush() or commit() is required to flush the
-             * statement buffers to the database before executing any operations
-             * that go around the sail.
-             */
-            cxn.flush();//commit();
-            
-            assertEquals(1, sail.database.getNamedGraphCount());
-            
-            assertSameIterationAnyOrder(new Resource[] { graphA }, cxn
-                    .getContextIDs());
-
-/**/            
-            if (log.isInfoEnabled()) {
-                log.info("\n" + sail.getDatabase().dumpStore());
-            }
-            
-            String query = 
-                "SELECT  * " +
-                "WHERE { " +
-                "?s <"+p1+"> ?s . " +
-                "}";
-            
-            final TupleQuery tupleQuery = 
-                cxn.prepareTupleQuery(QueryLanguage.SPARQL, query);
-            tupleQuery.setIncludeInferred(true /* includeInferred */);
-            TupleQueryResult result = tupleQuery.evaluate();
-
-            Collection<BindingSet> answer = new LinkedList<BindingSet>();
-            answer.add(createBindingSet(
-                    new BindingImpl("s", s)));
-            
-            compare(result, answer);
-            
-
-        } finally {
-            cxn.close();
-            sail.__tearDownUnitTest();
-        }
-
-    }
-    
-    
-        
 }
