@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.rdf.lexicon;
 
+import java.util.Arrays;
+
 import org.openrdf.model.Value;
 import org.openrdf.model.impl.ValueFactoryImpl;
 
@@ -69,7 +71,7 @@ public class Id2TermWriteProc extends AbstractKeyArrayIndexProcedure implements
      * Validation may be disabled for releases, however it is not really that
      * much overhead since the operation is on the in-memory representation.
      * 
-     * @deprecared Validation is broken for datatype literals since different
+     * @deprecated Validation is broken for datatype literals since different
      *             lexical forms are all mapped onto the same key,e.g.,
      * 
      *             <pre>
@@ -243,8 +245,8 @@ public class Id2TermWriteProc extends AbstractKeyArrayIndexProcedure implements
 
                             log.error("id=" + id + suffix);
                             log.error("key=" + BytesUtil.toString(key));
-                            log.error("val=" + BytesUtil.toString(val));
-                            log.error("oldval=" + BytesUtil.toString(oldval));
+                            log.error("val=" + Arrays.toString(val));
+                            log.error("oldval=" + Arrays.toString(oldval));
                             if (ndx.getIndexMetadata().getPartitionMetadata() != null)
                                 log.error(ndx.getIndexMetadata()
                                         .getPartitionMetadata().toString());
