@@ -86,7 +86,6 @@ public class TestSameVariableConstraint extends TestCase2 {
     
     protected final static Constant<Long> d = new Constant<Long>(1L);
 
-    
     public void test_no_dups1() {
 
         // (a,b,c,d)
@@ -141,6 +140,8 @@ public class TestSameVariableConstraint extends TestCase2 {
     // (a,?b,?b,d)
     // (a,?b,c,?b)
     // (a,b,?c,?c)
+    // (a,?b,?c,?c)
+    // FIXME TEST THIS NEXT : (?a,?a,?a,d) 
     public void test_one_dup() {
 
         {
@@ -212,6 +213,54 @@ public class TestSameVariableConstraint extends TestCase2 {
             assertNotNull(constraint);
 
             assertEquals(new int[] { 2, 2, 3 }, constraint.indices);
+
+        }
+
+        {
+
+            final SameVariableConstraint<ISPO> constraint = SameVariableConstraint
+                    .newInstance(new SPOPredicate(relationName,//
+                            a, Var.var("c"), Var.var("c"), Var.var("c")));
+
+            assertNotNull(constraint);
+
+            assertEquals(new int[] { 3, 1, 2, 3 }, constraint.indices);
+
+        }
+
+        {
+
+            final SameVariableConstraint<ISPO> constraint = SameVariableConstraint
+                    .newInstance(new SPOPredicate(relationName,//
+                            Var.var("c"), b, Var.var("c"), Var.var("c")));
+
+            assertNotNull(constraint);
+
+            assertEquals(new int[] { 3, 0, 2, 3 }, constraint.indices);
+
+        }
+
+        {
+
+            final SameVariableConstraint<ISPO> constraint = SameVariableConstraint
+                    .newInstance(new SPOPredicate(relationName,//
+                            Var.var("c"), Var.var("c"), c, Var.var("c")));
+
+            assertNotNull(constraint);
+
+            assertEquals(new int[] { 3, 0, 1, 3 }, constraint.indices);
+
+        }
+
+        {
+
+            final SameVariableConstraint<ISPO> constraint = SameVariableConstraint
+                    .newInstance(new SPOPredicate(relationName,//
+                            Var.var("a"), Var.var("a"), c, Var.var("d")));
+
+            assertNotNull(constraint);
+
+            assertEquals(new int[] { 2, 0, 1 }, constraint.indices);
 
         }
 

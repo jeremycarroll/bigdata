@@ -310,10 +310,13 @@ public class SameVariableConstraint<E> implements IElementFilter<E>,
 
                 final Map.Entry<IVariableOrConstant<?>, Integer> e = itr.next();
                 
+                final int nused = e.getValue().intValue();
+
+                if (nused < 2)
+                    continue;
+                
                 final IVariable<?> var = (IVariable<?>)e.getKey();
                 
-                final int nused = e.getValue().intValue();
-                assert nused>=2;
                 indices[i++] = nused;
 
                 for (int j = 0; j < arity; j++) {
