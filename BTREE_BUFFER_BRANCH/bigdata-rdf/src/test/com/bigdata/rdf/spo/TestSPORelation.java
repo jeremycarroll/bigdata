@@ -50,7 +50,7 @@ import com.bigdata.relation.rule.NE;
 import com.bigdata.relation.rule.Rule;
 import com.bigdata.relation.rule.Var;
 import com.bigdata.relation.rule.eval.ActionEnum;
-import com.bigdata.relation.rule.eval.DefaultEvaluationPlan;
+import com.bigdata.relation.rule.eval.DefaultEvaluationPlan2;
 import com.bigdata.relation.rule.eval.DefaultEvaluationPlanFactory2;
 import com.bigdata.relation.rule.eval.IEvaluationPlan;
 import com.bigdata.relation.rule.eval.IEvaluationPlanFactory;
@@ -333,7 +333,7 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
              */
             {
 
-                final IEvaluationPlan plan = new DefaultEvaluationPlan(
+                final IEvaluationPlan plan = new DefaultEvaluationPlan2(
                         joinNexus, rule);
 
                 log.info("original plan=" + plan);
@@ -427,7 +427,7 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
              */
             {
 
-                final IEvaluationPlan plan = new DefaultEvaluationPlan(
+                final IEvaluationPlan plan = new DefaultEvaluationPlan2(
                         joinNexus, rule);
 
                 log.info("updated plan=" + plan);

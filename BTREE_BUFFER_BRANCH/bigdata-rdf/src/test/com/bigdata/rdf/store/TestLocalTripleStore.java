@@ -65,7 +65,7 @@ public class TestLocalTripleStore extends AbstractTestCase {
          */
 
         ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Local Triple Store Test Suite");
+                "Local Triple Store With Provenance Test Suite");
 
         /*
          * List any non-proxied tests (typically bootstrapping tests).
@@ -98,13 +98,21 @@ public class TestLocalTripleStore extends AbstractTestCase {
 
     public Properties getProperties() {
 
-        /*
-         * Note: nothing needs to be overriden.  This test corresponds to the
-         * default configuration for the LocalTripleStore.
-         */
-        
-        return super.getProperties();
-        
+        final Properties properties = super.getProperties();
+
+        // turn on statement identifiers.
+        properties
+                .setProperty(
+                        com.bigdata.rdf.store.AbstractTripleStore.Options.STATEMENT_IDENTIFIERS,
+                        "true");
+
+        // triples only.
+        properties.setProperty(
+                com.bigdata.rdf.store.AbstractTripleStore.Options.QUADS,
+                "false");
+
+        return properties;
+
     }
     
     protected AbstractTripleStore getStore(Properties properties) {

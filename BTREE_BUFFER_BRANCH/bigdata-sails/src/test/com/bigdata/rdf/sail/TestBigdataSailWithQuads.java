@@ -74,7 +74,10 @@ public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
 
         // SPARQL named graphs tests.
         suite.addTestSuite(TestNamedGraphs.class);
-        
+
+        // test suite for optionals handling (left joins).
+        suite.addTestSuite(TestOptionals.class);
+
         // test of the search magic predicate
         suite.addTestSuite(TestSearchQuery.class);
         

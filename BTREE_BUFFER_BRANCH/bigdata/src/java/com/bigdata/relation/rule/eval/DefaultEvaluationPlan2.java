@@ -42,7 +42,7 @@ import com.bigdata.relation.rule.IVariableOrConstant;
 
 /**
  * The evaluation order is determined by analysis of the propagation of
- * bindings. The most selective predicate is choosen first (having the fewest
+ * bindings. The most selective predicate is chosen first (having the fewest
  * unbound variables with ties broken by a range count on the data) and "fake"
  * bindings are propagated to the other predicates in the tail. This process is
  * repeated until all variables are bound and an evaluation order has been
