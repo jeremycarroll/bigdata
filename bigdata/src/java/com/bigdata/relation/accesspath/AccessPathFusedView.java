@@ -220,7 +220,7 @@ public class AccessPathFusedView<E> implements IAccessPath<E> {
          * @todo replace with ChunkedOrderedStriterator.
          */
 
-        if (path1.predicate.isFullyBound()) {
+        if (path1.predicate.isFullyBound(path1.getKeyOrder())) {
 
             if(log.isDebugEnabled())
                 log.debug("Predicate is fully bound.");

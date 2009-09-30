@@ -41,6 +41,6 @@ public class BigdataStatics {
      * of the flag makes it easier to figure out where those {@link System#err}
      * messages are coming from. This should always be off in the trunk.
      */
-    public static final boolean debug = false;
+    public static final boolean debug = true;
     
 }

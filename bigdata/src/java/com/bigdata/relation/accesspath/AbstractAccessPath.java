@@ -55,6 +55,8 @@ import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.relation.AbstractResource;
 import com.bigdata.relation.IRelation;
 import com.bigdata.relation.rule.IPredicate;
+import com.bigdata.relation.rule.IVariable;
+import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.service.IDataService;
 import com.bigdata.striterator.ChunkedArrayIterator;
 import com.bigdata.striterator.ChunkedWrappedIterator;
@@ -118,6 +120,18 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
     protected final int chunkCapacity;
     protected final int fullyBufferedReadThreshold;
 
+    private final boolean isFullyBoundForKey;
+    
+    /**
+     * <code>true</code> iff all elements in the predicate which are required
+     * to generate the key are bound to constants.
+     */
+    public boolean isFullyBoundForKey() {
+        
+        return isFullyBoundForKey;
+        
+    }
+    
     /**
      * @see AbstractResource#getChunkCapacity()
      */
@@ -378,18 +392,38 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         this.fullyBufferedReadThreshold = fullyBufferedReadThreshold;
         
         this.historicalRead = TimestampUtility.isReadOnly(timestamp);
+
+        this.isFullyBoundForKey = predicate.isFullyBound(keyOrder);
         
         final IElementFilter<R> constraint = predicate.getConstraint();
 
-        if (constraint == null) {
+        /*
+         * Optional constraint enforces the "same variable" constraint. The
+         * constraint will be null unless at least one variable appears in more
+         * than one position in the predicate.
+         */
+        final SameVariableConstraint<R> sameVarConstraint = SameVariableConstraint
+                .newInstance(predicate);
+       
+        if (constraint == null && sameVarConstraint == null) {
 
-            this.filter = null;
+            filter = null;
 
         } else {
 
-            this.filter = new FilterConstructor<R>();
-            
-            this.filter.addFilter(new ElementFilter<R>(constraint));
+            filter = new FilterConstructor<R>();
+
+            if (constraint != null) {
+
+                filter.addFilter(new ElementFilter<R>(constraint));
+
+            }
+
+            if (sameVarConstraint != null) {
+
+                filter.addFilter(new ElementFilter<R>(sameVarConstraint));
+
+            }
 
         }
         
@@ -667,10 +701,10 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         // true iff a point test is a hit on the bloom filter.
         boolean bloomHit = false;
         
-        if(predicate.isFullyBound()) {
+        if(isFullyBoundForKey) {
 
             if (log.isDebugEnabled())
-                log.debug("Predicate is fully bound.");
+                log.debug("Predicate is fully bound for the key.");
             
             /*
              * If the predicate is fully bound then there can be at most one
@@ -1139,9 +1173,9 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
                  * apply the filter to those elements.
                  * 
                  * FIXME If the filter is properly driven through to the indices
-                 * then the index should be able to enable the flags locally and
-                 * we can avoid sending back the full tuple when just doing a
-                 * range count. This could be done using a
+                 * then the index should be able to enable the (KEYS,VALS) flags
+                 * locally and we can avoid sending back the full tuple when
+                 * just doing a range count. This could be done using a
                  * rangeCount(exact,filter) method on IIndex.
                  */
                 
@@ -1250,10 +1284,13 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         }
 
         /*
-         * Remove everything in the key range. Do not materialize keys or
-         * values.
+         * Remove everything in the key range which satisfies the filter. Do
+         * not materialize keys or values.
+         * 
+         * @todo if offset and limit are rolled into the access path then
+         * they would also belong here.
          */
-        final ITupleIterator itr = rangeIterator(0/* capacity */,
+        final ITupleIterator<?> itr = rangeIterator(0/* capacity */,
                 IRangeQuery.REMOVEALL, filter);
 
         long n = 0;

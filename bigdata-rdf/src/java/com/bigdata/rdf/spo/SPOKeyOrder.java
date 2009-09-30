@@ -197,7 +197,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
      *         the natural orders corresponding to the primary index for a
      *         triple store (SPO) and a quad store (SPOC) respectively.
      */
-    public boolean isPrimaryIndex() {
+    final public boolean isPrimaryIndex() {
         
         return this == SPO || this == SPOC;
         
@@ -234,7 +234,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
     /**
      * The base name for the index.
      */
-    public String getIndexName() {
+    final public String getIndexName() {
 
         return names[index];
         
@@ -253,7 +253,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
      * Return either 3 or 4 depending on the #of components in the key for
      * this natural key ordering.
      */
-    public int getKeyArity() {
+    final public int getKeyArity() {
 
         switch (index) {
         case _SPO:
@@ -282,7 +282,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
      *            
      * @return The index of the slot in the {@link ISPO}.
      */
-    public int getKeyOrder(final int keyPos) {
+    final public int getKeyOrder(final int keyPos) {
 
         return orders[index][keyPos];
 
@@ -295,7 +295,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
      * {@link #_SPOC}, {@link #_POCS}, {@link _OCSP}, {@link #_CSPO},
      * {@link #_PCSO}, {@link #_SOPC}.
      */
-    public int index() {
+    final public int index() {
         
         return index;
         
@@ -380,7 +380,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
 
     }
 
-    public byte[] encodeKey(final IKeyBuilder keyBuilder, final ISPO spo) {
+    final public byte[] encodeKey(final IKeyBuilder keyBuilder, final ISPO spo) {
 
         keyBuilder.reset();
 
@@ -409,7 +409,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
      * 
      * @return The decoded key.
      */
-    public SPO decodeKey(final byte[] key) {
+    final public SPO decodeKey(final byte[] key) {
         
         /*
          * Note: GTE since the key is typically a reused buffer which may be

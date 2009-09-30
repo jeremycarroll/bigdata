@@ -26,12 +26,14 @@ package com.bigdata.rdf.spo;
 import java.util.Arrays;
 
 import com.bigdata.relation.accesspath.IElementFilter;
+import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IConstant;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.ISolutionExpander;
 import com.bigdata.relation.rule.IVariable;
 import com.bigdata.relation.rule.IVariableOrConstant;
+import com.bigdata.striterator.IKeyOrder;
 
 /**
  * A predicate that is a triple with one or more variables. While the general
@@ -126,6 +128,26 @@ public class SPOPredicate implements IPredicate<ISPO> {
 
         this(new String[] { relationName }, -1/* partitionId */, s, p, o,
                 null/* c */, false/* optional */, null/* constraint */, null/* expander */);
+
+    }
+
+    /**
+     * Partly specified ctor. The predicate is NOT optional. No constraint is
+     * specified. No expander is specified.
+     * 
+     * @param relationName
+     * @param s
+     * @param p
+     * @param o
+     * @param c
+     */
+    public SPOPredicate(final String relationName,
+            final IVariableOrConstant<Long> s,
+            final IVariableOrConstant<Long> p,
+            final IVariableOrConstant<Long> o, final IVariableOrConstant<Long> c) {
+
+        this(new String[] { relationName }, -1/* partitionId */, s, p, o, c,
+                false/* optional */, null/* constraint */, null/* expander */);
 
     }
 
@@ -466,6 +488,21 @@ public class SPOPredicate implements IPredicate<ISPO> {
         }
     }
     
+    public final IConstant<Long> get(final ISPO spo, final int index) {
+        switch (index) {
+        case 0:
+            return new Constant<Long>(spo.s());
+        case 1:
+            return new Constant<Long>(spo.p());
+        case 2:
+            return new Constant<Long>(spo.o());
+        case 3:
+            return new Constant<Long>(spo.c());
+        default:
+            throw new IndexOutOfBoundsException("" + index);
+        }
+    }
+    
 //    /**
 //     * Return the index of the variable or constant in the {@link Predicate}.
 //     * 
@@ -516,28 +553,52 @@ public class SPOPredicate implements IPredicate<ISPO> {
         return c;
         
     }
-    
+
     /**
      * Return true iff the {s,p,o} arguments of the predicate are bound (vs
-     * variables) - the context position is NOT tested.
+     * variables) - the context position is considered iff it is
+     * <code>non-null</code>.
+     * 
+     * @deprecated by {@link #isFullyBound(IKeyOrder)}
      */
     final public boolean isFullyBound() {
 
-        return !s.isVar() && !p.isVar() && !o.isVar();
+        return !s.isVar() && !p.isVar() && !o.isVar()
+                && (c == null ? true : (!c.isVar()));
 
     }
 
     /**
-     * The #of arguments in the predicate that are variables (vs constants) (the
-     * context position is NOT counted).
+     * The #of arguments in the predicate that are variables (the context
+     * position iff it is non-null).
      */
     final public int getVariableCount() {
-        
-        return (s.isVar() ? 1 : 0) + (p.isVar() ? 1 : 0) + (o.isVar() ? 1 : 0);
-        
+
+        return (s.isVar() ? 1 : 0) + (p.isVar() ? 1 : 0) + (o.isVar() ? 1 : 0)
+                + (c == null ? 0 : (c.isVar() ? 1 : 0));
+
     }
     
-    public SPOPredicate asBound(IBindingSet bindingSet) {
+    public boolean isFullyBound(final IKeyOrder<ISPO> keyOrder) {
+
+        return getVariableCount(keyOrder) == 0;
+
+    }
+    
+    public int getVariableCount(final IKeyOrder<ISPO> keyOrder) {
+        int nunbound = 0;
+        final int keyArity = keyOrder.getKeyArity();
+        for (int keyPos = 0; keyPos < keyArity; keyPos++) {
+            final int index = keyOrder.getKeyOrder(keyPos);
+            final IVariableOrConstant<?> t = get(index);
+            if (t == null || t.isVar()) {
+                nunbound++;
+            }
+        }
+        return nunbound;
+    }
+    
+    public SPOPredicate asBound(final IBindingSet bindingSet) {
         
         final IVariableOrConstant<Long> s;
         {

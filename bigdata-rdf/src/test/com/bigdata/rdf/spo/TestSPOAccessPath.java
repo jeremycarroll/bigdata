@@ -27,12 +27,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.spo;
 
+import org.openrdf.model.Statement;
+
 import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.keys.KeyBuilder;
+import com.bigdata.rdf.model.BigdataURI;
+import com.bigdata.rdf.model.BigdataValueFactory;
+import com.bigdata.rdf.model.StatementEnum;
+import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
 import com.bigdata.rdf.store.TestTripleStore;
 import com.bigdata.relation.accesspath.AbstractAccessPath;
+import com.bigdata.relation.accesspath.IAccessPath;
+import com.bigdata.relation.rule.Constant;
+import com.bigdata.relation.rule.Var;
 
 /**
  * Test suite for {@link SPOAccessPath}.
@@ -256,6 +265,207 @@ public class TestSPOAccessPath extends AbstractTripleStoreTestCase {
 
         }
 
+    }
+
+    /**
+     * Unit test for predicate patterns in which the same variable appears in
+     * more than one position of a triple pattern. The access path should
+     * enforce a constraint to ensure that only elements having the same value
+     * in each position for the same variable are visited by its iterator.
+     * <p>
+     * Note: This test applies to the triple store, provenance, and quad store
+     * modes.
+     */
+    public void test_sameVariableConstraint_triples() {
+
+        final AbstractTripleStore store = getStore();
+        
+        try {
+
+            final BigdataValueFactory f = store.getValueFactory();
+            
+            final BigdataURI s1 = f.createURI("http://www.bigdata.com/rdf#s1");
+            final BigdataURI s2 = f.createURI("http://www.bigdata.com/rdf#s2");
+            final BigdataURI p1 = f.createURI("http://www.bigdata.com/rdf#p1");
+            final BigdataURI o1 = f.createURI("http://www.bigdata.com/rdf#o1");
+            final BigdataURI p2 = f.createURI("http://www.bigdata.com/rdf#p2");
+            final BigdataURI o2 = f.createURI("http://www.bigdata.com/rdf#o2");
+
+            {
+
+                final StatementBuffer<Statement> buffer = new StatementBuffer<Statement>(
+                        store, 10);
+
+                buffer.add(s1, p1, o1);
+
+                buffer.add(s1, s1, o1);
+
+                buffer.add(s2, p2, o2);
+
+                buffer.add(s1, p2, o2);
+
+                buffer.flush();
+
+            }
+
+            // no shared variable (?g, ?h, o1)
+            {
+
+                final SPOPredicate predicate = new SPOPredicate(//
+                        store.getSPORelation().getNamespace(),//
+                        Var.var("g"), // s
+                        Var.var("h"), // p
+                        new Constant<Long>(o1.getTermId()) // o
+                );
+
+                final IAccessPath<ISPO> accessPath = store.getSPORelation()
+                        .getAccessPath(predicate);
+
+                assertSameSPOs(new ISPO[] { //
+                                new SPO(s1.getTermId(), p1.getTermId(), o1
+                                        .getTermId(), StatementEnum.Explicit),//
+                                new SPO(s1.getTermId(), s1.getTermId(), o1
+                                        .getTermId(), StatementEnum.Explicit),//
+                        }, accessPath.iterator());
+            }
+
+            // shared 'g' variable (?g, ?g, o1)
+            {
+                final SPOPredicate predicate = new SPOPredicate(//
+                        store.getSPORelation().getNamespace(),//
+                        Var.var("g"), // s
+                        Var.var("g"), // s
+                        new Constant<Long>(o1.getTermId()) // o
+                );
+
+                final IAccessPath<ISPO> accessPath = store.getSPORelation()
+                        .getAccessPath(predicate);
+
+                assertSameSPOs(new ISPO[] { //
+                        new SPO(s1.getTermId(), s1.getTermId(), o1.getTermId(),
+                                StatementEnum.Explicit),//
+                        }, accessPath.iterator());
+            }
+
+        } finally {
+
+            store.__tearDownUnitTest();
+
+        }
+        
+    }
+
+    /**
+     * Unit test for predicate patterns in which the same variable appears in
+     * more than one position of a quad pattern. The access path should enforce
+     * a constraint to ensure that only elements having the same value in each
+     * position for the same variable are visited by its iterator.
+     * <p>
+     * Note: This test only applies to the quad store mode.
+     * <p>
+     * Note: In the provenance mode, it is impossible for a statement to use its
+     * own statement identifier in any position other than the quad position.
+     * Therefore any access path which was constrained such that s, p, or o used
+     * shared a variable with c would result in an empty access path in the
+     * data.
+     */
+    public void test_sameVariableConstraint_quads() {
+
+        final AbstractTripleStore store = getStore();
+        
+        try {
+
+            if(!store.isQuads()) {
+
+                /*
+                 * @todo modify test to work for triple store also? This is easy
+                 * enough to do with an (s,p,o) predicate in which s and o are
+                 * or s and p bound to the same variable.
+                 */
+         
+                log.warn("Unit test requires quads.");
+                
+                return;
+                
+            }
+            
+            final BigdataValueFactory f = store.getValueFactory();
+            
+            final BigdataURI graphA = f.createURI("http://www.bigdata.com/graphA");
+            final BigdataURI graphB = f.createURI("http://www.bigdata.com/graphB");
+            final BigdataURI s = f.createURI("http://www.bigdata.com/rdf#s");
+            final BigdataURI p1 = f.createURI("http://www.bigdata.com/rdf#p1");
+            final BigdataURI o1 = f.createURI("http://www.bigdata.com/rdf#o1");
+            final BigdataURI p2 = f.createURI("http://www.bigdata.com/rdf#p2");
+            final BigdataURI o2 = f.createURI("http://www.bigdata.com/rdf#o2");
+
+            {
+
+                final StatementBuffer<Statement> buffer = new StatementBuffer<Statement>(
+                        store, 10);
+
+                buffer.add(graphA, p1, o1, graphA);
+
+                buffer.add(graphA, p2, o2, graphA);
+
+                buffer.add(s, p1, o1, graphA);
+
+                buffer.add(s, p2, o2, graphB);
+
+                buffer.flush();
+
+            }
+
+            // no shared variable (?g, p1, o1, ?h)
+            {
+
+                final SPOPredicate predicate = new SPOPredicate(//
+                        store.getSPORelation().getNamespace(),//
+                        Var.var("g"), // s
+                        new Constant<Long>(p1.getTermId()), // p
+                        new Constant<Long>(o1.getTermId()), // o
+                        Var.var("h") // c
+                );
+
+                final IAccessPath<ISPO> accessPath = store.getSPORelation()
+                        .getAccessPath(predicate);
+
+                assertSameSPOs(new ISPO[] { //
+                                new SPO(graphA.getTermId(), p1.getTermId(), o1
+                                        .getTermId(), graphA.getTermId(),
+                                        StatementEnum.Explicit),//
+                                new SPO(s.getTermId(), p1.getTermId(), o1
+                                        .getTermId(), graphA.getTermId(),
+                                        StatementEnum.Explicit),//
+                        }, accessPath.iterator());
+            }
+
+            // shared 'g' variable (?g, p1, o1, ?g)
+            {
+                final SPOPredicate predicate = new SPOPredicate(//
+                        store.getSPORelation().getNamespace(),//
+                        Var.var("g"), // s
+                        new Constant<Long>(p1.getTermId()), // p
+                        new Constant<Long>(o1.getTermId()), // o
+                        Var.var("g") // c
+                );
+
+                final IAccessPath<ISPO> accessPath = store.getSPORelation()
+                        .getAccessPath(predicate);
+
+                assertSameSPOs(new ISPO[] { //
+                        new SPO(graphA.getTermId(), p1.getTermId(), o1
+                                .getTermId(), graphA.getTermId(),
+                                StatementEnum.Explicit),//
+                        }, accessPath.iterator());
+            }
+            
+        } finally {
+
+            store.__tearDownUnitTest();
+
+        }
+        
     }
     
     /**

@@ -86,6 +86,16 @@ public class BigdataStoreTest extends RDFStoreTest {
         fail("Not supported yet.");
     }
 
+    /**
+     * This unit test has been disabled. Sesame 2.x assumes that two blank nodes
+     * are the same if they have the same identifier. bigdata does not have
+     * those semantics. Neither does RDF. Sesame 3.x has the standard behavior
+     * and does not run this unit test either.
+     */
+    public void testStatementSerialization() {
+        
+    }
+    
     @Override
     protected Sail createSail() throws SailException {
         File journal = createTempFile();
