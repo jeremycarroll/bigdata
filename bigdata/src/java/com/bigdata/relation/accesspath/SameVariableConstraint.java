@@ -5,8 +5,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.CognitiveWeb.extser.LongPacker;
@@ -81,7 +81,7 @@ public class SameVariableConstraint<E> implements IElementFilter<E>,
      * 
      * where the records are indicated by the nested square brackets.
      */
-    private int[] indices;
+    protected int[] indices;
 
     /**
      * De-serialization constructor.
@@ -171,6 +171,13 @@ public class SameVariableConstraint<E> implements IElementFilter<E>,
 
     }
 
+    public String toString() {
+
+        return super.toString() + "{p=" + p + ", indices="
+                + Arrays.toString(indices) + "}";
+
+    }
+    
     @SuppressWarnings("unchecked")
     public void readExternal(ObjectInput in) throws IOException,
             ClassNotFoundException {
@@ -224,7 +231,7 @@ public class SameVariableConstraint<E> implements IElementFilter<E>,
         final int arity = p.arity();
 
         // map exists iff variables are used more than once.
-        HashMap<IVariableOrConstant<?>, Integer> vars = null;
+        Map<IVariableOrConstant<?>, Integer> vars = null;
 
         // #of occurrences across all variables which are used more than once.
         int noccurs = 0;
@@ -244,7 +251,7 @@ public class SameVariableConstraint<E> implements IElementFilter<E>,
 
                     if (vars == null) {
 
-                        vars = new HashMap<IVariableOrConstant<?>, Integer>();
+                        vars = new LinkedHashMap<IVariableOrConstant<?>, Integer>();
 
                     }
 
@@ -306,7 +313,7 @@ public class SameVariableConstraint<E> implements IElementFilter<E>,
                 final IVariable<?> var = (IVariable<?>)e.getKey();
                 
                 final int nused = e.getValue().intValue();
-
+                assert nused>=2;
                 indices[i++] = nused;
 
                 for (int j = 0; j < arity; j++) {
