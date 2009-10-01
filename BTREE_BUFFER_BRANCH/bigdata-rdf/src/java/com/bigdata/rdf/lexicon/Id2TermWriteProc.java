@@ -71,8 +71,10 @@ public class Id2TermWriteProc extends AbstractKeyArrayIndexProcedure implements
      * Validation may be disabled for releases, however it is not really that
      * much overhead since the operation is on the in-memory representation.
      * 
-     * @deprecated Validation is broken for datatype literals since different
-     *             lexical forms are all mapped onto the same key,e.g.,
+     * @deprecated Validation can not be reasonably applied it the Unicode
+     *             collation is less than Identical. It also has problems for
+     *             datatype literals if different lexical forms are all mapped
+     *             onto the same key,e.g.,
      * 
      *             <pre>
      * 12&circ;&circ;&lt;xsd:float&gt;
@@ -240,9 +242,8 @@ public class Id2TermWriteProc extends AbstractKeyArrayIndexProcedure implements
                         
                         if (!term.equals(oldterm)) {
                             
-                            log.error("term=" + valSer.deserialize(val));
-                            log.error("oldterm=" + valSer.deserialize(oldval));
-
+                            log.error("term=" + term);
+                            log.error("oldterm=" + oldterm);
                             log.error("id=" + id + suffix);
                             log.error("key=" + BytesUtil.toString(key));
                             log.error("val=" + Arrays.toString(val));
