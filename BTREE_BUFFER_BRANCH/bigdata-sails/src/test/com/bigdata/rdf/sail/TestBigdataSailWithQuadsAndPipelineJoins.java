@@ -68,7 +68,7 @@ public class TestBigdataSailWithQuadsAndPipelineJoins extends AbstractBigdataSai
          * Use a proxy test suite and specify the delegate.
          */
 
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate, "SAIL with Quads (pipeline joins)");
+        final ProxyTestSuite suite = new ProxyTestSuite(delegate, "SAIL with Quads (pipline joins)");
 
         // misc named graph API stuff.
         suite.addTestSuite(TestQuadsAPI.class);

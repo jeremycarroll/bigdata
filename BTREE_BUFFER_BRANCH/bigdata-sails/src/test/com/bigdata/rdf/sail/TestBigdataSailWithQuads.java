@@ -67,7 +67,7 @@ public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
          * Use a proxy test suite and specify the delegate.
          */
 
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate, "SAIL with Quads");
+        final ProxyTestSuite suite = new ProxyTestSuite(delegate, "SAIL with Quads (nested subquery joins)");
 
         // misc named graph API stuff.
         suite.addTestSuite(TestQuadsAPI.class);
