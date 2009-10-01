@@ -322,6 +322,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
     /**
      * Strengthened return type.
      */
+    @Override
     public AbstractTripleStore getContainer() {
 
         return (AbstractTripleStore) super.getContainer();
