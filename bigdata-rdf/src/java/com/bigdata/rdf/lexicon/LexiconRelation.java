@@ -259,9 +259,26 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
     }
     final private BigdataValueFactoryImpl valueFactory;
     
+    /**
+     * Strengthens the return type.
+     */
+    @Override
+    public AbstractTripleStore getContainer() {
+        
+        return (AbstractTripleStore) super.getContainer();
+        
+    }
+    
     public boolean exists() {
 
-        return term2id != null && id2term != null;
+        for(String name : getIndexNames()) {
+            
+            if (getIndex(name) == null)
+                return false;
+            
+        }
+        
+        return true;
 
     }
 
@@ -1119,6 +1136,15 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
                                     Split split) {
 
                                 for (int i = split.fromIndex, j = 0; i < split.toIndex; i++, j++) {
+
+//                                    if (b[i].c() != 0L
+//                                            && b[i].c() != result.ids[j]) {
+//                                        System.err.println("spo="
+//                                                + getContainer().toString(b[i])
+//                                                + ", sid="
+//                                                + getContainer().toString(
+//                                                        result.ids[j]));
+//                                    }
 
                                     b[i].setStatementIdentifier(result.ids[j]);
 

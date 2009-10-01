@@ -317,17 +317,20 @@ public class BigdataSail extends SailBase implements Sail {
 //    final protected static boolean DEBUG = log.isDebugEnabled();
 
     /**
-     * Sesame has the notion of a "null" graph. Any time you insert a statement
-     * into a quad store and the context position is not specified, it is
-     * actually inserted into this "null" graph. If SPARQL <code>DATASET</code>
-     * is not specified, then all contexts are queried and you will see
-     * statements from the "null" graph as well as from any other context.
+     * Sesame has the notion of a "null" graph which we use for the quad store
+     * mode. Any time you insert a statement into a quad store and the context
+     * position is not specified, it is actually inserted into this "null"
+     * graph. If SPARQL <code>DATASET</code> is not specified, then all contexts
+     * are queried and you will see statements from the "null" graph as well as
+     * from any other context.
      * {@link BigdataSailConnection#getStatements(Resource, URI, Value, boolean, Resource...)}
      * will return statements from the "null" graph if the context is either
      * unbound or is an array whose sole element is <code>null</code>.
      * 
-     * @see BigdataSailConnection#addStatement(Resource, URI, Value, Resource...)
-     * @see BigdataSailConnection#getStatements(Resource, URI, Value, boolean, Resource...)
+     * @see BigdataSailConnection#addStatement(Resource, URI, Value,
+     *      Resource...)
+     * @see BigdataSailConnection#getStatements(Resource, URI, Value, boolean,
+     *      Resource...)
      */
     public static final transient URI NULL_GRAPH = new URIImpl(BNS.NULL_GRAPH);
 
@@ -356,6 +359,17 @@ public class BigdataSail extends SailBase implements Sail {
     }
     
     /**
+     * Return <code>true</code> if the SAIL is using a "quads" mode database.
+     * 
+     * @see AbstractTripleStore.Options#QUADS
+     */
+    public boolean isQuads() {
+
+        return quads;
+        
+    }
+    
+    /**
      * The configured capacity for the statement buffer(s).
      * 
      * @see Options#BUFFER_CAPACITY
@@ -368,6 +382,13 @@ public class BigdataSail extends SailBase implements Sail {
      * @see Options#TRUTH_MAINTENANCE
      */
     final private boolean truthMaintenance;
+    
+    /**
+     * When true, the SAIL is in the "quads" mode.
+     * 
+     * @see AbstractTripleStore.Options#QUADS
+     */
+    final private boolean quads;
     
     /**
      * When true, SAIL will delegate joins to bigdata internal joins.
@@ -525,7 +546,9 @@ public class BigdataSail extends SailBase implements Sail {
         
         this.properties = database.getProperties();
 
-        if (database.getSPOKeyArity() == 4) {
+        this.quads = database.isQuads();
+        
+        if (quads) {
 
             if (properties.getProperty(BigdataSail.Options.TRUTH_MAINTENANCE) != null
                     && Boolean
@@ -545,8 +568,7 @@ public class BigdataSail extends SailBase implements Sail {
         }
 
         // truthMaintenance
-        if (database.getAxioms() instanceof NoAxioms
-                || database.getSPOKeyArity() == 4) {
+        if (database.getAxioms() instanceof NoAxioms || quads) {
 
             /*
              * If there is no axioms model then inference is not enabled and
@@ -1426,8 +1448,8 @@ public class BigdataSail extends SailBase implements Sail {
                  * addStatements() is that a statement with no associated
                  * context is added to the store.
                  */
-                
-                addStatement(s, p, o, NULL_GRAPH/* c */);
+
+                addStatement(s, p, o, (Resource) null/* c */);
 
             }
 
@@ -1435,15 +1457,12 @@ public class BigdataSail extends SailBase implements Sail {
 
                 // Operate on just the nullGraph.
 
-                addStatement(s, p, o, NULL_GRAPH/* c */);
+                addStatement(s, p, o, (Resource) null/* c */);
 
             }
 
             for (Resource c : contexts) {
 
-                if (c == null)
-                    c = NULL_GRAPH;
-                
                 addStatement(s, p, o, c);
 
             }
@@ -1467,10 +1486,19 @@ public class BigdataSail extends SailBase implements Sail {
 
             // flush any pending retractions first!
             flushStatementBuffers(false/* flushAssertBuffer */, true/* flushRetractBuffer */);
-            
-            // buffer the assertion.
-            getAssertionBuffer().add(s, p, o, c == null ? NULL_GRAPH : c);
-            
+
+            /*
+             * Buffer the assertion.
+             * 
+             * Note: If [c] is null and we are in quads mode, then we set
+             * [c==NULL_GRAPH]. Otherwise we leave [c] alone. For the triple
+             * store mode [c] will be null. For the provenance mode, [c] will
+             * set to a statement identifier (SID) when the statement(s) are
+             * flushed to the database.
+             */
+            getAssertionBuffer().add(s, p, o,
+                    c == null && quads ? NULL_GRAPH : c);
+
             if (m_listeners != null) {
 
                 // Notify listener(s).
@@ -1517,10 +1545,14 @@ public class BigdataSail extends SailBase implements Sail {
 
             if (contexts.length == 1 && contexts[0] == null) {
 
-                // Operate on just the nullGraph.
-                
+                /*
+                 * Operate on just the nullGraph, or on the sole graph if not in
+                 * quads mode.
+                 */
+
                 database.getAccessPath(null/* s */, null/* p */, null/* o */,
-                        NULL_GRAPH, null/* filter */).removeAll();
+                        quads ? NULL_GRAPH : null, null/* filter */)
+                        .removeAll();
 
                 return;
 
@@ -1530,11 +1562,9 @@ public class BigdataSail extends SailBase implements Sail {
             long size = 0;
             for (Resource c : contexts) {
 
-                if(c == null)
-                    c = NULL_GRAPH;
-                
                 size += database.getAccessPath(null/* s */, null/* p */,
-                        null/* o */, c, null/* filter */).removeAll();
+                        null/* o */, (c == null && quads) ? NULL_GRAPH : c,
+                        null/* filter */).removeAll();
 
             }
 
@@ -1618,9 +1648,13 @@ public class BigdataSail extends SailBase implements Sail {
 
             if (contexts.length == 1 && contexts[0] == null) {
 
-                // Operate on just the nullGraph.
-                
-                return database.getExplicitStatementCount(NULL_GRAPH/* c */);
+                /*
+                 * Operate on just the nullGraph (or on the sole graph if not in
+                 * quads mode).
+                 */
+
+                return database.getExplicitStatementCount(quads ? NULL_GRAPH
+                        : null/* c */);
 
             }
 
@@ -1629,11 +1663,9 @@ public class BigdataSail extends SailBase implements Sail {
 
             for (Resource c : contexts) {
 
-                if(c == null)
-                    c = NULL_GRAPH;
-                
                 size += database.getAccessPath(null/* s */, null/* p */,
-                        null/* o */, c).rangeCount(true/* exact */);
+                        null/* o */, (c == null && quads) ? NULL_GRAPH : c)
+                        .rangeCount(true/* exact */);
 
             }
 
@@ -1660,19 +1692,19 @@ public class BigdataSail extends SailBase implements Sail {
 
             if (contexts.length == 1 && contexts[0] == null) {
 
-                // Operate on just the nullGraph.
-                
-                removeStatements(s, p, o, NULL_GRAPH/* c */);
+                /*
+                 * Operate on just the nullGraph, or on the sole graph if not in
+                 * quads mode.
+                 */
+
+                removeStatements(s, p, o, quads ? NULL_GRAPH : null/* c */);
 
             }
 
             // FIXME parallelize this in chunks as per getStatements()
             for (Resource c : contexts) {
 
-                if(c == null)
-                    c = NULL_GRAPH;
-                
-                removeStatements(s, p, o, c);
+                removeStatements(s, p, o, (c == null && quads) ? NULL_GRAPH : c);
 
             }
             
@@ -2050,10 +2082,14 @@ public class BigdataSail extends SailBase implements Sail {
 
             if (contexts.length == 1 && contexts[0] == null) {
 
-                // Operate on just the nullGraph.
+                /*
+                 * Operate on just the nullGraph, or on the sole graph if not in
+                 * quads mode.
+                 */
                 
                 return new Bigdata2SesameIteration<Statement, SailException>(
-                        getStatements(s, p, o, NULL_GRAPH/* c */,
+                        getStatements(s, p, o,
+                                quads ? NULL_GRAPH : null/* c */,
                                 includeInferred));
 
             }
@@ -2076,10 +2112,12 @@ public class BigdataSail extends SailBase implements Sail {
                     .asList(contexts).iterator()).addFilter(new Expander() {
                 private static final long serialVersionUID = 1L;
                 @Override
-                protected Iterator expand(Object c) {
-                    if(c == null)
-                        c = NULL_GRAPH;
-                    return getStatements(s, p, o, (Resource) c, includeInferred);
+                protected Iterator expand(final Object c) {
+                    return getStatements(//
+                            s, p, o,//
+                            (Resource) ((c == null && quads) ? NULL_GRAPH :c),//
+                            includeInferred//
+                            );
                 }
             })));
 
@@ -2242,7 +2280,7 @@ public class BigdataSail extends SailBase implements Sail {
             
             flushStatementBuffers(true/* assertions */, true/* retractions */);
 
-            if (database.getSPOKeyArity() == 4) {
+            if (quads) {
 
                 // quads materalized inferences not supported yet. 
                 throw new UnsupportedOperationException();

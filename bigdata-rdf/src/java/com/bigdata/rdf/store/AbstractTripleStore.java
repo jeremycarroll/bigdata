@@ -2318,7 +2318,13 @@ abstract public class AbstractTripleStore extends
             final long c) {
 
         return ("< " + toString(s) + ", " + toString(p) + ", " + toString(o)
-                + toString(c) + " >");
+                + ", " + toString(c) + " >");
+
+    }
+
+    final public String toString(final ISPO spo) {
+
+        return toString(spo.s(), spo.p(), spo.o(), spo.c());
 
     }
 
