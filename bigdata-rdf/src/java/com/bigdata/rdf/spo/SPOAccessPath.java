@@ -7,8 +7,11 @@ import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.relation.accesspath.AbstractAccessPath;
 import com.bigdata.relation.accesspath.IAccessPath;
+import com.bigdata.relation.rule.ArrayBindingSet;
 import com.bigdata.relation.rule.Constant;
+import com.bigdata.relation.rule.IConstant;
 import com.bigdata.relation.rule.IPredicate;
+import com.bigdata.relation.rule.IVariable;
 import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
@@ -231,12 +234,14 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
 
     /**
      * Return a new {@link SPOAccessPath} where the context position has been
-     * bound to the specified constant. This is used to constrain an access path
-     * to each graph in the set of default graphs when evaluating a SPARQL query
-     * against the "default graph".
+     * bound to the specified constant. The context position MUST be a variable.
+     * All instances of that variable will be replaced by the specified
+     * constant. This is used to constrain an access path to each graph in the
+     * set of default graphs when evaluating a SPARQL query against the
+     * "default graph".
      * <p>
      * Note: The added constraint may mean that a different index provides more
-     * efficient traversal.  For scale-out, this means that the data may be on
+     * efficient traversal. For scale-out, this means that the data may be on
      * different index partition.
      * 
      * @param c
@@ -253,6 +258,8 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
 
         }
 
+        final IVariableOrConstant<Long> cvar = getPredicate().get(3);
+
         /*
          * Constrain the access path by setting the context position on its
          * predicate.
@@ -260,9 +267,56 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
          * Note: This option will always do better when you are running against
          * local data (LocalTripleStore).
          */
+        
+        final SPOPredicate p;
 
-        final SPOPredicate p = ((SPOPredicate) getPredicate())
-                .setC(new Constant<Long>(Long.valueOf(c)));
+        if (cvar == null) {
+
+            /*
+             * The context position was never set on the original predicate, so
+             * it is neither a variable nor a constant. In this case we just set
+             * the context position to the desired constant.
+             */
+            
+            p = getPredicate().setC(new Constant<Long>(c));
+            
+        } else if(cvar.isVar()) {
+
+            /*
+             * The context position is a variable. Replace all occurrences of
+             * that variable in the predicate with the desired constant.
+             */
+            
+            p = getPredicate().asBound(new ArrayBindingSet(//
+                    new IVariable[] { (IVariable<Long>) cvar },//
+                    new IConstant[] { new Constant<Long>(c) }//
+                    ));
+        } else {
+
+            /*
+             * The context position is already bound to a constant.
+             */
+            
+            if (cvar.get().longValue() == c) {
+
+                /*
+                 * The desired constant is already specified for the context
+                 * position.
+                 */
+                
+                return this;
+
+            }
+
+            /*
+             * A different constant is already specified for the context
+             * position. This is an error since you are only allowed to add
+             * constraint, not change an existing constraint.
+             */
+
+            throw new IllegalStateException();
+            
+        }
 
         /*
          * Let the relation figure out which access path is best given that

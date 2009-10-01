@@ -26,6 +26,7 @@ package com.bigdata.rdf.spo;
 import java.util.Arrays;
 
 import com.bigdata.relation.accesspath.IElementFilter;
+import com.bigdata.relation.rule.ArrayBindingSet;
 import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IConstant;
@@ -384,9 +385,19 @@ public class SPOPredicate implements IPredicate<ISPO> {
         this.expander = src.expander;
         
     }
-    
+
     /**
-     * Constrain the predicate by setting the context position.
+     * Constrain the predicate by setting the context position. If the context
+     * position on the {@link SPOPredicate} is non-<code>null</code>, then you
+     * must use {@link #asBound(IBindingSet)} to replace all occurrences of the
+     * variable appearing in the context position of the predicate with the
+     * desired constant. If the context position is already bound the a
+     * constant, then you can not modify it (you can only increase the
+     * constraint, not change the constraint).
+     * 
+     * @throws IllegalStateException
+     *             unless the context position on the {@link SPOPredicate} is
+     *             <code>null</code>.
      */
     public SPOPredicate setC(final IConstant<Long> c) {
 
@@ -596,6 +607,100 @@ public class SPOPredicate implements IPredicate<ISPO> {
             }
         }
         return nunbound;
+    }
+
+    /**
+     * Return a new instance in which all occurrences of the variable in the
+     * predicate have been replaced by the specified constant.
+     * 
+     * @param var
+     *            The variable.
+     * @param val
+     *            The constant.
+     * @return A new instance of the predicate in which all occurrences of the
+     *         variable have been replaced by the constant.
+     * 
+     * @throws IllegalArgumentException
+     *             if either argument is <code>null</code>.
+     */
+    public SPOPredicate asBound(final IVariable<Long> var,
+            final IConstant<Long> val) {
+
+        return asBound(new ArrayBindingSet(new IVariable[]{var}, new IConstant[]{val}));
+        
+//        if (var == null)
+//            throw new IllegalArgumentException();
+//        
+//        if (val == null)
+//            throw new IllegalArgumentException();
+//        
+////        if(!var.isVar()) {
+////            return this;
+////        }
+//
+//        final IVariableOrConstant<Long> s;
+//        {
+//
+//            if (this.s.isVar() && this.s.equals(var)) {
+//
+//                s = val;
+//
+//            } else {
+//
+//                s = this.s;
+//
+//            }
+//        
+//        }
+//        
+//        final IVariableOrConstant<Long> p;
+//        {
+//
+//            if (this.p.isVar() && this.p.equals(var)) {
+//
+//                p = val;
+//
+//            } else {
+//
+//                p = this.p;
+//
+//            }
+//            
+//        }
+//        
+//        final IVariableOrConstant<Long> o;
+//        {
+//            
+//            if (this.o.isVar() && this.o.equals(var)) {
+//
+//                o = val;
+//
+//            } else {
+//
+//               o = this.o;
+//
+//            }
+//            
+//        }
+//        
+//        final IVariableOrConstant<Long> c;
+//        {
+//
+//            if (this.c != null && this.c.isVar() && this.c.equals(var)) {
+//
+//                c = val;
+//
+//            } else {
+//
+//               c = this.c;
+//
+//            }
+//            
+//        }
+//        
+//        return new SPOPredicate(relationName, partitionId, s, p, o, c,
+//                optional, constraint, expander);
+        
     }
     
     public SPOPredicate asBound(final IBindingSet bindingSet) {
