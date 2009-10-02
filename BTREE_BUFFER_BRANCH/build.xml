@@ -79,6 +79,7 @@
             <src path="${bigdata.dir}/bigdata-rdf/src/test"/>
             <src path="${bigdata.dir}/bigdata-sails/src/test"/>
             -->
+			<compilerarg value="-version"/>
 		</javac>
 		<!-- copy resources. -->
 		<copy toDir="${build.dir}/classes">
