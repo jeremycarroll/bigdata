@@ -27,11 +27,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.spo;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 
+import com.bigdata.io.SerializerUtil;
 import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
@@ -414,6 +416,22 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
 
             }
 
+            // Serialization test.
+            {
+                
+                final DefaultGraphSolutionExpander expected = new DefaultGraphSolutionExpander(
+                        Arrays
+                                .asList(new BigdataURI[] { c1, c2 }/* defaultGraphs */));
+
+                final DefaultGraphSolutionExpander actual = (DefaultGraphSolutionExpander) SerializerUtil
+                        .deserialize(SerializerUtil.serialize(expected));
+
+                assertEquals(actual.getKnownGraphCount(), expected.getKnownGraphCount());
+
+                assertSameItr(new BigdataURI[] { c1, c2 }, actual.getGraphs());
+                
+            }
+            
         } finally {
 
             store.destroy();

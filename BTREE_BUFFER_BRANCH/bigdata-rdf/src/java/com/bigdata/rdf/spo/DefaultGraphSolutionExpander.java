@@ -156,6 +156,25 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
      * the source graph set.
      */
     private final IElementFilter<ISPO> filter;
+
+    /**
+     * Return the #of source graphs URIs associated with term identifiers in
+     * the database (possible graphs).
+     */
+    public int getKnownGraphCount() {
+        
+        return nknown;
+        
+    }
+    
+    /**
+     * Return an iterator which will visit the source graphs.
+     */
+    public Iterator<? extends URI> getGraphs() {
+        
+        return defaultGraphs.iterator();
+        
+    }
     
     /**
      * Using the expander makes sense even when there is a single graph in the
@@ -178,14 +197,18 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
         
         this.defaultGraphs = defaultGraphs;
         
-        long firstContextLocal = IRawTripleStore.NULL;
-        
         if(defaultGraphs == null) {
             
             this.nknown = Integer.MAX_VALUE;
             
+            this.filter = null;
+            
+            this.firstContext = IRawTripleStore.NULL;
+
         } else {
 
+            long firstContextLocal = IRawTripleStore.NULL;
+            
             final Iterator<? extends URI> itr = defaultGraphs.iterator();
 
             int nknownLocal = 0;
@@ -208,19 +231,19 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
             
             this.nknown = nknownLocal;
             
-        }
-        
-        this.firstContext = firstContextLocal;
+            // @todo configure threshold or pass into this constructor.
+            if (nknown > 200) {
 
-        // @todo configure threshold or pass into this constructor.
-        if (defaultGraphs != null && nknown > 200) {
+                this.filter = new InGraphHashSetFilter(nknown, defaultGraphs);
+                
+            } else {
+                
+                this.filter = null;
+                
+            }
 
-            filter = new InGraphHashSetFilter(nknown, defaultGraphs);
-            
-        } else {
-            
-            filter = null;
-            
+            this.firstContext = firstContextLocal;
+
         }
 
     }
