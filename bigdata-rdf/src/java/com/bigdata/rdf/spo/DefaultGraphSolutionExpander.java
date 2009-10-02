@@ -178,17 +178,17 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
         
         this.defaultGraphs = defaultGraphs;
         
-        long firstContext = IRawTripleStore.NULL;
+        long firstContextLocal = IRawTripleStore.NULL;
         
         if(defaultGraphs == null) {
             
-            nknown = Integer.MAX_VALUE;
+            this.nknown = Integer.MAX_VALUE;
             
         } else {
 
             final Iterator<? extends URI> itr = defaultGraphs.iterator();
 
-            int nknown = 0;
+            int nknownLocal = 0;
 
             while (itr.hasNext()) {
 
@@ -196,9 +196,9 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
                 if (uri.getTermId() != IRawTripleStore.NULL) {
 
-                    if (++nknown == 1) {
+                    if (++nknownLocal == 1) {
 
-                        firstContext = uri.getTermId();
+                        firstContextLocal = uri.getTermId();
 
                     }
 
@@ -206,18 +206,22 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
 
             } // while
             
-            this.nknown = nknown;
+            this.nknown = nknownLocal;
             
         }
         
-        this.firstContext = firstContext;
+        this.firstContext = firstContextLocal;
 
         // @todo configure threshold or pass into this constructor.
         if (defaultGraphs != null && nknown > 200) {
 
             filter = new InGraphHashSetFilter(nknown, defaultGraphs);
             
-        } else filter = null;
+        } else {
+            
+            filter = null;
+            
+        }
 
     }
     
