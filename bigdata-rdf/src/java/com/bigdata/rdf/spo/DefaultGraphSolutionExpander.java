@@ -205,46 +205,39 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
             
             this.firstContext = IRawTripleStore.NULL;
 
-        } else {
-
-            long firstContextLocal = IRawTripleStore.NULL;
+            return;
             
-            final Iterator<? extends URI> itr = defaultGraphs.iterator();
+        }
 
-            int nknownLocal = 0;
+        long firstContextLocal = IRawTripleStore.NULL;
+        
+        final Iterator<? extends URI> itr = defaultGraphs.iterator();
 
-            while (itr.hasNext()) {
+        int nknownLocal = 0;
 
-                final BigdataURI uri = (BigdataURI) itr.next();
+        while (itr.hasNext()) {
 
-                if (uri.getTermId() != IRawTripleStore.NULL) {
+            final BigdataURI uri = (BigdataURI) itr.next();
 
-                    if (++nknownLocal == 1) {
+            if (uri.getTermId() != IRawTripleStore.NULL) {
 
-                        firstContextLocal = uri.getTermId();
+                if (++nknownLocal == 1) {
 
-                    }
+                    firstContextLocal = uri.getTermId();
 
                 }
 
-            } // while
-            
-            this.nknown = nknownLocal;
-            
-            // @todo configure threshold or pass into this constructor.
-            if (nknown > 200) {
-
-                this.filter = new InGraphHashSetFilter(nknown, defaultGraphs);
-                
-            } else {
-                
-                this.filter = null;
-                
             }
 
-            this.firstContext = firstContextLocal;
+        } // while
+        
+        this.nknown = nknownLocal;
+        
+        // @todo configure threshold or pass into this constructor.
+        this.filter = nknown > 200 ? new InGraphHashSetFilter(nknown,
+                defaultGraphs) : null;
 
-        }
+        this.firstContext = firstContextLocal;
 
     }
     
