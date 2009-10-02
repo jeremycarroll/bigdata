@@ -143,19 +143,22 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
      * be used as the default graph, then {@link #nknown} will be
      * {@link Integer#MAX_VALUE}.
      */
-    private final int nknown;
+    // note: not 'final' due to bizarre compiler error under linux for JDK 1.6.0_16
+    private /*final*/ int nknown;
 
     /**
      * The term identifier for the first graph and {@link IRawTripleStore#NULL}
      * if no graphs were specified having a term identifier.
      */
-    private final long firstContext;
+    // note: not 'final' due to bizarre compiler error under linux for JDK 1.6.0_16
+    private /*final*/ long firstContext;
 
     /**
      * Filter iff we will leave [c] unbound and filter for graphs which are in
      * the source graph set.
      */
-    private final IElementFilter<ISPO> filter;
+    // note: not 'final' due to bizarre compiler error under linux for JDK 1.6.0_16
+    private /*final*/ IElementFilter<ISPO> filter;
 
     /**
      * Return the #of source graphs URIs associated with term identifiers in
@@ -209,10 +212,10 @@ public class DefaultGraphSolutionExpander implements ISolutionExpander<ISPO> {
             
         }
 
-        long firstContextLocal = IRawTripleStore.NULL;
-        
         final Iterator<? extends URI> itr = defaultGraphs.iterator();
 
+        long firstContextLocal = IRawTripleStore.NULL;
+        
         int nknownLocal = 0;
 
         while (itr.hasNext()) {
