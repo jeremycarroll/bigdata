@@ -31,6 +31,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
+import junit.framework.Test;
+import junit.framework.TestSuite;
+
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnectionTest;
 
@@ -39,6 +42,9 @@ import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSail.Options;
+import com.bigdata.rdf.sail.tck.BigdataStoreTest.LTSWithNestedSubquery;
+import com.bigdata.rdf.store.LocalTripleStore;
+import com.bigdata.relation.AbstractResource;
 
 public class BigdataConnectionTest extends RepositoryConnectionTest {
 
@@ -46,20 +52,81 @@ public class BigdataConnectionTest extends RepositoryConnectionTest {
 		super(name);
 	}
 
+    /**
+     * Return a test suite using the {@link LocalTripleStore} and nested
+     * subquery joins.
+     */
+    public static class LTSWithNestedSubquery extends BigdataConnectionTest {
+
+        public LTSWithNestedSubquery(String name) {
+            super(name);
+        }
+
+        @Override
+        protected Properties getProperties() {
+            
+            final Properties p = new Properties(super.getProperties());
+            
+            p.setProperty(AbstractResource.Options.NESTED_SUBQUERY,"true");
+            
+            return p;
+            
+        }
+
+    }
+    
+    /**
+     * Return a test suite using the {@link LocalTripleStore} and pipeline
+     * joins.
+     */
+    public static class LTSWithPipelineJoins extends BigdataConnectionTest {
+
+        public LTSWithPipelineJoins(String name) {
+            
+            super(name);
+            
+        }
+        
+        @Override
+        protected Properties getProperties() {
+            
+            final Properties p = new Properties(super.getProperties());
+            
+            p.setProperty(AbstractResource.Options.NESTED_SUBQUERY,"false");
+            
+            return p;
+            
+        }
+
+    }
+    
+	protected Properties getProperties() {
+	    
+        final Properties props = new Properties();
+        
+        final File journal = BigdataStoreTest.createTempFile();
+        
+        props.setProperty(BigdataSail.Options.FILE, journal.getAbsolutePath());
+        
+        props.setProperty(Options.STATEMENT_IDENTIFIERS, "false");
+        
+        props.setProperty(Options.QUADS, "true");
+        
+        props.setProperty(Options.AXIOMS_CLASS, NoAxioms.class.getName());
+
+        return props;
+	    
+	}
+	
 	@Override
 	protected Repository createRepository()
 		throws IOException
 	{
-        File journal = BigdataStoreTest.createTempFile();
         
-        Properties props = new Properties();
-        props.setProperty(BigdataSail.Options.FILE, journal.getAbsolutePath());
-        props.setProperty(Options.STATEMENT_IDENTIFIERS, "false");
-        props.setProperty(Options.QUADS, "true");
-        props.setProperty(Options.AXIOMS_CLASS, NoAxioms.class.getName());
-        
-        BigdataSail sail = new BigdataSail(props);
+        final BigdataSail sail = new BigdataSail(getProperties());
+
         return new BigdataSailRepository(sail);
+        
 	}
 		
     /**

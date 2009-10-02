@@ -43,7 +43,6 @@ import org.openrdf.query.parser.ParsedTupleQuery;
 import org.openrdf.query.parser.QueryParserUtil;
 
 import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
-import com.bigdata.rdf.spo.SPOKeyOrder;
 
 /**
  * A JUnit test for testing Sail implementations that store RDF data. This is
@@ -165,7 +164,10 @@ public abstract class RDFStoreTest extends TestCase {
 		finally {
 			sail.shutDown();
 			sail = null;
-		}
+			con = null;
+			vf = null;
+            painter = paints = painting = picasso = guernica = rembrandt = nightwatch = context1 = context2 = null;
+        }
 	}
 
 	public void testEmptyRepository()
