@@ -211,8 +211,10 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
     
 //            store.commit();
     
-            dumpTerms(store);
-
+            if(log.isInfoEnabled()) {
+                log.info(store.getLexiconRelation().dumpTerms());
+            }
+            
             /*
              * verify that we can detect literals by examining the term identifier.
              */
@@ -306,8 +308,10 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
 
             }
 
-            dumpTerms(store);
-        
+            if(log.isInfoEnabled()) {
+                log.info(store.getLexiconRelation().dumpTerms());
+            }
+            
             /*
              * verify that we can detect literals by examining the term
              * identifier.

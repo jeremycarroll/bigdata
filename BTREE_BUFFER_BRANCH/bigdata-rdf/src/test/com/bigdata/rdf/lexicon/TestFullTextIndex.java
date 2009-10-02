@@ -195,7 +195,9 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
 
             store.addTerms(terms);
 
-            dumpTerms(store);
+            if(log.isInfoEnabled()) {
+                log.info(store.getLexiconRelation().dumpTerms());
+            }
 
             /*
              * Note: the language code is only used when tokenizing literals. It
