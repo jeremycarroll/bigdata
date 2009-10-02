@@ -52,7 +52,7 @@ import com.bigdata.util.concurrent.IQueueCounters.IThreadPoolExecutorTaskCounter
  * The {@link LoadBalancerService} collects a variety of performance counters
  * from hosts and services, identifies over- and under- utilized hosts and
  * services based on the collected data and reports those to {@link DataService}s
- * so that they can auto-balance, and acts as a clearning house for WARN and
+ * so that they can auto-balance, and acts as a clearing house for WARN and
  * URGENT alerts for hosts and services.
  * <p>
  * While the {@link LoadBalancerService} MAY observe service start/stop events,
@@ -68,7 +68,7 @@ import com.bigdata.util.concurrent.IQueueCounters.IThreadPoolExecutorTaskCounter
  * self- reported by various services.
  * <p>
  * Note: utilization should be defined in terms of transient system resources :
- * CPU, IO (DISK and NET), RAM. DISK exhaustion on the otherhand is the basis
+ * CPU, IO (DISK and NET), RAM. DISK exhaustion on the other hand is the basis
  * for WARN or URGENT alerts since it can lead to immediate failure of all
  * services on the same host.
  * <p>
@@ -77,7 +77,7 @@ import com.bigdata.util.concurrent.IQueueCounters.IThreadPoolExecutorTaskCounter
  * rapidly apparent (within a few minutes). Once we have collected performance
  * counters for the new hosts / services, a subsequent overflow event(s) on
  * existing {@link DataService}(s) will cause index partition moves to be
- * nominated targetting the new hosts and services. The amount of time that it
+ * nominated targeting the new hosts and services. The amount of time that it
  * takes to re-balance the load on the services will depend in part on the write
  * rate, since writes drive overflow events and index partition splits, both of
  * which lead to pre-conditions for index partition moves.
@@ -338,13 +338,13 @@ abstract public class LoadBalancerService extends AbstractService
          * round-robin.
          */
         String DEFAULT_INITIAL_ROUND_ROBIN_UPDATE_COUNT = "5";
-        
+
         /**
          * The delay between scheduled invocations of the {@link UpdateTask}.
          * <p>
          * Note: the {@link AbstractStatisticsCollector} implementations SHOULD
          * sample at one minute intervals by default and clients SHOULD report
-         * the collected performance counters at approproximately one minute
+         * the collected performance counters at approximately one minute
          * intervals. The update rate can be no more frequent than the reporting
          * rate, but could be 2-5x slower, especially if we use WARN and URGENT
          * events to immediately re-score services.
@@ -386,7 +386,7 @@ abstract public class LoadBalancerService extends AbstractService
         /**
          * The delay in milliseconds between writes of the {@link CounterSet} on
          * a log file (default is {@value #DEFAULT_LOG_DELAY}, which is
-         * equivilent to one hour).
+         * equivalent to one hour).
          */
         String LOG_DELAY = LoadBalancerService.class.getName()+".log.delay";
         

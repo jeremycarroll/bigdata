@@ -631,6 +631,14 @@ abstract public class AbstractTripleStore extends
          * Note: The SPO access path is used any time we have an access path
          * that corresponds to a point test. Therefore this is the only index
          * for which it makes sense to maintain a bloom filter.
+         * <p>
+         * If you are going to do a lot of small commits, then please DO NOT
+         * enable the bloom filter for the {@link AbstractTripleStore}. The
+         * bloom filter takes 1 MB each time you commit on the SPO/SPOC index.
+         * The bloom filter limited value in any case for scale-up since its
+         * nominal error rate will be exceeded at ~2M triples. This concern does
+         * not apply for scale-out, where the bloom filter is always a good
+         * idea.
          * 
          * @see IndexMetadata#getBloomFilterFactory()
          * 
