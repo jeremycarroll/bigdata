@@ -40,15 +40,71 @@ import com.bigdata.journal.IIndexManager;
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSail.Options;
+import com.bigdata.rdf.store.LocalTripleStore;
+import com.bigdata.relation.AbstractResource;
 
 public class BigdataStoreTest extends RDFStoreTest {
 
+    /**
+     * Return a test suite using the {@link LocalTripleStore} and nested
+     * subquery joins.
+     */
+    public static class LTSWithNestedSubquery extends BigdataStoreTest {
+
+        public LTSWithNestedSubquery(String name) {
+            super(name);
+        }
+        
+        @Override
+        protected Properties getProperties() {
+            
+            final Properties p = new Properties(super.getProperties());
+            
+            p.setProperty(AbstractResource.Options.NESTED_SUBQUERY,"true");
+            
+            return p;
+            
+        }
+
+    }
+    
+
+    /**
+     * Return a test suite using the {@link LocalTripleStore} and pipeline
+     * joins.
+     */
+    public static class LTSWithPipelineJoins extends BigdataStoreTest {
+
+        public LTSWithPipelineJoins(String name) {
+            
+            super(name);
+            
+        }
+        
+        @Override
+        protected Properties getProperties() {
+            
+            final Properties p = new Properties(super.getProperties());
+            
+            p.setProperty(AbstractResource.Options.NESTED_SUBQUERY,"false");
+            
+            return p;
+            
+        }
+
+    }
+    
     static File createTempFile() {
+        
         try {
             return File.createTempFile("bigdata-tck", ".jnl");
+            
         } catch (IOException e) {
+            
             throw new AssertionError(e);
+            
         }
+        
     }
 
     /**
@@ -70,7 +126,9 @@ public class BigdataStoreTest extends RDFStoreTest {
     }
     
     public BigdataStoreTest(String name) {
+
         super(name);
+        
     }
 
     /**
@@ -96,27 +154,49 @@ public class BigdataStoreTest extends RDFStoreTest {
         
     }
     
+    protected Properties getProperties() {
+        
+        final Properties props = new Properties();
+        
+        final File journal = createTempFile();
+        
+        props.setProperty(BigdataSail.Options.FILE, journal.getAbsolutePath());
+        
+        props.setProperty(Options.STATEMENT_IDENTIFIERS, "false");
+        
+        props.setProperty(Options.QUADS, "true");
+        
+        props.setProperty(Options.AXIOMS_CLASS, NoAxioms.class.getName());
+        
+        return props;
+        
+    }
+    
     @Override
     protected Sail createSail() throws SailException {
-        File journal = createTempFile();
-
-        Properties props = new Properties();
-        props.setProperty(BigdataSail.Options.FILE, journal.getAbsolutePath());
-        props.setProperty(Options.STATEMENT_IDENTIFIERS, "false");
-        props.setProperty(Options.QUADS, "true");
-        props.setProperty(Options.AXIOMS_CLASS, NoAxioms.class.getName());
-
-        Sail sail = new BigdataSail(props);
+        
+        final Sail sail = new BigdataSail(getProperties());
+        
         sail.initialize();
-        SailConnection conn = sail.getConnection();
+        
+        final SailConnection conn = sail.getConnection();
+        
         try {
+            
             conn.clear();
+            
             conn.clearNamespaces();
+            
             conn.commit();
+            
         } finally {
+            
             conn.close();
+            
         }
+
         return sail;
+        
     }
 
 }

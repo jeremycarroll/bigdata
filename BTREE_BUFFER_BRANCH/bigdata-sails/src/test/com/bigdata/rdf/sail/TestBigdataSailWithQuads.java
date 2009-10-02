@@ -35,9 +35,13 @@ import java.util.Properties;
 
 import junit.extensions.proxy.ProxyTestSuite;
 import junit.framework.Test;
+import junit.framework.TestSuite;
 
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.sail.BigdataSail.Options;
+import com.bigdata.rdf.sail.tck.BigdataConnectionTest;
+import com.bigdata.rdf.sail.tck.BigdataSparqlTest;
+import com.bigdata.rdf.sail.tck.BigdataStoreTest;
 import com.bigdata.relation.AbstractResource;
 
 /**
@@ -91,7 +95,27 @@ public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
         suite.addTestSuite(TestBigdataSailEvaluationStrategyImpl.class);
 
         // The Sesame TCK, including the SPARQL test suite.
-        suite.addTest(com.bigdata.rdf.sail.tck.TestAll.suite());
+        {
+
+            final TestSuite tckSuite = new TestSuite("Sesame 2.x TCK");
+
+            tckSuite.addTestSuite(BigdataStoreTest.LTSWithNestedSubquery.class);
+
+            tckSuite.addTestSuite(BigdataConnectionTest.LTSWithNestedSubquery.class);
+
+            try {
+
+                tckSuite.addTest(BigdataSparqlTest.suiteLTSWithNestedSubquery());
+
+            } catch (Exception ex) {
+
+                throw new RuntimeException(ex);
+
+            }
+
+            suite.addTest(tckSuite);
+
+        }
         
         return suite;
         
@@ -121,7 +145,7 @@ public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
     }
     
     @Override
-    protected BigdataSail reopenSail(BigdataSail sail) {
+    protected BigdataSail reopenSail(final BigdataSail sail) {
 
         final Properties properties = sail.database.getProperties();
 

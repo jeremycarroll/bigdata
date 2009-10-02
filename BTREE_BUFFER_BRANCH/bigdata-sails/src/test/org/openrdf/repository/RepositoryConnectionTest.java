@@ -192,7 +192,15 @@ public abstract class RepositoryConnectionTest extends TestCase {
 		testRepository.shutDown();
 		testRepository = null;
 
-		vf = null;
+        vf = null;
+        
+        bob = alice = alexander = null;
+        name = mbox = publisher = null;
+        nameAlice = nameBob = null;
+        mboxAlice = mboxBob = null;
+        weirdweirdweird = null;
+        unknownContext = context1 = context2 = null;
+
 	}
 
 	/**

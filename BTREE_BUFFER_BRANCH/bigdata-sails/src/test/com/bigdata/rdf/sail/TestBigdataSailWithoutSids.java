@@ -82,7 +82,7 @@ public class TestBigdataSailWithoutSids extends AbstractBigdataSailTestCase {
     }
     
     @Override
-    protected BigdataSail getSail(Properties properties) {
+    protected BigdataSail getSail(final Properties properties) {
         
         return new BigdataSail(properties);
         
@@ -101,7 +101,7 @@ public class TestBigdataSailWithoutSids extends AbstractBigdataSailTestCase {
     }
     
     @Override
-    protected BigdataSail reopenSail(BigdataSail sail) {
+    protected BigdataSail reopenSail(final BigdataSail sail) {
 
         final Properties properties = sail.database.getProperties();
 

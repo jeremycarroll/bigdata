@@ -41,10 +41,6 @@ import org.apache.log4j.Logger;
 /**
  * Test suite.
  * 
- * FIXME integrate the Sesame 2 TCK (technology compatibility kit) as a proxy
- * test suite for each database mode (it is specific to quads so we will have
- * to override tests which can not be executed under the other KB modes).
- * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
