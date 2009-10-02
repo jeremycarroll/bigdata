@@ -609,7 +609,7 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
      * @throws UnsupportedOperationException
      *             if no implementation is available for your operating system.
      */
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(final String[] args) throws InterruptedException {
 
         final int DEFAULT_COUNT = 10;
         final int nargs = args.length;
@@ -723,11 +723,11 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
      *            
      * @return The #of bytes.
      */
-    static public Double kb2b(String kb) {
+    static public Double kb2b(final String kb) {
 
-        double d = Double.parseDouble(kb);
+        final double d = Double.parseDouble(kb);
         
-        double x = d * Bytes.kilobyte32;
+        final double x = d * Bytes.kilobyte32;
         
         return x;
         
