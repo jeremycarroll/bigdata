@@ -175,6 +175,12 @@ public class BigdataStatementIteratorImpl
              */
             final BigdataResource s = (BigdataResource) resolve(terms, spo.s());
             final BigdataURI p = (BigdataURI) resolve(terms, spo.p());
+//            try {
+//                p = (BigdataURI) resolve(terms, spo.p());
+//            } catch (ClassCastException ex) {
+//                log.error("spo="+spo+", p="+resolve(terms, spo.p()));
+//                throw ex;
+//            }
             final BigdataValue o = resolve(terms, spo.o());
             final long _c = spo.c();
             final BigdataResource c;

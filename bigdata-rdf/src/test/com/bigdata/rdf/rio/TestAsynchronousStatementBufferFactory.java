@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.rio;
 
 import java.io.File;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -287,22 +288,54 @@ public class TestAsynchronousStatementBufferFactory extends
             doLoad(store, resource, parallel);
 
             if (log.isDebugEnabled()) {
+        
                 log.debug("dumping store...");
-                log.debug("\n---SPO---\n"
-                        + store.dumpStore(store/* resolveTerms */,
-                                true/* explicit */, true/* inferred */,
-                                true/* axioms */, true/* justifications */,
-                                SPOKeyOrder.SPO));
-                log.debug("\n---POS---\n"
-                        + store.dumpStore(store/* resolveTerms */,
-                                true/* explicit */, true/* inferred */,
-                                true/* axioms */, true/* justifications */,
-                                SPOKeyOrder.POS));
-                log.debug("\n---OSP---\n"
-                        + store.dumpStore(store/* resolveTerms */,
-                                true/* explicit */, true/* inferred */,
-                                true/* axioms */, true/* justifications */,
-                                SPOKeyOrder.OSP));
+                
+                log.debug("LEXICON:\n"
+                                + store.getLexiconRelation().dumpTerms());
+                
+                // raw statement indices.
+                {
+                    
+                    final Iterator<SPOKeyOrder> itr = store.isQuads() ? SPOKeyOrder
+                            .quadStoreKeyOrderIterator()
+                            : SPOKeyOrder.tripleStoreKeyOrderIterator();
+
+                    while (itr.hasNext()) {
+                     
+                        final SPOKeyOrder keyOrder = itr.next();
+                        
+                        log.debug("\n---"+keyOrder + "---\n"
+                                + store.getSPORelation().dump(keyOrder));
+                    
+                    }
+
+                }
+
+                // resolved statement indices.
+                {
+
+                    final Iterator<SPOKeyOrder> itr = store.isQuads() ? SPOKeyOrder
+                            .quadStoreKeyOrderIterator()
+                            : SPOKeyOrder.tripleStoreKeyOrderIterator();
+
+                    while (itr.hasNext()) {
+
+                        final SPOKeyOrder keyOrder = itr.next();
+
+                        log.debug("\n" + keyOrder + "\n"
+                                + store.getSPORelation().dump(keyOrder));
+
+                        log.debug("\n---"+keyOrder+"---\n"
+                                + store.dumpStore(store/* resolveTerms */,
+                                        true/* explicit */, true/* inferred */,
+                                        true/* axioms */, true/* justifications */,
+                                        keyOrder));
+                        
+                    }
+
+                }
+
             }
 
             doVerify(store, resource, parallel);

@@ -531,7 +531,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
             }
 
-            buffer_osp = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.POS))
+            buffer_osp = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.OSP))
                     .newWriteBuffer(
                             null/* resultHandler */,
                             new DefaultDuplicateRemover<ISPO>(true/* testRefs */),

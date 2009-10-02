@@ -30,9 +30,11 @@ import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 
+import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.filter.FilterConstructor;
 import com.bigdata.btree.filter.PrefixFilter;
@@ -2125,4 +2127,130 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 
     }
 
+    /**
+     * Dumps the lexicon in a variety of ways.
+     */
+    public StringBuilder dumpTerms() {
+
+        final StringBuilder sb = new StringBuilder();
+        
+        /*
+         * Note: it is no longer true that all terms are stored in the reverse
+         * index (BNodes are not). Also, statement identifiers are stored in the
+         * forward index, so we can't really write the following assertion
+         * anymore.
+         */
+//        // Same #of terms in the forward and reverse indices.
+//        assertEquals("#terms", store.getIdTermIndex().rangeCount(null, null),
+//                store.getTermIdIndex().rangeCount(null, null));
+        
+        /**
+         * Dumps the forward mapping.
+         */
+        {
+
+            sb.append("---- terms index (forward mapping) ----\n");
+
+            final IIndex ndx = getTerm2IdIndex();
+
+            final ITupleIterator<?> itr = ndx.rangeIterator(null, null);
+
+            while (itr.hasNext()) {
+
+                final ITuple<?> tuple = itr.next();
+                
+//                // the term identifier.
+//                Object val = itr.next();
+
+                /*
+                 * The sort key for the term. This is not readily decodable. See
+                 * RdfKeyBuilder for specifics.
+                 */
+                final byte[] key = tuple.getKey();
+
+                /*
+                 * deserialize the term identifier (packed long integer).
+                 */
+                final long id;
+                
+                try {
+
+                    id = tuple.getValueStream().readLong();
+//                    id = tuple.getValueStream().unpackLong();
+
+                } catch (IOException ex) {
+
+                    throw new RuntimeException(ex);
+
+                }
+
+                sb.append(BytesUtil.toString(key) + " : " + id+"\n");
+
+            }
+
+        }
+
+        /**
+         * Dumps the reverse mapping.
+         */
+        {
+
+            sb.append("---- ids index (reverse mapping) ----\n");
+
+            final IIndex ndx = getId2TermIndex();
+
+            final ITupleIterator<BigdataValue> itr = ndx.rangeIterator(null, null);
+
+            while (itr.hasNext()) {
+
+                final ITuple<BigdataValue> tuple = itr.next();
+                
+                final BigdataValue term = tuple.getObject();
+                
+                sb.append(term.getTermId()+ " : " + term+"\n");
+
+            }
+
+        }
+        
+        /**
+         * Dumps the term:id index.
+         */
+        sb.append("---- term->id ----\n");
+        for( Iterator<Long> itr = termIdIndexScan(); itr.hasNext(); ) {
+            
+            sb.append(itr.next());
+            
+            sb.append("\n");
+            
+        }
+
+        /**
+         * Dumps the id:term index.
+         */
+        sb.append("---- id->term ----\n");
+        for( Iterator<Value> itr = idTermIndexScan(); itr.hasNext(); ) {
+            
+            sb.append(itr.next());
+            
+            sb.append("\n");
+            
+        }
+
+        /**
+         * Dumps the terms in term order.
+         */
+        sb.append("---- terms in term order ----\n");
+        for( Iterator<Value> itr = termIterator(); itr.hasNext(); ) {
+            
+            sb.append(itr.next().toString());
+            
+            sb.append("\n");
+            
+        }
+        
+        return sb;
+        
+    }
+    
 }
