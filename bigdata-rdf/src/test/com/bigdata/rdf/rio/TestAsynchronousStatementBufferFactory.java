@@ -47,6 +47,7 @@ import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.rdf.store.TestScaleOutTripleStoreWithEmbeddedFederation;
 import com.bigdata.rdf.vocab.NoVocabulary;
 import com.bigdata.service.AbstractScaleOutFederation;
+import com.bigdata.service.EmbeddedFederation;
 
 /**
  * Test suite for {@link AsynchronousStatementBufferFactory}. To run this test
@@ -59,10 +60,14 @@ import com.bigdata.service.AbstractScaleOutFederation;
  * 
  *          FIXME variant to test w/ and w/o the full text index (with lookup by
  *          tokens).
- *          
- *          FIXME variant to test w/ quads.
  * 
  *          FIXME variant to test async w/ sids (once written).
+ * 
+ * @todo The {@link AsynchronousStatementBufferFactory} works with either
+ *       triples or quads. However, we are not running
+ *       {@link EmbeddedFederation} proxy test suite for quads yet, so you have
+ *       to explicitly turn on quads in {@link #getProperties()} in order to run
+ *       this test suite for quads.
  * 
  * @todo The async API is only defined at this time for scale-out index views,
  *       so maybe move this into the scale-out proxy test suite.
@@ -112,8 +117,8 @@ public class TestAsynchronousStatementBufferFactory extends
         properties.setProperty(
                 AbstractTripleStore.Options.STATEMENT_IDENTIFIERS, "false");
 
-        properties.setProperty(
-                AbstractTripleStore.Options.QUADS, "false");
+//        properties.setProperty(
+//                AbstractTripleStore.Options.QUADS, "true");
 
         // no closure so we don't need the axioms either.
         properties.setProperty(
@@ -275,13 +280,13 @@ public class TestAsynchronousStatementBufferFactory extends
             
         }
         
-        if (store.isQuads()) {
-
-            log.warn("Quads not supported yet.");
-            
-            return;
-            
-        }
+//        if (store.isQuads()) {
+//
+//            log.warn("Quads not supported yet.");
+//            
+//            return;
+//            
+//        }
         
         try {
 

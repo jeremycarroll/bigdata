@@ -295,9 +295,6 @@ import cutthecrap.utils.striterators.Striterator;
  * }
  * </pre>
  *
- * FIXME Modify to support quads.  This is easier than SIDs.  All we need to do
- * is maintain buffers for the 6 quad indices rather than the 3 triple indices.
- * 
  * @todo evaluate this approach for writing on a local triple store. if there is
  *       a performance benefit then refactor accordingly (requires asynchronous
  *       write API for BTree and friends).
@@ -402,6 +399,13 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
     private IRunnableBuffer<KVO<BigdataValue>[]> buffer_t2id;
     private IRunnableBuffer<KVO<BigdataValue>[]> buffer_id2t;
     private IRunnableBuffer<KVO<BigdataValue>[]> buffer_text;
+
+    /**
+     * A map containing an entry for each statement index on which this
+     * class will write.
+     */
+    private final Map<SPOKeyOrder, IRunnableBuffer<KVO<ISPO>[]>> buffer_stmts;
+
     private IRunnableBuffer<KVO<ISPO>[]> buffer_spo;
     private IRunnableBuffer<KVO<ISPO>[]> buffer_pos;
     private IRunnableBuffer<KVO<ISPO>[]> buffer_osp;
@@ -494,56 +498,80 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
         }
 
-        if (buffer_spo != null) {
+        for (Map.Entry<SPOKeyOrder, IRunnableBuffer<KVO<ISPO>[]>> e : buffer_stmts
+                .entrySet()) {
 
-            buffer_spo.close();
+            final SPOKeyOrder keyOrder = e.getKey();
 
-            buffer_spo = null;
+            IRunnableBuffer<KVO<ISPO>[]> buffer = e.getValue();
 
-        }
+            if (buffer != null) {
 
-        buffer_spo = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.SPO))
-                .newWriteBuffer(statementResultHandler,
-                        new DefaultDuplicateRemover<ISPO>(true/* testRefs */),
-                        SPOIndexWriteProc.IndexWriteProcConstructor.INSTANCE);
-
-        if (!tripleStore.getSPORelation().oneAccessPath) {
-
-            if (buffer_pos != null) {
-
-                buffer_pos.close();
-
-                buffer_pos = null;
+                buffer.close();
 
             }
 
-            buffer_pos = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.POS))
+            buffer = ((IScaleOutClientIndex) spoRelation.getIndex(keyOrder))
                     .newWriteBuffer(
-                            null/* resultHandler */,
+                            keyOrder.isPrimaryIndex() ? statementResultHandler
+                                    : null,
                             new DefaultDuplicateRemover<ISPO>(true/* testRefs */),
                             SPOIndexWriteProc.IndexWriteProcConstructor.INSTANCE);
-
-            if (buffer_osp != null) {
-
-                buffer_osp.close();
-
-                buffer_osp = null;
-
-            }
-
-            buffer_osp = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.OSP))
-                    .newWriteBuffer(
-                            null/* resultHandler */,
-                            new DefaultDuplicateRemover<ISPO>(true/* testRefs */),
-                            SPOIndexWriteProc.IndexWriteProcConstructor.INSTANCE);
-
-        } else {
-
-            buffer_pos = null;
-
-            buffer_osp = null;
-
+            
+            e.setValue(buffer);
+            
         }
+        
+//        if (buffer_spo != null) {
+//
+//            buffer_spo.close();
+//
+//            buffer_spo = null;
+//
+//        }
+//
+//        buffer_spo = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.SPO))
+//                .newWriteBuffer(statementResultHandler,
+//                        new DefaultDuplicateRemover<ISPO>(true/* testRefs */),
+//                        SPOIndexWriteProc.IndexWriteProcConstructor.INSTANCE);
+//
+//        if (!tripleStore.getSPORelation().oneAccessPath) {
+//
+//            if (buffer_pos != null) {
+//
+//                buffer_pos.close();
+//
+//                buffer_pos = null;
+//
+//            }
+//
+//            buffer_pos = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.POS))
+//                    .newWriteBuffer(
+//                            null/* resultHandler */,
+//                            new DefaultDuplicateRemover<ISPO>(true/* testRefs */),
+//                            SPOIndexWriteProc.IndexWriteProcConstructor.INSTANCE);
+//
+//            if (buffer_osp != null) {
+//
+//                buffer_osp.close();
+//
+//                buffer_osp = null;
+//
+//            }
+//
+//            buffer_osp = ((IScaleOutClientIndex) spoRelation.getIndex(SPOKeyOrder.OSP))
+//                    .newWriteBuffer(
+//                            null/* resultHandler */,
+//                            new DefaultDuplicateRemover<ISPO>(true/* testRefs */),
+//                            SPOIndexWriteProc.IndexWriteProcConstructor.INSTANCE);
+//
+//        } else {
+//
+//            buffer_pos = null;
+//
+//            buffer_osp = null;
+//
+//        }
 
     }
     
@@ -1441,11 +1469,11 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
         this.pauseParserPoolStatementThreshold = pauseParsedPoolStatementThreshold;
         
-        if (tripleStore.getSPOKeyArity() != 3) {
-
-            throw new UnsupportedOperationException("Quads not supported");
-            
-        }
+//        if (tripleStore.getSPOKeyArity() != 3) {
+//
+//            throw new UnsupportedOperationException("Quads not supported");
+//            
+//        }
 
         if (tripleStore.isStatementIdentifiers()) {
 
@@ -1462,6 +1490,29 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         try {
 
             reopenBuffer_term2Id();
+
+            /*
+             * Allocate and populate map with the SPOKeyOrders that we will be
+             * using.
+             */
+            buffer_stmts = new LinkedHashMap<SPOKeyOrder, IRunnableBuffer<KVO<ISPO>[]>>(
+                    tripleStore.isQuads() ? 6 : 3);
+
+            final Iterator<SPOKeyOrder> itr = tripleStore.getSPORelation()
+                    .statementKeyOrderIterator();
+
+            while (itr.hasNext()) {
+
+                final SPOKeyOrder keyOrder = itr.next();
+
+                buffer_stmts.put(keyOrder, null/* value */);
+
+            }
+
+            /*
+             * Allocate various buffers. This will populate the buffers in the
+             * map for the keyOrders specified in the map above.
+             */
 
             reopenBuffer_others();
 
@@ -1678,16 +1729,26 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                 if (buffer_text.getFuture().isDone())
                     return true;
 
-            if (buffer_spo.getFuture().isDone())
-                return true;
+            for (Map.Entry<SPOKeyOrder, IRunnableBuffer<KVO<ISPO>[]>> e : buffer_stmts
+                    .entrySet()) {
 
-            if (buffer_pos != null)
-                if (buffer_pos.getFuture().isDone())
+                final IRunnableBuffer<KVO<ISPO>[]> buffer = e.getValue();
+
+                if (buffer != null && buffer.getFuture().isDone())
                     return true;
 
-            if (buffer_osp != null)
-                if (buffer_osp.getFuture().isDone())
-                    return true;
+            }
+
+//            if (buffer_spo.getFuture().isDone())
+//                return true;
+//
+//            if (buffer_pos != null)
+//                if (buffer_pos.getFuture().isDone())
+//                    return true;
+//
+//            if (buffer_osp != null)
+//                if (buffer_osp.getFuture().isDone())
+//                    return true;
 
             if (parserService.isTerminated())
                 return true;
@@ -1723,13 +1784,23 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         if (buffer_text != null)
             buffer_text.getFuture().cancel(mayInterruptIfRunning);
 
-        buffer_spo.getFuture().cancel(mayInterruptIfRunning);
+        for (Map.Entry<SPOKeyOrder, IRunnableBuffer<KVO<ISPO>[]>> e : buffer_stmts
+                .entrySet()) {
 
-        if (buffer_pos != null)
-            buffer_pos.getFuture().cancel(mayInterruptIfRunning);
+            final IRunnableBuffer<KVO<ISPO>[]> buffer = e.getValue();
 
-        if (buffer_osp != null)
-            buffer_osp.getFuture().cancel(mayInterruptIfRunning);
+            if (buffer != null)
+                buffer.getFuture().cancel(mayInterruptIfRunning);
+
+        }
+        
+//        buffer_spo.getFuture().cancel(mayInterruptIfRunning);
+//
+//        if (buffer_pos != null)
+//            buffer_pos.getFuture().cancel(mayInterruptIfRunning);
+//
+//        if (buffer_osp != null)
+//            buffer_osp.getFuture().cancel(mayInterruptIfRunning);
 
         notifyEnd();
 
@@ -1794,13 +1865,24 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                     if (buffer_text != null)
                         buffer_text.close();
 
-                    buffer_spo.close();
 
-                    if (buffer_pos != null)
-                        buffer_pos.close();
+                    for (Map.Entry<SPOKeyOrder, IRunnableBuffer<KVO<ISPO>[]>> e : buffer_stmts
+                            .entrySet()) {
 
-                    if (buffer_osp != null)
-                        buffer_osp.close();
+                        final IRunnableBuffer<KVO<ISPO>[]> buffer = e.getValue();
+
+                        if(buffer!=null)
+                            buffer.close();
+                        
+                    }
+                    
+//                    buffer_spo.close();
+//
+//                    if (buffer_pos != null)
+//                        buffer_pos.close();
+//
+//                    if (buffer_osp != null)
+//                        buffer_osp.close();
 
                     workflowLatch_bufferOther.await();
                     otherWriterService.shutdown();
@@ -1863,13 +1945,26 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         if (buffer_text != null)
             buffer_text.getFuture().get();
 
-        buffer_spo.getFuture().get();
+        for (Map.Entry<SPOKeyOrder, IRunnableBuffer<KVO<ISPO>[]>> e : buffer_stmts
+                .entrySet()) {
 
-        if (buffer_pos != null)
-            buffer_pos.getFuture().get();
+            final IRunnableBuffer<KVO<ISPO>[]> buffer = e.getValue();
 
-        if (buffer_osp != null)
-            buffer_osp.getFuture().get();
+            if (buffer != null) {
+
+                buffer.getFuture().get();
+
+            }
+
+        }
+        
+//        buffer_spo.getFuture().get();
+//
+//        if (buffer_pos != null)
+//            buffer_pos.getFuture().get();
+//
+//        if (buffer_osp != null)
+//            buffer_osp.getFuture().get();
 
         if(log.isInfoEnabled())
             log.info("Done.");
@@ -3611,28 +3706,42 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
             }
 
-            tasks.add(new AsyncSPOIndexWriteTask(documentRestartSafeLatch,
-                    SPOKeyOrder.SPO, spoRelation,
-                    // (IChunkedOrderedIterator<ISPO>)
-                    statements.iterator(), buffer_spo));
+            for (Map.Entry<SPOKeyOrder, IRunnableBuffer<KVO<ISPO>[]>> e : buffer_stmts
+                    .entrySet()) {
 
-            if (buffer_pos != null) {
+                final SPOKeyOrder keyOrder = e.getKey();
 
+                final IRunnableBuffer<KVO<ISPO>[]> buffer = e.getValue();
+                
                 tasks.add(new AsyncSPOIndexWriteTask(documentRestartSafeLatch,
-                        SPOKeyOrder.POS, spoRelation,
+                        keyOrder, spoRelation,
                         // (IChunkedOrderedIterator<ISPO>)
-                        statements.iterator(), buffer_pos));
+                        statements.iterator(), buffer));
 
             }
-
-            if (buffer_osp != null) {
-
-                tasks.add(new AsyncSPOIndexWriteTask(documentRestartSafeLatch,
-                        SPOKeyOrder.OSP, spoRelation,
-                        // (IChunkedOrderedIterator<ISPO>)
-                        statements.iterator(), buffer_osp));
-
-            }
+            
+//            tasks.add(new AsyncSPOIndexWriteTask(documentRestartSafeLatch,
+//                    SPOKeyOrder.SPO, spoRelation,
+//                    // (IChunkedOrderedIterator<ISPO>)
+//                    statements.iterator(), buffer_spo));
+//
+//            if (buffer_pos != null) {
+//
+//                tasks.add(new AsyncSPOIndexWriteTask(documentRestartSafeLatch,
+//                        SPOKeyOrder.POS, spoRelation,
+//                        // (IChunkedOrderedIterator<ISPO>)
+//                        statements.iterator(), buffer_pos));
+//
+//            }
+//
+//            if (buffer_osp != null) {
+//
+//                tasks.add(new AsyncSPOIndexWriteTask(documentRestartSafeLatch,
+//                        SPOKeyOrder.OSP, spoRelation,
+//                        // (IChunkedOrderedIterator<ISPO>)
+//                        statements.iterator(), buffer_osp));
+//
+//            }
 
             /*
              * Submit all tasks. They will run in parallel. If they complete

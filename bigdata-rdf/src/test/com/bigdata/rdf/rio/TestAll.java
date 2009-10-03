@@ -79,7 +79,6 @@ public class TestAll extends TestCase {
         /*
          * Correctness tests for the asynchronous bulk data loader. This
          * requires the scale-out architecture. SIDs are not supported yet.
-         * Quads are not supported yet.
          */
         suite.addTestSuite(TestAsynchronousStatementBufferFactory.class);
         
