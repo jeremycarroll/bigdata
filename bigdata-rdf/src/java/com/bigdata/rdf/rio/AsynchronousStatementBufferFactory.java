@@ -1136,8 +1136,18 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * 
      * @param resource
      *            The resource identifier.
+     * 
+     * @todo This will only read the first entry from a ZIP file. Archives need
+     *       to be recognized as such by the driver and expanded into a sequence
+     *       of parser calls with the input stream. That will require a
+     *       different entry point since we can't close the
+     *       {@link ZipInputStream} until we have read all the entries in that
+     *       file. The {@link ZipInputStream} is likely not thread safe so the
+     *       same parser thread would have to consume each of the entries even
+     *       though they must also be dealt with as distinct documents. Given
+     *       all that, reading more than the first entry might not be worth it.
      */
-    protected InputStream getInputStream(R resource) throws IOException {
+    protected InputStream getInputStream(final R resource) throws IOException {
         
         InputStream is;
 
