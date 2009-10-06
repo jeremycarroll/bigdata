@@ -187,7 +187,7 @@ public class TestOptionals extends QuadsTestCase {
                 "SELECT ?title ?price " +
                 "WHERE { " +
                 "?book <"+DC_TITLE+"> ?title . " +
-                "OPTIONAL { ?book <"+price+"> ?price . FILTER(?price < 15) } . " +
+                "OPTIONAL { ?book <"+price+"> ?price . } . " +
                 "}";
             
             final TupleQuery tupleQuery = 
@@ -198,6 +198,8 @@ public class TestOptionals extends QuadsTestCase {
             Collection<BindingSet> answer = new LinkedList<BindingSet>();
             answer.add(createBindingSet(
                     new BindingImpl("title", new LiteralImpl("TITLE 1")), new BindingImpl("price", new LiteralImpl("10", XSD_INTEGER))));
+            answer.add(createBindingSet(
+                    new BindingImpl("title", new LiteralImpl("TITLE 2")), new BindingImpl("price", new LiteralImpl("20", XSD_INTEGER))));
             answer.add(createBindingSet(
                     new BindingImpl("title", new LiteralImpl("TITLE 3"))));
             
