@@ -207,8 +207,8 @@ implements INotifyOutcome<E, L>
             throw new IllegalArgumentException();
         if (locator == null)
             throw new IllegalArgumentException();
-        if (cause == null)
-            throw new IllegalArgumentException();
+//        if (cause == null)
+//            throw new IllegalArgumentException();
         boolean notify = false;
         lock.lock();
         try {
