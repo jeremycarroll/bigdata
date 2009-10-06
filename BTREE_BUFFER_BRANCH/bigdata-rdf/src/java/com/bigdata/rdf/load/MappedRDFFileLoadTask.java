@@ -171,7 +171,7 @@ implements Serializable {
                         public void run() {
                             try {
                                 getNotifyProxy().success(resource, locator);
-                            } catch (RemoteException ex) {
+                            } catch (Throwable ex) {
                                 log.error(resource, ex);
                             }
                         }
@@ -186,7 +186,7 @@ implements Serializable {
                             try {
                                 getNotifyProxy()
                                         .error(resource, locator, cause);
-                            } catch (RemoteException ex) {
+                            } catch (Throwable ex) {
                                 log.error(resource, ex);
                             }
                         }
@@ -236,7 +236,7 @@ implements Serializable {
                 tmp
                         .attach(statementBufferFactory.getCounters(), true/* replace */);
             }
-
+            
             /*
              * Wait until either (a) interrupted by the master using
              * Future#cancel(); or (b) the master invokes close(), indicating
