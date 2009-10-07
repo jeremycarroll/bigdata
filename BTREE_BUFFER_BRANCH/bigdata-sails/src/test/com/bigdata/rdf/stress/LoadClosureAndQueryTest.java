@@ -583,7 +583,9 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
              * everything in the data directory before running the test.
              */
 
-            jiniServicesHelper = new JiniServicesHelper(file.toString());
+            jiniServicesHelper = new JiniServicesHelper(new String[] { //
+                    file.toString() //
+                    });
 
             jiniServicesHelper.start();
 

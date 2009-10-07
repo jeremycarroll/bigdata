@@ -577,7 +577,7 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
     static public void main(final String[] args) throws ConfigurationException,
             ExecutionException, InterruptedException, KeeperException {
 
-        final JiniFederation fed = new JiniClient(args).connect();
+        final JiniFederation<?> fed = new JiniClient(args).connect();
 
         try {
         
@@ -594,7 +594,7 @@ public class RDFDataLoadMaster<S extends RDFDataLoadMaster.JobState, T extends C
         
     }
     
-    public RDFDataLoadMaster(final JiniFederation fed)
+    public RDFDataLoadMaster(final JiniFederation<?> fed)
             throws ConfigurationException {
 
         super(fed);

@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -551,7 +552,7 @@ abstract public class DataService extends AbstractService
 
             setupCounters();
 
-            logHttpdURL(service.getResourceManager().getDataDir());
+            logHttpdURL(service.getHTTPDURLFile());
 
         }
 
@@ -700,8 +701,25 @@ abstract public class DataService extends AbstractService
         
         resourceManager.deleteResources();
         
+        final File file = getHTTPDURLFile();
+        
+        if(file.exists()) {
+            
+            file.delete();
+            
+        }
+        
 //        super.destroy();
         
+    }
+
+    /**
+     * The file on which the URL of the embedded httpd service is written.
+     */
+    protected File getHTTPDURLFile() {
+
+        return new File(getResourceManager().getDataDir(), "httpd.url");
+
     }
 
     /**

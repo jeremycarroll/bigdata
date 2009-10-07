@@ -215,7 +215,7 @@ public class TestScaleOutTripleStoreWithJiniFederation extends AbstractTestCase 
      */
     public void setUpFederation() throws Exception {
 
-        helper = new JiniServicesHelper("src/resources/config/standlone");
+        helper = new JiniServicesHelper();
         
         helper.start();
 

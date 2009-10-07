@@ -12,10 +12,12 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 import org.apache.system.SystemUtil;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.jini.start.IServiceListener;
 
 /**
@@ -387,6 +389,9 @@ public class ProcessHelper {
              */
             while ((s = is.readLine()) != null) {
 
+                if (BigdataStatics.debug)
+                    System.err.println(name + " : " + s);
+                
                 if (log.isInfoEnabled())
                     log.info(s);
 
