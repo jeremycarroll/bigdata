@@ -519,6 +519,33 @@ public class FusedView implements IIndex, ILocalBTreeView {//, IValueAge {
         
     }
     
+     
+//    public IBloomFilter getBloomFilter() {
+//
+//        // double checked locking.
+//        if (bloomFilter == null) {
+//
+//            synchronized (this) {
+//                if (noBloom)
+//                    return null;
+//                for (AbstractBTree tree : getSources()) {
+//                    if (tree.getBloomFilter() == null) {
+//                        noBloom = true;
+//                        return null;
+//                    }
+//                }
+//                bloomFilter = new FusedBloomFilter();
+//
+//            }
+//
+//        }
+//
+//        return bloomFilter;
+//
+//    }
+//
+//    private volatile boolean noBloom = false;
+
     public IBloomFilter getBloomFilter() {
         
         // double checked locking.

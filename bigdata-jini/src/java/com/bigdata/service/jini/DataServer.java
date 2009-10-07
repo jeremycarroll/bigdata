@@ -43,7 +43,6 @@ import net.jini.lookup.entry.Name;
 import org.apache.log4j.MDC;
 
 import com.bigdata.btree.proc.IIndexProcedure;
-import com.bigdata.journal.IResourceManager;
 import com.bigdata.service.DataService;
 import com.bigdata.service.DataService.DataServiceFederationDelegate;
 import com.sun.jini.start.LifeCycle;
@@ -137,22 +136,22 @@ public class DataServer extends AbstractServer {
 
     }
 
-    /**
-     * Extends the behavior to close and delete the journal in use by the data
-     * service.
-     */
-    public void destroy() {
-
-        final DataService service = (DataService)impl;
-        
-        final IResourceManager resourceManager = service.getResourceManager();
-        
-        super.destroy();
-        
-        // destroy all resources.
-        resourceManager.deleteResources();
-
-    }
+//    /**
+//     * Extends the behavior to close and delete the journal in use by the data
+//     * service.
+//     */
+//    public void destroy() {
+//
+//        final DataService service = (DataService)impl;
+//        
+//        final IResourceManager resourceManager = service.getResourceManager();
+//        
+//        super.destroy();
+//        
+//        // destroy all resources.
+//        resourceManager.deleteResources();
+//
+//    }
 
     /**
      * Adds jini administration interfaces to the basic {@link DataService}.
@@ -163,9 +162,10 @@ public class DataServer extends AbstractServer {
     public static class AdministrableDataService extends DataService implements
             RemoteAdministrable, RemoteDestroyAdmin {
         
-        protected DataServer server;
-        
-        public AdministrableDataService(DataServer server, Properties properties) {
+        final protected DataServer server;
+
+        public AdministrableDataService(final DataServer server,
+                final Properties properties) {
 
             super(properties);
             
@@ -200,6 +200,7 @@ public class DataServer extends AbstractServer {
          *       authenticated identity of the client (if any) for an incoming
          *       remote call.
          */
+        @Override
         protected void setupLoggingContext() {
             
             super.setupLoggingContext();
@@ -223,6 +224,7 @@ public class DataServer extends AbstractServer {
 
         }
 
+        @Override
         protected void clearLoggingContext() {
 
             MDC.remove("clientname");
@@ -235,18 +237,34 @@ public class DataServer extends AbstractServer {
          * DestroyAdmin
          */
 
-        /**
-         * Destroy the service and deletes any files containing resources (<em>application data</em>)
-         * that was in use by that service.
-         * 
-         * @throws RemoteException
-         */
-        public void destroy() {
+        @Override
+        synchronized public void destroy() {
 
-            server.runDestroy();
+            if (!server.isShuttingDown()) {
+
+                /*
+                 * Run thread which will destroy the service (asynchronous).
+                 * 
+                 * Note: By running this is a thread, we avoid closing the
+                 * service end point during the method call.
+                 */
+
+                server.runDestroy();
+
+            } else if (isOpen()) {
+
+                /*
+                 * The server is already shutting down, so invoke our super
+                 * class behavior to destroy the persistent state.
+                 */
+
+                super.destroy();
+
+            }
 
         }
 
+        @Override
         synchronized public void shutdown() {
             
             // normal service shutdown (blocks).
@@ -257,6 +275,7 @@ public class DataServer extends AbstractServer {
             
         }
         
+        @Override
         synchronized public void shutdownNow() {
             
             // immediate service shutdown (blocks).
@@ -268,7 +287,7 @@ public class DataServer extends AbstractServer {
         }
 
         @Override
-        public JiniFederation getFederation() {
+        public JiniFederation<?> getFederation() {
 
             return server.getClient().getFederation();
 
@@ -278,6 +297,7 @@ public class DataServer extends AbstractServer {
          * Extends the base behavior to return an RMI compatible proxy for the
          * {@link Future}.
          */
+        @Override
         public Future submit(final long tx, final String name,
                 final IIndexProcedure proc) {
 
@@ -289,6 +309,7 @@ public class DataServer extends AbstractServer {
          * Extends the base behavior to return an RMI compatible proxy for the
          * {@link Future}.
          */
+        @Override
         public Future<? extends Object> submit(
                 final Callable<? extends Object> task) {
 
@@ -302,6 +323,7 @@ public class DataServer extends AbstractServer {
          * {@link Configuration} then the value returned by the base class is
          * returned instead.
          */
+        @Override
         public String getServiceName() {
 
             String s = server.getServiceName();

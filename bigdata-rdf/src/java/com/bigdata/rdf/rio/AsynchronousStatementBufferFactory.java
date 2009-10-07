@@ -406,9 +406,9 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      */
     private final Map<SPOKeyOrder, IRunnableBuffer<KVO<ISPO>[]>> buffer_stmts;
 
-    private IRunnableBuffer<KVO<ISPO>[]> buffer_spo;
-    private IRunnableBuffer<KVO<ISPO>[]> buffer_pos;
-    private IRunnableBuffer<KVO<ISPO>[]> buffer_osp;
+//    private IRunnableBuffer<KVO<ISPO>[]> buffer_spo;
+//    private IRunnableBuffer<KVO<ISPO>[]> buffer_pos;
+//    private IRunnableBuffer<KVO<ISPO>[]> buffer_osp;
 
     /**
      * If the TERM2ID asynchronous write buffer is open, then close it to flush
@@ -1063,7 +1063,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * @param resource
      *            The resource (file or URL, but not a directory).
      * @param retryMillis
-     *            The number of millisseconds to wait between retrys when the
+     *            The number of milliseconds to wait between retries when the
      *            parser service work queue is full. When ZERO (0L), a
      *            {@link RejectedExecutionException} will be thrown out instead.
      * 
@@ -1081,7 +1081,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         if (retryMillis < 0)
             throw new IllegalArgumentException();
         
-        int retryCount = 0;
+//        int retryCount = 0;
         
         while (true) {
             
@@ -1111,7 +1111,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                 // sleep for the retry interval.
                 Thread.sleep(retryMillis);
                 
-                retryCount++;
+//                retryCount++;
                 
                 // retry
                 continue;

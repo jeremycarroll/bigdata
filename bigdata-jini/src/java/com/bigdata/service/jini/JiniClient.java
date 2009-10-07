@@ -299,8 +299,6 @@ public class JiniClient<T> extends AbstractScaleOutClient<T> {
     static public Properties getProperties(final String className,
             final Configuration config) throws ConfigurationException {
     
-        final Properties properties = new Properties();
-
         final NV[] a = (NV[]) config
                 .getEntry(JiniClient.class.getName(),
                         JiniClientConfig.Options.PROPERTIES, NV[].class,
@@ -318,6 +316,8 @@ public class JiniClient<T> extends AbstractScaleOutClient<T> {
     
         final NV[] tmp = ServiceConfiguration.concat(a, b);
     
+        final Properties properties = new Properties();
+
         for (NV nv : tmp) {
     
             properties.setProperty(nv.getName(), nv.getValue());

@@ -177,7 +177,7 @@ HS extends ResourceBufferSubtaskStatistics //
      * Accelerate shutdown protocol by mapping the pending set across the
      * remaining clients. Each resource in the pending set is assigned to
      * multiple clients. The assignments are made in random orderings to
-     * minimize the likelyhood that each client will perform the same work.
+     * minimize the likelihood that each client will perform the same work.
      * 
      * FIXME Finish up should use round robin multiple assignment of resources
      * to clients to get done faster.

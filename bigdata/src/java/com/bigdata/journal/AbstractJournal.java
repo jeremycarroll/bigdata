@@ -751,9 +751,15 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
                 Options.DEFAULT_MAXIMUM_EXTENT, new LongRangeValidator(
                         initialExtent, Long.MAX_VALUE));
         
-        final int offsetBits = getProperty(Options.OFFSET_BITS,
-                Options.DEFAULT_OFFSET_BITS, new IntegerRangeValidator(
-                        WormAddressManager.MIN_OFFSET_BITS,
+        /*
+         * Note: The default depends on the AbstractJournal implementation.
+         */
+        final int offsetBits = getProperty(
+                Options.OFFSET_BITS,
+                Integer
+                        .toString((this instanceof Journal ? WormAddressManager.SCALE_UP_OFFSET_BITS
+                                : WormAddressManager.SCALE_OUT_OFFSET_BITS)),
+                new IntegerRangeValidator(WormAddressManager.MIN_OFFSET_BITS,
                         WormAddressManager.MAX_OFFSET_BITS));
 
         final int readCacheCapacity = getProperty(Options.READ_CACHE_CAPACITY,

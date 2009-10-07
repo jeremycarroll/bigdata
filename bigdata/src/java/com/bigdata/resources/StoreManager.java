@@ -2370,11 +2370,17 @@ abstract public class StoreManager extends ResourceEvents implements
     public abstract IConcurrencyManager getConcurrencyManager();
 
     public abstract void setConcurrencyManager(IConcurrencyManager concurrencyManager);
-    
+
     /**
-     * Implementation designed to use a shared {@link ConcurrencyManager}.
+     * The {@link ManagedJournal} provides the backing store used to absorb
+     * writes and retain history for the scale-out architecture.
+     * <p>
+     * Note: This implementation is designed to use a shared
+     * {@link ConcurrencyManager} across all open journal instances for a
+     * {@link DataService}.
      * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
      * @version $Id$
      */
     public class ManagedJournal extends AbstractJournal {
@@ -2990,12 +2996,19 @@ abstract public class StoreManager extends ResourceEvents implements
      * @param f
      *            A file or directory.
      */
-    private void recursiveDelete(File f) {
+    private void recursiveDelete(final File f) {
 
         if (f.isDirectory()) {
 
             final File[] children = f.listFiles(newFileFilter());
 
+            if (children == null) {
+
+                // No such file or directory exists.
+                return;
+                
+            }
+            
             for (int i = 0; i < children.length; i++) {
 
                 recursiveDelete(children[i]);

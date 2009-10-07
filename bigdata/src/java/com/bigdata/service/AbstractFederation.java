@@ -844,9 +844,19 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      */
     public boolean isServiceReady() {
 
-        assertOpen();
+        final AbstractClient<T> client = this.client;
+
+        if (client == null)
+            return false;
+
+        final IFederationDelegate<T> delegate = client.getDelegate();
+
+        if (delegate == null)
+            return false;
         
-        return client.getDelegate().isServiceReady();
+        // assertOpen();
+
+        return delegate.isServiceReady();
         
     }
     

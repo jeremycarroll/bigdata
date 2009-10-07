@@ -72,14 +72,14 @@ implements Serializable {
     private transient ReentrantLock lock;
 
     /**
-     * Condition signalled when done.
+     * Condition signaled when done.
      * <p>
      * Note: transient field set by {@link #call()}.
      */
     private transient Condition allDone;
     
     /**
-     * Condition signalled when ready.
+     * Condition signaled when ready.
      * <p>
      * Note: transient field set by {@link #call()}.
      */
@@ -118,9 +118,9 @@ implements Serializable {
      * The federation object used by the {@link IRemoteExecutor} on which this
      * task is executing.
      */
-    public JiniFederation getFederation() {
+    public JiniFederation<?> getFederation() {
 
-        return (JiniFederation) super.getFederation();
+        return (JiniFederation<?>) super.getFederation();
 
     }
 
@@ -164,6 +164,9 @@ implements Serializable {
                 /*
                  * Override the "notifyService" to do asynchronous RMI back to
                  * this class indicating success or failure for each resource.
+                 * 
+                 * Note: It is very important to log ANY errors thrown back from
+                 * the master!
                  */
                 @Override
                 protected Runnable newSuccessTask(final V resource) {

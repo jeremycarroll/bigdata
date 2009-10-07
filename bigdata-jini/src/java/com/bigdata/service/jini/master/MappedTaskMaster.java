@@ -277,7 +277,7 @@ V extends Serializable//
     /**
      * {@inheritDoc}
      */
-    public MappedTaskMaster(JiniFederation fed) throws ConfigurationException {
+    public MappedTaskMaster(JiniFederation<?> fed) throws ConfigurationException {
 
         super(fed);
 
@@ -314,7 +314,7 @@ V extends Serializable//
             // await scanner future.
             final Long acceptCount = scannerFuture.get();
 
-            System.err.println("Master accepted " + acceptCount
+            System.out.println("Master accepted " + acceptCount
                     + " resources for processing.");
 
             // close the buffer - no more resources will be queued.
@@ -375,13 +375,13 @@ V extends Serializable//
             @Override
             public void didSucceed(final V resource) {
                 super.didSucceed(resource);
-                if(getJobState().deleteAfter) {
-                    if(resource instanceof File) {
-                        ((File)resource).delete();
+                if (getJobState().deleteAfter) {
+                    if (resource instanceof File) {
+                        ((File) resource).delete();
                     }
                 }
             }
-            
+
         };
 
         final Future<? extends ResourceBufferStatistics> future = getFederation()

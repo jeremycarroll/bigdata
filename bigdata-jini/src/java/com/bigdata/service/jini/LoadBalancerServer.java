@@ -28,7 +28,6 @@ import sun.misc.SignalHandler;
 
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.httpd.CounterSetHTTPD;
-import com.bigdata.counters.httpd.CounterSetHTTPDServer;
 import com.bigdata.journal.ITx;
 import com.bigdata.service.DefaultServiceFederationDelegate;
 import com.bigdata.service.IFederationDelegate;
@@ -499,10 +498,11 @@ public class LoadBalancerServer extends AbstractServer {
     public static class AdministrableLoadBalancer extends LoadBalancerService implements
             RemoteAdministrable, RemoteDestroyAdmin {
         
-        protected LoadBalancerServer server;
-        
-        public AdministrableLoadBalancer(LoadBalancerServer server,Properties properties) {
-            
+        protected final LoadBalancerServer server;
+
+        public AdministrableLoadBalancer(final LoadBalancerServer server,
+                final Properties properties) {
+
             super(properties);
             
             this.server = server;
@@ -510,7 +510,7 @@ public class LoadBalancerServer extends AbstractServer {
         }
         
         @Override
-        public JiniFederation getFederation() {
+        public JiniFederation<?> getFederation() {
 
             return server.getClient().getFederation();
             
@@ -536,6 +536,7 @@ public class LoadBalancerServer extends AbstractServer {
          * 
          * </dl>
          */
+        @Override
         protected void setupLoggingContext() {
 
             super.setupLoggingContext();
@@ -545,6 +546,7 @@ public class LoadBalancerServer extends AbstractServer {
 
         }
 
+        @Override
         protected void clearLoggingContext() {
 
             if (log.isInfoEnabled())
@@ -558,23 +560,34 @@ public class LoadBalancerServer extends AbstractServer {
          * DestroyAdmin
          */
 
-        /**
-         * Destroy the service and deletes any files containing resources (<em>application data</em>)
-         * that was in use by that service.
-         * <p>
-         * Note: The {@link LoadBalancerService} writes counters into a
-         * configured directly but does not otherwise have configured state.
-         * Those counters are NOT destroyed so that they may be used for
-         * post-mortem analysis. See {@link CounterSetHTTPDServer}.
-         * 
-         * @throws RemoteException
-         */
-        public void destroy() {
+        @Override
+        synchronized public void destroy() {
 
-            server.runDestroy();
+            if (!server.isShuttingDown()) {
+
+                /*
+                 * Run thread which will destroy the service (asynchronous).
+                 * 
+                 * Note: By running this is a thread, we avoid closing the
+                 * service end point during the method call.
+                 */
+
+                server.runDestroy();
+
+            } else if (isOpen()) {
+
+                /*
+                 * The server is already shutting down, so invoke our super
+                 * class behavior to destroy the persistent state.
+                 */
+
+                super.destroy();
+
+            }
 
         }
 
+        @Override
         synchronized public void shutdown() {
             
             // normal service shutdown.
@@ -584,7 +597,8 @@ public class LoadBalancerServer extends AbstractServer {
             server.shutdownNow(false/*destroy*/);
             
         }
-        
+
+        @Override
         synchronized public void shutdownNow() {
             
             // immediate service shutdown.
@@ -643,6 +657,7 @@ public class LoadBalancerServer extends AbstractServer {
          * {@link Configuration} then the value returned by the base class is
          * returned instead.
          */
+        @Override
         public String getServiceName() {
 
             String s = server.getServiceName();
