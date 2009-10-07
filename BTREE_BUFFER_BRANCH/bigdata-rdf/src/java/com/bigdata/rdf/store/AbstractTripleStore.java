@@ -1836,7 +1836,7 @@ abstract public class AbstractTripleStore extends
          * any matches.
          */
 
-        return getSPORelation().getAccessPath(s, p, o, c).isEmpty();
+        return !getSPORelation().getAccessPath(s, p, o, c).isEmpty();
 
     }
 
