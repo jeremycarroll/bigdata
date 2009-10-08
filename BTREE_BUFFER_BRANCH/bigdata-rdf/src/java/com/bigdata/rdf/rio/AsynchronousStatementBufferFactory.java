@@ -4016,7 +4016,13 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                     
                     while (isPaused()) {
 
-                        unpaused.await();
+                        if (!unpaused.await(5000, TimeUnit.MILLISECONDS)) {
+
+                            log.error("Flushing TERM2ID buffer");
+                            
+                            reopenBuffer_term2Id();
+                            
+                        }
 
                     }
 
