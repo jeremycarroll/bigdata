@@ -1,7 +1,14 @@
 package com.bigdata.service.jini.util;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.util.Arrays;
@@ -17,6 +24,7 @@ import net.jini.config.ConfigurationProvider;
 import net.jini.core.lookup.ServiceID;
 
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.server.quorum.QuorumPeerMain;
 
@@ -75,9 +83,9 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
 
     public JiniClient<?> client;
 
-    public ZooKeeper zookeeper;
-    
-    public ZookeeperClientConfig zooConfig;
+//    public ZooKeeper zookeeper;
+//    
+//    public ZookeeperClientConfig zooConfig;
 
     public JiniFederation<?> getFederation() {
         
@@ -106,10 +114,88 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
     }
 
     /**
-     * The default configuration for stand alone testing.
+     * The default configuration file for stand alone testing.
      */
-    public static final String CONFIG_STANDALONE = "bigdata-jini/src/resources/config/bigdataStandaloneTesting.config";
+    public static final File CONFIG_STANDALONE = new File(
+            "bigdata-jini/src/resources/config/bigdataStandaloneTesting.config");
 
+    /**
+     * Return a new file whose contents are the byte-by-byte concatenation of
+     * the {@link #CONFIG_STANDALONE} configuration file and a configuration
+     * file specified by the caller, so leave some whitespace at the top or
+     * bottom of one of the files. The new file is created using the temporary
+     * file mechanism and SHOULD be deleted by the caller when they are done
+     * with it. This is used to write unit tests which depend on the
+     * configuration of components not specified in {@link #CONFIG_STANDALONE}.
+     * 
+     * @param file
+     *            The additional configuration file. This file should only
+     *            include the component configuration without any imports.
+     * 
+     * @return The new configuration file.
+     * 
+     * @throws IOException
+     */
+    public static File append(final File file) throws IOException {
+
+        if (file == null)
+            throw new IllegalArgumentException();
+
+        if (!file.isFile())
+            throw new FileNotFoundException(file.getPath());
+
+        final File tmp = File.createTempFile("bigdata-", ".config");
+
+        InputStream is = null;
+        OutputStream os = null;
+        try {
+
+            is = new BufferedInputStream(new FileInputStream(CONFIG_STANDALONE));
+            os = new BufferedOutputStream(new FileOutputStream(tmp));
+
+            int b;
+            while ((b = is.read()) != -1) {
+
+                os.write(b);
+                
+            }
+            
+            is.close();
+
+            is = null;
+            
+            is = new BufferedInputStream(new FileInputStream(file));
+
+            while ((b = is.read()) != -1) {
+
+                os.write(b);
+                
+            }
+            
+            is.close();
+            
+            return tmp;
+
+        } catch(Throwable t) {
+            
+            tmp.delete();
+            
+            throw new RuntimeException(t);
+            
+        } finally {
+
+            if (is != null) {
+                is.close();
+            }
+
+            if (os != null) {
+                os.close();
+            }
+
+        }
+        
+    }
+    
     /**
      * New helper instance using {@link #CONFIG_STANDALONE}. Use
      * {@link #start()} and {@link #destroy()} to start and await the services
@@ -117,7 +203,7 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
      */
     public JiniServicesHelper() {
 
-        this(new String[] { CONFIG_STANDALONE });
+        this(new String[] { CONFIG_STANDALONE.getPath() });
         
     }
 
@@ -234,8 +320,10 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
      * 
      * @throws InterruptedException
      * @throws ConfigurationException
+     * @throws KeeperException
      */
-    private void innerStart() throws InterruptedException, ConfigurationException {
+    private void innerStart() throws InterruptedException,
+            ConfigurationException, KeeperException {
 
         System.setSecurityManager(new SecurityManager());
 
@@ -371,10 +459,12 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
 
             }
 
-            zookeeper = fed.getZookeeper();
+//            zookeeper = fed.getZookeeper();
 
-            zooConfig = fed.getZooConfig();
+//            zooConfig = fed.getZooConfig();
 
+            fed.createKeyZNodes(fed.getZookeeper());
+            
         }
         
         {
@@ -497,8 +587,16 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
      */
     public void destroy() {
 
+        ZooKeeper zookeeper = null;
+        
+        ZookeeperClientConfig zooConfig = null;
+        
         if (client != null && client.isConnected()) {
 
+            zooConfig = client.getFederation().getZooConfig();
+            
+            zookeeper = client.getFederation().getZookeeper();
+            
             client.disconnect(true/* immediateShutdown */);
 
             client = null;

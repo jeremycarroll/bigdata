@@ -64,7 +64,7 @@ L> //
     private final ReentrantLock lock = new ReentrantLock();
 
     /**
-     * Condition signalled when the {@link #pendingSet} is empty.
+     * Condition signaled when the {@link #pendingSet} is empty.
      */
     private final Condition pendingSetEmpty = lock.newCondition();
 
@@ -210,7 +210,12 @@ L> //
 
             /*
              * Submit (blocks until chunk is queued by the client task).
+             * 
+             * @todo hold lock while adding chunk?
              */
+            for(E e : chunk) {
+                master.addPending(e, locator);
+            }
             clientTask.accept(chunk);
             // done = true;
             // break;

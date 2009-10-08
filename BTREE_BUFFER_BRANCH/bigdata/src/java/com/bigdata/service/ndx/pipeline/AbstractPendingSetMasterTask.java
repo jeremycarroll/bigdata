@@ -34,6 +34,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.btree.BigdataMap;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.jini.JiniFederation;
@@ -87,7 +88,7 @@ implements INotifyOutcome<E, L>
      * A proxy for this class which is used by the client task to send
      * asynchronous notifications.
      */
-    protected final INotifyOutcome<E,L> masterProxy;
+    protected final INotifyOutcome<E, L> masterProxy;
 
     /**
      * Return the pending map. The pending map reflects the resources which are
@@ -161,6 +162,7 @@ implements INotifyOutcome<E, L>
             throw new IllegalArgumentException();
         if (locator == null)
             throw new IllegalArgumentException();
+        final boolean modifiedMap;
         lock.lock();
         try {
             Collection<L> locators = getPendingMap().remove(e);
@@ -169,13 +171,22 @@ implements INotifyOutcome<E, L>
                 locators.add(locator);
                 getPendingMap().put(e, locators);
                 // added to the map.
-                return true;
+                modifiedMap = true;
             } else {
                 // already in the map.
                 locators.add(locator);
                 getPendingMap().put(e, locators);
-                return false;
+                modifiedMap = false;
             }
+            if (BigdataStatics.debug || log.isDebugEnabled()) {
+                String msg = "Added pending: size=" + getPendingSetSize()
+                        + ", resource=" + e + ", locator=" + locator;
+                if (BigdataStatics.debug)
+                    System.err.println(msg);
+                if (log.isDebugEnabled())
+                    log.debug(msg);
+            }
+            return modifiedMap; 
         } finally {
             lock.unlock();
         }
@@ -210,6 +221,7 @@ implements INotifyOutcome<E, L>
 //        if (cause == null)
 //            throw new IllegalArgumentException();
         boolean notify = false;
+        final int sizeUnderLock;
         lock.lock();
         try {
             if (cause == null) {
@@ -279,7 +291,11 @@ implements INotifyOutcome<E, L>
                 return false;
             }
         } finally {
-            lock.unlock();
+            try {
+                sizeUnderLock = getPendingMap().size();
+            } finally {
+                lock.unlock();
+            }
             // notify once we have released the lock.
             if (notify) {
                 if (cause == null) {
@@ -288,16 +304,14 @@ implements INotifyOutcome<E, L>
                     didFail(e, cause);
                 }
             }
-            if (log.isDebugEnabled()) {
-                /*
-                 * Note: pending set size is not as of the time that the event
-                 * was handled while holding the lock, hence is it only
-                 * approximate for the state when the event was processed.
-                 */
-                log.debug("resource=" + e + ", notify=" + notify
-                        + ", pendingSetSize=" + getPendingSetSize()
-                        + ", locator=" + locator
-                        + (cause == null ? "" : "cause=" + cause));
+            if (BigdataStatics.debug || log.isDebugEnabled()) {
+                final String msg = "resource=" + e + ", notify=" + notify
+                        + ", pendingSetSize=" + sizeUnderLock + ", locator="
+                        + locator + (cause == null ? "" : "cause=" + cause);
+                if (BigdataStatics.debug)
+                    System.err.println(msg);
+                if (log.isDebugEnabled())
+                    log.debug(msg);
             }
         }
     }

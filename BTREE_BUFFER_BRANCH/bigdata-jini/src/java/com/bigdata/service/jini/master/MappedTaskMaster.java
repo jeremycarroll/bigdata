@@ -121,12 +121,16 @@ V extends Serializable//
          */
         String PENDING_SET_MASTER_INITIAL_CAPACITY = "pendingSetMasterInitialCapacity";
 
+        int DEFAULT_PENDING_SET_MASTER_INITIAL_CAPACITY = 16;
+
         /**
          * The initial capacity of the pending {@link Set} for each client -or-
          * {@link Integer#MAX_VALUE} to use a {@link BigdataSet}.
          */
         String PENDING_SET_SUBTASK_INITIAL_CAPACITY = "pendingSetSubtaskInitialCapacity";
    
+        int DEFAULT_PENDING_SET_SUBTASK_INITIAL_CAPACITY = 16;
+
         /**
          * The hash function used to assign resources to client tasks.
          */
@@ -252,15 +256,19 @@ V extends Serializable//
                     component, ConfigurationOptions.RESOURCE_SCANNER_FACTORY,
                     IResourceScannerFactory.class);
 
-            pendingSetMasterInitialCapacity = (Integer) config.getEntry(
-                    component,
-                    ConfigurationOptions.PENDING_SET_MASTER_INITIAL_CAPACITY,
-                    Integer.TYPE, Integer.MAX_VALUE);
+            pendingSetMasterInitialCapacity = (Integer) config
+                    .getEntry(
+                            component,
+                            ConfigurationOptions.PENDING_SET_MASTER_INITIAL_CAPACITY,
+                            Integer.TYPE,
+                            ConfigurationOptions.DEFAULT_PENDING_SET_MASTER_INITIAL_CAPACITY);
 
-            pendingSetSubtaskInitialCapacity = (Integer) config.getEntry(
-                    component,
-                    ConfigurationOptions.PENDING_SET_SUBTASK_INITIAL_CAPACITY,
-                    Integer.TYPE, Integer.MAX_VALUE);
+            pendingSetSubtaskInitialCapacity = (Integer) config
+                    .getEntry(
+                            component,
+                            ConfigurationOptions.PENDING_SET_SUBTASK_INITIAL_CAPACITY,
+                            Integer.TYPE,
+                            ConfigurationOptions.DEFAULT_PENDING_SET_SUBTASK_INITIAL_CAPACITY);
 
             clientHashFunction = (IHashFunction) config.getEntry(component,
                     ConfigurationOptions.CLIENT_HASH_FUNCTION,

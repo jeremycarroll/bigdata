@@ -431,7 +431,7 @@ abstract public class DataService extends AbstractService
                     
                     // the lock manager is a direct child of this node.
                     final CounterSet tmp = (CounterSet) serviceRoot
-                            .getPath(IDataServiceCounters.concurrencyManager
+                            .makePath(IDataServiceCounters.concurrencyManager
                                     + ICounterSet.pathSeparator
                                     + IConcurrencyManagerCounters.writeService);
 

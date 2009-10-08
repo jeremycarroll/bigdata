@@ -77,6 +77,9 @@ public class TestTripleStoreBasics extends TestCase2 {
         // test adding terms and statements is restart safe.
         suite.addTestSuite(TestRestartSafe.class);
 
+        // a stress test based on an issue observed for centos.
+        suite.addTestSuite(StressTestCentos.class);
+        
         // somewhat dated test of sustained insert rate on synthetic data.
         suite.addTestSuite(TestInsertRate.class);
 

@@ -34,7 +34,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -42,10 +41,6 @@ import java.util.concurrent.TimeUnit;
 
 import net.jini.core.lookup.ServiceItem;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.BigdataMap;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.rawstore.IRawStore;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.FederationCallable;
 import com.bigdata.service.IRemoteExecutor;
@@ -455,14 +450,26 @@ HS extends ResourceBufferSubtaskStatistics //
 
         if (initialCapacity == Integer.MAX_VALUE) {
 
-            final IRawStore store = getFederation().getTempStore();
-
-            // anonymous index (unnamed).
-            final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
-
-            final BTree ndx = BTree.create(store, metadata);
-
-            return new BigdataMap<E, Collection<L>>(ndx);
+            /*
+             * FIXME The use of a BigdataMap/Set here has not been tested. One
+             * know point of failure is that the keys of the map may be File,
+             * URL, or other objects that are not handled by the KeyBuilder.
+             * Those objects will need to be consistently converted into an
+             * appropriate object, e.g., a String. The conversion must be
+             * consistent to ensure that we recognize the resource as initially
+             * queued and when its success/failure event comes along.
+             */
+            
+            throw new UnsupportedOperationException();
+            
+//            final IRawStore store = getFederation().getTempStore();
+//
+//            // anonymous index (unnamed).
+//            final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
+//
+//            final BTree ndx = BTree.create(store, metadata);
+//
+//            return new BigdataMap<E, Collection<L>>(ndx);
 
         } else {
 

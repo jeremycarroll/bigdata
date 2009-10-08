@@ -40,6 +40,7 @@ import net.jini.config.ConfigurationProvider;
 
 import org.apache.zookeeper.ZooKeeper;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.jini.start.config.ServiceConfiguration;
 import com.bigdata.jini.start.config.ZookeeperClientConfig;
 import com.bigdata.service.AbstractScaleOutClient;
@@ -323,7 +324,20 @@ public class JiniClient<T> extends AbstractScaleOutClient<T> {
             properties.setProperty(nv.getName(), nv.getValue());
     
         }
-    
+
+        if (log.isInfoEnabled() || BigdataStatics.debug) {
+
+            final String msg = "className=" + className + " : properties="
+                    + properties.toString();
+
+            if (BigdataStatics.debug)
+                System.err.println(msg);
+
+            if (log.isInfoEnabled())
+                log.info(msg);
+
+        }
+        
         return properties;
     
     }
