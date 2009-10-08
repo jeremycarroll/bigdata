@@ -143,21 +143,21 @@ public class Banner {
 
     }
     
-    private static final String banner =
-        "\nBIGDATA(R)"+
-        "\n"+
-        "\n                   Flexible"+
-        "\n                   Reliable"+
-        "\n                  Affordable"+
-        "\n      Web-Scale Computing for the Enterprise"+
-        "\n"+
-        "\nCopyright SYSTAP, LLC 2006-2009.  All rights reserved."+
+    private static final String banner =//
+        "\nBIGDATA(R)"+//
         "\n"+//
-        "\n" + ( AbstractStatisticsCollector.fullyQualifiedHostName+ ": "+//
-                SystemUtil.operatingSystem() + "/" + SystemUtil.osVersion()
+        "\n                   Flexible"+//
+        "\n                   Reliable"+//
+        "\n                  Affordable"+//
+        "\n      Web-Scale Computing for the Enterprise"+//
+        "\n"+//
+        "\nCopyright SYSTAP, LLC 2006-2009.  All rights reserved."+//
+        "\n"+//
+        "\n"+AbstractStatisticsCollector.fullyQualifiedHostName+//
+        "\n"+SystemUtil.operatingSystem() + "/" + SystemUtil.osVersion()
                 + " " + SystemUtil.architecture() + //
-                " cpu="+SystemUtil.numProcessors() + "(" + SystemUtil.cpuInfo() + ")") +
-                //
+        "\n"+
+        "\n"+SystemUtil.cpuInfo() + " #CPU="+SystemUtil.numProcessors() +//
         "\n"+new Date()
         ;
     
