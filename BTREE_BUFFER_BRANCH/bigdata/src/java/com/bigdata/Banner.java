@@ -33,6 +33,9 @@ import java.util.Date;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.system.SystemUtil;
+
+import com.bigdata.counters.AbstractStatisticsCollector;
 
 /**
  * Class has a static method which writes a copyright banner on stdout once per
@@ -149,7 +152,12 @@ public class Banner {
         "\n      Web-Scale Computing for the Enterprise"+
         "\n"+
         "\nCopyright SYSTAP, LLC 2006-2009.  All rights reserved."+
-        "\n"+
+        "\n"+//
+        "\n" + ( AbstractStatisticsCollector.fullyQualifiedHostName+ ": "+//
+                SystemUtil.operatingSystem() + "/" + SystemUtil.osVersion()
+                + " " + SystemUtil.architecture() + //
+                " cpu="+SystemUtil.numProcessors() + "(" + SystemUtil.cpuInfo() + ")") +
+                //
         "\n"+new Date()
         ;
     
