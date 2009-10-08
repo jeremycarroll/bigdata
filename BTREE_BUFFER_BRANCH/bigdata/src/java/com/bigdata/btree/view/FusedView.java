@@ -1379,7 +1379,13 @@ public class FusedView implements IIndex, ILocalBTreeView {//, IValueAge {
          * Applies the {@link IBloomFilter} for each source index in turn and
          * returns <code>true</code> if ANY of the component index filters
          * return <code>true</code> (if any filters say that their index has
-         * data for that key then you need to read the index).
+         * data for that key then you need to read the index). If a filter does
+         * not exist (or has been disabled) for a given component index then the
+         * code treats the filter as always reporting <code>true</code> (that
+         * is, forcing us to check the index). So a source component index
+         * without a bloom filter or an index with a disabled bloom filter acts
+         * as its filter has a high false positive rate, however the test is a
+         * NOP so it is cheap.
          */
         public boolean contains(final byte[] key) {
 
@@ -1387,16 +1393,63 @@ public class FusedView implements IIndex, ILocalBTreeView {//, IValueAge {
             
             for (int i = 0; i < srcs.length; i++) {
 
-                final IBloomFilter filter = srcs[i].getBloomFilter();
+                final AbstractBTree src = srcs[i];
+                
+                final IBloomFilter filter = src.getBloomFilter();
 
-                if (filter != null && filter.contains(key)) {
+                if ((i == 0 || i == 1) && srcs.length > i + 1
+                        && src instanceof BTree
+                        && srcs[i + 1].getBloomFilter() != null) {
 
+                    /*
+                     * Do a real point test when we have a FusedView and the 1st
+                     * or 2nd component of the view is a BTree and there are
+                     * additional components in the view and they have a bloom
+                     * filter enabled. This covers the case where the BTree is
+                     * absorbing writes (either isolated or unisolated, which is
+                     * why we allow the 1st or 2nd component) and there are
+                     * additional views, which presumably are IndexSegments. The
+                     * reasoning is that the BTree contains test will be
+                     * relatively fast and we still get to apply the bloom
+                     * filters on the index segments, thereby avoiding a disk
+                     * hit in those cases where the bloom filter for the mutable
+                     * index on a ManagedJournal has been turned off but the
+                     * index segments have perfect bloom filters that we still
+                     * want to leverage. Testing the BTree instance here might
+                     * touch the disk, but it will force the node path into the
+                     * cache so if we do get a 'true' response from one of the
+                     * bloom filters and have to test the indices it will not
+                     * add additional disk hits.
+                     */
+                    
+                    if(src.contains(key)) {
+                        
+                        // proven (but interpreted as probable hit).
+                        return true;
+                        
+                    }
+                    
+                    // test the next source index.
+                    continue;
+                    
+                }
+                
+                if (filter == null || filter.contains(key)) {
+
+                    /*
+                     * Either no filter, a disabled filter, or the filter exists
+                     * and reports that it has seen the key. At the worst, this
+                     * is a false positive and we will be forced to check the
+                     * index.
+                     */
+                    
                     return true;
                     
                 }
 
             }
 
+            // proven to not be in the index.
             return false;
 
         }

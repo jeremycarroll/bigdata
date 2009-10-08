@@ -35,7 +35,9 @@ import com.bigdata.btree.AbstractBTree;
 import com.bigdata.btree.AbstractBTreeTestCase;
 import com.bigdata.btree.AbstractTupleCursorTestCase;
 import com.bigdata.btree.BTree;
+import com.bigdata.btree.BloomFilterFactory;
 import com.bigdata.btree.BytesUtil;
+import com.bigdata.btree.Checkpoint;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleCursor;
@@ -48,8 +50,6 @@ import com.bigdata.btree.filter.Advancer;
 import com.bigdata.btree.filter.FilterConstructor;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.filter.TupleFilter;
-import com.bigdata.btree.view.FusedTupleIterator;
-import com.bigdata.btree.view.FusedView;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.sparse.SparseRowStore;
@@ -351,6 +351,151 @@ public class TestFusedView extends AbstractBTreeTestCase {
 
     }
 
+    /**
+     * Unit test of the bloom filter.
+     * 
+     * @todo bloom filter is on the mutable index, but not on the 2nd index in
+     *       the view.
+     * 
+     * @todo test bloom filter is not on the mutable index, but is on the 2nd
+     *       index in the view.
+     * 
+     * @todo test bloom filter is on both and then the mutable index bloom
+     *       filter gets disabled.
+     * 
+     * @todo test bloom filter is on both and then the 2nd index bloom filter
+     *       gets disabled.
+     */
+    public void test_bloomFilter() {
+        
+        byte[] k3 = i2k(3);
+        byte[] k5 = i2k(5);
+        byte[] k7 = i2k(7);
+
+        byte[] v3a = new byte[]{3};
+        byte[] v5a = new byte[]{5};
+        byte[] v7a = new byte[]{7};
+        
+        byte[] v3b = new byte[]{3,1};
+        byte[] v5b = new byte[]{5,1};
+        byte[] v7b = new byte[]{7,1};
+        
+        final IRawStore store = new SimpleMemoryRawStore();
+        
+        // two btrees with the same index UUID.
+        BTree btree1, btree2;
+        {
+            
+            final IndexMetadata md = new IndexMetadata(UUID.randomUUID());
+            
+            md.setBranchingFactor(3);
+            
+            md.setDeleteMarkers(true);
+
+            md.setBloomFilterFactory(BloomFilterFactory.DEFAULT);
+
+            md.setTupleSerializer(NOPTupleSerializer.INSTANCE);
+
+            btree1 = BTree.create(store, md);
+            
+            btree2 = BTree.create(store, md.clone());
+            
+        }
+        
+        /*
+         * Create an ordered view onto {btree1, btree2}. Keys found in btree1
+         * will cause the search to halt. If the key is not in btree1 then
+         * btree2 will also be searched. A miss is reported if the key is not
+         * found in either btree.
+         * 
+         * Note: Since delete markers are enabled keys will be recognized when
+         * the index entry has been marked as deleted.
+         */
+        FusedView view = new FusedView(new AbstractBTree[] { btree1, btree2 });
+
+        assertNotNull(view.getBloomFilter());
+
+        // Note: false positives are possible here, but very unlikely.
+        assertFalse(btree2.getBloomFilter().contains(k3));
+        assertFalse(btree2.getBloomFilter().contains(k5));
+        assertFalse(btree2.getBloomFilter().contains(k7));
+        assertFalse(btree1.getBloomFilter().contains(k3));
+        assertFalse(btree1.getBloomFilter().contains(k5));
+        assertFalse(btree1.getBloomFilter().contains(k7));
+        assertFalse(view.getBloomFilter().contains(k3));
+        assertFalse(view.getBloomFilter().contains(k5));
+        assertFalse(view.getBloomFilter().contains(k7));
+
+        btree2.insert(k3,v3a);
+        btree2.insert(k5,v5a);
+//        btree2.insert(k7,v7a);
+
+//        btree1.insert(k3,v3b);
+        btree1.insert(k5,v5b);
+        btree1.insert(k7,v7b);
+
+        assertTrue(btree2.getBloomFilter().contains(k3));
+        assertTrue(btree2.getBloomFilter().contains(k5));
+        // Note: false positive is possible here, but very unlikely.
+        assertFalse(btree2.getBloomFilter().contains(k7));
+
+        // Note: false positive is possible here, but very unlikely.
+        assertFalse(btree1.getBloomFilter().contains(k3));
+        assertTrue(btree1.getBloomFilter().contains(k5));
+        assertTrue(btree1.getBloomFilter().contains(k7));
+
+        assertTrue(view.getBloomFilter().contains(k3));
+        assertTrue(view.getBloomFilter().contains(k5));
+        assertTrue(view.getBloomFilter().contains(k7));
+
+        /*
+         * Checkpoint the indices so we can reload them from their current
+         * state.
+         */
+        final Checkpoint btree2Checkpoint = btree2.writeCheckpoint2();
+        final Checkpoint btree1Checkpoint = btree1.writeCheckpoint2();
+
+        /*
+         * Disable the bloom filter on btree1 and test.
+         */
+        {
+            
+            btree1.getBloomFilter().disable();
+
+            assertNull(btree1.getBloomFilter());
+            assertNotNull(btree2.getBloomFilter());
+            assertNotNull(view.getBloomFilter());
+
+            assertTrue(view.getBloomFilter().contains(k3));
+            assertTrue(view.getBloomFilter().contains(k5));
+            assertTrue(view.getBloomFilter().contains(k7));
+            
+        }
+
+        // recover the view from the checkpoints.
+        btree1 = BTree.load(store, btree1Checkpoint.getCheckpointAddr());
+        btree2 = BTree.load(store, btree2Checkpoint.getCheckpointAddr());
+        view = new FusedView(new AbstractBTree[] { btree1, btree2 });
+        
+        /*
+         * Disable the bloom filter on btree2 and test.
+         */
+        {
+            
+            btree2.getBloomFilter().disable();
+
+            assertNotNull(btree1.getBloomFilter());
+            assertNull(btree2.getBloomFilter());
+            assertNotNull(view.getBloomFilter());
+
+            assertTrue(view.getBloomFilter().contains(k3));
+            assertTrue(view.getBloomFilter().contains(k5));
+            assertTrue(view.getBloomFilter().contains(k7));
+            
+        }
+
+    }
+    
     /**
      * Test verifies some of the basic principles of the fused view, including
      * that a deleted entry in the first source will mask an undeleted entry in

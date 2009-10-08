@@ -57,7 +57,6 @@ import net.jini.config.ConfigurationException;
 import org.apache.zookeeper.KeeperException;
 
 import com.bigdata.rdf.load.MappedRDFDataLoadMaster;
-import com.bigdata.service.jini.DataServer;
 import com.bigdata.service.jini.util.JiniServicesHelper;
 
 /**
@@ -122,11 +121,13 @@ public class TestMappedRDFDataLoadMaster extends TestCase2 {
         final String[] args = new String[] { //
         tempConfigFile.getPath(),
         // optional overrides.
-//        DataServer.Options.MAXIMUM_MOVES_PER_TARGET+"=\"0\"",
-        DataServer.class.getName()+".properties = new NV[]{" +
-        		"new NV(DataServer.Options.OVERFLOW_ENABLED,false)"+//
-        		"}",
-//        DataServer.Options.SCATTER_SPLIT_ENABLED+"=\"false\""
+        /*
+         * Note: This does not work because the JiniServicesHelper is already
+         * overriding 'properties' for the DataServer.
+         */
+//        DataServer.class.getName()+".properties = new NV[]{" +
+//        		"new NV(DataServer.Options.OVERFLOW_ENABLED,false)"+//
+//        		"}",
         };
 
         try {

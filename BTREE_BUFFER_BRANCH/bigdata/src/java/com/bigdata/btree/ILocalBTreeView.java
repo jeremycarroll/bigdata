@@ -31,8 +31,9 @@ package com.bigdata.btree;
 import com.bigdata.btree.view.FusedView;
 
 /**
- * Interface indicates that the index is either an {@link AbstractBTree} or a
- * {@link FusedView} of {@link AbstractBTree}s.
+ * Interface indicates that the index is local rather than remote. A local index
+ * may consistent of either an {@link AbstractBTree} or a {@link FusedView} of
+ * {@link AbstractBTree}s.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
