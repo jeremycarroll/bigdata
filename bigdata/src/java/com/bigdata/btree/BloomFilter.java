@@ -564,7 +564,7 @@ public class BloomFilter implements IBloomFilter, Externalizable {
      * that the bloom filter is disabled will write its address as 0L so the
      * bloom filter is no longer reachable from the post-checkpoint record.
      */
-    final void disable() {
+    final public void disable() {
 
         if (enabled) {
 
@@ -573,7 +573,7 @@ public class BloomFilter implements IBloomFilter, Externalizable {
             // release the filter impl. this is often 1-10M of data!
             filter = null;
 
-            if (INFO)
+            if (log.isInfoEnabled())
                 log.info("disabled.");
 
         }
