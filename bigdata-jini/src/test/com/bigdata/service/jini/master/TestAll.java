@@ -47,7 +47,7 @@ public class TestAll extends TestCase {
 
         final TestSuite suite = new TestSuite("master (job) execution");
 
-        suite.addTestSuite(TestMappedTaskMaster.class);
+        suite.addTestSuite(TestMappedRDFDataLoadMaster.class);
 
         return suite;
         
