@@ -29,10 +29,9 @@ package com.bigdata.cache;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -68,6 +67,13 @@ import com.bigdata.rawstore.WormAddressManager;
  *       {@link IDataRecordAccess} since we can not measure the bytesInMemory
  *       for those objects and hence the LRU eviction policy will not account
  *       for their memory footprint?
+ * 
+ * @todo Write a stress test based on more than one backing {@link IRawStore}
+ *       where multiple threads get/put/remove records from the cache. The test
+ *       should emphasize get/put over remove in order to cause LRU evictions.
+ *       Since those evictions will come from different per-store cache
+ *       instances this will test the ability for a put for one store to cause
+ *       an eviction of a record in another store without deadlock.
  */
 public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
@@ -692,11 +698,11 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
      * A hard reference hash map backed by a shared Least Recently Used (LRU)
      * ordering over entries.
      * <p>
-     * Note: The synchronization policy is carried out at two levels. Each
-     * instance of the {@link LRUCacheImpl} uses a backing {@link #map} which is
-     * not thread-safe. Therefore, all methods which access the {@link #map}
-     * MUST be synchronized on <i>this</i>. In addition, all methods which
-     * update the access order MUST own the {@link HardReferenceGlobalLRU#lock} .
+     * Note: Thread-safety is enforced using {@link HardReferenceGlobalLRU#lock}
+     * . Nested locking, such as using <code>synchronized</code> on the
+     * instances of this class can cause deadlocks because evictions may be made
+     * from any {@link LRUCacheImpl} when the LRU entry is evicted from the
+     * shared LRU.
      * 
      * @version $Id$
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson
@@ -846,8 +852,12 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
         /**
          * The hash map from keys to entries wrapping cached object references.
+         * <p>
+         * Note: A concurrent map is used to permit concurrent tests against the
+         * map without requiring us to hold the shared
+         * {@link HardReferenceGlobalLRU#lock}.
          */
-        private final Map<K, HardReferenceGlobalLRU.Entry<K, V>> map;
+        private final ConcurrentHashMap<K, HardReferenceGlobalLRU.Entry<K, V>> map;
 
         /**
          * Create an LRU cache with the specific initial capacity and load
@@ -912,8 +922,8 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
             
             this.globalLRU = lru;
 
-            this.map = new HashMap<K, HardReferenceGlobalLRU.Entry<K, V>>(initialCapacity,
-                    loadFactor);
+            this.map = new ConcurrentHashMap<K, HardReferenceGlobalLRU.Entry<K, V>>(
+                    initialCapacity, loadFactor);
 
         }
 
@@ -967,17 +977,18 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
         /**
          * The #of entries in the cache.
          */
-        synchronized public int size() {
+        public int size() {
 
             return map.size();
 
         }
 
-        synchronized public V putIfAbsent(final K k, final V v) {
+        public V putIfAbsent(final K k, final V v) {
 
             assert k != null;
 
             globalLRU.lock.lock();
+            
             try {
 
                 HardReferenceGlobalLRU.Entry<K, V> entry = map.get(k);
@@ -1091,7 +1102,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
         }
 
-        synchronized public V get(final K key) {
+        public V get(final K key) {
 
             assert key != null;
 
@@ -1106,6 +1117,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
             }
 
             globalLRU.lock.lock();
+
             try {
 
                 globalLRU.touchEntry(entry);
@@ -1122,7 +1134,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
         }
 
-        synchronized public V remove(final K key) {
+        public V remove(final K key) {
 
             assert key != null;
 
@@ -1132,13 +1144,16 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                 return null;
 
             globalLRU.lock.lock();
-            try {
-                return globalLRU.removeEntry(entry);
-            } finally {
-                globalLRU.lock.unlock();
-            }
 
-//            return entry.v;
+            try {
+        
+                return globalLRU.removeEntry(entry);
+                
+            } finally {
+                
+                globalLRU.lock.unlock();
+                
+            }
 
         }
 
