@@ -67,13 +67,6 @@ import com.bigdata.rawstore.WormAddressManager;
  *       {@link IDataRecordAccess} since we can not measure the bytesInMemory
  *       for those objects and hence the LRU eviction policy will not account
  *       for their memory footprint?
- * 
- * @todo Write a stress test based on more than one backing {@link IRawStore}
- *       where multiple threads get/put/remove records from the cache. The test
- *       should emphasize get/put over remove in order to cause LRU evictions.
- *       Since those evictions will come from different per-store cache
- *       instances this will test the ability for a put for one store to cause
- *       an eviction of a record in another store without deadlock.
  */
 public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 

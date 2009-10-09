@@ -55,6 +55,13 @@ import com.bigdata.rawstore.SimpleMemoryRawStore;
  *       read through the cache (and reading to the store on a cache miss)
  *       against the data read from the store directly. The store
  *       implementations can be the {@link SimpleMemoryRawStore}.
+ * 
+ * @todo Write a stress test based on more than one backing {@link IRawStore}
+ *       where multiple threads get/put/remove records from the cache. The test
+ *       should emphasize get/put over remove in order to cause LRU evictions.
+ *       Since those evictions will come from different per-store cache
+ *       instances this will test the ability for a put for one store to cause
+ *       an eviction of a record in another store without deadlock.
  */
 public class TestHardReferenceGlobalLRU extends TestCase2 {
 
