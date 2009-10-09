@@ -177,13 +177,13 @@ public class LoadNamedGraphs extends SampleCode {
 						int throughput = (int) ((double) stmtsAdded
 								/ (double) elapsed * 1000d);
 
+                        nloaded++;
+
 						System.err.println("loaded: " + f + " : " + stmtsAdded
 								+ " stmts in " + elapsed + " millis: " + throughput
 								+ " stmts/sec, nloaded="+nloaded);
 
 						reader.close();
-
-						nloaded++;
 						
 					}
 					
