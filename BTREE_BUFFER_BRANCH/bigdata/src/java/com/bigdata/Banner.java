@@ -153,8 +153,8 @@ public class Banner {
         "\n"+//
         "\nCopyright SYSTAP, LLC 2006-2009.  All rights reserved."+//
         "\n"+//
-        "\n"+new Date()+
         "\n"+AbstractStatisticsCollector.fullyQualifiedHostName+//
+        "\n"+new Date()+//
         "\n"+SystemUtil.operatingSystem() + "/" + SystemUtil.osVersion()
                 + " " + SystemUtil.architecture() + //
         "\n"+SystemUtil.cpuInfo() + " #CPU="+SystemUtil.numProcessors() +//
