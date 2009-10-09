@@ -544,7 +544,10 @@ abstract public class AbstractTripleStore extends
          * The {@link Vocabulary} is initialized by
          * {@link AbstractTripleStore#create()} and its serialized state is
          * stored in the global row store under the
-         * {@link TripleStoreSchema#VOCABULARY} property.
+         * {@link TripleStoreSchema#VOCABULARY} property.  
+         * 
+         * @see NoVocabulary
+         * @see RDFSVocabulary
          */
         String VOCABULARY_CLASS = AbstractTripleStore.class.getName() + ".vocabularyClass";
 
@@ -556,7 +559,7 @@ abstract public class AbstractTripleStore extends
          * class that will be instantiated by
          * {@link AbstractTripleStore#create()}. The class must extend
          * {@link BaseAxioms}. This option is ignored if the lexicon is
-         * disabled.
+         * disabled.  Use {@link NoAxioms} to disable inference.
          */
         String AXIOMS_CLASS = AbstractTripleStore.class.getName() + ".axiomsClass";
         
@@ -2151,7 +2154,7 @@ abstract public class AbstractTripleStore extends
                 s == null ? NULL : _s.getTermId(), //
                 p == null ? NULL : _p.getTermId(),//
                 o == null ? NULL : _o.getTermId(),//
-                c == null ? NULL : _c.getTermId(),//
+                (c == null || !quads) ? NULL : _c.getTermId(),//
                 filter//
         );
 

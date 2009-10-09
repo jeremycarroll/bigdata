@@ -91,7 +91,19 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
 
     protected static final Logger log = Logger.getLogger(IBigdataFederation.class);
 
+    /**
+     * The client (if connected).
+     */
     private AbstractClient<T> client;
+    
+    /**
+     * <code>true</code> iff open.  Note that during shutdown this will be set
+     * to <code>false</code> before the client reference is cleared in order to
+     * avoid an infinite recursion when we request that the client disconnect
+     * itself so its reference to the federation will be cleared along with 
+     * the federation's reference to the client.
+     */
+    private boolean open;
     
     public AbstractClient<T> getClient() {
         
@@ -101,9 +113,9 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
         
     }
     
-    public boolean isOpen() {
+    final public boolean isOpen() {
         
-        return client != null;
+        return open;
         
     }
     
@@ -125,6 +137,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
 
         if(!isOpen()) return;
 
+        open = false;
+        
         final long begin = System.currentTimeMillis();
 
         if (log.isInfoEnabled())
@@ -187,8 +201,16 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
         
         if (log.isInfoEnabled())
             log.info("done: elapsed=" + (System.currentTimeMillis() - begin));
-        
-        client = null;
+
+        if (client != null) {
+
+            // Force the client to release its reference to the federation.
+            client.disconnect(false/*immediateShutdown*/);
+
+            // Release our reference to the client.
+            client = null;
+            
+        }
 
         tempStoreFactory.closeAll();
         
@@ -215,6 +237,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
         
         if(!isOpen()) return;
         
+        open = false;
+
         final long begin = System.currentTimeMillis();
         
         if(log.isInfoEnabled())
@@ -251,7 +275,15 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
         if (log.isInfoEnabled())
             log.info("done: elapsed=" + (System.currentTimeMillis() - begin));
         
-        client = null;
+        if (client != null) {
+
+            // Force the client to release its reference to the federation.
+            client.disconnect(true/* immediateShutdown */);
+
+            // Release our reference to the client.
+            client = null;
+            
+        }
         
         tempStoreFactory.closeAll();
 
@@ -568,6 +600,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
         if (client == null)
             throw new IllegalArgumentException();
 
+        this.open = true;
+        
         this.client = (AbstractClient<T>) client;
 
         if (this.client.getDelegate() == null) {

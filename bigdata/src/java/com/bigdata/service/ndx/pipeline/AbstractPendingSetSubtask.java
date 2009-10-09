@@ -211,12 +211,29 @@ L> //
             /*
              * Submit (blocks until chunk is queued by the client task).
              * 
-             * @todo hold lock while adding chunk?
+             * @todo hold lock while adding the elements in the chunk to the
+             * pending set.
              */
             for(E e : chunk) {
+            
                 master.addPending(e, locator);
+                
             }
-            clientTask.accept(chunk);
+
+            // @todo retry any errors here?  E.g., RMI transient failures?
+            try {
+
+                // Task the client with a chunk of resources.
+                clientTask.accept(chunk);
+                
+            } catch(Throwable t) {
+                
+                // Halt the master.
+                master.halt(t);
+             
+                throw new RuntimeException(t);
+                
+            }
             // done = true;
             // break;
             //

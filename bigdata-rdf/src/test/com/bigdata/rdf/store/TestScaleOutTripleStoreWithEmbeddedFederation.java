@@ -38,7 +38,6 @@ import com.bigdata.journal.ITx;
 import com.bigdata.service.DataService;
 import com.bigdata.service.EmbeddedClient;
 import com.bigdata.service.EmbeddedFederation;
-import com.bigdata.service.IBigdataFederation;
 
 /**
  * Proxy test suite for {@link ScaleOutTripleStore} running against an
@@ -176,15 +175,22 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
     
     public void tearDown(final ProxyTestCase testCase) throws Exception {
 
-//        // Note: also closes the embedded federation.
-//        client.disconnect(true/*immediateShutdown*/);
+        if (client != null) {
 
-        // destroy the federation under test.
-        if(client.isConnected())
-            client.getFederation().destroy();
-        
-//        // delete on disk federation (if any).
-//        recursiveDelete(new File(testCase.getName()));
+            if (client.isConnected()) {
+
+                // destroy the federation under test.
+                client.getFederation().destroy();
+
+            }
+
+            /*
+             * Note: Must clear the reference or junit will cause the federation
+             * to be retained.
+             */
+            client = null;
+
+        }
         
         super.tearDown();
         
@@ -197,11 +203,9 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
         // Note: distinct namespace for each triple store created on the federation.
         final String namespace = "test"+inc.incrementAndGet();
    
-        AbstractTripleStore store = new ScaleOutTripleStore(client
-                .getFederation(), namespace, ITx.UNISOLATED,
-                properties
-                );
-        
+        final AbstractTripleStore store = new ScaleOutTripleStore(client
+                .getFederation(), namespace, ITx.UNISOLATED, properties);
+
         store.create();
         
         return store;
@@ -234,11 +238,11 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
         // Turn this off now since we want to re-open the same store.
         properties.setProperty(com.bigdata.journal.Options.CREATE_TEMP_FILE, "false");
 
-        // The data directory for the embedded fedetation.
+        // The data directory for the embedded federation.
         final File file = ((EmbeddedFederation) ((ScaleOutTripleStore) store)
                 .getIndexManager()).getDataDir();
 
-        // Set the file property explictly.
+        // Set the file property explicitly.
         properties.setProperty(EmbeddedClient.Options.DATA_DIR, file.toString());
 
         // new client.

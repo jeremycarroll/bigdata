@@ -88,7 +88,7 @@ abstract public class BigdataRepositoryFactory extends RepositoryFactory {
     }
     
     /**
-     * Extended ctor varient passes along the <code>database</code> property
+     * Extended ctor variant passes along the <code>database</code> property
      * from the lubm kb config file.
      * 
      * @param database
