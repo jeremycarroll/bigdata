@@ -216,7 +216,7 @@ L> //
              */
             for(E e : chunk) {
             
-                master.addPending(e, locator);
+                master.addPending(e, this, locator);
                 
             }
 
