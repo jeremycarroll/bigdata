@@ -390,6 +390,16 @@ V extends Serializable//
                 }
             }
 
+            /*
+             * Overridden to log the error here rather than on the
+             * AbstractPendingSetMaster's log.
+             */
+            @Override
+            public void didFail(final V resource,final Throwable t) {
+                log.error(resource,t);
+//                super.didFail(resource,t);
+            }
+
         };
 
         final Future<? extends ResourceBufferStatistics> future = getFederation()

@@ -86,6 +86,9 @@ public class TestJournalBasics extends TestCase {
         // test ability to rollback a commit.
         suite.addTestSuite(TestRollbackCommit.class);
 
+        // test behavior when journal is opened by two threads.
+        suite.addTestSuite(TestDoubleOpen.class);
+
         // test compacting merge of a Journal.
         suite.addTestSuite(TestCompactJournal.class);
         

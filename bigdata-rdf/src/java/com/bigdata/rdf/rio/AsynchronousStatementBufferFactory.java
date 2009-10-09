@@ -73,6 +73,7 @@ import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.rio.RDFFormat;
 
+import com.bigdata.btree.AsynchronousIndexWriteConfiguration;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KVO;
@@ -429,6 +430,35 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
         }
 
+        final AsynchronousIndexWriteConfiguration config = tripleStore
+                .getLexiconRelation().getTerm2IdIndex().getIndexMetadata()
+                .getAsynchronousIndexWriteConfiguration();
+        
+//        if(true||BigdataStatics.debug)
+//            System.err.println(config.toString());
+
+        if (config.getSinkIdleTimeoutNanos() > TimeUnit.SECONDS.toNanos(60)) {
+
+            /*
+             * Note: If there is a large sink idle timeout on the TERM2ID index
+             * then the sink will not flush itself automatically once its master
+             * is no longer pushing data. This situation can occur any time the
+             * parser pool is paused. A low sink idle timeout is required for
+             * the TERM2ID sink to flush its writes to the database, so the TIDs
+             * will be assigned, statements for the parsed documents will be
+             * buffered, and new parser threads can begin.
+             * 
+             * @todo This should probably be automatically overridden for this
+             * use case.  However, the asynchronous index configuration is not
+             * currently passed through with the requests but is instead global
+             * (on the IndexMetadata object for the index on the MDS).
+             */
+
+            log.error("Large idle timeout will not preserve liveness: "
+                    + config);
+
+        }
+        
         buffer_t2id = ((IScaleOutClientIndex) lexiconRelation.getTerm2IdIndex())
                 .newWriteBuffer(
                         new Term2IdWriteProcAsyncResultHandler(false/* readOnly */),
@@ -2039,17 +2069,25 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      */
     final protected void documentDone(final R resource) {
 
-        final Runnable task = newSuccessTask(resource);
-       
-        if (task != null) {
-        
-            // queue up success notice.
-            notifyService.submit(task);
+        try {
+            
+            final Runnable task = newSuccessTask(resource);
+
+            if (task != null) {
+
+                // queue up success notice.
+                notifyService.submit(task);
+
+            }
+            
+        } catch (Throwable t) {
+
+            log.error(t);
             
         }
 
     }
-    
+
     /**
      * Invoked after a document has failed. If
      * {@link #newFailureTask(Object, Throwable)} returns a {@link Runnable}
@@ -2081,16 +2119,24 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         } finally {
             
             lock.unlock();
-            
+
         }
 
-        final Runnable task = newFailureTask(resource, t);
-        
-        if (task != null) {
-        
-            // queue up success notice.
-            notifyService.submit(task);
+        try {
             
+            final Runnable task = newFailureTask(resource, t);
+
+            if (task != null) {
+
+                // queue up success notice.
+                notifyService.submit(task);
+
+            }
+
+        } catch (Throwable ex) {
+
+            log.error(ex);
+
         }
 
     }
@@ -2100,15 +2146,14 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * successfully processed and whose assertions are now restart safe on the
      * database. The task, if any, will be run on the {@link #notifyService}.
      * <p>
-     * The default implementation runs a {@link DeleteTask} IFF <i>deleteAfter</i>
-     * was specified as <code>true</code> to the ctor and otherwise returns
-     * <code>null</code>. The event is logged @ INFO.
+     * The default implementation runs a {@link DeleteTask} IFF
+     * <i>deleteAfter</i> was specified as <code>true</code> to the ctor and
+     * otherwise returns <code>null</code>. The event is logged @ INFO.
      * 
      * @param resource
      *            The resource.
      * 
-     * @return The task to run -or- <code>null</code> if no task should be
-     *         run.
+     * @return The task to run -or- <code>null</code> if no task should be run.
      */
     protected Runnable newSuccessTask(final R resource) {
         
