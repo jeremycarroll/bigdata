@@ -150,10 +150,12 @@ public class LoadNamedGraphs extends SampleCode {
 				final File[] files = file.listFiles(new RDFFilenameFilter());
 				
 				if (files != null) {
-				
+
+				    int nloaded = 0;
+				    
 					for (File f : files) {
 
-						System.err.println("Reading: " + f);
+//						System.err.println("Reading: " + f);
 						
 						final Reader reader = new InputStreamReader(
 								(f.getName().endsWith(".gz")
@@ -177,9 +179,11 @@ public class LoadNamedGraphs extends SampleCode {
 
 						System.err.println("loaded: " + f + " : " + stmtsAdded
 								+ " stmts in " + elapsed + " millis: " + throughput
-								+ " stmts/sec");
+								+ " stmts/sec, nloaded="+nloaded);
 
 						reader.close();
+
+						nloaded++;
 						
 					}
 					
