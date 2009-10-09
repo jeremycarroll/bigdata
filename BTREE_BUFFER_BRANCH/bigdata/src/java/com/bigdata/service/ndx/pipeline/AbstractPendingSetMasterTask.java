@@ -157,8 +157,10 @@ implements INotifyOutcome<E, L>
      *         for a work item, a <code>true</code> return does not
      *         conclusively indicate a new work item.
      */
-    protected boolean addPending(final E e, final L locator) {
+    protected boolean addPending(final E e, final AbstractPendingSetSubtask sink, final L locator) {
         if (e == null)
+            throw new IllegalArgumentException();
+        if (sink == null)
             throw new IllegalArgumentException();
         if (locator == null)
             throw new IllegalArgumentException();
@@ -170,17 +172,20 @@ implements INotifyOutcome<E, L>
                 locators = new LinkedHashSet<L>();
                 locators.add(locator);
                 getPendingMap().put(e, locators);
+                sink.getPendingSet().add(e);
                 // added to the map.
                 modifiedMap = true;
             } else {
                 // already in the map.
                 locators.add(locator);
                 getPendingMap().put(e, locators);
+                sink.getPendingSet().add(e);
                 modifiedMap = false;
             }
             if (BigdataStatics.debug || log.isDebugEnabled()) {
                 String msg = "Added pending: size=" + getPendingSetSize()
-                        + ", resource=" + e + ", locator=" + locator;
+                        + ", resource=" + e + ", locator=" + locator
+                        + ", sinkSize=" + sink.getPendingSetSize();
                 if (BigdataStatics.debug)
                     System.err.println(msg);
                 if (log.isDebugEnabled())
