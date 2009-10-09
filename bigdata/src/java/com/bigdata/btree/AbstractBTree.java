@@ -3118,19 +3118,26 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 
         final long elapsed = System.currentTimeMillis() - begin;
         
-        if (log.isInfoEnabled()||elapsed>1000) {
+        if (log.isInfoEnabled() || elapsed > 5000) {
+
+            /*
+             * Note: latency here is nearly always a side effect of GC. Unless
+             * you are running the cms-i or similar GC policy, you can see
+             * multi-second GC pauses. Those pauses will cause messages to be
+             * emitted here. This is especially true with multi-GB heaps.
+             */
 
             final int nnodes = ndirty - nleaves;
             
             final String s = "wrote: "+(metadata.getName()!=null?"name="+metadata.getName()+", ":"") + ndirty + " records (#nodes=" + nnodes
                     + ", #leaves=" + nleaves + ") in " + elapsed
                     + "ms : addrRoot=" + node.getIdentity();
-            
-            if(elapsed>1000) {
 
-            	System.err.println(s);
+            if (elapsed > 1000) {
 
-            } else if (elapsed > 500/*ms*/) {
+//            	System.err.println(s);
+//
+//            } else if (elapsed > 500/*ms*/) {
 
                 // log at warning level when significant latency results.
                 log.warn(s);
