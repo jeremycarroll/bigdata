@@ -140,13 +140,18 @@ public class TestAsynchronousStatementBufferFactory extends
              */
             final String namespace = "test1";
 
-            // Put an idle timeout on the sink of 1s.
-            properties.setProperty(com.bigdata.config.Configuration
+            final String pname = com.bigdata.config.Configuration
                     .getOverrideProperty(namespace + "."
                             + LexiconRelation.NAME_LEXICON_RELATION + "."
                             + LexiconKeyOrder.TERM2ID,
-                            IndexMetadata.Options.SINK_IDLE_TIMEOUT_NANOS), ""
-                    + TimeUnit.SECONDS.toNanos(1));
+                            IndexMetadata.Options.SINK_IDLE_TIMEOUT_NANOS);
+
+            final String pval = "" + TimeUnit.SECONDS.toNanos(1);
+            
+            System.out.println("Override: " + pname + "=" + pval);
+            
+            // Put an idle timeout on the sink of 1s.
+            properties.setProperty(pname, pval);
             
         }
         
@@ -258,6 +263,18 @@ public class TestAsynchronousStatementBufferFactory extends
         doLoadAndVerifyTest(file);
         
     }
+
+//    /**
+//     * FIXME Do not leave this unit test in -- it takes too long to validate the
+//     * loaded data: LUBM U(10)
+//     */
+//    public void test_loadAndVerify_U10() throws Exception {
+//        
+//        final String file = "../rdf-data/lehigh/U10";
+//
+//        doLoadAndVerifyTest(file);
+//        
+//    }
 
     /**
      * Test loads an RDF/XML resource into a database and then verifies by
@@ -393,9 +410,10 @@ public class TestAsynchronousStatementBufferFactory extends
         try {
 
             // tasks to load the resource or file(s)
-            if (resource.exists()) {
+            if (resource.isDirectory()) {
 
-                statementBufferFactory.submitAll(resource, null/* filter */,
+                statementBufferFactory.submitAll(resource,
+                        new com.bigdata.rdf.load.RDFFilenameFilter(),
                         rejectedExecutionDelay);
                 
             } else {

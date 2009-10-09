@@ -37,7 +37,6 @@ import junit.framework.Test;
 import com.bigdata.journal.ITx;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
 import com.bigdata.service.EmbeddedClient;
-import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.LocalDataServiceClient;
 import com.bigdata.service.LocalDataServiceFederation;
 
@@ -175,34 +174,32 @@ public class TestScaleOutTripleStoreWithLocalDataServiceFederation extends Abstr
     
     public void tearDown(final ProxyTestCase testCase) throws Exception {
 
-//        // Note: also closes the embedded federation.
-//        client.disconnect(true/*immediateShutdown*/);
-//
-//        // delete on disk federation (if any).
-//        recursiveDelete(new File(testCase.getName()));
+        if (client != null) {
 
-        if(client.isConnected())
-            client.getFederation().destroy();
-        
-        client = null;
-        
+            if (client.isConnected()) {
+
+                client.getFederation().destroy();
+                
+            }
+
+            client = null;
+
+        }
+
         super.tearDown();
         
     }
 
     private AtomicInteger inc = new AtomicInteger();
     
-    protected AbstractTripleStore getStore(Properties properties) {
+    protected AbstractTripleStore getStore(final Properties properties) {
         
         // Note: distinct namespace for each triple store created on the federation.
         final String namespace = "test"+inc.incrementAndGet();
         
         // connect to the database.
-        AbstractTripleStore store = new ScaleOutTripleStore(client
-                .getFederation(), namespace, ITx.UNISOLATED,
-                properties
-//                client.getProperties()
-                );
+        final AbstractTripleStore store = new ScaleOutTripleStore(client
+                .getFederation(), namespace, ITx.UNISOLATED, properties);
         
         store.create();
         

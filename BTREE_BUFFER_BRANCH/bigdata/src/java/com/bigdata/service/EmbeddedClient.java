@@ -63,7 +63,7 @@ public class EmbeddedClient<T> extends AbstractScaleOutClient<T> {
         
     }
     
-    synchronized public void disconnect(boolean immediateShutdown) {
+    synchronized public void disconnect(final boolean immediateShutdown) {
         
         if (fed != null) {
 

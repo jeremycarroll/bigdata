@@ -1003,6 +1003,45 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         lock.lock();
         try {
 
+            // Note: the parser task will obtain the lock when it runs.
+            final Callable<?> task = newParserTask(resource);
+
+            submitOne(resource, task);
+            
+        } finally {
+            
+            lock.unlock();
+            
+        }
+
+    }
+
+    /**
+     * Inner method allows the caller to allocate the task once when the caller
+     * will retry if there is a {@link RejectedExecutionException}.
+     * 
+     * @param The
+     *            resource (file or URL, but not a directory).
+     * @param The
+     *            parser task to run.
+     * 
+     * @throws Exception
+     *             if there is a problem creating the parser task.
+     * @throws RejectedExecutionException
+     *             if the work queue for the parser service is full.
+     */
+    private void submitOne(final R resource, final Callable<?> task)
+            throws Exception {
+
+        if (resource == null)
+            throw new IllegalArgumentException();
+
+        if (task == null)
+            throw new IllegalArgumentException();
+
+        lock.lock();
+        try {
+
             assertSumOfLatchs();
 
             notifyStart();
@@ -1017,44 +1056,44 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
             assertSumOfLatchs();
 
+            try {
+                
+                /*
+                 * Submit resource for parsing.
+                 * 
+                 * @todo it would be nice to return a Future here that tracked the
+                 * document through the workflow.
+                 */
+
+                parserService.submit(task);
+                
+            } catch (RejectedExecutionException ex) {
+
+                /*
+                 * Back out the document since the task was not accepted for
+                 * execution.
+                 */
+
+//                lock.lock();
+//                try {
+                    assertSumOfLatchs();
+                    workflowLatch_document.dec();
+                    workflowLatch_parser.dec();
+                    assertSumOfLatchs();
+//                } finally {
+//                    lock.unlock();
+//                }
+                
+                throw ex;
+
+            }
+
         } finally {
 
             lock.unlock();
 
         }
-
-        try {
         
-            /*
-             * Submit resource for parsing.
-             * 
-             * @todo it would be nice to return a Future here that tracked the
-             * document through the workflow.
-             */
-
-            parserService.submit(newParserTask(resource));
-            
-        } catch (RejectedExecutionException ex) {
-
-            /*
-             * Back out the document since the task was not accepted for
-             * execution.
-             */
-
-            lock.lock();
-            try {
-                assertSumOfLatchs();
-                workflowLatch_document.dec();
-                workflowLatch_parser.dec();
-                assertSumOfLatchs();
-            } finally {
-                lock.unlock();
-            }
-            
-            throw ex;
-
-        }
-
     }
 
     /**
@@ -1073,7 +1112,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      *             if the service is shutdown -or- the retryMillis is ZERO(0L).
      */
     public void submitOne(final R resource, final long retryMillis)
-            throws InterruptedException {
+            throws InterruptedException, Exception {
 
         if (resource == null)
             throw new IllegalArgumentException();
@@ -1081,14 +1120,20 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         if (retryMillis < 0)
             throw new IllegalArgumentException();
         
-//        int retryCount = 0;
+        int retryCount = 0;
         
+        final long begin = System.currentTimeMillis();
+        long lastLogTime = begin;
+        
+        // Note: the parser task will obtain the lock when it runs.
+        final Callable<?> task = newParserTask(resource);
+
         while (true) {
             
             try {
 
                 // submit resource for processing.
-                submitOne(resource);
+                submitOne(resource, task);
                 
                 return;
 
@@ -1110,8 +1155,21 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
                 // sleep for the retry interval.
                 Thread.sleep(retryMillis);
-                
-//                retryCount++;
+
+                retryCount++;
+
+                if (log.isInfoEnabled()) {
+                    final long now = System.currentTimeMillis();
+                    final long elapsedSinceLastLogTime = now - lastLogTime;
+                    if (elapsedSinceLastLogTime > 5000) {
+                        final long elapsed = now - begin;
+                        lastLogTime = now;
+                        log.info("Parser pool blocking: retryCount="
+                                + retryCount + ", elapsed=" + elapsed
+                                + "ms, resource=" + resource);
+//                        log.info(getCounters().toString());
+                    }
+                }
                 
                 // retry
                 continue;
@@ -1140,7 +1198,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      *            An optional filter. Only the files selected by the filter will
      *            be processed.
      * @param retryMillis
-     *            The number of millisseconds to wait between retrys when the
+     *            The number of milliseconds to wait between retries when the
      *            parser service work queue is full. When ZERO (0L), a
      *            {@link RejectedExecutionException} will be thrown out instead.
      * 
@@ -2388,6 +2446,18 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                     serviceStatisticsTask.getCounters());
             
         }
+
+//        if(log.isInfoEnabled())
+//        { // @todo this is just for debugging problems with parser blocking.
+//
+//            final String fqn = tripleStore.getLexiconRelation().getFQN(
+//                    LexiconKeyOrder.TERM2ID);
+//
+//            counterSet.makePath("TERM2ID").attach(
+//                    ((AbstractFederation) tripleStore.getIndexManager())
+//                            .getIndexCounters(fqn).getCounters());
+//
+//        }
         
         return counterSet;
 
@@ -2399,11 +2469,11 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      */
     private class RunnableFileSystemLoader implements Callable<Integer> {
 
-        volatile boolean done = false;
+//        volatile boolean done = false;
 
         private int count = 0;
 
-        private long retryCount = 0L;
+//        private long retryCount = 0L;
         
         final File fileOrDir;
 
@@ -3309,8 +3379,8 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
                 }
 
-                if (log.isDebugEnabled())
-                    log.debug("added: " + bnode);
+                if (log.isTraceEnabled())
+                    log.trace("added: " + bnode);
 
                 // was inserted into the map.
                 return bnode;
@@ -3334,8 +3404,8 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                 // insert this blank node into the map.
                 bnodes.put(id, bnode);
 
-                if (log.isDebugEnabled())
-                    log.debug("added: " + bnode);
+                if (log.isTraceEnabled())
+                    log.trace("added: " + bnode);
 
                 // was inserted into the map.
                 return bnode;
@@ -3424,8 +3494,8 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
             }
 
-            if (log.isDebugEnabled())
-                log.debug("n=" + values.size() + ", added: " + term);
+            if (log.isTraceEnabled())
+                log.trace("n=" + values.size() + ", added: " + term);
 
             // return the new term.
             return term;
@@ -3491,8 +3561,8 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
             // total #of statements accepted.
             statementCount++;
 
-            if (log.isDebugEnabled())
-                log.debug("n=" + statementCount + ", added: " + stmt);
+            if (log.isTraceEnabled())
+                log.trace("n=" + statementCount + ", added: " + stmt);
 
         }
 
@@ -4016,11 +4086,21 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                     
                     while (isPaused()) {
 
-                        if (!unpaused.await(5000, TimeUnit.MILLISECONDS)) {
+                        if (!unpaused.await(60, TimeUnit.SECONDS)) {
 
-                            log.error("Flushing TERM2ID buffer");
-                            
-                            reopenBuffer_term2Id();
+//                            /*
+//                             * Note: This was a trial workaround for a liveness
+//                             * problem.  Unfortunately, it did not fix the
+//                             * problem. [The issue was a deadlock in the global
+//                             * LRU, which has been fixed.]
+//                             */
+//                            
+//                            log.error("Flushing TERM2ID buffer: "
+//                                            + AbstractStatisticsCollector.fullyQualifiedHostName);
+//
+//                            reopenBuffer_term2Id();
+
+                            // fall through : while(isPaused()) will retest.
                             
                         }
 
@@ -4050,5 +4130,5 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         }
 
     }
-    
+
 } // StatementBufferFactory impl.

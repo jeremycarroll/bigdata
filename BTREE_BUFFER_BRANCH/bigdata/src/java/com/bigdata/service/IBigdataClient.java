@@ -353,7 +353,7 @@ public interface IBigdataClient<T> {
          * weak references and the control of the JVM over when they are
          * cleared. Once an {@link ILocatableResource} becomes weakly reachable,
          * the JVM will eventually GC the object. Since objects which are
-         * strongly reachable are never cleared, this provides our guarentee
+         * strongly reachable are never cleared, this provides our guarantee
          * that resources are never closed if they are in use.
          * 
          * @see #DEFAULT_LOCATOR_CACHE_CAPACITY

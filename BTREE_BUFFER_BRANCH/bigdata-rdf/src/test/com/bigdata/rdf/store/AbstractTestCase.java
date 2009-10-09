@@ -112,7 +112,7 @@ abstract public class AbstractTestCase
     /**
      * Invoked from {@link TestCase#setUp()} for each test in the suite.
      */
-    protected void setUp(ProxyTestCase testCase) throws Exception {
+    protected void setUp(final ProxyTestCase testCase) throws Exception {
 
         begin = System.currentTimeMillis();
         
@@ -128,7 +128,7 @@ abstract public class AbstractTestCase
     /**
      * Invoked from {@link TestCase#tearDown()} for each test in the suite.
      */
-    protected void tearDown(ProxyTestCase testCase) throws Exception {
+    protected void tearDown(final ProxyTestCase testCase) throws Exception {
 
         // flush everything before/after a unit test.
         LRUNexus.INSTANCE.discardAllCaches();

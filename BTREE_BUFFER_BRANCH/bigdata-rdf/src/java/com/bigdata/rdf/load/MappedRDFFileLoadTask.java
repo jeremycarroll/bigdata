@@ -341,8 +341,32 @@ implements Serializable {
 
         for (V resource : chunk) {
 
-            statementBufferFactory.submitOne(resource,
-                    jobState.rejectedExecutionDelay);
+            try {
+                
+                /*
+                 * Try to submit the resource for processing.
+                 */
+                
+                statementBufferFactory.submitOne(resource,
+                        jobState.rejectedExecutionDelay);
+                
+            } catch (InterruptedException ex) {
+                
+                /*
+                 * The client was interrupted.
+                 */
+                
+                throw ex;
+                
+            } catch (Exception ex) {
+                
+                /*
+                 * The client was not able to process this resource.
+                 */
+                
+                getNotifyProxy().error(resource, locator, ex);
+                
+            }
 
         }
 

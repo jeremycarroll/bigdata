@@ -41,16 +41,20 @@ import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.IResourceLockService;
 import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ResourceLockService;
+import com.bigdata.journal.WriteExecutorService;
 import com.bigdata.service.EmbeddedClient.Options;
 
 /**
  * An implementation that uses an embedded database rather than a distributed
  * database. An embedded federation runs entirely in process, but uses the same
  * {@link DataService} and {@link MetadataService} implementations as a
- * distributed federation. Unlike a distributed federation, an embedded
- * federation starts and stops with the client. An embedded federation may be
- * used to assess or remove the overhead of network operations, to simplify
- * testing of client code, or to deploy a scale-up (vs scale-out) solution.
+ * distributed federation. All services reference the {@link EmbeddedFederation}
+ * and use the same thread pool for most operations. However, the
+ * {@link EmbeddedDataServiceImpl} has its own {@link WriteExecutorService}.
+ * Unlike a distributed federation, an embedded federation starts and stops with
+ * the client. An embedded federation may be used to assess or remove the
+ * overhead of network operations, to simplify testing of client code, or to
+ * deploy a scale-up (vs scale-out) solution.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -201,7 +205,7 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
      * @return The {@link DataService} for that UUID or <code>null</code> if
      *         there is no data service instance with that service UUID.
      */
-    final public IDataService getDataService(UUID serviceUUID) {
+    final public IDataService getDataService(final UUID serviceUUID) {
 
         // Note: return null if service not available/discovered.
 
@@ -431,11 +435,16 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
              * Start the load balancer.
              */
             try {
-            loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID
-                    .randomUUID(), p).start();
-            } catch(Throwable t) {
-                log.error(t,t);
+         
+                loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID
+                        .randomUUID(), p).start();
+            
+            } catch (Throwable t) {
+            
+                log.error(t, t);
+                
                 throw new RuntimeException(t);
+                
             }
 
         }
@@ -633,10 +642,11 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
      * are requested. We wind up creating the resource manager files in the
      * current working directory when we really want the resource manager to
      * startup with transient journals (and disallow overflow since you can not
-     * re-open a store or even write an index segement).
+     * re-open a store or even write an index segment).
      */
-    private int createFederation(Properties properties, boolean isTransient) {
-        
+    private int createFederation(final Properties properties,
+            final boolean isTransient) {
+
         final int ndataServices;
         
         /*
@@ -644,7 +654,7 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
          */
         {
 
-            String val = properties.getProperty(Options.NDATA_SERVICES,
+            final String val = properties.getProperty(Options.NDATA_SERVICES,
                     Options.DEFAULT_NDATA_SERVICES);
 
             ndataServices = Integer.parseInt(val);
@@ -754,7 +764,7 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
         }
 
         @Override
-        public EmbeddedFederation getFederation() {
+        public EmbeddedFederation<T> getFederation() {
 
             return EmbeddedFederation.this;
 
@@ -775,7 +785,7 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
         }
 
         @Override
-        public EmbeddedFederation getFederation() {
+        public EmbeddedFederation<T> getFederation() {
 
             return EmbeddedFederation.this;
 
@@ -796,7 +806,7 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
         }
 
         @Override
-        public EmbeddedFederation getFederation() {
+        public EmbeddedFederation<T> getFederation() {
 
             return EmbeddedFederation.this;
 
