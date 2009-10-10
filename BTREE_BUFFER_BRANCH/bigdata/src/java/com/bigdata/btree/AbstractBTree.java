@@ -3133,7 +3133,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
                     + ", #leaves=" + nleaves + ") in " + elapsed
                     + "ms : addrRoot=" + node.getIdentity();
 
-            if (elapsed > 1000) {
+            if (elapsed > 5000) {
 
 //            	System.err.println(s);
 //
