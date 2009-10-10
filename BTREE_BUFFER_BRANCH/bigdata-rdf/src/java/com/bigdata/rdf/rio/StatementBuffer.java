@@ -1268,8 +1268,8 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
 
                 deferredStmts.add(stmt);
 
-                if (INFO)
-                    log.info("deferred: "+stmt);
+                if (DEBUG)
+                    log.debug("deferred: "+stmt);
                 
             } else {
 
