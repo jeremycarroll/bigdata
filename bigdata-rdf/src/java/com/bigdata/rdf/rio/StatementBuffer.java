@@ -708,7 +708,9 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
 
         if (log.isInfoEnabled()) {
         
-            log.info("numValues=" + numValues + ", numStmts=" + numStmts);
+            log.info("numValues=" + numValues + " (uris=" + numURIs + ", lits="
+                    + numLiterals + ", bnodes=" + numBNodes + ")"
+                    + ", numStmts=" + numStmts);
             
         }
 
