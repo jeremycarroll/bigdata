@@ -704,6 +704,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
      */
     protected void incrementalWrite() {
 
+        final long begin = System.currentTimeMillis();
         if (INFO) {
             log.info("numValues=" + numValues + ", numStmts=" + numStmts);
         }
@@ -754,6 +755,15 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
             }
         }
         
+        if (log.isInfoEnabled()) {
+            
+            final long elapsed = System.currentTimeMillis() - begin;
+            
+            log.info("numValues=" + numValues + ", numStmts=" + numStmts
+                    + ", elapsed=" + elapsed + "ms");
+            
+        }
+
         // Reset the state of the buffer (but not the bnodes nor deferred stmts).
         _clear();
 
@@ -761,6 +771,14 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
 
     protected void addTerms(final BigdataValue[] terms, final int numTerms) {
 
+        if (log.isInfoEnabled()) {
+
+            log.info("writing " + numTerms + " on "
+                    + (statementStore != null ? "statementStore" : "databasse")
+                    + ": " + statementStore);
+
+        }
+        
         database.getLexiconRelation().addTerms(terms, numTerms, readOnly);
         
     }
