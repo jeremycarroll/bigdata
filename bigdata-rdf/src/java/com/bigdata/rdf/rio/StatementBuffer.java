@@ -776,9 +776,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
 
         if (log.isInfoEnabled()) {
 
-            log.info("writing " + numTerms + " on "
-                    + (statementStore != null ? "statementStore" : "databasse")
-                    + ": " + statementStore);
+            log.info("writing " + numTerms);
 
         }
         
@@ -1006,7 +1004,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
         if (log.isInfoEnabled()) {
 
             log.info("writing " + numStmts + " on "
-                    + (statementStore != null ? "statementStore" : "databasse")
+                    + (statementStore != null ? "statementStore" : "database")
                     + ": " + statementStore);
 
         }
