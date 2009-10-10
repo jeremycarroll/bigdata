@@ -705,8 +705,11 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
     protected void incrementalWrite() {
 
         final long begin = System.currentTimeMillis();
-        if (INFO) {
+
+        if (log.isInfoEnabled()) {
+        
             log.info("numValues=" + numValues + ", numStmts=" + numStmts);
+            
         }
 
         // Insert terms (batch operation).
