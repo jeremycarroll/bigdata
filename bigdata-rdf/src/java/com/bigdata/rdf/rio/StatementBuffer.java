@@ -1005,7 +1005,8 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
 
             log.info("writing " + numStmts + " on "
                     + (statementStore != null ? "statementStore" : "database")
-                    + ": " + statementStore);
+//                    + ": " + statementStore
+                    );
 
         }
 
