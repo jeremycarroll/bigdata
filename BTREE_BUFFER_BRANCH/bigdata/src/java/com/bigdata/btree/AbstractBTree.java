@@ -818,15 +818,25 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 
         }
 
-        if (root.dirty) {
+        if (log.isInfoEnabled() || BigdataStatics.debug) {
 
-//            throw new IllegalStateException("Root node is dirty");
-            if(log.isInfoEnabled()) log.info
-//            log.warn
-            ("Root is dirty - discarding writes: name="
-                    + metadata.getName()+ " : nentries="+getEntryCount()+" : "
+            final String msg = "BTree close: name="
+                    + metadata.getName()
+                    + ", dirty="
+                    + root.dirty
+                    + ", height="
+                    + getHeight()
+                    + ", nentries="
+                    + getEntryCount()
+                    + ", impl="
                     + (this instanceof BTree ? ((BTree) this).getCheckpoint()
-                            .toString() : getClass().getSimpleName()));
+                            .toString() : getClass().getSimpleName());
+
+            if (log.isInfoEnabled())
+                log.info(msg);
+
+            if (BigdataStatics.debug)
+                System.err.println(msg);
 
         }
 
@@ -3106,10 +3116,10 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 
             ndirty++;
             
-            if (BigdataStatics.debug && ndirty > 0 && ndirty % 1000 == 0) {
-				System.out.println("nwritten=" + ndirty + " in "
-						+ (System.currentTimeMillis() - begin) + "ms");
-            }
+//            if (BigdataStatics.debug && ndirty > 0 && ndirty % 1000 == 0) {
+//				System.out.println("nwritten=" + ndirty + " in "
+//						+ (System.currentTimeMillis() - begin) + "ms");
+//            }
 
             if (t instanceof Leaf)
                 nleaves++;
