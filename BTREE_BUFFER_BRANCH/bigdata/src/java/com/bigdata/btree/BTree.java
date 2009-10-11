@@ -686,8 +686,8 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
 
         l.dirtyEvent(this);
         
-        if (INFO)
-            log.info("");
+        if (DEBUG)
+            log.debug("");
         
     }
     
@@ -710,7 +710,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
 
             writeNodeRecursive(root);
             
-            if(INFO)
+            if(log.isInfoEnabled())
                 log.info("flushed root: addr=" + root.identity);
             
             return true;
@@ -822,11 +822,16 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
         // write it on the store.
         checkpoint.write(store);
         
-        if (BigdataStatics.debug)
-            System.err.println("name=" + metadata.getName()
+        if (BigdataStatics.debug||log.isInfoEnabled()) {
+            final String msg = "name=" + metadata.getName()
                     + ", writeQueue{size=" + writeRetentionQueue.size()
                     + ",distinct=" + ndistinctOnWriteRetentionQueue + "} : "
-                    + checkpoint);
+                    + checkpoint;
+            if (BigdataStatics.debug)
+                System.err.println(msg);
+            if (log.isInfoEnabled())
+                log.info(msg);
+        }
         
         // return the checkpoint record.
         return checkpoint;
@@ -1331,7 +1336,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
         final IndexMetadata metadata = IndexMetadata.read(store, checkpoint
                 .getMetadataAddr());
 
-        if (INFO) {
+        if (log.isInfoEnabled()) {
 
             // Note: this is the scale-out index name for a partitioned index.
             final String name = metadata.getName();

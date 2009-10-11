@@ -100,7 +100,10 @@ public class LoadNamedGraphs extends SampleCode {
         RepositoryConnection cxn = repo.getConnection();
         cxn.setAutoCommit(false);
         try {
-            final long stmtsBefore = cxn.size();
+            final long stmtsBefore =
+                // fast range count!
+                sail.getDatabase().getStatementCount();
+//                cxn.size();
             final long start = System.currentTimeMillis();
 
             if (file.getName().endsWith(".zip")
@@ -135,7 +138,9 @@ public class LoadNamedGraphs extends SampleCode {
 					// db
 					// not stmts added to the cxn.
 					long elapsed = System.currentTimeMillis() - start;
-					long stmtsAfter = cxn.size();
+	                // fast range count!
+	                long stmtsAfter = sail.getDatabase().getStatementCount();
+//					long stmtsAfter = cxn.size();
 					long stmtsAdded = stmtsAfter - stmtsBefore;
 					int throughput = (int) ((double) stmtsAdded
 							/ (double) elapsed * 1000d);
@@ -168,20 +173,34 @@ public class LoadNamedGraphs extends SampleCode {
 						cxn.add(reader, baseIRI, RDFFormat.forFileName(f
 								.getName()));
 
-						// note: due to buffering, this reports stmts flush to the
-						// db
-						// not stmts added to the cxn.
+                        /*
+                         * Note: due to buffering, this reports stmts flushed to
+                         * the db not stmts added to the cxn.
+                         * 
+                         * Note: cxn.size() will do a FULL SCAN of the statement
+                         * index for many cases in order to report an exact
+                         * range count.  This is an issue with the Sesame API
+                         * semantics (exact range count reporting) and with
+                         * delete markers in the bigdata indices.  Fast range
+                         * counts are available with two key probes but do not
+                         * satisfy the Sesame semantics.  You can get the fast
+                         * range count from the bigdata APIs.
+                         */
 						long elapsed = System.currentTimeMillis() - start;
-						long stmtsAfter = cxn.size();
+		                // fast range count!
+						long stmtsAfter = sail.getDatabase().getStatementCount();
+//						long stmtsAfter = cxn.size();
 						long stmtsAdded = stmtsAfter - stmtsBefore;
 						int throughput = (int) ((double) stmtsAdded
 								/ (double) elapsed * 1000d);
 
                         nloaded++;
 
-						System.err.println("loaded: " + f + " : " + stmtsAdded
-								+ " stmts in " + elapsed + " millis: " + throughput
-								+ " stmts/sec, nloaded="+nloaded);
+						System.err.println("loaded: " + f 
+						        + " : " + stmtsAdded + " stmts"
+						        +" in " + elapsed + " millis" + 
+						        " : "+ throughput + " stmts/sec"+
+								", nloaded="+nloaded);
 
 						reader.close();
 						
@@ -202,7 +221,8 @@ public class LoadNamedGraphs extends SampleCode {
 				// note: due to buffering, this reports stmts flush to the
 				// db not stmts added to the cxn.
 				long elapsed = System.currentTimeMillis() - start;
-				long stmtsAfter = cxn.size();
+//				long stmtsAfter = cxn.size();
+				long stmtsAfter = sail.getDatabase().getStatementCount();
 				long stmtsAdded = stmtsAfter - stmtsBefore;
 				int throughput = (int) ((double) stmtsAdded
 						/ (double) elapsed * 1000d);
@@ -224,7 +244,8 @@ public class LoadNamedGraphs extends SampleCode {
 
             // gather statistics
             long elapsed = System.currentTimeMillis() - start;
-            long stmtsAfter = cxn.size();
+//            long stmtsAfter = cxn.size();
+            long stmtsAfter = sail.getDatabase().getStatementCount();
             long stmtsAdded = stmtsAfter - stmtsBefore;
             int throughput = (int) ((double) stmtsAdded / (double) elapsed * 1000d);
             System.err.println("statements after: " + stmtsAfter);
