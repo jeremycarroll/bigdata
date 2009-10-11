@@ -8,7 +8,6 @@ import java.io.Reader;
 import java.util.Properties;
 
 import org.openrdf.repository.Repository;
-import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.rio.RDFFormat;
 
 import com.bigdata.rdf.sail.BigdataSail;
@@ -69,9 +68,12 @@ public class TestBaseball extends SampleCode {
             
             long duration = System.currentTimeMillis() - start;
             
-            RepositoryConnection cxn = repo.getConnection();
-            long size = cxn.size();
-            cxn.close();
+            // fast range count!
+            long size = sail.getDatabase().getStatementCount();
+            // full index scan!
+//            RepositoryConnection cxn = repo.getConnection();
+//            long size = cxn.size();
+//            cxn.close();
             
             log.info("loaded " + size + " stmts in " + duration + " millis.");
             
@@ -92,7 +94,7 @@ public class TestBaseball extends SampleCode {
     }
 
     /**
-     * I overrided this method so that I could explicitly do database-at-once
+     * I overrode this method so that I could explicitly do database-at-once
      * closure after the data has been loaded.  Incremental truth maintenance
      * is not appropriate in this case.
      */
