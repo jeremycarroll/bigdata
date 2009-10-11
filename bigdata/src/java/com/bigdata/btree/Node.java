@@ -34,6 +34,7 @@ import java.util.Set;
 
 import org.apache.log4j.Level;
 
+import com.bigdata.BigdataStatics;
 import com.bigdata.btree.data.DefaultNodeCoder;
 import com.bigdata.btree.data.INodeData;
 import com.bigdata.btree.raba.IRaba;
@@ -595,10 +596,21 @@ public class Node extends AbstractNode<Node> implements INodeData {
 
         btree.getBtreeCounters().rootsSplit++;
 
-        // Note: nnodes and nleaves might not reflect rightSibling yet.
-        if (BTree.INFO) {
-            BTree.log.info("increasing tree height: height=" + btree.height
-                    + ", utilization=" + btree.getUtilization()[2] + "%");
+        if (BTree.log.isInfoEnabled() || BigdataStatics.debug) {
+
+            // Note: nnodes and nleaves might not reflect rightSibling yet.
+
+            final String msg = "BTree: increasing height: name="
+                    + btree.metadata.getName() + ", height=" + btree.height
+                    + ", m=" + btree.getBranchingFactor() + ", nentries="
+                    + btree.nentries;
+
+            if (BTree.log.isInfoEnabled())
+                BTree.log.info(msg);
+
+            if (BigdataStatics.debug)
+                System.err.println(msg);
+            
         }
 
     }

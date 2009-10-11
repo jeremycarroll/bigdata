@@ -2256,7 +2256,7 @@ public class DiskOnlyStrategy extends AbstractBufferStrategy implements
         storeCounters.bytesWrittenOnDisk += nbytes;
         storeCounters.elapsedDiskWriteNanos += elapsed;
 
-        if (BigdataStatics.debug) {
+        if (false&&BigdataStatics.debug) {
 			/*
 			 * Note: There are only two places where the journal writes on the
 			 * disk using this backing buffer implementation. Here and when it
