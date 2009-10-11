@@ -71,7 +71,9 @@ public class TestNamedGraphs extends SampleCode {
 //            final RepositoryConnection cxn = repo.getConnection();
             final RepositoryConnection cxn = repo.getQueryConnection();
             
-            System.err.println("Statement Count: " + cxn.size());
+            // fast range count!
+            long stmtCount = sail.getDatabase().getStatementCount();
+            System.err.println("Statement Count: " + stmtCount);
 
             RepositoryResult<Resource> graphs = cxn.getContextIDs();
             HashSet<URI> ngs = new HashSet<URI>();
