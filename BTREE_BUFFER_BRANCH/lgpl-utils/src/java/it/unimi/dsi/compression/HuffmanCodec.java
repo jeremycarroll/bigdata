@@ -158,7 +158,7 @@ public class HuffmanCodec implements PrefixCodec, Serializable {
      * Creates a new Huffman codec using the given vector of frequencies.
      * 
      * @param frequency
-     *            a vector of nonnnegative frequencies.
+     *            a vector of non-negative frequencies.
      * @param decoderInputs
      *            The inputs necessary to reconstruct a
      *            {@link CanonicalFast64CodeWordDecoder} will be set on this

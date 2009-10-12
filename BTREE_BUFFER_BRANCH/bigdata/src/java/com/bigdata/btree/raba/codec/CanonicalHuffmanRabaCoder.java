@@ -1018,8 +1018,9 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
                 if (nsymbols == 1) {
                     /*
                      * FIXME This is a hack to workaround a ctor bug in the
-                     * HuffmanCodec/CanonicalFast64CodeWordDecoder when
-                     * nsymbols==1.
+                     * HuffmanCodec when nsymbols==1 (a bug in the
+                     * CanonicalFast64CodeWordDecoder ctor has since been fixed,
+                     * but one remains in the HuffmanCodec ctor).
                      * 
                      * The workaround pretends that a 2nd symbol is present and
                      * assigns it a non-zero frequency count to ensure that it
@@ -1095,8 +1096,6 @@ public class CanonicalHuffmanRabaCoder implements IRabaCoder, Externalizable {
                 
                 /*
                  * Don't bother to generate the codec.
-                 * 
-                 * @todo actually, HuffmanCodec will fail on nsymbols==0.
                  */
                 
                 decoderInputs = null;
