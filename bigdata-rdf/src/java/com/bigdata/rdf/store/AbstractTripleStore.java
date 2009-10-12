@@ -1387,12 +1387,12 @@ abstract public class AbstractTripleStore extends
         if (exact) {
 
             return getAccessPath(null/* s */, null/* p */, null/* o */, c, null/* filter */)
-                    .rangeCount(true/* exact */);
+                    .rangeCount(exact);
 
         } else {
 
             return getAccessPath(null/* s */, null/* p */, null/* o */, c, null/* filter */)
-                    .rangeCount(true/* exact */);
+                    .rangeCount(exact);
 
         }
 
