@@ -235,26 +235,29 @@ public class InputBitStream extends AbstractBooleanIterator implements Flushable
 		wrapping = false;
 		if ( ! ( this.noBuffer = bufSize == 0 ) ) this.buffer = new byte[ bufSize ];
 
-		if ( testForPosition ) {
-			repositionableStream = ( is instanceof RepositionableStream ) ? (RepositionableStream)is : null;
+        // Cheap test, we do it all the time
+        if ( is instanceof RepositionableStream ) {
+            repositionableStream = (RepositionableStream)is;
+            fileChannel = null;
+        }
+        else  if ( testForPosition ) {
+            FileChannel fc = null;
+            try {
+                fc = (FileChannel)( is.getClass().getMethod( "getChannel" ) ).invoke( is );
+            }
+            catch( IllegalAccessException e ) {}
+            catch( IllegalArgumentException e ) {}
+            catch( NoSuchMethodException e ) {}
+            catch( InvocationTargetException e ) {}
+            catch( ClassCastException e ) {}
+            fileChannel = fc;
+            repositionableStream = null;
+        }
+        else {
+            repositionableStream = null;
+            fileChannel = null;
+        }
 
-			FileChannel fc = null;
-			if ( repositionableStream == null ) {
-				try {
-					fc = (FileChannel)( is.getClass().getMethod( "getChannel" ) ).invoke( is );
-				}
-				catch( IllegalAccessException e ) {}
-				catch( IllegalArgumentException e ) {}
-				catch( NoSuchMethodException e ) {}
-				catch( InvocationTargetException e ) {}
-				catch( ClassCastException e ) {}
-			}
-			fileChannel = fc;
-		}
-		else {
-			repositionableStream = null;
-			fileChannel = null;
-		}
 	}
 
 	/** Creates a new input bit stream wrapping a given file input stream using a buffer of size {@link #DEFAULT_BUFFER_SIZE}.
@@ -787,7 +790,7 @@ public class InputBitStream extends AbstractBooleanIterator implements Flushable
     public void position( /*final*/ long position ) throws IOException {
     	if ( DEBUG ) System.err.println( this + ".position(" + position + ")" );
     	
-    	// adjust for slice offset.
+    	// adjust for slice offset (BBT).
         position += (off << 3);
     	
 		if ( position < 0 ) throw new IllegalArgumentException( "Illegal position: " + position );

@@ -225,26 +225,27 @@ public class OutputBitStream implements Flushable, Closeable {
 		}
 		free = 8;
 
-		if ( testForPosition ) {
-			repositionableStream = ( os instanceof RepositionableStream ) ? (RepositionableStream)os : null;
-
-			FileChannel fc = null;
-			if ( repositionableStream == null ) {
-				try {
-					fc = (FileChannel)( os.getClass().getMethod( "getChannel", new Class[] {} ) ).invoke( os, new Object[] {} );
-				}
-				catch( IllegalAccessException e ) {}
-				catch( IllegalArgumentException e ) {}
-				catch( NoSuchMethodException e ) {}
-				catch( InvocationTargetException e ) {}
-				catch( ClassCastException e ) {}
-			}
-			fileChannel = fc;
-		}
-		else {
-			repositionableStream = null;
-			fileChannel = null;
-		}
+        if ( os instanceof RepositionableStream ) {
+            repositionableStream = (RepositionableStream)os;
+            fileChannel = null;
+        }
+        else if ( testForPosition ) {
+            FileChannel fc = null;
+            try {
+                fc = (FileChannel)( os.getClass().getMethod( "getChannel", new Class[] {} ) ).invoke( os, new Object[] {} );
+            }
+            catch( IllegalAccessException e ) {}
+            catch( IllegalArgumentException e ) {}
+            catch( NoSuchMethodException e ) {}
+            catch( InvocationTargetException e ) {}
+            catch( ClassCastException e ) {}
+            fileChannel = fc;
+            repositionableStream = null;
+        }
+        else {
+            repositionableStream = null;
+            fileChannel = null;
+        }
 	}
 
 	/** Creates a new output bit stream wrapping a given file output stream using a buffer of size {@link #DEFAULT_BUFFER_SIZE}.
