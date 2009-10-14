@@ -579,11 +579,11 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
 
         sb.append(", spannedTupleCount=" + node.getSpannedTupleCount());
 
-        sb.append(", keys=" + node.getKeys());
+        sb.append(",\nkeys=" + node.getKeys());
 
         {
 
-            sb.append(", childAddr=[");
+            sb.append(",\nchildAddr=[");
 
             for (int i = 0; i < nchildren; i++) {
 
@@ -600,7 +600,7 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
 
         {
 
-            sb.append(", childEntryCount=[");
+            sb.append(",\nchildEntryCount=[");
 
             for (int i = 0; i < nchildren; i++) {
 
@@ -617,7 +617,7 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
 
         if(node.hasVersionTimestamps()) {
             
-            sb.append(", versionTimestamps={min="
+            sb.append(",\nversionTimestamps={min="
                     + node.getMinimumVersionTimestamp() + ",max="
                     + node.getMaximumVersionTimestamp() + "}");
 

@@ -799,10 +799,43 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
          * This also serves as the separator key when we insert( separatorKey,
          * rightSibling ) into the parent.
          */
+//        final byte[] separatorKey = getKeys().get(splitIndex);
         final byte[] separatorKey = BytesUtil.getSeparatorKey(//
                 getKeys().get(splitIndex),//
                 getKeys().get(splitIndex - 1)//
                 );
+
+        if (getParent() != null) {
+
+            /*
+             * FIXME This code block exists to track down an error observed
+             * where a leaf split chose a separator key which already existed in
+             * the parent node.
+             */
+            
+            // the index of this leaf in the parent.
+            final int leafIndex = getParent().getIndexOf(this);
+
+            // the index of the proposed separator key in the parent (should not
+            // exist).
+            final int separatorIndex = getParent().getKeys().search(
+                    separatorKey);
+
+            if (separatorIndex >= 0) {
+
+                /*
+                 * The separator key should not be pre-existing in the parent.
+                 */
+
+                throw new AssertionError("Split on existing key: leafIndex="
+                        + leafIndex + ", splitIndexInLeaf=" + splitIndex
+                        + ", separatorIndexInParent=" + separatorIndex
+                        + ", separatorKey=" + keyAsString(separatorKey)
+                        + "\nparent=" + getParent() + "\nleaf=" + this);
+
+            }
+
+        }
         
         // The new rightSibling of this leaf (this will be a mutable leaf).
         final Leaf rightSibling = new Leaf(btree);
@@ -1744,45 +1777,45 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         
         if (debug || ! ok ) {
         
-            out.println(indent(height) + "Leaf: " + toString());
+            out.println(indent(height) + toString());
             
-            out.println(indent(height) + "  parent="
-                    + (parent == null ? null : parent.get()));
-            
-            out.println(indent(height) + "  isRoot=" + (btree.root == this)
-                    + ", dirty=" + isDirty() + ", nkeys=" + nkeys
-                    + ", minKeys=" + minKeys + ", maxKeys=" + maxKeys
-                    + ", branchingFactor=" + branchingFactor);
-            
-            // Note: key format is dumped by its object.
-            out.println(indent(height) + "  keys=" + getKeys());
-        
-            // Note: signed byte[]s.
-            out.println(indent(height) + "  vals=" + getValues());
-            
-            if(hasDeleteMarkers()) {
-                
-                out.print(indent(height) + "  deleted=[");
-                for (int i = 0; i <= nkeys; i++) {
-                    if (i > 0)
-                        out.print(", ");
-                    out.print(getDeleteMarker(i));
-                }
-                out.println("]");
-
-            }
-            
-            if(hasVersionTimestamps()) {
-                
-                out.print(indent(height) + "  timestamps=[");
-                for (int i = 0; i <= nkeys; i++) {
-                    if (i > 0)
-                        out.print(", ");
-                    out.print(getVersionTimestamp(i));
-                }
-                out.println("]");
-
-            }
+//            out.println(indent(height) + "  parent="
+//                    + (parent == null ? null : parent.get()));
+//            
+//            out.println(indent(height) + "  isRoot=" + (btree.root == this)
+//                    + ", dirty=" + isDirty() + ", nkeys=" + nkeys
+//                    + ", minKeys=" + minKeys + ", maxKeys=" + maxKeys
+//                    + ", branchingFactor=" + branchingFactor);
+//            
+//            // Note: key format is dumped by its object.
+//            out.println(indent(height) + "  keys=" + getKeys());
+//        
+//            // Note: signed byte[]s.
+//            out.println(indent(height) + "  vals=" + getValues());
+//            
+//            if(hasDeleteMarkers()) {
+//                
+//                out.print(indent(height) + "  deleted=[");
+//                for (int i = 0; i <= nkeys; i++) {
+//                    if (i > 0)
+//                        out.print(", ");
+//                    out.print(getDeleteMarker(i));
+//                }
+//                out.println("]");
+//
+//            }
+//            
+//            if(hasVersionTimestamps()) {
+//                
+//                out.print(indent(height) + "  timestamps=[");
+//                for (int i = 0; i <= nkeys; i++) {
+//                    if (i > 0)
+//                        out.print(", ");
+//                    out.print(getVersionTimestamp(i));
+//                }
+//                out.println("]");
+//
+//            }
             
         }
 
@@ -1843,8 +1876,10 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
 
         final Node p = (parent == null ? null : parent.get());
 
-        sb.append(", parent=" + (p == null ? "N/A" : p.identity));
-        
+        sb.append(", parent=" + (p == null ? "N/A" : p.toShortString()));
+
+        sb.append(", isRoot=" + (btree.root == this));
+
         if (data == null) {
 
             // No data record? (Generally, this means it was stolen by copy on
@@ -1860,7 +1895,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         sb.append(", minKeys=" + minKeys());
 
         sb.append(", maxKeys=" + maxKeys());
-
+        
         DefaultLeafCoder.toString(this, sb);
 
         sb.append("}");

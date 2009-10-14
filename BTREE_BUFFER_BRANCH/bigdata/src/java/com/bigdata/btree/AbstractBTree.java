@@ -2849,21 +2849,19 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      *            The dump is written on this stream.
      * 
      * @return true unless an inconsistency is detected.
-     * 
-     * @todo modify to write on log vs PrintStream.
      */
-    public boolean dump(PrintStream out) {
+    public boolean dump(final PrintStream out) {
 
         return dump(BTree.dumpLog.getEffectiveLevel(), out);
 
     }
 
-    public boolean dump(Level level, PrintStream out) {
+    public boolean dump(final Level level, final PrintStream out) {
 
         // True iff we will write out the node structure.
         final boolean info = level.toInt() <= Level.INFO.toInt();
 
-        int[] utils = getUtilization();
+        final int[] utils = getUtilization();
 
         if (info) {
 
@@ -2877,7 +2875,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 
             final int branchingFactor = getBranchingFactor();
 
-            log.info("height=" + height + ", branchingFactor="
+            out.println("height=" + height + ", branchingFactor="
                     + branchingFactor + ", #nodes=" + nnodes + ", #leaves="
                     + nleaves + ", #entries=" + nentries + ", nodeUtil="
                     + utils[0] + "%, leafUtil=" + utils[1] + "%, utilization="

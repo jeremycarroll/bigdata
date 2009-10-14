@@ -1846,8 +1846,9 @@ public class Node extends AbstractNode<Node> implements INodeData {
 
 //            btree.dump(Level.DEBUG,System.err);
             
-            throw new AssertionError("Split on existing key: key="
-                    + keyAsString(key));
+            throw new AssertionError("Split on existing key: childIndex="
+                    + childIndex + ", key=" + keyAsString(key) + "\nthis="
+                    + this + "\nchild=" + child);
 
         }
 
@@ -2999,16 +3000,6 @@ public class Node extends AbstractNode<Node> implements INodeData {
             }
         }
 
-        if (debug) {
-            out.println(indent(height) + "Node: " + toString());
-            out.println(indent(height) + "  parent="
-                    + (parent == null ? null : parent.get()));
-            out.println(indent(height) + "  dirty=" + isDirty() + ", nkeys="
-                    + nkeys + ", nchildren=" + (nkeys + 1) + ", minKeys="
-                    + minKeys + ", maxKeys=" + maxKeys + ", branchingFactor="
-                    + branchingFactor+", #entries="+getSpannedTupleCount());
-            out.println(indent(height) + "  keys=" + getKeys());
-        }
         // verify keys are monotonically increasing.
         try {
             assertKeysMonotonic();
@@ -3017,33 +3008,41 @@ public class Node extends AbstractNode<Node> implements INodeData {
             ok = false;
         }
         if (debug) {
-//            out.println(indent(height) + "  childAddr="
-//                    + Arrays.toString(childAddr));
-            out.print(indent(height) + "  childAddr/Refs=[");
-            for (int i = 0; i <= nkeys + 1; i++) {
-                if (i > 0)
-                    out.print(", ");
-                out.print(getChildAddr(i));
-                out.print('(');
-                if (childRefs[i] == null) {
-                    out.print("null");
-                } else {
-                    // Non-recursive print of the reference.
-                    final AbstractNode<?> child = childRefs[i].get();
-                    out.print(child.getClass().getName() + "@"
-                            + Integer.toHexString(child.hashCode()));
-                }
-                out.print(')');
-            }
-            out.println("]");
-            out.print(indent(height) + "  childEntryCounts=[");
-            for (int i = 0; i <= nkeys; i++) {
-                if (i > 0)
-                    out.print(", ");
-                out.print(getChildEntryCount(i));
-            }
-            out.println("]");
-//                    + Arrays.toString(childEntryCounts));
+            out.println(indent(height) + toString());
+//            out.println(indent(height) + "  parent="
+//                    + (parent == null ? null : parent.get()));
+//            out.println(indent(height) + "  dirty=" + isDirty() + ", nkeys="
+//                    + nkeys + ", nchildren=" + (nkeys + 1) + ", minKeys="
+//                    + minKeys + ", maxKeys=" + maxKeys + ", branchingFactor="
+//                    + branchingFactor+", #entries="+getSpannedTupleCount());
+//            out.println(indent(height) + "  keys=" + getKeys());
+////            out.println(indent(height) + "  childAddr="
+////                    + Arrays.toString(childAddr));
+//            out.print(indent(height) + "  childAddr/Refs=[");
+//            for (int i = 0; i <= nkeys + 1; i++) {
+//                if (i > 0)
+//                    out.print(", ");
+//                out.print(getChildAddr(i));
+//                out.print('(');
+//                if (childRefs[i] == null) {
+//                    out.print("null");
+//                } else {
+//                    // Non-recursive print of the reference.
+//                    final AbstractNode<?> child = childRefs[i].get();
+//                    out.print(child.getClass().getName() + "@"
+//                            + Integer.toHexString(child.hashCode()));
+//                }
+//                out.print(')');
+//            }
+//            out.println("]");
+//            out.print(indent(height) + "  childEntryCounts=[");
+//            for (int i = 0; i <= nkeys; i++) {
+//                if (i > 0)
+//                    out.print(", ");
+//                out.print(getChildEntryCount(i));
+//            }
+//            out.println("]");
+////                    + Arrays.toString(childEntryCounts));
         }
 
         /*
@@ -3425,7 +3424,7 @@ public class Node extends AbstractNode<Node> implements INodeData {
 
         final Node p = (parent == null ? null : parent.get());
 
-        sb.append(", parent=" + (p == null ? "N/A" : p.identity));
+        sb.append(", parent=" + (p == null ? "N/A" : p.toShortString()));
 
         if (data == null) {
 
@@ -3442,7 +3441,7 @@ public class Node extends AbstractNode<Node> implements INodeData {
         sb.append(", minKeys=" + minKeys());
 
         sb.append(", maxKeys=" + maxKeys());
-
+        
         DefaultNodeCoder.toString(this, sb);
 
         // indicate if each child is loaded or unloaded.
