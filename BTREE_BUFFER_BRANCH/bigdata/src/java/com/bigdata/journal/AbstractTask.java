@@ -2291,13 +2291,20 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
          * Returns an {@link TemporaryStore} local to a specific
          * {@link AbstractTask}.
          * <p>
-         * Note: While data can not be shared across {@link AbstractTask}s
-         * using the returned {@link TemporaryStore}, you can create an
+         * Note: While data can not be shared across {@link AbstractTask}s using
+         * the returned {@link TemporaryStore}, you can create an
          * {@link ILocatableResource} on a {@link TemporaryStore} and then
          * locate it from within the {@link AbstractTask}. This has the
          * advantage that the isolation and read/write constraints of the
          * {@link AbstractTask} will be imposed on access to the
-         * {@link ILocatableResource}s
+         * {@link ILocatableResource}s.
+         * 
+         * FIXME Reconsider the inner journal classes on AbstractTask. This is a
+         * heavy weight mechanism for enforcing isolation for temporary stores.
+         * It would be better to have isolation in the locator mechanism itself.
+         * This will especially effect scale-out query using temporary stores
+         * and will break semantics when the task is isolated by a transaction
+         * rather than unisolated.
          */
         public TemporaryStore getTempStore() {
             
@@ -2661,13 +2668,20 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
          * Returns an {@link TemporaryStore} local to a specific
          * {@link AbstractTask}.
          * <p>
-         * Note: While data can not be shared across {@link AbstractTask}s
-         * using the returned {@link TemporaryStore}, you can create an
+         * Note: While data can not be shared across {@link AbstractTask}s using
+         * the returned {@link TemporaryStore}, you can create an
          * {@link ILocatableResource} on a {@link TemporaryStore} and then
          * locate it from within the {@link AbstractTask}. This has the
          * advantage that the isolation and read/write constraints of the
          * {@link AbstractTask} will be imposed on access to the
-         * {@link ILocatableResource}s
+         * {@link ILocatableResource}s.
+         * 
+         * FIXME Reconsider the inner journal classes on AbstractTask. This is a
+         * heavy weight mechanism for enforcing isolation for temporary stores.
+         * It would be better to have isolation in the locator mechanism itself.
+         * This will especially effect scale-out query using temporary stores
+         * and will break semantics when the task is isolated by a transaction
+         * rather than unisolated.
          */
         public TemporaryStore getTempStore() {
             
