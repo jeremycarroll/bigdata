@@ -889,13 +889,13 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
 
         }
         
-        sb.append(", keys=" + leaf.getKeys());
+        sb.append(",\nkeys=" + leaf.getKeys());
         
-        sb.append(", vals=" + leaf.getValues());
+        sb.append(",\nvals=" + leaf.getValues());
 
         if (leaf.hasDeleteMarkers()) {
 
-            sb.append(", deleteMarkers=[");
+            sb.append(",\ndeleteMarkers=[");
 
             for (int i = 0; i < nkeys; i++) {
 
@@ -912,7 +912,7 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
 
         if (leaf.hasVersionTimestamps()) {
 
-            sb.append(", versionTimestamps={min="
+            sb.append(",\nversionTimestamps={min="
                     + leaf.getMinimumVersionTimestamp() + ",max="
                     + leaf.getMaximumVersionTimestamp() + ",tuples=[");
 

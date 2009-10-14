@@ -148,6 +148,16 @@ abstract public class PO implements IIdentityAccess, IDirty {
      */
     public String toString() {
 
+        return toShortString();
+        
+    }
+
+    /**
+     * Returns a short representation of the class, identity (if assigned), the
+     * object instance, and whether or not the {@link PO} is deleted.
+     */
+    public String toShortString() {
+
         final String s;
         
         if (identity != NULL) {
@@ -171,5 +181,4 @@ abstract public class PO implements IIdentityAccess, IDirty {
         }
 
     }
-
 }
