@@ -969,7 +969,7 @@ public class ClientIndexView implements IScaleOutClientIndex {
 
             /*
              * Process the remaining locators a "chunk" at a time. The chunk
-             * size is choosen to be the configured size of the client thread
+             * size is chosen to be the configured size of the client thread
              * pool. This lets us avoid overwhelming the thread pool queue when
              * mapping a procedure across a very large #of index partitions.
              * 
@@ -1014,7 +1014,7 @@ public class ClientIndexView implements IScaleOutClientIndex {
      * will be mapped in parallel against the relevant index partitions.
      * <p>
      * Note: Unlike mapping an index procedure across a key range, this method
-     * is unable to introduce a truely enourmous burden on the client's task
+     * is unable to introduce a truly enormous burden on the client's task
      * queue since the #of tasks arising is equal to the #of splits and bounded
      * by <code>n := toIndex - fromIndex</code>.
      * 
@@ -1043,9 +1043,12 @@ public class ClientIndexView implements IScaleOutClientIndex {
              * it is read-only and whether or not we need to create a read-only
              * transaction to run it.
              * 
-             * @todo This assumes that people write procedures that are
-             * flyweight in how they encode the data in their ctor. If the don't
-             * then there will be an overhead for this.
+             * FIXME This assumes that people write procedures that are fly
+             * weight in how they encode the data in their ctor. If they don't
+             * then there could be a LOT overhead for this. For example, this
+             * can cause a problem if we are using the same RabaCoders that are
+             * used for the leaves in the index since the compression technique
+             * will be applied to all of the data in this step.
              */
             final IKeyArrayIndexProcedure proc = ctor.newInstance(this,
                     fromIndex, toIndex, keys, vals);
