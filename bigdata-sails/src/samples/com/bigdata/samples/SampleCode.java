@@ -387,15 +387,18 @@ public class SampleCode {
          remove all inferences and completely re-compute the closure for the 
          entire database!
          */
-        Properties properties = loadProperties("fastload.properties");
+        final Properties properties = loadProperties("fastload.properties");
         
-        // create a backing file
-        File journal = File.createTempFile("bigdata", ".jnl");
-        journal.deleteOnExit();
-        properties.setProperty(
-            BigdataSail.Options.FILE, 
-            journal.getAbsolutePath()
-            );
+        if (properties.getProperty(com.bigdata.journal.Options.FILE) == null) {
+            /*
+             * Create a backing temporary file iff none was specified in the
+             * properties file.
+             */
+            final File journal = File.createTempFile("bigdata", ".jnl");
+            journal.deleteOnExit();
+            properties.setProperty(BigdataSail.Options.FILE, journal
+                    .getAbsolutePath());
+        }
         
         // instantiate a sail
         BigdataSail sail = new BigdataSail(properties);
@@ -534,25 +537,30 @@ public class SampleCode {
      * 
      * @param args
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
+        // use one of our pre-configured option-sets or "modes"
+        final String propertiesFile = "fullfeature.properties";
+        // final String propertiesFile = "rdfonly.properties";
+        // final String propertiesFile = "fastload.properties";
+        // final String propertiesFile = "quads.properties";
         try {
             SampleCode sampleCode = new SampleCode();
-            
-            // use one of our pre-configured option-sets or "modes"
-            Properties properties = 
-                sampleCode.loadProperties("fullfeature.properties");
-                //sampleCode.loadProperties("rdfonly.properties");
-          //sampleCode.loadProperties("fastload.properties");
-          sampleCode.loadProperties("quads.properties");
-            
-            // create a backing file
-            File journal = File.createTempFile("bigdata", ".jnl");
-            log.info(journal.getAbsolutePath());
-            // journal.deleteOnExit();
-            properties.setProperty(
-                BigdataSail.Options.FILE, 
-                journal.getAbsolutePath()
-                );
+
+            log.info("Reading properties from file: " + propertiesFile);
+
+            final Properties properties = sampleCode.loadProperties(propertiesFile);
+
+            if (properties.getProperty(com.bigdata.journal.Options.FILE) == null) {
+                /*
+                 * Create a backing file iff none was specified in the
+                 * properties file.
+                 */
+                final File journal = File.createTempFile("bigdata", ".jnl");
+                log.info(journal.getAbsolutePath());
+                // journal.deleteOnExit();
+                properties.setProperty(BigdataSail.Options.FILE, journal
+                        .getAbsolutePath());
+            }
             
             // instantiate a sail
             BigdataSail sail = new BigdataSail(properties);
@@ -562,11 +570,18 @@ public class SampleCode {
             // demonstrate some basic functionality
             URI MIKE = new URIImpl("http://www.bigdata.com/rdf#Mike");
             sampleCode.loadSomeData(repo);
+            System.out.println("Loaded sample data.");
             sampleCode.readSomeData(repo, MIKE);
             sampleCode.executeSelectQuery(repo, "select ?p ?o where { <"+MIKE.toString()+"> ?p ?o . }", QueryLanguage.SPARQL);
+            System.out.println("Did SELECT query.");
             sampleCode.executeConstructQuery(repo, "construct { <"+MIKE.toString()+"> ?p ?o . } where { <"+MIKE.toString()+"> ?p ?o . }", QueryLanguage.SPARQL);
+            System.out.println("Did CONSTRUCT query.");
             sampleCode.executeFreeTextQuery(repo);
+            System.out.println("Did free text query.");
             sampleCode.executeProvenanceQuery(repo);
+            System.out.println("Did provenance query.");
+            
+            System.out.println("done.");
             
             repo.shutDown();
             

@@ -44,14 +44,14 @@ public class TestBaseball extends SampleCode {
                     com.bigdata.rdf.store.AbstractTripleStore.Options.QUADS,
                     "false");
 
-            // create a backing file
-            File journal = File.createTempFile("baseball", ".jnl");
-            log.info(journal.getAbsolutePath());
-            // journal.deleteOnExit();
-            properties.setProperty(
-                BigdataSail.Options.FILE, 
-                journal.getAbsolutePath()
-                );
+            if (properties.getProperty(com.bigdata.journal.Options.FILE) == null) {
+                // create backing tmp file iff none was specified by properties.
+                File journal = File.createTempFile("baseball", ".jnl");
+                log.info(journal.getAbsolutePath());
+                // journal.deleteOnExit();
+                properties.setProperty(BigdataSail.Options.FILE, journal
+                        .getAbsolutePath());
+            }
             
             // instantiate a sail
             BigdataSail sail = new BigdataSail(properties);

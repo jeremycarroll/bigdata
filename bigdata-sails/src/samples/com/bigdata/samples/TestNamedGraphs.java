@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.samples;
 
-import java.io.File;
 import java.util.HashSet;
 import java.util.Properties;
 
@@ -59,8 +58,6 @@ public class TestNamedGraphs extends SampleCode {
     public void test() throws Exception {
 
         final Properties properties = loadProperties("quads.properties");
-        final File journal = new File("d:/bigdata.jnl");
-        properties.setProperty(BigdataSail.Options.FILE, journal.getAbsolutePath());
 
         BigdataSail sail = new BigdataSail(properties);
         BigdataSailRepository repo = new BigdataSailRepository(sail);
