@@ -87,7 +87,8 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
      * @version $Id$
      */
     public interface Options extends com.bigdata.journal.Options,
-            com.bigdata.journal.ConcurrencyManager.Options {
+            com.bigdata.journal.ConcurrencyManager.Options,
+            com.bigdata.journal.TemporaryStoreFactory.Options {
 
         /**
          * The capacity of the {@link HardReferenceQueue} backing the
@@ -99,7 +100,7 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
          * weak references and the control of the JVM over when they are
          * cleared. Once an {@link ILocatableResource} becomes weakly reachable,
          * the JVM will eventually GC the object. Since objects which are
-         * strongly reachable are never cleared, this provides our guarentee
+         * strongly reachable are never cleared, this provides our guarantee
          * that resources are never closed if they are in use.
          * 
          * @see #DEFAULT_LOCATOR_CACHE_CAPACITY
@@ -135,6 +136,8 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
         
         super(properties);
      
+        tempStoreFactory = new TemporaryStoreFactory(properties);
+        
         executorService = Executors.newCachedThreadPool(new DaemonThreadFactory
                 (getClass().getName()+".executorService"));
 
@@ -1048,7 +1051,7 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
         return tempStoreFactory.getTempStore();
         
     }
-    private final TemporaryStoreFactory tempStoreFactory = new TemporaryStoreFactory();
+    private final TemporaryStoreFactory tempStoreFactory;
 
     public DefaultResourceLocator getResourceLocator() {
 
