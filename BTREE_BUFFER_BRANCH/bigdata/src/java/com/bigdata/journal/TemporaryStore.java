@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.journal;
 
+import java.io.File;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -107,7 +108,24 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
      */
     public TemporaryStore(final int offsetBits) {
 
-        super(0L/* maximumExtent */, offsetBits, getTempFile());
+        this(offsetBits, getTempFile());
+        
+    }
+
+    /**
+     * A {@link TemporaryStore} provisioned with the specified <i>offsetBits</i>
+     * and backed by the specified file.
+     * 
+     * @param offsetBits
+     *            This determines the capacity of the store file and the maximum
+     *            length of a record. The value is passed through to
+     *            {@link WormAddressManager#WormAddressManager(int)}.
+     * @param file
+     *            The backing file (may exist, but must be empty if it exists).
+     */
+    public TemporaryStore(final int offsetBits, final File file) {
+
+        super(0L/* maximumExtent */, offsetBits, file);
 
         setupName2AddrBTree();
 
@@ -217,7 +235,7 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
         
     }
 
-    public void registerIndex(IndexMetadata metadata) {
+    public void registerIndex(final IndexMetadata metadata) {
         
         registerIndex(metadata.getName(), metadata);
         

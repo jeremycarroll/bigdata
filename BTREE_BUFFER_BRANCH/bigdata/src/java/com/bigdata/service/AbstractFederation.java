@@ -631,9 +631,11 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
                     (getClass().getName()+".executorService"));
 
         }
-        
-        tempStoreFactory = new TemporaryStoreFactory(this.client
-                .getTempStoreMaxExtent());
+
+        tempStoreFactory = new TemporaryStoreFactory(client.getProperties());
+
+//        tempStoreFactory = new TemporaryStoreFactory(this.client
+//                .getTempStoreMaxExtent());
 
         addScheduledTask(
                 new SendEventsTask(),// task to run.
@@ -657,7 +659,7 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
         
     }
     
-    public void registerIndex(IndexMetadata metadata) {
+    public void registerIndex(final IndexMetadata metadata) {
 
         assertOpen();
 
@@ -758,7 +760,7 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      * 
      * {@inheritDoc}
      */
-    public IClientIndex getIndex(String name, long timestamp) {
+    public IClientIndex getIndex(final String name, final long timestamp) {
 
         if (log.isInfoEnabled())
             log.info("name="+name+" @ "+timestamp);
