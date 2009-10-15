@@ -449,19 +449,19 @@ abstract public class AbstractTestCase
         
     }
     
-    /**
-     * Method verifies that the <i>actual</i> {@link Iterator} produces the
-     * expected objects in the expected order. Objects are compared using
-     * {@link Object#equals( Object other )}. Errors are reported if too few or
-     * too many objects are produced, etc.
-     * 
-     * @todo refactor to {@link TestCase2}.
-     */
-    static public void assertSameItr(Object[] expected, Iterator<?> actual) {
-
-        assertSameIterator("", expected, actual);
-
-    }
+//    /**
+//     * Method verifies that the <i>actual</i> {@link Iterator} produces the
+//     * expected objects in the expected order. Objects are compared using
+//     * {@link Object#equals( Object other )}. Errors are reported if too few or
+//     * too many objects are produced, etc.
+//     * 
+//     * Note: refactored to {@link TestCase2}.
+//     */
+//    static public void assertSameItr(Object[] expected, Iterator<?> actual) {
+//
+//        assertSameIterator("", expected, actual);
+//
+//    }
 
     static public void assertSameSPOs(ISPO[] expected, IChunkedOrderedIterator<ISPO>actual) {
 

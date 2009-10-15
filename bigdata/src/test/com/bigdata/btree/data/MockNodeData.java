@@ -9,7 +9,7 @@ import com.bigdata.io.AbstractFixedByteArrayBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-class MockNodeData extends AbstractMockNodeData implements INodeData {
+public class MockNodeData extends AbstractMockNodeData implements INodeData {
 
     /**
      * The #of tuples spanned by this node.

@@ -36,6 +36,7 @@ import com.bigdata.counters.IHostCounters;
 import com.bigdata.counters.IRequiredHostCounters;
 import com.bigdata.counters.PeriodEnum;
 import com.bigdata.counters.ICounterSet.IInstrumentFactory;
+import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.ConcurrencyManager.IConcurrencyManagerCounters;
 import com.bigdata.rawstore.Bytes;
@@ -233,11 +234,22 @@ abstract public class LoadBalancerService extends AbstractService
     private final RoundRobinServiceLoadHelper roundRobinServiceLoadHelper;
     
     /**
-     * The directory in which the service will log the {@link CounterSet}s.
+     * The directory in which the service will log the {@link CounterSet}s
+     * and {@link Event}s.
      * 
      * @see Options#LOG_DIR
      */
     protected final File logDir;
+
+    /**
+     * <code>true</code> iff the LBS will refrain from writing state on the
+     * disk. This option causes the LBS to use an in memory {@link #eventStore}.
+     * In addition, it will refuse to write counter snapshots when this option
+     * is specified.
+     * 
+     * @see Options#TRANSIENT
+     */
+    protected final boolean isTransient;
     
     /**
      * A copy of the properties used to start the service.
@@ -371,13 +383,24 @@ abstract public class LoadBalancerService extends AbstractService
                 + ".historyMinutes"; 
 
         String DEFAULT_HISTORY_MINUTES = "5";
-        
+
         /**
-         * The path of the directory where the load balancer will log a copy of
-         * the counters every time it runs its {@link UpdateTask}. By default
-         * it will log the files in the directory from which the load balancer
-         * service was started. You may specify an alternative directory using
-         * this property.
+         * When <code>true</code> the load balancer will not record any state on
+         * the disk (neither events nor counters). The default is
+         * <code>false</code>. This option is used by some unit tests to
+         * simplify cleanup.
+         */
+        String TRANSIENT = LoadBalancerService.class.getName() + ".transient";
+
+        String DEFAULT_TRANSIENT = "false";
+
+        /**
+         * The path of the data directory for the load balancer. The load
+         * balancer will log a copy of the counters every time it runs its
+         * {@link UpdateTask}. It will also log {@link Event}s received from
+         * other services here. By default, the load balancer will use the
+         * directory in which it was started. You may specify an alternative
+         * directory using this property.
          */
         String LOG_DIR = LoadBalancerService.class.getName()+".log.dir";
         
@@ -425,7 +448,7 @@ abstract public class LoadBalancerService extends AbstractService
          * Default is one hour of completed events.
          */
         String DEFAULT_EVENT_HISTORY_MILLIS = "" + (60 * 60 * 1000);
-
+        
     }
 
     /**
@@ -435,7 +458,7 @@ abstract public class LoadBalancerService extends AbstractService
      * running on the same host to collect statistics for that host and those
      * statistics are then reported to the load balancer and aggregated along
      * with the rest of the performance counters reported by the other services
-     * in the federation. However, if the load balanacer itself collects host
+     * in the federation. However, if the load balancer itself collects host
      * statistics then it will only know about and report the current (last 60
      * seconds) statistics for the host rather than having the historical data
      * for the host.
@@ -450,9 +473,19 @@ abstract public class LoadBalancerService extends AbstractService
         
         this.properties = (Properties) properties.clone();
 
-        // setup the log directory.
-        {
+        this.isTransient = Boolean.valueOf(properties.getProperty(
+                Options.TRANSIENT, Options.DEFAULT_TRANSIENT));
 
+        if (log.isInfoEnabled())
+            log.info(Options.TRANSIENT + "=" + isTransient);
+        
+        if(isTransient) {
+            
+            logDir = null;
+            
+        } else {
+        
+            // setup the log directory.
             final String val = properties.getProperty(
                     Options.LOG_DIR,
                     Options.DEFAULT_LOG_DIR);
@@ -572,34 +605,38 @@ abstract public class LoadBalancerService extends AbstractService
                         + eventHistoryMillis);
 
             /*
-             * Setup a BTree backed by a file on the disk that will be used to
-             * persist the completed events. This is passed to the
-             * EventReceiver. The BTree is used to get the events out of RAM and
-             * to decouple the reporting from the receiving. We delegate
-             * everything dealing with the events to that class.
+             * Setup a BTree backed that will be used to persist the completed
+             * events. This is passed to the EventReceiver. The BTree is used to
+             * get the events out of RAM and to decouple the reporting from the
+             * receiving. We delegate everything dealing with the events to that
+             * class.
              */
 
-            // Uses a temporary store.
-//          eventStore = new TemporaryRawStore();
+            if(isTransient) {
+                
+                /*
+                 * Use an in-memory store.
+                 */
 
-            // Uses a restart safe store.
-            {
+                final Properties p = new Properties();
+
+                p.setProperty(com.bigdata.journal.Options.BUFFER_MODE,
+                        BufferMode.Transient.toString());
+
+                eventStore = new Journal(p);
+                
+            } else {
+                
+                /*
+                 * Use a restart-safe store.
+                 */
                 
                 final Properties p = new Properties();
 
-//                p.setProperty(com.bigdata.journal.Options.BUFFER_MODE, BufferMode.Disk);
-                
                 p.setProperty(com.bigdata.journal.Options.FILE, new File(
                         logDir, "events" + com.bigdata.journal.Options.JNL)
                         .toString());
 
-                /*
-                 * FIXME This is causing problems for the unit tests. Either DO
-                 * NOT maintain this for unit tests or make it a temporary store
-                 * for unit tests so it gets cleaned up when the LBS is shutdown
-                 * and different LBS instances do not collide with pre-existing
-                 * event journals.
-                 */
                 eventStore = new Journal(p);
                 
             }
@@ -707,33 +744,37 @@ abstract public class LoadBalancerService extends AbstractService
     synchronized public void destroy() {
         
         super.destroy();
-        
-        eventStore.destroy();
-        
-        final File[] logFiles = logDir.listFiles(new FileFilter() {
 
-            public boolean accept(File pathname) {
-             
-                return pathname.getName().startsWith("counters")
-                        && pathname.getName().endsWith(".xml");
-                
+        if (!isTransient) {
+
+            eventStore.destroy();
+
+            final File[] logFiles = logDir.listFiles(new FileFilter() {
+
+                public boolean accept(File pathname) {
+
+                    return pathname.getName().startsWith("counters")
+                            && pathname.getName().endsWith(".xml");
+
+                }
+
+            });
+
+            if (logFiles != null) {
+
+                for (File file : logFiles) {
+
+                    if (!file.delete())
+                        log.warn("Could not delete: " + file);
+
+                }
+
             }
-            
-        });
 
-        if (logFiles != null) {
-           
-            for (File file : logFiles) {
-
-                if (!file.delete())
-                    log.warn("Could not delete: " + file);
-
-            }
+            // delete the log directory (works iff it is empty).
+            logDir.delete();
 
         }
-
-        // delete the log directory (works iff it is empty).
-        logDir.delete();
 
     }
     
@@ -1918,6 +1959,14 @@ abstract public class LoadBalancerService extends AbstractService
      */
     protected void logCounters(final String basename) {
 
+        if(isTransient) {
+            
+            log.warn("LBS is transient - request ignored.");
+
+            return;
+            
+        }
+        
         final File file = new File(logDir, "counters" + basename + ".xml");
 
         logCounters(file);

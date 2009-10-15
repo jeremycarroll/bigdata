@@ -681,6 +681,14 @@ public class LoadBalancerServer extends AbstractServer {
          */
         public void logCounters() throws IOException {
 
+            if (isTransient) {
+
+                log.warn("LBS is transient - request ignored.");
+                
+                return;
+                
+            }
+            
             final File file = File.createTempFile("counters-hup", ".xml", logDir);
 
             super.logCounters(file);

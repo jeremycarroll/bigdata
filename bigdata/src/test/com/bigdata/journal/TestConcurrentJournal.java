@@ -55,7 +55,7 @@ import com.bigdata.journal.AbstractInterruptsTestCase.InterruptMyselfTask;
 import com.bigdata.journal.AbstractTask.ResubmitException;
 import com.bigdata.journal.ConcurrencyManager.Options;
 import com.bigdata.service.DataService;
-import com.bigdata.service.DataServiceTupleIterator;
+import com.bigdata.service.ndx.DataServiceTupleIterator;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 
