@@ -857,7 +857,7 @@ abstract public class JoinTask implements Callable<Void> {
         }
 
         /**
-         * Read chunks from one or more sources until cancelled,
+         * Read chunks from one or more sources until canceled,
          * interrupted, or all sources are exhausted and submits
          * {@link AccessPathTask}s to the caller's {@link ExecutorService}
          * -or- executes those tasks in the caller's thread if no
