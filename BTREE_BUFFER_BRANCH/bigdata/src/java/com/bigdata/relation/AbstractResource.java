@@ -67,7 +67,6 @@ import com.bigdata.relation.rule.eval.ProgramTask;
 import com.bigdata.relation.rule.eval.pipeline.JoinMasterTask;
 import com.bigdata.relation.rule.eval.pipeline.JoinTask;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.util.concurrent.ParallelismLimitedExecutorService;
 
 /**
  * Base class for locatable resources.
@@ -347,8 +346,8 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
          *       dimension. The {@link JoinMasterTask} interprets this as a
          *       per-join dimension parallelism (the parallelism limit is
          *       currently imposed by a per {@link JoinTask}
-         *       {@link ExecutorService} since there is a problem with the
-         *       {@link ParallelismLimitedExecutorService}).
+         *       {@link ExecutorService}, which must be explicitly enabled in
+         *       the code).
          */
         String MAX_PARALLEL_SUBQUERIES = ProgramTask.class.getName()
                 + ".maxParallelSubqueries";
