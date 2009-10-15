@@ -21,6 +21,7 @@ import com.bigdata.relation.accesspath.IBuffer;
 import com.bigdata.relation.accesspath.ThickAsynchronousIterator;
 import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IPredicate;
+import com.bigdata.relation.rule.IQueryOptions;
 import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.ISolutionExpander;
 import com.bigdata.relation.rule.eval.IJoinNexus;
@@ -304,6 +305,10 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
      * join dimension (requires that all source join tasks target a join
      * task having a view of the scale-out index rather than mapping the
      * task across the index partitions).
+     * 
+     * FIXME The initial binding set should not be mapped across the index
+     * partitions for the first join dimension if {@link IQueryOptions#isStable()}
+     * is <code>true</code>.
      */
     protected List<Future> mapBindingSet(final IBindingSet bindingSet)
             throws Exception {
