@@ -47,6 +47,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.search.FullTextIndex;
+import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
 /**
  * An abstract test harness that sets up (and tears down) the metadata and data

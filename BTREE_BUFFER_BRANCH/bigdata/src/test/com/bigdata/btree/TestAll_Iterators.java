@@ -57,13 +57,22 @@ public class TestAll_Iterators extends TestCase {
         
         final TestSuite suite = new TestSuite("Iterators");
 
+        // test leaf traversal cursors.
         suite.addTestSuite(TestBTreeLeafCursors.class);
+
+        // test suite for B+Tree iterators (vs cursors).
         suite.addTestSuite(TestIterators.class);
+        
+        // test cursors for a read-only B+Tree.
         suite.addTestSuite(TestReadOnlyBTreeCursors.class);
+        
+        // test cursors for a read-write B+Tree.
         suite.addTestSuite(TestMutableBTreeCursors.class);
-        // stackable tuple filters
+        
+        // test stackable tuple filters
         suite.addTest(com.bigdata.btree.filter.TestAll.suite());
-        // chunked iterators.
+        
+        // test chunked iterators.
         suite.addTestSuite(TestChunkedIterators.class);
 
         return suite;

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Feb 27, 2008
  */
 
-package com.bigdata.service;
+package com.bigdata.service.ndx;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -40,8 +40,9 @@ import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.IBlock;
-import com.bigdata.service.ndx.ClientIndexView;
-import com.bigdata.service.ndx.PartitionedTupleIterator;
+import com.bigdata.service.AbstractDistributedFederation;
+import com.bigdata.service.IDataService;
+import com.bigdata.service.LocalDataServiceFederation;
 
 /**
  * Class supports range query across against an unpartitioned index on an

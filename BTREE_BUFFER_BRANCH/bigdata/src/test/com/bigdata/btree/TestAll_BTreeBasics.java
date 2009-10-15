@@ -72,11 +72,17 @@ public class TestAll_BTreeBasics extends TestCase {
         suite.addTestSuite(TestSplitJoinRootLeaf.class);
         // test splitting and joining with more than two levels.
         suite.addTestSuite(TestSplitJoinThreeLevels.class);
+        // test edge cases in finding the shortest separator key for a leaf.
+        suite.addTestSuite(TestLeafSplitShortestSeparatorKey.class);
         // test indexOf, keyAt, valueAt.
         suite.addTestSuite(TestLinearListMethods.class);
         // test getCounter()
         suite.addTestSuite(TestIndexCounter.class);
 
+        // test imposing constraint on a fromKey or toKey based on an index
+        // partition's boundaries.
+        suite.addTestSuite(TestConstrainKeys.class);
+        
         // test iterator semantics.
         suite.addTest(TestAll_Iterators.suite());
 

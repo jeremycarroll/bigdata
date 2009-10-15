@@ -12,7 +12,9 @@ import com.bigdata.rdf.vocab.NoVocabulary;
 
 /**
  * This is a test class that fails on centos 64bit. On working machines, it runs
- * and always prints out 100, but on centos it will randomly print out 0.
+ * and always prints out 100, but on centos it will randomly print out 0. Note
+ * that the test as written is specific to a quad store (it makes the quad store
+ * assumption about the context position).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -27,7 +29,7 @@ public class StressTestCentos extends AbstractTripleStoreTestCase {
         properties.setProperty(AbstractTripleStore.Options.AXIOMS_CLASS, NoAxioms.class.getName());
         properties.setProperty(AbstractTripleStore.Options.STORE_BLANK_NODES, "true");
         properties.setProperty(AbstractTripleStore.Options.JUSTIFY, "false");
-//        properties.setProperty(AbstractTripleStore.Options.QUADS, "true");
+        properties.setProperty(AbstractTripleStore.Options.QUADS, "true");
         properties.setProperty(AbstractTripleStore.Options.BLOOM_FILTER, "false");
         properties.setProperty(AbstractTripleStore.Options.VOCABULARY_CLASS, NoVocabulary.class.getName());
         properties.setProperty(AbstractTripleStore.Options.NESTED_SUBQUERY, "false");
@@ -42,6 +44,13 @@ public class StressTestCentos extends AbstractTripleStoreTestCase {
         
         try {
 
+            if(!store.isQuads()) {
+                
+                // The test as written is specific to a quad store.
+                return;
+                
+            }
+            
             /*
              * Populate N graphs of M statements each.
              */

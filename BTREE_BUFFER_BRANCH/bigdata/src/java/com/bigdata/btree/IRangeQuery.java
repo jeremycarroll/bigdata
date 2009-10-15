@@ -277,8 +277,8 @@ public interface IRangeQuery {
      * {@link ILocalBTreeView} and is not passed through to the
      * {@link IDataService}.
      * 
-     * FIXME This flag has not been implemented yet. The main use cases are
-     * access path scans and joins for high-level query.
+     * @todo This flag is not supported in combination with {@link #CURSOR}?
+     * @todo This flag is not supported in combination with {@link #REVERSE}?
      */
     public static final int PARALLEL = 1 << 8;
     

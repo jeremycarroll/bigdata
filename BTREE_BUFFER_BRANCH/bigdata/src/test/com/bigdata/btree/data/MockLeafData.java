@@ -9,7 +9,7 @@ import com.bigdata.io.AbstractFixedByteArrayBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-class MockLeafData extends AbstractMockNodeData implements ILeafData {
+public class MockLeafData extends AbstractMockNodeData implements ILeafData {
 
     final private IRaba vals;
 

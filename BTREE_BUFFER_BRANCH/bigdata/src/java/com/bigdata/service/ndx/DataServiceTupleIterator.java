@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Sep 21, 2007
  */
 
-package com.bigdata.service;
+package com.bigdata.service.ndx;
 
 import java.util.Iterator;
 
@@ -34,8 +34,7 @@ import com.bigdata.btree.proc.BatchRemove.BatchRemoveConstructor;
 import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.ITx;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.ndx.ClientIndexView;
-import com.bigdata.service.ndx.IScaleOutClientIndex;
+import com.bigdata.service.IDataService;
 
 /**
  * Class supports range query across against an unpartitioned index on an
@@ -45,11 +44,6 @@ import com.bigdata.service.ndx.IScaleOutClientIndex;
  * @version $Id$
  */
 public class DataServiceTupleIterator<E> extends RawDataServiceTupleIterator<E> {
-    
-//    protected static final transient Logger log = Logger
-//            .getLogger(DataServiceTupleIterator.class);
-//
-//    protected static final boolean INFO = log.isInfoEnabled();
     
     /**
      * Used to submit delete requests to the scale-out index in a robust
@@ -110,15 +104,15 @@ public class DataServiceTupleIterator<E> extends RawDataServiceTupleIterator<E> 
      * <p>
      * The caller MUST test any thrown exception. If the exception is, or wraps,
      * a {@link StaleLocatorException}, then the caller MUST refresh its
-     * {@link IPartitionLocatorMetadata locators}s for the key range of the
-     * index partition that it thought it was traversing, and then continue
-     * traversal based on the revised locators(s).
+     * {@link IPartitionLocatorMetadata locator} for the key range of the index
+     * partition that it thought it was traversing, and then continue traversal
+     * based on the revised locators(s).
      * <p>
      * Note: The {@link StaleLocatorException} CAN NOT arise from any other
      * method since only
-     * {@link #getResultSet(byte[], byte[], int, int, IFilterConstructor)} actually
-     * reads from the {@link IDataService} and ALL calls to that method are
-     * driven by {@link #hasNext()}.
+     * {@link #getResultSet(byte[], byte[], int, int, IFilterConstructor)}
+     * actually reads from the {@link IDataService} and ALL calls to that method
+     * are driven by {@link #hasNext()}.
      * <p>
      * Note: The methods that handle delete-behind use the
      * {@link ClientIndexView} to be robust and therefore will never throw a
@@ -131,7 +125,7 @@ public class DataServiceTupleIterator<E> extends RawDataServiceTupleIterator<E> 
     }
         
     @Override
-    protected void deleteBehind(int n, Iterator<byte[]> itr) {
+    protected void deleteBehind(final int n, final Iterator<byte[]> itr) {
 
         final byte[][] keys = new byte[n][];
         
@@ -153,7 +147,7 @@ public class DataServiceTupleIterator<E> extends RawDataServiceTupleIterator<E> 
     }
 
     @Override
-    protected void deleteLast(byte[] key) {
+    protected void deleteLast(final byte[] key) {
 
         /*
          * Let the index view handle the delete in a robust manner.

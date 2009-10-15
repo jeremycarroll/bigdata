@@ -488,11 +488,12 @@ abstract public class AbstractChunkedTupleIterator<E> implements ITupleIterator<
 
         lastVisited++; // index of last visited tuple in current result set.
 
-        return tuple;
+        return tuple = new ResultSetTuple(rset, lastVisited);
 
     }
 
-    final private ResultSetTuple tuple = new ResultSetTuple();
+    /** The last tuple returned by #next(). */
+    private ResultSetTuple tuple = null;
 
     /**
      * An {@link ITuple} that draws its data from a {@link ResultSet}.
@@ -500,10 +501,16 @@ abstract public class AbstractChunkedTupleIterator<E> implements ITupleIterator<
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    public class ResultSetTuple implements ITuple<E> {
+    private class ResultSetTuple implements ITuple<E> {
 
-        protected ResultSetTuple() {
+        private final ResultSet rset;
+        private final int lastVisited;
+        
+        protected ResultSetTuple(final ResultSet rset, final int lastVisited) {
 
+            this.rset = rset;
+            this.lastVisited = lastVisited;
+            
         }
 
         public int getSourceIndex() {

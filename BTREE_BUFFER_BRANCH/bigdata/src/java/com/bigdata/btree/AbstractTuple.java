@@ -550,7 +550,7 @@ public abstract class AbstractTuple<E> implements ITuple<E> {
      *            
      * @return The {@link String} representation of that {@link ITuple}.
      */
-    public static String toString(ITuple tuple) {
+    public static String toString(final ITuple tuple) {
 
         Object obj;
         try {
@@ -563,7 +563,7 @@ public abstract class AbstractTuple<E> implements ITuple<E> {
              * Note: The most common error here is an attempt to de-serialize a
              * byte[] that does not in fact contain a serialized object. This
              * typically happens when the DefaultTupleSerializer was not
-             * overriden with a NOPTupleSerializer and the application (or often
+             * overridden with a NOPTupleSerializer and the application (or often
              * the test case) is storing byte[]s rather than Objects.
              */
             obj = t.getMessage();
@@ -601,8 +601,8 @@ public abstract class AbstractTuple<E> implements ITuple<E> {
                         + (obj instanceof byte[] ? Arrays
                                 .toString((byte[]) obj) : obj));
 
-        sb.append(", sourceIndex="+tuple.getSourceIndex());
-        
+        sb.append(", sourceIndex=" + tuple.getSourceIndex());
+
         sb.append("}");
 
         return sb.toString();

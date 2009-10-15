@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.spo;
 
-import java.io.Serializable;
 import java.util.Arrays;
 
 import org.openrdf.model.Resource;
@@ -428,7 +427,7 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
 
                 assertEquals(actual.getKnownGraphCount(), expected.getKnownGraphCount());
 
-                assertSameItr(new BigdataURI[] { c1, c2 }, actual.getGraphs());
+                assertSameIterator(new BigdataURI[] { c1, c2 }, actual.getGraphs());
                 
             }
             

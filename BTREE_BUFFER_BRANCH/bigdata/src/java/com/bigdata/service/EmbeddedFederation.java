@@ -87,7 +87,6 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
     
     /**
      * True if the federation is not backed by disk.
-     * @return
      */
     private final boolean isTransient;
     
@@ -415,13 +414,7 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
             
             if (isTransient) {
 
-                /*
-                 * FIXME The LBS needs to support a 'transient' option in which
-                 * it (a) does not log counters; and (b) keeps the events in a
-                 * transient B+Tree (not backed by a file on the disk).
-                 */
-                throw new UnsupportedOperationException(
-                        "LBS does not support transient option yet.");
+                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
 
             } else {
                 
