@@ -203,6 +203,11 @@ public class LRUNexus {
          * than the {@link HardReferenceGlobalLRU} but I want to test the
          * {@link HardReferenceGlobalLRU} more throughly on high throughput
          * cluster data loads to make sure that it is performing correctly.
+         * <p>
+         * Note: It is also possible that the {@link HardReferenceGlobalLRU}
+         * causes problems with the tenured generation since the Entry instances
+         * are always new, but they could last quite a while before eviction
+         * from the LRU position if there is a large heap.
          */
         String DEFAULT_CLASS = HardReferenceGlobalLRURecycler.class.getName();
 
