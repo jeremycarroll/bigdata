@@ -198,7 +198,13 @@ public class LRUNexus {
          */
         String CLASS = LRUNexus.class.getName() + ".class";
 
-        String DEFAULT_CLASS = HardReferenceGlobalLRU.class.getName();
+        /**
+         * FIXME The {@link HardReferenceGlobalLRURecycler} has less throughput
+         * than the {@link HardReferenceGlobalLRU} but I want to test the
+         * {@link HardReferenceGlobalLRU} more throughly on high throughput
+         * cluster data loads to make sure that it is performing correctly.
+         */
+        String DEFAULT_CLASS = HardReferenceGlobalLRURecycler.class.getName();
 
         /**
          * The load factor for the cache instances.
