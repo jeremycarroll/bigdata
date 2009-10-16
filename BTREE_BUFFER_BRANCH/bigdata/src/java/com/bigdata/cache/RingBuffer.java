@@ -492,12 +492,11 @@ public class RingBuffer<T> implements Queue<T> {
     final public boolean scanHead(final int nscan, final T ref) {
 
         assert nscan > 0;
-        assert ref != null;
 //        if (nscan <= 0)
 //            throw new IllegalArgumentException();
 //        
-//        if (ref == null)
-//            throw new IllegalArgumentException();
+        if (ref == null)
+            throw new IllegalArgumentException();
         
         /*
          * Note: This loop goes backwards from the head.  Since the head is the

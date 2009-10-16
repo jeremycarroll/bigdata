@@ -141,7 +141,7 @@ public class TestSameVariableConstraint extends TestCase2 {
     // (a,?b,c,?b)
     // (a,b,?c,?c)
     // (a,?b,?c,?c)
-    // FIXME TEST THIS NEXT : (?a,?a,?a,d) 
+    // (?a,?a,?a,d) 
     public void test_one_dup() {
 
         {
@@ -261,6 +261,18 @@ public class TestSameVariableConstraint extends TestCase2 {
             assertNotNull(constraint);
 
             assertEquals(new int[] { 2, 0, 1 }, constraint.indices);
+
+        }
+
+        {
+
+            final SameVariableConstraint<ISPO> constraint = SameVariableConstraint
+                    .newInstance(new SPOPredicate(relationName,//
+                            Var.var("a"), Var.var("a"), Var.var("a"), Var.var("d")));
+
+            assertNotNull(constraint);
+
+            assertEquals(new int[] { 3, 0, 1, 2 }, constraint.indices);
 
         }
 

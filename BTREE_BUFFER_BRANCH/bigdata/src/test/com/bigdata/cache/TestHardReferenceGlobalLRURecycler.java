@@ -29,26 +29,25 @@ package com.bigdata.cache;
 
 import com.bigdata.rawstore.Bytes;
 
-
 /**
- * Some unit tests for the {@link HardReferenceGlobalLRU}.
+ * Some unit tests for the {@link HardReferenceGlobalLRURecycler}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestHardReferenceGlobalLRU extends
+public class TestHardReferenceGlobalLRURecycler extends
         AbstractHardReferenceGlobalLRUTest {
 
     /**
      * 
      */
-    public TestHardReferenceGlobalLRU() {
+    public TestHardReferenceGlobalLRURecycler() {
     }
 
     /**
      * @param name
      */
-    public TestHardReferenceGlobalLRU(String name) {
+    public TestHardReferenceGlobalLRURecycler(String name) {
         super(name);
     }
 
@@ -64,8 +63,9 @@ public class TestHardReferenceGlobalLRU extends
 
         final float loadFactor = .75f;
 
-        lru = new HardReferenceGlobalLRU<Long, Object>(maximumBytesInMemory,
-                minimumCacheSetCapacity, initialCacheCapacity, loadFactor);
+        lru = new HardReferenceGlobalLRURecycler<Long, Object>(
+                maximumBytesInMemory, minimumCacheSetCapacity,
+                initialCacheCapacity, loadFactor);
 
     }
 
