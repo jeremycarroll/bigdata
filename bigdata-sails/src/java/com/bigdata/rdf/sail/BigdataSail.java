@@ -736,8 +736,6 @@ public class BigdataSail extends SailBase implements Sail {
      * <strong>DO NOT INVOKE FROM APPLICATION CODE</strong> - this method
      * deletes the KB instance and destroys the backing database instance. It is
      * used to help tear down unit tests.
-     * 
-     * FIXME rename as __tearDownUnitTest.
      */
     void __tearDownUnitTest() {
         
