@@ -502,7 +502,8 @@ public class HardReferenceGlobalLRU<K, V> implements
     /**
      * A (key,value) pair for insertion into an {@link LRUCacheImpl} with a
      * (prior,next) reference used to maintain a double-linked list across all
-     * {@link LRUCacheImpl}s for a given {@link HardReferenceGlobalLRU}. This
+     * {@link LRUCacheImpl}s for a given {@link HardReferenceGlobalLRU}. Since
+     * the outer class does not recycle the LRU {@link Entry} on eviction, this
      * implementation is immutable except for its (prior,next) links.
      * 
      * @version $Id$
@@ -519,13 +520,13 @@ public class HardReferenceGlobalLRU<K, V> implements
         private final V v;
 
         /** The owning cache for this entry. */
-        final private LRUCacheImpl<K,V> cache;
+        private final LRUCacheImpl<K,V> cache;
         
         /** The bytes in memory for this entry. */
-        final int bytesInMemory;
+        private final int bytesInMemory;
         
         /** The bytes on disk for this entry. */
-        final int bytesOnDisk;
+        private final int bytesOnDisk;
         
         Entry(final LRUCacheImpl<K,V> cache, final K k, final V v) {
 
@@ -1079,7 +1080,7 @@ public class HardReferenceGlobalLRU<K, V> implements
 
                     assert entry != null;
                     
-                    // set key and object on LRU entry.
+                    // New LRU entry.
                     entry = new Entry<K, V>(this, k, v);
 
                     // add entry into the hash map.
@@ -1200,7 +1201,12 @@ public class HardReferenceGlobalLRU<K, V> implements
             globalLRU.lock.lock();
 
             try {
-        
+
+                /*
+                 * Note: It is save to remove this Entry even though we obtained
+                 * it outside of the lock because the Entry is immutable.
+                 */
+
                 return globalLRU.removeEntry(entry);
                 
             } finally {
