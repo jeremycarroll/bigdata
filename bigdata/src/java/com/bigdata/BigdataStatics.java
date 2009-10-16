@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata;
 
+import com.bigdata.jini.start.process.ProcessHelper;
+
 /**
  * A class for those few statics that it makes sense to reference from other
  * places.
@@ -42,5 +44,16 @@ public class BigdataStatics {
      * messages are coming from. This should always be off in the trunk.
      */
     public static final boolean debug = false;
+
+    /**
+     * The #of lines of output from a child process which will be echoed onto
+     * {@link System#out} when that child process is executed. This makes it
+     * easy to track down why a child process dies during service start. If you
+     * want to see more output from the child process, then you should set the
+     * log level for the {@link ProcessHelper} class to INFO.
+     * 
+     * @see ProcessHelper
+     */
+    public static int echoProcessStartupLineCount = 20;
     
 }

@@ -12,7 +12,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 import org.apache.system.SystemUtil;
@@ -46,7 +45,7 @@ public class ProcessHelper {
     private final ReentrantLock lock = new ReentrantLock();
     
     /**
-     * Signalled if we notice that the process has died by the thread which is
+     * Signaled if we notice that the process has died by the thread which is
      * monitoring its output.
      */
     private final Condition dead = lock.newCondition();
@@ -376,6 +375,8 @@ public class ProcessHelper {
      */
     protected void consumeOutput() {
 
+        long nlines = 0;
+        
         try {
 
             final BufferedReader is = new BufferedReader(new InputStreamReader(
@@ -389,8 +390,11 @@ public class ProcessHelper {
              */
             while ((s = is.readLine()) != null) {
 
-                if (BigdataStatics.debug)
-                    System.err.println(name + " : " + s);
+                if (nlines++ < BigdataStatics.echoProcessStartupLineCount) {
+
+                    System.out.println(name + " : " + s);
+
+                }
                 
                 if (log.isInfoEnabled())
                     log.info(s);
