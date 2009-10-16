@@ -344,7 +344,7 @@ public class LRUNexus {
                                     + ", initialCacheCapacity="
                                     + initialCacheCapacity
                                     + ", minCacheSetSize=" + minCacheSetSize
-                                    + ", cls=" + cls);
+                                    + ", cls=" + cls.getName());
 
                 if (maximumBytesInMemory > 0) {
 
