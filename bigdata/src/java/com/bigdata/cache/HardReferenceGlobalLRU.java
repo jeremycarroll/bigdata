@@ -30,9 +30,12 @@ package com.bigdata.cache;
 import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.bigdata.BigdataStatics;
@@ -713,6 +716,11 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
          * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
          *         Thompson</a>
          * @version $Id$
+         * 
+         * @todo Do these counters need to be volatile or {@link AtomicLong}s in
+         *       order to be consistent? They are updated inside of a
+         *       {@link Lock}, but that does not help with their visibility,
+         *       does it?
          */
         private class LRUCacheCounters {
 
@@ -846,11 +854,15 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
         /**
          * The hash map from keys to entries wrapping cached object references.
          * <p>
-         * Note: A concurrent map is used to permit concurrent tests against the
-         * map without requiring us to hold the shared
-         * {@link HardReferenceGlobalLRU#lock}.
+         * Note: A {@link ConcurrentHashMap} may be used to permit concurrent
+         * tests against the map without requiring us to hold the shared
+         * {@link HardReferenceGlobalLRU#lock} IFF the
+         * {@link #putIfAbsent(Object, Object)} method is modified to NOT
+         * recycle the LRU {@link Entry}. Otherwise use a {@link LinkedHashMap}
+         * for faster iterator traversal. When using the {@link LinkedHashMap}
+         * note that ALL access must be protected, including {@link #size}.
          */
-        private final ConcurrentHashMap<K, HardReferenceGlobalLRU.Entry<K, V>> map;
+        private final Map<K, Entry<K, V>> map;
 
         /**
          * Create an LRU cache with the specific initial capacity and load
@@ -915,21 +927,29 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
             
             this.globalLRU = lru;
 
-            this.map = new ConcurrentHashMap<K, HardReferenceGlobalLRU.Entry<K, V>>(
-                    initialCapacity, loadFactor);
+//            this.map = new ConcurrentHashMap<K, Entry<K, V>>(initialCapacity,
+//                    loadFactor);
+            this.map = new LinkedHashMap<K, Entry<K, V>>(initialCapacity,
+                    loadFactor);
 
         }
 
         public IAddressManager getAddressManager() {
+
             return am;
+            
         }
 
         public File getStoreFile() {
+            
             return file;
+            
         }
 
         public UUID getStoreUUID() {
+            
             return storeUUID;
+            
         }
 
         /**
@@ -942,12 +962,12 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
             
             try {
             
-                final Iterator<HardReferenceGlobalLRU.Entry<K, V>> itr = map
+                final Iterator<Entry<K, V>> itr = map
                         .values().iterator();
                 
                 while (itr.hasNext()) {
 
-                    final HardReferenceGlobalLRU.Entry<K, V> e = itr.next();
+                    final Entry<K, V> e = itr.next();
 
                     // remove entry from the map.
                     itr.remove();
@@ -972,19 +992,42 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
          */
         public int size() {
 
-            return map.size();
+            globalLRU.lock.lock();
+            
+            try {
+                
+                return map.size();
+                
+            } finally {
+                
+                globalLRU.lock.unlock();
+                
+            }
 
         }
 
+        /**
+         * {@inheritDoc}
+         * 
+         * Note: When the LRU is full and the given key is not in the cache,
+         * this implementation will <em>recycle</em> the evicted LRU
+         * {@link Entry} for the incoming MRU {@link Entry}. This means that the
+         * (key,value) pair stored in an {@link Entry} can change at any time
+         * unless you are holding the shared {@link ReentrantLock}.
+         */
         public V putIfAbsent(final K k, final V v) {
 
-            assert k != null;
+            if (k == null)
+                throw new IllegalArgumentException();
+
+            if (v == null)
+                throw new IllegalArgumentException();
 
             globalLRU.lock.lock();
             
             try {
 
-                HardReferenceGlobalLRU.Entry<K, V> entry = map.get(k);
+                Entry<K, V> entry = map.get(k);
 
                 if (entry != null) {
 
@@ -1066,7 +1109,7 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                  * Create a new entry and link into the MRU position.
                  */
 
-                entry = new HardReferenceGlobalLRU.Entry<K, V>();
+                entry = new Entry<K, V>();
 
                 entry.set(this, k, v);
 
@@ -1097,23 +1140,47 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
 
         public V get(final K key) {
 
-            assert key != null;
+            if (key == null)
+                throw new IllegalArgumentException();
 
-            counters.ntests++;
-
-            final HardReferenceGlobalLRU.Entry<K, V> entry = map.get(key);
-
-            if (entry == null) {
-
-                return null;
-
-            }
+//            final Entry<K, V> entry = map.get(key);
+//
+//            if (entry == null) {
+//
+//                return null;
+//
+//            }
 
             globalLRU.lock.lock();
 
             try {
 
+                /*
+                 * Note: This test needs to be done while holding the global
+                 * lock since the LRU can reuse the LRU Entry instance when it
+                 * is evicted as the MRU Entry object. If you want to do this
+                 * test outside of the lock, then the code needs to be modified
+                 * to allocate a new Entry object on insert. If the test is done
+                 * outside of the lock, then you can use a ConcurrentHashMap for
+                 * the map to avoid concurrent modification issues. Otherwise,
+                 * use a LinkedHashMap for a faster iterator.
+                 */
+ 
+                final Entry<K, V> entry = map.get(key);
+
+                counters.ntests++;
+
+                if (entry == null) {
+
+                    return null;
+
+                }
+
                 globalLRU.touchEntry(entry);
+
+                counters.nsuccess++;
+
+                return entry.v;
                 
             } finally {
                 
@@ -1121,17 +1188,14 @@ public class HardReferenceGlobalLRU<K, V> implements IGlobalLRU<K,V> {
                 
             }
 
-            counters.nsuccess++;
-
-            return entry.v;
-
         }
 
         public V remove(final K key) {
 
-            assert key != null;
+            if (key == null)
+                throw new IllegalArgumentException();
 
-            final HardReferenceGlobalLRU.Entry<K, V> entry = map.remove(key);
+            final Entry<K, V> entry = map.remove(key);
 
             if (entry == null)
                 return null;
