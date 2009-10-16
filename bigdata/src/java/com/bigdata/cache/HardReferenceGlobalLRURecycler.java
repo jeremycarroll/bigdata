@@ -507,22 +507,22 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
      */
     final private static class Entry<K, V> {
 
-        private K k;
-
-        private V v;
-
         private Entry<K, V> prior;
 
         private Entry<K, V> next;
+
+        private K k;
+
+        private V v;
 
         /** The owning cache for this entry. */
         private volatile LRUCacheImpl<K,V> cache;
         
         /** The bytes in memory for this entry. */
-        int bytesInMemory;
+        private int bytesInMemory;
         
         /** The bytes on disk for this entry. */
-        int bytesOnDisk;
+        private int bytesOnDisk;
         
         Entry() {
         }
