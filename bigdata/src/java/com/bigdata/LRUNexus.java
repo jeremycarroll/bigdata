@@ -35,6 +35,7 @@ import org.apache.log4j.Logger;
 import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.cache.HardReferenceGlobalLRU;
+import com.bigdata.cache.HardReferenceGlobalLRURecycler;
 import com.bigdata.cache.IGlobalLRU;
 import com.bigdata.cache.StoreAndAddressLRUCache;
 import com.bigdata.cache.WeakReferenceGlobalLRU;
@@ -414,6 +415,12 @@ public class LRUNexus {
                     } else if (cls == HardReferenceGlobalLRU.class) {
 
                         tmp = new HardReferenceGlobalLRU<Long, Object>(
+                                maximumBytesInMemory, minCacheSetSize,
+                                initialCacheCapacity, loadFactor);
+
+                    } else if (cls == HardReferenceGlobalLRURecycler.class) {
+
+                        tmp = new HardReferenceGlobalLRURecycler<Long, Object>(
                                 maximumBytesInMemory, minCacheSetSize,
                                 initialCacheCapacity, loadFactor);
 

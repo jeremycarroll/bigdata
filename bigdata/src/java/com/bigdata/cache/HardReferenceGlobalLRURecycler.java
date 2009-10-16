@@ -55,14 +55,12 @@ import com.bigdata.rawstore.WormAddressManager;
 /**
  * A collection of hard reference hash maps backed by a single Least Recently
  * Used (LRU) ordering over entries. This is used to impose a shared LRU policy
- * on the cache for a set of {@link IRawStore}s. This implementation DOES NOT
- * recycle the LRU {@link Entry} when it is evicted and therefore DOES NOT
- * require us to obtain the lock before testing the inner {@link LRUCacheImpl}'s
- * map. In order to allow concurrent tests on that map, a
- * {@link ConcurrentHashMap} is used. This allows higher concurrency on
- * {@link LRUCacheImpl#get(Object)}, but trades off by having a slower iterator.
- * When compared to the {@link HardReferenceGlobalLRURecycler}, this
- * implementation has approximately 10% higher throughput.
+ * on the cache for a set of {@link IRawStore}s. The LRU {@link Entry} is
+ * recycled on eviction as the MRU {@link Entry}, which requires tests against
+ * the inner {@link LRUCacheImpl}'s map to be made while holding the lock. This
+ * allows us to use a {@link LinkedHashMap}, which has a faster iterator, but
+ * requiring the lock to test the inner cache limits concurrency and has been
+ * observed to limit throughput by about 10%.
  * 
  * @version $Id$
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson
@@ -77,7 +75,7 @@ import com.bigdata.rawstore.WormAddressManager;
  *       for those objects and hence the LRU eviction policy will not account
  *       for their memory footprint?
  */
-public class HardReferenceGlobalLRU<K, V> implements
+public class HardReferenceGlobalLRURecycler<K, V> implements
         IHardReferenceGlobalLRU<K, V> {
 
     /**
@@ -148,7 +146,7 @@ public class HardReferenceGlobalLRU<K, V> implements
      * @param loadFactor
      *            The load factor for the cache instances.
      */
-    public HardReferenceGlobalLRU(final long maximumBytesInMemory,
+    public HardReferenceGlobalLRURecycler(final long maximumBytesInMemory,
             final int minimumCacheSetCapacity, final int initialCacheCapacity,
             final float loadFactor) {
 
@@ -353,7 +351,7 @@ public class HardReferenceGlobalLRU<K, V> implements
     }
     
     /**
-     * Counters for the {@link HardReferenceGlobalLRU}.
+     * Counters for the {@link HardReferenceGlobalLRURecycler}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
@@ -415,7 +413,7 @@ public class HardReferenceGlobalLRU<K, V> implements
                     new Instrument<Double>() {
                         @Override
                         protected void sample() {
-                            setValue(((int) (10000 * bytesInMemory.get() / (double) HardReferenceGlobalLRU.this.maximumBytesInMemory)) / 10000d);
+                            setValue(((int) (10000 * bytesInMemory.get() / (double) HardReferenceGlobalLRURecycler.this.maximumBytesInMemory)) / 10000d);
                         }
                     });
 
@@ -423,14 +421,14 @@ public class HardReferenceGlobalLRU<K, V> implements
                     .addCounter(
                             IGlobalLRU.IGlobalLRUCounters.MAXIMUM_ALLOWED_BYTES_IN_MEMORY,
                             new OneShotInstrument<Long>(
-                                    HardReferenceGlobalLRU.this.maximumBytesInMemory));
+                                    HardReferenceGlobalLRURecycler.this.maximumBytesInMemory));
 
             counters.addCounter(
                     IGlobalLRU.IGlobalLRUCounters.BUFFERED_RECORD_COUNT,
                     new Instrument<Integer>() {
                         @Override
                         protected void sample() {
-                            setValue(HardReferenceGlobalLRU.this.size);
+                            setValue(HardReferenceGlobalLRURecycler.this.size);
                         }
                     });
 
@@ -449,7 +447,7 @@ public class HardReferenceGlobalLRU<K, V> implements
                             new Instrument<Integer>() {
                                 @Override
                                 protected void sample() {
-                                    final long tmp = HardReferenceGlobalLRU.this.size;
+                                    final long tmp = HardReferenceGlobalLRURecycler.this.size;
                                     if (tmp == 0) {
                                         setValue(0);
                                         return;
@@ -463,7 +461,7 @@ public class HardReferenceGlobalLRU<K, V> implements
                     new Instrument<Integer>() {
                         @Override
                         protected void sample() {
-                            final long tmp = HardReferenceGlobalLRU.this.size;
+                            final long tmp = HardReferenceGlobalLRURecycler.this.size;
                             if (tmp == 0) {
                                 setValue(0);
                                 return;
@@ -502,32 +500,34 @@ public class HardReferenceGlobalLRU<K, V> implements
     /**
      * A (key,value) pair for insertion into an {@link LRUCacheImpl} with a
      * (prior,next) reference used to maintain a double-linked list across all
-     * {@link LRUCacheImpl}s for a given {@link HardReferenceGlobalLRU}. This
-     * implementation is immutable except for its (prior,next) links.
+     * {@link LRUCacheImpl}s for a given {@link HardReferenceGlobalLRURecycler}.
      * 
      * @version $Id$
      * @author thompsonbry
      */
     final private static class Entry<K, V> {
 
+        private K k;
+
+        private V v;
+
         private Entry<K, V> prior;
 
         private Entry<K, V> next;
 
-        private final K k;
-
-        private final V v;
-
         /** The owning cache for this entry. */
-        final private LRUCacheImpl<K,V> cache;
+        private volatile LRUCacheImpl<K,V> cache;
         
         /** The bytes in memory for this entry. */
-        final int bytesInMemory;
+        int bytesInMemory;
         
         /** The bytes on disk for this entry. */
-        final int bytesOnDisk;
+        int bytesOnDisk;
         
-        Entry(final LRUCacheImpl<K,V> cache, final K k, final V v) {
+        Entry() {
+        }
+        
+        private void set(final LRUCacheImpl<K,V> cache, final K k, final V v) {
 
             this.k = k;
             
@@ -605,7 +605,7 @@ public class HardReferenceGlobalLRU<K, V> implements
     private V removeEntry(final Entry<K, V> e) {
         if(!lock.isHeldByCurrentThread())
             throw new IllegalMonitorStateException();
-        //if(e.cache==null) return null;
+        if(e.cache==null) return null;
         final Entry<K, V> prior = e.prior;
         final Entry<K, V> next = e.next;
         if (e == first) {
@@ -623,13 +623,13 @@ public class HardReferenceGlobalLRU<K, V> implements
         final V clearedValue = e.v;
         e.prior = null;
         e.next = null;
-        //e.cache = null; // clear reference to the cache.
-        //e.k = null; // clear the key.
-        //e.v = null; // clear the value reference.
+        e.cache = null; // clear reference to the cache.
+        e.k = null; // clear the key.
+        e.v = null; // clear the value reference.
         size--;
         counters.bytesInMemory.addAndGet(-e.bytesInMemory);
         counters.bytesOnDisk.addAndGet(-e.bytesOnDisk);
-        //e.bytesInMemory = e.bytesOnDisk = 0;
+        e.bytesInMemory = e.bytesOnDisk = 0;
         return clearedValue;
     }
 
@@ -686,7 +686,7 @@ public class HardReferenceGlobalLRU<K, V> implements
      * A hard reference hash map backed by a shared Least Recently Used (LRU)
      * ordering over entries.
      * <p>
-     * Note: Thread-safety is enforced using {@link HardReferenceGlobalLRU#lock}
+     * Note: Thread-safety is enforced using {@link HardReferenceGlobalLRURecycler#lock}
      * . Nested locking, such as using <code>synchronized</code> on the
      * instances of this class can cause deadlocks because evictions may be made
      * from any {@link LRUCacheImpl} when the LRU entry is evicted from the
@@ -841,20 +841,20 @@ public class HardReferenceGlobalLRU<K, V> implements
         /**
          * The shared LRU.
          */
-        private final HardReferenceGlobalLRU<K, V> globalLRU;
+        private final HardReferenceGlobalLRURecycler<K, V> globalLRU;
 
         /**
          * The hash map from keys to entries wrapping cached object references.
          * <p>
          * Note: A {@link ConcurrentHashMap} may be used to permit concurrent
          * tests against the map without requiring us to hold the shared
-         * {@link HardReferenceGlobalLRU#lock} IFF the
+         * {@link HardReferenceGlobalLRURecycler#lock} IFF the
          * {@link #putIfAbsent(Object, Object)} method is modified to NOT
          * recycle the LRU {@link Entry}. Otherwise use a {@link LinkedHashMap}
          * for faster iterator traversal. When using the {@link LinkedHashMap}
          * note that ALL access must be protected, including {@link #size}.
          */
-        private final ConcurrentHashMap<K, Entry<K, V>> map;
+        private final LinkedHashMap<K, Entry<K, V>> map;
 
         /**
          * Create an LRU cache with the specific initial capacity and load
@@ -881,7 +881,7 @@ public class HardReferenceGlobalLRU<K, V> implements
          */
         public LRUCacheImpl(final UUID storeUUID,
                 final Class<? extends IRawStore> cls, final IAddressManager am,
-                final File file, final HardReferenceGlobalLRU<K, V> lru,
+                final File file, final HardReferenceGlobalLRURecycler<K, V> lru,
                 final int initialCapacity, final float loadFactor) {
 
             if (storeUUID == null)
@@ -919,10 +919,10 @@ public class HardReferenceGlobalLRU<K, V> implements
             
             this.globalLRU = lru;
 
-            this.map = new ConcurrentHashMap<K, Entry<K, V>>(initialCapacity,
-                    loadFactor);
-//            this.map = new LinkedHashMap<K, Entry<K, V>>(initialCapacity,
+//            this.map = new ConcurrentHashMap<K, Entry<K, V>>(initialCapacity,
 //                    loadFactor);
+            this.map = new LinkedHashMap<K, Entry<K, V>>(initialCapacity,
+                    loadFactor);
 
         }
 
@@ -984,17 +984,17 @@ public class HardReferenceGlobalLRU<K, V> implements
          */
         public int size() {
 
-//            globalLRU.lock.lock();
-//            
-//            try {
+            globalLRU.lock.lock();
+            
+            try {
                 
                 return map.size();
                 
-//            } finally {
-//                
-//                globalLRU.lock.unlock();
-//                
-//            }
+            } finally {
+                
+                globalLRU.lock.unlock();
+                
+            }
 
         }
 
@@ -1074,13 +1074,13 @@ public class HardReferenceGlobalLRU<K, V> implements
                     }
 
                     /*
-                     * DO NOT recycle the last cache entry that we purged!!!
+                     * Recycle the last cache entry that we purged.
                      */
 
                     assert entry != null;
                     
                     // set key and object on LRU entry.
-                    entry = new Entry<K, V>(this, k, v);
+                    entry.set(this, k, v);
 
                     // add entry into the hash map.
                     map.put(k, entry);
@@ -1101,7 +1101,9 @@ public class HardReferenceGlobalLRU<K, V> implements
                  * Create a new entry and link into the MRU position.
                  */
 
-                entry = new Entry<K, V>(this, k, v);
+                entry = new Entry<K, V>();
+
+                entry.set(this, k, v);
 
                 map.put(k, entry);
 
@@ -1133,45 +1135,38 @@ public class HardReferenceGlobalLRU<K, V> implements
             if (key == null)
                 throw new IllegalArgumentException();
 
-            counters.ntests++;
-
-            /*
-             * Note: Placing this test outside of the lock is faster, but the
-             * code can not recycle the LRU Entry on eviction and the iterator
-             * over the map entries will be slower since we have to use a
-             * ConcurrentHashMap to avoid concurrent modification problems.
-             */
-
-            final Entry<K, V> entry = map.get(key);
-
-            if (entry == null) {
-
-                return null;
-
-            }
+//            final Entry<K, V> entry = map.get(key);
+//
+//            if (entry == null) {
+//
+//                return null;
+//
+//            }
 
             globalLRU.lock.lock();
 
             try {
 
-//                /*
-//                 * Note: This test needs to be done while holding the global
-//                 * lock since the LRU can reuse the LRU Entry instance when it
-//                 * is evicted as the MRU Entry object. If you want to do this
-//                 * test outside of the lock, then the code needs to be modified
-//                 * to allocate a new Entry object on insert. If the test is done
-//                 * outside of the lock, then you can use a ConcurrentHashMap for
-//                 * the map to avoid concurrent modification issues. Otherwise,
-//                 * use a LinkedHashMap for a faster iterator.
-//                 */
-// 
-//                final Entry<K, V> entry = map.get(key);
-//
-//                if (entry == null) {
-//
-//                    return null;
-//
-//                }
+                /*
+                 * Note: This test needs to be done while holding the global
+                 * lock since the LRU can reuse the LRU Entry instance when it
+                 * is evicted as the MRU Entry object. If you want to do this
+                 * test outside of the lock, then the code needs to be modified
+                 * to allocate a new Entry object on insert. If the test is done
+                 * outside of the lock, then you can use a ConcurrentHashMap for
+                 * the map to avoid concurrent modification issues. Otherwise,
+                 * use a LinkedHashMap for a faster iterator.
+                 */
+ 
+                final Entry<K, V> entry = map.get(key);
+
+                counters.ntests++;
+
+                if (entry == null) {
+
+                    return null;
+
+                }
 
                 globalLRU.touchEntry(entry);
 
@@ -1192,15 +1187,21 @@ public class HardReferenceGlobalLRU<K, V> implements
             if (key == null)
                 throw new IllegalArgumentException();
 
-            final Entry<K, V> entry = map.remove(key);
-
-            if (entry == null)
-                return null;
-
             globalLRU.lock.lock();
 
             try {
-        
+
+                /*
+                 * Note: must be invoked while holding the lock since the map is
+                 * not thread safe and since the LRU Entry can be recycled at
+                 * any time if we are not holding the lock.
+                 */
+                
+                final Entry<K, V> entry = map.remove(key);
+
+                if (entry == null)
+                    return null;
+
                 return globalLRU.removeEntry(entry);
                 
             } finally {
