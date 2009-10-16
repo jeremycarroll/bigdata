@@ -821,8 +821,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * document have been buffered.  This is used to close the TERM2ID buffer in
      * a timely manner in {@link #close()}.
      */
-    private final Latch bufferGuard_term2Id = new Latch("guard_term2Id",
-            lock);
+    private final Latch guardLatch_term2Id = new Latch("guard_term2Id", lock);
 
     /**
      * {@link Latch} guarding tasks until they have buffered their writes on the
@@ -830,9 +829,14 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * for a given document have been buffered. This is used to close the other
      * buffers in a timely manner in {@link #close()}.
      */
-    private final Latch bufferGuard_other = new Latch("guard_other",
-            lock);
-    
+    private final Latch guardLatch_other = new Latch("guard_other", lock);
+
+    /**
+     * {@link Latch} guarding the notify service until all notices have been
+     * delivered.
+     */
+    private final Latch guardLatch_notify = new Latch("guard_notify", lock);
+
     /*
      * Parser service pause/resume.
      */
@@ -1827,17 +1831,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
             }
 
-//            if (buffer_spo.getFuture().isDone())
-//                return true;
-//
-//            if (buffer_pos != null)
-//                if (buffer_pos.getFuture().isDone())
-//                    return true;
-//
-//            if (buffer_osp != null)
-//                if (buffer_osp.getFuture().isDone())
-//                    return true;
-
             if (parserService.isTerminated())
                 return true;
 
@@ -1851,6 +1844,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                 return true;
 
             return false;
+            
         } finally {
 
             lock.unlock();
@@ -1881,14 +1875,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                 buffer.getFuture().cancel(mayInterruptIfRunning);
 
         }
-        
-//        buffer_spo.getFuture().cancel(mayInterruptIfRunning);
-//
-//        if (buffer_pos != null)
-//            buffer_pos.getFuture().cancel(mayInterruptIfRunning);
-//
-//        if (buffer_osp != null)
-//            buffer_osp.getFuture().cancel(mayInterruptIfRunning);
 
         notifyEnd();
 
@@ -1917,7 +1903,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                  * No more tasks will request TIDs, so close the TERM2ID master.
                  * It will flush its writes. 
                  */
-                bufferGuard_term2Id.await();
+                guardLatch_term2Id.await();
                 {
                     if (buffer_t2id != null) {
                         if (log.isInfoEnabled()) {
@@ -1943,7 +1929,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                  * No new index write tasks may start (and all should have
                  * terminated by now).
                  */
-                bufferGuard_other.await();
+                guardLatch_other.await();
                 {
                     if (log.isInfoEnabled())
                         log.info("Closing remaining buffers.");
@@ -1964,14 +1950,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                         
                     }
                     
-//                    buffer_spo.close();
-//
-//                    if (buffer_pos != null)
-//                        buffer_pos.close();
-//
-//                    if (buffer_osp != null)
-//                        buffer_osp.close();
-
                     workflowLatch_bufferOther.await();
                     otherWriterService.shutdown();
                     new ShutdownHelper(term2IdWriterService, 10L, TimeUnit.SECONDS) {
@@ -1990,7 +1968,10 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                 assertSumOfLatchs();
 
                 if (notifyService != null) {
-                    // shutdown and wait until all files have been delete.
+                    // wait until no notifications are pending.
+                    guardLatch_notify.await();
+                    // note: shutdown should be immediate since nothing should
+                    // be pending.
                     notifyService.shutdown();
                     new ShutdownHelper(notifyService, 10L, TimeUnit.SECONDS) {
                         protected void logTimeout() {
@@ -2046,14 +2027,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
         }
         
-//        buffer_spo.getFuture().get();
-//
-//        if (buffer_pos != null)
-//            buffer_pos.getFuture().get();
-//
-//        if (buffer_osp != null)
-//            buffer_osp.getFuture().get();
-
         if(log.isInfoEnabled())
             log.info("Done.");
 
@@ -2074,15 +2047,32 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
             final Runnable task = newSuccessTask(resource);
 
             if (task != null) {
+                
+                // increment before we submit the task.
+                guardLatch_notify.inc();
 
                 // queue up success notice.
-                notifyService.submit(task);
-
+                notifyService.submit(new Runnable() {
+                    public void run() {
+                        try {
+                            task.run();
+                        } finally {
+                            lock.lock();
+                            try {
+                                // decrement after the task is done.
+                                guardLatch_notify.dec();
+                            } finally {
+                                lock.unlock();
+                            }
+                        }
+                    }
+                });
+                
             }
             
         } catch (Throwable t) {
 
-            log.error(t);
+            log.error(t,t);
             
         }
 
@@ -2100,27 +2090,20 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      */
     final protected void documentError(final R resource, final Throwable t) {
 
-        lock.lock();
-        try {
+        assert lock.isHeldByCurrentThread();
 
-            documentErrorCount.incrementAndGet();
-            
-            /*
-             * Note: this is responsible for decrementing the #of documents whose
-             * processing is not yet complete. This must be done for each task whose
-             * future is not watched. However, we MUST NOT do this twice for any
-             * given document since that would mess with the counter. That counter
-             * is critical as it forms part of the termination condition for the
-             * total data load operation.
-             */
-            
-            workflowLatch_document.dec();
+        documentErrorCount.incrementAndGet();
 
-        } finally {
-            
-            lock.unlock();
+        /*
+         * Note: this is responsible for decrementing the #of documents whose
+         * processing is not yet complete. This must be done for each task whose
+         * future is not watched. However, we MUST NOT do this twice for any
+         * given document since that would mess with the counter. That counter
+         * is critical as it forms part of the termination condition for the
+         * total data load operation.
+         */
 
-        }
+        workflowLatch_document.dec();
 
         try {
             
@@ -2128,14 +2111,31 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
             if (task != null) {
 
-                // queue up success notice.
-                notifyService.submit(task);
+                // increment before we submit the task.
+                guardLatch_notify.inc();
+
+                // queue up failure notice.
+                notifyService.submit(new Runnable() {
+                    public void run() {
+                        try {
+                            task.run();
+                        } finally {
+                            lock.lock();
+                            try {
+                                // decrement after the task is done.
+                                guardLatch_notify.dec();
+                            } finally {
+                                lock.unlock();
+                            }
+                        }
+                    }
+                });
 
             }
 
         } catch (Throwable ex) {
 
-            log.error(ex);
+            log.error(ex, ex);
 
         }
 
@@ -2413,14 +2413,21 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
             bufferGuardSet.addCounter("guardTerm2Id", new Instrument<Long>() {
                 @Override
                 protected void sample() {
-                    setValue(bufferGuard_term2Id.get());
+                    setValue(guardLatch_term2Id.get());
                 }
             });
 
             bufferGuardSet.addCounter("guardOther", new Instrument<Long>() {
                 @Override
                 protected void sample() {
-                    setValue(bufferGuard_other.get());
+                    setValue(guardLatch_other.get());
+                }
+            });
+
+            bufferGuardSet.addCounter("guardNotify", new Instrument<Long>() {
+                @Override
+                protected void sample() {
+                    setValue(guardLatch_notify.get());
                 }
             });
             
@@ -3835,29 +3842,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
             }
             
-//            tasks.add(new AsyncSPOIndexWriteTask(documentRestartSafeLatch,
-//                    SPOKeyOrder.SPO, spoRelation,
-//                    // (IChunkedOrderedIterator<ISPO>)
-//                    statements.iterator(), buffer_spo));
-//
-//            if (buffer_pos != null) {
-//
-//                tasks.add(new AsyncSPOIndexWriteTask(documentRestartSafeLatch,
-//                        SPOKeyOrder.POS, spoRelation,
-//                        // (IChunkedOrderedIterator<ISPO>)
-//                        statements.iterator(), buffer_pos));
-//
-//            }
-//
-//            if (buffer_osp != null) {
-//
-//                tasks.add(new AsyncSPOIndexWriteTask(documentRestartSafeLatch,
-//                        SPOKeyOrder.OSP, spoRelation,
-//                        // (IChunkedOrderedIterator<ISPO>)
-//                        statements.iterator(), buffer_osp));
-//
-//            }
-
             /*
              * Submit all tasks. They will run in parallel. If they complete
              * successfully then all we know is that the data has been buffered
@@ -3946,7 +3930,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
             // new workflow state.
             lock.lock();
             try {
-                bufferGuard_term2Id.inc();
+                guardLatch_term2Id.inc();
                 workflowLatch_parser.dec();
                 workflowLatch_bufferTerm2Id.inc();
                 documentTIDsWaitingCount.incrementAndGet();
@@ -3961,7 +3945,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
                 lock.lock();
                 try {
-                    bufferGuard_term2Id.dec();
+                    guardLatch_term2Id.dec();
                 } finally {
                     lock.unlock();
                 }
@@ -3972,7 +3956,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
                 lock.lock();
                 try {
-                    bufferGuard_term2Id.dec();
+                    guardLatch_term2Id.dec();
                     workflowLatch_bufferTerm2Id.dec();
                     documentTIDsWaitingCount.decrementAndGet();
                     documentError(buffer.getDocumentIdentifier(), t);
@@ -4018,7 +4002,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
             // new workflow state.
             lock.lock();
             try {
-                bufferGuard_other.inc();
+                guardLatch_other.inc();
                 workflowLatch_bufferTerm2Id.dec();
                 workflowLatch_bufferOther.inc();
                 assertSumOfLatchs();
@@ -4032,7 +4016,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
                 lock.lock();
                 try {
-                    bufferGuard_other.dec();
+                    guardLatch_other.dec();
                 } finally {
                     lock.unlock();
                 }
@@ -4043,7 +4027,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
                 lock.lock();
                 try {
-                    bufferGuard_other.dec();
+                    guardLatch_other.dec();
                     workflowLatch_bufferOther.dec();
                     documentError(buffer.getDocumentIdentifier(), t);
                     outstandingStatementCount.addAndGet(-buffer.statementCount);

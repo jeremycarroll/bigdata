@@ -502,9 +502,7 @@ public class HardReferenceGlobalLRU<K, V> implements
     /**
      * A (key,value) pair for insertion into an {@link LRUCacheImpl} with a
      * (prior,next) reference used to maintain a double-linked list across all
-     * {@link LRUCacheImpl}s for a given {@link HardReferenceGlobalLRU}. Since
-     * the outer class does not recycle the LRU {@link Entry} on eviction, this
-     * implementation is immutable except for its (prior,next) links.
+     * {@link LRUCacheImpl}s for a given {@link HardReferenceGlobalLRU}.
      * 
      * @version $Id$
      * @author thompsonbry
@@ -515,12 +513,12 @@ public class HardReferenceGlobalLRU<K, V> implements
 
         private Entry<K, V> next;
 
-        private final K k;
+        private K k;
 
-        private final V v;
+        private V v;
 
         /** The owning cache for this entry. */
-        private final LRUCacheImpl<K,V> cache;
+        private LRUCacheImpl<K,V> cache;
         
         /** The bytes in memory for this entry. */
         private final int bytesInMemory;
@@ -606,7 +604,7 @@ public class HardReferenceGlobalLRU<K, V> implements
     private V removeEntry(final Entry<K, V> e) {
         if(!lock.isHeldByCurrentThread())
             throw new IllegalMonitorStateException();
-        //if(e.cache==null) return null;
+        if(e.cache==null) return null;
         final Entry<K, V> prior = e.prior;
         final Entry<K, V> next = e.next;
         if (e == first) {
@@ -624,9 +622,9 @@ public class HardReferenceGlobalLRU<K, V> implements
         final V clearedValue = e.v;
         e.prior = null;
         e.next = null;
-        //e.cache = null; // clear reference to the cache.
-        //e.k = null; // clear the key.
-        //e.v = null; // clear the value reference.
+        e.cache = null; // clear reference to the cache.
+        e.k = null; // clear the key.
+        e.v = null; // clear the value reference.
         size--;
         counters.bytesInMemory.addAndGet(-e.bytesInMemory);
         counters.bytesOnDisk.addAndGet(-e.bytesOnDisk);
