@@ -1180,11 +1180,30 @@ public class SPORelation extends AbstractRelation<ISPO> {
                     + ", indexManager=" + getIndexManager());
             
         }
-        
+
+        /*
+         * Note: The PARALLEL flag here is an indication that the iterator may
+         * run in parallel across the index partitions. This only effects
+         * scale-out and only for simple triple patterns since the pipeline join
+         * does something different (it runs inside the index partition using
+         * the local index, not the client's view of a distributed index).
+         * 
+         * @todo Introducing the PARALLEL flag here will break semantics when
+         * the rule is supposed to be "stable" (repeatable order) or when the
+         * access path is supposed to be fully ordered. What we really need to
+         * do is take the "stable" flag from the rule and transfer it onto the
+         * predicates in that rule so we can enforce stable execution for
+         * scale-out. Of course, that would kill any parallelism for scale-out
+         * :-) This shows up as an issue when using SLICEs since the rule that
+         * we execute has to have stable results for someone to page through
+         * those results using LIMIT/OFFSET.
+         */
         final int flags = IRangeQuery.KEYS
                 | IRangeQuery.VALS
                 | (TimestampUtility.isReadOnly(getTimestamp()) ? IRangeQuery.READONLY
-                        : 0);
+                        : 0)
+                | IRangeQuery.PARALLEL
+                ;
         
         final AbstractTripleStore container = getContainer();
         
