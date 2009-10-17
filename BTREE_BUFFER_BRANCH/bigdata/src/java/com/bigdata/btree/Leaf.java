@@ -808,9 +808,11 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         if (getParent() != null) {
 
             /*
-             * FIXME This code block exists to track down an error observed
-             * where a leaf split chose a separator key which already existed in
-             * the parent node.
+             * Note: This code block was introduced to track down an error
+             * observed where a leaf split chose a separator key which already
+             * existed in the parent node. However, I am beginning to suspect
+             * that the error was introduced by a cache consistency problem
+             * (since fixed) in the LRUNexus.
              */
             
             // the index of this leaf in the parent.
