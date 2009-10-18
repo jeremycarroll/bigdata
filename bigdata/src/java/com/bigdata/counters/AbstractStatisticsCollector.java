@@ -690,7 +690,8 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
         
         final long begin = System.currentTimeMillis();
         
-        while (count ==0 || n < count) {
+        // Note: runs until killed when count==0.
+        while (count == 0 || n < count) {
         
             Thread.sleep(client.interval * 1000/*ms*/);
 

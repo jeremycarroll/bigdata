@@ -233,8 +233,8 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
     final protected IRawStore store;
 
     /**
-     * Cache for {@link INodeData} and {@link ILeafData} instances and
-     * <code>null</code> iff the B+Tree is transient.
+     * Optional cache for {@link INodeData} and {@link ILeafData} instances and
+     * always <code>null</code> if the B+Tree is transient.
      */
     protected final ILRUCache<Long, Object> storeCache;
 
@@ -712,7 +712,15 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
              * support concurrent read operations. The INodeData or ILeafData
              * will be wrapped as a Node or Leaf by the owning B+Tree instance.
              */
-            
+
+            /*
+             * FIXME if the LRUNexus is disabled, then use a
+             * ConcurrentWeakValueCacheWithTimeout to buffer the leaves of an
+             * IndexSegment. Essentially, a custom cache. Otherwise we lose some
+             * of the performance of the leaf iterator for the index segment
+             * since leaves are not recoverable by random access without a
+             * cache.
+             */
             this.storeCache = LRUNexus.INSTANCE != null ? LRUNexus.INSTANCE
                     .getCache(store) : null;
 

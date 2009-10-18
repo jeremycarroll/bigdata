@@ -68,6 +68,12 @@ public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
         }
 
     }
+
+    /**
+     * De-serialization ctor.
+     */
+    public FrontCodedRabaCoder() {
+    }
     
     /**
      * @param ratio

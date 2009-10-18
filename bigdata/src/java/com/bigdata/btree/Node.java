@@ -1408,6 +1408,7 @@ public class Node extends AbstractNode<Node> implements INodeData {
 
         // the sibling of a Node must be a Node.
         final Node s = (Node) sibling;
+        assert s != null;
  
         final int nkeys = getKeyCount();
         final int snkeys = s.getKeyCount();
@@ -1420,7 +1421,6 @@ public class Node extends AbstractNode<Node> implements INodeData {
         // verify that this leaf is under minimum capacity by one key.
         assert nkeys == minKeys() - 1;
         
-        assert s != null;
         // the sibling MUST be _OVER_ the minimum #of keys/values.
         assert snkeys > minKeys();
         assert s.dirty;
@@ -1597,14 +1597,14 @@ public class Node extends AbstractNode<Node> implements INodeData {
 
         // The sibling of a Node must be a Node.
         final Node s = (Node) sibling;
+        assert s != null;
+        assert !s.deleted;
 
         // Note: local var is updated within this method!
         int nkeys = getKeyCount();
         
         final int snkeys = s.getKeyCount();
         
-        assert s != null;
-        assert !s.deleted;
         // verify that this node is deficient.
         assert nkeys < minKeys();
         // verify that this node is under minimum capacity by one key.

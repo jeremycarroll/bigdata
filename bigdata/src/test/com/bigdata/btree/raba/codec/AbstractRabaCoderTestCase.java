@@ -624,7 +624,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                 
                 final byte[] tmp = new byte[originalData.len()];
 
-                originalData.getDataInput().read(tmp);
+                originalData.getDataInput().readFully(tmp);
 
                 // compare against result from encode()
                 assertTrue(BytesUtil.compareBytesWithLenAndOffset(originalData.off(),

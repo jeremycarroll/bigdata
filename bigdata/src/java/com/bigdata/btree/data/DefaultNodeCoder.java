@@ -102,6 +102,13 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
     }
     
     /**
+     * De-serialization ctor.
+     */
+    public DefaultNodeCoder() {
+        
+    }
+    
+    /**
      * 
      * @param keysCoder
      *            The {@link IRabaCoder} for the node's keys.
@@ -172,7 +179,7 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
         buf.skip(ReadOnlyNodeData.SIZEOF_KEYS_SIZE);
         
         // Write the encoded keys on the buffer.
-        final int O_keys = buf.pos();
+//        final int O_keys = buf.pos();
         final ICodedRaba encodedKeys = keysCoder
                 .encodeLive(node.getKeys(), buf);
 //        final AbstractFixedByteArrayBuffer encodedKeysData = encodedKeys.data();
@@ -181,7 +188,7 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
         buf.putInt(O_keysSize, encodedKeys.data().len());
 
         // childAddr[] : @todo code childAddr[] (needs IAddressManager if store aware coding).
-        final int O_childAddr = buf.pos();
+//        final int O_childAddr = buf.pos();
         for (int i = 0; i <= nkeys; i++) {
             
             buf.putLong(node.getChildAddr(i));
@@ -189,7 +196,7 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
         }
         
         // childEntryCount[] : @todo code childEntryCount[]
-        final int O_childEntryCount = buf.pos();
+//        final int O_childEntryCount = buf.pos();
         for (int i = 0; i <= nkeys; i++) {
             
             buf.putInt(node.getChildEntryCount(i));

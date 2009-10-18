@@ -112,6 +112,13 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
     }
 
     /**
+     * De-serialization ctor.
+     */
+    public DefaultLeafCoder() {
+        
+    }
+    
+    /**
      * 
      * @param keysCoder
      *            The {@link IRabaCoder} for the leaf's keys.
@@ -212,10 +219,10 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
                 encodedValues.data().len());
         
         // delete markers (bit coded).
-        final int O_deleteMarkers;
+//        final int O_deleteMarkers;
         if (hasDeleteMarkers) {
 
-            O_deleteMarkers = buf.pos();
+//            O_deleteMarkers = buf.pos();
 
             for (int i = 0; i < nkeys;) {
 
@@ -236,14 +243,14 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
 
             }
 
-        } else {
-        
-            O_deleteMarkers = -1;
+//        } else {
+//        
+//            O_deleteMarkers = -1;
             
         }
 
         // The byte offset to minVersionTimestamp.
-        final int O_versionTimestamps;
+//        final int O_versionTimestamps;
         if (hasVersionTimestamps) {
 
             /*
@@ -269,7 +276,7 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
             buf.putByte((byte) versionTimestampBits);
 
             // offset of minVersionTimestamp.
-            O_versionTimestamps = buf.pos();
+//            O_versionTimestamps = buf.pos();
 
             // int64
             buf.putLong(min);
@@ -323,9 +330,9 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
                 }
             }
 
-        } else {
-
-            O_versionTimestamps = -1;
+//        } else {
+//
+//            O_versionTimestamps = -1;
 
         }
 
@@ -360,7 +367,7 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    private class ReadOnlyLeafData extends AbstractReadOnlyNodeData<ILeafData>
+    static private class ReadOnlyLeafData extends AbstractReadOnlyNodeData<ILeafData>
             implements ILeafData {
 
         /** The backing buffer. */
@@ -726,7 +733,7 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
             try {
 
                 final long bitpos = ((O_versionTimestamps + (2L * SIZEOF_TIMESTAMP)) << 3)
-                        + (index * versionTimestampBits);
+                        + ((long)index * versionTimestampBits);
 
                 ibs.position(bitpos);
 

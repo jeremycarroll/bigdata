@@ -2620,6 +2620,7 @@ public abstract class NonBlockingLockManagerWithNewDesign</* T, */R extends Comp
      *            The lock.
      * @param task
      *            The task.
+     *            
      * @return <code>true</code> if the lock was held by that task.
      */
     public boolean isLockHeldByTask(final R lock, final Runnable task) {
@@ -2627,7 +2628,7 @@ public abstract class NonBlockingLockManagerWithNewDesign</* T, */R extends Comp
         final ResourceQueue<R, LockFutureTask<R, ? extends Object>> resourceQueue = resourceQueues
                 .get(lock);
 
-        if (resourceQueues != null && resourceQueue.queue.peek() == task) {
+        if (resourceQueue.queue.peek() == task) {
 
             return true;
 
