@@ -59,8 +59,8 @@ abstract public class AbstractElementBuffer<R> extends AbstractArrayBuffer<R> {
 
         super(capacity, relation.getElementClass(), filter);
 
-        if (relation == null)
-            throw new IllegalArgumentException();
+//        if (relation == null)
+//            throw new IllegalArgumentException();
 
         this.relation = relation;
 

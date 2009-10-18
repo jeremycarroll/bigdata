@@ -634,7 +634,7 @@ public class MutableKeyBuffer extends AbstractKeyBuffer {
 
         while (low <= high) {
 
-            final int mid = (low + high) >> 1;
+            final int mid = (low + high) >>> 1;
 
             final byte[] key = keys[mid];
 

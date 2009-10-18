@@ -1010,6 +1010,7 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
 
         // the sibling of a leaf must be a leaf.
         final Leaf s = (Leaf) sibling;
+        assert s != null;
         
         final int nkeys = this.getKeyCount();
         final int snkeys = s.getKeyCount();
@@ -1023,7 +1024,6 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         // verify that this leaf is under minimum capacity by one key.
         assert nkeys == minKeys - 1;
         
-        assert s != null;
         // the sibling MUST be _OVER_ the minimum #of keys/values.
         assert snkeys > minKeys;
         assert s.dirty;
@@ -1222,11 +1222,11 @@ public class Leaf extends AbstractNode<Leaf> implements ILeafData {
         
         // the sibling of a leaf must be a leaf.
         final Leaf s = (Leaf)sibling;
+        assert s != null;
         
         final int nkeys = this.getKeyCount();
         final int snkeys = s.getKeyCount();
 
-        assert s != null;
         assert !s.deleted;
         // verify that this leaf is deficient.
         assert nkeys < minKeys();

@@ -79,7 +79,7 @@ public class ResourceLockService implements IResourceLockService {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    private final class ResourceLock implements IResourceLock {
+    private static final class ResourceLock implements IResourceLock {
         
         private final Lock lock;
 

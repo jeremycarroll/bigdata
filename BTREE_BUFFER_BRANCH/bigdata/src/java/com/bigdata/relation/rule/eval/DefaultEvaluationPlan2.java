@@ -573,7 +573,7 @@ public class DefaultEvaluationPlan2 implements IEvaluationPlan {
      * tails, or one tail and another join.  Theoretically it could be two
      * joins as well, which might be a future optimization worth thinking about.
      */
-    private class Join implements IJoinDimension {
+    private static class Join implements IJoinDimension {
         
         private final IJoinDimension d1, d2;
         private final long cardinality;

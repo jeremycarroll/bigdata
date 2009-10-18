@@ -512,7 +512,7 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
              * committed or aborted.
              */
             
-            log.warn("No such transaction: name=" + name + ", tx=" + tx);
+            log.warn("No such transaction: name=" + name + ", tx=" + timestamp);
 
             return null;
             

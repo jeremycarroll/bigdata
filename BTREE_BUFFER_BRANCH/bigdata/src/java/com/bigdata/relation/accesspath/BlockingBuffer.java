@@ -931,10 +931,6 @@ public class BlockingBuffer<E> implements IBlockingBuffer<E> {
 
             }
 
-            assert ((Object[]) e) != null : "chunk with nulls: chunkSize="
-                    + ((Object[]) e).length + ", chunk="
-                    + Arrays.toString(((Object[]) e));
-            
         }
 
         final long begin = System.nanoTime();

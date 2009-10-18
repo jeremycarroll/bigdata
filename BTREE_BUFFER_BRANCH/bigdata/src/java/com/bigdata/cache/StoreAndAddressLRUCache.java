@@ -141,6 +141,9 @@ public class StoreAndAddressLRUCache<V> implements IGlobalLRU<Long,V> {
             if (this == o)
                 return true;
 
+            if (!(o instanceof K))
+                return false;
+
             final K o1 = (K) o;
 
             return addr == o1.addr && storeUUID.equals(o1.storeUUID);

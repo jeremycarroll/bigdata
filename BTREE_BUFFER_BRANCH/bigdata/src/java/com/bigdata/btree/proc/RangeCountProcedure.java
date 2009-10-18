@@ -135,7 +135,7 @@ public class RangeCountProcedure extends AbstractKeyRangeIndexProcedure
             rangeCount = ndx.rangeCount(fromKey, toKey);
         }
                 
-        return new Long(rangeCount);
+        return Long.valueOf(rangeCount);
 
     }
 

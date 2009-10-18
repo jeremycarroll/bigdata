@@ -339,7 +339,7 @@ public abstract class AbstractNode<T extends AbstractNode
         /* The source must not be dirty.  We are cloning it so that we can
          * make changes on it.
          */
-        assert src != null;
+//        assert src != null;
         assert !src.isDirty();
 //        assert src.isPersistent();
         assert src.isReadOnly();

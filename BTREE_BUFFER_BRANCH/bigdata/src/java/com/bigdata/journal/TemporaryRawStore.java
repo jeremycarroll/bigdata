@@ -425,21 +425,33 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
      */
     static final class ResourceMetadata extends AbstractResourceMetadata {
 
+        /**
+         * De-serializator ctor.
+         */
+        public ResourceMetadata() {
+            
+        }
+
         public ResourceMetadata(final TemporaryRawStore store,
                 final String fileStr) {
 
-            super(fileStr, /*store.buf.getExtent(),*/ store.uuid, store.createTime);
+            super(fileStr, /* store.buf.getExtent(), */store.uuid,
+                    store.createTime);
 
         }
 
         private static final long serialVersionUID = 1L;
 
         public boolean isJournal() {
+            
             return false;
+            
         }
 
         public boolean isIndexSegment() {
+
             return false;
+            
         }
 
     }
