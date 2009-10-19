@@ -65,8 +65,8 @@ public class BigdataSailHelper {
      * 
      * @return The SAIL.
      */
-    public BigdataSail getSail(IBigdataFederation fed, String namespace,
-            long timestamp) {
+    public BigdataSail getSail(final IBigdataFederation<?> fed,
+            final String namespace, final long timestamp) {
 
         ScaleOutTripleStore tripleStore = (ScaleOutTripleStore) fed
                 .getResourceLocator().locate(namespace, timestamp);
@@ -110,7 +110,8 @@ public class BigdataSailHelper {
      * 
      * @return The SAIL.
      */
-    public BigdataSail getSail(String filename, String namespace, long timestamp) {
+    public BigdataSail getSail(final String filename, final String namespace,
+            final long timestamp) {
 
         final Properties properties = new Properties();
 
@@ -488,7 +489,7 @@ public class BigdataSailHelper {
      * <p>
      * Note: The <i>timestamp</i> identifies which commit point you are
      * accessing and defaults to the {@link ITx#UNISOLATED} view, which can also
-     * be specified as {@value #ITx#UNISOLATED}).
+     * be specified as {@value#ITx#UNISOLATED}).
      * <p>
      * Note: The <i>properties</i> is a file containing property overrides to be
      * applied to the kb.
@@ -526,24 +527,34 @@ public class BigdataSailHelper {
             System.exit(1);
             
         }
-        
-        if (file.isDirectory() && FederationEnum.LTS.equals(fedType)) {
 
-            System.err.println("LTS is a plain file, not a directory: dir="
-                    + filename);
+        switch(fedType) {
+        case LTS:
+        case JDS:
+            if (file.isDirectory()) {
 
-            System.exit(1);
-            
-        }
-        
-        if (!file.isDirectory() && !FederationEnum.LTS.equals(fedType)) {
+                System.err.println(fedType
+                        + " requires plain file, not a directory: dir="
+                        + filename);
 
-            System.err.println(fedType
-                    + "requires a directory, not a plain file: file="
-                    + filename);
+                System.exit(1);
 
-            System.exit(1);
+            }
+            break;
+        case LDS:
+        case EDS:
+            if (!file.isDirectory()) {
 
+                System.err.println(fedType
+                        + " requires a directory, not a plain file: file="
+                        + filename);
+
+                System.exit(1);
+
+            }
+            break;
+        default:
+            throw new AssertionError();
         }
         
         final String namespace = args.length > 2 ? args[2] : "kb";
@@ -567,7 +578,7 @@ public class BigdataSailHelper {
 
         final BigdataSail sail;
         // Note: iff we need to shutdown the federation in finally{}
-        final AbstractFederation fed;
+        final AbstractFederation<?> fed;
 //        // Note: iff JDS.
 //        final JiniServicesHelper jiniServicesHelper;
 
