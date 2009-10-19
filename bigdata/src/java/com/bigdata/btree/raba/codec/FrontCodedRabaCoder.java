@@ -26,6 +26,11 @@ import com.bigdata.rawstore.Bytes;
  */
 public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 4943035649252818747L;
+    
     protected static final Logger log = Logger
             .getLogger(FrontCodedRabaCoder.class);
 
@@ -48,6 +53,11 @@ public class FrontCodedRabaCoder implements IRabaCoder, Externalizable {
      */
     public static class DefaultFrontCodedRabaCoder extends FrontCodedRabaCoder {
 
+        /**
+         * 
+         */
+        private static final long serialVersionUID = 7300378339686013560L;
+        
         public static final transient DefaultFrontCodedRabaCoder INSTANCE = new DefaultFrontCodedRabaCoder();
         
         protected transient static final int DEFAULT_RATIO = 8;
