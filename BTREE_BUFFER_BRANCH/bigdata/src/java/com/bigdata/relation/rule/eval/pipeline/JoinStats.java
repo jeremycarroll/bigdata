@@ -333,7 +333,7 @@ public class JoinStats implements Serializable {
             sb.append(rule.getName().replace(',', ' ')+sep);
             sb.append(Integer.toString(s.orderIndex)+sep);
 //            sb.append(Integer.toString(s.partitionId)+sep); // always -1 when aggregated.
-            sb.append(ruleState.getKeyOrder()[tailIndex].toString().replace(sep, ""));
+            sb.append(ruleState.getKeyOrder()[tailIndex].toString().replace(sep, "")+sep);
             sb.append(ruleState.getNVars()[tailIndex]+sep);
             sb.append(ruleState.getPlan().rangeCount(tailIndex)+sep);
             sb.append(Integer.toString(s.fanIn)+sep);
