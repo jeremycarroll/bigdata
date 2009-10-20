@@ -30,6 +30,7 @@ import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.IJournal;
 import com.bigdata.journal.ITx;
+import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.relation.accesspath.AbstractAccessPath;
 import com.bigdata.relation.accesspath.AbstractUnsynchronizedArrayBuffer;
 import com.bigdata.relation.accesspath.BlockingBuffer;
@@ -48,6 +49,7 @@ import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IDataService;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import com.bigdata.striterator.IKeyOrder;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 
@@ -1192,10 +1194,15 @@ abstract public class JoinTask implements Callable<Void> {
         final private IAccessPath accessPath;
 
         /**
-         * Return the <em>fromKey</em> for the {@link IAccessPath}
-         * generated from the {@link IBindingSet} for this task.
+         * Return the <em>fromKey</em> for the {@link IAccessPath} generated
+         * from the {@link IBindingSet} for this task.
          * 
-         * @todo layered access paths do not expose a fromKey.
+         * @todo layered access paths do not expose a fromKey. This information
+         *       is always available from the {@link SPOKeyOrder} and that
+         *       method will be raised into the {@link IKeyOrder}.
+         *       Unfortunately, for RDF we also need to know if triples or quads
+         *       are being used, which is a property on the container or the
+         *       relation.
          */
         protected byte[] getFromKey() {
 

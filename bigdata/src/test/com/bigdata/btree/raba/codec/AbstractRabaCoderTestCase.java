@@ -52,6 +52,7 @@ import com.bigdata.btree.raba.ReadOnlyValuesRaba;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
 import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.io.FixedByteArrayBuffer;
+import com.bigdata.io.SerializerUtil;
 
 /**
  * Abstract test suite for {@link IRabaCoder} implementations.
@@ -601,6 +602,16 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
 
         try {
 
+            /*
+             * Verify that we can (de-)serialize the coder itself.
+             */
+            {
+                final byte[] a = SerializerUtil.serialize(rabaCoder);
+                
+                final IRabaCoder b = (IRabaCoder)SerializerUtil.deserialize(a);
+                
+            }
+            
             // Test the live coded path (returns coded raba instance for immediate use).
             final ICodedRaba liveCodedRaba = rabaCoder.encodeLive(expected,
                     new DataOutputBuffer());

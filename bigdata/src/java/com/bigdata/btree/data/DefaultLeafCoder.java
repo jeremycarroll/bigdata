@@ -347,9 +347,9 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
 
     public AbstractFixedByteArrayBuffer encode(final ILeafData leaf,
             final DataOutputBuffer buf) {
-    
-        return encodeLive(leaf,buf).data();
-        
+
+        return encodeLive(leaf, buf).data();
+
     }
     
     /**
@@ -809,48 +809,48 @@ public class DefaultLeafCoder implements IAbstractNodeDataCoder<ILeafData>,
 //        /**
 //         * Update the data record to set the prior and next leaf address.
 //         * <p>
-//         * Note: In order to use this method to write linked leaves on the store you
-//         * have to either write behind at a pre-determined address on the store or
-//         * settle for writing only the prior or the next leaf address, but not both.
-//         * It is up to the caller to perform these tricks. All this method does is
-//         * to touch up the serialized record.
+//         * Note: In order to use this method to write linked leaves on the store
+//         * you have to either write behind at a pre-determined address on the
+//         * store or settle for writing only the prior or the next leaf address,
+//         * but not both. It is up to the caller to perform these tricks. All
+//         * this method does is to touch up the serialized record.
 //         * <p>
 //         * Note: This method has NO side-effects on the <i>position</i> or
 //         * <i>limit</i> of the internal {@link ByteBuffer}.
 //         * 
 //         * @param priorAddr
-//         *            The address of the previous leaf in key order, <code>0L</code>
-//         *            if it is known that there is no previous leaf, and
-//         *            <code>-1L</code> if either: (a) it is not known whether there
-//         *            is a previous leaf; or (b) it is known but the address of that
-//         *            leaf is not known to the caller.
+//         *            The address of the previous leaf in key order,
+//         *            <code>0L</code> if it is known that there is no previous
+//         *            leaf, and <code>-1L</code> if either: (a) it is not known
+//         *            whether there is a previous leaf; or (b) it is known but
+//         *            the address of that leaf is not known to the caller.
 //         * @param nextAddr
-//         *            The address of the next leaf in key order, <code>0L</code> if
-//         *            it is known that there is no next leaf, and <code>-1L</code>
-//         *            if either: (a) it is not known whether there is a next leaf;
-//         *            or (b) it is known but the address of that leaf is not known
-//         *            to the caller.
+//         *            The address of the next leaf in key order, <code>0L</code>
+//         *            if it is known that there is no next leaf, and
+//         *            <code>-1L</code> if either: (a) it is not known whether
+//         *            there is a next leaf; or (b) it is known but the address
+//         *            of that leaf is not known to the caller.
 //         * 
 //         * @see IndexSegmentBuilder
 //         */
 //        public void updateLeaf(final long priorAddr, final long nextAddr) {
-    //
+//
 //            if (!isDoubleLinked()) {
-    //
+//
 //                // Not double-linked.
 //                throw new UnsupportedOperationException();
-//                
+//
 //            }
-    //
+//
 //            /*
-//             * Note: these fields are written immediately after the byte indicating
-//             * whether this is a leaf, linked-leaf, or node.
+//             * Note: these fields are written immediately after the byte
+//             * indicating whether this is a leaf, linked-leaf, or node.
 //             */
-//            
+//
 //            b.putLong(O_PRIOR, priorAddr);
-    //
+//
 //            b.putLong(O_NEXT + SIZEOF_ADDR, nextAddr);
-    //
+//
 //        }
 
         public final long getPriorAddr() {

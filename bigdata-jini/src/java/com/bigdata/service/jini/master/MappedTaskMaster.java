@@ -385,7 +385,10 @@ V extends Serializable//
                 super.didSucceed(resource);
                 if (getJobState().deleteAfter) {
                     if (resource instanceof File) {
-                        ((File) resource).delete();
+                        final File file = (File) resource;
+                        if (!file.delete() && file.exists()) {
+                            log.warn("Could not delete file: " + resource);
+                        }
                     }
                 }
             }

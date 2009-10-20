@@ -1053,7 +1053,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
      */
     final private SPOAccessPath _getAccessPath(final IPredicate<ISPO> predicate) {
 
-        final SPOKeyOrder keyOrder = getKeyOrder(predicate, keyArity);
+        final SPOKeyOrder keyOrder = SPOKeyOrder.getKeyOrder(predicate, keyArity);
         
         final SPOAccessPath accessPath = getAccessPath(keyOrder, predicate);
 
@@ -1063,89 +1063,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
         //            System.err.println("new access path: pred="+predicate);
 
         return accessPath;
-
-    }
-
-    /**
-     * Return the {@link SPOKeyOrder} for the given predicate.
-     * 
-     * @param predicate
-     *            The predicate.
-     *            
-     * @return The {@link SPOKeyOrder}
-     */
-    @SuppressWarnings("unchecked")
-    static public SPOKeyOrder getKeyOrder(final IPredicate<ISPO> predicate,
-            final int keyArity) {
-
-        final long s = predicate.get(0).isVar() ? NULL : (Long) predicate.get(0).get();
-        final long p = predicate.get(1).isVar() ? NULL : (Long) predicate.get(1).get();
-        final long o = predicate.get(2).isVar() ? NULL : (Long) predicate.get(2).get();
-        
-        if (keyArity == 3) {
-
-            // Note: Context is ignored!
-            
-            if (s != NULL && p != NULL && o != NULL) {
-                return SPOKeyOrder.SPO;
-            } else if (s != NULL && p != NULL) {
-                return SPOKeyOrder.SPO;
-            } else if (s != NULL && o != NULL) {
-                return SPOKeyOrder.OSP;
-            } else if (p != NULL && o != NULL) {
-                return SPOKeyOrder.POS;
-            } else if (s != NULL) {
-                return SPOKeyOrder.SPO;
-            } else if (p != NULL) {
-                return SPOKeyOrder.POS;
-            } else if (o != NULL) {
-                return SPOKeyOrder.OSP;
-            } else {
-                return SPOKeyOrder.SPO;
-            }
-            
-        } else {
-
-            final IVariableOrConstant<Long> t = predicate.get(3);
-            final long c = t == null ? NULL : (t.isVar() ? NULL : t.get());
-/*            
-            if ((s == NULL && p == NULL && o == NULL && c == NULL) ||
-                (s != NULL && p == NULL && o == NULL && c == NULL) ||
-                (s != NULL && p != NULL && o == NULL && c == NULL) ||
-                (s != NULL && p != NULL && o != NULL && c == NULL) ||
-                (s != NULL && p != NULL && o != NULL && c != NULL)) {
-                return SPOKeyOrder.SPOC;
-            } 
-*/            
-            if ((s == NULL && p != NULL && o == NULL && c == NULL) ||
-                (s == NULL && p != NULL && o != NULL && c == NULL) ||
-                (s == NULL && p != NULL && o != NULL && c != NULL)) {
-                return SPOKeyOrder.POCS;
-            }
-            
-            if ((s == NULL && p == NULL && o != NULL && c == NULL) ||
-                (s == NULL && p == NULL && o != NULL && c != NULL) ||
-                (s != NULL && p == NULL && o != NULL && c != NULL)) {
-                return SPOKeyOrder.OCSP;
-            }
-            
-            if ((s == NULL && p == NULL && o == NULL && c != NULL) ||
-                (s != NULL && p == NULL && o == NULL && c != NULL) ||
-                (s != NULL && p != NULL && o == NULL && c != NULL)) {
-                return SPOKeyOrder.CSPO;
-            }
-                
-            if ((s == NULL && p != NULL && o == NULL && c != NULL)) {
-                return SPOKeyOrder.PCSO;
-            }
-                    
-            if ((s != NULL && p == NULL && o != NULL && c == NULL)) {
-                return SPOKeyOrder.SOPC;
-            }
-            
-            return SPOKeyOrder.SPOC;
-                    
-        }
 
     }
 

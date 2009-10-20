@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.cache;
 
-import java.io.File;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
@@ -36,22 +35,12 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.bigdata.BigdataStatics;
 import com.bigdata.btree.AbstractBTree;
-import com.bigdata.btree.IndexSegmentStore;
-import com.bigdata.btree.data.ILeafData;
-import com.bigdata.btree.data.INodeData;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
-import com.bigdata.io.IDataRecord;
 import com.bigdata.io.IDataRecordAccess;
-import com.bigdata.journal.AbstractBufferStrategy;
-import com.bigdata.journal.AbstractJournal;
-import com.bigdata.journal.TemporaryRawStore;
-import com.bigdata.rawstore.AbstractRawStore;
-import com.bigdata.rawstore.AbstractRawWormStore;
 import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IRawStore;
-import com.bigdata.rawstore.WormAddressManager;
 
 /**
  * Implementation based on a shared {@link HardReferenceQueue} and
@@ -165,75 +154,20 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
 
     }
 
-//    /**
-//     * Return the global LRU instance. This LRU enforces competition across all
-//     * {@link IRawStore}s for buffer space (RAM).
-//     */
-//    public IHardReferenceQueue<Object> getGlobalLRU() {
-//
-//        return globalLRU;
-//        
-//    }
+    public ILRUCache<Long, Object> getCache(final UUID uuid,
+            final IAddressManager am) {
 
-    /**
-     * An canonicalizing factory for cache instances supporting random access to
-     * decompressed {@link IDataRecord}s, higher-level data structures wrapping
-     * those decompressed data records ({@link INodeData} and {@link ILeafData}
-     * ), or objects deserialized from those {@link IDataRecord}s.
-     * <p>
-     * Note: This can not track bytesInMemory unless the weak referents
-     * implement {@link IDataRecordAccess} since it relies on
-     * {@link IDataRecordAccess#data()} to self-report the length of the
-     * decompressed {@link IDataRecord}.
-     * 
-     * @return A cache for an immutable view of records in the store.
-     * 
-     * @see AbstractBTree#readNodeOrLeaf(long)
-     * @see IndexSegmentStore#reopen()
-     */
-    public ILRUCache<Long, Object> getCache(final IRawStore store) {
-
-        if (store == null)
+        if (uuid == null)
             throw new IllegalArgumentException();
         
-        final UUID storeUUID = store.getUUID();
-        
-        CacheImpl<Object> cache = cacheSet.get(storeUUID);
+        CacheImpl<Object> cache = cacheSet.get(uuid);
 
-        if (cache == null) {
-
-            final Class<? extends IRawStore> cls = store.getClass();
-            final IAddressManager am;
-            final File file = store.getFile();
+        if( cache == null ) {
             
-            if (store instanceof AbstractJournal) {
-
-                am = ((AbstractBufferStrategy) ((AbstractJournal) store)
-                        .getBufferStrategy()).getAddressManager();
-
-            } else if (store instanceof TemporaryRawStore) {
-
-                // Avoid hard reference to the temporary store (clone's the
-                // address manager instead).
-                am = new WormAddressManager(((TemporaryRawStore) store)
-                        .getOffsetBits());
-                
-            } else if (store instanceof AbstractRawWormStore) {
-                
-                am = ((AbstractRawStore) store).getAddressManager();
-                
-            } else {
-
-                // @todo which cases come though here? SimpleMemoryStore,
-                // SimpleFileStore, ...
-                am = null;
-                
-            }
-            
-            cache = new CacheImpl<Object>(storeUUID, cls, am, file, globalLRU,
+            cache = new CacheImpl<Object>(uuid, am, globalLRU,
                     initialCapacity, loadFactor, concurrencyLevel, true/* removeClearedReferences */);
 
-            final CacheImpl<Object> oldVal = cacheSet.putIfAbsent(storeUUID,
+            final CacheImpl<Object> oldVal = cacheSet.putIfAbsent(uuid,
                     cache);
 
             if (oldVal == null) {
@@ -255,27 +189,13 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
 
     }
 
-    /**
-     * Remove the cache for the {@link IRawStore} from the set of caches
-     * maintained by this class and clear any entries in that cache. This method
-     * SHOULD be used when the persistent resources for the store are deleted.
-     * It SHOULD NOT be used if a store is simply closed in a context when the
-     * store COULD be re-opened. In such cases, the cache for that store will be
-     * automatically released after it has become only weakly reachable.
-     * 
-     * @param store
-     *            The store.
-     * 
-     * @see IRawStore#destroy()
-     * @see IRawStore#deleteResources()
-     */
-    public void deleteCache(final IRawStore store) {
+    public void deleteCache(final UUID uuid) {
 
-        if (store == null)
+        if (uuid== null)
             throw new IllegalArgumentException();
         
         // remove cache from the cacheSet.
-        final CacheImpl<Object> cache = cacheSet.remove(store.getUUID());
+        final CacheImpl<Object> cache = cacheSet.remove(uuid);
 
         if(cache != null) {
             
@@ -317,9 +237,7 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
     private class CacheImpl<V> implements ILRUCache<Long,V> {
 
         private final UUID storeUUID;
-        private final Class<? extends IRawStore> cls;
         private final IAddressManager am;
-        private final File file;
         private final ConcurrentWeakValueCache<Long,V> map;
 
         /**
@@ -327,8 +245,6 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
          * 
          * @param storeUUID
          *            The {@link UUID} of the associated {@link IRawStore}.
-         * @param cls
-         *            The {@link IRawStore} implementation class.
          * @param am
          *            The <em>delegate</em> {@link IAddressManager} associated
          *            with the {@link IRawStore} whose records are being cached.
@@ -337,8 +253,6 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
          *            NOT provide a reference to an {@link IRawStore} here as
          *            that will cause the {@link IRawStore} to be retained by a
          *            hard reference!
-         * @param file
-         *            The backing file (may be <code>null</code>).
          * @param queue
          *            The {@link IHardReferenceQueue} (optional).
          * @param initialCapacity
@@ -353,8 +267,8 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
          *            will remain in the cache.
          */
         public CacheImpl(final UUID storeUUID,
-                final Class<? extends IRawStore> cls, final IAddressManager am,
-                final File file, final IHardReferenceQueue<V> queue,
+                final IAddressManager am,
+                final IHardReferenceQueue<V> queue,
                 final int initialCapacity, final float loadFactor,
                 final int concurrencyLevel,
                 final boolean removeClearedReferences) {
@@ -362,28 +276,16 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
             if (storeUUID == null)
                 throw new IllegalArgumentException();
 
-            if (cls == null)
-                throw new IllegalArgumentException();
-
             this.storeUUID = storeUUID;
             
-            if(am instanceof IRawStore) {
- 
-                /*
-                 * This would cause the IRawStore to be retained by a hard
-                 * reference!
-                 */
+            /*
+             * This would cause the IRawStore to be retained by a hard
+             * reference!
+             */
+            assert !(am instanceof IRawStore) : am.getClass().getName()
+                    + " implements " + IRawStore.class.getName();
 
-                throw new AssertionError(am.getClass().getName()
-                        + " implements " + IRawStore.class.getName());
-
-            }
-            
-            this.cls = cls;
-            
             this.am = am;
-
-            this.file = file;
 
             this.map = new InnerCacheImpl(queue,
                     initialCapacity, loadFactor, concurrencyLevel,
@@ -393,10 +295,6 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
 
         public IAddressManager getAddressManager() {
             return am;
-        }
-
-        public File getStoreFile() {
-            return file;
         }
 
         public UUID getStoreUUID() {
@@ -839,8 +737,8 @@ public class WeakReferenceGlobalLRU implements IGlobalLRU<Long,Object> {
                 continue;
             }
 
-            sb.append("\ncache: storeClass=" + cache.cls.getName() + ", size="
-                    + cache.size() + ", file=" + cache.file);
+            sb.append("\ncache: storeClass=" + cache.getStoreUUID() + ", size="
+                    + cache.size());
 
         }
             

@@ -486,6 +486,11 @@ public class NodeSerializer {
      *         overwritten by the next node or leaf serialized the same instance
      *         of this class. The position will be zero and the limit will be
      *         the #of bytes in the coded representation.
+     * 
+     * @deprecated This method is no longer used since I refactored the
+     *             {@link IndexSegmentBuilder} to optionally stuff the generated
+     *             nodes and leaves into the cache. It still works but it might
+     *             go away in the future.
      */
     public AbstractFixedByteArrayBuffer encode(final IAbstractNodeData node) {
 
@@ -552,6 +557,7 @@ public class NodeSerializer {
      *            to the caller.
      * 
      * @see IndexSegmentBuilder
+     * @see DefaultLeafCoder
      */
     public void updateLeaf(final ByteBuffer b, final long priorAddr,
             final long nextAddr) {

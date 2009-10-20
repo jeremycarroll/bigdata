@@ -42,6 +42,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.log4j.Logger;
 
 import com.bigdata.LRUNexus;
+import com.bigdata.cache.IGlobalLRU;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
@@ -628,7 +629,7 @@ public class IndexSegmentStore extends AbstractRawStore {
     
     /**
      * Closes the file and releases the internal buffers. This operation will
-     * quitely succeed if the {@link IndexSegmentStore} is already closed. This
+     * quietly succeed if the {@link IndexSegmentStore} is already closed. This
      * operation may be reversed by {@link #reopen()} as long as the backing
      * file remains available. A read on a closed {@link IndexSegmentStore} will
      * transparently {@link #reopen()} the store as long as the backing file
@@ -750,7 +751,7 @@ public class IndexSegmentStore extends AbstractRawStore {
                 
                 if (LRUNexus.INSTANCE != null) {
 
-                    LRUNexus.INSTANCE.deleteCache(this);
+                    LRUNexus.INSTANCE.deleteCache(getUUID());
 
                 }
                 
@@ -777,6 +778,7 @@ public class IndexSegmentStore extends AbstractRawStore {
 
     /**
      * Atomically closes the store (iff open) and then deletes the backing file.
+     * Any records for the store are cleared from the {@link IGlobalLRU}.
      */
     synchronized public void destroy() {
 

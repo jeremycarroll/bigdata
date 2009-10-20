@@ -144,8 +144,8 @@ HS extends ResourceBufferSubtaskStatistics //
         super(taskMaster.getFederation(), stats, buffer, sinkIdleTimeoutNanos,
                 sinkPollTimeoutNanos);
 
-        if (taskMaster == null)
-            throw new IllegalArgumentException();
+//        if (taskMaster == null)
+//            throw new IllegalArgumentException();
 
         if (sinkQueueCapacity <= 0)
             throw new IllegalArgumentException();
@@ -229,7 +229,7 @@ HS extends ResourceBufferSubtaskStatistics //
                 final int h = hashFunction.hashFunction(e);
                 
                 // note: hash function can be negative, but we want a non-neg index.
-                final int i = Math.abs(h) % N;
+                final int i = Math.abs(h % N);
                 
 //                assert i >= 0 && i < N : "hashFunction out of range: e=" + e
 //                        + ", h(e)=" + h + ", N=" + N + ", i=" + i

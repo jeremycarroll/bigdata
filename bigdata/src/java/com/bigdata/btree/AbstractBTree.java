@@ -721,10 +721,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
              * since leaves are not recoverable by random access without a
              * cache.
              */
-            this.storeCache = LRUNexus.INSTANCE != null ? LRUNexus.INSTANCE
-                    .getCache(store) : null;
-
-//            this.globalLRU = lruNexus.getGlobalLRU();
+            this.storeCache = LRUNexus.getCache(store);
             
 //            this.readRetentionQueue = newReadRetentionQueue();
         

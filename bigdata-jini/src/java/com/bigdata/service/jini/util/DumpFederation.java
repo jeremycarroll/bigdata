@@ -1615,7 +1615,7 @@ public class DumpFederation {
 
                 if (code == null) {
 
-                    code = new Integer(codes.size());
+                    code = Integer.valueOf(codes.size());
 
                     codes.put(uuid, code);
 

@@ -250,7 +250,7 @@ public class SimpleFileRawStore extends AbstractRawWormStore {
 
         if (LRUNexus.INSTANCE != null) {
 
-            LRUNexus.INSTANCE.deleteCache(this);
+            LRUNexus.INSTANCE.deleteCache(getUUID());
 
         }
         

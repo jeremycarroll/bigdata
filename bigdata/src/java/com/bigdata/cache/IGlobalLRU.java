@@ -27,11 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.cache;
 
-import java.io.File;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import com.bigdata.LRUNexus;
 import com.bigdata.btree.AbstractBTree;
 import com.bigdata.btree.ITupleCursor;
 import com.bigdata.btree.ITupleIterator;
@@ -118,11 +118,6 @@ public interface IGlobalLRU<K,V> {
         public UUID getStoreUUID();
 
         /**
-         * The backing file (if any) of the associated store.
-         */
-        public File getStoreFile();
-
-        /**
          * An {@link IAddressManager} which can be used to decode the byte count
          * of a record on the disk given the <code>long</code> address of that
          * record. This MUST NOT cause the corresponding {@link IRawStore}
@@ -196,14 +191,36 @@ public interface IGlobalLRU<K,V> {
      * those decompressed data records ({@link INodeData} and {@link ILeafData}
      * ), or objects deserialized from those {@link IDataRecord}s.
      * 
-     * @param store The store.
+     * @param storeUUID
+     *            The store's {@link UUID}.
+     * @param am
+     *            The {@link IAddressManager} for that store (optional, but used
+     *            to compute the bytes on disk for record and hence highly
+     *            desired).
      * 
      * @return The cache for records in the store.
      * 
      * @see AbstractBTree#readNodeOrLeaf(long)
      * @see IndexSegmentStore#reopen()
+     * @see LRUNexus#getCache(IRawStore)
      */
-    public ILRUCache<K, V> getCache(final IRawStore store);
+    public ILRUCache<K, V> getCache(final UUID storeUUID, IAddressManager am);
+
+//    /**
+//     * Remove the cache for the {@link IRawStore} from the set of caches
+//     * maintained by this class and clear any entries in that cache. This method
+//     * SHOULD be used when the persistent resources for the store are deleted.
+//     * It SHOULD NOT be used if a store is simply closed in a context when the
+//     * store COULD be re-opened. In such cases, the cache for that store will be
+//     * automatically released after it has become only weakly reachable.
+//     * 
+//     * @param store
+//     *            The store.
+//     * 
+//     * @see IRawStore#destroy()
+//     * @see IRawStore#deleteResources()
+//     */
+//    public void deleteCache(final IRawStore store);
 
     /**
      * Remove the cache for the {@link IRawStore} from the set of caches
@@ -213,13 +230,13 @@ public interface IGlobalLRU<K,V> {
      * store COULD be re-opened. In such cases, the cache for that store will be
      * automatically released after it has become only weakly reachable.
      * 
-     * @param store
-     *            The store.
+     * @param storeUUID
+     *            The store's {@link UUID}.
      * 
      * @see IRawStore#destroy()
      * @see IRawStore#deleteResources()
      */
-    public void deleteCache(final IRawStore store);
+    public void deleteCache(final UUID storeUUID);
 
     /**
      * Clear all per-{@link IRawStore} cache instances. This may be used if all

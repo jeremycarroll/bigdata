@@ -36,6 +36,7 @@ import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.io.FixedByteArrayBuffer;
 import com.bigdata.io.IDataRecordAccess;
 import com.bigdata.io.IFixedDataRecord;
+import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 
@@ -59,8 +60,14 @@ public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
 
     protected IRawStore store1 = new SimpleMemoryRawStore();
 
+    // Note: not used for this test suite, not defined for memStore.
+    protected IAddressManager am1 = null;
+    
     protected IRawStore store2 = new SimpleMemoryRawStore();
 
+    // Note: not used for this test suite, not defined for memStore.
+    protected IAddressManager am2 = null;
+    
     protected void tearDown() throws Exception {
         
         store1 = store2 = null;
@@ -79,29 +86,29 @@ public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
         
         assertEquals(0, lru.getCacheSetSize());
         
-        final ILRUCache<Long, Object> cache1 = lru.getCache(store1);
+        final ILRUCache<Long, Object> cache1 = lru.getCache(store1.getUUID(), am1);
 
-        assertTrue(cache1 == lru.getCache(store1));
+        assertTrue(cache1 == lru.getCache(store1.getUUID(), am1));
 
         assertEquals(1, lru.getCacheSetSize());
 
-        final ILRUCache<Long, Object> cache2 = lru.getCache(store2);
+        final ILRUCache<Long, Object> cache2 = lru.getCache(store2.getUUID(), am2);
 
-        assertTrue(cache1 == lru.getCache(store1));
+        assertTrue(cache1 == lru.getCache(store1.getUUID(), am1));
 
-        assertTrue(cache2 == lru.getCache(store2));
+        assertTrue(cache2 == lru.getCache(store2.getUUID(), am2));
 
         assertTrue(cache1 != cache2);
         
         assertEquals(2, lru.getCacheSetSize());
 
-        lru.deleteCache(store1);
+        lru.deleteCache(store1.getUUID());
 
         assertEquals(1, lru.getCacheSetSize());
 
-        assertTrue(cache1 != lru.getCache(store1));
+        assertTrue(cache1 != lru.getCache(store1.getUUID(), am1));
 
-        assertTrue(cache2 == lru.getCache(store2));
+        assertTrue(cache2 == lru.getCache(store2.getUUID(), am2));
 
         assertEquals(2, lru.getCacheSetSize());
 
@@ -119,7 +126,7 @@ public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
         assertEquals(0, lru.getEvictionCount());
 
         // create one cache.
-        final ILRUCache<Long, Object> cache1 = lru.getCache(store1);
+        final ILRUCache<Long, Object> cache1 = lru.getCache(store1.getUUID(), am1);
         assertEquals(0, lru.getRecordCount());
         assertEquals(0, lru.getBytesInMemory());
         assertEquals(0, lru.getEvictionCount());
@@ -175,7 +182,7 @@ public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
 
         final Random r = new Random();
 
-        final ILRUCache<Long, Object> cache1 = lru.getCache(store1);
+        final ILRUCache<Long, Object> cache1 = lru.getCache(store1.getUUID(), am1);
 
         // how many inserts to perform.
         final int limit = 1000000;
@@ -218,7 +225,7 @@ public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
          * Obtain a cache for a different store and insert some records and
          * verify the counters are still correct.
          */
-        final ILRUCache<Long, Object> cache2 = lru.getCache(store2);
+        final ILRUCache<Long, Object> cache2 = lru.getCache(store2.getUUID(), am2);
         
         // add a first record.
         assertNull(cache2.putIfAbsent(1L, new MockDataRecord(new byte[1])));

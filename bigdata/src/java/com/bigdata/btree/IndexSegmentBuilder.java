@@ -39,6 +39,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.LRUNexus;
 import com.bigdata.btree.data.IAbstractNodeData;
 import com.bigdata.btree.data.ILeafData;
 import com.bigdata.btree.data.INodeData;
@@ -46,6 +47,7 @@ import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.MutableKeyBuffer;
 import com.bigdata.btree.raba.MutableValueBuffer;
 import com.bigdata.btree.view.FusedView;
+import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
 import com.bigdata.io.DirectBufferPool;
 import com.bigdata.io.SerializerUtil;
@@ -71,7 +73,7 @@ import com.bigdata.rawstore.WormAddressManager;
  * emerging from a merge-sort. There are two distinct cases here. In one, we
  * simply have raw records that are being merged into an index. This might occur
  * when merging two key ranges or when external data are being loaded. In the
- * other case we are processing two timestamped versions of an overlapping key
+ * other case we are processing two time-stamped versions of an overlapping key
  * range. In this case, the more recent version may have "delete" markers
  * indicating that a key present in an older version has been deleted in the
  * newer version. Also, key-value entries in the newer version replaced (rather
@@ -210,6 +212,23 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
      * The unique identifier for the generated {@link IndexSegment} resource.
      */
     final public UUID segmentUUID;
+
+    /**
+     * The cache for the generated {@link IndexSegmentStore}. When non-
+     * <code>null</code> the generated {@link INodeData} objects will be placed
+     * into the cache, which is backed by a shared LRU. This helps to reduce
+     * latency when an index partition built or merge operation finishes and the
+     * index partition view is updated since the data will already be present in
+     * the cache. Generating the index segment will drive evictions from the
+     * shared LRU, but those will be the least recently used records and the new
+     * {@link IndexSegmentStore} is often hot as soon as it is generated.
+     * <p>
+     * Note: If the build fails, then the cache will be cleared.
+     * 
+     * @todo should the {@link IndexMetadata} or the {@link BloomFilter} be in
+     *       the {@link #storeCache} as well?
+     */
+    final private ILRUCache<Long, Object> storeCache;
 
     /**
      * Used to serialize the nodes and leaves of the output tree.
@@ -481,17 +500,33 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
         /*
          * Use the range iterator to get an exact entry count for the view.
          * 
-         * @todo We need the exact entry count for the IndexSegmentBuilder since
-         * requires the exact #of index entries when it creates its plan for
-         * populating the index segment. IndexSegmentBulder should be modified
-         * so that it can handle an estimate that is NOT LESS THAN the actual
-         * #of tuples that will be written into the IndexSegment. This change
-         * will mean that a compacting merge can generate an IndexSegment that
-         * is not "perfect" and some of whose nodes or leaves might even
-         * underflow. However it should be good enough and faster to produce.
-         * [actually, the range count will cause the nodes to be
-         * pre-materialized and buffered so it might be only very (VERY)
-         * slightly faster.]
+         * FIXME IndexSegmentBulder should be modified so that it can handle an
+         * estimate that is NOT LESS THAN the actual #of tuples that will be
+         * written into the IndexSegment (it currently requires an exact tuple
+         * count). This change will mean that a compacting merge can generate an
+         * IndexSegment that is not "perfect" and some of whose nodes or leaves
+         * might even underflow. However it should be good enough and faster to
+         * produce.
+         * 
+         * The requirement to have an exact range count on hand to generate an
+         * index segment causes a full index scan. This is a big cost, even at
+         * the level of just navigating the nodes and checking each tuple for
+         * whether or not it is deleted. It can also drive records which were
+         * hot for other purposes out of the shared LRU. [The shared LRU will
+         * attempt to cache the index scan, so that will reduce IO Wait for the
+         * build, but it will not reduce the CPU costs of the build.]
+         * 
+         * It would be great to avoid that cost. Doing so requires a change to
+         * the index segment builder to generate "non-perfect" index segments.
+         * E.g., based on the worst case estimate. If there have been a lot of
+         * deletes, then we could pay the price and get the exact range count of
+         * the non-deleted tuples in order to get a better build.
+         * 
+         * FIXME Scheduling index segment builds and merges is important for
+         * several reasons. If too many occur at once, the data service will be
+         * over burdened and application requests will be slow. Even a modest
+         * number of concurrent index segment builds could clear out useful
+         * nodes and leaves from the shared LRU.
          */
         final int nentries;
         final int flags;
@@ -769,7 +804,24 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
         this.metadata.setBTreeClassName(IndexSegment.class.getName());
 
         this.addressManager = new WormAddressManager(offsetBits);
-        
+
+        /*
+         * The INodeData cache for the generated index segment store.
+         * 
+         * @todo The index segment builder should perhaps only drive into the
+         * shared LRU those records which were already hot. Figuring this out
+         * will break encapsulation. Since the branching factor is not the same,
+         * and since the source is a view, "hot" has to be interpreted in terms
+         * of key ranges which are hot. As a workaround in a memory limited
+         * system you can configure the LRUNexus so that the build will not
+         * drive the records into the cache.
+         */
+        storeCache = (LRUNexus.INSTANCE != null && LRUNexus
+                .getIndexSegmentBuildPopulatesCache()) //
+                ? LRUNexus.INSTANCE.getCache(segmentUUID, addressManager)//
+                : null//
+                ;
+
         /*
          * Create the index plan and do misc setup.
          */
@@ -888,7 +940,7 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
         }
 
         final FileChannel outChannel;
-        
+
         try {
 
             /*
@@ -1274,7 +1326,7 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
      * successfully processed.
      */
     private void deleteOutputFile() {
-    
+
         if (out != null && out.getChannel().isOpen()) {
             
             try {
@@ -1283,11 +1335,11 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
                  out.close();
                 
             } catch (Throwable t) {
-             
+
                 log.error("Ignoring: " + t, t);
-                
+
             }
-        
+
         }
 
         if (!outFile.delete()) {
@@ -1295,7 +1347,18 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
             log.warn("Could not delete: file=" + outFile.getAbsolutePath());
 
         }
-        
+
+        if (storeCache != null) {
+
+            /*
+             * Clear the cache since the index segment store was not generated
+             * successfully and the cache records will never be read.
+             */
+            
+            storeCache.clear();
+
+        }
+
     }
     
     /**
@@ -1593,11 +1656,14 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
         {
             
             // code the leaf, obtaining a view onto an internal (shared) buffer.
-            final ByteBuffer buf = nodeSer.encode(leaf).asByteBuffer();
+//            final ByteBuffer buf = nodeSer.encode(leaf).asByteBuffer();
+            // code the leaf.
+            final ILeafData thisLeafData = nodeSer.encodeLive(leaf);
 
             // Allocate a record for the leaf on the temporary store.
-            final long addr1 = leafBuffer.allocate(buf.remaining());
-
+//            final long addr1 = leafBuffer.allocate(buf.remaining());
+            final long addr1 = leafBuffer.allocate(thisLeafData.data().len());
+            
             // encode the address assigned to the serialized leaf.
             addr = encodeLeafAddr(addr1);
             
@@ -1609,29 +1675,54 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
                 else if (log.isInfoEnabled())
                     System.err.print("."); // wrote a leaf.
 
-                // patch representation of the previous leaf
+                // view onto the coded record for the prior leaf.
+                final ByteBuffer bufLastLeaf = lastLeafData.data().asByteBuffer();
+
+                /*
+                 * Patch representation of the previous leaf.
+                 * 
+                 * Note: This patches the coded record using the ByteBuffer view
+                 * of that record. However, the change is made to the backing
+                 * byte[] so the change is visible on the coded record as well.
+                 */
                 nodeSer.updateLeaf(bufLastLeaf, addrPriorLeaf, addr/*addrNextLeaf*/);
+                assert lastLeafData.getPriorAddr() == addrPriorLeaf;
+                assert lastLeafData.getNextAddr() == addr;
 
                 // write the previous leaf onto the store.
                 leafBuffer.update(bufLastLeafAddr, 0/*offset*/, bufLastLeaf);
                 
                 // the encoded address of the leaf that we just wrote out.
                 addrPriorLeaf = encodeLeafAddr(bufLastLeafAddr);
+
+                if (storeCache != null) {
+
+                    /*
+                     * Insert the coded, patched record for the prior leaf into
+                     * cache.
+                     */
+
+                    storeCache.putIfAbsent(addrPriorLeaf, lastLeafData);
+                    
+                }
                 
             }
             
-            // clear the old data.
-            bufLastLeaf.clear();
-            
-            if (buf.remaining() > bufLastLeaf.capacity()) {
-                
-                // reallocate buffer since too small.
-                bufLastLeaf = ByteBuffer.allocate(buf.remaining() * 2);
-                
-            }
-            
-            // copy in the new data
-            bufLastLeaf.put(buf); bufLastLeaf.flip();
+//            // clear the old data.
+//            bufLastLeaf.clear();
+//            
+//            if (buf.remaining() > bufLastLeaf.capacity()) {
+//                
+//                // reallocate buffer since too small.
+//                bufLastLeaf = ByteBuffer.allocate(buf.remaining() * 2);
+//                
+//            }
+//            
+//            // copy in the new data
+//            bufLastLeaf.put(buf); bufLastLeaf.flip();
+
+            // update reference to the leaf we just coded.
+            lastLeafData = thisLeafData;
             
             // the address allocated for the leaf in the temp store.
             bufLastLeafAddr = addr1;
@@ -1639,8 +1730,11 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
         }
 
         if (nleavesWritten == 0) {
-            
-            // encoded addr of the 1st leaf - update only for the first leaf that we allocate.
+
+            /*
+             * Encoded addr of the 1st leaf - update only for the first leaf
+             * that we allocate.
+             */
             addrFirstLeaf = addr;
             
         }
@@ -1663,11 +1757,33 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
             else if (log.isInfoEnabled())
                 System.err.print("."); // wrote a leaf.
 
-            // patch representation of the last leaf.
+            // view onto the coded record for the prior leaf.
+            final ByteBuffer bufLastLeaf = lastLeafData.data().asByteBuffer();
+
+            /*
+             * Patch representation of the last leaf.
+             * 
+             * Note: This patches the coded record using the ByteBuffer view
+             * of that record. However, the change is made to the backing
+             * byte[] so the change is visible on the coded record as well.
+             */
             nodeSer.updateLeaf(bufLastLeaf, addrPriorLeaf, 0L/*addrNextLeaf*/);
+            assert lastLeafData.getPriorAddr() == addrPriorLeaf;
+            assert lastLeafData.getNextAddr() == 0L;
 
             // write the last leaf onto the store.
             leafBuffer.update(bufLastLeafAddr, 0/*offset*/, bufLastLeaf);
+
+            if (storeCache != null) {
+
+                /*
+                 * Insert the coded, patched record for the prior leaf into
+                 * cache.
+                 */
+
+                storeCache.putIfAbsent(addrLastLeaf, lastLeafData);
+                
+            }
             
         }
 
@@ -1687,7 +1803,7 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
      *         {@link IndexSegmentRegion#BASE} region where it will appear once
      *         the leaves have been copied onto the output file.
      */
-    private long encodeLeafAddr(long addr1) {
+    private long encodeLeafAddr(final long addr1) {
 
         final int nbytes = addressManager.getByteCount(addr1);
 
@@ -1744,15 +1860,25 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
      */
     private long bufLastLeafAddr = 0L;
     
+//    /**
+//     * Buffer holds a copy of the serialized representation of the last leaf.
+//     * This buffer is reset and written by {@link #writeLeaf(SimpleLeafData)}.
+//     * The contents of this buffer are used by {@link #writePriorLeaf(long)} to
+//     * write out the serialized representation of the previous leaf in key order
+//     * after it has been patched to reflect the prior and next leaf addresses.
+//     * The buffer is automatically reallocated if it is too small for a leaf.
+//     */
+//    private ByteBuffer bufLastLeaf = ByteBuffer.allocate(10 * Bytes.kilobyte32);
     /**
-     * Buffer holds a copy of the serialized representation of the last leaf.
-     * This buffer is reset and written by {@link #writeLeaf(SimpleLeafData)}.
-     * The contents of this buffer are used by {@link #writePriorLeaf(long)} to
-     * write out the serialized representation of the previous leaf in key order
-     * after it has been patched to reflect the prior and next leaf addresses.
-     * The buffer is automatically reallocated if it is too small for a leaf.
+     * Buffer holds a copy of the coded representation of the last leaf. This
+     * buffer is written by {@link #writeLeaf(SimpleLeafData)}. The contents of
+     * this buffer are used to write out the serialized representation of the
+     * previous leaf in key order after it has been patched to reflect the prior
+     * and next leaf addresses. The coded {@link ILeafData} record is modified
+     * before the previous leaf is written out to reflect the address assigned
+     * to the next leaf in key order.
      */
-    private ByteBuffer bufLastLeaf = ByteBuffer.allocate(10 * Bytes.kilobyte32);
+    private ILeafData lastLeafData;
     
     /**
      * Code and write the node onto the {@link #nodeBuffer}.
@@ -1769,21 +1895,18 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
         throws IOException
     {
 
-        final long addr2;
-        {
+        // code node, obtaining slice onto shared buffer and wrap that
+        // shared buffer.
+        final INodeData codedNodeData = nodeSer.encodeLive(node);
+//        final ByteBuffer buf = nodeSer.encode(node).asByteBuffer();
 
-            // code node, obtaining slice onto shared buffer and wrap that
-            // shared buffer.
-            final ByteBuffer buf = nodeSer.encode(node).asByteBuffer();
+        // write the node on the buffer (a temporary store).
+//        final long tempAddr = nodeBuffer.write(buf);
+        final long tempAddr = nodeBuffer.write(codedNodeData.data().asByteBuffer());
 
-            // write the node on the buffer (a temporary store).
-            addr2 = nodeBuffer.write(buf);
-            
-        }
-
-        final long offset = addressManager.getOffset(addr2);
+        final long offset = addressManager.getOffset(tempAddr);
         
-        final int nbytes = addressManager.getByteCount(addr2);
+        final int nbytes = addressManager.getByteCount(tempAddr);
         
         if( nbytes > maxNodeOrLeafLength ) { 
          
@@ -1795,8 +1918,8 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
         // the #of nodes written so far.
         nnodesWritten++;
 
-        if(log.isInfoEnabled())
-        System.err.print("x"); // wrote a node.
+        if (log.isInfoEnabled())
+            System.err.print("x"); // wrote a node.
 
         /*
          * Encode the node address. Since we do not know the offset of the NODE
@@ -1807,6 +1930,17 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
                 .encodeOffset(offset));
         
         node.addr = addr;
+        
+        if (storeCache != null) {
+
+            /*
+             * Insert the coded record into cache as [addr2 : nodeData], where
+             * nodeData is encodeLive() wrapped version of the slice.
+             */
+            
+            storeCache.putIfAbsent(addr, codedNodeData);
+            
+        }
         
         return addr;
         

@@ -301,7 +301,8 @@ public class TestIndexSegmentBuilderWithLargeTrees extends AbstractIndexSegmentT
             // Close again so that we can delete the backing file.
             System.err.println("Re-closing index segment.");
             seg.close();
-            
+            seg.getStore().destroy();
+
             if (!outFile.delete()) {
 
                 log.warn("Could not delete index segment: " + outFile);

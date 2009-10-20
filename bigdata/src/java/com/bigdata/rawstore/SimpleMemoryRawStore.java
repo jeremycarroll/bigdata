@@ -251,7 +251,7 @@ public class SimpleMemoryRawStore extends AbstractRawWormStore {
         
         if (LRUNexus.INSTANCE != null) {
 
-            LRUNexus.INSTANCE.deleteCache(this);
+            LRUNexus.INSTANCE.deleteCache(getUUID());
 
         }
         

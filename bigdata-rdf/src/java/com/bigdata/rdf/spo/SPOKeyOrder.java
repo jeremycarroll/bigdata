@@ -39,6 +39,8 @@ import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.store.IRawTripleStore;
+import com.bigdata.relation.rule.IPredicate;
+import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.striterator.IKeyOrder;
 
 /**
@@ -62,6 +64,8 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
      */
     private static final long serialVersionUID = 87501920529732159L;
     
+    static private final transient long NULL = IRawTripleStore.NULL;
+
     /*
      * Note: these constants make it possible to use switch(index()) constructs.
      */
@@ -380,6 +384,119 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
 
     }
 
+    /**
+     * Return the inclusive lower bound which would be used for a query against
+     * this {@link IKeyOrder} for the given {@link IPredicate}.
+     * 
+     * @todo This method should be declared by {@link IKeyOrder}.
+     */
+    final public byte[] getFromKey(final IKeyBuilder keyBuilder,
+            final IPredicate<ISPO> predicate) {
+
+        final int keyArity = getKeyArity(); // use the key's "arity".
+
+        keyBuilder.reset();
+
+        boolean noneBound = true;
+        
+        for (int i = 0; i < keyArity; i++) {
+        
+            final IVariableOrConstant<Long> term = predicate.get(getKeyOrder(i));
+            
+            final long l;
+            
+            // Note: term MAY be null for the context position.
+            if (term == null || term.isVar()) {
+            
+                l = Long.MIN_VALUE;
+                
+            } else {
+                
+                l = term.get();
+
+                noneBound = false;
+                
+            }
+
+            keyBuilder.append(l);
+            
+        }
+
+        return noneBound ? null : keyBuilder.getKey();
+
+    }
+
+    /**
+     * Return the exclusive upper bound which would be used for a query against
+     * this {@link IKeyOrder} for the given {@link IPredicate}.
+     * 
+     * @todo This method should be declared by {@link IKeyOrder}.
+     */
+    final public byte[] getToKey(final IKeyBuilder keyBuilder,
+            final IPredicate<ISPO> predicate) {
+
+        keyBuilder.reset();
+
+        final int keyArity = getKeyArity();
+        
+        boolean noneBound = true;
+        
+        boolean foundLastBound = false;
+        
+        for (int i = 0; i < keyArity; i++) {
+        
+            final IVariableOrConstant<Long> term = predicate
+                    .get(getKeyOrder(i));
+            
+            long l;
+            
+            // Note: term MAY be null for context.
+            if (term == null || term.isVar()) {
+            
+                l = Long.MIN_VALUE;
+                
+            } else {
+                
+                l = term.get();
+                
+                noneBound = false;
+                
+                if (!foundLastBound) {
+                
+                    if (i == keyArity - 1) {
+                    
+                        l++;
+                        
+                        foundLastBound = true;
+                        
+                    } else {
+                        
+                        final IVariableOrConstant<Long> next = predicate
+                                .get(getKeyOrder(i + 1));
+                        
+                        // Note: next can be null for quads (context pos).
+                        if (next == null || next.isVar()) {
+                        
+                            l++;
+                            
+                            foundLastBound = true;
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+            
+            keyBuilder.append(l);
+            
+        }
+
+        return noneBound ? null : keyBuilder.getKey();
+
+    }
+    
     final public byte[] encodeKey(final IKeyBuilder keyBuilder, final ISPO spo) {
 
         keyBuilder.reset();
@@ -539,7 +656,101 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
         return SPOKeyOrder.valueOf(index);
 
     }
-    
+
+    /**
+     * Return the {@link SPOKeyOrder} for the given predicate.
+     * 
+     * @param predicate
+     *            The predicate.
+     * 
+     * @return The {@link SPOKeyOrder}
+     * 
+     * @todo A variant of this method should be raised onto IKeyOrder without
+     *       the keyArity parameter. That parameter is only there because we
+     *       support two distinct families of natural orders in this class: one
+     *       for triples and one for quads.
+     */
+    static public SPOKeyOrder getKeyOrder(final IPredicate<ISPO> predicate,
+            final int keyArity) {
+
+        final long s = predicate.get(0).isVar() ? NULL : (Long) predicate
+                .get(0).get();
+        
+        final long p = predicate.get(1).isVar() ? NULL : (Long) predicate
+                .get(1).get();
+        
+        final long o = predicate.get(2).isVar() ? NULL : (Long) predicate
+                .get(2).get();
+
+        if (keyArity == 3) {
+
+            // Note: Context is ignored!
+
+            if (s != NULL && p != NULL && o != NULL) {
+                return SPO;
+            } else if (s != NULL && p != NULL) {
+                return SPO;
+            } else if (s != NULL && o != NULL) {
+                return OSP;
+            } else if (p != NULL && o != NULL) {
+                return POS;
+            } else if (s != NULL) {
+                return SPO;
+            } else if (p != NULL) {
+                return POS;
+            } else if (o != NULL) {
+                return OSP;
+            } else {
+                return SPO;
+            }
+
+        } else {
+
+            @SuppressWarnings("unchecked")
+            final IVariableOrConstant<Long> t = predicate.get(3);
+            
+            final long c = t == null ? NULL : (t.isVar() ? NULL : t.get());
+            
+            /*
+             * if ((s == NULL && p == NULL && o == NULL && c == NULL) || (s !=
+             * NULL && p == NULL && o == NULL && c == NULL) || (s != NULL && p
+             * != NULL && o == NULL && c == NULL) || (s != NULL && p != NULL &&
+             * o != NULL && c == NULL) || (s != NULL && p != NULL && o != NULL
+             * && c != NULL)) { return SPOKeyOrder.SPOC; }
+             */
+            
+            if ((s == NULL && p != NULL && o == NULL && c == NULL)
+                    || (s == NULL && p != NULL && o != NULL && c == NULL)
+                    || (s == NULL && p != NULL && o != NULL && c != NULL)) {
+                return POCS;
+            }
+
+            if ((s == NULL && p == NULL && o != NULL && c == NULL)
+                    || (s == NULL && p == NULL && o != NULL && c != NULL)
+                    || (s != NULL && p == NULL && o != NULL && c != NULL)) {
+                return OCSP;
+            }
+
+            if ((s == NULL && p == NULL && o == NULL && c != NULL)
+                    || (s != NULL && p == NULL && o == NULL && c != NULL)
+                    || (s != NULL && p != NULL && o == NULL && c != NULL)) {
+                return CSPO;
+            }
+
+            if ((s == NULL && p != NULL && o == NULL && c != NULL)) {
+                return PCSO;
+            }
+
+            if ((s != NULL && p == NULL && o != NULL && c == NULL)) {
+                return SOPC;
+            }
+
+            return SPOC;
+
+        }
+
+    }
+
     /**
      * Iterator visits {@link #SPO}.
      * 
