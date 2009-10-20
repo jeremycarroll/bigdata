@@ -345,10 +345,14 @@ public class BigdataSailHelper {
      *            
      *            @return The post-modification properties.
      */
-    public Properties setProperties(BigdataSail sail, Properties properties) {
+    public Properties setProperties(final BigdataSail sail,
+            final Properties properties) {
 
-        return setProperties(sail.getDatabase().getIndexManager(), sail
-                .getDatabase().getNamespace(), properties);
+        return setProperties(//
+                sail.getDatabase().getIndexManager(), //
+                sail.getDatabase().getNamespace(), //
+                properties//
+        );
         
     }
     
@@ -359,8 +363,8 @@ public class BigdataSailHelper {
      * @param properties
      * @return The post-modification properties.
      */
-    protected Properties setProperties(IIndexManager indexManager, String namespace,
-            Properties properties) {
+    protected Properties setProperties(final IIndexManager indexManager,
+            final String namespace, final Properties properties) {
 
         /*
          * Convert the Properties to a Map.
@@ -392,24 +396,25 @@ public class BigdataSailHelper {
          */
         final Properties p2 = new Properties();
 
-        p2.putAll( indexManager.getGlobalRowStore().write(RelationSchema.INSTANCE, map) );
+        p2.putAll(indexManager.getGlobalRowStore().write(
+                RelationSchema.INSTANCE, map));
 
-        if(indexManager instanceof IJournal) {
+        if (indexManager instanceof IJournal) {
 
-            // make the changes restart safe (not required for federations).
-            ((Journal)indexManager).commit();
+            // make the changes restart safe (not required for federation).
+            ((Journal) indexManager).commit();
 
         }
-        
+
         // return the post-modification properties.
         return p2;
-        
+
     }
 
-    protected static void showProperties(Properties p) {
-        
+    protected static void showProperties(final Properties p) {
+
         // sorted collection.
-        final TreeMap<String/*name*/, Object/*val*/> map = new TreeMap<String,Object>();
+        final TreeMap<String/* name */, Object/* val */> map = new TreeMap<String, Object>();
 
         // put into alpha order.
         for(Map.Entry<Object,Object> entry : p.entrySet()) {

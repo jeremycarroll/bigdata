@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.cache;
 
-import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Iterator;
@@ -42,14 +41,8 @@ import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.io.IDataRecordAccess;
-import com.bigdata.journal.AbstractBufferStrategy;
-import com.bigdata.journal.AbstractJournal;
-import com.bigdata.journal.TemporaryRawStore;
-import com.bigdata.rawstore.AbstractRawStore;
-import com.bigdata.rawstore.AbstractRawWormStore;
 import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IRawStore;
-import com.bigdata.rawstore.WormAddressManager;
 
 /**
  * Global LRU implementation based on a single map whose keys include both the
@@ -243,49 +236,18 @@ public class StoreAndAddressLRUCache<V> implements IGlobalLRU<Long,V> {
         
     }
 
-    /**
-     * Return a cache view for the specified {@link IRawStore}.
-     */
-    public ILRUCache<Long, V> getCache(final IRawStore store) {
+    public ILRUCache<Long, V> getCache(final UUID uuid, final IAddressManager am) {
 
-        final UUID storeUUID = store.getUUID();
+        if (uuid == null)
+            throw new IllegalArgumentException();
 
-        InnerCacheImpl cache = cacheSet.get(storeUUID);
+        InnerCacheImpl cache = cacheSet.get(uuid);
 
         if (cache == null) {
 
-            final Class<? extends IRawStore> cls = store.getClass();
-            final IAddressManager am;
-            final File file = store.getFile();
-            
-            if (store instanceof AbstractJournal) {
+            cache = new InnerCacheImpl(uuid, am);
 
-                am = ((AbstractBufferStrategy) ((AbstractJournal) store)
-                        .getBufferStrategy()).getAddressManager();
-
-            } else if (store instanceof TemporaryRawStore) {
-
-                // Avoid hard reference to the temporary store (clone's the
-                // address manager instead).
-                am = new WormAddressManager(((TemporaryRawStore) store)
-                        .getOffsetBits());
-                
-            } else if (store instanceof AbstractRawWormStore) {
-                
-                am = ((AbstractRawStore) store).getAddressManager();
-                
-            } else {
-
-                // @todo which cases come though here? SimpleMemoryStore,
-                // SimpleFileStore,
-                am = null;
-                
-            }
-
-            cache = new InnerCacheImpl(storeUUID, cls, am, file);
-
-            final InnerCacheImpl oldVal = cacheSet
-                    .putIfAbsent(storeUUID, cache);
+            final InnerCacheImpl oldVal = cacheSet.putIfAbsent(uuid, cache);
 
             if (oldVal == null) {
 
@@ -306,13 +268,13 @@ public class StoreAndAddressLRUCache<V> implements IGlobalLRU<Long,V> {
         
     }
 
-    public void deleteCache(final IRawStore store) {
+    public void deleteCache(final UUID uuid) {
         
-        if (store == null)
+        if (uuid == null)
             throw new IllegalArgumentException();
 
         // remove cache from the cacheSet.
-        final InnerCacheImpl cache = cacheSet.remove(store.getUUID());
+        final InnerCacheImpl cache = cacheSet.remove(uuid);
 
         if (cache != null) {
 
@@ -520,8 +482,8 @@ public class StoreAndAddressLRUCache<V> implements IGlobalLRU<Long,V> {
                 continue;
             }
 
-            sb.append("\ncache: storeClass=" + cache.cls.getName() + ", size="
-                    + cache.size() + ", file=" + cache.file + "\n");
+            sb.append("\ncache: storeClass=" + cache.getStoreUUID() + ", size="
+                    + cache.size());
 
         }
 
@@ -540,18 +502,10 @@ public class StoreAndAddressLRUCache<V> implements IGlobalLRU<Long,V> {
         
         private final UUID storeUUID;
 
-        private final Class<? extends IRawStore> cls;
-
         private final IAddressManager am;
-
-        private final File file;
 
         public IAddressManager getAddressManager() {
             return am;
-        }
-
-        public File getStoreFile() {
-            return file;
         }
 
         public UUID getStoreUUID() {
@@ -564,8 +518,6 @@ public class StoreAndAddressLRUCache<V> implements IGlobalLRU<Long,V> {
          * 
          * @param storeUUID
          *            The {@link UUID} of the associated {@link IRawStore}.
-         * @param cls
-         *            The {@link IRawStore} implementation class.
          * @param am
          *            The <em>delegate</em> {@link IAddressManager} associated
          *            with the {@link IRawStore} whose records are being cached.
@@ -574,43 +526,27 @@ public class StoreAndAddressLRUCache<V> implements IGlobalLRU<Long,V> {
          *            NOT provide a reference to an {@link IRawStore} here as
          *            that will cause the {@link IRawStore} to be retained by a
          *            hard reference!
-         * @param file
-         *            The backing file (may be <code>null</code>).
          */
         public InnerCacheImpl(final UUID storeUUID,
-                final Class<? extends IRawStore> cls, final IAddressManager am,
-                final File file) {
+                final IAddressManager am
+                ) {
 
             if (storeUUID == null)
                 throw new IllegalArgumentException();
             
-            if (cls == null)
-                throw new IllegalArgumentException();
-            
             // [am] MAY be null.
             
-            if(am instanceof IRawStore) {
-                
-                /*
-                 * This would cause the IRawStore to be retained by a hard
-                 * reference!
-                 */
+            /*
+             * This would cause the IRawStore to be retained by a hard
+             * reference!
+             */
+            assert !(am instanceof IRawStore) : am.getClass().getName()
+                    + " implements " + IRawStore.class.getName();
 
-                throw new AssertionError(am.getClass().getName()
-                        + " implements " + IRawStore.class.getName());
-
-            }
-
-            // [file] MAY be null.
-            
             this.storeUUID = storeUUID;
             
-            this.cls = cls;
-
             this.am = am;
             
-            this.file = file;
-
         }
 
         /**

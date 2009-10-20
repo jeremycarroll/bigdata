@@ -1417,7 +1417,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
 
             try {
 
-                LRUNexus.INSTANCE.deleteCache(this);
+                LRUNexus.INSTANCE.deleteCache(getUUID());
 
             } catch (Throwable t) {
 
@@ -1462,7 +1462,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
 
             try {
 
-                LRUNexus.INSTANCE.deleteCache(this);
+                LRUNexus.INSTANCE.deleteCache(getUUID());
 
             } catch (Throwable t) {
 
@@ -1986,7 +1986,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
                  * machine with a lot of RAM.
                  */
 
-                LRUNexus.INSTANCE.getCache(this).clear();
+                LRUNexus.getCache(this).clear();
 
             }
 

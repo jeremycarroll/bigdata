@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.cache;
 
-import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -39,18 +38,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.bigdata.BigdataStatics;
 import com.bigdata.counters.CounterSet;
-import com.bigdata.counters.ICounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.io.IDataRecordAccess;
-import com.bigdata.journal.AbstractBufferStrategy;
-import com.bigdata.journal.AbstractJournal;
-import com.bigdata.journal.TemporaryRawStore;
-import com.bigdata.rawstore.AbstractRawStore;
-import com.bigdata.rawstore.AbstractRawWormStore;
 import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IRawStore;
-import com.bigdata.rawstore.WormAddressManager;
 
 /**
  * A collection of hard reference hash maps backed by a single Least Recently
@@ -164,50 +156,19 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
 
     }
 
-    /**
-     * Canonicalizing mapping and factory for a per-{@link IRawStore} cache
-     * instance.
-     */
-    public ILRUCache<K, V> getCache(final IRawStore store) {
+    public ILRUCache<K, V> getCache(final UUID uuid, final IAddressManager am) {
 
-        final UUID storeUUID = store.getUUID();
+        if (uuid == null)
+            throw new IllegalArgumentException();
 
-        LRUCacheImpl<K,V> cache = cacheSet.get(storeUUID);
+        LRUCacheImpl<K,V> cache = cacheSet.get(uuid);
 
         if (cache == null) {
 
-            final Class<? extends IRawStore> cls = store.getClass();
-            final IAddressManager am;
-            final File file = store.getFile();
-            
-            if (store instanceof AbstractJournal) {
-
-                am = ((AbstractBufferStrategy) ((AbstractJournal) store)
-                        .getBufferStrategy()).getAddressManager();
-
-            } else if (store instanceof TemporaryRawStore) {
-
-                // Avoid hard reference to the temporary store (clone's the
-                // address manager instead).
-                am = new WormAddressManager(((TemporaryRawStore) store)
-                        .getOffsetBits());
-                
-            } else if (store instanceof AbstractRawWormStore) {
-                
-                am = ((AbstractRawStore) store).getAddressManager();
-                
-            } else {
-
-                // @todo which cases come though here? SimpleMemoryStore,
-                // SimpleFileStore,
-                am = null;
-                
-            }
-
-            cache = new LRUCacheImpl<K, V>(storeUUID, cls, am, file, this,
+            cache = new LRUCacheImpl<K, V>(uuid, am, this,
                     initialCacheCapacity, loadFactor);
 
-            final LRUCacheImpl<K, V> oldVal = cacheSet.putIfAbsent(storeUUID,
+            final LRUCacheImpl<K, V> oldVal = cacheSet.putIfAbsent(uuid,
                     cache);
 
             if (oldVal == null) {
@@ -253,13 +214,13 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
         
     }
     
-    public void deleteCache(final IRawStore store) {
+    public void deleteCache(final UUID uuid) {
 
-        if (store == null)
+        if (uuid == null)
             throw new IllegalArgumentException();
 
         // remove cache from the cacheSet.
-        final LRUCacheImpl<K, V> cache = cacheSet.remove(store.getUUID());
+        final LRUCacheImpl<K, V> cache = cacheSet.remove(uuid);
 
         if (cache != null) {
 
@@ -267,12 +228,12 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
             cache.clear();
 
             if (BigdataStatics.debug)
-                System.err.println("Cleared cache: " + store.getUUID());
+                System.err.println("Cleared cache: " + uuid);
 
         } else {
 
             if (BigdataStatics.debug)
-                System.err.println("No cache: " + store.getUUID());
+                System.err.println("No cache: " + uuid);
 
         }
         
@@ -338,9 +299,7 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
             }
 
             // add the per-cache counters.
-            root.makePath(
-                    cache.cls.getName() + ICounterSet.pathSeparator
-                            + cache.storeUUID).attach(
+            root.makePath(cache.storeUUID.toString()).attach(
                     cache.counters.getCounters());
 
         }
@@ -824,7 +783,7 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
         /**
          * The {@link IRawStore} implementation class.
          */
-        private final Class<? extends IRawStore> cls;
+//        private final Class<? extends IRawStore> cls;
 
         /**
          * An {@link IAddressManager} that can decode the record byte count from
@@ -833,11 +792,6 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
          */
         private final IAddressManager am;
 
-        /**
-         * The backing file for the {@link IRawStore} (if any).
-         */
-        private final File file;
-        
         /**
          * The shared LRU.
          */
@@ -862,8 +816,6 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
          * 
          * @param storeUUID
          *            The {@link UUID} of the associated {@link IRawStore}.
-         * @param cls
-         *            The {@link IRawStore} implementation class.
          * @param am
          *            The <em>delegate</em> {@link IAddressManager} associated
          *            with the {@link IRawStore} whose records are being cached.
@@ -872,50 +824,34 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
          *            NOT provide a reference to an {@link IRawStore} here as
          *            that will cause the {@link IRawStore} to be retained by a
          *            hard reference!
-         * @param file
-         *            The backing file (may be <code>null</code>).
          * @param initialCapacity
          *            The capacity of the cache (must be positive).
          * @param loadFactor
          *            The load factor for the internal hash table.
          */
         public LRUCacheImpl(final UUID storeUUID,
-                final Class<? extends IRawStore> cls, final IAddressManager am,
-                final File file, final HardReferenceGlobalLRURecycler<K, V> lru,
+                final IAddressManager am,
+                final HardReferenceGlobalLRURecycler<K, V> lru,
                 final int initialCapacity, final float loadFactor) {
 
             if (storeUUID == null)
                 throw new IllegalArgumentException();
             
-            if (cls == null)
-                throw new IllegalArgumentException();
-            
             // [am] MAY be null.
             
-            if(am instanceof IRawStore) {
-                
-                /*
-                 * This would cause the IRawStore to be retained by a hard
-                 * reference!
-                 */
+            /*
+             * This would cause the IRawStore to be retained by a hard
+             * reference!
+             */
+            assert !(am instanceof IRawStore) : am.getClass().getName()
+                    + " implements " + IRawStore.class.getName();
 
-                throw new AssertionError(am.getClass().getName()
-                        + " implements " + IRawStore.class.getName());
-
-            }
-
-            // [file] MAY be null.
-            
             if (lru == null)
                 throw new IllegalArgumentException();
 
             this.storeUUID = storeUUID;
-            
-            this.cls = cls;
 
             this.am = am;
-            
-            this.file = file;
             
             this.globalLRU = lru;
 
@@ -929,12 +865,6 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
         public IAddressManager getAddressManager() {
 
             return am;
-            
-        }
-
-        public File getStoreFile() {
-            
-            return file;
             
         }
 

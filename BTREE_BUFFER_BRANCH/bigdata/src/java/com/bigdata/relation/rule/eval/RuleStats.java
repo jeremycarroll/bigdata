@@ -700,6 +700,8 @@ public class RuleStats {
 
         toString(minElapsed, joinDetails, depth+1, sb, a);
 
+        sb.append("\n");
+        
         return sb.toString();
 
     }

@@ -167,7 +167,7 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
             } finally {
                 
                 if (segmentStore != null)
-                    segmentStore.close();
+                    segmentStore.destroy();
                 
                 outFile.delete();
                 
@@ -218,7 +218,7 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
             } finally {
                 
                 if (segmentStore != null)
-                    segmentStore.close();
+                    segmentStore.destroy();
                 
                 outFile.delete();
                 
@@ -281,7 +281,7 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
             } finally {
                 
                 if (segmentStore != null)
-                    segmentStore.close();
+                    segmentStore.destroy();
                 
                 outFile.delete();
                 
@@ -335,7 +335,7 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
             } finally {
                 
                 if (segmentStore != null)
-                    segmentStore.close();
+                    segmentStore.destroy();
                 
                 outFile.delete();
                 
@@ -392,7 +392,7 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
             } finally {
                 
                 if (segmentStore != null)
-                    segmentStore.close();
+                    segmentStore.destroy();
                 
                 outFile.delete();
                 
@@ -446,7 +446,7 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
             } finally {
                 
                 if (segmentStore != null)
-                    segmentStore.close();
+                    segmentStore.destroy();
                 
                 outFile.delete();
                 
@@ -507,7 +507,7 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
             } finally {
                 
                 if (segmentStore != null)
-                    segmentStore.close();
+                    segmentStore.destroy();
                 
                 outFile.delete();
                 

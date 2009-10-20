@@ -377,9 +377,10 @@ public class ProcessHelper {
 
         long nlines = 0;
         
+        BufferedReader is = null; 
         try {
 
-            final BufferedReader is = new BufferedReader(new InputStreamReader(
+            is = new BufferedReader(new InputStreamReader(
                     process.getInputStream()));
 
             String s;
@@ -405,6 +406,16 @@ public class ProcessHelper {
 
             log.error(ex, ex);
 
+        } finally {
+
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException ex2) {
+                    log.error(ex2, ex2);
+                }
+            }
+            
         }
 
     }

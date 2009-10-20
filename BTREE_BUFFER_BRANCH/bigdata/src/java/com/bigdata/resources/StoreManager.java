@@ -55,6 +55,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.io.FileSystemUtils;
 import org.apache.log4j.Logger;
 
+import com.bigdata.LRUNexus;
 import com.bigdata.bfs.BigdataFileSystem;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.Checkpoint;
@@ -66,6 +67,7 @@ import com.bigdata.btree.IndexSegment;
 import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.cache.ConcurrentWeakValueCacheWithTimeout;
 import com.bigdata.cache.HardReferenceQueue;
+import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.concurrent.NamedLock;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.journal.AbstractJournal;
@@ -3459,6 +3461,7 @@ abstract public class StoreManager extends ResourceEvents implements
      * <ol>
      * <li>close iff open</li>
      * <li>remove from lists of known resources</li>
+     * <li>clear the associated {@link ILRUCache}</li>
      * <li>delete in the file system</li>
      * </ol>
      * Note: {@link IndexSegment}s pose a special case. Their create time is
@@ -3932,6 +3935,7 @@ abstract public class StoreManager extends ResourceEvents implements
      * <li>The resource is closed if it was open and is no longer found in the
      * {@link #storeCache}.</li>
      * <li>The resource is no longer found in {@link #resourceFiles}. </li>
+     * <li>The {@link ILRUCache} for that resource has been cleared. </li>
      * <li>The backing file for the resource has been deleted (the backing file
      * is obtain from {@link #resourceFiles}).</li>
      * <li>Various counters maintained by the {@link StoreManager} have been
@@ -4037,6 +4041,16 @@ abstract public class StoreManager extends ResourceEvents implements
 
             }
 
+        }
+
+        /*
+         * Clear record for that store from the LRUNexus and remove the entry
+         * for the store itself from the LRUNexus.
+         */
+        if (LRUNexus.INSTANCE != null) {
+
+            LRUNexus.INSTANCE.deleteCache(uuid);
+            
         }
         
         /*

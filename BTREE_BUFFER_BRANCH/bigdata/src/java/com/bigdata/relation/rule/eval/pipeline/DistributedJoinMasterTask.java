@@ -147,7 +147,7 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
              * 
              * Note: These constraints arise from (a) the need to flush
              * solutions onto relations that may also be in the body of the
-             * fule; and (b) the need to avoid stale locators when writing
+             * rule; and (b) the need to avoid stale locators when writing
              * on those relations.
              */
 
@@ -185,7 +185,7 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
          * Note: We need proxies if the federation is really distributed and
          * using RMI to communicate.
          * 
-         * @todo do we need distributed garbarge collection for these
+         * @todo do we need distributed garbage collection for these
          * proxies?
          */
         if (joinNexus.getIndexManager() instanceof AbstractDistributedFederation) {
@@ -267,6 +267,10 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
          */
         final IBindingSet initialBindingSet = joinNexus.newBindingSet(rule);
 
+        /*
+         * Map the initial binding set across all index partitions on which the
+         * asBound() predicate would read for the first join dimension.
+         */
         final List<Future> factoryTaskFutures = mapBindingSet(initialBindingSet);
 
         // await futures for the factory tasks.
@@ -308,7 +312,8 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
      * 
      * FIXME The initial binding set should not be mapped across the index
      * partitions for the first join dimension if {@link IQueryOptions#isStable()}
-     * is <code>true</code>.
+     * is <code>true</code> (any parallel evaluation violates the stable
+     * constraint).
      */
     protected List<Future> mapBindingSet(final IBindingSet bindingSet)
             throws Exception {
@@ -317,10 +322,10 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
          * The first predicate in the evaluation order with the initial
          * bindings applied.
          */
-        final IPredicate predicate = rule.getTail(order[0]).asBound(bindingSet);
+        final IPredicate<?> predicate = rule.getTail(order[0]).asBound(bindingSet);
 
         // scale-out index manager.
-        final AbstractScaleOutFederation fed = (AbstractScaleOutFederation) joinNexus
+        final AbstractScaleOutFederation<?> fed = (AbstractScaleOutFederation<?>) joinNexus
                 .getIndexManager();
 
         // the scale out index on which this predicate must read.
@@ -495,7 +500,7 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
 
             if (causes.isEmpty()) {
 
-                // no errors yet, so remeber the future for the join task.
+                // no errors yet, so remember the future for the join task.
                 joinTaskFutures.add(joinTaskFuture);
 
             } else {
@@ -514,7 +519,7 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
 
         if (!causes.isEmpty()) {
 
-            for (Future f : joinTaskFutures) {
+            for (Future<Void> f : joinTaskFutures) {
 
                 // cancel since we have to abort anyway.
                 f.cancel(true/* mayInterruptIfRunning */);

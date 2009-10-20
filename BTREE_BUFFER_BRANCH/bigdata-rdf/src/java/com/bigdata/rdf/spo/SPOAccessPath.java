@@ -120,71 +120,73 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
     
     public SPOAccessPath init() {
 
-        /*
-         * The minimum value that a term identifier may take on.
-         */
-        final SPOKeyOrder keyOrder = (SPOKeyOrder) this.keyOrder;
-        final int keyArity = keyOrder.getKeyArity(); // use the key's "arity".
         final IKeyBuilder keyBuilder = getTupleSerializer().getKeyBuilder();
-        
-        { // do the from key
-            
-            keyBuilder.reset();
-            boolean noneBound = true;
-            for (int i = 0; i < keyArity; i++) {
-                IVariableOrConstant<Long> term = 
-                    predicate.get(keyOrder.getKeyOrder(i));
-                long l;
-                // Note: term MAY be null for the context position.
-                if (term == null || term.isVar()) {
-                    l = Long.MIN_VALUE;
-                } else {
-                    l = term.get();
-                    noneBound = false;
-                }
-                keyBuilder.append(l);
-            }
-            final byte[] fromKey = noneBound ? null : keyBuilder.getKey();
-            setFromKey(fromKey);
-            
-        }
 
-        { // do the to key
+        setFromKey(((SPOKeyOrder) keyOrder).getFromKey(keyBuilder, predicate));
 
-            keyBuilder.reset();
-            boolean noneBound = true;
-            boolean foundLastBound = false;
-            for (int i = 0; i < keyArity; i++) {
-                IVariableOrConstant<Long> term = 
-                    predicate.get(keyOrder.getKeyOrder(i));
-                long l;
-                // Note: term MAY be null for context.
-                if (term == null || term.isVar()) {
-                    l = Long.MIN_VALUE;
-                } else {
-                    l = term.get();
-                    noneBound = false;
-                    if (!foundLastBound) {
-                        if (i == keyArity-1) {
-                            l++;
-                            foundLastBound = true;
-                        } else {
-                            IVariableOrConstant<Long> next = 
-                                predicate.get(keyOrder.getKeyOrder(i+1));
-                            // Note: next can be null for quads (context pos).
-                            if (next == null || next.isVar()) {
-                                l++;
-                                foundLastBound = true;
-                            }
-                        }
-                    }
-                }
-                keyBuilder.append(l);
-            }
-            final byte[] toKey = noneBound ? null : keyBuilder.getKey();
-            setToKey(toKey);
-           
-        }
+        setToKey(((SPOKeyOrder) keyOrder).getToKey(keyBuilder, predicate));
+
+//        final SPOKeyOrder keyOrder = (SPOKeyOrder) this.keyOrder;
+//        final int keyArity = keyOrder.getKeyArity(); // use the key's "arity".
+//        
+//        { // do the from key
+//            
+//            keyBuilder.reset();
+//            boolean noneBound = true;
+//            for (int i = 0; i < keyArity; i++) {
+//                IVariableOrConstant<Long> term = 
+//                    predicate.get(keyOrder.getKeyOrder(i));
+//                long l;
+//                // Note: term MAY be null for the context position.
+//                if (term == null || term.isVar()) {
+//                    l = Long.MIN_VALUE;
+//                } else {
+//                    l = term.get();
+//                    noneBound = false;
+//                }
+//                keyBuilder.append(l);
+//            }
+//            final byte[] fromKey = noneBound ? null : keyBuilder.getKey();
+//            setFromKey(fromKey);
+//            
+//        }
+//
+//        { // do the to key
+//
+//            keyBuilder.reset();
+//            boolean noneBound = true;
+//            boolean foundLastBound = false;
+//            for (int i = 0; i < keyArity; i++) {
+//                IVariableOrConstant<Long> term = 
+//                    predicate.get(keyOrder.getKeyOrder(i));
+//                long l;
+//                // Note: term MAY be null for context.
+//                if (term == null || term.isVar()) {
+//                    l = Long.MIN_VALUE;
+//                } else {
+//                    l = term.get();
+//                    noneBound = false;
+//                    if (!foundLastBound) {
+//                        if (i == keyArity-1) {
+//                            l++;
+//                            foundLastBound = true;
+//                        } else {
+//                            IVariableOrConstant<Long> next = 
+//                                predicate.get(keyOrder.getKeyOrder(i+1));
+//                            // Note: next can be null for quads (context pos).
+//                            if (next == null || next.isVar()) {
+//                                l++;
+//                                foundLastBound = true;
+//                            }
+//                        }
+//                    }
+//                }
+//                keyBuilder.append(l);
+//            }
+//            final byte[] toKey = noneBound ? null : keyBuilder.getKey();
+//            setToKey(toKey);
+//           
+//        }
         
         super.init();
     

@@ -33,6 +33,7 @@ import java.util.UUID;
 
 import com.bigdata.LRUNexus;
 import com.bigdata.btree.BTree;
+import com.bigdata.cache.IGlobalLRU;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.mdi.IResourceMetadata;
@@ -226,17 +227,19 @@ public interface IRawStore extends IAddressManager, IStoreSerializer {
      *             if the store is not open.
      */
     public boolean isReadOnly();
-    
+
     /**
-     * Close the store immediately.
+     * Close the store immediately, but does not clear any records for the store
+     * from the {@link IGlobalLRU}.
      * 
      * @exception IllegalStateException
      *                if the store is not open.
      */
     public void close();
-    
+
     /**
-     * Deletes the backing file(s) (if any).
+     * Deletes the backing file(s) (if any) and clears any records for the store
+     * from the {@link IGlobalLRU}.
      * 
      * @exception IllegalStateException
      *                if the store is open.
@@ -245,9 +248,10 @@ public interface IRawStore extends IAddressManager, IStoreSerializer {
      *                if the backing file exists and could not be deleted.
      */
     public void deleteResources();
-    
+
     /**
-     * Closes the store immediately and deletes its persistent resources.
+     * Closes the store immediately, deletes its persistent resources, and
+     * clears any records for the store from the {@link IGlobalLRU}.
      * 
      * @see #deleteResources()
      */

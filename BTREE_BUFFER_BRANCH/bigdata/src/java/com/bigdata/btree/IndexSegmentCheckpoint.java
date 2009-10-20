@@ -279,7 +279,7 @@ public class IndexSegmentCheckpoint {
     /**
      * The commit time associated with the view from which the
      * {@link IndexSegment} was generated. The {@link IndexSegment} state is
-     * equivilent to the state of the view as of that timestamp. However, the
+     * equivalent to the state of the view as of that timestamp. However, the
      * {@link IndexSegment} provides a view of only a single commit point in
      * contrast to the many commit points that are typically available on a
      * {@link Journal}.

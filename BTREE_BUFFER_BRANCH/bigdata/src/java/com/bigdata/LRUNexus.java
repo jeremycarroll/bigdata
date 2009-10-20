@@ -34,14 +34,23 @@ import org.apache.log4j.Logger;
 
 import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.IndexSegment;
+import com.bigdata.btree.IndexSegmentBuilder;
 import com.bigdata.cache.HardReferenceGlobalLRU;
 import com.bigdata.cache.HardReferenceGlobalLRURecycler;
 import com.bigdata.cache.IGlobalLRU;
 import com.bigdata.cache.StoreAndAddressLRUCache;
 import com.bigdata.cache.WeakReferenceGlobalLRU;
+import com.bigdata.cache.IGlobalLRU.ILRUCache;
+import com.bigdata.journal.AbstractBufferStrategy;
 import com.bigdata.journal.AbstractJournal;
+import com.bigdata.journal.TemporaryRawStore;
+import com.bigdata.rawstore.AbstractRawStore;
+import com.bigdata.rawstore.AbstractRawWormStore;
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IRawStore;
+import com.bigdata.rawstore.WormAddressManager;
 
 /**
  * Static singleton factory.
@@ -124,17 +133,6 @@ public class LRUNexus {
 
     protected static final transient Logger log = Logger
             .getLogger(LRUNexus.class);
-    
-    /**
-     * Global instance.
-     * <p>
-     * Note: A <a href="http://bugs.sun.com/view_bug.do?bug_id=6880903">Sun G1
-     * bug in JDK 1.6.0_16</a> provides a false estimate of the available
-     * memory.
-     *
-     * @see Options
-     */
-    public static final IGlobalLRU<Long, Object> INSTANCE;
 
     /**
      * These options are MUST BE specified as <em>ENVIRONMENT</em> variables on
@@ -238,17 +236,49 @@ public class LRUNexus {
         String MIN_CACHE_SET_SIZE = LRUNexus.class.getName()+".minCacheSetSize";
         
         String DEFAULT_MIN_CACHE_SET_SIZE = "5";
-        
+
+        /**
+         * When <code>true</code>, the {@link IndexSegmentBuilder} will
+         * pre-populate the {@link IGlobalLRU} cache with the nodes and leaves
+         * of the new index segment during the build or merge operation (default
+         * {@value #DEFAULT_INDEX_SEGMENT_BUILD_POPULATES_CACHE}).
+         */
+        String INDEX_SEGMENT_BUILD_POPULATES_CACHE = LRUNexus.class.getName()
+                + ".indexSegmentBuildPopulatesCache";
+
+        String DEFAULT_INDEX_SEGMENT_BUILD_POPULATES_CACHE = "true";
+
     }
+
+
+    /**
+     * Global instance.
+     * <p>
+     * Note: A <a href="http://bugs.sun.com/view_bug.do?bug_id=6880903">Sun G1
+     * bug in JDK 1.6.0_16</a> provides a false estimate of the available
+     * memory.
+     * 
+     * @see Options
+     */
+    public static final IGlobalLRU<Long, Object> INSTANCE;
+    
+    /**
+     * @see Options#INDEX_SEGMENT_BUILD_POPULATES_CACHE
+     */
+    private static final boolean indexSegmentBuildPopulatesCache;
 
     static {
 
         IGlobalLRU<Long, Object> tmp = null;
 
-        try {
+        final boolean enabled = Boolean.valueOf(System.getProperty(
+                Options.ENABLED, Options.DEFAULT_ENABLED));
 
-            final boolean enabled = Boolean.valueOf(System.getProperty(
-                    Options.ENABLED, Options.DEFAULT_ENABLED));
+        indexSegmentBuildPopulatesCache = Boolean.valueOf(System.getProperty(
+                Options.INDEX_SEGMENT_BUILD_POPULATES_CACHE,
+                Options.DEFAULT_INDEX_SEGMENT_BUILD_POPULATES_CACHE));
+
+        try {
 
             if (enabled) {
 
@@ -344,7 +374,9 @@ public class LRUNexus {
                                     + ", initialCacheCapacity="
                                     + initialCacheCapacity
                                     + ", minCacheSetSize=" + minCacheSetSize
-                                    + ", cls=" + cls.getName());
+                                    + ", cls=" + cls.getName()
+                                    + ", indexSegmentBuildPopulatesCache="
+                                    + indexSegmentBuildPopulatesCache);
 
                 if (maximumBytesInMemory > 0) {
 
@@ -460,9 +492,93 @@ public class LRUNexus {
         } finally {
 
             INSTANCE = tmp;
-
+            
         }
 
     }
 
+    /**
+     * Return <code>true</code> if the {@link IndexSegmentBuilder} will populate
+     * the {@link IGlobalLRU} with records for the new {@link IndexSegment}
+     * during the build.
+     * 
+     * @see Options#INDEX_SEGMENT_BUILD_POPULATES_CACHE
+     */
+    public static final boolean getIndexSegmentBuildPopulatesCache() {
+        
+        return indexSegmentBuildPopulatesCache;
+        
+    }
+    
+    /**
+     * Factory returns the {@link ILRUCache} for the store iff the
+     * {@link LRUNexus} is enabled.
+     * 
+     * @param store
+     *            The store.
+     * 
+     * @return The cache for that store if the {@link LRUNexus} is enabled and
+     *         otherwise <code>null</code>.
+     * 
+     * @throws IllegalArgumentException
+     *             if the store is <code>null</code>.
+     */
+    public static ILRUCache<Long, Object> getCache(final IRawStore store) {
+
+        if (store == null)
+            throw new IllegalArgumentException();
+
+        if (INSTANCE == null)
+            return null;
+
+        final IAddressManager am;
+
+        if (store instanceof AbstractJournal) {
+
+            /*
+             * This avoids hard reference to the journal (it winds up using a
+             * clone of the address manager instead).
+             */
+            
+            am = ((AbstractBufferStrategy) ((AbstractJournal) store)
+                    .getBufferStrategy()).getAddressManager();
+
+        } else if (store instanceof TemporaryRawStore) {
+
+            /*
+             * This avoids using a hard reference to the temporary store (it
+             * basically clones the address manager instead).
+             */
+            
+            am = new WormAddressManager(((TemporaryRawStore) store)
+                    .getOffsetBits());
+
+        } else if (store instanceof AbstractRawWormStore) {
+
+            am = ((AbstractRawStore) store).getAddressManager();
+
+        } else {
+
+            // @todo which cases come though here? SimpleMemoryStore,
+            // SimpleFileStore,
+            am = null;
+
+        }
+
+        if (am instanceof IRawStore) {
+
+            /*
+             * This would cause the IRawStore to be retained by a hard
+             * reference!
+             */
+
+            throw new AssertionError(am.getClass().getName() + " implements "
+                    + IRawStore.class.getName());
+
+        }
+
+        return INSTANCE.getCache(store.getUUID(), am);
+        
+    }
+    
 }

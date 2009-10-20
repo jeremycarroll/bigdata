@@ -125,7 +125,7 @@ abstract public class AbstractChunkedResolverator<E,F,S> implements ICloseableIt
      * @param service
      *            The service on which the task will be executed.
      */
-    public AbstractChunkedResolverator<E, F, S> start(ExecutorService service) {
+    public AbstractChunkedResolverator<E, F, S> start(final ExecutorService service) {
         
         if (resolvedItr != null)
             throw new IllegalStateException();

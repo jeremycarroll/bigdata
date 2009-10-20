@@ -1197,7 +1197,7 @@ public class BigdataSail extends SailBase implements Sail {
         
         /**
          * Note: This method is <strong>strongly discouraged</strong> as it
-         * imposes an extremely high burden on the database reqiring the
+         * imposes an extremely high burden on the database requiring the
          * materialization at the client of every statement to be added or
          * removed from the database in the scope of this {@link SailConnection}.
          * Further, while the client is only notified for explicit statements
@@ -1275,20 +1275,20 @@ public class BigdataSail extends SailBase implements Sail {
          * 
          * @todo javadoc update.
          */
-        synchronized protected void fireSailChangedEvent(boolean added, Statement stmt)
-        {
-            
+        synchronized protected void fireSailChangedEvent(final boolean added,
+                final Statement stmt) {
+
             /*
-             * FIXME make sure that you test on m_listeners BEFORE hand so that
-             * you can avoid the work required to materialize the statements if
-             * there are no listeners registered!  (The burden is especially high
+             * Make sure that you test on m_listeners BEFORE hand so that you
+             * can avoid the work required to materialize the statements if
+             * there are no listeners registered! (The burden is especially high
              * when removing statements).
              */
 
             if( m_listeners == null ) return;
-            
+
             /*
-             * @todo since we are calling the listener for every single
+             * FIXME Since we are calling the listener for every single
              * statement we really need to eagerly materialize the array of
              * listeners whenever the listeners are added or removed so that we
              * can efficiently process that array here. as long as this method
@@ -1296,12 +1296,12 @@ public class BigdataSail extends SailBase implements Sail {
              * will be coherent.
              */
             
-            SailConnectionListener[] listeners = (SailConnectionListener[]) 
-                m_listeners.toArray( new SailConnectionListener[]{} );
+            final SailConnectionListener[] listeners = (SailConnectionListener[]) m_listeners
+                    .toArray(new SailConnectionListener[] {});
 
-            for( int i=0; i<listeners.length; i++ ) {
+            for (int i = 0; i < listeners.length; i++) {
                 
-                SailConnectionListener l = listeners[ i ];
+                final SailConnectionListener l = listeners[ i ];
                 
                 if(added) {
                     
@@ -1330,7 +1330,7 @@ public class BigdataSail extends SailBase implements Sail {
          * direction is actually backed by a Map object - the other uses a scan.
          */
         
-        public void setNamespace(String prefix, String namespace)
+        public void setNamespace(final String prefix, final String namespace)
                 throws SailException {
 
             assertWritable();
@@ -1339,13 +1339,13 @@ public class BigdataSail extends SailBase implements Sail {
             
         }
 
-        public String getNamespace(String prefix) {
+        public String getNamespace(final String prefix) {
             
             return database.getNamespace(prefix);
             
         }
         
-        public void removeNamespace(String prefix) {
+        public void removeNamespace(final String prefix) {
             
             database.removeNamespace(prefix);
             

@@ -60,6 +60,7 @@ import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOAccessPath;
+import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.rdf.spo.SPOSortKeyBuilder;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -662,7 +663,8 @@ public class RDFJoinNexus implements IJoinNexus {
                  * explore optimizing this call out of the caller since they
                  * should be able to reuse the result in a given join context.
                  */
-                if (relationName == lastRelationName)
+                if (relationName == lastRelationName
+                        || relationName.equals(lastRelationName))
                     return lastRelation;
 
 //              final long timestamp = getReadTimestamp(/*relationName*/);
@@ -821,7 +823,7 @@ public class RDFJoinNexus implements IJoinNexus {
          * 
          * FIXME quads : hardcoded for triples and the SPORelation.
          */
-        final IKeyOrder keyOrder = SPORelation.getKeyOrder(predicate, 3);
+        final IKeyOrder keyOrder = SPOKeyOrder.getKeyOrder(predicate, 3);
 
         // The name of the desired index partition.
         final String name = DataService
@@ -861,8 +863,11 @@ public class RDFJoinNexus implements IJoinNexus {
          * Find the best access path for the predicate for that relation.
          * 
          * Note: All we really want is the [fromKey] and [toKey] for that
-         * predicate and index, however it is the access path that knows how to
-         * create keys from a predicate.
+         * predicate and index. In general, that information is available from
+         * IKeyOrder#getFromKey() and IKeyOrder#getToKey(). However, we also
+         * need to know whether quads or triples are being used for RDF and that
+         * information is carried by the AbstractTripleStore container or the
+         * SPORelation. 
          * 
          * Note: This MUST NOT layer on expander or backchain access path
          * overlays. Those add overhead during construction and the layering
@@ -874,9 +879,15 @@ public class RDFJoinNexus implements IJoinNexus {
         // Note: assumes scale-out (EDS or JDS).
         final IClientIndex ndx = (IClientIndex) accessPath.getIndex();
 
-        return fed
-                .locatorScan(ndx.getIndexMetadata().getName(), timestamp,
-                        accessPath.getFromKey(), accessPath.getToKey(), false/* reverse */);
+        /*
+         * Note: could also be formed from relationName + "." +
+         * keyOrder.getIndexName(), which is cheaper unless the index metadata
+         * is cached.
+         */
+        final String name = ndx.getIndexMetadata().getName();
+
+        return fed.locatorScan(name, timestamp, accessPath.getFromKey(),
+                accessPath.getToKey(), false/* reverse */);
 
     }
     

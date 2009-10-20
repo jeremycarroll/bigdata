@@ -172,7 +172,7 @@ public class TestIndexSegmentBuilderWithCompactingMerge extends
             } finally {
 
                 if (segmentStore != null)
-                    segmentStore.close();
+                    segmentStore.destroy();
                 
                 outFile.delete();
                 
@@ -235,7 +235,7 @@ public class TestIndexSegmentBuilderWithCompactingMerge extends
             } finally {
 
                 if (segmentStore != null)
-                    segmentStore.close();
+                    segmentStore.destroy();
                 
                 outFile.delete();
                 
@@ -302,7 +302,7 @@ public class TestIndexSegmentBuilderWithCompactingMerge extends
             } finally {
 
                 if (segmentStore != null)
-                    segmentStore.close();
+                    segmentStore.destroy();
                 
                 outFile.delete();
                 

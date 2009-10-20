@@ -239,6 +239,7 @@ public class BigdataStatementIteratorImpl
             final long termId) {
 
         BigdataValue v = null;
+
         if (bnodes != null) {
 
             v = bnodes.get(termId);

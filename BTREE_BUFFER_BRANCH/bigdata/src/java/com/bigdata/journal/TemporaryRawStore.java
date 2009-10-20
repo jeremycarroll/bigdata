@@ -365,7 +365,7 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IUpdateSt
 
                     try {
 
-                        LRUNexus.INSTANCE.deleteCache(this);
+                        LRUNexus.INSTANCE.deleteCache(getUUID());
 
                     } catch (Throwable t) {
 

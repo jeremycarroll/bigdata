@@ -32,9 +32,12 @@ import java.util.Iterator;
 
 import junit.framework.TestCase2;
 
+import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.relation.rule.Constant;
+import com.bigdata.relation.rule.Var;
 import com.bigdata.striterator.ICloseableIterator;
 
 /**
@@ -162,6 +165,89 @@ public class TestSPOKeyOrder extends TestCase2 {
 
             assertSPOCEquals(expected, actual);
 
+        }
+
+    }
+
+    /**
+     * Unit test examines the correct formulation of the from/to keys for the
+     * POCS key order.
+     */
+    public void test_getFromKey_getToKey_quads() {
+
+        final long P = 1;
+
+        final SPOPredicate pred = new SPOPredicate("testRelation",
+                Var.var("s"), new Constant<Long>(P), Var.var("o"), Var.var("c"));
+
+        final KeyBuilder keyBuilder = new KeyBuilder();
+
+        final SPOKeyOrder keyOrder = SPOKeyOrder.POCS;
+
+        final byte[] fromKey = keyBuilder.reset().append(P).append(
+                Long.MIN_VALUE).append(Long.MIN_VALUE).append(Long.MIN_VALUE)
+                .getKey();
+
+        final byte[] toKey = keyBuilder.reset().append(P + 1).append(
+                Long.MIN_VALUE).append(Long.MIN_VALUE).append(Long.MIN_VALUE)
+                .getKey();
+
+        if (log.isInfoEnabled()) {
+            log.info("fromKey=" + BytesUtil.toString(fromKey));
+            log.info("  toKey=" + BytesUtil.toString(toKey));
+        }
+
+        if (!BytesUtil.bytesEqual(fromKey, keyOrder
+                .getFromKey(keyBuilder, pred))) {
+            fail("fromKey :: expected=" + BytesUtil.toString(fromKey)
+                    + ", actual="
+                    + BytesUtil.toString(keyOrder.getFromKey(keyBuilder, pred)));
+        }
+
+        if (!BytesUtil.bytesEqual(toKey, keyOrder.getToKey(keyBuilder, pred))) {
+            fail("toKey :: expected=" + BytesUtil.toString(toKey) + ", actual="
+                    + BytesUtil.toString(keyOrder.getToKey(keyBuilder, pred)));
+        }
+
+
+    }
+
+    /**
+     * Unit test examines the correct formulation of the from/to keys for the
+     * POS key order.
+     */
+    public void test_getFromKey_getToKey_triples() {
+
+        final long P = 1;
+
+        final SPOPredicate pred = new SPOPredicate("testRelation",
+                Var.var("s"), new Constant<Long>(P), Var.var("o"), Var.var("c"));
+
+        final KeyBuilder keyBuilder = new KeyBuilder();
+
+        final SPOKeyOrder keyOrder = SPOKeyOrder.POS;
+
+        final byte[] fromKey = keyBuilder.reset().append(P).append(
+                Long.MIN_VALUE).append(Long.MIN_VALUE).getKey();
+
+        final byte[] toKey = keyBuilder.reset().append(P + 1).append(
+                Long.MIN_VALUE).append(Long.MIN_VALUE).getKey();
+
+        if (log.isInfoEnabled()) {
+            log.info("fromKey=" + BytesUtil.toString(fromKey));
+            log.info("  toKey=" + BytesUtil.toString(toKey));
+        }
+
+        if (!BytesUtil.bytesEqual(fromKey, keyOrder
+                .getFromKey(keyBuilder, pred))) {
+            fail("fromKey :: expected=" + BytesUtil.toString(fromKey)
+                    + ", actual="
+                    + BytesUtil.toString(keyOrder.getFromKey(keyBuilder, pred)));
+        }
+
+        if (!BytesUtil.bytesEqual(toKey, keyOrder.getToKey(keyBuilder, pred))) {
+            fail("toKey :: expected=" + BytesUtil.toString(toKey) + ", actual="
+                    + BytesUtil.toString(keyOrder.getToKey(keyBuilder, pred)));
         }
 
     }

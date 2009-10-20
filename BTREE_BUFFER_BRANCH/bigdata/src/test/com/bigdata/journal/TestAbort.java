@@ -30,7 +30,7 @@ package com.bigdata.journal;
 import java.nio.ByteBuffer;
 
 import com.bigdata.LRUNexus;
-import com.bigdata.cache.IGlobalLRU;
+import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.util.ChecksumUtility;
 
 /**
@@ -91,28 +91,32 @@ public class TestAbort extends ProxyTestCase<Journal> {
             if (log.isInfoEnabled())
                 log.info("Using rootBlock=" + (isRootBlock0 ? 0 : 1));
 
-            final IGlobalLRU<Long,Object> globalLRU = LRUNexus.INSTANCE;
-
             // write a record, inserting it into the cache.
             
             final ByteBuffer a = getRandomData();
             
             final long addr_a = journal.write(a);
             
-            if (globalLRU != null) {
-             
-                assertNull(globalLRU.getCache(journal).putIfAbsent(addr_a, a));
-                
-                assertTrue(a == globalLRU.getCache(journal).get(addr_a));
-                
+            final ILRUCache<Long, Object> cache = LRUNexus.getCache(journal);
+
+            if (cache != null) {
+
+                assertNull(cache.putIfAbsent(addr_a, a));
+
+                assertTrue(a == cache.get(addr_a));
+
             }
 
             // abort the journal (discard the write set, reload the current root
             // block)
             journal.abort();
 
-            // the record is gone from the cache.
-            assertNull(globalLRU.getCache(journal).get(addr_a));
+            if(cache != null) {
+
+                // the record is gone from the cache.
+                assertNull(cache.get(addr_a));
+                
+            }
 
             if (log.isInfoEnabled())
                 log.info("After commit   =" + journal.getRootBlockView());
