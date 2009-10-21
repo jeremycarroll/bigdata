@@ -2,6 +2,7 @@ package com.bigdata.samples;
 
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -10,6 +11,7 @@ import java.util.Properties;
 import org.openrdf.repository.Repository;
 import org.openrdf.rio.RDFFormat;
 
+import com.bigdata.btree.IndexMetadata;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
@@ -23,7 +25,13 @@ public class TestBaseball extends SampleCode {
             // use one of our pre-configured option-sets or "modes"
             Properties properties = 
                 sampleCode.loadProperties("fullfeature.properties");
-            
+
+            // this option can be faster and make better use of disk if you have
+            // enough ram and are doing large writes.
+            properties.setProperty(
+                    IndexMetadata.Options.WRITE_RETENTION_QUEUE_CAPACITY,
+                    "8000");
+
             // when loading a large data file, it's sometimes better to do
             // database-at-once closure rather than incremental closure.  this
             // is how you do it.
@@ -46,8 +54,9 @@ public class TestBaseball extends SampleCode {
 
             if (properties.getProperty(com.bigdata.journal.Options.FILE) == null) {
                 // create backing tmp file iff none was specified by properties.
-                File journal = File.createTempFile("baseball", ".jnl");
-                log.info(journal.getAbsolutePath());
+//                File journal = File.createTempFile("baseball", ".jnl");
+                File journal = new File("d:/baseball.jnl");
+                System.out.println("journalFile="+journal.getAbsolutePath());
                 // journal.deleteOnExit();
                 properties.setProperty(BigdataSail.Options.FILE, journal
                         .getAbsolutePath());
@@ -59,7 +68,7 @@ public class TestBaseball extends SampleCode {
             repo.initialize();
             
             // demonstrate some basic functionality
-            String resource = "baseball.stats.out.rdf";
+            String resource = "d:/bigdata perf analysis/jspaces/baseball.stats.out.rdf";
             String baseURL = "http://www.clarkparsia.com/#";
             
             long start = System.currentTimeMillis();
@@ -107,6 +116,10 @@ public class TestBaseball extends SampleCode {
         cxn.setAutoCommit(false);
         try {
             InputStream is = getClass().getResourceAsStream(resource);
+            if (is == null && new File(resource).exists())
+                is = new FileInputStream(resource);
+            if (is == null)
+                throw new Exception("Could not locate resource: " + resource);
             Reader reader = new InputStreamReader(new BufferedInputStream(is));
             cxn.add(reader, baseURL, RDFFormat.RDFXML);
             cxn.computeClosure();

@@ -932,7 +932,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * read from the store), the bloom filter, etc. It is invoked by
      * {@link #reopen()} once {@link #root} has been show to be
      * <code>null</code> with double-checked locking. When invoked in this
-     * context, the caller is guarenteed to hold a lock on <i>this</i>. This is
+     * context, the caller is guaranteed to hold a lock on <i>this</i>. This is
      * done to ensure that at most one thread gets to re-open the index from the
      * backing store.
      */
