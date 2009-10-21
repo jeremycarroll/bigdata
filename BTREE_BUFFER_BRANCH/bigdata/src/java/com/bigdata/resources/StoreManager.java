@@ -188,7 +188,7 @@ abstract public class StoreManager extends ResourceEvents implements
          * cleared. Once an index becomes weakly reachable, the JVM will
          * eventually GC the index object, thereby releasing its object graph.
          * Since stores which are strongly reachable never have their weak
-         * reference cleared this provides our guarentee that stores are never
+         * reference cleared this provides our guarantee that stores are never
          * closed if they are in use.
          * <p>
          * Stores have non-transient resources and MUST explicitly be closed.

@@ -38,6 +38,7 @@ import com.bigdata.btree.IndexSegment;
 import com.bigdata.btree.IndexSegmentBuilder;
 import com.bigdata.cache.HardReferenceGlobalLRU;
 import com.bigdata.cache.HardReferenceGlobalLRURecycler;
+import com.bigdata.cache.HardReferenceGlobalLRURecyclerExplicitDeleteRequired;
 import com.bigdata.cache.IGlobalLRU;
 import com.bigdata.cache.StoreAndAddressLRUCache;
 import com.bigdata.cache.WeakReferenceGlobalLRU;
@@ -80,7 +81,6 @@ import com.bigdata.rawstore.WormAddressManager;
  *          without requiring us to throw away valid records in the cache. This
  *          could be a significant performance gain if aborts are common on a
  *          machine with a lot of RAM.
- * 
  * 
  * @todo Test w/ G1 <code>-XX:+UnlockExperimentalVMOptions -XX:+UseG1GC</code>
  *       <p>
@@ -207,7 +207,7 @@ public class LRUNexus {
          * are always new, but they could last quite a while before eviction
          * from the LRU position if there is a large heap.
          */
-        String DEFAULT_CLASS = HardReferenceGlobalLRURecycler.class.getName();
+        String DEFAULT_CLASS = HardReferenceGlobalLRURecyclerExplicitDeleteRequired.class.getName();
 
         /**
          * The load factor for the cache instances.
@@ -464,6 +464,12 @@ public class LRUNexus {
                     } else if (cls == HardReferenceGlobalLRURecycler.class) {
 
                         tmp = new HardReferenceGlobalLRURecycler<Long, Object>(
+                                maximumBytesInMemory, minCacheSetSize,
+                                initialCacheCapacity, loadFactor);
+
+                    } else if (cls == HardReferenceGlobalLRURecyclerExplicitDeleteRequired.class) {
+
+                        tmp = new HardReferenceGlobalLRURecyclerExplicitDeleteRequired<Long, Object>(
                                 maximumBytesInMemory, minCacheSetSize,
                                 initialCacheCapacity, loadFactor);
 

@@ -45,14 +45,14 @@ import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IRawStore;
 
 /**
- * A collection of hard reference hash maps backed by a single Least Recently
- * Used (LRU) ordering over entries. This is used to impose a shared LRU policy
- * on the cache for a set of {@link IRawStore}s. The LRU {@link Entry} is
- * recycled on eviction as the MRU {@link Entry}, which requires tests against
- * the inner {@link LRUCacheImpl}'s map to be made while holding the lock. This
- * allows us to use a {@link LinkedHashMap}, which has a faster iterator, but
- * requiring the lock to test the inner cache limits concurrency and has been
- * observed to limit throughput by about 10%.
+ * A canonicalizing collection of weakly held hard reference hash maps backed by
+ * a single Least Recently Used (LRU) ordering over entries. This is used to
+ * impose a shared LRU policy on the cache for a set of {@link IRawStore}s. The
+ * LRU {@link Entry} is recycled on eviction as the MRU {@link Entry}, which
+ * requires tests against the inner {@link LRUCacheImpl}'s map to be made while
+ * holding the lock. This allows us to use a {@link LinkedHashMap}, which has a
+ * faster iterator, but requiring the lock to test the inner cache limits
+ * concurrency and has been observed to limit throughput by about 10%.
  * 
  * @version $Id$
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson

@@ -82,6 +82,10 @@ public class Node extends AbstractNode<Node> implements INodeData {
      * a {@link MutableNodeData} record when a mutation operation is requested.
      * <p>
      * Note: This is package private in order to expose it to {@link Leaf}.
+     * 
+     * @todo consider volatile and private for {@link Node#data} and
+     *       {@link Leaf#data} with accessors and settors at package private
+     *       where necessary.
      */
     INodeData data;
     
