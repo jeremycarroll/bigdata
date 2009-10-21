@@ -43,6 +43,7 @@ import org.apache.log4j.Logger;
 
 import com.bigdata.LRUNexus;
 import com.bigdata.cache.IGlobalLRU;
+import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
@@ -103,6 +104,12 @@ public class IndexSegmentStore extends AbstractRawStore {
      * #of index entries that we would always like to have on hand.
      */
     private final IndexSegmentAddressManager addressManager;
+
+    /**
+     * Optional store cache for the bloom filter, index metadata, and the B+Tree
+     * nodes and leaves (MAY be <code>null</code>).
+     */
+    private final ILRUCache<Long, Object> storeCache;
     
     /**
      * An optional <strong>direct</strong> {@link ByteBuffer} containing a disk
@@ -336,6 +343,9 @@ public class IndexSegmentStore extends AbstractRawStore {
             // handles transparent decoding of offsets within regions.
             this.addressManager = new IndexSegmentAddressManager(checkpoint);
 
+            // optional store cache (set before reading metadata/bloomfilter).
+            this.storeCache = LRUNexus.getCache(this);
+            
             // Read the metadata record.
             this.indexMetadata = readMetadata();
 
@@ -1378,6 +1388,19 @@ public class IndexSegmentStore extends AbstractRawStore {
             
         }
         
+        if (storeCache != null) {
+
+            // Try the cache first.
+            final BloomFilter bloomFilter = (BloomFilter) storeCache.get(addr);
+            
+            if (bloomFilter != null) {
+
+                return bloomFilter;
+
+            }
+
+        }
+        
         if (log.isInfoEnabled())
             log.info("reading bloom filter: "+addressManager.toString(addr));
         
@@ -1412,6 +1435,12 @@ public class IndexSegmentStore extends AbstractRawStore {
         if (log.isInfoEnabled())
             log.info("Read bloom filter: bytesOnDisk=" + len );
 
+        if (storeCache != null) {
+
+            storeCache.putIfAbsent(addr, bloomFilter);
+
+        }
+
         return bloomFilter;
 
     }
@@ -1425,6 +1454,19 @@ public class IndexSegmentStore extends AbstractRawStore {
         final long addr = checkpoint.addrMetadata;
         
         assert addr != 0L;
+        
+        if (storeCache != null) {
+
+            // Try the cache first.
+            final IndexMetadata md = (IndexMetadata) storeCache.get(addr);
+            
+            if (md != null) {
+
+                return md;
+
+            }
+
+        }
         
         if (log.isInfoEnabled())
             log.info("reading metadata: "+addressManager.toString(addr));
@@ -1461,6 +1503,12 @@ public class IndexSegmentStore extends AbstractRawStore {
         if (log.isInfoEnabled())
             log.info("Read metadata: " + md);
 
+        if (storeCache != null) {
+
+            storeCache.putIfAbsent(addr, md);
+
+        }
+        
         return md;
 
     }

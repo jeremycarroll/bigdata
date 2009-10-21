@@ -2153,6 +2153,16 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
             // Address of the region containing the bloom filter (one record).
             addrBloom = addressManager.toAddr(bloomBytes.length,
                     IndexSegmentRegion.BASE.encodeOffset(offset));
+                         
+            if (storeCache != null) {
+
+                /*
+                 * Insert the record into the cache.
+                 */
+                
+                storeCache.putIfAbsent(addrBloom, bloomFilter);
+                
+            }
             
         }
         
@@ -2180,6 +2190,16 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
             addrMetadata = addressManager.toAddr(metadataBytes.length,
                     IndexSegmentRegion.BASE.encodeOffset(offset));
             
+            if (storeCache != null) {
+
+                /*
+                 * Insert the record into the cache.
+                 */
+                
+                storeCache.putIfAbsent(addrMetadata, metadata);
+                
+            }
+
         }
         
         /*

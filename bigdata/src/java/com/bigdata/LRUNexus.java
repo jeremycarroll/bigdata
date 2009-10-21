@@ -214,6 +214,15 @@ public class LRUNexus {
          * causes problems with the tenured generation since the Entry instances
          * are always new, but they could last quite a while before eviction
          * from the LRU position if there is a large heap.
+         * 
+         * FIXME Scale-out should use the
+         * {@link HardReferenceGlobalLRURecyclerExplicitDeleteRequired} to avoid
+         * giving away the cached index segment records when an index segment
+         * store is closed by a timeout.
+         * 
+         * FIXME For scale-up, the {@link HardReferenceGlobalLRURecycler} is
+         * fine. We are not re-opening stores all the time so the weak value
+         * reference semantics of that class do not cause a problem.
          */
         String DEFAULT_CLASS = HardReferenceGlobalLRURecycler.class.getName();
 
@@ -255,6 +264,11 @@ public class LRUNexus {
         String INDEX_SEGMENT_BUILD_POPULATES_CACHE = LRUNexus.class.getName()
                 + ".indexSegmentBuildPopulatesCache";
 
+        /**
+         * FIXME Verify that [true] is the right behavior for scale-out. This is
+         * being tested in combination with the
+         * {@link HardReferenceGlobalLRURecyclerExplicitDeleteRequired}.
+         */
         String DEFAULT_INDEX_SEGMENT_BUILD_POPULATES_CACHE = "true";
 
     }

@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree;
 
 import java.io.File;
+import java.util.UUID;
 
 import com.bigdata.LRUNexus;
 import com.bigdata.btree.data.ILeafData;
@@ -31,6 +32,8 @@ import com.bigdata.btree.data.INodeData;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.cache.IGlobalLRU;
 import com.bigdata.cache.IGlobalLRU.ILRUCache;
+import com.bigdata.rawstore.IRawStore;
+import com.bigdata.rawstore.SimpleMemoryRawStore;
 
 /**
  * Test suite examines the interaction of the {@link IndexSegmentBuilder} with
@@ -78,10 +81,32 @@ public class TestIndexSegmentBuilderCacheInteraction extends
         
     }
 
-    /*
-     * problem1
+    /**
+     * Return a btree backed by a journal with the indicated branching factor.
+     * The serializer requires that values in leaves are {@link SimpleEntry}
+     * objects.
+     * 
+     * @param branchingFactor
+     *            The branching factor.
+     * 
+     * @return The btree.
      */
+    public BTree getBTree(int branchingFactor, BloomFilterFactory bloomFilterFactory) {
 
+        IRawStore store = new SimpleMemoryRawStore(); 
+
+        IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
+        
+        metadata.setBranchingFactor(branchingFactor);
+        
+        metadata.setBloomFilterFactory(bloomFilterFactory);
+        
+        BTree btree = BTree.create(store, metadata);
+
+        return btree;
+
+    }
+    
     /**
      * Create, populate, and return a btree with a branching factor of (3) and
      * ten sequential keys [1:10]. The values are {@link SimpleEntry} objects
@@ -94,7 +119,7 @@ public class TestIndexSegmentBuilderCacheInteraction extends
      */
     public BTree getProblem1() {
 
-        final BTree btree = getBTree(3);
+        final BTree btree = getBTree(3, BloomFilterFactory.DEFAULT);
 
         for (int i = 1; i <= 10; i++) {
 
@@ -119,11 +144,12 @@ public class TestIndexSegmentBuilderCacheInteraction extends
         final BTree btree = getProblem1();
 
         final long commitTime = System.currentTimeMillis();
-        
-        final IndexSegmentCheckpoint checkpoint = new IndexSegmentBuilder(
-                outFile, tmpDir, btree.getEntryCount(), btree.rangeIterator(),
-                3/* m */, btree.getIndexMetadata(), commitTime, true/* compactingMerge */)
-                .call();
+
+        final IndexSegmentBuilder builder = new IndexSegmentBuilder(outFile,
+                tmpDir, btree.getEntryCount(), btree.rangeIterator(), 3/* m */,
+                btree.getIndexMetadata(), commitTime, true/* compactingMerge */);
+
+        final IndexSegmentCheckpoint checkpoint = builder.call();
 
         final ILRUCache<Long, Object> cache = LRUNexus.INSTANCE.getCache(
                 checkpoint.segmentUUID, null/* am */);
@@ -139,8 +165,14 @@ public class TestIndexSegmentBuilderCacheInteraction extends
         assertEquals(3, checkpoint.nnodes);
         assertEquals(10, checkpoint.nentries);
 
-        // @todo verify the index metadata in the cache? (it is not yet).
-        // @todo verify the bloom filter is in the cache? (it is not yet).
+        // verify index metadata object is in the cache.
+        assertNotNull(cache.get(checkpoint.addrMetadata));
+        assertTrue(cache.get(checkpoint.addrMetadata) == builder.metadata);
+        
+        // verify the bloom filter is in the cache (must be requested).
+        assertTrue(checkpoint.addrBloom!=0L);
+        assertNotNull(cache.get(checkpoint.addrBloom));
+        assertTrue(cache.get(checkpoint.addrBloom) == builder.bloomFilter);
         
         /*
          * Check the nodes.

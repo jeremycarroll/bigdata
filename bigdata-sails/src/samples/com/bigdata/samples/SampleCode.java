@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -113,6 +114,10 @@ public class SampleCode {
         cxn.setAutoCommit(false);
         try {
             InputStream is = getClass().getResourceAsStream(resource);
+            if (is == null && new File(resource).exists())
+                is = new FileInputStream(resource);
+            if (is == null)
+                throw new Exception("Could not locate resource: " + resource);
             Reader reader = new InputStreamReader(new BufferedInputStream(is));
             cxn.add(reader, baseURL, RDFFormat.RDFXML);
             cxn.commit();
