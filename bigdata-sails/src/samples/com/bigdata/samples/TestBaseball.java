@@ -84,11 +84,11 @@ public class TestBaseball extends SampleCode {
 //            long size = cxn.size();
 //            cxn.close();
             
-            log.info("loaded " + size + " stmts in " + duration + " millis.");
+            System.out.println("loaded " + size + " stmts in " + duration + " millis.");
             
             long rate = (long) (((double) size) / ((double) duration) * 1000d);
             
-            log.info("rate: " + rate + " stmts/sec");
+            System.out.println("rate: " + rate + " stmts/sec");
             
             // here is what I'm seeing:
             // Wed Sep 02 14:14:22 MDT 2009
