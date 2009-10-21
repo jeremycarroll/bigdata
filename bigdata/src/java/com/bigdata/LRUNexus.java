@@ -207,7 +207,7 @@ public class LRUNexus {
          * are always new, but they could last quite a while before eviction
          * from the LRU position if there is a large heap.
          */
-        String DEFAULT_CLASS = HardReferenceGlobalLRURecyclerExplicitDeleteRequired.class.getName();
+        String DEFAULT_CLASS = HardReferenceGlobalLRURecycler.class.getName();
 
         /**
          * The load factor for the cache instances.
