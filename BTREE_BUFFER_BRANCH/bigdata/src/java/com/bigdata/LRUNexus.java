@@ -29,6 +29,9 @@ package com.bigdata;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
+import java.util.Properties;
+
+import javax.swing.text.html.Option;
 
 import org.apache.log4j.Logger;
 
@@ -126,6 +129,11 @@ import com.bigdata.rawstore.WormAddressManager;
  *       then set a trigger on the GC time and if it crosses 5-10% of the CPU
  *       time for the application, then reduce the maximum bytes allowed for the
  *       global LRU buffer.
+ * 
+ * @todo {@link Settings} be made public (or package private) and used as the
+ *       input to a designated constructor method signature for all of the
+ *       implementations. This would make it possible to plug in a new
+ *       implementation without hard wiring things in the code.
  * 
  * @see Options
  */
@@ -225,10 +233,11 @@ public class LRUNexus {
 
         /**
          * The minimum #of per-{@link IRawStore} cache instances that will be
-         * retained by hard references. This controls the size of a hard
-         * reference ring buffer backing a weak value hash map. The actual
-         * number of cache instances will be less if fewer stores have been
-         * opened or if open stores have been
+         * retained by hard references when using an {@link IGlobalLRU} based on
+         * a weak value hash map such as {@link WeakReferenceGlobalLRU}. This
+         * controls the size of a hard reference ring buffer backing a weak
+         * value hash map. The actual number of cache instances will be less if
+         * fewer stores have been opened or if open stores have been
          * {@link IRawStore#deleteResources() destroyed}. More cache instances
          * will exist if there are hard references to more {@link IRawStore}
          * instances.
@@ -263,124 +272,194 @@ public class LRUNexus {
     public static final IGlobalLRU<Long, Object> INSTANCE;
     
     /**
-     * @see Options#INDEX_SEGMENT_BUILD_POPULATES_CACHE
+     * A class which reflects the configuration {@link Option}s.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
+     * @version $Id$
      */
-    private static final boolean indexSegmentBuildPopulatesCache;
+    private static class Settings {
+
+        /**
+         * @see Options#ENABLED
+         */
+        final boolean enabled;
+
+        /**
+         * @see Options#INDEX_SEGMENT_BUILD_POPULATES_CACHE
+         */
+        final boolean indexSegmentBuildPopulatesCache;
+
+        /**
+         * The {@link IGlobalLRU} implementation class.
+         * 
+         * @see Options#CLASS
+         */
+        final Class<? extends IGlobalLRU> cls;
+
+//        /**
+//         * <code>true</code> iff the implementation {@link #cls class}
+//         * implements the {@link IGlobalLRU} interface.
+//         */
+//        final boolean validClass;
+
+        /**
+         * The load factor for the backing hash map(s).
+         * 
+         * @see Options#LOAD_FACTOR
+         */
+        final float loadFactor;
+
+        /**
+         * The initial capacity for the backing {@link ILRUCache} hash map for
+         * each {@link IRawStore}.
+         * 
+         * @see Options#INITIAL_CAPACITY
+         */
+        final int initialCacheCapacity;
+
+        /**
+         * The percentage of the JVM heap to use for bigdata buffers.
+         * 
+         * @see Options#PERCENT_HEAP
+         */
+        final float percentHeap;
+
+        /**
+         * The maximum heap size in bytes (optional).
+         * 
+         * @see Options#MAX_HEAP
+         */
+        final long maxHeap;
+
+        /**
+         * The maximum bytesInMemory to retain across the caches. This is
+         * computed based on {@link #percentHeap} and {@link #maxHeap} and
+         * represents the actual limit which will be imposed on the shared LRU.
+         * 
+         * @see Options#MAX_HEAP
+         * @see Options#PERCENT_HEAP
+         */
+        final long maximumBytesInMemory;
+
+        /**
+         * The minimum #of caches to keep open for an {@link IGlobalLRU} based
+         * on a weak value hash map.
+         * 
+         * @see Options#MIN_CACHE_SET_SIZE
+         */
+        final int minCacheSetSize;
+        
+        public Settings(final Properties properties) throws ClassNotFoundException {
+
+            if (properties == null)
+                throw new IllegalArgumentException();
+            
+            enabled = Boolean.valueOf(System.getProperty(
+                    Options.ENABLED, Options.DEFAULT_ENABLED));
+
+            indexSegmentBuildPopulatesCache = Boolean.valueOf(System.getProperty(
+                    Options.INDEX_SEGMENT_BUILD_POPULATES_CACHE,
+                    Options.DEFAULT_INDEX_SEGMENT_BUILD_POPULATES_CACHE));
+
+            cls = (Class<? extends IGlobalLRU>) LRUNexus.class
+                        .forName(System.getProperty(Options.CLASS,
+                                Options.DEFAULT_CLASS));
+
+            final boolean validClass = IGlobalLRU.class.isAssignableFrom(cls);
+            
+            if (!validClass) {
+
+                throw new RuntimeException("Class does not implement "
+                        + IGlobalLRU.class.getName() + " : class=" + cls);
+
+            }
+            
+            loadFactor = Float.valueOf(System.getProperty(
+                    Options.LOAD_FACTOR, Options.DEFAULT_LOAD_FACTOR));
+
+            initialCacheCapacity = Integer.valueOf(System
+                    .getProperty(Options.INITIAL_CAPACITY,
+                            Options.DEFAULT_INITIAL_CAPACITY));
+
+            percentHeap = Float.valueOf(System.getProperty(
+                    Options.PERCENT_HEAP, Options.DEFAULT_PERCENT_HEAP));
+
+            if (percentHeap < 0f || percentHeap > 1f) {
+
+                throw new IllegalArgumentException(Options.PERCENT_HEAP
+                        + " : must be in [0:1].");
+
+            }
+
+            maxHeap = BytesUtil.getByteCount(System.getProperty(
+                    Options.MAX_HEAP, Options.DEFAULT_MAX_HEAP));
+
+            if (maxHeap < 0)
+                throw new IllegalArgumentException(Options.MAX_HEAP
+                        + "="
+                        + System.getProperty(Options.MAX_HEAP,
+                                Options.DEFAULT_MAX_HEAP));
+
+            if (maxHeap == 0 && percentHeap != 0f) {
+                // compute based on the percentage of the heap.
+                maximumBytesInMemory = (long) (Runtime.getRuntime()
+                        .maxMemory() * percentHeap);
+            } else if (maxHeap != 0) {
+                // directly given.
+                maximumBytesInMemory = maxHeap;
+            } else {
+                // disabled.
+                maximumBytesInMemory = 0L;
+            }
+
+            minCacheSetSize = Integer.valueOf(System.getProperty(
+                    Options.MIN_CACHE_SET_SIZE,
+                    Options.DEFAULT_MIN_CACHE_SET_SIZE));
+
+        }
+
+        public String toString() {
+            
+            return super.toString()
+                    + "{"
+                    + "maxPercent="
+                    + percentHeap//
+                    + ", maxHeap="
+                    + maxHeap
+                    + ", bufferSize="
+                    + maximumBytesInMemory
+                    + ", maxMemory="
+                    + Runtime.getRuntime().maxMemory()//
+                    + ", loadFactor=" + loadFactor + ", initialCacheCapacity="
+                    + initialCacheCapacity + ", minCacheSetSize="
+                    + minCacheSetSize + ", cls=" + cls.getName()
+                    + ", indexSegmentBuildPopulatesCache="
+                    + indexSegmentBuildPopulatesCache + "}";
+            
+        }
+        
+    }
+    
+    /**
+     * The configuration in use.
+     */
+    private static final Settings settings;
 
     static {
 
         IGlobalLRU<Long, Object> tmp = null;
-
-        final boolean enabled = Boolean.valueOf(System.getProperty(
-                Options.ENABLED, Options.DEFAULT_ENABLED));
-
-        indexSegmentBuildPopulatesCache = Boolean.valueOf(System.getProperty(
-                Options.INDEX_SEGMENT_BUILD_POPULATES_CACHE,
-                Options.DEFAULT_INDEX_SEGMENT_BUILD_POPULATES_CACHE));
+        Settings s = null;
 
         try {
 
-            if (enabled) {
+            s = new Settings(System.getProperties());
+            
+            if (s.enabled) {
 
-                /*
-                 * Which implementation to use.
-                 * 
-                 * Note: All three strategies are pretty comparable, at least on
-                 * small data sets. The WeakReferenceGlobalLRU can use less
-                 * memory, which is really its weakness -- the backing ring
-                 * buffer can have lots of duplicates so it winds up retaining
-                 * fewer records and hence is not able to exploit as much RAM.
-                 */
-                final Class<? extends IGlobalLRU> cls;
-                // final Class<? extends IGlobalLRU> cls =
-                // WeakReferenceGlobalLRU.class;
-                // final Class<? extends IGlobalLRU> cls =
-                // HardReferenceGlobalLRU.class;
-                // final Class<? extends IGlobalLRU> cls =
-                // StoreAndAddressLRUCache.class;
-                cls = (Class<? extends IGlobalLRU>) LRUNexus.class
-                        .forName(System.getProperty(Options.CLASS,
-                                Options.DEFAULT_CLASS));
+                if (s.maximumBytesInMemory > 0) {
 
-                if (cls.isAssignableFrom(IGlobalLRU.class)) {
-
-                    throw new RuntimeException("Class does not implement: "
-                            + IGlobalLRU.class.getName());
-
-                }
-
-                // The load factor for the backing hash map(s).
-                final float loadFactor = Float.valueOf(System.getProperty(
-                        Options.LOAD_FACTOR, Options.DEFAULT_LOAD_FACTOR));
-
-                // The initial capacity for the backing hash map(s).
-                final int initialCacheCapacity = Integer.valueOf(System
-                        .getProperty(Options.INITIAL_CAPACITY,
-                                Options.DEFAULT_INITIAL_CAPACITY));
-
-                // The percentage of the JVM heap to use for bigdata buffers.
-                final float percentHeap = Float.valueOf(System.getProperty(
-                        Options.PERCENT_HEAP, Options.DEFAULT_PERCENT_HEAP));
-
-                if (percentHeap < 0f || percentHeap > 1f) {
-
-                    throw new IllegalArgumentException(Options.PERCENT_HEAP
-                            + " : must be in [0:1].");
-
-                }
-
-                // The maximum heap size in bytes (optional).
-                final long maxHeap = BytesUtil.getByteCount(System.getProperty(
-                        Options.MAX_HEAP, Options.DEFAULT_MAX_HEAP));
-                
-                if (maxHeap < 0)
-                    throw new IllegalArgumentException(Options.MAX_HEAP
-                            + "="
-                            + System.getProperty(Options.MAX_HEAP,
-                                    Options.DEFAULT_MAX_HEAP));
-
-                // The maximum bytesInMemory to retain across the caches.
-                final long maximumBytesInMemory;
-                if (maxHeap == 0 && percentHeap != 0f) {
-                    // compute based on the percentage of the heap.
-                    maximumBytesInMemory = (long) (Runtime.getRuntime()
-                            .maxMemory() * percentHeap);
-                } else if (maxHeap != 0) {
-                    // directly given.
-                    maximumBytesInMemory = maxHeap;
-                } else {
-                    // disabled.
-                    maximumBytesInMemory = 0L;
-                }
-
-                // The minimum #of caches to keep open.
-                final int minCacheSetSize = Integer.valueOf(System.getProperty(
-                        Options.MIN_CACHE_SET_SIZE,
-                        Options.DEFAULT_MIN_CACHE_SET_SIZE));
-
-                if (BigdataStatics.debug)
-                    System.err.println(//
-                            "m="
-                                    + IndexMetadata.Options.DEFAULT_BTREE_BRANCHING_FACTOR//
-                                    + ", maxPercent="
-                                    + percentHeap//
-                                    + ", maxHeap="
-                                    + maxHeap
-                                    + ", bufferSize="
-                                    + maximumBytesInMemory
-                                    + ", maxMemory="
-                                    + Runtime.getRuntime().maxMemory()//
-                                    + ", loadFactor=" + loadFactor
-                                    + ", initialCacheCapacity="
-                                    + initialCacheCapacity
-                                    + ", minCacheSetSize=" + minCacheSetSize
-                                    + ", cls=" + cls.getName()
-                                    + ", indexSegmentBuildPopulatesCache="
-                                    + indexSegmentBuildPopulatesCache);
-
-                if (maximumBytesInMemory > 0) {
-
-                    if (cls == WeakReferenceGlobalLRU.class) {
+                    if (s.cls == WeakReferenceGlobalLRU.class) {
 
                         final int queueCapacity;
 
@@ -411,7 +490,7 @@ public class LRUNexus {
                          * TestTripleStoreLoadRateLocal: 3x yields 36s GC time
                          * with 1G heap.
                          */
-                        final long maximumQueueCapacityEstimate = maximumBytesInMemory
+                        final long maximumQueueCapacityEstimate = s.maximumBytesInMemory
                                 / averageRecordSize * 2;
 
                         if (BigdataStatics.debug)
@@ -427,7 +506,7 @@ public class LRUNexus {
                             queueCapacity = (int) Math.min(Integer.MAX_VALUE,
                                     maximumQueueCapacityEstimate);
 
-                        } else if (maximumBytesInMemory < Bytes.gigabyte * 2) {
+                        } else if (s.maximumBytesInMemory < Bytes.gigabyte * 2) {
 
                             // capacity is no more than X
                             queueCapacity = (int) Math
@@ -446,44 +525,44 @@ public class LRUNexus {
                         }
 
                         tmp = new WeakReferenceGlobalLRU(//
-                                maximumBytesInMemory,//
-                                minCacheSetSize,//
+                                s.maximumBytesInMemory,//
+                                s.minCacheSetSize,//
                                 queueCapacity,//
                                 20, // nscan
-                                initialCacheCapacity,//
-                                loadFactor,//
+                                s.initialCacheCapacity,//
+                                s.loadFactor,//
                                 16 // concurrencyLevel (the Java default)
                         );
 
-                    } else if (cls == HardReferenceGlobalLRU.class) {
+                    } else if (s.cls == HardReferenceGlobalLRU.class) {
 
                         tmp = new HardReferenceGlobalLRU<Long, Object>(
-                                maximumBytesInMemory, minCacheSetSize,
-                                initialCacheCapacity, loadFactor);
+                                s.maximumBytesInMemory, s.minCacheSetSize,
+                                s.initialCacheCapacity, s.loadFactor);
 
-                    } else if (cls == HardReferenceGlobalLRURecycler.class) {
+                    } else if (s.cls == HardReferenceGlobalLRURecycler.class) {
 
                         tmp = new HardReferenceGlobalLRURecycler<Long, Object>(
-                                maximumBytesInMemory, minCacheSetSize,
-                                initialCacheCapacity, loadFactor);
+                                s.maximumBytesInMemory, s.minCacheSetSize,
+                                s.initialCacheCapacity, s.loadFactor);
 
-                    } else if (cls == HardReferenceGlobalLRURecyclerExplicitDeleteRequired.class) {
+                    } else if (s.cls == HardReferenceGlobalLRURecyclerExplicitDeleteRequired.class) {
 
                         tmp = new HardReferenceGlobalLRURecyclerExplicitDeleteRequired<Long, Object>(
-                                maximumBytesInMemory, minCacheSetSize,
-                                initialCacheCapacity, loadFactor);
+                                s.maximumBytesInMemory, s.minCacheSetSize,
+                                s.initialCacheCapacity, s.loadFactor);
 
-                    } else if (cls == StoreAndAddressLRUCache.class) {
+                    } else if (s.cls == StoreAndAddressLRUCache.class) {
 
                         tmp = new StoreAndAddressLRUCache<Object>(
-                                maximumBytesInMemory, minCacheSetSize,
-                                initialCacheCapacity, loadFactor);
+                                s.maximumBytesInMemory, s.minCacheSetSize,
+                                s.initialCacheCapacity, s.loadFactor);
 
                     } else {
 
                         throw new UnsupportedOperationException(
                                 "Can not create global cache: cls="
-                                        + cls.getName());
+                                        + s.cls.getName());
 
                     }
 
@@ -491,6 +570,18 @@ public class LRUNexus {
 
             }
 
+            if (BigdataStatics.debug || log.isInfoEnabled()) {
+
+                final String msg = s.toString();
+
+                if (BigdataStatics.debug)
+                    System.err.println(msg);
+
+                if (log.isInfoEnabled())
+                    log.info(msg);
+
+            }
+            
         } catch (Throwable t) {
 
             log.error("LRUNexus disabled", t);
@@ -498,6 +589,9 @@ public class LRUNexus {
         } finally {
 
             INSTANCE = tmp;
+
+            // Note: MAY be null;
+            settings = s;
             
         }
 
@@ -511,9 +605,9 @@ public class LRUNexus {
      * @see Options#INDEX_SEGMENT_BUILD_POPULATES_CACHE
      */
     public static final boolean getIndexSegmentBuildPopulatesCache() {
-        
-        return indexSegmentBuildPopulatesCache;
-        
+
+        return settings != null && settings.indexSegmentBuildPopulatesCache;
+
     }
     
     /**
@@ -584,6 +678,23 @@ public class LRUNexus {
         }
 
         return INSTANCE.getCache(store.getUUID(), am);
+        
+    }
+
+    /**
+     * Command line utility may be used to confirm the environment settings.
+     * 
+     * @param args
+     *            Ignored. All parameters are specified either in the
+     *            environment or using JVM
+     *            <code>-Dcom.bigdata.LRUNexus.foo=bar</code> arguments on the
+     *            command line.
+     *            
+     * @throws ClassNotFoundException 
+     */
+    public static void main(String[] args) throws ClassNotFoundException {
+
+        System.out.println(new Settings(System.getProperties()).toString());
         
     }
     
