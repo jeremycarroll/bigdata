@@ -72,6 +72,8 @@ public class TestAll extends TestCase {
         suite.addTestSuite(TestHardReferenceGlobalLRU.class);
 
         suite.addTestSuite(TestHardReferenceGlobalLRURecycler.class);
+
+        suite.addTestSuite(TestHardReferenceGlobalLRURecyclerExplicitDeleteRequired.class);
         
 //        // Generic test of cache policy.
 //        retval.addTestSuite( TestCachePolicy.class );
