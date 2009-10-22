@@ -102,6 +102,11 @@ public class HardReferenceGlobalLRURecyclerExplicitDeleteRequired<K, V> implemen
     private final long maximumBytesInMemory;
 
     /**
+     * The minimum bytes available in the LRU after an eviction. 
+     */
+    private final long minCleared;
+    
+    /**
      * The initial capacity for each cache instance.
      */
     private final int initialCacheCapacity;
@@ -135,6 +140,13 @@ public class HardReferenceGlobalLRURecyclerExplicitDeleteRequired<K, V> implemen
      * @param maximumBytesInMemory
      *            The maximum bytes in memory for the cached records across all
      *            cache instances.
+     * @param minCleared
+     *            The minimum number of bytes that will be cleared when evicting
+     *            the LRU entry. When zero, only as many records will be evicted
+     *            as are necessary to bring the bytes in memory below the
+     *            configured maximum. When greater than zero, "batch" evictions
+     *            can be performed. For example, several MB worth of records can
+     *            be evicted each time the LRU is at its maximum capacity.
      * @param minimumCacheSetCapacity
      *            The #of per-{@link IRawStore} {@link ILRUCache} instances that
      *            will be maintained by hard references unless their cache is
@@ -144,14 +156,24 @@ public class HardReferenceGlobalLRURecyclerExplicitDeleteRequired<K, V> implemen
      * @param loadFactor
      *            The load factor for the cache instances.
      */
-    public HardReferenceGlobalLRURecyclerExplicitDeleteRequired(final long maximumBytesInMemory,
+    public HardReferenceGlobalLRURecyclerExplicitDeleteRequired(
+            final long maximumBytesInMemory,
+            final long minCleared,
             final int minimumCacheSetCapacity, final int initialCacheCapacity,
             final float loadFactor) {
 
         if (maximumBytesInMemory <= 0)
             throw new IllegalArgumentException();
 
+        if (minCleared < 0)
+            throw new IllegalArgumentException();
+
+        if (minCleared > maximumBytesInMemory)
+            throw new IllegalArgumentException();
+
         this.maximumBytesInMemory = maximumBytesInMemory;
+
+        this.minCleared = minCleared;
 
         this.initialCacheCapacity = initialCacheCapacity;
 
@@ -997,7 +1019,14 @@ public class HardReferenceGlobalLRURecyclerExplicitDeleteRequired<K, V> implemen
                      * afterwards!
                      */
 
-                    while (globalLRU.counters.bytesInMemory.get() >= globalLRU.maximumBytesInMemory) {
+                    // evict records until the #of bytes in memory falls below
+                    // this threshold.
+                    final long threshold = globalLRU.maximumBytesInMemory
+                            - globalLRU.minCleared;
+
+                    assert threshold >= 0;
+
+                    while (globalLRU.counters.bytesInMemory.get() >= threshold) {
 
                         // entry in the LRU position.
                         entry = globalLRU.first;

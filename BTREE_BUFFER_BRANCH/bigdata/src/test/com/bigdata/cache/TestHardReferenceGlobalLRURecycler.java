@@ -57,6 +57,8 @@ public class TestHardReferenceGlobalLRURecycler extends
 
         final long maximumBytesInMemory = 10 * Bytes.kilobyte;
 
+        final long minCleared = 0L;
+        
         final int minimumCacheSetCapacity = 0;
 
         final int initialCacheCapacity = 16;
@@ -64,7 +66,7 @@ public class TestHardReferenceGlobalLRURecycler extends
         final float loadFactor = .75f;
 
         lru = new HardReferenceGlobalLRURecycler<Long, Object>(
-                maximumBytesInMemory, minimumCacheSetCapacity,
+                maximumBytesInMemory, minCleared, minimumCacheSetCapacity,
                 initialCacheCapacity, loadFactor);
 
     }

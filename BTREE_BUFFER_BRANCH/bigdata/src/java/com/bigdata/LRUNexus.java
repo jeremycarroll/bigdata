@@ -199,6 +199,17 @@ public class LRUNexus {
         String DEFAULT_MAX_HEAP = "0";
 
         /**
+         * The percent of the maximum bytes which the LRU may buffer to be
+         * cleared from the LRU when evicting the LRU entry (default
+         * {@value #DEFAULT_PERCENT_CLEARED}). This parameter provides some
+         * "batching" of evictions but is not used by all {@link IGlobalLRU}
+         * implementations.
+         */
+        String PERCENT_CLEARED = LRUNexus.class.getName() + ".percentCleared";
+
+        String DEFAULT_PERCENT_CLEARED = ".01";
+        
+        /**
          * The {@link IGlobalLRU} implementation class.  Only implementations
          * which are hard wired into the code can be specified.
          */
@@ -357,6 +368,16 @@ public class LRUNexus {
         final long maximumBytesInMemory;
 
         /**
+         * @see Options#PERCENT_CLEARED
+         */
+        final double percentCleared;
+        
+        /**
+         * {@link #percentCleared} TIMES {@link #maximumBytesInMemory}.
+         */
+        final long minCleared;
+        
+        /**
          * The minimum #of caches to keep open for an {@link IGlobalLRU} based
          * on a weak value hash map.
          * 
@@ -427,6 +448,18 @@ public class LRUNexus {
                 maximumBytesInMemory = 0L;
             }
 
+            percentCleared = Double.valueOf(System.getProperty(
+                    Options.PERCENT_CLEARED, Options.DEFAULT_PERCENT_CLEARED));
+
+            if (percentCleared < 0f || percentCleared > 1f) {
+
+                throw new IllegalArgumentException(Options.PERCENT_CLEARED
+                        + " : must be in [0:1].");
+
+            }
+
+            minCleared = (long) (percentCleared * maximumBytesInMemory);
+            
             minCacheSetSize = Integer.valueOf(System.getProperty(
                     Options.MIN_CACHE_SET_SIZE,
                     Options.DEFAULT_MIN_CACHE_SET_SIZE));
@@ -443,6 +476,10 @@ public class LRUNexus {
                     + maxHeap
                     + ", bufferSize="
                     + maximumBytesInMemory
+                    + ", percentCleared="
+                    + percentCleared
+                    + ", minCleared="
+                    + minCleared
                     + ", maxMemory="
                     + Runtime.getRuntime().maxMemory()//
                     + ", loadFactor=" + loadFactor + ", initialCacheCapacity="
@@ -557,14 +594,16 @@ public class LRUNexus {
                     } else if (s.cls == HardReferenceGlobalLRURecycler.class) {
 
                         tmp = new HardReferenceGlobalLRURecycler<Long, Object>(
-                                s.maximumBytesInMemory, s.minCacheSetSize,
-                                s.initialCacheCapacity, s.loadFactor);
+                                s.maximumBytesInMemory, s.minCleared,
+                                s.minCacheSetSize, s.initialCacheCapacity,
+                                s.loadFactor);
 
                     } else if (s.cls == HardReferenceGlobalLRURecyclerExplicitDeleteRequired.class) {
 
                         tmp = new HardReferenceGlobalLRURecyclerExplicitDeleteRequired<Long, Object>(
-                                s.maximumBytesInMemory, s.minCacheSetSize,
-                                s.initialCacheCapacity, s.loadFactor);
+                                s.maximumBytesInMemory, s.minCleared,
+                                s.minCacheSetSize, s.initialCacheCapacity,
+                                s.loadFactor);
 
                     } else if (s.cls == StoreAndAddressLRUCache.class) {
 
