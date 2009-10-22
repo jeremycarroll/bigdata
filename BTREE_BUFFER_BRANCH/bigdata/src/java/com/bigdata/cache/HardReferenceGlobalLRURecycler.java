@@ -222,6 +222,12 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
         return counters.evictionCount.get();
         
     }
+
+    public long getEvictionByteCount() {
+
+        return counters.evictionByteCount.get();
+        
+    }
     
     public long getBytesInMemory() {
 
@@ -358,6 +364,11 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
          */
         private final AtomicLong evictionCount = new AtomicLong();
         
+        /**
+         * The #of bytes for cache entries that have been evicted.
+         */
+        private final AtomicLong evictionByteCount = new AtomicLong();
+        
         public void clear() {
             
             bytesOnDisk.set(0L);
@@ -365,6 +376,8 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
             bytesInMemory.set(0L);
             
             evictionCount.set(0L);
+
+            evictionByteCount.set(0L);
                 
         }
         
@@ -418,6 +431,15 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
                         @Override
                         protected void sample() {
                             setValue(evictionCount.get());
+                        }
+                    });
+
+            counters.addCounter(
+                    IGlobalLRU.IGlobalLRUCounters.BUFFERED_RECORD_EVICTION_BYTE_COUNT,
+                    new Instrument<Long>() {
+                        @Override
+                        protected void sample() {
+                            setValue(evictionByteCount.get());
                         }
                     });
 
@@ -1020,6 +1042,8 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
                         // The cache from which the entry will be evicted.
                         final LRUCacheImpl<K,V> evictedFromCache = entry.cache; 
                         
+                        final int bytesOnDisk = entry.bytesOnDisk;
+                        
                         // remove LRU entry from ordering.
                         globalLRU.removeEntry(entry);
 
@@ -1028,6 +1052,8 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
                         evictedFromCache.remove(evictedKey);//entry.k);
 
                         globalLRU.counters.evictionCount.incrementAndGet();
+
+                        globalLRU.counters.evictionByteCount.addAndGet(bytesOnDisk);
 
                     }
 

@@ -293,6 +293,11 @@ public interface IGlobalLRU<K,V> {
         final String BUFFERED_RECORD_EVICTION_COUNT = "Buffered Record Eviction Count";
 
         /**
+         * The #of bytes for records that have been evicted from the cache to date.
+         */
+        final String BUFFERED_RECORD_EVICTION_BYTE_COUNT = "Buffered Record Eviction Byte Count";
+
+        /**
          * The average size on disk for the records buffered in the cache
          * (current value).
          */
