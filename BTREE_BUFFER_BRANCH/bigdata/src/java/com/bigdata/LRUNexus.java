@@ -50,7 +50,6 @@ import com.bigdata.journal.AbstractBufferStrategy;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.TemporaryRawStore;
 import com.bigdata.rawstore.AbstractRawStore;
-import com.bigdata.rawstore.AbstractRawWormStore;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IRawStore;
@@ -706,8 +705,11 @@ public class LRUNexus {
             am = new WormAddressManager(((TemporaryRawStore) store)
                     .getOffsetBits());
 
-        } else if (store instanceof AbstractRawWormStore) {
+        } else if (store instanceof AbstractRawStore) {
 
+            /*
+             * Note: this covers the IndexSegmentStore.
+             */
             am = ((AbstractRawStore) store).getAddressManager();
 
         } else {
