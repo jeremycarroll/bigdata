@@ -31,6 +31,10 @@ package com.bigdata;
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
+ * @version $Revision$
+ * @version $Author$
+ * @version $HeadURL$
+ * @version $Date$
  */
 public class AutoPropTest {
 
