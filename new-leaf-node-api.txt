@@ -1,3 +1,22 @@
+release:
+
+   - merge to the trunk & VERIFY ALL TESTS.
+   - generate javadoc and upload.
+   - blog post
+   - update version online: http://semanticweb.org/wiki/Bigdata
+   - sourceforce news
+   - announce where?
+
+svn switch https://bigdata.svn.sourceforge.net/svnroot/bigdata/trunk .
+
+svn switch https://bigdata.svn.sourceforge.net/svnroot/bigdata/branches/BIGDATA_RDF_DATA_LOADER_BRANCH .
+
+svn switch https://bigdata.svn.sourceforge.net/svnroot/bigdata/branches/BTREE_BUFFER_BRANCH .
+
+svn auto-props: This could be used to put the license in each file!
+
+------------------------------------------------------------
+
 Issues to be resolved in this branch.
 
 1. Done. Re-design of the node/leaf API to support processing of
@@ -5,8 +24,8 @@ Issues to be resolved in this branch.
    java objects.  Nodes and leaves are now expanded into Java objects
    iff a mutation needs to be performed on the node or leaf.
 
-2. Global record or B+Tree node/leaf record buffering for a DS.  This
-   allows us to efficiently use all available RAM to buffer the
+2. Done. Global record or B+Tree node/leaf record buffering for a DS.
+   This allows us to efficiently use all available RAM to buffer the
    indices.
 
 3. Store level record compression.
@@ -15,15 +34,22 @@ Issues to be resolved in this branch.
    com.bigdata.btree.raba.codec.TestHuffmanEncoder, NodeSerializer,
    and IndexSegmentBuilder.
 
-4. Dependency refactor (fastutil, dsiutils, lgpl-utils).
+4. Done. Dependency refactor (fastutil, dsiutils, lgpl-utils,
+   zookeeper).
 
 5. Performance optimizations for the B+Tree refactor change set,
    including the performance tuning for the rabas, the LRU buffer,
    configurations, etc.
 
+6. Full tx support for the RDF store.
+
 --------------------
 
 Query optimization
+
+x. Look at monitors in profiler when tuning query performance.  How
+   often are threads blocking: on disk read? on BTree#touch()?  In
+   Node#getChild(int) on the node when trying to read its child?
 
 x. Parallel range iterator flag.
 
@@ -32,12 +58,21 @@ x. Resolve RDF Values using JOINs.
 x. Distributed join optimization (performance tuning, hot spot
    elimination, configuration parameter tuning, etc).
 
+x. Correct handling for optionals, nexted filters, etc.
+
+x. Fast handling of default graph queries for the quad store.
+
+x. Fast handling of named graph queries for the quad store when there
+   are a large number of named graphs.
+
 --------------------
 
 Index partition splits.
 
-   - Proactive scheduling
-
+   - Proactive scheduling and imperfect index segment builds based on
+     fast range count estimates.  Together, this should be a huge
+     performance win - especially as the data scale increases.
+   
    - Faster.  The best solution is to split after a compacting merge
      since we have exact knowledge of the tuple counts and exact
      knowledge of the on disk storage requirements at that time.
@@ -55,7 +90,13 @@ Full tx support for RDF
 
      - In the OpenAnzo data source.
 
+     - Add a Jena integration?  http://openjena.org/ARQ/arq-query-eval.html
+
      - Verify transactional create of indices and kb.
+
+     - Verify that index views isolated by a tx are not wrapped with
+       the UnisolatedReadWriteIndex class.  They should be direct
+       IsolatedFusedView instances when the backing store is a Journal.
 
      - Non-tx writes MUST assign a revision timestamp if they are
        targeting an index which supports transactions and on which
@@ -69,9 +110,16 @@ Full tx support for RDF
 
      - Parallel validating and merge down during the commit protocol
        for all indices isolated by the tx.  This will reduce the tx
-       commit latency, which is critical.
+       commit latency, which is critical. [This is a big deal, and
+       easy to do.]
 
-     - Reconcile adds but reject conflicting retractions.
+     - Reconcile adds w/ adds (the add tuple request can be dropped
+       since it is already present) and retracts w/ retracts (again,
+       the delete request can be dropped since it is already deleted),
+       but reject conflicting retractions.
+
+     - Concurrent data loader hook up w/ tx enabled, at least for
+       quads.
 
      - Connection point for disconnected synchronization.
 
@@ -104,6 +152,15 @@ Full tx support for RDF
 
 Distributed Tx
 
+     - EDS with history retention policy may be a good approach for
+       people wanting to keep a limited history without massive data
+       scale.  This should be good up to 1-2B triples.  Full
+       distributed tx would be required.  This could be a nice way to
+       harden the distributed system without relying on RMI and
+       without many of the fault tolerant issues, HA issues, etc.  The
+       only drawback is getting TM working with index partitions - LDS
+       is closer there.
+
      - Distributed tx protocol.
 
      - Failover for tx service.
@@ -132,15 +189,157 @@ HA
        data for the logical DS zpath and cache the reverse resolution
        (UUID to LDS).
 
+     - 2-tier distributed MDS.
+
+     - Join should be triggered only after a compacting merge which
+       underflows the minimum bytes on disk for the view and in which
+       a large number of deleted tuple markers were purged.  Explicit
+       index partition join requests are Ok, but automated joins based
+       solely on underflow are too likely to cause split/join/split
+       cycles.
+
+     - Split should choose the shortest separator keys in order to
+       keep the size of the MDS down.
+
      - The time to start a new PDS for an LDS will be quite large as
        we need to replicate all the state of the existing LDS.  The
        state could be read from any of the existing PDS for that LDS,
        or from a combination of those instances.
 
-     - Integration for backup.
+     - Clients must resolve physical DS instances from logical data
+       service instances using zk watches on the child of the logical
+       DS instance.  The logical instances should be identified by
+       paths rather than UUIDs to facilitate this.  The logical DS
+       identifier in the MDS will need to be changed and could be just
+       a one-up zk child node identifier of the logical DS container
+       for the federation.
 
+     - Test plan to reliable kill/start of services (zk and services
+       manager integration).
+
+         - if the entire federation is restarted then the transaction
+           service can have a zero release time until at least one tx
+           has run.
+	 
      - Integration point for migrating old history (journals and index
        segments) onto tertiary storage.
+ 
+     - Distributed transactions.  The bigdata architecture is based on
+       Multi-Version Concurrency Control (MVCC), which is a form of
+       "optimistic" concurrency control.  MVCC has several
+       advantages. The most relevant advantages based on our
+       conversation today are: (1) readers never block for writers;
+       and (2) high write concurrency can be achieved for applications
+       where you are able to reconcile write-write conflicts during
+       validation.  Due to its graph nature, RDF databases using a
+       pessimistic locking strategy such as two phased locking (2PL)
+       could be forced to serialize most transactions, resulting in
+       very low transaction throughput rates.  The problem is that
+       there is nearly always a race condition on a index for RDF
+       updates when using 2PL.  In contract, with MVCC, we are only
+       forced to fail a transaction in which one client adds a
+       statement while another client concurrently deletes the same
+       statement.  Distributed transactions can be broken down into
+       those which execute solely on a single data service and those
+       which require the coordination of multiple data services.  For
+       a distributed RDBMS, the vast majority of all transactions can
+       in fact be mapped onto a single data service (or its
+       equivalent).  However, due to the graph nature of RDF and the
+       redundant indices maintained for fast access paths, updates
+       will typically wind up scattered across multiple partitions.
+       This means that most transaction commits must be coordinated,
+       which does limit throughput but is a necessary tradeoff for
+       distributed transactions against graph structured data.
+       Bigdata already supports local transactions.  We would have to
+       finish the work on the distributed transaction commit protocol.
+       For short transactions that is enough since the total latency
+       of the transaction is small (under a second).  However, if you
+       are also running large write transactions (millions of
+       triples), then we also need to ensure that transaction write
+       sets stay with the data service on which they would write, even
+       when bigdata dynamically partitions an index on that data
+       service.  We would handle this as an extension of our dynamic
+       index partitioning mechanism to support transaction write set
+       partitioning as well.
+ 
+     - HA/DR.  There are in fact two HA approaches.  Based on your
+       requirements for DR as well, I would suggest that we focus on
+       the data replication approach.  In the data replication
+       approach, there are multiple physical instances of each logical
+       data service.  A master election arranges those instances into
+       a failover chain (that master election is performed using
+       zookeeper, which itself is a highly available architecture
+       based on a quorum of peers).  The failover chain doubles as the
+       data replication chain.  Clients write on the master.  The
+       master streams writes to the downstream instance on the
+       failover chain.  This process continues until the end of the
+       failover chain has been reached.  If the writes are streamed
+       using an asynchronous protocol, then the commit latency is
+       increased by the propagation time for the writes along the
+       failover chain.  This can also be done by multi-cast from the
+       master to the failover instances.  The advantage of streaming
+       the writes along the failover chain is that the master does
+       less work.  For DR, some of the instances would be in a remote
+       data center.  Of course, all services must support failover,
+       not just the data services.
+ 
+     - Backup and recovery.  All of bigdata is orchestrated around its
+       MVCC architecture.  The easiest way to take a snapshot of a
+       bigdata federation is to obtain a read lock on the commit time
+       of interest from the transaction service and then snapshot the
+       resources on each logical data service in the federation as of
+       that timestamp.  To obtain a read lock, the backup process
+       would simply request a transaction for some timestamp.  E.g., a
+       backup process running at a fixed time each night would open a
+       read-only transaction on the federation as of 5 seconds before.
+       This would establish a read lock across the federation, which
+       means that no resources having state for that commit point
+       could be released until the transaction was closed.  At that
+       point, a distributed job could be executed which would cause
+       each data service trigger an overflow operation (closing out
+       the old journal and opening a new journal), and then copy the
+       journal and index segment files for the commit time of the
+       backup to some secondary location.  Synchronous overflow
+       processing occurs each time a journal fills up and takes only a
+       few milliseconds.  The reason to trigger overflow before taking
+       a backup is that the journal containing the commit record of
+       interest will be converted into a read-only file during
+       overflow processing.  At that point, all files for backup will
+       be read only and they may be copied by any reasonable means to
+       a remote location.  Recovery from shutdown would involve
+       restoring all files for a backup of the federation, including
+       service configuration files, onto a suitable cluster.  During
+       service startup, the data services will self-register with jini
+       (service discovery) and with zookeeper (master election and
+       failover chain).  Client access can be restored once sufficient
+       data service instances are online.  If a log of transactions is
+       maintained, then it can be replayed before client access is
+       restored.
+
+     - LBS can use EDS to prune history.  No proxies.  All locale.
+       Actually, counter aggregation needs to be teased out ala
+       MonALisa.
+
+     - Test plan to backup and recovery.
+
+     - Test plan for index rebuilds (bottom up) if the MDS is lost.
+
+     - Test plan:
+
+        - zookeeper quorum full and partial kills.  How do services
+          and clients handle things will zk is dead or under quorum?
+          When it restarts?
+
+	  - Currently requires "hup" to start services in a timely
+            manner after stop/start.
+
+	- bigdata service full and partial kills under read and write
+          workloads.  how are things handled when there is still a
+          physical instance for the service?  when no physical
+          instances remain?  This will be different for different
+          kinds of services and under different workloads.  How do
+          services and clients handle things when the logical service
+          is brought back up?
 
 --------------------
 Monitoring.  
@@ -325,6 +524,27 @@ PRIORITIES
 
 	- Retest on the cluster.
 
+	     - Retest on cluster now that the LRU is no longer causing
+	       us to run out of memory.
+
+	     - Try yourkit running on blade2 and attaching to various
+               CS or DS instances as required.  Look at heap, hot
+               spots, monitors.
+
+	     - Try a higher BTree branching factor for a faster
+	       journal.
+
+	     - Increase the write retention queue capacity to 8k.
+
+	     - Explore more LRU buffering (maxPercent).
+
+	     - Ring buffer of fixed on disk capacity can be used to
+               buffer per index partition data.  One file per index
+               partition.  Each file is N mb.  Write raw KV[] on the
+               disk, but must preserve latches in RAM.  When enough
+               data on disk, merge sort.  Keep offsets into the disk
+               file in RAM?
+
 	- Continued large data set load testing.
 
 	- Tx with reconcile of RDF writes.
@@ -369,15 +589,34 @@ PRIORITIES
 
         - EDS test failures.
 
-	  - TestAsynchronousStatementBufferFactory (indices are not
-            consistent).  Also, it takes WAY too long to compare the
-            indices against one another.  This should be fairly snappy
-            if we do chunked ordered comparisons of the access paths.
-            The validation logic is based on a reparse, so maybe it is
-            not as efficient as cross index validation?  Switch to the
+	  - It takes WAY too long to compare the indices against one
+            another.  This should be fairly snappy if we do chunked
+            ordered comparisons of the access paths.  The validation
+            logic is based on a reparse, so maybe it is not as
+            efficient as cross index validation?  Switch to the
             latter?  Does it also report a problem?
 
-	  - TestFullTextIndex (both tests fail).
+	  - TestFullTextIndex (both tests fail).  Is full text search
+            enabled for scale-out?
+
+junit.framework.AssertionFailedError: minCosine=0.4, expected=["abc", "abc"@en], actual=Hiterator{elapsed=0, minCosine=0.4000000059604645, maxRank=2147483647, nhits=2} : [Hit{docId3746994889972252674,nterms=1,cosine=1.0}, Hit{docId8358680908399640578,nterms=1,cosine=0.0}]
+	at junit.framework.TestCase2.fail(TestCase2.java:118)
+	at com.bigdata.rdf.lexicon.TestFullTextIndex.assertExpectedHits(TestFullTextIndex.java:158)
+	at com.bigdata.rdf.lexicon.TestFullTextIndex.assertExpectedHits(TestFullTextIndex.java:124)
+	at com.bigdata.rdf.lexicon.TestFullTextIndex.test_fullTextIndex01(TestFullTextIndex.java:207)
+Caused by: junit.framework.AssertionFailedError: : Index exhausted while expecting more object(s): index=1
+	at junit.framework.Assert.fail(Assert.java:47)
+	at com.bigdata.rdf.spo.TestSPOKeyOrder.assertSameIteratorAnyOrder(TestSPOKeyOrder.java:246)
+	at com.bigdata.rdf.spo.TestSPOKeyOrder.assertSameIteratorAnyOrder(TestSPOKeyOrder.java:210)
+	at com.bigdata.rdf.lexicon.TestFullTextIndex.assertExpectedHits(TestFullTextIndex.java:154)
+	... 26 more
+
+	  - TestBulkFilter#test_filterOut().
+
+junit.framework.AssertionFailedError: Expecting: 1 more statements: [< -8358680908399640576U, 6052837899185946624U, -3746994889972252672U : Explicit >]
+	at junit.framework.Assert.fail(Assert.java:47)
+	at com.bigdata.rdf.store.AbstractTestCase.assertSameSPOsAnyOrder(AbstractTestCase.java:619)
+	at com.bigdata.rdf.store.TestBulkFilter.test_filterOut(TestBulkFilter.java:155)
 
 	  - TestModelsEqual.
 
@@ -507,9 +746,6 @@ Caused by: java.lang.UnsupportedOperationException: Not supported: timestamp=rea
 	  the persistent resources and finally destroy the service
 	  directory.
 
-	- @todo delete [bigdata-trunk].  rename
-          [bigdata-trunk-no-branch] as [bigdata-trunk].
-
         - Test the LexiconRelation's termCache.  This should be a big
           help for scale-out query.  Does it work?
 
@@ -518,6 +754,13 @@ Caused by: java.lang.UnsupportedOperationException: Not supported: timestamp=rea
 	  build.
 
 	- (****) Quads and Sesame test suites for same.
+
+	    - query errors.
+
+	      http://www.w3.org/2001/sw/DataAccess/tests/r2
+
+	    - modify sail and tests for full tx for quads.  fix any
+              new errors.
 
 	    - use base IRI as the context during load?
 
@@ -553,36 +796,293 @@ java.lang.IllegalStateException: Different statement identifier already defined:
 	at com.bigdata.rdf.sail.BigdataSailRepositoryConnection.commit(BigdataSailRepositoryConnection.java:54)
 	at com.bigdata.rdf.sail.TestSearchQuery.test_restart(TestSearchQuery.java:394)
 
-
 	- What is com.bigdata.rdf.rules.TestRuleExpansion?  It defines
           test_optionals.  There is a method by the same name in
           TestOptionals, but the classes differ.  TestRuleExpansion is
           not run from any test suite.  When I run it directly it
           fails.
 
+	- static analysis : http://www.coverity.com/index.html,
+          http://findbugs.sourceforge.net/ (GPL), and who else?
+
+==================== sundar ====================
+
+- temp store/buffer mode patch on trunk to allow temporary store files
+  GT 2GB.
+
+- utility to reflect on the java property name if within the
+  com.bigdata namespace so people can use symbolic constants.
+
+- raise the cap on the write retention queue in the trunk.
+
+- Add documentation to the wiki on Unicode setup.
+
+- Add documentation to the wiki on setup w/ Sesame 2.x for httpd
+  (ChrisC, BBC).
+
+- Add documentation to the wiki on auto-commit to include advice on
+  disabling the bloom filter on the SPO index since that is 1M per
+  commit!
+
+- Add documentation to the wiki on custom rules.
+
+- Add documentation to the wiki on fixed point for property paths or
+  related things.
+
+- Did we ever get back to the BBC guy?
+
+------------------------------------------------------------
+
+  - MikeP: native UNIONs
+
+  - MikeP: native SingletonSet
+
+  - MikeP: Scope of filters in SPARQL queries.
+
+  - MikeP: magic search w/ quads (may have problem with the expander
+    already set for the default access path).
+
+  - BBT: If there is only one graph, then the defaultGraph access path
+    MUST NOT impose a "distinct" filter or do any other work. This
+    would absolutely kill us on LUBM for example.  I guess we need to
+    do a distinct term scan on C with a limit of 2 to figure this out,
+    but that is a bit heavy for my taste unless we have a means of
+    caching the result.  Of course, the result can be cached as of a
+    commit time.
+
+  - BBT: simplify how to turn on the quad store and the provenance
+    mode.
+
+  - BBT: blank node scope to connection w/ factory.
+
+  - BBT: LDS/EDS query problem.
+
+  - BBT: Resolve issue with SPARQL semantics and projecting datatype
+    literals onto the value space and with case folding or other
+    issues in Unicode handling for database indices.  All of these
+    issues are related.  When projecting datatypes onto a value space,
+    we should normalize their datatype literal when it is created.
+
+        SPARQL also fixes an order between some kinds of RDF terms
+        that would not otherwise be ordered:
+
+	(Lowest) no value assigned to the variable or expression in this solution. 
+
+	Blank nodes 
+	IRIs 
+	RDF literals 
+
+	A plain literal is lower than an RDF literal with type xsd:string of the same lexical form.
+
+	SPARQL does not define a total ordering of all possible RDF
+	terms. Here are a few examples of pairs of terms for which the
+	relative order is undefined:
+
+	Thus, a key-range query may be formed for all RDF Literals
+	whose type is xsd:int and the order of the tuples in the
+	database will directly correspond to natural order of the
+	xsd:int domain.
+
+  - BBT: run full tx for the quad store unit tests and move into the
+    SAIL impl?  Going to full tx will require us to put revision times
+    on the isolatable index for non-transaction writes, and we will
+    need to do that for bulk loads.  The process will need a lock on
+    the appropriate unisolated inidices.  The revision time can
+    probably be a timestamp obtained from the txService when the task
+    writing on the unisolated indices begins to execute.
+
+  - BBT: prefix match and wildcard matches for full text indexer.
+
+  - MikeP: reflection for properties.  maybe just use the jini
+    configuration file support?
+
+  - MikeP: setup and run berlin benchmark for quad store mode.  setup
+    and run lubm benchmark for quad store mode
+
+  - BBT: Memory leak during BigdataSparqlTest, and perhaps all junit
+    tests.
+
+    Ah.  A common gotcha is this: Junit will create a new instance of
+	 a TestCase class for every test method in it And all instance
+	 variables will be kept around until JUnit terminates. That
+	 means: if you have a TestCase class with 50 test methods and
+	 an instance variable that is initialized with a 1MB object
+	 graph in your setUp() method, then that TestCase class will
+	 require 50MB heap space.
+
+	 So, clearing the reference to the fixture in tearDown()
+	 should help here.
+
+    (***) A 2nd problem is the allocation of the DirectByteBuffer for
+	  the write cache for the journal.  This needs to be done
+	  using a static pool with release to the static pool.
+	  Otherwise we are reaching an OOM when Java is unwilling to
+	  allocate another native buffer for us.
+
+    (***) There still appears to be a problem with the #of allocated
+	  threads.  This is especially evident for the SPARQL unit
+	  tests, where the thread count ramps up sharply each time we
+	  run those tests.  The problem here may be in
+
+	         AcceptTask#awaitStateChange()
+
+          It appears to be blocked waiting for a signal, and that may
+	  be keeping the thread from being released.  This issue could
+	  effect scale-out (essentially a memory leak) since each
+	  journal has its own write service.
+
+============================================================
+
+Commit list:
+
 ==================== anzo ====================
 
 - Support glitter integration, performance optimizations against
-  sample data sets, and hot backup for the Journal.
+  sample data sets, especially for query, full tx support, and hot
+  backup for the Journal.
+
+- Could run configuration trials for workloads in parallel on a
+  cluster.
+
+------------------------------------------------------------
+There are several distinct use cases for SPARQL queries which involve
+the default graph or the named graphs of the SPARQL data set.
+
+Queries against the SPARQL default graph require the RDF merge of the
+source graphs.  This is accomplished by stripping off the context
+information from the quad and filtering for distinct (s,p,o) triples.
+For high volume result sets, the distinct filter must be backed by a
+BTree on a temporary store.
+
+   (*) One problem is how to determine whether the result set can have
+       a large volume since filtering with a HashSet is faster but
+       less scalable.  When we are only considering a single access
+       path we just use the fast range count for that access path.
+       Right now, the "fast" range count for an RDF merge access path
+       is the max of the fast range counts for each of the source
+       graphs.  For the special case where the data set was not
+       specified and the default graph is the RDF merge of all of the
+       graphs in the quad store, we can also compute the fast access
+       path directly as the range count with [c] unbound.  When there
+       are a large #of graphs explicitly included in the default
+       graph, I am not sure if we really want to range count each of
+       them nor how good an estimate is provided by the max of their
+       range counts -- it is only an upper bound but I do not know of
+       any basis for predicting the rate of duplicates across the
+       specified graphs.
+
+In contrast, queries against the SPARQL named graph(s) do not strip
+off the context from the quads and do not apply a distinct constraint
+(the quads are naturally distinct).
+
+For Sesame, these cases may all occur either in
+SailConnection#getStatements(...), where the Resource[] represents the
+default graph set or the named graph set, or in a JOIN.
+
+A) Default graph.  
+
+   1. If there is only a single source graph, then [c] should be bound
+      and we run the unmodified access path.  In principle the context
+      information should be stripped from the quad, but it can not
+      become bound to a variable so this does not matter.
+
+   2. Parallel evaluation of the access path where [c] is bound to
+      each of the source graphs in turn, the context information is
+      stripped from the quads, and the resulting triples are filtered
+      for distinct (s,p,o).
+
+   3. Evaluate the access path with [c] unbound and an IN constraint
+      on the predicate which filters for only the specified source
+      graphs.  Quads which are selected by the filter have their
+      context stripped and are filtered for distinct (s,p,o).
+
+      (*) To choose between (2) and (3), consider the percentage of
+          the index which would be read by (3) the #of graphs in the
+          default graph, and the percentage of the index which would
+          be read by (2) for those graphs.  How best make this choice
+          has not been determined yet.
+
+   4. When the SPARQL dataset is not explicitly specified, the query
+      runs against the RDF merge of all graphs.  For this case we
+      leave [c] unbound, strip off the context information, and filter
+      for distinct (s,p,o) triples.
+
+B) Named graph queries where the graph variable is bound.  These
+   queries just run the unmodified access path.
+
+C) Named graph queries where the graph variable is unbound.
+
+   1. If there is only a single source graph, then [c] is bound to
+      that graph's termId and we run the access path with [c] bound.
+      This is the same as (B).
+
+   2. Parallel evaluation of the access path where [c] is bound to
+      each of the source graphs in turn.  
+
+   3. Evaluate the access path with [c] unbound and an IN constraint
+      on the predicate that filters for only the specified source
+      graphs.
+
+      (*) To choose between (2) and (3), consider the percentage of
+          the index which would be read by (3) the #of named graphs,
+          and the percentage of the index which would be read by (2)
+          for those graphs.  How best make this choice has not been
+          determined yet.
+
+   4. While SPARQL does not provide for this, the last option is to
+      evaluate the query against all graphs allowing [c] to become
+      bound by the graph identifier.  For this case it is illegal if
+      the context position of the source access path is a constant.
+      If the context position is a variable, then the context of the
+      visited statements will be bound to that variable.  Unlike the
+      case for the default graph, the context information is not
+      stripped from the quad and the quads are not filtered for
+      distinct tuples.
+
+(***) FIXME Scale-out joins depend on knowledge of the best access
+      path and the shards which it will traverse.  Review all of the
+      new expanders and make sure that they do not violate this
+      principle. Expanders tend to lazily determine the access path,
+      and I believe that RDFJoinNexus#getTailAccessPath() may even
+      refuse to operate with expanders.  If this is the case, then the
+      choice of the access path needs to be completely coded into the
+      predicate as a combination of binding or clearing the context
+      variable and setting an appropriate constraint (filter).
+
+------------------------------------------------------------
 
    a) Graph merge semantics for the default data set.
 
       x. done. unit tests for DefaultGraphSolutionExpander
 
-         - write unit tests for defaultGraph query vs named graph
-           query and examine the Sesame tupleExprs.
+         - done. write unit tests for defaultGraph query vs named
+           graph query and examine the Sesame tupleExprs.
 
-	 - integrate the DefaultGraphSolutionExpander into
+	 - done. integrate the DefaultGraphSolutionExpander into
            BigdataEvaluationStrategyImpl.
 
-         - resolve data set and named graph uris (or is this done
-           already?)
+         - done. resolve data set uris to obtain their termIds,
+	   returning a new data set.
 
-	 - apply iff dataset != null and parent is not a graph clause.
+	   (*) Must check StatementPattern.getScope().  Will be
+	       either: DEFAULT_CONTEXTS or NAMED_CONTEXTS.  When
+	       DEFAULT_CONTEXTS the predicate must have the
+	       DefaultGraphSolutionExpander set.
 
-         - Make sure that we do not break the triple store mode.
+	   (*) i suspect that we may be failing to consider each of
+	       the specified named graphs when the graph variable is
+	       unbound and instead checking ALL graphs.  write a unit
+	       test where checking all graphs would over generate
+	       solutions.
 
-	 - Clear the expander when overriding the context position?
+	   (*) apply iff dataset != null and parent is not a graph
+	       clause.
+
+           (*) Make sure that we do not break the triple store mode or
+	       the provenance mode.
+
+	    - Clear the expander when overriding the context position?
+              What if there is already an expander?  E.g., sameAs.
 
       x. retry the sparql test suite.  see what breaks or is fixed
          with this change.
@@ -618,25 +1118,9 @@ java.lang.IllegalStateException: Different statement identifier already defined:
 
       3. term expansion through word net should not be too difficult.
 
-------------------------------------------------------------
-
-commit log:
-
-- done. decoupled the Sesame CloseableIteration from bigdata-rdf.  The
-  bigdata-rdf package no longer has any references to either
-  CloseableIteration or SailException.
-
-- done. added unit tests for full text indexing of datatype literals.
-  fixed unit tests for full text indexing of plain literals.
-
 ============================================================
 
-	  ------------------------------------------------------------
-
 Cluster setup
-
-	- done [I think; used setup action] install JDK1.6.0_16 on all
-          hosts.
 	
 	- use compressed pointers on WinXP64?  try 32-bit dpp server.
 
@@ -700,12 +1184,615 @@ Remote profiling:
 	  Startup options:
 	  http://www.yourkit.com/docs/80/help/additional_agent_options.jsp
 
+	  To remove license key, delete the %USER_HOME%\.yjp
+	  directory.
 
-	  ------------------------------------------------------------
+	  To re-install profiler, you need:
+
+	  1) Run installer
+
+	  2) Run YourKit Java Profiler from Windows start menu
+
+	  3) Accept license terms
+
+	  4) Enter license key when profiler asks for it
+
+----------------------------------------
+Data load and query performance tuning for scale-up and scale-out:
+
+  - Sail
+
+    - RepositoryConnection#size() is mapped to an exact range count by
+      the SAIL semantics.  For an index which does not support delete
+      markers, the AbstractAccessPath MUST map that onto rangeCount(),
+      which is both fast and exact.  With the introduction of
+      transaction support into the SAIL, we need to map this behavior
+      by default onto the fast range count, which will report the
+      upper bound of the statement count.  There needs to be a
+      configuration option which defaults to [false] for exact range
+      counts.  It should get overriden by the unit tests for API
+      compliance.  
+
+      Add top-level exactSize(...)  method which can be relied on to
+      do the necessary work.
+
+    - Limited parallel evaluation in the BigdataSail in conjunction
+      with performance evaluation.  The code in the SAIL and in the
+      DefaultGraphSolutionExpander and NamedGraphSolutionExpander
+      should all use a new helper class for feeding in a set of N
+      concurrent tasks to an unbounded thread pool.
+
+    - BigdataSailConnection#getAssertionBuffer() appears to be a hot
+      spot when driven by RepositoryConnection#add(reader).  This is
+      because getAssertionBuffer() is synchronized.  Change the code
+      to use double-checked locking with volatile.  However, note that
+      it is faster to add statements directly to the StatementBuffer
+      and avoid this nonsense.
+
+    - Sail query bug fixes: magic predicate for search, SingletonSet,
+      LeftJoin, nested subgraphs, Sundar's reported bugs against the
+      trunk.
+
+    - Blank nodes in the sail must be scoped to the connection.  The
+      change should drive the forward and reverse blank node maps
+      inside of the value factory implementation class.  The
+      BigdataStatementIterator, the equivalent class for binding set
+      value materialization, and the BigdataConstructIterator all need
+      to be updated to reflect this change.  This will also touch the
+      StatementBuffer class and (maybe) the asynchronous version of
+      that class.
+
+    - Write ant installer for SAIL to simpify setup w/ Sesame and
+      guidence on the wiki for using that installer.
+
+    - Look at Sesame configuration harness and consider ways in which
+      we could provide hooks to better support that harness in our
+      SAIL.
+
+    - Make it easier to select triple, quad, or provenance mode,
+      explain why you want each one, and make sure that these changes
+      do not break the unit tests.
+
+    - Native UNIONs.
+
+    - BigdataEvaluationStatisticsImpl: if a StatementPattern is to
+      read against the default graph and that is an RDF merge of
+      pre-defined contexts then we need to use the union of the range
+      counts for those contexts.  Pretty much the same issue applies
+      for named graphs when there is more than one named graph.
+
+  - Features which effect everything:
+
+    - Term identifier encoding: move the two bits which encode the
+      type of the term into the high two bits of the 64-bit
+      identifier.  This will partition the data naturally by the type
+      of the value.  It will also make it possible to scan all
+      literals using a key-range scan on the reverse index. This is a
+      good thing to do when we enable record level compression since
+      that will also break stuff.
+
+    - LRUNexus
+
+       - try 10%, 20%, ... 50%?  How does this effect load, query, and
+         GC costs for standalone and cluster modes?
+
+       - The "recycler" version appears to have ~10% lower throughput.
+         However, the non-recycler version needs to be tested more
+         throughly on the cluster and may drive issues with over
+         extended journals due to the higher throughput and
+         potentially with GC depending on how long the Entry objects
+         stay on the LRU and whether they are promoted to the tenured
+         generation.
+
+       - The non-recycler version is still broken.  I don't see the
+         real root cause exception.  However, the problem lies
+         somewhere in non-safe assumptions made by the
+         HardReferenceGlobalLRU class.
+
+Caused by: java.lang.RuntimeException: De-serialization problem: addr={nbytes=9324,offset=898981,region=BASE} from store=/var/bigdata/benchmark/DataServer/logicalService0000000014/a6cf1f1e-c997-4d07-b22a-0377bd312232/segments/U8000_spo_SPO/e838cea5-6985-4800-b188-0a8bf3185b53/U8000_spo_SPO_part00054_6176749338486698258.seg : cause=java.lang.NullPointerException
+        at com.bigdata.btree.AbstractBTree.readNodeOrLeaf(AbstractBTree.java:3497)
+        at com.bigdata.btree.IndexSegment.readNodeOrLeaf(IndexSegment.java:553)
+        at com.bigdata.btree.Node._getChild(Node.java:2558)
+        at com.bigdata.btree.Node.getChild(Node.java:2511)
+        at com.bigdata.btree.Node.lookup(Node.java:892)
+        at com.bigdata.btree.Node.lookup(Node.java:894)
+        at com.bigdata.btree.AbstractBTree.lookup(AbstractBTree.java:1936)
+        at com.bigdata.btree.view.FusedView.lookup(FusedView.java:789)
+        at com.bigdata.btree.view.FusedView.lookup(FusedView.java:761)
+        at com.bigdata.btree.view.FusedView.lookup(FusedView.java:709)
+        at com.bigdata.rdf.spo.SPOIndexWriteProc.apply(SPOIndexWriteProc.java:202)
+        at com.bigdata.journal.IndexProcedureTask.doTask(IndexProcedureTask.java:56)
+        at com.bigdata.journal.AbstractTask$InnerWriteServiceCallable.call(AbstractTask.java:2037)
+        at com.bigdata.journal.AbstractTask.doUnisolatedReadWriteTask(AbstractTask.java:1798)
+        at com.bigdata.journal.AbstractTask.call2(AbstractTask.java:1725)
+        at com.bigdata.journal.AbstractTask.call(AbstractTask.java:1591)
+        at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)
+        at java.util.concurrent.FutureTask.run(FutureTask.java:138)
+
+
+    - Record level compression to support very large journals
+      (immortal store users).  How does this effect load and query
+      costs for standalone and cluster modes?
+
+    - Carrying the min/max tuple revision timestamp per child in the
+      B+Tree nodes.
+
+    - test various GC modes for load, closure and query: Parallel old
+      gen, G1, CMS-I
+
+  - Bulk data loader:
+
+     - Refactor the bulk data load logic to buffer on a per-target LDS
+       instance basis, sending the multiplex writes to the DS.  This
+       will reduce the thread count on the client and help us to
+       manage the memory burden, which will be constant for a given
+       cluster size (#of LDS).  The DS will have to accept the data,
+       split it out by index partition, and be handle stale locators
+       on the behalf of the client.  The client will need to know if
+       the operation was eventually successful, which could be a
+       notice at the job level or the tx level.  This approach is also
+       ammenable to bulk transactions since the DS can keep the write
+       sets with the index partitions on which they would write.
+
+  - FindBugs
+
+     - FusedView : 2 dead store bugs, failing to constrain the range
+       of data for the procedure in submit(byte[] fromKey, byte[]
+       toKey, final IKeyRangeIndexProcedure proc, final IResultHandler
+       handler).
+
+     - KVO : equals not consistent with compareTo(); hashCode not
+       implemented.
+
+     - counters.SampleIterator : errors with another look.
+
+     - hashCode() can return negative and Math.abs() can be negative.
+       index pipeline.
+
+     - All Externalizable classes MUST also define the
+       serialVersionUID to avoid class version problems.  eclipse is
+       not catching this one for us.  You can discover the previously
+       used serialVersionUID using serialver -show from the command
+       line.  You have to have the whole classpath setup correctly and
+       the -show argument will create a small GUI window.  You input
+       the class name and it will tell you the serialVersionUID for
+       that class revision.  If nothing substantive has changed, then
+       you can use that serialVersionUID in the class and you will be
+       able to read/write the class again.  Otherwise the problem is
+       more complex, but I believe that it can be addressed with
+       readObject().
+
+  - Threading
+
+     - http://jcip.net/ Java Concurrency in Practice.
+
+     - Reconcile the MappedTaskExecutor (more recent, limited
+       parallelism), the ClientIndexView (maps tasks internally), the
+       rule execution (maps tasks internally), the ExecutionHelper
+       (used for subquery joins), and the AbstractHaltableProcess
+       (used for the index pipeline package), the BigdataSail, and the
+       DefaultGraphAccessPath and the NamedGraphAccessPath.  The
+       "haltable" concept is also present in the subquery joins and (I
+       hope) in the pipeline joins.
+       
+     - Use an ExecutorCompletionService to incrementally feed in new
+       tasks as old tasks complete and thus maintain a steady workload
+       of N concurrent tasks on behalf of the caller using a flyweight
+       mechanism.
+
+     - Can also use a latch to gate the #of concurrent tasks submitted
+       by a LimitedExecutorService.
+
+     - Joins should be a standing DS process with (join UUID, int
+       orderIndex, partitionId, bindingSet[] chunk).  We need to pass
+       in more information when setting up a join dimension (rule,
+       buffer).  A limited pool of threads will do blocking takes on
+       chunks, handing off appropriate binding set tasks.
+
+  - Scale-out query and closure
+
+    - CONSTRUCT using head of the rule (requires multiple heads).
+
+    - Chunked iterators for expanders? (quad store query).
+
+    - Proper offset handling and halt on limit and drill through to
+      Sail.
+
+    - Do we need the synchronous iterator anymore?  Can't we just wrap
+      a striterator over the rangeIterator to handle slice and filter?
+      The UnisolatedReadWriteIndex will handle single-theading and the
+      B+Tree iterators now support interleaved mutation, right? At
+      least, the CURSOR versions do.  Is double-buffering costing us
+      performance?
+
+    - LTS has lots of ResultSets for named graph and default graph
+      query due to the use of the UnisolatedReadWriteIndex class.
+
+    - cache at least 2 located relations for TM (closure).
+
+    - Examine call graph for multiple getTailAccessPath() calls for
+      the same query evaluation.  This is a hot spot.  Either pass the
+      tail through rather than re-acquiring the tail or cache the
+      tail.  One of the big costs is rangeCount.  If we do not cache
+      the tail, the we can not caching the range count so we can wind
+      up evaluating the range count multiple times, which could imply
+      multiple RMIs.
+
+    - Figure out which host/DS instances are handling a specific
+      moderate complexity query and put the profiler on that ds,
+      running many presentations of that query.
+
+       - blade12, port 10002; some on blade11:10002 and blade3:10002;
+      
+       - why does process size on blade14 grow during query?
+
+       - i see a LOT of threads during query execution.
+
+       - most of the cost appears to be network IO.
+
+    - (*) Nice boost due to PARALLEL flag for LUBM Q6 and Q14 (4x
+	  faster).
+
+    - Compare chunkSize=100 vs 1000 on lubm closure and queries.
+
+	- big improvement on Q2, Q9.  look at the rule execution for
+          both and figure out why.
+
+	- put performance analyzer on all of those with sampling and
+          figure out what is the hot spot.
+
+	  does worse on Q6, Q14 - why?  for Q6, Q14 it seems that we
+          do not have enough concurrency since there is substantial IO
+          Wait and a 2nd pass does better with less IO Wait and more
+          CPU utilization.  However, I do not know which indices are
+          taking the most time -- examine the delta in the aggregated
+          index counters across Q6 or Q14.
+
+	- report counters for BigdataStatementIteratorImpl showing
+          time for chunk arrival vs time for resolving identifiers to
+          terms.
+
+    - Compare different values for the index segment branching factor.
+
+    - Try:
+
+       - A: LRU=20% (was 10%); chunkCapacity=1000; buildCaches=true;
+         ism=64 (was 512); poor performance: peak 245ktps at 27m.
+
+       - B: LRU=20% (was 10%); chunkCapacity=1000; buildCaches=false;
+         ism=512 (was 512); good performance: 250ktps by 16m; 310ktps
+         by 30m.  Actually accelerating again after the first round of
+         index partition splits is running at 310ktps by the end of
+         the data load operation.  274993 total tps.
+
+       - C: LRU=20% (was 10%); chunkCapacity=1000; buildCaches=true;
+         ism=512 (was 512); explicit cache delete is NOT required.
+         good performance.
+
+       - D: LRU=20% (was 10%); chunkCapacity=1000; buildCaches=false;
+         ism=512 (was 512); explicit cache delete required=true, so
+         should not give away cache at overflow or after load and
+         before closure.  250ktps by 15m.  good performance.  run
+         halted during closure.
+
+       - E: LRU=20% (was 10%); chunkCapacity=1000; buildCaches=true
+         plus caches the bloom filter and the index metadata; ism=512
+         (was 512); explicit cache delete required=true, so should not
+         give away cache at overflow or after load and before
+         closure. 250ktps by 15m. MUCH more data on disk is being
+         buffered.  Oveflow processing after load DOES NOT cause the
+         buffered bytes on disk to plummet.
+
+	 This appears to smooth out performance, even if performance
+         is slightly lower, and definately causes more data on disk to
+         be buffered; performance dips during the first split, which
+         is correlated to a spike in journal read time, which was
+         basically flat up to then; performance begins to climb again
+         after that reaching 310ktps by the end of the load;
+
+	 A concurrent approximate LRU would help tremendously.
+
+	 This must also be tested on much larger sustained data loads
+         to ensure that no problem results.
+
+	 Note: LRUNexus was to report bytes on disk for records
+	       buffered for an IndexSegmentStore unless they were
+	       explicitly placed into the cache by the
+	       IndexSegmentBuilder.
+
+       - F: LRU=20% (was 10%); chunkCapacity=1000; buildCaches=true
+         plus caches the bloom filter and the index metadata; ism=512
+         (was 512); explicit cache delete required=true, 1%
+         eviction. 250ktps by 11m. 300ktps by 20m.  runs at 310ktps
+         until the first split then climbs back up and is running at
+         320ktps by the end of U8000!
+
+	 Query appears somewhat slower here than in the same
+	 federation after a restart.  Presumably the difference is all
+	 the other stuff in the JVM heap.  Maybe forcing a full GC
+	 would fix that.
+
+	 FIXME Examine the ConcurrentLinkedList and see if we can make
+	       this work in an IGlobalLRU implementation with outer
+	       and inner ConcurrentHashMaps.
+
+	 FIXME What is the difference between the recycler and
+	       non-recycler version?  Why is the non-recycler failing?
+	       We should be able to work without recycling and
+	       recycling makes no sense if we are evicting 1% of the
+	       entries since only one entry out of N is being
+	       recycled.
+
+         FIXME Cache metadata record and bloom filter for BTree also
+	       (this will avoid deserialization hits and disk hits)
+	       and write unit tests.
+
+	 (**) For some reason, I was not able to start any services
+	      with the profiler attached.
+
+	 (**) Do another large run using 14 DS blades and the
+	      incremental generator.  I really need to schedule
+	      overflow to avoid journal overextension if possible.
+	      Can I get that done before the conference?  Maybe, if I
+	      use the limited executor pattern, extend that pattern to
+	      include a time limit after which new builds are not
+	      started, and compute a priority across the shards on a
+	      DS.  Otherwise, on to EC2 and TTI.
+
+    - Reengineer the pipeline join execution.
+
+      - (**) Map the execution on paper and rethink.  The pipeline
+	     joins as written are just not driving the federation hard
+	     for most queries.  Only Q2 and Q9 are able to drive it
+	     hard.  What is different about those queries?
+
+	     [**** GET THE RULES LOG ****]
+
+	     The last in the log is Q9. Q2 is currently running.  The
+	     previous entries are in the order given by the worksheet.
+	     
+	     Extract them all onto a worksheet from tmp.tgz.
+
+	     THEN RUN U8000 again with the new LRU reporting and 1%
+	          evictions and see what it looks like.  Also, look at
+	          the cache churn during query (bytes evicted).
+
+		  Several graphs are not covering all DS instances....
+
+    - Look at MDS requests.  Are things being well cached?  This can
+      be examined from the call graph, from the MDS counters, and from
+      the client rsync index counters.
+
+    - Does ITupleIterator need to implement ICloseableIterator for
+      scale-out?  Otherwise we are forced to use finalizers to close
+      the partitioned range iterators, right?
+
+       - (*) Is the join task progressing when the
+	     UnsyncDistributedOutputBuffer overflows or does it halt
+	     and wait for the output binding sets to be distributed
+	     across the target join dimension tasks?  If the latter,
+	     then we should run a separate thread which drains a queue
+	     of chunks to be distributed and passes them out
+	     asynchronously.
+
+    - Query performance will of course depends on how the data are
+      distributed.  That info is in the detailed rule log.
+
+    - Index segment branching factor could be a big deal for some
+      queries.
+
+    - Pull up the graph restriction into the rule and generate the
+      union of a set of rules.  each rule will run against one of the
+      source graphs for the named or default graph.  For the default
+      graph, the AP still needs to strip context and filter for
+      distinct.  We can then run the set of rules with limited
+      parallelism.  This will work for scale-out.  Will it also do
+      better for nested subquery?
+
+    - Cache fast and exact historical range counts for SPOAccessPath
+      and all of the new expander access paths.
+
+    - Parallel iterator impl, unit tests, and apply in closure.
+      handle both read-historical and unisolated cases
+      (redirects). use a pool of N threads, each of which uses a
+      partitioned iterator over 1/Nth of the spanned partitions.  the
+      partitioned iterator will handle redirects.  The merge of the
+      iterators is what the client sees.  No duplicate elimination is
+      required.  turn on this flag for all high-level query.
+
+  - Data load:
+
+    - Modify the AsynchronousStatementBufferFactory to support LTS and
+      LDS modes and get rid of the CDL users.
+
+    - trying m=48 @ writeQ=20000.  Suspect jumps in blocksIn are
+      increasing BTree depth.  This should help (m=48, was 32), but it
+      will cause the size on disk to increase faster.  The large
+      writeQ will compensate for that somewhat, but record level
+      compression would help here.
+
+	- run5 replaced use of full SPOC scan with fast range count
+	  for statements.
+
+	- run6 increased to 20% for LRU.
+
+    - Add insertIfAbsent() to reduce key search time since that is the
+      most common pattern.  However, the SPOWriteProc is a litte more
+      complex than that so this may not be a great benefit for RDF.
+
+    - Try making AbstractBTree#touch() synchronized iff the btree is
+      read-only or otherwise rethink the use of synchronized here.
+      This appears to be a hot spot (36% of the time for when loading
+      quads based on sampling!)
+
+    - SPOKeyOrder's general purpose comparator is 7% of all time.
+      Consider optimizations or per key order implementations.
+
+----------------------------------------
+
+    - MappedRDFDataLoader
+
+      - Should not be required to turn off DataLoader closure, but we
+        are because it is used to load the ontology.
+
+      - Does a lot of point operations during KB create (for axioms I
+        believe).
+
+      - Resources were not being inserted into the pending set for the
+        master so the success/fail notices could not have been of any
+        use. [the pending set is still not being tested by anything
+        and the performance counters appear to be reporting zeros].
+
+      - Errors in reporting success/failure to the master should
+        terminate the job.  That could be done by the master or the
+        client could terminate itself.  This is a robustness issue.
+
+      - The BigdataMap/Set implemenations are not yet supported for
+        the master/sink.  The issue is the consistent conversion of
+        the File, URL, etc. resource objects into an object which can
+        be coded by the BigdataMap, which uses the default KeyBuilder
+        and TupleSerializer.
+
+      - There need to be unit tests for the pending set master/sink.
+
+    - RDFDataLoadMaster.sh w/ U8000 configured.
+
+    - http://localhost:8080/?report=events&eventOrderBy=majorEventType&eventOrderBy=hostname&events.majorEventType=Move|Split
+
+    - scp -P 8001 root@localhost/opt2/bigdata/benchmark/U8000-indexDumps/indexDump-MINUTES-t120.txt .
+
+
+
+BTREE_BUFFER_BRANCH/cluster16/run6-U8000
+
+    - Sink pending set sizes are all zero (nothing was added to the
+      sink's set....)
+
+    - NPE @ 2009-10-09 10:15:18,480 / AssertionError @ 2009-10-09 10:15:09,269 
+
+      So the AssertionError lead to the NPE.  The AssertionError
+      itself looks a lot like a cache failure.  Try disabling the globalLRU.
+       
+Caused by: java.lang.AssertionError
+        at com.bigdata.btree.Node.lookup(Node.java:871)
+        at com.bigdata.btree.Node.lookup(Node.java:882)
+        at com.bigdata.btree.Node.lookup(Node.java:882)
+        at com.bigdata.btree.AbstractBTree.lookup(AbstractBTree.java:1926)
+        at com.bigdata.btree.view.FusedView.lookup(FusedView.java:789)
+        at com.bigdata.btree.view.FusedView.lookup(FusedView.java:761)
+        at com.bigdata.btree.view.FusedView.lookup(FusedView.java:709)
+        at com.bigdata.rdf.lexicon.Term2IdWriteProc.apply(Term2IdWriteProc.java:337)
+        at com.bigdata.journal.IndexProcedureTask.doTask(IndexProcedureTask.java:56)
+        at com.bigdata.journal.AbstractTask$InnerWriteServiceCallable.call(AbstractTask.java:2037)
+        at com.bigdata.journal.AbstractTask.doUnisolatedReadWriteTask(AbstractTask.java:1798)
+        ... 8 more
+
+BTREE_BUFFER_BRANCH/cluster16/run7-U8000
+
+    - Disabled the LRUNexus.
+
+    - Runs fine, but reports two spurious errors, neither of which is
+      logged on the ERROR log.  This is probably an issue with
+      AbstractPendingSetMaster#removePending() which should be logging
+      the error from didFail().
+
+      INFO [consumeOutput: com.bigdata.service.jini.ClientServer]
+	   com.bigdata.jini.start.proces\
+	   s.ProcessHelper.consumeOutput(ProcessHelper.java:396)
+	   2009-10-09 11:15:09,224 - [Fatal Err\ or]
+	   University7870_18.owl.gz:5416:11: Element type "ub:" must
+	   be followed by either attrib\ ute specifications, ">" or
+	   "/>".
+
+     INFO [consumeOutput: com.bigdata.service.jini.ClientServer]
+          com.bigdata.jini.start.proces\
+          s.ProcessHelper.consumeOutput(ProcessHelper.java:396)
+          2009-10-09 11:17:24,063 - [Fatal Err\ or]
+          University7972_11.owl.gz:5290:84: The value of attribute
+          "rdf:resource" associated wit\ h an element type "null" must
+          not contain the '<' character.
+    
+    Load: tps=293581, ntriples=1068381946, nnew=1068381510, elapsed=3639126ms
+
+    Forcing overflow: now=Fri Oct 09 11:46:30 GMT-05:00 2009
+    Forced overflow: now=Fri Oct 09 11:54:37 GMT-05:00 2009
+
+    - Closure bogs down running rdfs02, which is two unbound and needs
+      to be a parallel iterator.
+
+    - Rule mutation should use the asynchronous write buffers, but to
+      be safer that should be refactored to accumulate the writes on
+      the DS using a low-level socket for transfer.
+
+BTREE_BUFFER_BRANCH/cluster16/run8-U8000
+
+    - Increase the write retention queue to 8000 (was 500) for the next run.
+
+    - LRUNexus is still disabled.
+
+    - Turned off closure until parallel rule iterator is fixed.
+
+    - (***) Do modified async loader which works for LTS and LDS.  The
+            former will be an UnisolatedReadWriteIndex.  The latter
+            will submit a task to drain the buffer onto the index
+            while holding a lock.  Compare performance on workstation
+            and server platforms to standard loader.
+
+	    The async loader may have troubles with very large files.
+	    I believe that it may fully buffer them during the parse
+	    phase.
+
+    - Reported the same two errors during load and then also this one:
+
+
+BTREE_BUFFER_BRANCH/cluster16/run9-U8000
+
+	-agentlib:yjpagent=disableexceptiontelemetry,disablestacktelemetry
+
+        "-Dcom.bigdata.LRUNexus.enabled=false",
+        bigdata.profilerAgent
+
+	writeRetentionQueue=20000
+
+	closure is on.
+
+	profiler is on, but all reporting is off by default.  the
+	purpose of this run is to obtain a U8000 data set instance for
+	query performance tuning with an attached profiler.  also grab
+	some numbers for concurrent query on the light weight LUBM
+	queries.
+
+	Note: index segment branching factors are overridden for
+	various indices.  This could have a lot of effect on query
+	performance.
+
+	Note: correct closure and query performance will depend on
+	replacing the bad gzip files: University7870_18.owl.gz and
+	University7972_11.owl.gz
+
+    ----------------------------------------
+
 Other:
+
+- Review the initialExtent/maximumExtent journal configuration
+  parameters.  Is there any reason to have the maximumExtent parameter
+  except for scale-out, and even then this is really a parameter for
+  the OverflowManager, not the ManagedJournal.
 
 - Examine opportunities for "rack aware" selection of the CS or DS
   when integrating with HDFS.
+
+- TemporaryStoreFactory: (1) Reconsider the inner journal classes on
+  AbstractTask.  This is a heavy weight mechanism for enforcing
+  isolation for temporary stores. It would be better to have isolation
+  in the locator mechanism itself. This will especially effect
+  scale-out query using temporary stores and will break semantics when
+  the task is isolated by a transaction rather than unisolated.  (2)
+  Write unit tests to verify new temporary stores are assigned when
+  the old ones fill up.
+
+- GlobalRowStoreFactoryHelper - should be shared by temporary stores
+  for a Journal or Federation, right?
 
 -- merge to branch #1 -- 
 
@@ -724,70 +1811,6 @@ Commit message: Merging trunk into branch BTREE_BUFFER_BRANCH [2004]:[2048].
 Goals:
 
 ------------------------------------------------------------
-
-     FIXME Retest on cluster now that the LRU is no longer causing us
-     to run out of memory.  Try a higher BTree branching factor for a
-     faster journal.  Explore more LRU buffering (maxPercent).
-
-     FIXME TestAsynchronousStatementBuffer is broken (the problem is
-     actually with the global LRU not being cleaned on an abort and/or
-     the test case reusing the same store).
-
-          The problem is inconsistent results even on a triple store
-	  when we compare the indices!!!!
-
-     FIXME LDS test suite failures, at least for the RDF store and
-	   perhaps for the core modules as well.  Check EDF also.
-	   Problems are the events file and the LRUNexus.  Perhaps
-	   disable the events journal for the unit tests?
-
-	   Federations (LDS/EDF?) are are not cleaning up after
-	   themselves in the unit tests, at least on test failures.
-
-	   Ah.  Also disable typeperf on Windows for unit
-	   tests. Basically, do not collect OS counters in the unit
-	   tests.  I have 400 typeperf processes running and can not
-	   do anything else.
-
-     FIXME Embedded federation crashes on
-           TestRestartSafe.test_restartSafe and thereafter throws
-           java.nio.channels.OverlappingFileLockException.  I already
-           modified the test harness to destroy the LRUNexus.  I need
-           to look into this!!!
-
-java.lang.IllegalStateException
-	at com.bigdata.service.AbstractFederation.assertOpen(AbstractFederation.java:264)
-	at com.bigdata.service.AbstractScaleOutFederation.getMetadataIndex(AbstractScaleOutFederation.java:229)
-	at com.bigdata.service.ndx.ClientIndexView.submit(ClientIndexView.java:812)
-	at com.bigdata.service.ndx.ClientIndexView.submit(ClientIndexView.java:794)
-	at com.bigdata.sparse.SparseRowStore.delete(SparseRowStore.java:841)
-	at com.bigdata.sparse.SparseRowStore.delete(SparseRowStore.java:779)
-	at com.bigdata.relation.AbstractResource.destroy(AbstractResource.java:668)
-	at com.bigdata.rdf.lexicon.LexiconRelation.destroy(LexiconRelation.java:295)
-	at com.bigdata.rdf.store.AbstractTripleStore.destroy(AbstractTripleStore.java:1113)
-	at com.bigdata.rdf.store.ScaleOutTripleStore.closeAndDelete(ScaleOutTripleStore.java:152)
-	at com.bigdata.rdf.store.TestRestartSafe.test_restartSafe(TestRestartSafe.java:257)
-
-java.nio.channels.OverlappingFileLockException
-	at sun.nio.ch.FileChannelImpl$SharedFileLockTable.checkList(FileChannelImpl.java:1170)
-	at sun.nio.ch.FileChannelImpl$SharedFileLockTable.add(FileChannelImpl.java:1072)
-	at sun.nio.ch.FileChannelImpl.tryLock(FileChannelImpl.java:878)
-	at com.bigdata.journal.FileMetadata.reopenChannel(FileMetadata.java:827)
-	at com.bigdata.journal.FileMetadata.access$0(FileMetadata.java:794)
-	at com.bigdata.journal.FileMetadata$1.reopenChannel(FileMetadata.java:779)
-	at com.bigdata.journal.FileMetadata.<init>(FileMetadata.java:410)
-	at com.bigdata.journal.AbstractJournal.<init>(AbstractJournal.java:953)
-	at com.bigdata.journal.AbstractJournal.<init>(AbstractJournal.java:563)
-	at com.bigdata.journal.Journal.<init>(Journal.java:136)
-	at com.bigdata.service.LoadBalancerService.<init>(LoadBalancerService.java:588)
-	at com.bigdata.service.AbstractEmbeddedLoadBalancerService.<init>(AbstractEmbeddedLoadBalancerService.java:22)
-	at com.bigdata.service.EmbeddedFederation$EmbeddedLoadBalancerServiceImpl.<init>(EmbeddedFederation.java:711)
-	at com.bigdata.service.EmbeddedFederation.<init>(EmbeddedFederation.java:379)
-	at com.bigdata.service.EmbeddedClient.connect(EmbeddedClient.java:102)
-	at com.bigdata.service.EmbeddedClient.connect(EmbeddedClient.java:1)
-	at com.bigdata.rdf.store.TestScaleOutTripleStoreWithEmbeddedFederation.setUp(TestScaleOutTripleStoreWithEmbeddedFederation.java:166)
-
-
 
 Quads:
 
@@ -838,8 +1861,19 @@ Quads:
 
 x. Windows performance tips:
 
-   Bushee?  Set to optimize peformance for programs and programs?  For
-   programs and system cache?
+   1. Set to optimize scheduling for programs (rather than background
+      processes) and memory for programs (rather than the system
+      cache)?
+
+   2. On win64 platforms, the kernal can wind up consuming all
+      available memory for IO heavy applications, resulting in heavy
+      swapping and poor performance.  The links below can help you to
+      understand this issue and include a utility to specify the size
+      of the file system cache.
+
+      http://www.microsoft.com/downloads/details.aspx?FamilyID=e24ade0a-5efe-43c8-b9c3-5d0ecb2f39af&displaylang=en
+      
+      http://blogs.msdn.com/ntdebugging/archive/2009/02/06/microsoft-windows-dynamic-cache-service.aspx
 
 x. TM Bug.
 
@@ -1801,7 +2835,7 @@ thesaurus : 1086012 stmts added in 75.844 secs, rate= 14319, commitLatency=531ms
 alibaba	  : 45655 stmts added in 1.828 secs, rate= 24975, commitLatency=265ms, height=3
 NCIOnc	  : 464841 stmts added in 29.641 secs, rate= 15682, commitLatency=500ms, height=4
 
-quads     : laptop 9/17/09 : 
+quads     : laptop 9/17/09 : ?? is this quads or triples ?? I think it was triples.
 U10	  : 1316700 stmts added in 103.937 secs, rate= 12668, commitLatency=0ms
 U5	  : 645835 stmts added in 45.034 secs, rate= 14341, commitLatency=0ms
 U1	  : 103104 stmts added in 4.955 secs, rate= 20808, commitLatency=0ms
@@ -1810,14 +2844,50 @@ thesaurus : 1086012 stmts added in 72.859 secs, rate= 14905, commitLatency=766ms
 alibaba	  : 45655 stmts added in 1.75 secs, rate= 26088, commitLatency=281ms
 NCIOnc	  : 464841 stmts added in 26.375 secs, rate= 17624, commitLatency=406ms
 
-quads     : laptop 9/XX/09 : 
+triples   : laptop 9/29/09 : m=32, writeQ=500, bufferSize=100977872
+U10	  : 1316700 stmts added in 99.59 secs, rate= 13221, commitLatency=0ms
+U5	  : 645835 stmts added in 39.736 secs, rate= 16253, commitLatency=0ms
+U1	  : 103104 stmts added in 4.329 secs, rate= 23817, commitLatency=0ms
+wordnet	  : 273681 stmts added in 13.734 secs, rate= 19927, commitLatency=469ms
+thesaurus : 1086012 stmts added in 66.453 secs, rate= 16342, commitLatency=329ms
+alibaba	  : 45655 stmts added in 1.656 secs, rate= 27569, commitLatency=188ms
+NCIOnc	  : 464841 stmts added in 25.187 secs, rate= 18455, commitLatency=485ms
+
+triples   : laptop 9/29/09 : m=32, writeQ=500, bufferSize=100977872
+U10	  : 1316700 stmts added in 99.594 secs, rate= 13220, commitLatency=0ms
+U5	  : 645835 stmts added in 39.749 secs, rate= 16247, commitLatency=0ms
+U1	  : 103104 stmts added in 4.39 secs, rate= 23486, commitLatency=0ms
+wordnet	  : 273681 stmts added in 13.531 secs, rate= 20226, commitLatency=406ms
+thesaurus : 1086012 stmts added in 66.812 secs, rate= 16254, commitLatency=375ms
+alibaba	  : 45655 stmts added in 1.75 secs, rate= 26088, commitLatency=188ms
+NCIOnc	  : 464841 stmts added in 25.953 secs, rate= 17910, commitLatency=360ms
+
+triples   : laptop 9/29/09 : m=32, writeQ=8000, bufferSize=100977872
+U10	  : 1316700 stmts added in 66.263 secs, rate= 19870, commitLatency=0ms
+U5	  : 645835 stmts added in 26.578 secs, rate= 24299, commitLatency=0ms
+U1	  : 103104 stmts added in 3.406 secs, rate= 30271, commitLatency=0ms
+wordnet	  : 273681 stmts added in 12.844 secs, rate= 21308, commitLatency=1546ms
+thesaurus : 1086012 stmts added in 70.969 secs, rate= 15302, commitLatency=1609ms
+alibaba	  : 45655 stmts added in 1.547 secs, rate= 29511, commitLatency=516ms
+NCIOnc	  : 464841 stmts added in 26.188 secs, rate= 17750, commitLatency=1375ms
+
+quads	  : laptop 9/29/09 : m=32, writeQ=8000, bufferSize=100977872
+U10	  : 1316700 stmts added in 93.919 secs, rate= 14019, commitLatency=0ms
+U5	  : 645835 stmts added in 35.607 secs, rate= 18137, commitLatency=0ms
+U1	  : 103104 stmts added in 4.062 secs, rate= 25382, commitLatency=0ms
+wordnet	  : 273681 stmts added in 16.515 secs, rate= 16571, commitLatency=3375ms
+thesaurus : 1086012 stmts added in 92.188 secs, rate= 11780, commitLatency=2109ms
+alibaba	  : 45655 stmts added in 1.875 secs, rate= 24349, commitLatency=719ms
+NCIOnc	  : 464841 stmts added in 35.125 secs, rate= 13233, commitLatency=1969ms
+
+xxx
 U10	  : 
-U5	  : 
-U1	  : 
+U5	  :
+U1	  :
 wordnet	  : 
 thesaurus : 
 alibaba	  :
-NCIOnc	  : 
+NCIOnc	  :
 
        **** Cache dialog (move to the write retention queue).
 
@@ -1943,6 +3013,27 @@ NCIOnc	  :
 
 ------------------------------------------------------------
 Query performance tuning:
+
+	    - Review FORCE_SERIAL_EXECUTION, MAX_PARALLEL_SUBQUERIES
+              and their impact on parallel subquery for nexted joins,
+              for pipeline joins, and for parallel access path
+              evaluation (defaultGraphs, namedGraphs, sail).
+
+	    - For scale-out visiting a single access path (no joins)
+              the access path iterators can be paralellized unless a
+              sort is demanded whose order is the same as the natural
+              order of the access path.
+
+	    - For scale-out joins, evaluate all shards in parallel
+              rather than stepping through the shards.  I believe that
+              this change only needs to be made for the initial join
+              dimension.
+
+            - Performance comparisons of the default graph and named
+              graph access pattern implementations and review of the
+              logic to choose the right implementation for the
+              combination of the deployment, the cardinality of the
+              default graph set size, and the scale of the data.
 
 	    - Optimization could reuse a caller's SPOAccessPath
 	      instance, setting only the changed data on the
