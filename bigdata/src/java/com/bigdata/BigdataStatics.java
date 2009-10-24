@@ -31,8 +31,7 @@ import com.bigdata.jini.start.process.ProcessHelper;
 
 /**
  * A class for those few statics that it makes sense to reference from other
- * places. This is also used to indicate the SVN revision of the source code for
- * a build. Trying again and again.
+ * places.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
