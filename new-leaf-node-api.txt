@@ -7,7 +7,7 @@ release:
    - sourceforce news
    - announce where?
 
-
+6
 -- merge to branch #1 -- 
 
 from: THE TRUNK!!!
@@ -21,6 +21,20 @@ to: SAME AS FROM!!!
 Revision: Head
 
 Commit message: Merging trunk into branch BTREE_BUFFER_BRANCH [2004]:[2048].
+
+-- merge to branch #2 -- 
+
+from: THE TRUNK!!!
+
+Revision: 2048 (The first time, use the revision of the branch - the
+	        one where it was created; thereafter, use the last
+	        revision in the previous merge to branch.)
+
+to: SAME AS FROM!!!
+
+Revision: Head
+
+Commit message: Merging trunk into branch BTREE_BUFFER_BRANCH [2048]:[2262]
 
 
 ------------------------------------------------------------
