@@ -7,6 +7,24 @@ release:
    - sourceforce news
    - announce where?
 
+
+-- merge to branch #1 -- 
+
+from: THE TRUNK!!!
+
+Revision: 2004 (The first time, use the revision of the branch - the
+	        one where it was created; thereafter, use the last
+	        revision in the previous merge to branch.)
+
+to: SAME AS FROM!!!
+
+Revision: Head
+
+Commit message: Merging trunk into branch BTREE_BUFFER_BRANCH [2004]:[2048].
+
+
+------------------------------------------------------------
+
 svn switch https://bigdata.svn.sourceforge.net/svnroot/bigdata/trunk .
 
 svn switch https://bigdata.svn.sourceforge.net/svnroot/bigdata/branches/BIGDATA_RDF_DATA_LOADER_BRANCH .
@@ -51,7 +69,7 @@ x. Look at monitors in profiler when tuning query performance.  How
    often are threads blocking: on disk read? on BTree#touch()?  In
    Node#getChild(int) on the node when trying to read its child?
 
-x. Parallel range iterator flag.
+x. done. Parallel range iterator flag.
 
 x. Resolve RDF Values using JOINs.
 
@@ -87,8 +105,6 @@ Index partition splits.
 Full tx support for RDF
 
      - In the BigdataSail?
-
-     - In the OpenAnzo data source.
 
      - Add a Jena integration?  http://openjena.org/ARQ/arq-query-eval.html
 
@@ -188,6 +204,20 @@ HA
        An alternative would be to store the logical DS UUID in the
        data for the logical DS zpath and cache the reverse resolution
        (UUID to LDS).
+
+     - Burst redistribution when adding new services.  To redistribute
+       just the current view all we really have to do is force
+       overflow on each service and the heavily loaded services will
+       redistribute their index partitions.  In fact, we will probably
+       want to execise more control over the relative load and #of
+       moves for this, perhaps even based on centralized computations
+       by a job planning the redistribution and then issuing marching
+       orders to services together with a directive to force overflow
+       processing.  
+
+       Historical data can also be moved using zk for indirection.
+       However, If there is a lot of history then moving that history
+       can take a long time.
 
      - 2-tier distributed MDS.
 
@@ -935,15 +965,6 @@ java.lang.IllegalStateException: Different statement identifier already defined:
 
 Commit list:
 
-==================== anzo ====================
-
-- Support glitter integration, performance optimizations against
-  sample data sets, especially for query, full tx support, and hot
-  backup for the Journal.
-
-- Could run configuration trials for workloads in parallel on a
-  cluster.
-
 ------------------------------------------------------------
 There are several distinct use cases for SPARQL queries which involve
 the default graph or the named graphs of the SPARQL data set.
@@ -1092,8 +1113,7 @@ C) Named graph queries where the graph variable is unbound.
       
       - BigdataValueFactoryImpl needs to have the forward and reverse
         bnode maps so that blank node mappings remain consistent for
-        Sesame.  This will also make it easier for them to be
-        consistent for anzo.
+        Sesame.
 
    c) full text query against a named graph.  I still need to look
       into this. The problem will be in how the magic predicate is
@@ -1202,64 +1222,8 @@ Data load and query performance tuning for scale-up and scale-out:
 
   - Sail
 
-    - RepositoryConnection#size() is mapped to an exact range count by
-      the SAIL semantics.  For an index which does not support delete
-      markers, the AbstractAccessPath MUST map that onto rangeCount(),
-      which is both fast and exact.  With the introduction of
-      transaction support into the SAIL, we need to map this behavior
-      by default onto the fast range count, which will report the
-      upper bound of the statement count.  There needs to be a
-      configuration option which defaults to [false] for exact range
-      counts.  It should get overriden by the unit tests for API
-      compliance.  
-
-      Add top-level exactSize(...)  method which can be relied on to
-      do the necessary work.
-
-    - Limited parallel evaluation in the BigdataSail in conjunction
-      with performance evaluation.  The code in the SAIL and in the
-      DefaultGraphSolutionExpander and NamedGraphSolutionExpander
-      should all use a new helper class for feeding in a set of N
-      concurrent tasks to an unbounded thread pool.
-
-    - BigdataSailConnection#getAssertionBuffer() appears to be a hot
-      spot when driven by RepositoryConnection#add(reader).  This is
-      because getAssertionBuffer() is synchronized.  Change the code
-      to use double-checked locking with volatile.  However, note that
-      it is faster to add statements directly to the StatementBuffer
-      and avoid this nonsense.
-
-    - Sail query bug fixes: magic predicate for search, SingletonSet,
-      LeftJoin, nested subgraphs, Sundar's reported bugs against the
-      trunk.
-
-    - Blank nodes in the sail must be scoped to the connection.  The
-      change should drive the forward and reverse blank node maps
-      inside of the value factory implementation class.  The
-      BigdataStatementIterator, the equivalent class for binding set
-      value materialization, and the BigdataConstructIterator all need
-      to be updated to reflect this change.  This will also touch the
-      StatementBuffer class and (maybe) the asynchronous version of
-      that class.
-
-    - Write ant installer for SAIL to simpify setup w/ Sesame and
-      guidence on the wiki for using that installer.
-
-    - Look at Sesame configuration harness and consider ways in which
-      we could provide hooks to better support that harness in our
-      SAIL.
-
-    - Make it easier to select triple, quad, or provenance mode,
-      explain why you want each one, and make sure that these changes
-      do not break the unit tests.
-
-    - Native UNIONs.
-
-    - BigdataEvaluationStatisticsImpl: if a StatementPattern is to
-      read against the default graph and that is an RDF merge of
-      pre-defined contexts then we need to use the union of the range
-      counts for those contexts.  Pretty much the same issue applies
-      for named graphs when there is more than one named graph.
+    - Sail query bug fixes: SingletonSet, LeftJoin, nested subgraphs,
+      Sundar's reported bugs against the trunk.
 
   - Features which effect everything:
 
@@ -1793,24 +1757,6 @@ Other:
 
 - GlobalRowStoreFactoryHelper - should be shared by temporary stores
   for a Journal or Federation, right?
-
--- merge to branch #1 -- 
-
-from: THE TRUNK!!!
-
-Revision: 2004 (The first time, use the revision of the branch - the
-	        one where it was created; thereafter, use the last
-	        revision in the previous merge to branch.)
-
-to: SAME AS FROM!!!
-
-Revision: Head
-
-Commit message: Merging trunk into branch BTREE_BUFFER_BRANCH [2004]:[2048].
-
-Goals:
-
-------------------------------------------------------------
 
 Quads:
 
