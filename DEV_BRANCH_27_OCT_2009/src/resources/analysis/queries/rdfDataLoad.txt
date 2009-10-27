@@ -1,0 +1,51 @@
+#
+# This file contains a list of URLs of interest when doing a post-mortem
+# investigation.  The file is basically a list of URLs which could be used
+# to demand the corresponding counters from the httpd service.  It can be
+# submitted to a Java class that will extract the necessary performance
+# counters from a directory containing counter set XML files.  This is done
+# relatively efficiently - in a single pass over the XML files.
+#
+# In addition to the normal URL, you will typically want to specify the
+# "file=" URL query parameter to name the output file.  You can also specify
+# the desired MIME type using the "-mimeType=" URL query parameter.
+
+##
+# Throughput (triples per second and toldTriples) for the RDF bulk distributed data load)
+##
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/(toldTriplesRestartSafePerSec)&depth=7&correlated=true&period=Minutes&file=service/cs/toldTriplesRestartSafePerSec
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/(toldTriplesRestartSafeCount)&depth=8&correlated=true&file=service/cs/toldTriplesRestartSafeCount
+
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/(toldTriplesWriteCount)&depth=8&correlated=true&file=service/cs/toldTriplesWriteCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/(documentTIDsWaitingCount)&depth=8&correlated=true&file=service/cs/documentTIDsWaitingCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/(documentTIDsReadyCount)&depth=8&correlated=true&file=service/cs/documentTIDsReadyCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/(documentErrorCount)&depth=8&correlated=true&file=service/cs/documentErrorCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/(documentRestartSafeCount)&depth=8&correlated=true&file=service/cs/documentRestartSafeCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/(documentsParsedCount)&depth=8&correlated=true&file=service/cs/documentsParsedCount
+
+# counters related to pausing the parser pool
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/pause/(outstandingStatementCount)&depth=8&correlated=true&file=service/cs/pause/outstandingStatementCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/pause/(unbufferedStatementCount)&depth=8&correlated=true&file=service/cs/pause/unbufferedStatementCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/pause/(pausedThreadCount)&depth=8&correlated=true&file=service/cs/pause/pausedThreadCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/pause/(poolPausedCount)&depth=8&correlated=true&file=service/cs/pause/poolPausedCount
+
+# services (parser, term2Id writers, other index writers, file deletes)
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/services/parserService%2FAverage+Queue+Length&depth=8&correlated=true&file=service/cs/parserServiceQueueLength
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/services/parserService%2FAverage+Active+Count&depth=8&correlated=true&file=service/cs/parserServiceAverageActiveCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/services/term2IdWriterService%2FAverage+Queue+Length&depth=8&correlated=true&file=service/cs/term2IdWriterServiceQueueLength
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/services/term2IdWriterService%2FAverage+Active+Count&depth=8&correlated=true&file=service/cs/term2IdWriterServiceAverageActiveCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/services/otherWriterService%2FAverage+Queue+Length&depth=8&correlated=true&file=service/cs/otherWriterServiceQueueLength
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/services/otherWriterService%2FAverage+Active+Count&depth=8&correlated=true&file=service/cs/otherWriterServiceAverageActiveCount
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/services/deleteService%2FAverage+Queue+Length&depth=8&correlated=true&file=service/cs/deleteServiceAverageQueueLength
+
+# The workflow latch counters (indicate #of documents in a given workflow state).
+# The 'document' latch is the #of documents that are in process in any of the 
+# workflow states.
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(document)&depth=8&correlated=true&file=service/cs/workflowLatch/document
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(parser)&depth=8&correlated=true&file=service/cs/workflowLatch/parser
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(bufferTerm2Id)&depth=8&correlated=true&file=service/cs/workflowLatch/bufferTerm2Id
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/workflowLatch/(bufferOther)&depth=8&correlated=true&file=service/cs/workflowLatch/bufferOther
+
+# Latches used to guard against premature close of the workflow states.
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/bufferGuard/(guardTerm2Id)&depth=8&correlated=true&file=service/cs/bufferGuard/guardTerm2Id
+http://localhost:8080/?regex=/([^/]*)/.*/U.*/bufferGuard/(guardOther)&depth=8&correlated=true&file=service/cs/bufferGuard/guardOther
