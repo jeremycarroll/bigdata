@@ -413,11 +413,13 @@ public class FileMetadata {
             }
                 
             if (exists && !temporary) {
-    
+
                 /*
                  * The file already exists (but not for temporary files).
+                 * 
+                 * Note: this next line will throw IOException if there is a
+                 * file lock contention.
                  */
-    
                 this.extent = raf.length();
                 
                 this.userExtent = extent - headerSize0;
@@ -579,6 +581,9 @@ public class FileMetadata {
                 case Disk:
                     buffer = null;
                     break;
+                case DiskRW:
+                    buffer = null;
+                    break;
                 default:
                     throw new AssertionError();
                 }
@@ -678,6 +683,7 @@ public class FileMetadata {
                 final long commitRecordAddr = 0L;
                 final long commitRecordIndexAddr = 0L;
                 final UUID uuid = UUID.randomUUID(); // journal's UUID.
+                final StoreTypeEnum stenum = bufferMode == BufferMode.DiskRW ? StoreTypeEnum.RW : StoreTypeEnum.WORM;
                 if(createTime == 0L) {
                     throw new IllegalArgumentException("Create time may not be zero.");
                 }
@@ -685,12 +691,14 @@ public class FileMetadata {
                 this.closeTime = 0L;
                 final IRootBlockView rootBlock0 = new RootBlockView(true, offsetBits,
                         nextOffset, firstCommitTime, lastCommitTime,
-                        commitCounter, commitRecordAddr, commitRecordIndexAddr,
-                        uuid, createTime, closeTime, checker);
+                        commitCounter, commitRecordAddr, commitRecordIndexAddr, uuid, 
+                        0L, 0L, stenum,
+                        createTime, closeTime, checker);
                 final IRootBlockView rootBlock1 = new RootBlockView(false,
                         offsetBits, nextOffset, firstCommitTime,
-                        lastCommitTime, commitCounter, commitRecordAddr,
-                        commitRecordIndexAddr, uuid, createTime, closeTime,
+                        lastCommitTime, commitCounter, commitRecordAddr, commitRecordIndexAddr, uuid,
+                        0L, 0L, stenum,
+                        createTime, closeTime,
                         checker);
                 
                 if(!temporary) {
@@ -737,6 +745,9 @@ public class FileMetadata {
                     buffer = opener.reopenChannel().map(FileChannel.MapMode.READ_WRITE,
                             headerSize0, userExtent);
                     break;
+                case DiskRW:
+                    buffer = null;
+                    break;
                 case Disk:
                     buffer = null;
                     break;
@@ -760,7 +771,7 @@ public class FileMetadata {
     /**
      * Used to re-open the {@link FileChannel} in this class.
      */
-    private final IReopenChannel opener = new IReopenChannel() {
+    private final IReopenChannel<FileChannel> opener = new IReopenChannel<FileChannel>() {
 
         public String toString() {
             

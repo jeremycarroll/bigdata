@@ -65,7 +65,7 @@ abstract public class AbstractEmbeddedBigdataFederationTestCase extends TestCase
         
     }
     
-    IBigdataClient client;
+    protected IBigdataClient client;
 
     /**
      * Data files are placed into a directory named by the test. If the

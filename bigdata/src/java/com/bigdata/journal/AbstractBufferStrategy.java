@@ -50,7 +50,7 @@ import com.bigdata.resources.ResourceManager;
 public abstract class AbstractBufferStrategy extends AbstractRawWormStore implements IBufferStrategy {
     
     /**
-     * Log for btree operations.
+     * Log for buffer operations.
      */
     protected static final Logger log = Logger.getLogger(AbstractBufferStrategy.class);
     
@@ -124,6 +124,12 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
      * Error message used when the store is closed. 
      */
     protected static final String ERR_NOT_OPEN = "Not open";
+
+    /**
+     * Error message used when an operation would write more data than would be
+     * permitted onto a buffer.
+     */
+    protected static final String ERR_BUFFER_OVERRUN = "Would overrun buffer";
     
     /**
      * <code>true</code> iff the {@link IBufferStrategy} is open.
@@ -188,6 +194,15 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
     final public long getMaximumExtent() {
         
         return maximumExtent;
+        
+    }
+    
+    /**
+     * The minimum amount to extend the backing storage when it overflows.
+     */
+    protected long getMinimumExtension() {
+        
+        return Bytes.megabyte * 32;
         
     }
     
@@ -292,7 +307,8 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
 
     final public void destroy() {
         
-        close();
+        if (open)
+            close();
 
         deleteResources();
         
@@ -352,7 +368,7 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
          */
         long newExtent = userExtent
                 + Math.max(needed, Math.max(initialExtent,
-                                Bytes.megabyte * 32));
+                                getMinimumExtension()));
         
         if (newExtent > Integer.MAX_VALUE && bufferMode.isFullyBuffered()) {
 
@@ -590,10 +606,42 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
         
     }
 
+    /*
+     * These are default implementations of methods defined for the R/W store
+     * which are NOPs for the WORM store.
+     */
 
-	@Override
-	public void delete(long addr) {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public void delete(long addr) {
+
+        // NOP for WORM.
+
+    }
+
+    public void commit() {
+
+        // NOP for WORM.
+
+    }
+
+    public long getMetaBitsAddr() {
+
+        // NOP for WORM.
+        return 0;
+    }
+
+    public long getMetaStartAddr() {
+        // NOP for WORM.
+        return 0;
+    }
+
+    public boolean requiresCommit(IRootBlockView block) {
+        return getNextOffset() > block.getNextOffset();
+    }
+
+    public int getMaxRecordSize() {
+        return getAddressManager().getMaxByteCount();
+
+    }
+
 }

@@ -57,7 +57,7 @@ public class AbstractEmbeddedTripleStoreTestCase extends
     /**
      * The triple store under test.
      */
-    ScaleOutTripleStore store;
+    protected ScaleOutTripleStore store;
 
     protected Properties getProperties() {
     

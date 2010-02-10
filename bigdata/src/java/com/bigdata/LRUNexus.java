@@ -49,6 +49,7 @@ import com.bigdata.cache.WeakReferenceGlobalLRU;
 import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.journal.AbstractBufferStrategy;
 import com.bigdata.journal.AbstractJournal;
+import com.bigdata.journal.IBufferStrategy;
 import com.bigdata.journal.TemporaryRawStore;
 import com.bigdata.rawstore.AbstractRawStore;
 import com.bigdata.rawstore.Bytes;
@@ -150,6 +151,9 @@ public class LRUNexus {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
      * @version $Id$
+     * 
+     * @todo Add an option for the concurrencyLevel and drive it through to each
+     *       of the cache implementations.
      */
     public static interface Options {
 
@@ -252,6 +256,31 @@ public class LRUNexus {
         String DEFAULT_INITIAL_CAPACITY = "16";
 
         /**
+         * The limiting cache capacity across all cache instances.
+         * 
+         * @see #DEFAULT_LIMITING_CAPACITY
+         * 
+         * @deprecated At the moment, this option is only understood by the
+         *             {@link BCHMGlobalLRU}. The option may or may not survive
+         *             as that feature is alpha.
+         */
+        String LIMITING_CAPACITY = LRUNexus.class.getName()+".limitingCapacity";
+
+        String DEFAULT_LIMITING_CAPACITY = "" + (2 * Bytes.megabyte);
+
+        /**
+         * The access policy (LIRS, LRU, etc).
+         * 
+         * @see #DEFAULT_ACCESS_POLICY_ENUM
+         * 
+         * @deprecated At the moment, this option is only understood by the
+         * {@link BCHMGlobalLRU}.
+         */
+        String ACCESS_POLICY = LRUNexus.class.getName() + ".accessPolicy";
+        
+        String DEFAULT_ACCESS_POLICY = AccessPolicyEnum.LIRS.toString();
+
+        /**
          * The minimum #of per-{@link IRawStore} cache instances that will be
          * retained by hard references when using an {@link IGlobalLRU} based on
          * a weak value hash map such as {@link WeakReferenceGlobalLRU}. This
@@ -295,6 +324,21 @@ public class LRUNexus {
      * @see Options
      */
     public static final IGlobalLRU<Long, Object> INSTANCE;
+
+    /**
+     * @deprecated This is a trial feature specifically to allow configuration
+     * time selection of the access policy for {@link BCHMGlobalLRU}
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
+     */
+    public static enum AccessPolicyEnum {
+
+        LRU, LIRS;
+        private AccessPolicyEnum() {
+        }
+        
+    }
     
     /**
      * A class which reflects the configuration {@link Option}s.
@@ -344,6 +388,13 @@ public class LRUNexus {
         final int initialCacheCapacity;
 
         /**
+         * The limiting cache capacity across all cache instances.
+         * 
+         * @see Options#LIMITING_CAPACITY
+         */
+        final int limitingCacheCapacity;
+
+        /**
          * The percentage of the JVM heap to use for bigdata buffers.
          * 
          * @see Options#PERCENT_HEAP
@@ -385,6 +436,11 @@ public class LRUNexus {
          */
         final int minCacheSetSize;
         
+        /**
+         * The access policy algorithm (LRU, LIRS, etc).
+         */
+        final AccessPolicyEnum accessPolicy;
+        
         public Settings(final Properties properties) throws ClassNotFoundException {
 
             if (properties == null)
@@ -417,6 +473,13 @@ public class LRUNexus {
                     .getProperty(Options.INITIAL_CAPACITY,
                             Options.DEFAULT_INITIAL_CAPACITY));
 
+            limitingCacheCapacity = Integer.valueOf(System
+                    .getProperty(Options.LIMITING_CAPACITY,
+                            Options.DEFAULT_LIMITING_CAPACITY));
+
+            accessPolicy = AccessPolicyEnum.valueOf(System.getProperty(
+                    Options.ACCESS_POLICY, Options.DEFAULT_ACCESS_POLICY));
+            
             percentHeap = Float.valueOf(System.getProperty(
                     Options.PERCENT_HEAP, Options.DEFAULT_PERCENT_HEAP));
 
@@ -467,31 +530,27 @@ public class LRUNexus {
         }
 
         public String toString() {
-            
+
             return super.toString()
-                    + "{"
-                    + "maxPercent="
-                    + percentHeap//
-                    + ", maxHeap="
-                    + maxHeap
-                    + ", bufferSize="
-                    + maximumBytesInMemory
-                    + ", percentCleared="
-                    + percentCleared
-                    + ", minCleared="
-                    + minCleared
-                    + ", maxMemory="
-                    + Runtime.getRuntime().maxMemory()//
-                    + ", loadFactor=" + loadFactor + ", initialCacheCapacity="
-                    + initialCacheCapacity + ", minCacheSetSize="
-                    + minCacheSetSize + ", cls=" + cls.getName()
-                    + ", indexSegmentBuildPopulatesCache="
-                    + indexSegmentBuildPopulatesCache + "}";
-            
+                    + "{"//
+                    + "maxPercent=" + percentHeap//
+                    + ", maxHeap=" + maxHeap//
+                    + ", bufferSize=" + maximumBytesInMemory//
+                    + ", percentCleared=" + percentCleared//
+                    + ", minCleared=" + minCleared//
+                    + ", maxMemory=" + Runtime.getRuntime().maxMemory()//
+                    + ", loadFactor=" + loadFactor// 
+                    + ", initialCacheCapacity=" + initialCacheCapacity//
+                    + ", limitingCacheCapacity=" + limitingCacheCapacity//
+                    + ", minCacheSetSize=" + minCacheSetSize//
+                    + ", cls=" + cls.getName()//
+                    + ", indexSegmentBuildPopulatesCache=" + indexSegmentBuildPopulatesCache + //
+                    "}";
+
         }
-        
+
     }
-    
+
     /**
      * The configuration in use.
      */
@@ -615,7 +674,8 @@ public class LRUNexus {
 
                         tmp = new BCHMGlobalLRU<Object>(
                                 s.maximumBytesInMemory, s.minCacheSetSize,
-                                s.initialCacheCapacity, s.loadFactor);
+                                s.limitingCacheCapacity, s.loadFactor,
+                                s.accessPolicy);
 
                     } else {
 
@@ -699,7 +759,7 @@ public class LRUNexus {
              * clone of the address manager instead).
              */
             
-            am = ((AbstractBufferStrategy) ((AbstractJournal) store)
+            am = ((IBufferStrategy) ((AbstractJournal) store)
                     .getBufferStrategy()).getAddressManager();
 
         } else if (store instanceof TemporaryRawStore) {

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="bigdata-rdf/src/java"/>
-	<classpathentry kind="src" path="bigdata-bsbm/src/java"/>
 	<classpathentry kind="src" path="bigdata/src/resources/logging"/>
 	<classpathentry kind="src" path="bigdata-sails/src/samples"/>
 	<classpathentry kind="src" path="bigdata-jini/src/test"/>
@@ -14,9 +13,8 @@
 	<classpathentry kind="src" path="bigdata-lubm/src/java"/>
 	<classpathentry kind="src" path="contrib/src/problems"/>
 	<classpathentry kind="src" path="bigdata/src/samples"/>
+	<classpathentry kind="src" path="bigdata-rw/src/test"/>
 	<classpathentry kind="lib" path="bigdata-jini/lib/apache/zookeeper-3.2.1.jar"/>
-	<classpathentry kind="lib" path="bigdata-sails/lib/commons-httpclient.jar"/>
-	<classpathentry kind="lib" path="bigdata-sails/lib/servlet-api.jar"/>
 	<classpathentry kind="src" path="lgpl-utils/src/java"/>
 	<classpathentry kind="src" path="lgpl-utils/src/test"/>
 	<classpathentry exported="true" kind="lib" path="bigdata/lib/icu/icu4j-3_6.jar"/>
@@ -53,11 +51,12 @@
 	<classpathentry exported="true" kind="lib" path="bigdata/lib/unimi/fastutil-5.1.5.jar"/>
 	<classpathentry kind="lib" path="bigdata-sails/lib/sesame-sparql-testsuite-2.2.4.jar"/>
 	<classpathentry kind="lib" path="bigdata-sails/lib/sesame-store-testsuite-2.2.4.jar"/>
-	<classpathentry kind="lib" path="bigdata-bsbm/lib/jdom.jar"/>
-	<classpathentry kind="lib" path="bigdata-bsbm/lib/ssj.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/Eclipse/BD Workspace/bigdata/bigdata/lib/apache/commons-httpclient-3.1.jar"/>
+	<classpathentry kind="lib" path="/Eclipse/BD Workspace/ExtJars/servlet.jar"/>
+	<classpathentry kind="lib" path="bigdata/bigdata/lib/apache/commons-io-1.4.jar"/>
 	<classpathentry kind="lib" path="bigdata/lib/lucene/lucene-analyzers-3.0.0.jar"/>
 	<classpathentry kind="lib" path="bigdata/lib/lucene/lucene-core-3.0.0.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="bigdata/lib/lgpl-utils-1.0-b5-dev-060210.jar"/>
+	<classpathentry kind="lib" path="bigdata/bigdata/lib/lgpl-utils-1.0-b5-dev-121009.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

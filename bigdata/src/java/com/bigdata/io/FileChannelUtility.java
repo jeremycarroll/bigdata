@@ -131,8 +131,8 @@ public class FileChannelUtility {
      *       temporary direct buffers since Java may attempt to allocate a
      *       "temporary" direct buffer if [dst] is not already a direct buffer.
      */
-    static public int readAll(final IReopenChannel opener, final ByteBuffer src,
-                final long pos) throws IOException {
+    static public int readAll(final IReopenChannel<FileChannel> opener,
+            final ByteBuffer src, final long pos) throws IOException {
 
         if (opener == null)
             throw new IllegalArgumentException();
@@ -277,7 +277,7 @@ public class FileChannelUtility {
      * the limit. The position of the channel is not changed by this method.
      * <p>
      * Note: I have seen count != remaining() for a single invocation of
-     * FileChannel#write(). This occured 5 hours into a run with the write cache
+     * FileChannel#write(). This occurred 5 hours into a run with the write cache
      * disabled (so lots of small record writes). All of a sudden, several
      * writes wound up reporting too few bytes written - this persisted until
      * the end of the run (Fedora core 6 with Sun JDK 1.6.0_03). I have since
@@ -365,7 +365,7 @@ public class FileChannelUtility {
      * 
      * @throws IOException
      */
-    static public int writeAll(final IReopenChannel opener,
+    static public int writeAll(final IReopenChannel<FileChannel> opener,
             final ByteBuffer data, final long pos) throws IOException {
 
         final int nbytes = data.remaining();

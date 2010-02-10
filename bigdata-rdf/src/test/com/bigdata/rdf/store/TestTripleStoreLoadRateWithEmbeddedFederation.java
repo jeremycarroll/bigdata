@@ -124,6 +124,7 @@ public class TestTripleStoreLoadRateWithEmbeddedFederation extends
 
         // load the data set.
 //        store.getDataLoader().loadData("../rdf-data/nciOncology.owl", "", RDFFormat.RDFXML);
+    	
         store.getDataLoader().loadData("../rdf-data/Thesaurus.owl", "", RDFFormat.RDFXML);
 
         // compute the database at once closure.
@@ -149,8 +150,9 @@ public class TestTripleStoreLoadRateWithEmbeddedFederation extends
     };
 
     public void test_U1() throws InterruptedException {
-        
-        final File file = new File("../rdf-data/lehigh/U1");
+    	
+        final File file = new File("/Eclipse/BD Workspace/lubm");
+//        final File file = new File("../rdf-data/lehigh/U1");
 //      final File file = new File("../rdf-data/lehigh/U1/University0_0.owl");
       
         RDFLoadAndValidateHelper helper = new RDFLoadAndValidateHelper(client
