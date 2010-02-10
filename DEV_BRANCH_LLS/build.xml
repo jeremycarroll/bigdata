@@ -1,0 +1,1070 @@
+<!-- @todo add dependencies for GOM and add GOM to sources that are compiled, jared, etc. -->
+<!-- @todo trim fastutils using a tool to chase the actual class files that we use. -->
+<!-- @todo change the release target to put release notes into the root of the archives. -->
+<!-- @todo maven2 setup so we can run and publish unit tests results. -->
+<!-- $Id$ -->
+<project name="bigdata" default="jar" basedir=".">
+
+	<property file="build.properties" />
+
+	<!-- build-time classpath. -->
+	<path id="build.classpath">
+		<fileset dir="${bigdata.dir}/bigdata/lib">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset dir="${bigdata.dir}/bigdata-jini/lib">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset dir="${bigdata.dir}/bigdata-rdf/lib">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset dir="${bigdata.dir}/bigdata-sails/lib">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<!-- runtime classpath w/o install. -->
+	<path id="runtime.classpath">
+		<pathelement location="${build.dir}/classes" />
+		<path refid="build.classpath" />
+	</path>
+
+	<!-- classpath as installed. -->
+	<!-- @todo .so and .dll -->
+	<path id="install.classpath">
+		<fileset dir="${install.lib.dir}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="clean" description="cleans everything in [build.dir], but not the releases.">
+		<delete dir="${build.dir}" />
+	</target>
+
+	<target name="prepare">
+		<!-- setup ${version} for regular or snapshot. -->
+		<tstamp>
+			<format property="today" pattern="ddMMyy" locale="en,US" />
+		</tstamp>
+		<condition property="version" value="bigdata-${build.ver}-${today}" else="bigdata-${build.ver}">
+			<istrue value="${snapshot}" />
+		</condition>
+		<!--<echo message="today=${today}"/>-->
+		<echo message="version=${version}" />
+		<!-- create directories. -->
+		<mkdir dir="${build.dir}" />
+		<mkdir dir="${build.dir}/classes" />
+		<mkdir dir="${build.dir}/docs" />
+		<mkdir dir="${build.dir}/lib" />
+	</target>
+
+	<!-- Note: javac error results often if verbose is disabled. -->
+	<!-- I was able to perform a build with 1.6.0_07. -->
+	<!-- I set the target to 1.5 to support deployment on non-1.6 JVMs. -->
+	<target name="compile" depends="prepare">
+		<mkdir dir="${build.dir}" />
+		<javac destdir="${build.dir}/classes" classpathref="build.classpath"
+		 debug="${javac.debug}" debuglevel="${javac.debuglevel}" verbose="${javac.verbose}"
+	     encoding="${javac.encoding}"
+	     	>
+			<!-- note: must also specify -bootclasspath and -extdirs when cross-compiling -->
+			<!-- target="${javac.target}" source="${javac.source}" -->
+			<src path="${bigdata.dir}/lgpl-utils/src/java" />
+			<src path="${bigdata.dir}/bigdata/src/java" />
+			<src path="${bigdata.dir}/bigdata-jini/src/java" />
+			<src path="${bigdata.dir}/bigdata-rdf/src/java" />
+			<src path="${bigdata.dir}/bigdata-sails/src/java" />
+			<src path="${bigdata.dir}/bigdata-rw/src/java" />
+			<!-- Do not include the unit tests @todo conditionally include?
+            <src path="${bigdata.dir}/bigdata/src/test"/>
+            <src path="${bigdata.dir}/bigdata-jini/src/test"/>
+            <src path="${bigdata.dir}/bigdata-rdf/src/test"/>
+            <src path="${bigdata.dir}/bigdata-sails/src/test"/>
+            -->
+			<compilerarg value="-version"/>
+		</javac>
+		<!-- copy resources. -->
+		<copy toDir="${build.dir}/classes">
+			<fileset dir="${bigdata.dir}/bigdata/src/java">
+				<exclude name="**/*.java" />
+				<exclude name="**/package.html" />
+				<exclude name="**/BytesUtil.c" />
+			</fileset>
+			<fileset dir="${bigdata.dir}/bigdata-jini/src/java">
+				<exclude name="**/*.java" />
+				<exclude name="**/package.html" />
+			</fileset>
+			<fileset dir="${bigdata.dir}/bigdata-rdf/src/java">
+				<exclude name="**/*.java" />
+				<exclude name="**/package.html" />
+			</fileset>
+			<fileset dir="${bigdata.dir}/bigdata-sails/src/java">
+				<exclude name="**/*.java" />
+				<exclude name="**/package.html" />
+			</fileset>
+		</copy>
+	</target>
+
+	<!-- Builds the bigdata JAR and bundles it together with all of its dependencies in the ${build.dir}/lib directory. -->
+	<target name="bundleJar" depends="bundle, jar"
+		description="Builds the bigdata JAR and bundles it together with all of its dependencies in the ${build.dir}/lib directory.">
+		<copy file="${build.dir}/${version}.jar" todir="${build.dir}/lib"/>
+		<!--<property name="myclasspath" refid="runtime.classpath" />
+		<echo message="${myclasspath}"/>-->
+	</target>
+
+	<!-- This generates the jar, but does not bundled the dependencies.
+		 See 'bundleJar'. -->
+	<target name="jar" depends="compile" description="Generates the jar (see also bundleJar).">
+		<jar destfile="${build.dir}/${version}.jar">
+			<fileset dir="${build.dir}/classes" />
+			<manifest>
+				<!--<attribute name="Main-Class" value="com/bigdata/rdf/rio/TestRioIntegration"/>-->
+			</manifest>
+		</jar>
+	</target>
+
+	<!-- This generates an osgi bundle jar, and does not bundled the dependencies.
+		 See 'bundleJar'. -->
+	<target name="osgi" depends="compile" description="Generates the osgi bundle jar (see also bundleJar).">
+		<jar destfile="${build.dir}/com.bigdata-${build.ver.osgi}.jar">
+			<fileset dir="${build.dir}/classes"  />
+			<manifest>
+				<attribute name="Bundle-Name" value="com.bigdata"/>
+				<attribute name="Bundle-Vendor" value="Systap"/>
+				<attribute name="Bundle-Version" value="${build.ver.osgi}"/>
+				<attribute name="Bundle-ManifestVersion" value="2"/>
+				<attribute name="Bundle-SymbolicName" value="com.bigdata"/>
+				<attribute name="Bundle-DocURL" value="http://www.bigdata.com"/>
+				<attribute name="Bundle-Description" value="Bigdata API"/>
+				
+				
+				<attribute name="Export-Package" value='
+com.bigdata;version="${build.ver.osgi}",
+com.bigdata.bfs;version="${build.ver.osgi}",
+com.bigdata.btree;version="${build.ver.osgi}",
+com.bigdata.btree.data;version="${build.ver.osgi}",
+com.bigdata.btree.filter;version="${build.ver.osgi}",
+com.bigdata.btree.isolation;version="${build.ver.osgi}",
+com.bigdata.btree.keys;version="${build.ver.osgi}",
+com.bigdata.btree.proc;version="${build.ver.osgi}",
+com.bigdata.btree.raba;version="${build.ver.osgi}",
+com.bigdata.btree.raba.codec;version="${build.ver.osgi}",
+com.bigdata.btree.view;version="${build.ver.osgi}",
+com.bigdata.cache;version="${build.ver.osgi}",
+com.bigdata.concurrent;version="${build.ver.osgi}",
+com.bigdata.config;version="${build.ver.osgi}",
+com.bigdata.counters;version="${build.ver.osgi}",
+com.bigdata.counters.httpd;version="${build.ver.osgi}",
+com.bigdata.counters.linux;version="${build.ver.osgi}",
+com.bigdata.counters.query;version="${build.ver.osgi}",
+com.bigdata.counters.render;version="${build.ver.osgi}",
+com.bigdata.counters.store;version="${build.ver.osgi}",
+com.bigdata.counters.win;version="${build.ver.osgi}",
+com.bigdata.gis;version="${build.ver.osgi}",
+com.bigdata.io;version="${build.ver.osgi}",
+com.bigdata.io.compression;version="${build.ver.osgi}",
+com.bigdata.jini.lookup.entry;version="${build.ver.osgi}",
+com.bigdata.jini.start;version="${build.ver.osgi}",
+com.bigdata.jini.start.config;version="${build.ver.osgi}",
+com.bigdata.jini.start.process;version="${build.ver.osgi}",
+com.bigdata.jini.util;version="${build.ver.osgi}",
+com.bigdata.journal;version="${build.ver.osgi}",
+com.bigdata.mdi;version="${build.ver.osgi}",
+com.bigdata.net;version="${build.ver.osgi}",
+com.bigdata.rawstore;version="${build.ver.osgi}",
+com.bigdata.rdf.axioms;version="${build.ver.osgi}",
+com.bigdata.rdf.inf;version="${build.ver.osgi}",
+com.bigdata.rdf.lexicon;version="${build.ver.osgi}",
+com.bigdata.rdf.load;version="${build.ver.osgi}",
+com.bigdata.rdf.magic;version="${build.ver.osgi}",
+com.bigdata.rdf.model;version="${build.ver.osgi}",
+com.bigdata.rdf.rio;version="${build.ver.osgi}",
+com.bigdata.rdf.rules;version="${build.ver.osgi}",
+com.bigdata.rdf.spo;version="${build.ver.osgi}",
+com.bigdata.rdf.store;version="${build.ver.osgi}",
+com.bigdata.rdf.vocab;version="${build.ver.osgi}",
+com.bigdata.relation;version="${build.ver.osgi}",
+com.bigdata.relation.accesspath;version="${build.ver.osgi}",
+com.bigdata.relation.locator;version="${build.ver.osgi}",
+com.bigdata.relation.rule;version="${build.ver.osgi}",
+com.bigdata.relation.rule.eval;version="${build.ver.osgi}",
+com.bigdata.relation.rule.eval.pipeline;version="${build.ver.osgi}",
+com.bigdata.resources;version="${build.ver.osgi}",
+com.bigdata.search;version="${build.ver.osgi}",
+com.bigdata.service;version="${build.ver.osgi}",
+com.bigdata.service.jini;version="${build.ver.osgi}",
+com.bigdata.service.jini.benchmark;version="${build.ver.osgi}",
+com.bigdata.service.jini.lookup;version="${build.ver.osgi}",
+com.bigdata.service.jini.master;version="${build.ver.osgi}",
+com.bigdata.service.jini.util;version="${build.ver.osgi}",
+com.bigdata.service.mapred;version="${build.ver.osgi}",
+com.bigdata.service.mapred.jini;version="${build.ver.osgi}",
+com.bigdata.service.mapred.jobs;version="${build.ver.osgi}",
+com.bigdata.service.mapred.tasks;version="${build.ver.osgi}",
+com.bigdata.service.ndx;version="${build.ver.osgi}",
+com.bigdata.service.ndx.pipeline;version="${build.ver.osgi}",
+com.bigdata.service.proxy;version="${build.ver.osgi}",
+com.bigdata.sparse;version="${build.ver.osgi}",
+com.bigdata.striterator;version="${build.ver.osgi}",
+com.bigdata.util;version="${build.ver.osgi}",
+com.bigdata.util.concurrent;version="${build.ver.osgi}",
+com.bigdata.util.httpd;version="${build.ver.osgi}",
+com.bigdata.zookeeper;version="${build.ver.osgi}",
+org.apache.system;version="${build.ver.osgi}",
+org.openrdf.rio.rdfxml;version="${build.ver.osgi}"'/>
+				<attribute name="Import-Package" value='
+cern.clhep;version="1.2.0",
+cern.colt;version="1.2",
+cern.colt.bitvector;version="1.2.0",
+cern.colt.function;version="1.2",
+com.bigdata;version="${build.ver.osgi}",
+com.bigdata.bfs;version="${build.ver.osgi}",
+com.bigdata.btree;version="${build.ver.osgi}",
+com.bigdata.btree.data;version="${build.ver.osgi}",
+com.bigdata.btree.filter;version="${build.ver.osgi}",
+com.bigdata.btree.isolation;version="${build.ver.osgi}",
+com.bigdata.btree.keys;version="${build.ver.osgi}",
+com.bigdata.btree.proc;version="${build.ver.osgi}",
+com.bigdata.btree.raba;version="${build.ver.osgi}",
+com.bigdata.btree.raba.codec;version="${build.ver.osgi}",
+com.bigdata.btree.view;version="${build.ver.osgi}",
+com.bigdata.cache;version="${build.ver.osgi}",
+com.bigdata.concurrent;version="${build.ver.osgi}",
+com.bigdata.config;version="${build.ver.osgi}",
+com.bigdata.counters;version="${build.ver.osgi}",
+com.bigdata.counters.httpd;version="${build.ver.osgi}",
+com.bigdata.counters.linux;version="${build.ver.osgi}",
+com.bigdata.counters.query;version="${build.ver.osgi}",
+com.bigdata.counters.render;version="${build.ver.osgi}",
+com.bigdata.counters.store;version="${build.ver.osgi}",
+com.bigdata.counters.win;version="${build.ver.osgi}",
+com.bigdata.gis;version="${build.ver.osgi}",
+com.bigdata.io;version="${build.ver.osgi}",
+com.bigdata.io.compression;version="${build.ver.osgi}",
+com.bigdata.jini.lookup.entry;version="${build.ver.osgi}",
+com.bigdata.jini.start;version="${build.ver.osgi}",
+com.bigdata.jini.start.config;version="${build.ver.osgi}",
+com.bigdata.jini.start.process;version="${build.ver.osgi}",
+com.bigdata.jini.util;version="${build.ver.osgi}",
+com.bigdata.journal;version="${build.ver.osgi}",
+com.bigdata.mdi;version="${build.ver.osgi}",
+com.bigdata.net;version="${build.ver.osgi}",
+com.bigdata.rawstore;version="${build.ver.osgi}",
+com.bigdata.rdf.axioms;version="${build.ver.osgi}",
+com.bigdata.rdf.inf;version="${build.ver.osgi}",
+com.bigdata.rdf.lexicon;version="${build.ver.osgi}",
+com.bigdata.rdf.load;version="${build.ver.osgi}",
+com.bigdata.rdf.magic;version="${build.ver.osgi}",
+com.bigdata.rdf.model;version="${build.ver.osgi}",
+com.bigdata.rdf.rio;version="${build.ver.osgi}",
+com.bigdata.rdf.rules;version="${build.ver.osgi}",
+com.bigdata.rdf.spo;version="${build.ver.osgi}",
+com.bigdata.rdf.store;version="${build.ver.osgi}",
+com.bigdata.rdf.vocab;version="${build.ver.osgi}",
+com.bigdata.relation;version="${build.ver.osgi}",
+com.bigdata.relation.accesspath;version="${build.ver.osgi}",
+com.bigdata.relation.locator;version="${build.ver.osgi}",
+com.bigdata.relation.rule;version="${build.ver.osgi}",
+com.bigdata.relation.rule.eval;version="${build.ver.osgi}",
+com.bigdata.relation.rule.eval.pipeline;version="${build.ver.osgi}",
+com.bigdata.resources;version="${build.ver.osgi}",
+com.bigdata.search;version="${build.ver.osgi}",
+com.bigdata.service;version="${build.ver.osgi}",
+com.bigdata.service.jini;version="${build.ver.osgi}",
+com.bigdata.service.jini.benchmark;version="${build.ver.osgi}",
+com.bigdata.service.jini.lookup;version="${build.ver.osgi}",
+com.bigdata.service.jini.master;version="${build.ver.osgi}",
+com.bigdata.service.jini.util;version="${build.ver.osgi}",
+com.bigdata.service.mapred;version="${build.ver.osgi}",
+com.bigdata.service.mapred.jini;version="${build.ver.osgi}",
+com.bigdata.service.mapred.jobs;version="${build.ver.osgi}",
+com.bigdata.service.mapred.tasks;version="${build.ver.osgi}",
+com.bigdata.service.ndx;version="${build.ver.osgi}",
+com.bigdata.service.ndx.pipeline;version="${build.ver.osgi}",
+com.bigdata.service.proxy;version="${build.ver.osgi}",
+com.bigdata.sparse;version="${build.ver.osgi}",
+com.bigdata.striterator;version="${build.ver.osgi}",
+com.bigdata.util;version="${build.ver.osgi}",
+com.bigdata.util.concurrent;version="${build.ver.osgi}",
+com.bigdata.util.httpd;version="${build.ver.osgi}",
+com.bigdata.zookeeper;version="${build.ver.osgi}",
+com.ibm.icu.text,
+com.ibm.icu.util;version="3.8.1",
+com.sun.jini.admin;version="2.1",
+com.sun.jini.config;version="2.1.0",
+com.sun.jini.resource;version="2.1.0",
+com.sun.jini.start;version="2.1",
+com.sun.jini.tool;version="2.1.0",
+cutthecrap.utils.striterators;version="5.4",
+info.aduna.net,
+info.aduna.xml,
+it.unimi.dsi.bits;version="5.1",
+it.unimi.dsi.compression;version="5.1",
+it.unimi.dsi.fastutil.booleans;version="5.1",
+it.unimi.dsi.fastutil.bytes;version="5.1",
+it.unimi.dsi.fastutil.ints;version="5.1",
+it.unimi.dsi.fastutil.io;version="5.1",
+it.unimi.dsi.fastutil.longs;version="5.1",
+it.unimi.dsi.fastutil.objects;version="5.1",
+it.unimi.dsi.io;version="5.1",
+it.unimi.dsi.util;version="5.1",
+javax.xml.datatype,
+javax.xml.namespace,
+javax.xml.parsers,
+net.jini.admin;version="2.1",
+net.jini.config;version="2.1",
+net.jini.core.discovery;version="2.1",
+net.jini.core.entry;version="2.1",
+net.jini.core.lookup;version="2.1",
+net.jini.discovery;version="2.1",
+net.jini.entry;version="2.1",
+net.jini.export;version="2.1",
+net.jini.io.context;version="2.1",
+net.jini.jeri;version="2.1",
+net.jini.jeri.tcp;version="2.1",
+net.jini.lease;version="2.1",
+net.jini.lookup;version="2.1",
+net.jini.lookup.entry;version="2.1",
+org.CognitiveWeb.extser;version="1.1",
+org.apache.commons.io;version="1.4",
+org.apache.log4j,
+org.apache.lucene.analysis;version="3.0.0",
+org.apache.lucene.analysis.br;version="3.0.0",
+org.apache.lucene.analysis.cjk;version="3.0.0",
+org.apache.lucene.analysis.cn;version="3.0.0",
+org.apache.lucene.analysis.cz;version="3.0.0",
+org.apache.lucene.analysis.de;version="3.0.0",
+org.apache.lucene.analysis.el;version="3.0.0",
+org.apache.lucene.analysis.fr;version="3.0.0",
+org.apache.lucene.analysis.nl;version="3.0.0",
+org.apache.lucene.analysis.ru;version="3.0.0",
+org.apache.lucene.analysis.standard;version="3.0.0",
+org.apache.lucene.analysis.th;version="3.0.0",
+org.apache.lucene.analysis.tokenattributes;version="3.0.0",
+org.apache.lucene.util;version="3.0.0",
+org.apache.system;version="${build.ver.osgi}",
+org.apache.zookeeper;version="3.1",
+org.apache.zookeeper.data;version="3.1",
+org.apache.zookeeper.server;version="3.2.1",
+org.apache.zookeeper.server.quorum;version="3.1",
+org.deri.iris.api;version="0.58",
+org.deri.iris.api.basics;version="0.58",
+org.deri.iris.api.builtins;version="0.58",
+org.deri.iris.api.factory;version="0.58",
+org.deri.iris.api.terms;version="0.58",
+org.deri.iris.basics;version="0.58",
+org.deri.iris.builtins;version="0.58",
+org.deri.iris.optimisations.magicsets;version="0.58",
+org.deri.iris.terms;version="0.58",
+org.openrdf.model;version="2.0",
+org.openrdf.model.datatypes;version="2.0",
+org.openrdf.model.impl;version="2.0",
+org.openrdf.model.util;version="2.0",
+org.openrdf.model.vocabulary;version="2.0",
+org.openrdf.rio;version="2.0",
+org.openrdf.rio.helpers;version="2.0",
+org.openrdf.rio.rdfxml;version="2.0",
+org.openrdf.sail;version="2.0.0",
+org.xml.sax,
+org.xml.sax.helpers,
+sun.misc;resolution:=optional
+				'/>
+			</manifest>
+		</jar>
+	</target>
+	
+	
+	<!-- Note: the javadoc requires a LOT of RAM, but runs quickly on a
+		 server	class machine. 
+		 
+		 @todo man page for [bigdata] script to @{build.dir}/docs
+ 	     
+		 -->
+	<target name="javadoc" depends="prepare" if="javadoc">
+		<mkdir dir="${build.dir}/docs/api" />
+		<javadoc destdir="${build.dir}/docs/api" defaultexcludes="yes" author="true" version="true" use="true" overview="../bigdata/overview.html" windowtitle="bigdata&#174;" classpathref="build.classpath">
+			<arg value="-J-Xmx1000m"/>
+			<packageset dir="${bigdata.dir}/bigdata/src/java" />
+			<packageset dir="${bigdata.dir}/bigdata-jini/src/java" />
+			<packageset dir="${bigdata.dir}/bigdata-rdf/src/java" />
+			<packageset dir="${bigdata.dir}/bigdata-sails/src/java" />
+			<packageset dir="${bigdata.dir}/bigdata-sails/src/samples" />
+			<doctitle>
+				<![CDATA[<h1>bigdata&#174;</h1>]]></doctitle>
+		<bottom>
+			<![CDATA[<i>Copyright &#169; 2006-2009 SYSTAP, LLC. All Rights Reserved.</i>]]></bottom>
+	<tag name="todo" scope="all" description="TODO:" />
+	<tag name="issue" scope="all" description="ISSUE:" />
+	<!--tag name="FIXME" scope="all" description="FIXME:"/-->
+	<link href="http://java.sun.com/j2se/1.5.0/docs/api/" />
+	<link href="http://openrdf.org/doc/sesame/api/" />
+</javadoc>
+</target>
+
+<target name="bundle" description="Bundles all dependencies for easier deployments and releases (does not bundle the bigdata jar).">
+<copy toDir="${build.dir}/lib">
+	<fileset dir="${bigdata.dir}/bigdata/lib">
+		<include name="**/*.jar" />
+		<include name="**/*.so" />
+		<include name="**/*.dll" />
+		<!-- ICU4JNI is not a supported configuration at this time. -->
+		<exclude name="**/icu4jni.jar" />
+		<exclude name="**/icu*.dll" />
+		<exclude name="**/ICU*.dll" />
+		<!-- The BytesUtil JNI class is not recommended at this time (no performance gain). -->
+		<exclude name="**/*BytesUtil*" />
+	</fileset>
+	<fileset dir="${bigdata.dir}/bigdata-jini/lib">
+		<include name="**/*.jar" />
+	</fileset>
+	<fileset dir="${bigdata.dir}/bigdata-rdf/lib">
+		<include name="**/*.jar" />
+	</fileset>
+	<fileset dir="${bigdata.dir}/bigdata-sails/lib">
+		<include name="**/*.jar" />
+	</fileset>
+</copy>
+</target>
+
+<target name="release-prepare" depends="jar, bundle, javadoc" description="create a release.">
+<!-- The source tree. -->
+<copy toDir="${build.dir}/bigdata/src">
+	<fileset dir="${bigdata.dir}/bigdata/src" />
+</copy>
+<copy toDir="${build.dir}/bigdata-jini/src">
+	<fileset dir="${bigdata.dir}/bigdata-jini/src" />
+</copy>
+<copy toDir="${build.dir}/bigdata-rdf/src">
+	<fileset dir="${bigdata.dir}/bigdata-rdf/src" />
+</copy>
+<copy toDir="${build.dir}/bigdata-sails/src">
+	<fileset dir="${bigdata.dir}/bigdata-sails/src" />
+</copy>
+<!-- common files for the root of the archive. -->
+<copy tofile="${build.dir}/build.properties" file="build.properties" />
+<copy tofile="${build.dir}/build.xml" file="build.xml" />
+<copy tofile="${build.dir}/LICENSE.txt" file="LICENSE.txt" />
+<copy tofile="${build.dir}/overview.html" file="overview.html" />
+<copy tofile="${build.dir}/README-JINI" file="README-JINI" />
+<copy toDir="${build.dir}/LEGAL" flatten="true">
+	<fileset dir="${bigdata.dir}">
+		<include name="**/LEGAL/*" />
+	</fileset>
+</copy>
+</target>
+
+<target name="release" depends="release-prepare" description="create source and binary tarballs.">
+<mkdir dir="${release.dir}" />
+<!-- binary distribution. -->
+<tar destfile="${release.dir}/${version}-bin.tgz" compression="gzip">
+	<!-- binary distribution (docs, but no source). -->
+	<tarfileset dir="${build.dir}" prefix="${version}">
+		<!-- common files from the root of the archive. -->
+		<include name="build.properties" />
+		<include name="build.xml" />
+		<include name="LICENSE.txt" />
+		<include name="overview.html" />
+		<include name="README-JINI" />
+		<include name="LEGAL/*" />
+		<!-- src, classes, jar, lib, docs. -->
+		<exclude name="bigdata/src/**" />
+		<exclude name="bigdata-jini/src/**" />
+		<exclude name="bigdata-rdf/src/**" />
+		<exclude name="bigdata-sails/src/**" />
+		<exclude name="classes/**" />
+		<include name="${version}.jar" />
+		<include name="lib/**" />
+		<include name="docs/**" />
+	</tarfileset>
+</tar>
+<!-- source distribution. -->
+<!-- Note: use GNU long file names for paths GT 100 characters. -->
+<tar destfile="${release.dir}/${version}-src.tgz" compression="gzip">
+	<!-- source, but no jar, compiled, docs, etc. -->
+	<tarfileset dir="${build.dir}" prefix="${version}">
+		<!-- common files from the root of the archive. -->
+		<include name="build.properties" />
+		<include name="build.xml" />
+		<include name="LICENSE.txt" />
+		<include name="overview.html" />
+		<include name="README-JINI" />
+		<include name="LEGAL/*" />
+		<!-- src, classes, jar, lib, docs. -->
+		<include name="bigdata/src/**" />
+		<include name="bigdata-jini/src/**" />
+		<include name="bigdata-rdf/src/**" />
+		<include name="bigdata-sails/src/**" />
+		<include name="lgpl-utils/src/**" />
+		<include name="src/**" />
+		<exclude name="classes/**" />
+		<exclude name="${version}.jar" />
+		<exclude name="lib/**" />
+		<exclude name="docs/**" />
+	</tarfileset>
+</tar>
+</target>
+
+<!-- Note: I use a public/private key to do this.  You can uncomment the
+	     ssh.password lines if you are going to authenticate directly.
+	     
+	     Note: If you do not have the public key for frs.sourceforge.net cached
+	     in your SSH repository then this will not work since it requests that
+	     you confirm the public key interactively.
+	     -->
+<target name="upload" depends="release" description="copy release files to server.">
+<input message="username:" addproperty="ssh.username" defaultValue="${ssh.username}" />
+<!-- unless automated by public/private key
+		<input message="password:" addproperty="ssh.password" defaultValue="${ssh.password}"/>
+		-->
+<exec executable="${ssh.scp}">
+	<!-- verbose protocol. -->
+	<arg value="-v" />
+	<!-- compression. -->
+	<arg value="-C" />
+	<!-- pscp specific
+			<arg value="-l"/><arg value="${ssh.username}"/>
+			<arg value="-pw"/><arg value="${ssh.password}"/>
+			-->
+	<!-- from -->
+	<arg value="${release.dir}/${version}-bin.tgz" />
+	<!-- to -->
+	<arg value="${ssh.username}@frs.sourceforge.net:uploads" />
+</exec>
+<exec executable="${ssh.scp}">
+	<!-- verbose protocol. -->
+	<arg value="-v" />
+	<!-- compression. -->
+	<arg value="-C" />
+	<!-- pscp specific
+			<arg value="-l"/><arg value="${ssh.username}"/>
+			<arg value="-pw"/><arg value="${ssh.password}"/>
+			-->
+	<!-- from -->
+	<arg value="${release.dir}/${version}-src.tgz" />
+	<!-- to -->
+	<arg value="${ssh.username}@frs.sourceforge.net:uploads" />
+</exec>
+</target>
+
+<target name="publish-api" depends="javadoc" description="copy javadoc to server.">
+<fail message="Javadoc not generated.">
+	<condition>
+		<not>
+			<available file="${build.dir}/docs/api" type="dir" />
+		</not>
+	</condition>
+</fail>
+<input message="username:" addproperty="ssh.username2" defaultValue="${ssh.username2}" />
+	<!--
+<input message="password:" addproperty="ssh.password2" defaultValue="${ssh.password2}" />
+-->
+<exec executable="${ssh.scp}">
+	<!-- recursive. -->
+	<arg value="-r" />
+	<!-- verbose protocol (too much info, but let's you observe progress during recursive copy). -->
+	<arg value="-v" />
+	<!-- compression. -->
+	<arg value="-C" />
+	<!-- pscp specific.
+	<arg value="-l" />
+	<arg value="${ssh.username2}" />
+	<arg value="-pw" />
+	<arg value="${ssh.password2}" />-->
+	<!-- from -->
+	<arg value="${build.dir}/docs" />
+	<!-- to -->
+	<arg value="${ssh.username2}@shell.speakeasy.net:systap.com/bigdata/" />
+</exec>
+</target>
+
+<target name="banner" depends="jar" description="Displays the banner (verifies runtime classpath).">
+
+	<java classname="com.bigdata.Banner"
+		failonerror="true" fork="false" logerror="true">
+		<classpath refid="runtime.classpath" />
+	</java>
+
+</target>
+			
+<!--
+
+This is the cluster-based install.  You need to edit build.properties, decide
+which configuration is going to be the basis for your cluster, and then edit
+that configuration file.  When you are ready, you can use this target to install
+bigdata onto a cluster.
+
+In order to get things moving you need to setup a cron job that will run the
+'bigdata' script which is installed by this target.  Documentation on how to
+do this is written onto the console after a successfull install.  Those notes
+are in the "POST-INSTALL" file in the source distribution and are also copied
+into the $binDir when bigdata is installed.
+
+Once you have cron setup, and once you have adjusted the owner and group
+properties if you are running bigdata as root, you must edit the $stateFile
+and change the run state from 'status' to 'start'.
+
+If you want to shutdown the bigdata services, change the run state to 'stop'.
+This will halt all services, but they can be restarted by changing the run
+state back to 'start'.
+
+To remove a bigdata installation, first change the run state to 'destroy' and
+wait for all services to halt.  THIS WILL DESTROY ALL PERSISTENT STATE!!!!
+When that is done, you can remove the shared $NAS directory.  The cron job
+will still be trying to run the 'bigdata' script, so either replace it with
+an "NOP" bash script or edit your crontab. 
+-->
+<target name="install" depends="jar, banner, javadoc, bundle" description="Install bigdata on a cluster.">
+<!-- create NAS/LAS directories. -->
+<mkdir dir="${NAS}" />
+<mkdir dir="${LAS}" />
+<!-- NAS/LAS directories must be read/write for the group. -->
+<chmod perm="ug+rw,o-rw">
+	<fileset dir="${NAS}" />
+</chmod>
+<chmod perm="ug+rw,o-rw">
+	<fileset dir="${LAS}" />
+</chmod>
+<!-- create subdirectories of NAS - should inherit permissions. -->
+<mkdir dir="${install.config.dir}" />
+<mkdir dir="${install.doc.dir}" />
+<mkdir dir="${install.lib.dir}" />
+<mkdir dir="${install.bin.dir}" />
+<mkdir dir="${install.log.dir}" />
+<!-- install configuration files. -->
+<copy toDir="${install.config.dir}">
+	<fileset dir="${bigdata.dir}/src/resources/config">
+	</fileset>
+</copy>
+<!-- install documentation. -->
+<copy toDir="${install.doc.dir}">
+	<!-- javadoc. -->
+	<fileset dir="${build.dir}/docs" />
+	<!-- common files from the root of the archive. -->
+	<!-- @todo cleanup LEGAL into one directory off the root in the src tree? -->
+	<fileset dir="${bigdata.dir}">
+		<include name="LICENSE.txt" />
+		<include name="overview.html" />
+		<include name="README-JINI" />
+		<include name="bigdata/LEGAL/*" />
+		<include name="bigdata-jini/LEGAL/*" />
+		<include name="bigdata-rdf/LEGAL/*" />
+		<include name="bigdata-sails/LEGAL/*" />
+	</fileset>
+</copy>
+<!-- install JARs. -->
+<copy toDir="${install.lib.dir}">
+	<fileset dir="${build.dir}/lib" />
+	<fileset file="${build.dir}/${version}.jar" />
+</copy>
+<!-- install scripts. -->
+<copy toDir="${install.bin.dir}">
+	<fileset dir="src/resources/scripts">
+	</fileset>
+</copy>
+<!-- parameter substitution. -->
+<property name="myclasspath" refid="install.classpath" />
+<replace dir="${install.bin.dir}" summary="true">
+	<replacefilter token="@FED@" value="${FED}" />
+	<replacefilter token="@NAS@" value="${NAS}" />
+	<replacefilter token="@LAS@" value="${LAS}" />
+	<replacefilter token="@JAVA_HOME@" value="${JAVA_HOME}" />
+	<replacefilter token="@JINI_CLASS_SERVER_PORT@" value="${JINI_CLASS_SERVER_PORT}" />
+	<replacefilter token="@LOAD_BALANCER_PORT@" value="${LOAD_BALANCER_PORT}" />
+	<replacefilter token="@SYSSTAT_HOME@" value="${SYSSTAT_HOME}" />
+	<replacefilter token="@USE_NIO@" value="${USE_NIO}" />
+	<replacefilter token="@BIN_DIR@" value="${install.bin.dir}" />
+	<replacefilter token="@LIB_DIR@" value="${install.lib.dir}" />
+	<replacefilter token="@LOG_DIR@" value="${install.log.dir}" />
+	<replacefilter token="@CONFIG_DIR@" value="${install.config.dir}" />
+	<replacefilter token="@INSTALL_USER@" value="${install.user}" />
+	<replacefilter token="@INSTALL_GROUP@" value="${install.group}" />
+	<replacefilter token="@LOCK_FILE@" value="${LOCK_FILE}" />
+	<replacefilter token="@BIGDATA_CONFIG@" value="${bigdata.config}" />
+	<replacefilter token="@JINI_CONFIG@" value="${jini.config}" />
+	<replacefilter token="@POLICY_FILE@" value="${policyFile}" />
+	<replacefilter token="@LOG4J_SOCKET_LOGGER_HOST@" value="${LOG4J_SOCKET_LOGGER_HOST}" />
+	<replacefilter token="@LOG4J_SOCKET_LOGGER_PORT@" value="${LOG4J_SOCKET_LOGGER_PORT}" />
+	<replacefilter token="@LOG4J_SOCKET_LOGGER_CONFIG@" value="${log4jServer.config}" />
+	<replacefilter token="@LOG4J_DATE_PATTERN@" value="${LOG4J_DATE_PATTERN}" />
+	<replacefilter token="@LOG4J_CONFIG@" value="${log4j.config}" />
+	<replacefilter token="@LOGGING_CONFIG@" value="${logging.config}" />
+	<replacefilter token="@ERROR_LOG@" value="${errorLog}" />
+	<replacefilter token="@DETAIL_LOG@" value="${detailLog}" />
+	<replacefilter token="@EVENT_LOG@" value="${eventLog}" />
+	<replacefilter token="@RULE_LOG@" value="${ruleLog}" />
+	<replacefilter token="@STATE_LOG@" value="${stateLog}" />
+	<replacefilter token="@STATE_FILE@" value="${stateFile}" />
+	<replacefilter token="@FORCE_KILL_ALL@" value="${forceKillAll}" />
+	<replacefilter token="@NTP_MASTER@" value="${NTP_MASTER}" />
+	<replacefilter token="@NTP_NETWORK@" value="${NTP_NETWORK}" />
+	<replacefilter token="@NTP_NETMASK@" value="${NTP_NETMASK}" />
+	<replacefilter token="@CLASSPATH@" value="${myclasspath}" />
+</replace>
+<replace dir="${install.config.dir}" summary="true">
+	<replacefilter token="@FED@" value="${FED}" />
+	<replacefilter token="@NAS@" value="${NAS}" />
+	<replacefilter token="@LAS@" value="${LAS}" />
+	<replacefilter token="@LOG4J_SOCKET_LOGGER_HOST@" value="${LOG4J_SOCKET_LOGGER_HOST}" />
+	<replacefilter token="@JAVA_HOME@" value="${JAVA_HOME}" />
+	<replacefilter token="@JINI_CLASS_SERVER_PORT@" value="${JINI_CLASS_SERVER_PORT}" />
+	<replacefilter token="@LOAD_BALANCER_PORT@" value="${LOAD_BALANCER_PORT}" />
+	<replacefilter token="@SYSSTAT_HOME@" value="${SYSSTAT_HOME}" />
+	<replacefilter token="@USE_NIO@" value="${USE_NIO}" />
+	<replacefilter token="@BIN_DIR@" value="${install.bin.dir}" />
+	<replacefilter token="@LIB_DIR@" value="${install.lib.dir}" />
+	<replacefilter token="@LOG_DIR@" value="${install.log.dir}" />
+	<replacefilter token="@CONFIG_DIR@" value="${install.config.dir}" />
+	<replacefilter token="@INSTALL_USER@" value="${install.user}" />
+	<replacefilter token="@INSTALL_GROUP@" value="${install.group}" />
+	<replacefilter token="@LOCK_FILE@" value="${LOCK_FILE}" />
+	<replacefilter token="@BIGDATA_CONFIG@" value="${bigdata.config}" />
+	<replacefilter token="@JINI_CONFIG@" value="${jini.config}" />
+	<replacefilter token="@POLICY_FILE@" value="${policyFile}" />
+	<replacefilter token="@LOG4J_SOCKET_LOGGER_HOST@" value="${LOG4J_SOCKET_LOGGER_HOST}" />
+	<replacefilter token="@LOG4J_SOCKET_LOGGER_PORT@" value="${LOG4J_SOCKET_LOGGER_PORT}" />
+	<replacefilter token="@LOG4J_SOCKET_LOGGER_CONFIG@" value="${log4jServer.config}" />
+	<replacefilter token="@LOG4J_DATE_PATTERN@" value="${LOG4J_DATE_PATTERN}" />
+	<replacefilter token="@LOG4J_CONFIG@" value="${log4j.config}" />
+	<replacefilter token="@LOGGING_CONFIG@" value="${logging.config}" />
+	<replacefilter token="@ERROR_LOG@" value="${errorLog}" />
+	<replacefilter token="@DETAIL_LOG@" value="${detailLog}" />
+	<replacefilter token="@EVENT_LOG@" value="${eventLog}" />
+	<replacefilter token="@RULE_LOG@" value="${ruleLog}" />
+	<replacefilter token="@STATE_LOG@" value="${stateLog}" />
+	<replacefilter token="@STATE_FILE@" value="${stateFile}" />
+	<replacefilter token="@FORCE_KILL_ALL@" value="${forceKillAll}" />
+	<replacefilter token="@NTP_MASTER@" value="${NTP_MASTER}" />
+	<replacefilter token="@NTP_NETWORK@" value="${NTP_NETWORK}" />
+	<replacefilter token="@NTP_NETMASK@" value="${NTP_NETMASK}" />
+	<replacefilter token="@CLASSPATH@" value="${myclasspath}" />
+	<!-- updates the configuration file to locate the lubm ontology. -->
+	<replacefilter token="@install.lubm.config.dir@" value="${install.lubm.config.dir}" />
+</replace>
+<!-- fix newlines (otherwise substitutions cause things to break). -->
+<fixcrlf srcDir="${install.config.dir}" />
+<!-- fix newlines (otherwise substitutions cause things to break). -->
+<fixcrlf srcDir="${install.bin.dir}" />
+<!-- set execute bit for scripts in this directory (must be the last step). -->
+<chmod perm="u+x,g+rx,o-rwx">
+	<fileset dir="${install.bin.dir}">
+		<exclude name="README"/>
+		<exclude name="POST-INSTALL"/>
+	</fileset>
+</chmod>
+<!-- Setup the status file which will be read by the bigdata script and
+		     the log on which that script will write its output.  This is used
+		     if cron, or a similar process, will execute the script on a periodic
+		     basis.  The initial state is always 'status'.  The initial stateLog
+		     is always empty.  The state file must be readable by the group, but
+		     could be restricted to write by a specific user. The stateLog must be
+		     read/write for the group. -->
+<echo file="${stateFile}">status</echo>
+<echo file="${stateLog}">
+</echo>
+<chmod perm="g+rw,o-rw" file="${stateFile}" />
+<chmod perm="g+rw,o-rw" file="${stateLog}" />
+<!-- Make sure that the entire shared directory structure is read/write for the group. -->
+<chmod perm="g+rwx" type="both" dir="${NAS}" verbose="true"/>
+<!-- Make sure that it is all accessible to the install group (ant 1.6+ plus extension module required). 
+<chown file="${NAS}" type="both" owner="${install.user}.${install.group}" verbose="true"/>
+-->
+<!-- Works for earlier versions of ant LT 1.6 which do not bundle "chown". -->
+<apply executable="chown" description="set owner on NAS files" osfamily="unix">
+        <arg value="-R"/>
+        <arg value="${install.user}.${install.group}"/>
+        <dirset dir="${NAS}"/>
+</apply>
+<!-- @todo check the installed configuration file (after parameter substitution). -->
+<!-- @todo also check the installed jini configuration files. -->
+<java classname="com.bigdata.jini.util.CheckConfiguration"
+	failonerror="true" fork="true" logerror="true">
+	<classpath refid="install.classpath" />
+	<arg value="${bigdata.config}" />
+</java>
+<loadfile property="postInstallMessage" srcFile="${install.bin.dir}/POST-INSTALL" />
+<echo>
+
+${postInstallMessage}</echo>
+</target>
+
+<!-- This may be used to verify that statistics are being collected for the
+     target platform and diagnose errors related to a missing or incomplete
+     sysstat install or other monitoring dependencies. -->
+<target name="test-monitoring" depends="compile" description="Run the statistics collectors for the deployment platform.">
+	<java classname="com.bigdata.counters.AbstractStatisticsCollector"
+		failonerror="true" fork="true" logerror="true">
+		<classpath refid="install.classpath" />
+		<jvmarg value="-Dcom.bigdata.counters.linux.sysstat.path=${SYSSTAT_HOME}"/>
+		<jvmarg value="-Dcom.bigdata.jmx.log4j.disable=true" />
+		<jvmarg value="-Dlog4j.configuration=file:bigdata/src/resources/logging/log4j.properties"/>
+		<arg value="1" /><!-- interval between reports. -->
+		<arg value="10" /><!-- #of seconds to run. -->
+	</java>
+</target>
+	
+<!-- Note: we must fork the JVM to the jvmarg overrides applied. -->
+<!-- Note: We disable registration of log4j MBeans since that requires policy file. -->
+<!-- @todo add a target to launch the post-mortem counter set/events viewer. -->
+<target name="analysis" depends="bundleJar" description="Extracts performance counters from logged XML files.">
+
+	<java classname="com.bigdata.counters.query.CounterSetQuery"
+		failonerror="true" fork="true" logerror="true">
+		<classpath refid="runtime.classpath" />
+		<jvmarg value="-Xmx1500m" />
+		<jvmarg value="-Dcom.bigdata.jmx.log4j.disable=true" />
+		<jvmarg value="-Dlog4j.configuration=file:bigdata/src/resources/logging/log4j.properties"/>
+		<arg value="-outputDir" />
+		<arg value="${analysis.out.dir}" />
+		<arg value="-mimeType" />
+		<arg value="text/plain" />
+		<arg value="-queries" />
+		<arg file="${analysis.queries}" />
+		<arg file="${analysis.counters.dir}" />
+	</java>
+	
+</target>
+
+<!--                                            -->
+<!-- Targets for the optional LUBM integration. -->
+<!--                                            -->
+	
+<target name="lubm-clean" description="Clean the lubm-integration from the build directory.">
+	<delete dir="${build.dir}/lubm" />
+</target>
+
+<target name="lubm-prepare" description="Clean the lubm-integration from the build directory.">
+	<mkdir dir="${build.dir}/lubm" />
+	<mkdir dir="${build.dir}/lubm/classes" />
+	<mkdir dir="${build.dir}/lubm/lib" />
+</target>
+
+<path id="lubm.build.classpath" description="The lubm build-time classpath (this expects to find the bigdata JAR already installed).">
+	<fileset dir="${install.lib.dir}">
+		<include name="**/*.jar" />
+	</fileset>
+</path>
+
+<!-- And now for something totally weird.  If you compile against the bigdata.jar
+     rather than build.dir/classes then you will see some errors reported in
+     LubmGeneratorMaster.java which otherwise are not reported... -->
+<target name="lubm-compile" depends="lubm-prepare" description="Compile the optional lubm integration.">
+	<javac destdir="${build.dir}/lubm/classes" classpathref="runtime.classpath" 
+	       debug="${javac.debug}" debuglevel="${javac.debuglevel}" verbose="${javac.verbose}"
+		   encoding="${javac.encoding}"
+    	>
+		<!-- note: must also specify -bootclasspath and -extdirs when cross-compiling -->
+		<!-- target="${javac.target}" source="${javac.source}" -->
+		<src path="${bigdata.dir}/bigdata-lubm/src/java" />
+	</javac>
+	<!-- copy resources. -->
+	<copy toDir="${build.dir}/lubm/classes">
+		<fileset dir="${bigdata.dir}/bigdata-lubm/src/java">
+			<exclude name="**/*.java" />
+		</fileset>
+	</copy>
+</target>
+
+<target name="lubm-jar" depends="lubm-compile" description="Generates the JAR containing the optional LUBM integration.">
+	<jar destfile="${build.dir}/lubm/lib/bigdata-lubm.jar">
+		<fileset dir="${build.dir}/lubm/classes" />
+	</jar>
+</target>
+
+<!-- This explicitly enumerates the lubm scripts so we don't run
+	 fixcrlf or set the execute bit on arbitrary files in the 
+	 install directory. -->
+<fileset dir="${install.bin.dir}" id="lubm-scripts" description="The lubm scripts.">
+	<include name="lubmMaster.sh" />
+	<include name="lubmQuery.sh" />
+	<include name="lubmGen.sh" />
+</fileset>
+
+<!-- While this installs the LUBM integration into the same place as the
+     bigdata federation, you do not need to have the LUBM classes or the
+     integration classes installed when you start the bigdata federation.
+     Those classes will be automatically found when you run the lubmMaster
+     script, which exposes them using a ClassServer.  You can use this as
+     a model for how to install and run your own software against a bigdata 
+     federation that is already up and running. -->
+<target name="lubm-install" depends="lubm-jar" description="Install the optional lubm integration which may be used for benchmarking the RDF database.">
+	<mkdir dir="${install.lubm.dir}"/>
+	<mkdir dir="${install.lubm.lib.dir}"/>
+	<mkdir dir="${install.lubm.config.dir}"/>
+ 	<!-- install JAR. -->
+ 	<copy toDir="${install.lubm.lib.dir}" file="${build.dir}/lubm/lib/bigdata-lubm.jar"/>
+	<!-- install ontology, configuration files, and query files. -->
+	<copy toDir="${install.lubm.config.dir}">
+		<fileset dir="bigdata-lubm/resources/config"/>
+	</copy>
+	<!-- install scripts. -->
+	<copy toDir="${install.bin.dir}">
+		<fileset dir="bigdata-lubm/resources/scripts"/>
+	</copy>
+	<!-- replace will only find those @XXX@ parameters which have not yet been
+		 transcribed out by the bigdata ant install. -->
+	<replace dir="${install.bin.dir}" summary="true">
+		<replacefilter token="@NAS@" value="${NAS}" />
+		<replacefilter token="@BIN_DIR@" value="${install.bin.dir}" />
+		<replacefilter token="@BIGDATA_CONFIG@" value="${bigdata.config}" />
+		<replacefilter token="@LUBM_CLASS_SERVER_PORT@" value="${LUBM_CLASS_SERVER_PORT}" />
+		<replacefilter token="@LUBM_CLASS_SERVER_HOSTNAME@" value="${LUBM_CLASS_SERVER_HOSTNAME}" />
+		<replacefilter token="@LUBM_RMI_CODEBASE_URL@" value="${LUBM_RMI_CODEBASE_URL}" />
+		<replacefilter token="@install.lubm.lib.dir@" value="${install.lubm.lib.dir}" />
+		<replacefilter token="@install.lubm.config.dir@" value="${install.lubm.config.dir}" />
+	</replace>
+	<replace dir="${install.lubm.config.dir}" summary="true">
+		<replacefilter token="@NAS@" value="${NAS}" />
+		<replacefilter token="@BIN_DIR@" value="${install.bin.dir}" />
+		<replacefilter token="@BIGDATA_CONFIG@" value="${bigdata.config}" />
+		<replacefilter token="@LUBM_CLASS_SERVER_PORT@" value="${LUBM_CLASS_SERVER_PORT}" />
+		<replacefilter token="@LUBM_CLASS_SERVER_HOSTNAME@" value="${LUBM_CLASS_SERVER_HOSTNAME}" />
+		<replacefilter token="@LUBM_RMI_CODEBASE_URL@" value="${LUBM_RMI_CODEBASE_URL}" />
+		<replacefilter token="@install.lubm.lib.dir@" value="${install.lubm.lib.dir}" />
+		<replacefilter token="@install.lubm.config.dir@" value="${install.lubm.config.dir}" />
+	</replace>
+	<!-- fix newlines (otherwise substitutions cause things to break). -->
+	<fixcrlf srcDir="${install.bin.dir}" >
+		<!-- file set not supported. <fileset refid="scripts" /> -->
+	</fixcrlf>
+	<!-- set execute bit for scripts in this directory (must be the last step). -->
+	<chmod perm="u+x,g+rx,o-rwx">
+		<fileset refid="lubm-scripts" />
+	</chmod>
+	<!-- Make sure that it is all accessible to the install group (ant 1.6+ plus extension module required). 
+	<chown file="${NAS}" type="both" owner="${install.user}.${install.group}" verbose="true"/>
+	-->
+	<!-- Works for earlier versions of ant LT 1.6 which do not bundle "chown". -->
+	<apply executable="chown" description="set owner on NAS files" osfamily="unix">
+	        <arg value="-R"/>
+	        <arg value="${install.user}.${install.group}"/>
+	        <dirset dir="${install.bin.dir}"/>
+	</apply>
+	<apply executable="chown" description="set owner on NAS files" osfamily="unix">
+	        <arg value="-R"/>
+	        <arg value="${install.user}.${install.group}"/>
+	        <dirset dir="${install.lubm.dir}"/>
+	</apply>
+</target>
+
+<!-- lubm runtime classpath w/o install. -->
+<path id="lubm.runtime.classpath">
+	<pathelement location="${build.dir}/lubm/classes"/>
+	<pathelement location="${build.dir}/classes" />
+	<path refid="build.classpath" />
+</path>
+
+<target name="lubm-load" depends="jar, lubm-compile" description="Load data into a configured lubm test harness, typically standalone.">
+
+	<java classname="edu.lehigh.swat.bench.ubt.Test"
+		failonerror="true" fork="true" logerror="true">
+		<classpath refid="lubm.runtime.classpath"/>
+		<jvmarg value="-server" />
+		<jvmarg value="-Xmx1024m" />
+		<jvmarg value="-Dcom.bigdata.jmx.log4j.disable=true" />
+		<jvmarg value="-Dlog4j.configuration=file:bigdata/src/resources/logging/log4j.properties"/>
+		<arg value="load" />
+		<arg value="bigdata-lubm/src/java/edu/lehigh/swat/bench/ubt/bigdata/config.kb.bigdata" />
+	</java>
+	
+</target>
+		
+<target name="lubm-test" depends="jar, lubm-compile" description="Run queries against a configured lubm test harness, typically standalone.">
+
+	<java classname="edu.lehigh.swat.bench.ubt.Test"
+		failonerror="true" fork="true" logerror="true">
+		<classpath refid="lubm.runtime.classpath" />
+		<jvmarg value="-server" />
+		<jvmarg value="-Xmx1024m" />
+		<jvmarg value="-Dcom.bigdata.jmx.log4j.disable=true" />
+		<jvmarg value="-Dlog4j.configuration=file:bigdata/src/resources/logging/log4j.properties"/>
+		<arg value="query" />
+		<arg value="bigdata-lubm/src/java/edu/lehigh/swat/bench/ubt/bigdata/config.kb.bigdata" />
+		<arg value="bigdata-lubm/src/java/edu/lehigh/swat/bench/ubt/bigdata/config.query.sparql" />
+	</java>
+	
+</target>
+		
+<target name="scale-out-sample" description="Run the scale-out sample code.">
+
+		<javac destdir="${build.dir}/classes" classpathref="build.classpath"
+		 debug="${javac.debug}" debuglevel="${javac.debuglevel}" verbose="${javac.verbose}"
+	     encoding="${javac.encoding}"
+	     	>
+			<src path="${bigdata.dir}/bigdata-sails/src/samples" />
+		</javac>
+		<!-- copy resources. -->
+		<copy toDir="${build.dir}/classes">
+			<fileset dir="${bigdata.dir}/bigdata-sails/src/samples">
+				<exclude name="**/*.java" />
+				<exclude name="**/package.html" />
+			</fileset>
+		</copy>
+	<java classname="com.bigdata.samples.ScaleOut"
+		failonerror="true" fork="true" logerror="true">
+		<classpath refid="runtime.classpath" />
+		<jvmarg value="-Xmx1500m" />
+		<jvmarg value="-Dcom.bigdata.jmx.log4j.disable=true" />
+		<jvmarg value="-Dlog4j.configuration=file:bigdata-sails/src/samples/com/bigdata/samples/log4j.properties"/>
+		<arg value="${bigdata.config}" />
+	</java>
+	
+</target>
+
+<target name="DataLoader" depends="compile" description="Loads RDF data into a local KB.  You MUST edit this ant target before running it.">
+	<java classname="com.bigdata.rdf.store.DataLoader"
+          fork="true"
+          failonerror="true"
+		  >
+		<!-- usage: [-namespace namespace] propertyFile (fileOrDir)+ -->
+		<!-- Where:                                                  -->
+		<!-- [-namespace namespace] is the KB namespace (default is 'kb'). -->
+		<!-- propertyFile is a properties file identifying the Journal and
+		     giving various Journal and/or kb configuration properties if one
+		     or the other needs to be created. -->
+		<!-- (fileOrDir)+ is a list of one or more RDF files or directories to
+		     be loaded.  zip and gz extensions are recognized, but only one file
+		     is loaded per archive. -->
+		<arg line="custom.properties fileOrDir"/>
+		<jvmarg value="-server"/>
+		<!-- Specify the maximum Java heap size. -->
+		<jvmarg value="-Xmx10g"/>
+		<!-- optionally enable yourkit profiler. 
+        <jvmarg value="-DLD_LIBRARY_PATH=/nas/install/yjp-8.0.19/bin/linux-x86-64"/>
+        <jvmarg value="-agentpath:/nas/install/yjp-8.0.20/bin/linux-x86-64/libyjpagent.so"/>
+        <jvmarg value="-agentlib:yjpagent=disableexceptiontelemetry,disablestacktelemetry"/>
+        -->
+		<jvmarg value="-XX:+UseParallelOldGC"/>
+		<!-- Optional enable GC trace.
+		<jvmarg line="-XX:+PrintGCDetails -XX:+PrintGCTimeStamps -Xloggc:jvm_gc.log"/>
+		-->
+		<classpath>
+			<path refid="runtime.classpath" />
+        </classpath>
+	</java>
+</target>
+
+<target name="set-properties" depends="compile"
+	 description="Set or change properties for a kb instance. You MUST edit this target to specify the name of the journal.  The new values are read from stdin.">
+    <java classname="com.bigdata.rdf.sail.BigdataSailHelper"
+          fork="true"
+          failonerror="true"
+    	  inputstring="com.bigdata.relation.rule.eval.DefaultRuleTaskFactory.nestedSubquery=false"
+    	>
+<!-- Various things you might want to change:
+
+	  Maximum #of threads for joins.
+  	  inputstring="com.bigdata.relation.rule.eval.ProgramTask.maxParallelSubqueries=5"
+  	  
+  	  Nested subquery vs pipeline joins.
+  	  inputstring="com.bigdata.relation.rule.eval.DefaultRuleTaskFactory.nestedSubquery=true"
+  	  
+-->
+          <arg line="d:/LTS.U50.jnl LTS kb"/>
+          <classpath>
+             <path refid="runtime.classpath" />
+          </classpath>
+    </java>
+</target>
+
+</project>
