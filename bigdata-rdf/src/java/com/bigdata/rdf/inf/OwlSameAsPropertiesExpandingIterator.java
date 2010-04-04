@@ -1,13 +1,15 @@
 package com.bigdata.rdf.inf;
 
 import java.util.Arrays;
+
 import org.apache.log4j.Logger;
+
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.rdf.rules.RuleContextEnum;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
-import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.spo.SPOKeyOrderProvider;
 import com.bigdata.rdf.spo.SPOPredicate;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
@@ -398,7 +400,7 @@ public class OwlSameAsPropertiesExpandingIterator implements
             }
             if (spo != null) {
                 return new ChunkedArrayIterator<ISPO>(1, new SPO[] { spo },
-                        SPOKeyOrder.SPO);
+                		SPOKeyOrderProvider.getKeyOrderProvider(db.getNamespace()).getSubjectFirstKeyOrder(false));
             } else {
                 return null;
             }

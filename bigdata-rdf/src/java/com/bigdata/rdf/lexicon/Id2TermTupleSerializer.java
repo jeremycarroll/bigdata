@@ -61,6 +61,7 @@ import com.bigdata.btree.raba.codec.SimpleRabaCoder;
 import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.model.BigdataValue;
+import com.bigdata.rdf.model.BigdataValueFactoryFactory;
 import com.bigdata.rdf.model.BigdataValueFactoryImpl;
 import com.bigdata.rdf.model.BigdataValueImpl;
 import com.bigdata.rdf.model.BigdataValueSerializer;
@@ -87,7 +88,7 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<Long, Bigdata
      * A (de-)serialized backed by a {@link BigdataValueFactoryImpl} for the
      * {@link #namespace} of the owning {@link LexiconRelation}.
      */
-    transient private BigdataValueSerializer<BigdataValueImpl> valueSer;
+    transient private BigdataValueSerializer<BigdataValue> valueSer;
     
     /**
      * Used to serialize RDF {@link Value}s.
@@ -132,7 +133,7 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<Long, Bigdata
         
         this.namespace = namespace;
 
-        this.valueSer = BigdataValueFactoryImpl.getInstance(namespace)
+        this.valueSer = BigdataValueFactoryFactory.getInstance(namespace)
                 .getValueSerializer();
 
     }
@@ -199,7 +200,7 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<Long, Bigdata
         
         buf.reset();
         
-        return valueSer.serialize((BigdataValueImpl)obj, buf);
+        return valueSer.serialize(obj, buf);
 
     }
 
@@ -226,7 +227,7 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<Long, Bigdata
         
         namespace = in.readUTF();
 
-        valueSer = BigdataValueFactoryImpl.getInstance(namespace).getValueSerializer();
+        valueSer = BigdataValueFactoryFactory.getInstance(namespace).getValueSerializer();
         
     }
     

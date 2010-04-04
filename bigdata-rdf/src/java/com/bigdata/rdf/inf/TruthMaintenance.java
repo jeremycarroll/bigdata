@@ -60,7 +60,7 @@ import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOArrayIterator;
-import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.spo.SPOKeyOrderProvider;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.rdf.store.TempTripleStore;
@@ -247,7 +247,7 @@ public class TruthMaintenance {
          */
 
         final IChunkedOrderedIterator<ISPO> itr = focusStore.getAccessPath(
-                SPOKeyOrder.SPO, ExplicitSPOFilter.INSTANCE).iterator();
+        		SPOKeyOrderProvider.getKeyOrderProvider(database.getNamespace()).getSubjectFirstKeyOrder(false), ExplicitSPOFilter.INSTANCE).iterator();
 
         int nremoved = 0;
         
@@ -615,7 +615,7 @@ public class TruthMaintenance {
 //      final TempTripleStore focusStore = new TempTripleStore(database.getProperties(), database);
         
         // consider each statement in the tempStore.
-        final IChunkedOrderedIterator<ISPO> itr = tempStore.getAccessPath(SPOKeyOrder.SPO).iterator();
+        final IChunkedOrderedIterator<ISPO> itr = tempStore.getAccessPath(SPOKeyOrderProvider.getKeyOrderProvider(database.getNamespace()).getSubjectFirstKeyOrder(false)).iterator();
 
         final long nretracted;
         final long ndowngraded;
@@ -901,7 +901,7 @@ public class TruthMaintenance {
              */
             
             final SPOArrayIterator tmp = new SPOArrayIterator(focusStore, focusStore
-                    .getAccessPath(SPOKeyOrder.SPO), 0/* limit */, null/* filter */);
+                    .getAccessPath(SPOKeyOrderProvider.getKeyOrderProvider(database.getNamespace()).getSubjectFirstKeyOrder(false)), 0/* limit */, null/* filter */);
             
             if(DEBUG && database.getStatementCount()<200) {
                 
@@ -952,7 +952,7 @@ public class TruthMaintenance {
             
         }
 
-        if( focusStore.getAccessPath(SPOKeyOrder.SPO).isEmpty()) {
+        if( focusStore.getAccessPath(SPOKeyOrderProvider.getKeyOrderProvider(database.getNamespace()).getSubjectFirstKeyOrder(false)).isEmpty()) {
 
             log.info("Done - closure of focusStore produced no entailments to consider.");
             

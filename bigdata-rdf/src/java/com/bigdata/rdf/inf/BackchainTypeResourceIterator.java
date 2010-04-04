@@ -40,6 +40,7 @@ import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.spo.SPOKeyOrderProvider;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
@@ -86,7 +87,7 @@ public class BackchainTypeResourceIterator implements IChunkedOrderedIterator<IS
 //    private final AbstractTripleStore db;
     private final long rdfType, rdfsResource;
     private final IKeyOrder<ISPO> keyOrder;
-
+    private final AbstractTripleStore db;
     /**
      * The subject(s) whose (s rdf:type rdfs:Resource) entailments will be
      * visited.
@@ -169,7 +170,6 @@ public class BackchainTypeResourceIterator implements IChunkedOrderedIterator<IS
             return _src;
             
         }
-           
         if (_src == null)
             throw new IllegalArgumentException();
         
@@ -207,11 +207,11 @@ public class BackchainTypeResourceIterator implements IChunkedOrderedIterator<IS
              * for that).
              */
 
-//            resourceIds = db.getSPORelation().distinctTermScan(SPOKeyOrder.SPO);
+//            resourceIds = db.getSPORelation().distinctTermScan(SPOKeyOrder.getSubjectFirstKeyOrder(false));
             
             resourceIds = new PushbackIterator<Long>(new MergedOrderedIterator(//
-                    db.getSPORelation().distinctTermScan(SPOKeyOrder.SPO), //
-                    db.getSPORelation().distinctTermScan(SPOKeyOrder.OSP,
+                    db.getSPORelation().distinctTermScan(SPOKeyOrderProvider.getKeyOrderProvider(db.getNamespace()).getSubjectFirstKeyOrder(false)), //
+                    db.getSPORelation().distinctTermScan(SPOKeyOrderProvider.getKeyOrderProvider(db.getNamespace()).getObjectFirstKeyOrder(false),
                             new ITermIdFilter() {
                                 private static final long serialVersionUID = 1L;
                                 public boolean isValid(long termId) {
@@ -291,7 +291,7 @@ public class BackchainTypeResourceIterator implements IChunkedOrderedIterator<IS
                 
             }});
         
-        return new BackchainTypeResourceIterator(_src, src, resourceIds,
+        return new BackchainTypeResourceIterator(db,_src, src, resourceIds,
                 posItr, rdfType, rdfsResource);
         
     }
@@ -319,14 +319,15 @@ public class BackchainTypeResourceIterator implements IChunkedOrderedIterator<IS
      *      AbstractTripleStore, long, long)
      */
     @SuppressWarnings({ "unchecked", "serial" })
-    private BackchainTypeResourceIterator(IChunkedOrderedIterator<ISPO> _src,//
+    private BackchainTypeResourceIterator(AbstractTripleStore db,//
+    		IChunkedOrderedIterator<ISPO> _src,//
             Iterator<ISPO> src,//
             PushbackIterator<Long> resourceIds,//
             PushbackIterator<Long> posItr,//
             final long rdfType,//
             final long rdfsResource//
             ) {
-        
+        this.db=db;
         // the raw source - we pass close() through to this.
         this._src = _src;
         
@@ -613,7 +614,7 @@ public class BackchainTypeResourceIterator implements IChunkedOrderedIterator<IS
             
         }
                 
-        if (keyOrder != null && keyOrder != SPOKeyOrder.POS) {
+        if (keyOrder != null && keyOrder != SPOKeyOrderProvider.getKeyOrderProvider(db.getNamespace()).getPredicateFirstKeyOrder(false)) {
 
             /*
              * Sort into the same order as the source iterator.
@@ -631,7 +632,7 @@ public class BackchainTypeResourceIterator implements IChunkedOrderedIterator<IS
          * indices.
          */
         
-        chunkKeyOrder = SPOKeyOrder.POS;
+        chunkKeyOrder = SPOKeyOrderProvider.getKeyOrderProvider(db.getNamespace()).getPredicateFirstKeyOrder(false);
         
         return stmts;
         
@@ -956,7 +957,7 @@ public class BackchainTypeResourceIterator implements IChunkedOrderedIterator<IS
             this.s = (Long) accessPath.getPredicate().get(0).get();
             SPO spo = new SPO(s, rdfType, rdfsResource, StatementEnum.Inferred);
             this.appender = new ChunkedArrayIterator<ISPO>
-                ( 1, new SPO[] { spo }, SPOKeyOrder.SPO
+                ( 1, new SPO[] { spo },SPOKeyOrderProvider.getKeyOrderProvider(db.getNamespace()).getSubjectFirstKeyOrder(false)
                   );
         }
         

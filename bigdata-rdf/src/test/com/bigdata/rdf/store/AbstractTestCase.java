@@ -70,6 +70,7 @@ import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOComparator;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.spo.SPOKeyOrderProvider;
 import com.bigdata.rdf.spo.SPOTupleSerializer;
 import com.bigdata.relation.accesspath.AbstractArrayBuffer;
 import com.bigdata.relation.accesspath.IBuffer;
@@ -695,23 +696,21 @@ abstract public class AbstractTestCase
         final AtomicInteger nerrs = new AtomicInteger(0);
 
         final int from, to;
+        SPOKeyOrder keys[];
         if (db.getSPOKeyArity() == 3) {
-            from = SPOKeyOrder.FIRST_TRIPLE_INDEX;
-            to = SPOKeyOrder.LAST_TRIPLE_INDEX;
+           keys= SPOKeyOrderProvider.getKeyOrderProvider("TEST").getTripleStoreIndices();
         } else {
-            from = SPOKeyOrder.FIRST_QUAD_INDEX;
-            to = SPOKeyOrder.LAST_QUAD_INDEX;
+            keys= SPOKeyOrderProvider.getKeyOrderProvider("TEST").getTripleStoreIndices();
         }
         
-        for (int i = from; i <= to; i++) {
+        for (int i = 0; i <keys.length; i++) {
 
-            for (int j = from; j <= to; j++) {
+            for (int j = 0; j <keys.length; j++) {
 
                 if (i == j)
                     continue;
 
-                assertSameStatements(db, SPOKeyOrder.valueOf(i), SPOKeyOrder
-                        .valueOf(j), nerrs, maxerrors);
+                assertSameStatements(db, keys[i], keys[j], nerrs, maxerrors);
 
             }
 

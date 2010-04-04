@@ -58,6 +58,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package com.bigdata.rdf.sail;
 
 import info.aduna.iteration.CloseableIteration;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -71,8 +72,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+
 import org.apache.log4j.Logger;
 import org.openrdf.OpenRDFUtil;
 import org.openrdf.model.Namespace;
@@ -108,6 +108,7 @@ import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailConnectionListener;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.helpers.SailBase;
+
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.ITransactionService;
@@ -116,6 +117,7 @@ import com.bigdata.journal.Journal;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.inf.TruthMaintenance;
+import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataBNodeImpl;
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.BigdataValue;
@@ -151,6 +153,7 @@ import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.CloseableIteratorWrapper;
 import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+
 import cutthecrap.utils.striterators.Expander;
 import cutthecrap.utils.striterators.Striterator;
 
@@ -1332,7 +1335,7 @@ public class BigdataSail extends SailBase implements Sail {
          * FIXME bnodes : resolution of term identifiers to blank nodes for
          * JOINs in {@link BigdataSolutionResolverator}.
          */
-        private Map<String, BigdataBNodeImpl> bnodes;
+        private Map<String, BigdataBNode> bnodes;
 
         /**
          * A reverse mapping from the assigned term identifiers for blank nodes
@@ -1341,7 +1344,7 @@ public class BigdataSail extends SailBase implements Sail {
          * {@link SailConnection} without loosing the blank node identifier.
          * This behavior is required by the contract for {@link SailConnection}.
          */
-        private Map<Long, BigdataBNodeImpl> bnodes2;
+        private Map<Long, BigdataBNode> bnodes2;
         
         /**
          * Used to coordinate between read/write transactions and the unisolated
@@ -1524,8 +1527,8 @@ public class BigdataSail extends SailBase implements Sail {
                  * explicit synchronization during iterators, which breaks
                  * encapsulation.
                  */
-                bnodes = new ConcurrentHashMap<String, BigdataBNodeImpl>();
-                bnodes2 = new ConcurrentHashMap<Long, BigdataBNodeImpl>();
+                bnodes = new ConcurrentHashMap<String, BigdataBNode>();
+                bnodes2 = new ConcurrentHashMap<Long, BigdataBNode>();
 //                bnodes = Collections
 //                        .synchronizedMap(new HashMap<String, BigdataBNodeImpl>(
 //                                bufferCapacity));

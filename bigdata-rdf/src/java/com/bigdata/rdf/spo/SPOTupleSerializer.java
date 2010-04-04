@@ -311,7 +311,7 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 
         super.readExternal(in);
         
-        keyOrder = SPOKeyOrder.valueOf(in.readByte());
+        keyOrder = SPOKeyOrder.values()[in.readByte()];
 
     }
 
@@ -319,7 +319,7 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 
         super.writeExternal(out);
         
-        out.writeByte(keyOrder.index());
+        out.writeByte(keyOrder.ordinal());
 
     }
 

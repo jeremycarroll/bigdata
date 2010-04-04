@@ -96,6 +96,7 @@ import com.bigdata.rdf.lexicon.Id2TermWriteProc.Id2TermWriteProcConstructor;
 import com.bigdata.rdf.lexicon.Term2IdWriteProc.Term2IdWriteProcConstructor;
 import com.bigdata.rdf.lexicon.Term2IdWriteTask.AssignTermId;
 import com.bigdata.rdf.load.ConcurrentDataLoader;
+import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataBNodeImpl;
 import com.bigdata.rdf.model.BigdataResource;
 import com.bigdata.rdf.model.BigdataStatement;
@@ -109,6 +110,7 @@ import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPOIndexWriteProc;
 import com.bigdata.rdf.spo.SPOIndexWriter;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.spo.SPOKeyOrderProvider;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.rdf.spo.SPOTupleSerializer;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -541,11 +543,9 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                 buffer.close();
 
             }
-
+           boolean primary=tripleStore.isQuads()?SPOKeyOrderProvider.getKeyOrderProvider(spoRelation.getNamespace()).getPrimaryQuadStoreIndex()==keyOrder:SPOKeyOrderProvider.getKeyOrderProvider(spoRelation.getNamespace()).getPrimaryTripleStoreIndex()==keyOrder;
             buffer = ((IScaleOutClientIndex) spoRelation.getIndex(keyOrder))
-                    .newWriteBuffer(
-                            keyOrder.isPrimaryIndex() ? statementResultHandler
-                                    : null,
+                    .newWriteBuffer(primary ? statementResultHandler: null,//
                             new DefaultDuplicateRemover<ISPO>(true/* testRefs */),
                             SPOIndexWriteProc.IndexWriteProcConstructor.INSTANCE);
             
@@ -3001,7 +3001,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         public Void call() throws Exception {
 
             // used to serialize the Values for the BTree.
-            final BigdataValueSerializer<BigdataValueImpl> ser = valueFactory
+            final BigdataValueSerializer<BigdataValue> ser = valueFactory
                     .getValueSerializer();
 
             // thread-local key builder removes single-threaded constraint.
@@ -3257,7 +3257,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
          * so if you are loading a large document with a lot of blank nodes the
          * map will also become large.
          */
-        private Map<String, BigdataBNodeImpl> bnodes;
+        private Map<String, BigdataBNode> bnodes;
 
         /**
          * The total #of parsed statements so far.
@@ -3359,7 +3359,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
 
         }
 
-        public void setBNodeMap(final Map<String, BigdataBNodeImpl> bnodes) {
+        public void setBNodeMap(final Map<String, BigdataBNode> bnodes) {
 
             if (bnodes == null)
                 throw new IllegalArgumentException();
@@ -3426,7 +3426,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
          * and MUST be cleared (or set to null) before reading from another
          * source.
          */
-        private BigdataBNodeImpl getCanonicalBNode(final BigdataBNodeImpl bnode) {
+        private BigdataBNode getCanonicalBNode(final BigdataBNodeImpl bnode) {
 
             // the BNode's ID.
             final String id = bnode.getID();
@@ -3437,7 +3437,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                  * Allocate a canonicalizing map for blank nodes. Since this
                  * will be a private map it does not need to be thread-safe.
                  */
-                bnodes = new HashMap<String, BigdataBNodeImpl>(
+                bnodes = new HashMap<String, BigdataBNode>(
                         bnodesInitialCapacity);
 
                 // fall through.
@@ -3449,7 +3449,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
              */
             if (bnodes instanceof ConcurrentHashMap) {
 
-                final BigdataBNodeImpl tmp = ((ConcurrentHashMap<String, BigdataBNodeImpl>) bnodes)
+                final BigdataBNode tmp = ((ConcurrentHashMap<String, BigdataBNode>) bnodes)
                         .putIfAbsent(id, bnode);
 
                 if (tmp != null) {
@@ -3472,7 +3472,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
              */
             synchronized (bnodes) {
 
-                final BigdataBNodeImpl tmp = bnodes.get(id);
+                final BigdataBNode tmp = bnodes.get(id);
 
                 if (tmp != null) {
 

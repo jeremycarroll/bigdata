@@ -7,6 +7,8 @@ import java.util.TreeSet;
 import org.apache.log4j.Logger;
 
 import com.bigdata.rdf.spo.ISPO;
+import com.bigdata.rdf.spo.ISPOKeyOrderProvider;
+import com.bigdata.rdf.spo.SPOKeyOrderProvider;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.rdf.store.TempTripleStore;
@@ -33,6 +35,8 @@ public abstract class BackchainOwlSameAsIterator implements IChunkedOrderedItera
 
     protected IChunkedOrderedIterator<ISPO> src;
     
+    protected ISPOKeyOrderProvider keyOrderProvider;
+    
     public BackchainOwlSameAsIterator(IChunkedOrderedIterator<ISPO> src,
             AbstractTripleStore db, long sameAs) {
 
@@ -48,7 +52,7 @@ public abstract class BackchainOwlSameAsIterator implements IChunkedOrderedItera
         this.src = src;
         
         this.db = db;
-        
+        this.keyOrderProvider=SPOKeyOrderProvider.getKeyOrderProvider(db.getNamespace());
         this.sameAs = sameAs;
     
     }

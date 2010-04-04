@@ -25,218 +25,222 @@ import com.bigdata.rdf.inf.Justification;
  */
 public class SPOIndexRemover implements Callable<Long> {
 
-    protected static final Logger log = Logger.getLogger(SPOIndexRemover.class);
+	protected static final Logger log = Logger.getLogger(SPOIndexRemover.class);
 
-    /**
-     * True iff the {@link #log} level is INFO or less.
-     */
-    final static protected boolean INFO = log.isInfoEnabled();
+	/**
+	 * True iff the {@link #log} level is INFO or less.
+	 */
+	final static protected boolean INFO = log.isInfoEnabled();
 
-    /**
-     * True iff the {@link #log} level is DEBUG or less.
-     */
-    final static protected boolean DEBUG = log.isDebugEnabled();
+	/**
+	 * True iff the {@link #log} level is DEBUG or less.
+	 */
+	final static protected boolean DEBUG = log.isDebugEnabled();
 
-//    final AbstractTripleStore db;
+	// final AbstractTripleStore db;
 
-    final private SPORelation spoRelation;
-    
-    final private SPOKeyOrder keyOrder;
+	final private SPORelation spoRelation;
 
-    final private ISPO[] a;
+	final private SPOKeyOrder keyOrder;
 
-    final private int numStmts;
+	final private boolean primaryIndex;
 
-    final private AtomicLong sortTime;
+	final private ISPO[] a;
 
-    final private AtomicLong writeTime;
+	final private int numStmts;
 
-    final private AtomicLong mutationCount;
-    
-    final private boolean reportMutations;
-    
-    public SPOIndexRemover(final SPORelation spoRelation, final ISPO[] stmts,
-            final int numStmts, final SPOKeyOrder keyOrder,
-            final boolean clone, final AtomicLong sortTime,
-            final AtomicLong writeTime,
-            final AtomicLong mutationCount, 
-            final boolean reportMutations) {
+	final private AtomicLong sortTime;
 
-        if (spoRelation == null)
-            throw new IllegalArgumentException();
+	final private AtomicLong writeTime;
 
-        if (stmts == null)
-            throw new IllegalArgumentException();
+	final private AtomicLong mutationCount;
 
-        if (numStmts <= 0)
-            throw new IllegalArgumentException();
+	final private boolean reportMutations;
 
-        if (keyOrder == null)
-            throw new IllegalArgumentException();
+	public SPOIndexRemover(final SPORelation spoRelation, final ISPO[] stmts,
+			final int numStmts, final SPOKeyOrder keyOrder,
+			final boolean primaryIndex,
+			final boolean clone, final AtomicLong sortTime,
+			final AtomicLong writeTime,
+			final AtomicLong mutationCount,
+			final boolean reportMutations) {
 
-        this.spoRelation = spoRelation;
+		if (spoRelation == null)
+			throw new IllegalArgumentException();
 
-        this.keyOrder = keyOrder;
+		if (stmts == null)
+			throw new IllegalArgumentException();
 
-        if (clone) {
+		if (numStmts <= 0)
+			throw new IllegalArgumentException();
 
-            this.a = new ISPO[numStmts];
+		if (keyOrder == null)
+			throw new IllegalArgumentException();
 
-            System.arraycopy(stmts, 0, a, 0, numStmts);
+		this.spoRelation = spoRelation;
 
-        } else {
+		this.keyOrder = keyOrder;
+		this.primaryIndex = primaryIndex;
+		if (clone) {
 
-            this.a = stmts;
+			this.a = new ISPO[numStmts];
 
-        }
+			System.arraycopy(stmts, 0, a, 0, numStmts);
 
-        this.numStmts = numStmts;
+		} else {
 
-        this.sortTime = sortTime;
+			this.a = stmts;
 
-        this.writeTime = writeTime;
+		}
 
-        this.mutationCount = mutationCount;
-        
-        this.reportMutations = reportMutations;
+		this.numStmts = numStmts;
 
-    }
+		this.sortTime = sortTime;
 
-    /**
-     * Remove the statements specified by the called from the statement indices.
-     * 
-     * @return The elapsed time.
-     */
-    public Long call() throws Exception {
+		this.writeTime = writeTime;
 
-        final long begin = System.currentTimeMillis();
+		this.mutationCount = mutationCount;
 
-//        // thread-local key builder.
-//        final RdfKeyBuilder keyBuilder = db.getKeyBuilder();
+		this.reportMutations = reportMutations;
 
-        final IIndex ndx = spoRelation.getIndex(keyOrder);
+	}
 
-        final SPOTupleSerializer tupleSer = (SPOTupleSerializer) ndx
-                .getIndexMetadata().getTupleSerializer();
-        
-        // Place statements in index order.
-        Arrays.sort(a, 0, numStmts, keyOrder.getComparator());
+	/**
+	 * Remove the statements specified by the called from the statement indices.
+	 * 
+	 * @return The elapsed time.
+	 */
+	public Long call() throws Exception {
 
-        final long beginWrite = System.currentTimeMillis();
+		final long begin = System.currentTimeMillis();
 
-        sortTime.addAndGet(beginWrite - begin);
+		// // thread-local key builder.
+		// final RdfKeyBuilder keyBuilder = db.getKeyBuilder();
 
-        /*
-         * Generate keys for batch operation.
-         */
+		final IIndex ndx = spoRelation.getIndex(keyOrder);
 
-        final byte[][] keys = new byte[numStmts][];
+		final SPOTupleSerializer tupleSer = (SPOTupleSerializer) ndx
+				.getIndexMetadata().getTupleSerializer();
 
-        for (int i = 0; i < numStmts; i++) {
+		// Place statements in index order.
+		Arrays.sort(a, 0, numStmts, keyOrder.getComparator());
 
-            final ISPO spo = a[i];
+		final long beginWrite = System.currentTimeMillis();
 
-            if (DEBUG) {
+		sortTime.addAndGet(beginWrite - begin);
 
-                /*
-                 * Note: the externalized terms will be NOT FOUND when removing
-                 * a statement from a temp store since the term identifiers for
-                 * the temp store are generally only stored in the database.
-                 */
+		/*
+		 * Generate keys for batch operation.
+		 */
 
-                log.debug("Removing " + spo.toString(/*db*/) + " from " + keyOrder);
+		final byte[][] keys = new byte[numStmts][];
 
-            }
+		for (int i = 0; i < numStmts; i++) {
 
-            keys[i] = tupleSer.serializeKey(spo);
+			final ISPO spo = a[i];
 
-        }
+			if (DEBUG) {
 
-        final long writeCount;
-        if (reportMutations) {
-            
-            /*
-             * The IResultHandler obtains from the RPC an indication of each
-             * statement whose state was changed by this operation. We use that
-             * information to set the metadata on the corresponding ISPO in the
-             * caller's array.
-             */
+				/*
+				 * Note: the externalized terms will be NOT FOUND when removing
+				 * a statement from a temp store since the term identifiers for
+				 * the temp store are generally only stored in the database.
+				 */
 
-            final ResultBitBufferHandler aggregator = new ResultBitBufferHandler(
-                    numStmts);
+				log.debug("Removing " + spo.toString(/* db */) + " from "
+						+ keyOrder);
 
-            // batch remove.
-            ndx.submit(//
-                    0,// fromIndex,
-                    numStmts, // toIndex,
-                    keys,//
-                    null, // vals
-                    BatchRemoveConstructor.RETURN_BIT_MASK,//
-                    aggregator // handler
-                    );
+			}
 
-            final ResultBitBuffer modified = aggregator.getResult();
+			keys[i] = tupleSer.serializeKey(spo);
 
-            final boolean[] bits = modified.getResult();
-            
-            writeCount = modified.getOnCount();
+		}
 
-            for (int i = 0; i < numStmts; i++) {
+		final long writeCount;
+		if (reportMutations) {
 
-                if (bits[i]) {
+			/*
+			 * The IResultHandler obtains from the RPC an indication of each
+			 * statement whose state was changed by this operation. We use that
+			 * information to set the metadata on the corresponding ISPO in the
+			 * caller's array.
+			 */
 
-                    /*
-                     * Note: This only turns on the modified flag. It will not
-                     * clear it if it is already set. The caller has to take
-                     * responsibility for that. This way if the statement is
-                     * written twice and the 2nd time the indices are not
-                     * updated we still report the statement as modified since
-                     * its flag has not been cleared (unless the caller
-                     * explicitly cleared it in between those writes).
-                     */
-                    
-                    a[i].setModified(bits[i]);
+			final ResultBitBufferHandler aggregator = new ResultBitBufferHandler(
+					numStmts);
 
-                }
+			// batch remove.
+			ndx.submit(//
+					0,// fromIndex,
+					numStmts, // toIndex,
+					keys,//
+					null, // vals
+					BatchRemoveConstructor.RETURN_BIT_MASK,//
+					aggregator // handler
+			);
 
-            }
+			final ResultBitBuffer modified = aggregator.getResult();
 
-        } else {
-            
-            final LongAggregator aggregator = new LongAggregator();
+			final boolean[] bits = modified.getResult();
 
-            // batch remove.
-            ndx.submit(//
-                    0,// fromIndex,
-                    numStmts, // toIndex,
-                    keys,//
-                    null, // vals
-                    BatchRemoveConstructor.RETURN_MUTATION_COUNT,//
-                    aggregator // handler
-                    );
+			writeCount = modified.getOnCount();
 
-            writeCount = aggregator.getResult();
+			for (int i = 0; i < numStmts; i++) {
 
-        }
-        
-        if (keyOrder.isPrimaryIndex()) {
+				if (bits[i]) {
 
-            /*
-             * Note: Only the task writing on the primary index takes
-             * responsibility for reporting the #of statements that were removed
-             * from the indices. This avoids double counting.
-             */
+					/*
+					 * Note: This only turns on the modified flag. It will not
+					 * clear it if it is already set. The caller has to take
+					 * responsibility for that. This way if the statement is
+					 * written twice and the 2nd time the indices are not
+					 * updated we still report the statement as modified since
+					 * its flag has not been cleared (unless the caller
+					 * explicitly cleared it in between those writes).
+					 */
 
-            mutationCount.addAndGet(writeCount);
+					a[i].setModified(bits[i]);
 
-        }
-        
-        final long elapsed = System.currentTimeMillis() - beginWrite;
+				}
 
-        writeTime.addAndGet(elapsed);
+			}
 
-        return elapsed;
+		} else {
 
-    }
+			final LongAggregator aggregator = new LongAggregator();
+
+			// batch remove.
+			ndx.submit(//
+					0,// fromIndex,
+					numStmts, // toIndex,
+					keys,//
+					null, // vals
+					BatchRemoveConstructor.RETURN_MUTATION_COUNT,//
+					aggregator // handler
+			);
+
+			writeCount = aggregator.getResult();
+
+		}
+
+		if (primaryIndex) {
+
+			/*
+			 * Note: Only the task writing on the primary index takes
+			 * responsibility for reporting the #of statements that were removed
+			 * from the indices. This avoids double counting.
+			 */
+
+			mutationCount.addAndGet(writeCount);
+
+		}
+
+		final long elapsed = System.currentTimeMillis() - beginWrite;
+
+		writeTime.addAndGet(elapsed);
+
+		return elapsed;
+
+	}
 
 }

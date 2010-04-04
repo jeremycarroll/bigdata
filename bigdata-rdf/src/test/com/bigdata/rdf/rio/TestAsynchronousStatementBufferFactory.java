@@ -42,6 +42,7 @@ import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.load.RDFFileLoadTask;
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.spo.SPOKeyOrderProvider;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.rdf.store.TestScaleOutTripleStoreWithEmbeddedFederation;
@@ -319,9 +320,9 @@ public class TestAsynchronousStatementBufferFactory extends
                 // raw statement indices.
                 {
                     
-                    final Iterator<SPOKeyOrder> itr = store.isQuads() ? SPOKeyOrder
+                    final Iterator<SPOKeyOrder> itr = store.isQuads() ? SPOKeyOrderProvider.getKeyOrderProvider(store.getNamespace())
                             .quadStoreKeyOrderIterator()
-                            : SPOKeyOrder.tripleStoreKeyOrderIterator();
+                            : SPOKeyOrderProvider.getKeyOrderProvider(store.getNamespace()).tripleStoreKeyOrderIterator();
 
                     while (itr.hasNext()) {
                      
@@ -337,9 +338,9 @@ public class TestAsynchronousStatementBufferFactory extends
                 // resolved statement indices.
                 {
 
-                    final Iterator<SPOKeyOrder> itr = store.isQuads() ? SPOKeyOrder
+                    final Iterator<SPOKeyOrder> itr = store.isQuads() ? SPOKeyOrderProvider.getKeyOrderProvider(store.getNamespace())
                             .quadStoreKeyOrderIterator()
-                            : SPOKeyOrder.tripleStoreKeyOrderIterator();
+                            : SPOKeyOrderProvider.getKeyOrderProvider(store.getNamespace()).tripleStoreKeyOrderIterator();
 
                     while (itr.hasNext()) {
 

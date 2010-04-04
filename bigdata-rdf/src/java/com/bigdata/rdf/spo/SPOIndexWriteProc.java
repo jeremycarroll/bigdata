@@ -185,9 +185,9 @@ public class SPOIndexWriteProc extends AbstractKeyArrayIndexProcedure implements
         final ByteArrayBuffer tmp = new ByteArrayBuffer(1 + 8/* max size */);
 
         // true iff logging is enabled and this is the primary (SPO/SPOC) index.
-        final boolean isPrimaryIndex = INFO ? ((SPOTupleSerializer) ndx
-                .getIndexMetadata().getTupleSerializer()).getKeyOrder()
-                .isPrimaryIndex() : false;
+        final boolean isPrimaryIndex = INFO ?((SPOTupleSerializer) ndx
+                .getIndexMetadata().getTupleSerializer()).getKeyOrder()==SPOKeyOrder.SPO||((SPOTupleSerializer) ndx
+                        .getIndexMetadata().getTupleSerializer()).getKeyOrder()==SPOKeyOrder.SPOC: false;
 //        final boolean isPrimaryIndex = INFO ? ndx.getIndexMetadata().getName()
 //                .endsWith(SPOKeyOrder.SPO.getIndexName()) : false;
 

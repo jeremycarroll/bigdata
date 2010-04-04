@@ -52,6 +52,7 @@ import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.spo.SPOKeyOrderProvider;
 import com.bigdata.rdf.spo.SPOTupleSerializer;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
@@ -286,7 +287,7 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
         final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
         
         metadata.setBranchingFactor(branchingFactor);
-
+        
         tupleSer = new SPOTupleSerializer(SPOKeyOrder.SPO);
         
         metadata.setTupleSerializer(tupleSer);
@@ -451,7 +452,7 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
 
                 System.arraycopy(stmts, 0, this.stmts, 0, numStmts);
 
-                Arrays.sort( this.stmts, SPOKeyOrder.SPO.getComparator() );
+                Arrays.sort( this.stmts, SPOKeyOrderProvider.getKeyOrderProvider(database.getNamespace()).getPrimaryTripleStoreIndex().getComparator() );
                 
             }
             

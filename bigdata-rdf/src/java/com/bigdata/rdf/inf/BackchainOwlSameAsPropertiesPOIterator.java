@@ -33,7 +33,7 @@ import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
-import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.spo.SPOKeyOrderProvider;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.TempTripleStore;
 import com.bigdata.striterator.EmptyChunkedIterator;
@@ -155,18 +155,18 @@ public class BackchainOwlSameAsPropertiesPOIterator extends
     public boolean hasNext() {
         if (sameAs3It == null) {
             if (sameAs3 != null) {
-                sameAs3It = sameAs3.getAccessPath(SPOKeyOrder.SPO).iterator();
+                sameAs3It = sameAs3.getAccessPath(keyOrderProvider.getSubjectFirstKeyOrder(false)).iterator();
             } else {
-                sameAs3It = new EmptyChunkedIterator<ISPO>(SPOKeyOrder.SPO);
+                sameAs3It = new EmptyChunkedIterator<ISPO>(keyOrderProvider.getSubjectFirstKeyOrder(false));
             }
         }
         if (src.hasNext() || sameAs3It.hasNext()) {
             return true;
         } else if (sameAs2It == null) {
             if (sameAs2 != null) {
-                sameAs2It = sameAs2.getAccessPath(SPOKeyOrder.SPO).iterator();
+                sameAs2It = sameAs2.getAccessPath(keyOrderProvider.getSubjectFirstKeyOrder(false)).iterator();
             } else {
-                sameAs2It = new EmptyChunkedIterator<ISPO>(SPOKeyOrder.SPO);
+                sameAs2It = new EmptyChunkedIterator<ISPO>(keyOrderProvider.getSubjectFirstKeyOrder(false));
             }
         }
         return sameAs2It.hasNext();
@@ -181,9 +181,9 @@ public class BackchainOwlSameAsPropertiesPOIterator extends
     public ISPO next() {
         if (sameAs3It == null) {
             if (sameAs3 != null) {
-                sameAs3It = sameAs3.getAccessPath(SPOKeyOrder.SPO).iterator();
+                sameAs3It = sameAs3.getAccessPath(keyOrderProvider.getSubjectFirstKeyOrder(false)).iterator();
             } else {
-                sameAs3It = new EmptyChunkedIterator<ISPO>(SPOKeyOrder.SPO);
+                sameAs3It = new EmptyChunkedIterator<ISPO>(keyOrderProvider.getSubjectFirstKeyOrder(false));
             }
         }
         canRemove = false;
@@ -198,9 +198,9 @@ public class BackchainOwlSameAsPropertiesPOIterator extends
         } else {
             if (sameAs2It == null) {
                 if (sameAs2 != null) {
-                    sameAs2It = sameAs2.getAccessPath(SPOKeyOrder.SPO).iterator();
+                    sameAs2It = sameAs2.getAccessPath(keyOrderProvider.getSubjectFirstKeyOrder(false)).iterator();
                 } else {
-                    sameAs2It = new EmptyChunkedIterator<ISPO>(SPOKeyOrder.SPO);
+                    sameAs2It = new EmptyChunkedIterator<ISPO>(keyOrderProvider.getSubjectFirstKeyOrder(false));
                 }
             }
             if (sameAs2It.hasNext()) {

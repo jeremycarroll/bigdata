@@ -28,6 +28,7 @@
 package com.bigdata.rdf.store;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
@@ -45,6 +46,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.log4j.Logger;
 import org.openrdf.model.BNode;
 import org.openrdf.model.Literal;
@@ -57,6 +59,7 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.model.vocabulary.XMLSchema;
 import org.openrdf.rio.rdfxml.RDFXMLParser;
+
 import com.bigdata.btree.AbstractBTree;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.BytesUtil;
@@ -102,6 +105,7 @@ import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.JustificationWriter;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.spo.SPOKeyOrderProvider;
 import com.bigdata.rdf.spo.SPOPredicate;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.rdf.spo.SPOTupleSerializer;
@@ -358,7 +362,7 @@ abstract public class AbstractTripleStore extends
      * 
      * @todo allow a {@link TempTripleStore} to specify another db's lexicon?
      */
-    final public BigdataValueFactoryImpl getValueFactory() {
+    final public BigdataValueFactory getValueFactory() {
 
         if (valueFactory == null) {
 
@@ -383,7 +387,7 @@ abstract public class AbstractTripleStore extends
         return valueFactory;
         
     }
-    private volatile BigdataValueFactoryImpl valueFactory;
+    private volatile BigdataValueFactory valueFactory;
     
     /*
      * IDatabase, ILocatableResource
@@ -1495,7 +1499,7 @@ abstract public class AbstractTripleStore extends
             throw new UnsupportedOperationException();
 
         final Iterator<?> itr = getSPORelation().distinctTermScan(
-                SPOKeyOrder.CSPO);
+        		SPOKeyOrderProvider.getKeyOrderProvider(getNamespace()).getContextFirstKeyOrder());
 
         long n = 0;
 
@@ -2687,7 +2691,7 @@ abstract public class AbstractTripleStore extends
         
         // visit distinct term identifiers for the predicate position.
         final IChunkedIterator<Long> itr = getSPORelation().distinctTermScan(
-                quads ? SPOKeyOrder.POCS : SPOKeyOrder.POS);
+                SPOKeyOrderProvider.getKeyOrderProvider(getNamespace()).getPredicateFirstKeyOrder(quads));
 
         // resolve term identifiers to terms efficiently during iteration.
         final BigdataValueIterator itr2 = new BigdataValueIteratorImpl(
@@ -3444,7 +3448,7 @@ abstract public class AbstractTripleStore extends
          * Note: SIDS are only used with triples so the SPO index will exist.
          */
         return new DelegateChunkedIterator<ISPO>(tmp.getAccessPath(
-                SPOKeyOrder.SPO).iterator()) {
+        		SPOKeyOrderProvider.getKeyOrderProvider(getNamespace()).getPrimaryTripleStoreIndex()).iterator()) {
 
             public void close() {
 

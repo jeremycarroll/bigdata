@@ -383,10 +383,10 @@ public class BigdataValueFactoryImpl implements BigdataValueFactory {
     /**
      * (De-)serializer paired with this {@link BigdataValueFactoryImpl}.
      */
-    private final transient BigdataValueSerializer<BigdataValueImpl> valueSer = new BigdataValueSerializer<BigdataValueImpl>(
+    private final transient BigdataValueSerializer<BigdataValue> valueSer = new BigdataValueSerializer<BigdataValue>(
             this);
 
-    public BigdataValueSerializer<BigdataValueImpl> getValueSerializer() {
+    public BigdataValueSerializer<BigdataValue> getValueSerializer() {
 
         return valueSer;
 

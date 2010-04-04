@@ -251,7 +251,7 @@ public class DistinctSPOIterator implements ICloseableIterator<ISPO> {
                 }
 
                 // Next, test the B+Tree.
-                final byte[] key = SPOKeyOrder.SPO.encodeKey(keyBuilder, tmp);
+                final byte[] key = spoRelation.keyOrderProvider.getPrimaryTripleStoreIndex().encodeKey(keyBuilder, tmp);
 
                 if (btreeSet.contains(key)) {
 

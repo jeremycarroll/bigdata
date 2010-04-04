@@ -40,7 +40,7 @@ suggestions and support of the Cognitive Web.
 
 Modifications:
 
-*/
+ */
 /*
  * Created on Apr 9, 2008
  */
@@ -68,287 +68,290 @@ import com.bigdata.relation.accesspath.IElementFilter;
  */
 public class SPOIndexWriter implements Callable<Long> {
 
-//    private final AbstractTripleStore statementStore;
-    
-    private final ISPO[] stmts;
+	// private final AbstractTripleStore statementStore;
 
-    private final int numStmts;
-    
-    private final IElementFilter<ISPO> filter;
-    
-    private final AtomicLong sortTime;
-    
-    private final AtomicLong insertTime;
-    
-    private final AtomicLong numWritten;
-    
-    private final Comparator<ISPO> comparator;
+	private final ISPO[] stmts;
 
-    private final IIndex ndx;
+	private final int numStmts;
 
-    private final SPOKeyOrder keyOrder;
-    
-    private final boolean reportMutation;
+	private final IElementFilter<ISPO> filter;
 
-    /**
-     * Writes statements on a statement index (batch api).
-     * 
-     * @param statementStore
-     *            The store on which the statements will be written.
-     * @param a
-     *            The {@link ISPO}[].
-     * @param numStmts
-     *            The #of elements in <i>a</i> to be written.
-     * @param clone
-     *            When true the statements are cloned.
-     *            <p>
-     *            Note:One of the {@link SPOIndexWriter}s gets to use the
-     *            caller's array. The others MUST be instructed to clone the
-     *            caller's array so that they can impose their distinct sort
-     *            orders.
-     * @param keyOrder
-     *            Identifies the statement index on which to write.
-     * @param filter
-     *            An optional filter.
-     * @param sortTime
-     *            Incremented as a side-effect to report the elapsed time
-     *            sorting the statements.
-     * @param insertTime
-     *            Incremented as a side-effect to report the elapsed time
-     *            writing the statements on the <i>statementStore</i>.
-     * @param numWritten
-     *            Incremented as a side-effect to report the #of statements
-     *            actually written on the SPO index (the counter is only
-     *            incremented when writing on the SPO index to avoid double
-     *            counting).
-     * @param reportMutations
-     *            When <code>true</code>, an indication will be reported for
-     *            each statement whose state in the index was changed as a 
-     *            result of this operation.
-     */
-    public SPOIndexWriter(final SPORelation spoRelation, final ISPO[] a,
-            final int numStmts, final boolean clone,
-            final SPOKeyOrder keyOrder, final IElementFilter<ISPO> filter,
-            final AtomicLong sortTime, final AtomicLong insertTime,
-            final AtomicLong numWritten,
-            final boolean reportMutations) {
+	private final AtomicLong sortTime;
 
-        if (spoRelation == null)
-            throw new IllegalArgumentException();
-        
-        if (keyOrder == null)
-            throw new IllegalArgumentException();
+	private final AtomicLong insertTime;
 
-        this.keyOrder = keyOrder;
-        
-        this.filter = filter;
-        
-        if (clone) {
+	private final AtomicLong numWritten;
 
-            // Copy the caller's data (cloning the array, not its contents).
-            
-            this.stmts = new ISPO[numStmts];
+	private final Comparator<ISPO> comparator;
 
-            System.arraycopy(a, 0, this.stmts, 0, numStmts);
+	private final IIndex ndx;
 
-        } else {
+	private final SPOKeyOrder keyOrder;
 
-            // use the callers reference.
-            
-            this.stmts = a;
+	private final boolean reportMutation;
 
-        }
+	private final boolean primaryIndex;
 
-        this.numStmts = numStmts;
+	/**
+	 * Writes statements on a statement index (batch api).
+	 * 
+	 * @param statementStore
+	 *            The store on which the statements will be written.
+	 * @param a
+	 *            The {@link ISPO}[].
+	 * @param numStmts
+	 *            The #of elements in <i>a</i> to be written.
+	 * @param clone
+	 *            When true the statements are cloned.
+	 *            <p>
+	 *            Note:One of the {@link SPOIndexWriter}s gets to use the
+	 *            caller's array. The others MUST be instructed to clone the
+	 *            caller's array so that they can impose their distinct sort
+	 *            orders.
+	 * @param keyOrder
+	 *            Identifies the statement index on which to write.
+	 * @param filter
+	 *            An optional filter.
+	 * @param sortTime
+	 *            Incremented as a side-effect to report the elapsed time
+	 *            sorting the statements.
+	 * @param insertTime
+	 *            Incremented as a side-effect to report the elapsed time
+	 *            writing the statements on the <i>statementStore</i>.
+	 * @param numWritten
+	 *            Incremented as a side-effect to report the #of statements
+	 *            actually written on the SPO index (the counter is only
+	 *            incremented when writing on the SPO index to avoid double
+	 *            counting).
+	 * @param reportMutations
+	 *            When <code>true</code>, an indication will be reported for
+	 *            each statement whose state in the index was changed as a
+	 *            result of this operation.
+	 */
+	public SPOIndexWriter(final SPORelation spoRelation, final ISPO[] a,
+			final int numStmts, final boolean clone,
+			final SPOKeyOrder keyOrder, final boolean primaryIndex,
+			final IElementFilter<ISPO> filter,
+			final AtomicLong sortTime, final AtomicLong insertTime,
+			final AtomicLong numWritten,
+			final boolean reportMutations) {
 
-        this.sortTime = sortTime;
-        
-        this.insertTime = insertTime;
+		if (spoRelation == null)
+			throw new IllegalArgumentException();
 
-        this.numWritten = numWritten;
-        
-        this.comparator = keyOrder.getComparator();
+		if (keyOrder == null)
+			throw new IllegalArgumentException();
 
-        this.reportMutation = reportMutations;
-        
-        // Note: Use the index on [statementStore]!
-        this.ndx = spoRelation.getIndex(keyOrder);
-        
-        assert ndx != null;
-        
-    }
+		this.keyOrder = keyOrder;
+		this.primaryIndex = primaryIndex;
+		this.filter = filter;
 
-    /**
-     * Write the statements on the appropriate statement index.
-     * <p>
-     * Note: This method is designed to NOT write on the index unless either the
-     * statement is new or the value associated with the statement has been
-     * changed. This helps to keep down the IO costs associated with index
-     * writes when the data are already in the index.
-     * 
-     * @return The elapsed time for the operation.
-     */
-    public Long call() throws Exception {
+		if (clone) {
 
-        final long begin = System.currentTimeMillis();
+			// Copy the caller's data (cloning the array, not its contents).
 
-        { // sort
+			this.stmts = new ISPO[numStmts];
 
-            Arrays.sort(stmts, 0, numStmts, comparator);
+			System.arraycopy(a, 0, this.stmts, 0, numStmts);
 
-            sortTime.addAndGet(System.currentTimeMillis() - begin);
+		} else {
 
-        }
+			// use the callers reference.
 
-        /*
-         * Generate keys for the statements to be added.
-         * 
-         * Note: This also filters out duplicate statements (since the data are
-         * sorted duplicates will be grouped together) and, if a filter has been
-         * specified, that filter is used to filter out any matching statements.
-         * 
-         * The outcome is that both keys[] and vals[] are dense and encode only
-         * the statements to be written on the index. Only the 1st [numToAdd]
-         * entries in those arrays contain valid data.
-         * 
-         * @todo write a unit test in which we verify: (a) the correct
-         * elimination of duplicate statements; (b) the correct filtering of
-         * statements; and (c) the correct application of the override flag.
-         */
-        
-        final SPOTupleSerializer tupleSer = (SPOTupleSerializer) ndx
-                .getIndexMetadata().getTupleSerializer();
-        
-        int numToAdd = 0;
+			this.stmts = a;
 
-        ISPO last = null;
+		}
 
-        // dense array of keys.
-        final byte[][] keys = new byte[numStmts][];
+		this.numStmts = numStmts;
 
-        // dense array of values.
-        final byte[][] vals = new byte[numStmts][];
-        
-        // dense array of statements to write.
-        final ISPO[] denseStmts = reportMutation ? new ISPO[numStmts] : null;
+		this.sortTime = sortTime;
 
-        final ByteArrayBuffer vbuf = new ByteArrayBuffer(1+8/*max length*/);
-        
-        for (int i = 0; i < numStmts; i++) {
+		this.insertTime = insertTime;
 
-            final ISPO spo = stmts[i];
+		this.numWritten = numWritten;
 
-            if (spo == null)
-                throw new IllegalArgumentException("null @ index=" + i);
-            
-            if (!spo.isFullyBound())
-                throw new IllegalArgumentException("Not fully bound: "
-                        + spo.toString());
-            
-            // skip statements that match the filter.
-            if (filter != null && filter.accept(spo))
-                continue;
+		this.comparator = keyOrder.getComparator();
 
-            // skip duplicate records.
-            if (last != null && last.equals(spo)) {
-                if (keyOrder.getKeyArity() == 4) {
-                    // must also compare context for quads.
-                    if (last.c() == spo.c())
-                        continue;
+		this.reportMutation = reportMutations;
 
-                } else
-                    continue;
-            }
+		// Note: Use the index on [statementStore]!
+		this.ndx = spoRelation.getIndex(keyOrder);
 
-            // generate key for the index.
-            keys[numToAdd] = tupleSer.serializeKey(spo);
-            
-            // generate value for the index.
-            vals[numToAdd] = spo.serializeValue(vbuf);
+		assert ndx != null;
 
-            if(reportMutation)
-                denseStmts[numToAdd] = spo;
-            
-            last = spo;
+	}
 
-            numToAdd++;
+	/**
+	 * Write the statements on the appropriate statement index.
+	 * <p>
+	 * Note: This method is designed to NOT write on the index unless either the
+	 * statement is new or the value associated with the statement has been
+	 * changed. This helps to keep down the IO costs associated with index
+	 * writes when the data are already in the index.
+	 * 
+	 * @return The elapsed time for the operation.
+	 */
+	public Long call() throws Exception {
 
-        }
-        
-        /*
-         * Run the batch insert/update logic as a procedure.
-         */
-        final long _begin = System.currentTimeMillis();
-        
-        final long writeCount;
-        if (reportMutation) {
+		final long begin = System.currentTimeMillis();
 
-            /*
-             * The IResultHandler obtains from the RPC an indication of each
-             * statement whose state was changed by this operation. We use that
-             * information to set the metadata on the corresponding ISPO in the
-             * caller's array.
-             */
+		{ // sort
 
-            final ResultBitBufferHandler aggregator = new ResultBitBufferHandler(
-                    numToAdd);
+			Arrays.sort(stmts, 0, numStmts, comparator);
 
-            ndx.submit(0/* fromIndex */, numToAdd/* toIndex */, keys, vals,
-                    IndexWriteProcConstructor.REPORT_MUTATION, aggregator);
+			sortTime.addAndGet(System.currentTimeMillis() - begin);
 
-            final ResultBitBuffer modified = aggregator.getResult();
+		}
 
-            final boolean[] bits = modified.getResult();
-            
-            writeCount = modified.getOnCount();
+		/*
+		 * Generate keys for the statements to be added.
+		 * 
+		 * Note: This also filters out duplicate statements (since the data are
+		 * sorted duplicates will be grouped together) and, if a filter has been
+		 * specified, that filter is used to filter out any matching statements.
+		 * 
+		 * The outcome is that both keys[] and vals[] are dense and encode only
+		 * the statements to be written on the index. Only the 1st [numToAdd]
+		 * entries in those arrays contain valid data.
+		 * 
+		 * @todo write a unit test in which we verify: (a) the correct
+		 * elimination of duplicate statements; (b) the correct filtering of
+		 * statements; and (c) the correct application of the override flag.
+		 */
 
-            for (int i = 0; i < numToAdd; i++) {
+		final SPOTupleSerializer tupleSer = (SPOTupleSerializer) ndx
+				.getIndexMetadata().getTupleSerializer();
 
-                if (bits[i]) {
+		int numToAdd = 0;
 
-                    /*
-                     * Note: This only turns on the modified flag. It will not
-                     * clear it if it is already set. The caller has to take
-                     * responsibility for that. This way if the statement is
-                     * written twice and the 2nd time the indices are not
-                     * updated we still report the statement as modified since
-                     * its flag has not been cleared (unless the caller
-                     * explicitly cleared it in between those writes).
-                     */
-                    
-                    denseStmts[i].setModified(bits[i]);
+		ISPO last = null;
 
-                }
+		// dense array of keys.
+		final byte[][] keys = new byte[numStmts][];
 
-            }
+		// dense array of values.
+		final byte[][] vals = new byte[numStmts][];
 
-        } else {
+		// dense array of statements to write.
+		final ISPO[] denseStmts = reportMutation ? new ISPO[numStmts] : null;
 
-            final LongAggregator aggregator = new LongAggregator();
+		final ByteArrayBuffer vbuf = new ByteArrayBuffer(1 + 8/* max length */);
 
-            ndx.submit(0/* fromIndex */, numToAdd/* toIndex */, keys, vals,
-                    IndexWriteProcConstructor.INSTANCE, aggregator);
+		for (int i = 0; i < numStmts; i++) {
 
-            writeCount = aggregator.getResult();
+			final ISPO spo = stmts[i];
 
-        }
-        
-        insertTime.addAndGet(System.currentTimeMillis() - _begin);
+			if (spo == null)
+				throw new IllegalArgumentException("null @ index=" + i);
 
-        if (keyOrder.isPrimaryIndex()) {
+			if (!spo.isFullyBound())
+				throw new IllegalArgumentException("Not fully bound: "
+						+ spo.toString());
 
-            /*
-             * Note: Only the task writing on the primary index takes
-             * responsibility for reporting the #of statements that were written
-             * on the indices. This avoids double counting.
-             */
+			// skip statements that match the filter.
+			if (filter != null && filter.accept(spo))
+				continue;
 
-            numWritten.addAndGet(writeCount);
+			// skip duplicate records.
+			if (last != null && last.equals(spo)) {
+				if (keyOrder.getKeyArity() == 4) {
+					// must also compare context for quads.
+					if (last.c() == spo.c())
+						continue;
 
-        }
+				} else
+					continue;
+			}
 
-        return System.currentTimeMillis() - begin;
+			// generate key for the index.
+			keys[numToAdd] = tupleSer.serializeKey(spo);
 
-    }
+			// generate value for the index.
+			vals[numToAdd] = spo.serializeValue(vbuf);
+
+			if (reportMutation)
+				denseStmts[numToAdd] = spo;
+
+			last = spo;
+
+			numToAdd++;
+
+		}
+
+		/*
+		 * Run the batch insert/update logic as a procedure.
+		 */
+		final long _begin = System.currentTimeMillis();
+
+		final long writeCount;
+		if (reportMutation) {
+
+			/*
+			 * The IResultHandler obtains from the RPC an indication of each
+			 * statement whose state was changed by this operation. We use that
+			 * information to set the metadata on the corresponding ISPO in the
+			 * caller's array.
+			 */
+
+			final ResultBitBufferHandler aggregator = new ResultBitBufferHandler(
+					numToAdd);
+
+			ndx.submit(0/* fromIndex */, numToAdd/* toIndex */, keys, vals,
+					IndexWriteProcConstructor.REPORT_MUTATION, aggregator);
+
+			final ResultBitBuffer modified = aggregator.getResult();
+
+			final boolean[] bits = modified.getResult();
+
+			writeCount = modified.getOnCount();
+
+			for (int i = 0; i < numToAdd; i++) {
+
+				if (bits[i]) {
+
+					/*
+					 * Note: This only turns on the modified flag. It will not
+					 * clear it if it is already set. The caller has to take
+					 * responsibility for that. This way if the statement is
+					 * written twice and the 2nd time the indices are not
+					 * updated we still report the statement as modified since
+					 * its flag has not been cleared (unless the caller
+					 * explicitly cleared it in between those writes).
+					 */
+
+					denseStmts[i].setModified(bits[i]);
+
+				}
+
+			}
+
+		} else {
+
+			final LongAggregator aggregator = new LongAggregator();
+
+			ndx.submit(0/* fromIndex */, numToAdd/* toIndex */, keys, vals,
+					IndexWriteProcConstructor.INSTANCE, aggregator);
+
+			writeCount = aggregator.getResult();
+
+		}
+
+		insertTime.addAndGet(System.currentTimeMillis() - _begin);
+
+		if (primaryIndex) {
+
+			/*
+			 * Note: Only the task writing on the primary index takes
+			 * responsibility for reporting the #of statements that were written
+			 * on the indices. This avoids double counting.
+			 */
+
+			numWritten.addAndGet(writeCount);
+
+		}
+
+		return System.currentTimeMillis() - begin;
+
+	}
 
 }

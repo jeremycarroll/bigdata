@@ -46,7 +46,7 @@ public class BNodeContextFactory implements BigdataValueFactory {
      */
     private final BigdataValueFactory valueFactory;
 
-    BNodeContextFactory(final BigdataValueFactory valueFactory) {
+    public BNodeContextFactory(final BigdataValueFactory valueFactory) {
 
         this.valueFactory = valueFactory;
 
@@ -65,7 +65,7 @@ public class BNodeContextFactory implements BigdataValueFactory {
 
     private int nextID;
 
-    public BigdataBNodeImpl createBNode() {
+    public BigdataBNode createBNode() {
         return valueFactory.createBNode(nextID());
     }
 
@@ -77,77 +77,77 @@ public class BNodeContextFactory implements BigdataValueFactory {
         return valueFactory.asValue(v);
     }
 
-    public BigdataBNodeImpl createBNode(String id) {
+    public BigdataBNode createBNode(String id) {
         return valueFactory.createBNode(id);
     }
 
-    public BigdataLiteralImpl createLiteral(boolean arg0) {
+    public BigdataLiteral createLiteral(boolean arg0) {
         return valueFactory.createLiteral(arg0);
     }
 
-    public BigdataLiteralImpl createLiteral(byte arg0) {
+    public BigdataLiteral createLiteral(byte arg0) {
         return valueFactory.createLiteral(arg0);
     }
 
-    public BigdataLiteralImpl createLiteral(double arg0) {
+    public BigdataLiteral createLiteral(double arg0) {
         return valueFactory.createLiteral(arg0);
     }
 
-    public BigdataLiteralImpl createLiteral(float arg0) {
+    public BigdataLiteral createLiteral(float arg0) {
         return valueFactory.createLiteral(arg0);
     }
 
-    public BigdataLiteralImpl createLiteral(int arg0) {
+    public BigdataLiteral createLiteral(int arg0) {
         return valueFactory.createLiteral(arg0);
     }
 
-    public BigdataLiteralImpl createLiteral(long arg0) {
+    public BigdataLiteral createLiteral(long arg0) {
         return valueFactory.createLiteral(arg0);
     }
 
-    public BigdataLiteralImpl createLiteral(short arg0) {
+    public BigdataLiteral createLiteral(short arg0) {
         return valueFactory.createLiteral(arg0);
     }
 
-    public BigdataLiteralImpl createLiteral(String label, String language) {
+    public BigdataLiteral createLiteral(String label, String language) {
         return valueFactory.createLiteral(label, language);
     }
 
-    public BigdataLiteralImpl createLiteral(String label, URI datatype) {
+    public BigdataLiteral createLiteral(String label, URI datatype) {
         return valueFactory.createLiteral(label, datatype);
     }
 
-    public BigdataLiteralImpl createLiteral(String label) {
+    public BigdataLiteral createLiteral(String label) {
         return valueFactory.createLiteral(label);
     }
 
-    public BigdataLiteralImpl createLiteral(XMLGregorianCalendar arg0) {
+    public BigdataLiteral createLiteral(XMLGregorianCalendar arg0) {
         return valueFactory.createLiteral(arg0);
     }
 
-    public BigdataStatementImpl createStatement(Resource s, URI p, Value o) {
+    public BigdataStatement createStatement(Resource s, URI p, Value o) {
         return valueFactory.createStatement(s, p, o);
     }
 
-    public BigdataStatementImpl createStatement(Resource s, URI p, Value o,
+    public BigdataStatement createStatement(Resource s, URI p, Value o,
             Resource c) {
         return valueFactory.createStatement(s, p, o, c);
     }
 
-    public BigdataStatementImpl createStatement(Resource s, URI p, Value o,
+    public BigdataStatement createStatement(Resource s, URI p, Value o,
             Resource c, StatementEnum type) {
         return valueFactory.createStatement(s, p, o, c, type);
     }
 
-    public BigdataURIImpl createURI(String namespace, String localName) {
+    public BigdataURI createURI(String namespace, String localName) {
         return valueFactory.createURI(namespace, localName);
     }
 
-    public BigdataURIImpl createURI(String uriString) {
+    public BigdataURI createURI(String uriString) {
         return valueFactory.createURI(uriString);
     }
 
-    public BigdataValueSerializer<BigdataValueImpl> getValueSerializer() {
+    public BigdataValueSerializer<BigdataValue> getValueSerializer() {
         return valueFactory.getValueSerializer();
     }
 

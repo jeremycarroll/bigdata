@@ -94,7 +94,7 @@ public class JustificationRemover implements Callable<Long> {
          * Place statements in index order (SPO since all justifications begin
          * with the SPO of the entailed statement.
          */
-        Arrays.sort(a, 0, numStmts, SPOKeyOrder.SPO.getComparator());
+        Arrays.sort(a, 0, numStmts, db.keyOrderProvider.getPrimaryTripleStoreIndex().getComparator());
 
         final long beginWrite = System.currentTimeMillis();
 
