@@ -543,7 +543,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                 buffer.close();
 
             }
-           boolean primary=tripleStore.isQuads()?SPOKeyOrderProvider.getKeyOrderProvider(spoRelation.getNamespace()).getPrimaryQuadStoreIndex()==keyOrder:SPOKeyOrderProvider.getKeyOrderProvider(spoRelation.getNamespace()).getPrimaryTripleStoreIndex()==keyOrder;
+           boolean primary=tripleStore.isQuads()?tripleStore.getKeyOrderProvider().getPrimaryQuadStoreIndex()==keyOrder:tripleStore.getKeyOrderProvider().getPrimaryTripleStoreIndex()==keyOrder;
             buffer = ((IScaleOutClientIndex) spoRelation.getIndex(keyOrder))
                     .newWriteBuffer(primary ? statementResultHandler: null,//
                             new DefaultDuplicateRemover<ISPO>(true/* testRefs */),

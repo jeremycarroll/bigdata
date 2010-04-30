@@ -155,7 +155,7 @@ public class TestSPOTupleSerializer extends TestCase2 {
 
     public void test_encodeDecodeQuad() {
 
-        for (SPOKeyOrder keyOrder:SPOKeyOrderProvider.getKeyOrderProvider("TEST").getQuadStoreIndices()) {
+        for (SPOKeyOrder keyOrder:SPOKeyOrderProvider.getInstance("TEST").getQuadStoreIndices()) {
             
             doEncodeDecodeTest(new SPO(1, 2, 3, 4, StatementEnum.Axiom),
                     keyOrder);

@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.spo;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -60,6 +62,7 @@ import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.proc.LongAggregator;
 import com.bigdata.btree.raba.codec.EmptyRabaValueCoder;
 import com.bigdata.btree.raba.codec.IRabaCoder;
+import com.bigdata.config.Configuration;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IResourceLock;
@@ -75,6 +78,7 @@ import com.bigdata.rdf.spo.JustIndexWriteProc.WriteJustificationsProcConstructor
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.rdf.store.LocalTripleStore;
+import com.bigdata.rdf.store.AbstractTripleStore.Options;
 import com.bigdata.relation.AbstractRelation;
 import com.bigdata.relation.IRelation;
 import com.bigdata.relation.accesspath.IAccessPath;
@@ -195,7 +199,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
 	 * without recourse to RDF style reification.
 	 */
 	final public boolean statementIdentifiers;
-	
 
 	/**
 	 * When <code>true</code> the database will support statement identifiers.
@@ -217,13 +220,68 @@ public class SPORelation extends AbstractRelation<ISPO> {
 		return statementIdentifiers;
 
 	}
+
+	static protected Class determineKeyOrderProviderClass(IIndexManager indexManager,String namespace,Properties properties) {
+
+		// vocabularyClass
+		{
+
+			final String className = Configuration.getProperty(indexManager, properties, namespace,
+					AbstractTripleStore.Options.KEYORDER_PROVIDER_CLASS, AbstractTripleStore.Options.DEFAULT_KEYORDER_PROVIDER_CLASS);
+
+			final Class cls;
+			try {
+				cls = Class.forName(className);
+			} catch (ClassNotFoundException e) {
+				throw new RuntimeException("Bad option: "
+						+ AbstractTripleStore.Options.KEYORDER_PROVIDER_CLASS, e);
+			}
+
+			if (!ISPOKeyOrderProvider.class.isAssignableFrom(cls)) {
+				throw new RuntimeException(AbstractTripleStore.Options.KEYORDER_PROVIDER_CLASS
+						+ ": Must extend: "
+						+ ISPOKeyOrderProvider.class.getName());
+			}
+
+			return cls;
+
+		}
+
+	}
+
+	private static ISPOKeyOrderProvider createKeyOrderProvider(IIndexManager indexManager,String namespace,Properties properties) {
+		try {
+			Class kop = determineKeyOrderProviderClass(indexManager,namespace,properties);
+			Method gi = kop.getMethod("getInstance", String.class);
+			return (ISPOKeyOrderProvider) gi.invoke(null,namespace);
+		} catch (NoSuchMethodException e) {
+			throw new IllegalArgumentException(
+					AbstractTripleStore.Options.VALUE_FACTORY_CLASS, e);
+		} catch (InvocationTargetException e) {
+			throw new IllegalArgumentException(
+					AbstractTripleStore.Options.VALUE_FACTORY_CLASS, e);
+		} catch (IllegalAccessException e) {
+			throw new IllegalArgumentException(
+					AbstractTripleStore.Options.VALUE_FACTORY_CLASS, e);
+		}
+	}
+	
 	final ISPOKeyOrderProvider keyOrderProvider;
 	public SPORelation(final IIndexManager indexManager,
 			final String namespace, final Long timestamp,
 			final Properties properties) {
 
+		this(indexManager,createKeyOrderProvider(indexManager,namespace,properties),namespace,timestamp,properties);
+	
+	}
+	public SPORelation(final IIndexManager indexManager,
+			final ISPOKeyOrderProvider keyOrderProvider,
+			final String namespace, final Long timestamp,
+			final Properties properties) {
+
 		super(indexManager, namespace, timestamp, properties);
-		keyOrderProvider=SPOKeyOrderProvider.getKeyOrderProvider(namespace);
+
+		this.keyOrderProvider=keyOrderProvider;
 		/*
 		 * Reads off the property for the inference engine that tells us whether
 		 * or not the justification index is being used. This is used to
@@ -261,7 +319,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
 				AbstractTripleStore.Options.BLOOM_FILTER,
 				AbstractTripleStore.Options.DEFAULT_BLOOM_FILTER));
 
-		
 		// declare the various indices.
 		{
 
@@ -276,13 +333,13 @@ public class SPORelation extends AbstractRelation<ISPO> {
 					set.add(getFQN(keyOrderProvider.getPrimaryTripleStoreIndex()));
 
 				} else {
-					for(SPOKeyOrder key:keyOrderProvider.getTripleStoreIndices()) {
+					for (SPOKeyOrder key : keyOrderProvider.getTripleStoreIndices()) {
 						set.add(getFQN(key));
 					}
 				}
 
 			} else {
-				
+
 				// six indices for a quad store w/ ids in [3:8].
 				this.indices = new IIndex[SPOKeyOrder.values().length];
 
@@ -291,7 +348,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 					set.add(getFQN(keyOrderProvider.getPrimaryQuadStoreIndex()));
 
 				} else {
-					for(SPOKeyOrder key:keyOrderProvider.getQuadStoreIndices()) {
+					for (SPOKeyOrder key : keyOrderProvider.getQuadStoreIndices()) {
 						set.add(getFQN(key));
 					}
 				}
@@ -548,7 +605,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 	@Override
 	public IIndex getIndex(final IKeyOrder<? extends ISPO> keyOrder) {
 
-		final int n = keyOrderProvider.index((SPOKeyOrder)keyOrder);
+		final int n = keyOrderProvider.index((SPOKeyOrder) keyOrder);
 
 		IIndex ndx = indices[n];
 
@@ -572,7 +629,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 	final public SPOKeyOrder getPrimaryKeyOrder() {
 
-		return keyArity == 3 ? keyOrderProvider.getPrimaryTripleStoreIndex() : keyOrderProvider.getPrimaryQuadStoreIndex();
+		return keyArity == 3 ? keyOrderProvider.getPrimaryTripleStoreIndex()
+				: keyOrderProvider.getPrimaryQuadStoreIndex();
 
 	}
 
@@ -637,7 +695,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 			final ICloseableIterator<ISPO> src) {
 
 		if (!src.hasNext())
-			return new EmptyChunkedIterator<ISPO>(keyOrderProvider.getPrimaryTripleStoreIndex());
+			return new EmptyChunkedIterator<ISPO>(
+					keyOrderProvider.getPrimaryTripleStoreIndex());
 
 		return new DistinctSPOIterator(this, src);
 
@@ -673,7 +732,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 		final IRabaCoder leafValSer = EmptyRabaValueCoder.INSTANCE;
 
 		// setup the tuple serializer.
-		metadata.setTupleSerializer(new SPOTupleSerializer(keyOrderProvider.getPrimaryTripleStoreIndex(),
+		metadata.setTupleSerializer(new SPOTupleSerializer(
+				keyOrderProvider.getPrimaryTripleStoreIndex(),
 				leafKeySer, leafValSer));
 
 		if (bloomFilter) {
@@ -724,7 +784,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 		metadata.setTupleSerializer(new SPOTupleSerializer(keyOrder,
 				leafKeySer, leafValSer));
 
-		if (bloomFilter && keyOrder.equals(keyOrderProvider.getPrimaryTripleStoreIndex())) {
+		if (bloomFilter
+				&& keyOrder.equals(keyOrderProvider.getPrimaryTripleStoreIndex())) {
 
 			/*
 			 * Enable the bloom filter for the SPO index only.
@@ -1764,19 +1825,19 @@ public class SPORelation extends AbstractRelation<ISPO> {
 						mutationCount, //
 						reportMutation));
 			} else {
-				SPOKeyOrder primary=keyOrderProvider.getPrimaryTripleStoreIndex();
+				SPOKeyOrder primary = keyOrderProvider.getPrimaryTripleStoreIndex();
 				for (SPOKeyOrder keyOrder : keyOrderProvider.getTripleStoreIndices()) {
 					tasks.add(new SPOIndexWriter(this, //
 							a, //
 							numStmts,//
-							!(keyOrder==primary)/* clone */, //
+							!(keyOrder == primary)/* clone */, //
 							keyOrder, //
-							(keyOrder==primary),//
+							(keyOrder == primary),//
 							filter,//
 							sortTime,//
 							insertTime, //
 							mutationCount,//
-							(keyOrder==primary) && reportMutation));
+							(keyOrder == primary) && reportMutation));
 				}
 			}
 		} else {
@@ -1793,19 +1854,19 @@ public class SPORelation extends AbstractRelation<ISPO> {
 						mutationCount, //
 						reportMutation));
 			} else {
-				SPOKeyOrder primary=keyOrderProvider.getPrimaryQuadStoreIndex();
+				SPOKeyOrder primary = keyOrderProvider.getPrimaryQuadStoreIndex();
 				for (SPOKeyOrder keyOrder : keyOrderProvider.getQuadStoreIndices()) {
 					tasks.add(new SPOIndexWriter(this, //
 							a, //
 							numStmts,//
-							!(keyOrder==primary)/* clone */, //
+							!(keyOrder == primary)/* clone */, //
 							keyOrder, //
-							(keyOrder==primary),//
+							(keyOrder == primary),//
 							filter,//
 							sortTime,//
 							insertTime, //
 							mutationCount,//
-							(keyOrder==primary) && reportMutation));
+							(keyOrder == primary) && reportMutation));
 				}
 			}
 		}
@@ -1923,18 +1984,18 @@ public class SPORelation extends AbstractRelation<ISPO> {
 						mutationCount, //
 						reportMutation));
 			} else {
-				SPOKeyOrder primary=keyOrderProvider.getPrimaryTripleStoreIndex();
+				SPOKeyOrder primary = keyOrderProvider.getPrimaryTripleStoreIndex();
 				for (SPOKeyOrder keyOrder : keyOrderProvider.getTripleStoreIndices()) {
 					tasks.add(new SPOIndexRemover(this, //
 							stmts,//
 							numStmts,//
 							keyOrder, //
-							(keyOrder==primary),//
-							!(primary==keyOrder)/* clone */,//
+							(keyOrder == primary),//
+							!(primary == keyOrder)/* clone */,//
 							sortTime,//
 							writeTime,//
 							mutationCount,//
-							(primary==keyOrder) && reportMutation));
+							(primary == keyOrder) && reportMutation));
 				}
 			}
 
@@ -1951,18 +2012,18 @@ public class SPORelation extends AbstractRelation<ISPO> {
 						mutationCount, //
 						reportMutation));
 			} else {
-				SPOKeyOrder primary=keyOrderProvider.getPrimaryQuadStoreIndex();
+				SPOKeyOrder primary = keyOrderProvider.getPrimaryQuadStoreIndex();
 				for (SPOKeyOrder keyOrder : keyOrderProvider.getQuadStoreIndices()) {
 					tasks.add(new SPOIndexRemover(this, //
 							stmts, //
 							numStmts,//
 							keyOrder, //
-							(keyOrder==primary),//
-							!(primary==keyOrder)/* clone */, //
+							(keyOrder == primary),//
+							!(primary == keyOrder)/* clone */, //
 							sortTime,//
 							writeTime,//
 							mutationCount,//
-							(primary==keyOrder)&& reportMutation));
+							(primary == keyOrder) && reportMutation));
 				}
 			}
 

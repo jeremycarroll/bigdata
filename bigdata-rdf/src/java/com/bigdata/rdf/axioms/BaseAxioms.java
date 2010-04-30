@@ -452,7 +452,7 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
 
                 System.arraycopy(stmts, 0, this.stmts, 0, numStmts);
 
-                Arrays.sort( this.stmts, SPOKeyOrderProvider.getKeyOrderProvider(database.getNamespace()).getPrimaryTripleStoreIndex().getComparator() );
+                Arrays.sort( this.stmts, database.getKeyOrderProvider().getPrimaryTripleStoreIndex().getComparator() );
                 
             }
             

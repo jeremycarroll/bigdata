@@ -400,7 +400,7 @@ public class OwlSameAsPropertiesExpandingIterator implements
             }
             if (spo != null) {
                 return new ChunkedArrayIterator<ISPO>(1, new SPO[] { spo },
-                		SPOKeyOrderProvider.getKeyOrderProvider(db.getNamespace()).getSubjectFirstKeyOrder(false));
+                		db.getKeyOrderProvider().getSubjectFirstKeyOrder(false));
             } else {
                 return null;
             }

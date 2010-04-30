@@ -32,6 +32,8 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -82,6 +84,7 @@ import com.bigdata.rdf.inf.IJustificationIterator;
 import com.bigdata.rdf.inf.Justification;
 import com.bigdata.rdf.inf.JustificationIterator;
 import com.bigdata.rdf.lexicon.ITermIndexCodes;
+import com.bigdata.rdf.lexicon.ITextIndexer;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.BigdataResource;
 import com.bigdata.rdf.model.BigdataStatement;
@@ -102,6 +105,7 @@ import com.bigdata.rdf.spo.BulkCompleteConverter;
 import com.bigdata.rdf.spo.BulkFilterConverter;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
+import com.bigdata.rdf.spo.ISPOKeyOrderProvider;
 import com.bigdata.rdf.spo.JustificationWriter;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOKeyOrder;
@@ -234,6 +238,8 @@ abstract public class AbstractTripleStore extends
      */
     final private boolean quads;
 
+    final private ISPOKeyOrderProvider keyOrderProvider;
+    
     /**
      * Indicate whether this is a triple or a quad store (3 is a triple store, 4
      * is a quad store).
@@ -808,7 +814,21 @@ abstract public class AbstractTripleStore extends
         
         String DEFAULT_QUADS_MODE = "false";
 
+        String VALUE_FACTORY_CLASS=AbstractTripleStore.class.getName()
+        + ".valueFactoryClass";
         
+        String DEFAULT_VALUE_FACTORY_CLASS=BigdataValueFactoryImpl.class.getName();
+        
+        String TEXT_INDEXER_CLASS=AbstractTripleStore.class.getName()
+        + ".textIndexerClass";
+        
+        String DEFAULT_TEXT_INDEXER_CLASS=FullTextIndex.class.getName();
+    
+        
+        String KEYORDER_PROVIDER_CLASS=AbstractTripleStore.class.getName()
+        + ".keyorderProviderClass";
+        
+        String DEFAULT_KEYORDER_PROVIDER_CLASS=SPOKeyOrderProvider.class.getName();
     }
 
     protected Class determineAxiomClass() {
@@ -879,7 +899,33 @@ abstract public class AbstractTripleStore extends
         }
         
     }
-    
+    protected Class determineKeyOrderProviderClass() {
+        
+        // vocabularyClass
+        {
+
+            final String className = getProperty(Options.KEYORDER_PROVIDER_CLASS,
+                    Options.DEFAULT_KEYORDER_PROVIDER_CLASS);
+
+            final Class cls;
+            try {
+                cls = Class.forName(className);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("Bad option: "
+                        + Options.KEYORDER_PROVIDER_CLASS, e);
+            }
+
+            if (!ISPOKeyOrderProvider.class.isAssignableFrom(cls)) {
+                throw new RuntimeException(Options.KEYORDER_PROVIDER_CLASS
+                        + ": Must extend: "
+                        + ISPOKeyOrderProvider.class.getName());
+            }
+            
+            return cls;
+
+        }
+        
+    }
     /**
      * Ctor specified by {@link DefaultResourceLocator}.
      * 
@@ -892,6 +938,18 @@ abstract public class AbstractTripleStore extends
 
         super(indexManager, namespace, timestamp, properties);
         
+        try {
+        	Class kop=determineKeyOrderProviderClass();
+        	Method gi=kop.getMethod("getInstance",String.class);
+        	this.keyOrderProvider=(ISPOKeyOrderProvider)gi.invoke(null, namespace);
+        }catch(NoSuchMethodException e) {
+        	throw new IllegalArgumentException(AbstractTripleStore.Options.VALUE_FACTORY_CLASS,e);
+        }catch(InvocationTargetException e) {
+        	throw new IllegalArgumentException(AbstractTripleStore.Options.VALUE_FACTORY_CLASS,e);
+        }catch(IllegalAccessException e) {
+        	throw new IllegalArgumentException(AbstractTripleStore.Options.VALUE_FACTORY_CLASS,e);
+        }
+       
         /*
          * Reads off the property for the inference engine that tells us whether
          * or not the justification index is being used. This is used to
@@ -1165,8 +1223,8 @@ abstract public class AbstractTripleStore extends
 
             }
 
-            spoRelation = new SPORelation(getIndexManager(), getNamespace()
-                    + "." + SPORelation.NAME_SPO_RELATION, getTimestamp(), tmp);
+            spoRelation = new SPORelation(getIndexManager(), getKeyOrderProvider(),
+            		getNamespace() + "." + SPORelation.NAME_SPO_RELATION, getTimestamp(), tmp);
 
             spoRelation.create();//assignedSplits);
 
@@ -1484,13 +1542,12 @@ abstract public class AbstractTripleStore extends
      * @see Options#TEXT_INDEX
      * @see Options#TEXT_INDEX_DATATYPE_LITERALS
      */
-    final public FullTextIndex getSearchEngine() {
+    final public ITextIndexer getSearchEngine() {
 
         if (!lexicon)
             return null;
 
-        return getLexiconRelation().getSearchEngine();
-        
+        return  getLexiconRelation().getSearchEngine();
     }
     
     final public long getNamedGraphCount() {
@@ -1499,7 +1556,7 @@ abstract public class AbstractTripleStore extends
             throw new UnsupportedOperationException();
 
         final Iterator<?> itr = getSPORelation().distinctTermScan(
-        		SPOKeyOrderProvider.getKeyOrderProvider(getNamespace()).getContextFirstKeyOrder());
+        		getKeyOrderProvider().getContextFirstKeyOrder());
 
         long n = 0;
 
@@ -2691,7 +2748,7 @@ abstract public class AbstractTripleStore extends
         
         // visit distinct term identifiers for the predicate position.
         final IChunkedIterator<Long> itr = getSPORelation().distinctTermScan(
-                SPOKeyOrderProvider.getKeyOrderProvider(getNamespace()).getPredicateFirstKeyOrder(quads));
+        		getKeyOrderProvider().getPredicateFirstKeyOrder(quads));
 
         // resolve term identifiers to terms efficiently during iteration.
         final BigdataValueIterator itr2 = new BigdataValueIteratorImpl(
@@ -2933,6 +2990,13 @@ abstract public class AbstractTripleStore extends
         }
         
     }
+    
+    /**
+	 * @return the keyOrderProvider
+	 */
+	public ISPOKeyOrderProvider getKeyOrderProvider() {
+		return keyOrderProvider;
+	}
     
     /*
      * IRawTripleStore
@@ -3448,7 +3512,7 @@ abstract public class AbstractTripleStore extends
          * Note: SIDS are only used with triples so the SPO index will exist.
          */
         return new DelegateChunkedIterator<ISPO>(tmp.getAccessPath(
-        		SPOKeyOrderProvider.getKeyOrderProvider(getNamespace()).getPrimaryTripleStoreIndex()).iterator()) {
+        		getKeyOrderProvider().getPrimaryTripleStoreIndex()).iterator()) {
 
             public void close() {
 

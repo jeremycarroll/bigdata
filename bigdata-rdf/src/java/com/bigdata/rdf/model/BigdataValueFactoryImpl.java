@@ -136,7 +136,7 @@ public class BigdataValueFactoryImpl implements BigdataValueFactory {
      * @param namespace
      *            The namespace of the {@link LexiconRelation}.
      */
-    public static void remove(final String namespace) {
+    public void remove(final String namespace) {
         
         if (namespace == null)
             throw new IllegalArgumentException();

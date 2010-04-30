@@ -9,6 +9,8 @@ import com.bigdata.relation.rule.IPredicate;
  *
  */
 public interface ISPOKeyOrderProvider {
+	public abstract void remove(String namespace);
+	
 	final static int S = 0;
 	final static int P = 1;
 	final static int O = 2;

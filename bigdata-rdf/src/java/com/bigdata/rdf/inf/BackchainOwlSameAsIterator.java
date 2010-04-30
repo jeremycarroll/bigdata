@@ -52,7 +52,7 @@ public abstract class BackchainOwlSameAsIterator implements IChunkedOrderedItera
         this.src = src;
         
         this.db = db;
-        this.keyOrderProvider=SPOKeyOrderProvider.getKeyOrderProvider(db.getNamespace());
+        this.keyOrderProvider=db.getKeyOrderProvider();
         this.sameAs = sameAs;
     
     }

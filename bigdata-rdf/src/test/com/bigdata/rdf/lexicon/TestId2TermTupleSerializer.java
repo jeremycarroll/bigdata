@@ -50,6 +50,7 @@ package com.bigdata.rdf.lexicon;
 import junit.framework.TestCase2;
 
 import com.bigdata.btree.BytesUtil;
+import com.bigdata.rdf.model.BigdataValueFactoryImpl;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
@@ -75,7 +76,7 @@ public class TestId2TermTupleSerializer extends TestCase2 {
         final String namespace = "lexicon";
         
         final Id2TermTupleSerializer fixture = new Id2TermTupleSerializer(
-                namespace);
+                namespace, BigdataValueFactoryImpl.getInstance(namespace));
 
         long id1 = -1;
         long id2 = 0;

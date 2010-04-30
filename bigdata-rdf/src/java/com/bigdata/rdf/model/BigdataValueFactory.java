@@ -47,7 +47,10 @@ import com.bigdata.rdf.store.IRawTripleStore;
  * @version $Id$
  */
 public interface BigdataValueFactory extends ValueFactory {
-
+	/**
+	 * Remove instance of valueFactory from static cache
+	 */
+	void remove(final String namespace);
     /**
      * Returns a factory that will assign its blank node IDs within a globally
      * unique namespace. This factory should be used when processing a document

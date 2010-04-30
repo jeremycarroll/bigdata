@@ -6,8 +6,14 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import com.bigdata.cache.ConcurrentWeakValueCache;
+import com.bigdata.cache.LRUCache;
+import com.bigdata.cache.WeakValueCache;
+import com.bigdata.rdf.lexicon.LexiconRelation;
+import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.BigdataValueFactoryImpl;
+import com.bigdata.rdf.model.BigdataValueImpl;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.IVariableOrConstant;
@@ -19,32 +25,59 @@ import com.bigdata.relation.rule.IVariableOrConstant;
  * 
  */
 public class SPOKeyOrderProvider implements ISPOKeyOrderProvider {
-	  private static Hashtable<String, ISPOKeyOrderProvider>                      staticFactories = new Hashtable<String, ISPOKeyOrderProvider>();
 
-	static public ISPOKeyOrderProvider getKeyOrderProvider(String namespace) {
-		 if (namespace == null)
-	            throw new IllegalArgumentException();
+	/**
+     * Canonicalizing mapping for {@link SPOKeyOrderProvider}s based on the
+     * namespace of the {@link SPOKeyOrderProvider}.
+     */
+    private static WeakValueCache<String/* namespace */, SPOKeyOrderProvider> cache = new WeakValueCache<String, SPOKeyOrderProvider>(
+            new LRUCache<String, SPOKeyOrderProvider>(1/* capacity */));
 
-	        synchronized (staticFactories) {
-	        	ISPOKeyOrderProvider a = staticFactories.get(namespace);
-	            if (a == null) {
-	                a=new SPOKeyOrderProvider();
-	                staticFactories.put(namespace, a);
-	            }
-	            return a;
+    /**
+     * Return the instance associated with the <i>namespace</i>.
+        * @param namespace
+     *            The namespace of the {@link SPOKeyOrderProvider}.
+     */
+    public static SPOKeyOrderProvider getInstance(final String namespace) {
+        
+        if (namespace == null)
+            throw new IllegalArgumentException();
+        
+        synchronized(cache) {
+            
+        	SPOKeyOrderProvider a = cache.get(namespace);
 
-	        }
+            if (a == null) {
 
-	}
-	 public static void setInstance(final String namespace,final ISPOKeyOrderProvider valueFactory) {
-	        if (namespace == null||valueFactory==null)
-	            throw new IllegalArgumentException();
+                a = new SPOKeyOrderProvider();
 
-	        synchronized (staticFactories) {
-	            staticFactories.put(namespace,valueFactory);
-
-	        }
-	    }
+                cache.put(namespace, a, true/* dirty */);
+                
+            }
+            
+            return a;
+            
+        }
+        
+    }
+    
+    /**
+     * Remove a {@link SPOKeyOrderProvider} from the canonicalizing mapping.
+     * @param namespace
+     *            The namespace of the {@link SPOKeyOrderProvider}.
+     */
+    public void remove(final String namespace) {
+        
+        if (namespace == null)
+            throw new IllegalArgumentException();
+        
+        synchronized(cache) {
+        
+            cache.remove(namespace);
+            
+        }
+        
+    }
 	    
 	/*
 	 * Constants corresponding to the columns of the SPO(C) relation.

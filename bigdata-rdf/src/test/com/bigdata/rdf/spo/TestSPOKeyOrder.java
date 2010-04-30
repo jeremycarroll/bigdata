@@ -153,7 +153,7 @@ public class TestSPOKeyOrder extends TestCase2 {
 
         final KeyBuilder keyBuilder = new KeyBuilder(4 * Bytes.SIZEOF_LONG);
 
-        for (SPOKeyOrder keyOrder:SPOKeyOrderProvider.getKeyOrderProvider("TEST").getQuadStoreIndices()) {
+        for (SPOKeyOrder keyOrder:SPOKeyOrderProvider.getInstance("TEST").getQuadStoreIndices()) {
 
             final SPO expected = new SPO(1, 2, 3, 4);
 
@@ -253,21 +253,21 @@ public class TestSPOKeyOrder extends TestCase2 {
     public void test_spoOnlyKeyOrder_iterator() {
 
         assertSameIteratorAnyOrder(new SPOKeyOrder[] { SPOKeyOrder.SPO },
-                SPOKeyOrderProvider.getKeyOrderProvider("TEST").spoOnlyKeyOrderIterator());
+                SPOKeyOrderProvider.getInstance("TEST").spoOnlyKeyOrderIterator());
         
     }
     
     public void test_spocOnlyKeyOrder_iterator() {
 
         assertSameIteratorAnyOrder(new SPOKeyOrder[] { SPOKeyOrder.SPOC },
-                SPOKeyOrderProvider.getKeyOrderProvider("TEST").spocOnlyKeyOrderIterator());
+                SPOKeyOrderProvider.getInstance("TEST").spocOnlyKeyOrderIterator());
         
     }
     
     public void test_tripleStoreKeyOrders_iterator() {
 
         assertSameIteratorAnyOrder(new SPOKeyOrder[] { SPOKeyOrder.SPO,
-                SPOKeyOrder.POS, SPOKeyOrder.OSP }, SPOKeyOrderProvider.getKeyOrderProvider("TEST")
+                SPOKeyOrder.POS, SPOKeyOrder.OSP }, SPOKeyOrderProvider.getInstance("TEST")
                 .tripleStoreKeyOrderIterator());
 
     }
@@ -276,7 +276,7 @@ public class TestSPOKeyOrder extends TestCase2 {
 
         assertSameIteratorAnyOrder(new SPOKeyOrder[] { SPOKeyOrder.SPOC,
                 SPOKeyOrder.POCS, SPOKeyOrder.OCSP, SPOKeyOrder.CSPO,
-                SPOKeyOrder.PCSO, SPOKeyOrder.SOPC, }, SPOKeyOrderProvider.getKeyOrderProvider("TEST")
+                SPOKeyOrder.PCSO, SPOKeyOrder.SOPC, }, SPOKeyOrderProvider.getInstance("TEST")
                 .quadStoreKeyOrderIterator());
 
     }

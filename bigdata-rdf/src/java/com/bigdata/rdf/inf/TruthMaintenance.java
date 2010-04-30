@@ -247,7 +247,7 @@ public class TruthMaintenance {
          */
 
         final IChunkedOrderedIterator<ISPO> itr = focusStore.getAccessPath(
-        		SPOKeyOrderProvider.getKeyOrderProvider(database.getNamespace()).getSubjectFirstKeyOrder(false), ExplicitSPOFilter.INSTANCE).iterator();
+        		database.getKeyOrderProvider().getSubjectFirstKeyOrder(false), ExplicitSPOFilter.INSTANCE).iterator();
 
         int nremoved = 0;
         
@@ -615,7 +615,7 @@ public class TruthMaintenance {
 //      final TempTripleStore focusStore = new TempTripleStore(database.getProperties(), database);
         
         // consider each statement in the tempStore.
-        final IChunkedOrderedIterator<ISPO> itr = tempStore.getAccessPath(SPOKeyOrderProvider.getKeyOrderProvider(database.getNamespace()).getSubjectFirstKeyOrder(false)).iterator();
+        final IChunkedOrderedIterator<ISPO> itr = tempStore.getAccessPath(database.getKeyOrderProvider().getSubjectFirstKeyOrder(false)).iterator();
 
         final long nretracted;
         final long ndowngraded;
@@ -901,7 +901,7 @@ public class TruthMaintenance {
              */
             
             final SPOArrayIterator tmp = new SPOArrayIterator(focusStore, focusStore
-                    .getAccessPath(SPOKeyOrderProvider.getKeyOrderProvider(database.getNamespace()).getSubjectFirstKeyOrder(false)), 0/* limit */, null/* filter */);
+                    .getAccessPath(database.getKeyOrderProvider().getSubjectFirstKeyOrder(false)), 0/* limit */, null/* filter */);
             
             if(DEBUG && database.getStatementCount()<200) {
                 
@@ -952,7 +952,7 @@ public class TruthMaintenance {
             
         }
 
-        if( focusStore.getAccessPath(SPOKeyOrderProvider.getKeyOrderProvider(database.getNamespace()).getSubjectFirstKeyOrder(false)).isEmpty()) {
+        if( focusStore.getAccessPath(database.getKeyOrderProvider().getSubjectFirstKeyOrder(false)).isEmpty()) {
 
             log.info("Done - closure of focusStore produced no entailments to consider.");
             

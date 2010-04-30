@@ -320,9 +320,9 @@ public class TestAsynchronousStatementBufferFactory extends
                 // raw statement indices.
                 {
                     
-                    final Iterator<SPOKeyOrder> itr = store.isQuads() ? SPOKeyOrderProvider.getKeyOrderProvider(store.getNamespace())
+                    final Iterator<SPOKeyOrder> itr = store.isQuads() ? SPOKeyOrderProvider.getInstance(store.getNamespace())
                             .quadStoreKeyOrderIterator()
-                            : SPOKeyOrderProvider.getKeyOrderProvider(store.getNamespace()).tripleStoreKeyOrderIterator();
+                            : SPOKeyOrderProvider.getInstance(store.getNamespace()).tripleStoreKeyOrderIterator();
 
                     while (itr.hasNext()) {
                      
@@ -338,9 +338,9 @@ public class TestAsynchronousStatementBufferFactory extends
                 // resolved statement indices.
                 {
 
-                    final Iterator<SPOKeyOrder> itr = store.isQuads() ? SPOKeyOrderProvider.getKeyOrderProvider(store.getNamespace())
+                    final Iterator<SPOKeyOrder> itr = store.isQuads() ? SPOKeyOrderProvider.getInstance(store.getNamespace())
                             .quadStoreKeyOrderIterator()
-                            : SPOKeyOrderProvider.getKeyOrderProvider(store.getNamespace()).tripleStoreKeyOrderIterator();
+                            : SPOKeyOrderProvider.getInstance(store.getNamespace()).tripleStoreKeyOrderIterator();
 
                     while (itr.hasNext()) {
 

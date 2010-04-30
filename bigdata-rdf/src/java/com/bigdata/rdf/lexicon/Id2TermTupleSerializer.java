@@ -50,6 +50,8 @@ package com.bigdata.rdf.lexicon;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 import org.openrdf.model.Value;
 
@@ -61,10 +63,12 @@ import com.bigdata.btree.raba.codec.SimpleRabaCoder;
 import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.model.BigdataValue;
-import com.bigdata.rdf.model.BigdataValueFactoryFactory;
+import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.BigdataValueFactoryImpl;
 import com.bigdata.rdf.model.BigdataValueImpl;
 import com.bigdata.rdf.model.BigdataValueSerializer;
+import com.bigdata.rdf.spo.ISPOKeyOrderProvider;
+import com.bigdata.rdf.store.AbstractTripleStore;
 
 /**
  * Encapsulates key and value formation for the reverse lexicon index.
@@ -97,6 +101,8 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<Long, Bigdata
      * restricted to a single writer so it does not have to be thread-safe.
      */
     final transient private DataOutputBuffer buf = new DataOutputBuffer(Bytes.SIZEOF_LONG);
+    
+    transient private BigdataValueFactory valueFactory;
 
     /**
      * De-serialization ctor.
@@ -113,7 +119,7 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<Long, Bigdata
      *            A factory that does not support unicode and has an
      *            initialCapacity of {@value Bytes#SIZEOF_LONG}.
      */
-    public Id2TermTupleSerializer(final String namespace) {
+    public Id2TermTupleSerializer(final String namespace,final BigdataValueFactory valueFactory) {
         
         super(//
                 new ASCIIKeyBuilderFactory(Bytes.SIZEOF_LONG),//
@@ -132,9 +138,8 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<Long, Bigdata
             throw new IllegalArgumentException();
         
         this.namespace = namespace;
-
-        this.valueSer = BigdataValueFactoryFactory.getInstance(namespace)
-                .getValueSerializer();
+        this.valueFactory=valueFactory;
+        this.valueSer = this.valueFactory.getValueSerializer();
 
     }
     
@@ -224,19 +229,36 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<Long, Bigdata
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         
         super.readExternal(in);
-        
+        String valueFactoryClass=in.readUTF();
         namespace = in.readUTF();
-
-        valueSer = BigdataValueFactoryFactory.getInstance(namespace).getValueSerializer();
+        try {
+        	Class vfc=Class.forName(valueFactoryClass);
+        	if (!BigdataValueFactory.class.isAssignableFrom(vfc)) {
+				throw new RuntimeException(AbstractTripleStore.Options.VALUE_FACTORY_CLASS
+						+ ": Must extend: "
+						+ ISPOKeyOrderProvider.class.getName());
+			}
+        	Method gi=vfc.getMethod("getInstance", String.class);
+        	this.valueFactory=(BigdataValueFactory)gi.invoke(null, namespace);
+        }catch(NoSuchMethodException e) {
+        	throw new IOException(e);
+        }catch(InvocationTargetException e) {
+        	throw new IOException(e);
+        }catch(IllegalAccessException e) {
+        	throw new IOException(e);
+        }
+        valueSer = this.valueFactory.getValueSerializer();
         
     }
     
     public void writeExternal(ObjectOutput out) throws IOException {
 
         super.writeExternal(out);
-        
+        out.writeUTF(valueFactory.getClass().getName());
         out.writeUTF(namespace);
         
     }
     
+
+	
 }

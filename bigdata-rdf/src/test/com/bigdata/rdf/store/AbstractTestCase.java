@@ -698,9 +698,9 @@ abstract public class AbstractTestCase
         final int from, to;
         SPOKeyOrder keys[];
         if (db.getSPOKeyArity() == 3) {
-           keys= SPOKeyOrderProvider.getKeyOrderProvider("TEST").getTripleStoreIndices();
+           keys= SPOKeyOrderProvider.getInstance("TEST").getTripleStoreIndices();
         } else {
-            keys= SPOKeyOrderProvider.getKeyOrderProvider("TEST").getTripleStoreIndices();
+            keys= SPOKeyOrderProvider.getInstance("TEST").getTripleStoreIndices();
         }
         
         for (int i = 0; i <keys.length; i++) {
