@@ -21,7 +21,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
- */
+*/
 /*
  * Created on Jun 21, 2008
  */
@@ -117,10 +117,10 @@ import cutthecrap.utils.striterators.Striterator;
  * statement identifier are stored under the key. All state for a statement is
  * replicated in each of the statement indices.
  * 
- * * @todo integration with package providing magic set rewrites of rules in
- * order to test whether or not a statement is still provable when it is
- * retracted during TM. this will reduce the cost of loading data, since much of
- * that is writing the justifications index.
+ *  * @todo integration with package providing magic set rewrites of rules in order
+ *       to test whether or not a statement is still provable when it is
+ *       retracted during TM. this will reduce the cost of loading data, since
+ *       much of that is writing the justifications index.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -191,12 +191,12 @@ public class SPORelation extends AbstractRelation<ISPO> {
 	final protected boolean bloomFilter;
 
 	/**
-	 * When <code>true</code> the database will support statement identifiers. A
-	 * statement identifier is a unique 64-bit integer taken from the same space
-	 * as the term identifiers and which uniquely identifiers a statement in the
-	 * database regardless of the graph in which that statement appears. The
-	 * purpose of statement identifiers is to allow statements about statements
-	 * without recourse to RDF style reification.
+     * When <code>true</code> the database will support statement identifiers.
+     * A statement identifier is a unique 64-bit integer taken from the same
+     * space as the term identifiers and which uniquely identifiers a statement
+     * in the database regardless of the graph in which that statement appears.
+     * The purpose of statement identifiers is to allow statements about
+     * statements without recourse to RDF style reification.
 	 */
 	final public boolean statementIdentifiers;
 
@@ -387,12 +387,12 @@ public class SPORelation extends AbstractRelation<ISPO> {
 	/**
 	 * @todo This should use GRS row scan in the GRS for the SPORelation
 	 *       namespace. It is only used by the {@link LocalTripleStore}
-	 *       constructor and a unit test's main() method. This method IS NOT
-	 *       part of any public API at this time.
+     *       constructor and a unit test's main() method.  This method
+     *       IS NOT part of any public API at this time.
 	 */
 	public boolean exists() {
 
-		for (String name : getIndexNames()) {
+        for(String name : getIndexNames()) {
 
 			if (getIndex(name) == null)
 				return false;
@@ -403,81 +403,78 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 	}
 
-	// /**
-	// * Attempt to resolve each index for the {@link SPORelation} and cache a
-	// * hard reference to that index.
-	// *
-	// * FIXME The LDS unit tests are failing when attempting to resolve the
-	// JUST
-	// * index from the SPORelation when it was not declared for the
-	// AbstractTask.
-	// * The eager resolution of indices is going to break all of the LDS
-	// * execution.
-	// *
-	// * @todo Optimization. When materializing a relation, such as the
-	// * {@link SPORelation} or the {@link LexiconRelation}, on a
-	// * {@link DataService} we may not want to have all indices resolved
-	// * eager. The {@link AbstractTask} will actually return
-	// * <code>null</code> rather than throwing an exception, but eager
-	// * resolution of the indices will force {@link IClientIndex}s to
-	// * spring into existence when we might only want a single index for
-	// * the relation.
-	// */
-	// private void lookupIndices() {
-	//
-	// /*
-	// * Note: if full transactions are to be used then the statement indices
-	// * and the justification indices should be assigned the transaction
-	// * identifier.
-	// */
-	//
-	// if (keyArity == 3) {
-	//
-	// if (oneAccessPath) {
-	//
-	// // attempt to resolve the index and set the index reference.
-	// indices[SPOKeyOrder._SPO] = super.getIndex(SPOKeyOrder.SPO);
-	//
-	// } else {
-	//
-	// // attempt to resolve the index and set the index reference.
-	// indices[SPOKeyOrder._SPO] = super.getIndex(SPOKeyOrder.SPO);
-	// indices[SPOKeyOrder._POS] = super.getIndex(SPOKeyOrder.POS);
-	// indices[SPOKeyOrder._OSP] = super.getIndex(SPOKeyOrder.OSP);
-	//
-	// }
-	//
-	// } else {
-	//
-	// if(oneAccessPath) {
-	//            
-	// indices[SPOKeyOrder._SPOC] = super.getIndex(SPOKeyOrder.SPOC);
-	//                
-	// } else {
-	//
-	// for (int i = SPOKeyOrder.FIRST_QUAD_INDEX; i <=
-	// SPOKeyOrder.LAST_QUAD_INDEX; i++) {
-	//
-	// indices[i] = super.getIndex(SPOKeyOrder.valueOf(i));
-	//
-	// }
-	//
-	// }
-	//            
-	// }
-	//
-	// if (justify) {
-	//
-	// // attempt to resolve the index and set the index reference.
-	// just = super.getIndex(getNamespace() + "." + NAME_JUST);
-	//
-	// } else {
-	//
-	// just = null;
-	//
-	// }
-	//
-	// }
+//    /**
+//     * Attempt to resolve each index for the {@link SPORelation} and cache a
+//     * hard reference to that index.
+//     * 
+//     * FIXME The LDS unit tests are failing when attempting to resolve the JUST
+//     * index from the SPORelation when it was not declared for the AbstractTask.
+//     * The eager resolution of indices is going to break all of the LDS
+//     * execution.
+//     * 
+//     * @todo Optimization. When materializing a relation, such as the
+//     *       {@link SPORelation} or the {@link LexiconRelation}, on a
+//     *       {@link DataService} we may not want to have all indices resolved
+//     *       eager. The {@link AbstractTask} will actually return
+//     *       <code>null</code> rather than throwing an exception, but eager
+//     *       resolution of the indices will force {@link IClientIndex}s to
+//     *       spring into existence when we might only want a single index for
+//     *       the relation.
+//     */
+//    private void lookupIndices() {
+//
+//        /*
+//         * Note: if full transactions are to be used then the statement indices
+//         * and the justification indices should be assigned the transaction
+//         * identifier.
+//         */
+//
+//        if (keyArity == 3) {
+//
+//            if (oneAccessPath) {
+//
+//                // attempt to resolve the index and set the index reference.
+//                indices[SPOKeyOrder._SPO] = super.getIndex(SPOKeyOrder.SPO);
+//
+//            } else {
+//
+//                // attempt to resolve the index and set the index reference.
+//                indices[SPOKeyOrder._SPO] = super.getIndex(SPOKeyOrder.SPO);
+//                indices[SPOKeyOrder._POS] = super.getIndex(SPOKeyOrder.POS);
+//                indices[SPOKeyOrder._OSP] = super.getIndex(SPOKeyOrder.OSP);
+//
+//            }
+//
+//        } else {
+//
+//            if(oneAccessPath) {
+//            
+//                indices[SPOKeyOrder._SPOC] = super.getIndex(SPOKeyOrder.SPOC);
+//                
+//            } else {
+//
+//                for (int i = SPOKeyOrder.FIRST_QUAD_INDEX; i <= SPOKeyOrder.LAST_QUAD_INDEX; i++) {
+//
+//                    indices[i] = super.getIndex(SPOKeyOrder.valueOf(i));
+//
+//                }
+//
+//            }
+//            
+//        }
+//
+//        if (justify) {
+//
+//            // attempt to resolve the index and set the index reference.
+//            just = super.getIndex(getNamespace() + "." + NAME_JUST);
+//
+//        } else {
+//
+//            just = null;
+//
+//        }
+//
+//    }
 
 	public void create() {
 
@@ -514,7 +511,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 				// quads
 
-				if (oneAccessPath) {
+                if(oneAccessPath) {
 
 					indexManager
 							.registerIndex(getStatementIndexMetadata(keyOrderProvider.getPrimaryQuadStoreIndex()));
@@ -540,7 +537,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 			}
 
-			// lookupIndices();
+//            lookupIndices();
 
 		} finally {
 
@@ -570,18 +567,18 @@ public class SPORelation extends AbstractRelation<ISPO> {
 			}
 
 			// drop indices.
-			for (String name : getIndexNames()) {
+            for(String name : getIndexNames()) {
 
 				indexManager.dropIndex(name);
 
 			}
 
-			// if (justify) {
-			//
-			// indexManager.dropIndex(getNamespace() + "."+ NAME_JUST);
+//            if (justify) {
+//
+//                indexManager.dropIndex(getNamespace() + "."+ NAME_JUST);
 			just = null;
-			//
-			// }
+//
+//            }
 
 			// destroy the relation declaration metadata.
 			super.destroy();
@@ -736,7 +733,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 				keyOrderProvider.getPrimaryTripleStoreIndex(),
 				leafKeySer, leafValSer));
 
-		if (bloomFilter) {
+        if(bloomFilter) {
 
 			// optionally enable the bloom filter.
 			metadata.setBloomFilterFactory(BloomFilterFactory.DEFAULT);
@@ -773,7 +770,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 			 */
 
 			leafValSer = new FastRDFValueCoder2();
-			// leafValSer = SimpleRabaCoder.INSTANCE;
+//            leafValSer = SimpleRabaCoder.INSTANCE;
 
 		} else {
 
@@ -800,29 +797,28 @@ public class SPORelation extends AbstractRelation<ISPO> {
 			 * journal for the index partitions overflows.
 			 */
 
-			// // good performance up to ~2M triples.
-			// final int n = 1000000; // 1M
-			// final double p = 0.01;
-			// final double maxP = 0.20;
+//            // good performance up to ~2M triples.
+//            final int n = 1000000; // 1M
+//            final double p = 0.01;
+//            final double maxP = 0.20;
 
-			// // good performance up to ~20M triples.
-			// final int n = 10000000; // 10M
-			// final double p = 0.05;
-			// final double maxP = 0.20;
+//            // good performance up to ~20M triples.
+//            final int n = 10000000; // 10M
+//            final double p = 0.05;
+//            final double maxP = 0.20;
 
-			// final BloomFilterFactory factory = new BloomFilterFactory(n, p,
-			// maxP);
+//            final BloomFilterFactory factory = new BloomFilterFactory(n, p, maxP);
 
 			final BloomFilterFactory factory = BloomFilterFactory.DEFAULT;
 
 			if (log.isInfoEnabled())
 				log.info("Enabling bloom filter for SPO index: " + factory);
 
-			metadata.setBloomFilterFactory(factory);
+            metadata.setBloomFilterFactory( factory );
 
 		}
 
-		if (TimestampUtility.isReadWriteTx(getTimestamp())) {
+        if(TimestampUtility.isReadWriteTx(getTimestamp())) {
 
 			// enable isolatable indices.
 			metadata.setIsolatable(true);
@@ -836,10 +832,10 @@ public class SPORelation extends AbstractRelation<ISPO> {
 			 * 
 			 * @todo we should have an explicit "no inference" property. this
 			 * jumps through hoops since we can not call getAxioms() on the
-			 * AbstractTripleStore has been created, and SPORelation#create() is
-			 * invoked from within AbstractTripleStore#create(). When adding
-			 * that property, update a bunch of unit tests and code which tests
-			 * on the axioms class or BaseAxioms#isNone().
+             * AbstractTripleStore has been created, and SPORelation#create()
+             * is invoked from within AbstractTripleStore#create().  When
+             * adding that property, update a bunch of unit tests and code
+             * which tests on the axioms class or BaseAxioms#isNone().
 			 */
 			if (NoAxioms.class.getName().equals(
 					getContainer().getProperties().getProperty(
@@ -902,19 +898,18 @@ public class SPORelation extends AbstractRelation<ISPO> {
 			 * {green,blue} after the transactions run, rather than either
 			 * {green} or {blue}.
 			 */
-			// if (txTuple.isDeletedVersion() &&
-			// currentTuple.isDeletedVersion()) {
-			//
-			// // System.err.println("Resolved retract/retract conflict");
-			//                
-			// // retract/retract is not a conflict.
-			// return true;
-			//
-			// }
+//            if (txTuple.isDeletedVersion() && currentTuple.isDeletedVersion()) {
+//
+////                System.err.println("Resolved retract/retract conflict");
+//                
+//                // retract/retract is not a conflict.
+//                return true;
+//
+//            }
 
 			if (!txTuple.isDeletedVersion() && !currentTuple.isDeletedVersion()) {
 
-				// System.err.println("Resolved add/add conflict");
+//                System.err.println("Resolved add/add conflict");
 
 				// add/add is not a conflict.
 				return true;
@@ -961,7 +956,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 	 */
 	public Iterator<SPOKeyOrder> statementKeyOrderIterator() {
 
-		switch (keyArity) {
+        switch(keyArity) {
 		case 3:
 
 			if (oneAccessPath)
@@ -1012,7 +1007,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 	public IAccessPath<ISPO> getAccessPath(final long s, final long p,
 			final long o, final long c) {
 
-		return getAccessPath(s, p, o, c, null/* filter */);
+        return getAccessPath(s, p, o, c, null/*filter*/);
 
 	}
 
@@ -1111,29 +1106,29 @@ public class SPORelation extends AbstractRelation<ISPO> {
 		 * Note: Query is faster w/o cache on all LUBM queries.
 		 * 
 		 * @todo Optimization could reuse a caller's SPOAccessPath instance,
-		 * setting only the changed data on the fromKey/toKey. That could be
-		 * done with setS(long), setO(long), setP(long) methods. The filter
-		 * could be modified in the same manner. That could cut down on
-		 * allocation costs, formatting the from/to keys, etc.
+         * setting only the changed data on the fromKey/toKey.  That could
+         * be done with setS(long), setO(long), setP(long) methods.  The
+         * filter could be modified in the same manner.  That could cut down
+         * on allocation costs, formatting the from/to keys, etc.
 		 */
 
-		// if (predicate.getPartitionId() != -1) {
-		//
-		// /*
-		// * Note: This handles a read against a local index partition.
-		// *
-		// * Note: This does not work here because it has the federation's
-		// * index manager rather than the data service's index manager. That
-		// * is because we always resolve relations against the federation
-		// * since their metadata is stored in the global row store. Maybe
-		// * this could be changed if we developed the concept of a
-		// * "relation shard" accessed the metadata via a catalog and which
-		// * was aware that only one index shard could be resolved locally.
-		// */
-		//
-		// return getAccessPathForIndexPartition(predicate);
-		//
-		// }
+//        if (predicate.getPartitionId() != -1) {
+//
+//            /*
+//             * Note: This handles a read against a local index partition.
+//             * 
+//             * Note: This does not work here because it has the federation's
+//             * index manager rather than the data service's index manager. That
+//             * is because we always resolve relations against the federation
+//             * since their metadata is stored in the global row store. Maybe
+//             * this could be changed if we developed the concept of a
+//             * "relation shard" accessed the metadata via a catalog and which
+//             * was aware that only one index shard could be resolved locally.
+//             */
+//
+//            return getAccessPathForIndexPartition(predicate);
+//
+//        }
 
 		return _getAccessPath(predicate);
 
@@ -1201,8 +1196,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 			final IPredicate<ISPO> predicate//
 	) {
 
-		// Note: This is the federation's index manager _always_.
-		// final IIndexManager indexManager = getIndexManager();
+// Note: This is the federation's index manager _always_.
+//        final IIndexManager indexManager = getIndexManager();
 
 		if (indexManager == null)
 			throw new IllegalArgumentException();
@@ -1235,10 +1230,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
 		if (partitionId == -1) // must be a valid partition identifier.
 			throw new IllegalArgumentException();
 
-		// @todo This condition should probably be an error since the expander
-		// will be ignored.
-		// if (predicate.getSolutionExpander() != null)
-		// throw new IllegalArgumentException();
+        // @todo This condition should probably be an error since the expander will be ignored.
+//        if (predicate.getSolutionExpander() != null)
+//            throw new IllegalArgumentException();
 
 		if (predicate.getRelationCount() != 1) {
 
@@ -1257,7 +1251,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 		}
 
-		final String namespace = getNamespace();// predicate.getOnlyRelationName();
+        final String namespace = getNamespace();//predicate.getOnlyRelationName();
 
 		/*
 		 * Find the best access path for that predicate.
@@ -1276,13 +1270,11 @@ public class SPORelation extends AbstractRelation<ISPO> {
 		 * Note: If the timestamp is a historical read, then the iterator will
 		 * be read only regardless of whether we specify that flag here or not.
 		 */
-		// * Note: We can specify READ_ONLY here since the tail predicates are
-		// not
-		// * mutable for rule execution.
-		final int flags = IRangeQuery.KEYS | IRangeQuery.VALS;// |
-		// IRangeQuery.READONLY;
+//      * Note: We can specify READ_ONLY here since the tail predicates are not
+//      * mutable for rule execution.
+        final int flags = IRangeQuery.KEYS | IRangeQuery.VALS;// | IRangeQuery.READONLY;
 
-		final long timestamp = getTimestamp();// getReadTimestamp();
+        final long timestamp = getTimestamp();//getReadTimestamp();
 
 		// MUST be a local index view.
 		final ILocalBTreeView ndx = (ILocalBTreeView) indexManager
@@ -1347,7 +1339,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 				| IRangeQuery.VALS
 				| (TimestampUtility.isReadOnly(getTimestamp()) ? IRangeQuery.READONLY
 						: 0)
-				| IRangeQuery.PARALLEL;
+                | IRangeQuery.PARALLEL
+                ;
 
 		final AbstractTripleStore container = getContainer();
 
@@ -1363,21 +1356,21 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 	}
 
-	// public long getElementCount(boolean exact) {
-	//
-	// final IIndex ndx = getIndex(SPOKeyOrder.SPO);
-	//        
-	// if (exact) {
-	//        
-	// return ndx.rangeCountExact(null/* fromKey */, null/* toKey */);
-	//            
-	// } else {
-	//            
-	// return ndx.rangeCount(null/* fromKey */, null/* toKey */);
-	//            
-	// }
-	//        
-	// }
+//    public long getElementCount(boolean exact) {
+//
+//        final IIndex ndx = getIndex(SPOKeyOrder.SPO);
+//        
+//        if (exact) {
+//        
+//            return ndx.rangeCountExact(null/* fromKey */, null/* toKey */);
+//            
+//        } else {
+//            
+//            return ndx.rangeCount(null/* fromKey */, null/* toKey */);
+//            
+//        }
+//        
+//    }
 
 	/**
 	 * Efficient scan of the distinct term identifiers that appear in the first
@@ -1391,8 +1384,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 	 * 
 	 * @return An iterator visiting the distinct term identifiers.
 	 */
-	public IChunkedIterator<Long> distinctTermScan(
-			final IKeyOrder<ISPO> keyOrder) {
+    public IChunkedIterator<Long> distinctTermScan(final IKeyOrder<ISPO> keyOrder) {
 
 		return distinctTermScan(keyOrder,/* termIdFilter */null);
 
@@ -1419,8 +1411,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 		final FilterConstructor<SPO> filter = new FilterConstructor<SPO>();
 
 		/*
-		 * Layer in the logic to advance to the tuple that will have the next
-		 * distinct term identifier in the first position of the key.
+         * Layer in the logic to advance to the tuple that will have the
+         * next distinct term identifier in the first position of the key.
 		 */
 		filter.addFilter(new DistinctTermAdvancer(keyArity));
 
@@ -1486,7 +1478,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 		final SPO spo = new SPO(s, p, o, StatementEnum.Inferred);
 
-		if (log.isDebugEnabled())
+        if(log.isDebugEnabled())
 			log.debug(spo.toString());
 
 		return spo;
@@ -1519,13 +1511,13 @@ public class SPORelation extends AbstractRelation<ISPO> {
 		final IVariableOrConstant<Long> t = pred.get(index);
 
 		final IConstant<Long> c;
-		if (t.isVar()) {
+        if(t.isVar()) {
 
 			c = bindingSet.get((IVariable) t);
 
 		} else {
 
-			c = (IConstant<Long>) t;
+            c = (IConstant<Long>)t;
 
 		}
 
@@ -1533,138 +1525,126 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 	}
 
-	// /**
-	// * Return a buffer onto which a multi-threaded process may write chunks of
-	// * elements to be written on the relation asynchronously. Chunks will be
-	// * combined by a {@link BlockingBuffer} for greater efficiency. The buffer
-	// * should be {@link BlockingBuffer#close() closed} once no more data will
-	// be
-	// * written. This buffer may be used whether or not statement identifiers
-	// are
-	// * enabled and will eventually delegate its work to
-	// * {@link AbstractTripleStore#addStatements(AbstractTripleStore, boolean,
-	// IChunkedOrderedIterator, IElementFilter)}
-	// * <p>
-	// * The returned {@link BlockingBuffer} is thread-safe and is intended for
-	// * high concurrency use cases such as bulk loading data in which multiple
-	// * threads need to write on the relation concurrently. The use of this
-	// * buffer can substantially increase throughput for such use cases owing
-	// to
-	// * its ability to combine chunks together before they are scattered to the
-	// * indices. The effect is most pronounced for scale-out deployments when
-	// * each write would normally be scattered to a large number of index
-	// * partitions. By combining the chunks before they are scattered, the
-	// writes
-	// * against the index partitions can be larger. Increased throughput
-	// results
-	// * both from issuing fewer RMI requests, each of which must sit in a
-	// queue,
-	// * and from having more data in each request which results in more
-	// efficient
-	// * ordered writes on each index partition.
-	// *
-	// * @param chunkSize
-	// * The desired chunk size for a write operation (this is an
-	// * explicit parameter since the desirable chunk size for a write
-	// * can be much larger than the desired chunk size for a read).
-	// *
-	// * @return A write buffer. The {@link Future} on the blocking buffer is
-	// the
-	// * task draining the buffer and writing on the statement indices. It
-	// * may be used to wait until the writes are stable on the federation
-	// * or to cancel any outstanding writes.
-	// */
-	// synchronized public BlockingBuffer<ISPO[]> newWriteBuffer(final int
-	// chunkSize) {
-	//
-	// final BlockingBuffer<ISPO[]> writeBuffer = new BlockingBuffer<ISPO[]>(
-	// getChunkOfChunksCapacity(), chunkSize/*getChunkCapacity()*/,
-	// getChunkTimeout(), TimeUnit.MILLISECONDS);
-	//
-	// final Future<Void> future = getExecutorService().submit(
-	// new ChunkConsumerTask(writeBuffer.iterator()));
-	//
-	// writeBuffer.setFuture(future);
-	//
-	// return writeBuffer;
-	//
-	// }
-	//
-	// /**
-	// * Consumes elements from the source iterator, converting them into chunks
-	// * on a {@link BlockingBuffer}. The consumer will drain the chunks from
-	// the
-	// * buffer.
-	// *
-	// * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
-	// Thompson</a>
-	// * @version $Id$
-	// */
-	// private class ChunkConsumerTask implements Callable<Void> {
-	//        
-	// /**
-	// * The source which this task is draining.
-	// * <p>
-	// * Note: DO NOT close this iterator from within {@link #call()} - that
-	// * would cause the task to interrupt itself!
-	// */
-	// private final IAsynchronousIterator<ISPO[]> src;
-	//        
-	// public ChunkConsumerTask(final IAsynchronousIterator<ISPO[]> src) {
-	//
-	// if (src == null)
-	// throw new IllegalArgumentException();
-	//            
-	// this.src = src;
-	//
-	// }
-	//            
-	// public Void call() throws Exception {
-	//
-	// long nchunks = 0;
-	// long nelements = 0;
-	//
-	// while (src.hasNext()) {
-	//
-	// final ISPO[] chunk = src.next();
-	//
-	// nchunks++;
-	// nelements += chunk.length;
-	//
-	// if (log.isDebugEnabled())
-	// log.debug("#chunks=" + nchunks + ", chunkSize="
-	// + chunk.length + ", nelements=" + nelements);
-	//
-	// getContainer()
-	// .addStatements(chunk, chunk.length, null/* filter */);
-	//
-	// }
-	//
-	// if (log.isInfoEnabled())
-	// log.info("Done: #chunks=" + nchunks + ", #elements="
-	// + nelements);
-	//
-	// return null;
-	//
-	// }
-	//
-	// }
+//    /**
+//     * Return a buffer onto which a multi-threaded process may write chunks of
+//     * elements to be written on the relation asynchronously. Chunks will be
+//     * combined by a {@link BlockingBuffer} for greater efficiency. The buffer
+//     * should be {@link BlockingBuffer#close() closed} once no more data will be
+//     * written. This buffer may be used whether or not statement identifiers are
+//     * enabled and will eventually delegate its work to
+//     * {@link AbstractTripleStore#addStatements(AbstractTripleStore, boolean, IChunkedOrderedIterator, IElementFilter)}
+//     * <p>
+//     * The returned {@link BlockingBuffer} is thread-safe and is intended for
+//     * high concurrency use cases such as bulk loading data in which multiple
+//     * threads need to write on the relation concurrently. The use of this
+//     * buffer can substantially increase throughput for such use cases owing to
+//     * its ability to combine chunks together before they are scattered to the
+//     * indices. The effect is most pronounced for scale-out deployments when
+//     * each write would normally be scattered to a large number of index
+//     * partitions. By combining the chunks before they are scattered, the writes
+//     * against the index partitions can be larger. Increased throughput results
+//     * both from issuing fewer RMI requests, each of which must sit in a queue,
+//     * and from having more data in each request which results in more efficient
+//     * ordered writes on each index partition.
+//     * 
+//     * @param chunkSize
+//     *            The desired chunk size for a write operation (this is an
+//     *            explicit parameter since the desirable chunk size for a write
+//     *            can be much larger than the desired chunk size for a read).
+//     * 
+//     * @return A write buffer. The {@link Future} on the blocking buffer is the
+//     *         task draining the buffer and writing on the statement indices. It
+//     *         may be used to wait until the writes are stable on the federation
+//     *         or to cancel any outstanding writes.
+//     */
+//    synchronized public BlockingBuffer<ISPO[]> newWriteBuffer(final int chunkSize) {
+//
+//        final BlockingBuffer<ISPO[]> writeBuffer = new BlockingBuffer<ISPO[]>(
+//                getChunkOfChunksCapacity(), chunkSize/*getChunkCapacity()*/,
+//                getChunkTimeout(), TimeUnit.MILLISECONDS);
+//
+//        final Future<Void> future = getExecutorService().submit(
+//                new ChunkConsumerTask(writeBuffer.iterator()));
+//
+//        writeBuffer.setFuture(future);
+//
+//        return writeBuffer;
+//
+//    }
+//
+//    /**
+//     * Consumes elements from the source iterator, converting them into chunks
+//     * on a {@link BlockingBuffer}. The consumer will drain the chunks from the
+//     * buffer.
+//     * 
+//     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+//     * @version $Id$
+//     */
+//    private class ChunkConsumerTask implements Callable<Void> {
+//        
+//        /**
+//         * The source which this task is draining.
+//         * <p>
+//         * Note: DO NOT close this iterator from within {@link #call()} - that
+//         * would cause the task to interrupt itself!
+//         */
+//        private final IAsynchronousIterator<ISPO[]> src;
+//        
+//        public ChunkConsumerTask(final IAsynchronousIterator<ISPO[]> src) {
+//
+//            if (src == null)
+//                throw new IllegalArgumentException();
+//            
+//            this.src = src;
+//
+//        }
+//            
+//        public Void call() throws Exception {
+//
+//            long nchunks = 0;
+//            long nelements = 0;
+//
+//            while (src.hasNext()) {
+//
+//                final ISPO[] chunk = src.next();
+//
+//                nchunks++;
+//                nelements += chunk.length;
+//
+//                if (log.isDebugEnabled())
+//                    log.debug("#chunks=" + nchunks + ", chunkSize="
+//                            + chunk.length + ", nelements=" + nelements);
+//
+//                getContainer()
+//                        .addStatements(chunk, chunk.length, null/* filter */);
+//
+//            }
+//
+//            if (log.isInfoEnabled())
+//                log.info("Done: #chunks=" + nchunks + ", #elements="
+//                        + nelements);
+//
+//            return null;
+//
+//        }
+//
+//    }
 
 	/**
 	 * Inserts {@link SPO}s, writing on the statement indices in parallel.
 	 * <p>
 	 * Note: This does NOT write on the justifications index. If justifications
-	 * are being maintained then the {@link ISolution}s MUST report binding sets
-	 * and an {@link InsertSolutionBuffer} MUST be used that knows how to write
-	 * on the justifications index AND delegate writes on the statement indices
-	 * to this method.
+     * are being maintained then the {@link ISolution}s MUST report binding
+     * sets and an {@link InsertSolutionBuffer} MUST be used that knows how to
+     * write on the justifications index AND delegate writes on the statement
+     * indices to this method.
 	 * <p>
 	 * Note: This does NOT assign statement identifiers. The {@link SPORelation}
 	 * does not have direct access to the {@link LexiconRelation} and the latter
 	 * is responsible for assigning term identifiers. Code that writes explicit
 	 * statements onto the statement indices MUST use
-	 * {@link AbstractTripleStore#addStatements(AbstractTripleStore, boolean, IChunkedOrderedIterator, IElementFilter)}
-	 * , which knows how to generate the statement identifiers. In turn, that
+     * {@link AbstractTripleStore#addStatements(AbstractTripleStore, boolean, IChunkedOrderedIterator, IElementFilter)},
+     * which knows how to generate the statement identifiers. In turn, that
 	 * method will delegate each "chunk" to this method.
 	 */
 	public long insert(final IChunkedOrderedIterator<ISPO> itr) {
@@ -1673,11 +1653,11 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 			long n = 0;
 
-			while (itr.hasNext()) {
+            while(itr.hasNext()) {
 
 				final ISPO[] a = itr.nextChunk();
 
-				n += insert(a, a.length, null/* filter */);
+                n += insert( a, a.length, null/*filter*/ );
 
 			}
 
@@ -1718,7 +1698,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 			long n = 0;
 
-			while (itr.hasNext()) {
+            while(itr.hasNext()) {
 
 				final ISPO[] a = itr.nextChunk();
 
@@ -1786,9 +1766,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 		final long begin = System.currentTimeMillis();
 
-		if (log.isDebugEnabled()) {
+        if(log.isDebugEnabled()) {
 
-			log.debug("indexManager=" + getIndexManager());
+            log.debug("indexManager="+getIndexManager());
 
 		}
 
@@ -1878,10 +1858,11 @@ public class SPORelation extends AbstractRelation<ISPO> {
 		// }
 
 		final List<Future<Long>> futures;
-		/*
-		 * final long elapsed_SPO; final long elapsed_POS; final long
-		 * elapsed_OSP;
-		 */
+/*
+        final long elapsed_SPO;
+        final long elapsed_POS;
+        final long elapsed_OSP;
+*/
 		try {
 
 			futures = getExecutorService().invokeAll(tasks);
@@ -1891,12 +1872,16 @@ public class SPORelation extends AbstractRelation<ISPO> {
 				futures.get(i).get();
 
 			}
-			/*
-			 * elapsed_SPO = futures.get(0).get(); if (!oneAccessPath) {
-			 * elapsed_POS = futures.get(1).get(); elapsed_OSP =
-			 * futures.get(2).get(); } else { elapsed_POS = 0; elapsed_OSP = 0;
-			 * }
-			 */
+/*
+            elapsed_SPO = futures.get(0).get();
+            if (!oneAccessPath) {
+                elapsed_POS = futures.get(1).get();
+                elapsed_OSP = futures.get(2).get();
+            } else {
+                elapsed_POS = 0;
+                elapsed_OSP = 0;
+            }
+*/
 		} catch (InterruptedException ex) {
 
 			throw new RuntimeException(ex);
@@ -1915,9 +1900,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
 					+ mutationCount + ") in " + elapsed + "ms" //
 					+ "; sort=" + sortTime + "ms" //
 					+ ", keyGen+insert=" + insertTime + "ms" //
-					// + "; spo=" + elapsed_SPO + "ms" //
-			// + ", pos=" + elapsed_POS + "ms" //
-			// + ", osp=" + elapsed_OSP + "ms" //
+//                    + "; spo=" + elapsed_SPO + "ms" //
+//                    + ", pos=" + elapsed_POS + "ms" //
+//                    + ", osp=" + elapsed_OSP + "ms" //
 			);
 
 		}
@@ -2042,8 +2027,10 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 		final List<Future<Long>> futures;
 		/*
-		 * final long elapsed_SPO; final long elapsed_POS; final long
-		 * elapsed_OSP; final long elapsed_JST;
+        final long elapsed_SPO;
+        final long elapsed_POS;
+        final long elapsed_OSP;
+        final long elapsed_JST;
 		 */
 
 		try {
@@ -2055,33 +2042,33 @@ public class SPORelation extends AbstractRelation<ISPO> {
 				futures.get(i).get();
 
 			}
-			/*
-			 * elapsed_SPO = futures.get(0).get();
-			 * 
-			 * if (!oneAccessPath) {
-			 * 
-			 * elapsed_POS = futures.get(1).get();
-			 * 
-			 * elapsed_OSP = futures.get(2).get();
-			 * 
-			 * } else {
-			 * 
-			 * elapsed_POS = 0;
-			 * 
-			 * elapsed_OSP = 0;
-			 * 
-			 * }
-			 * 
-			 * if (justify) {
-			 * 
-			 * elapsed_JST = futures.get(3).get();
-			 * 
-			 * } else {
-			 * 
-			 * elapsed_JST = 0;
-			 * 
-			 * }
-			 */
+/*
+            elapsed_SPO = futures.get(0).get();
+
+            if (!oneAccessPath) {
+
+                elapsed_POS = futures.get(1).get();
+
+                elapsed_OSP = futures.get(2).get();
+
+            } else {
+
+                elapsed_POS = 0;
+
+                elapsed_OSP = 0;
+
+            }
+
+            if (justify) {
+
+                elapsed_JST = futures.get(3).get();
+
+            } else {
+
+                elapsed_JST = 0;
+
+            }
+*/
 		} catch (InterruptedException ex) {
 
 			throw new RuntimeException(ex);
@@ -2099,9 +2086,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
 			log.info("Removed " + numStmts + " in " + elapsed
 					+ "ms; sort=" + sortTime + "ms, keyGen+delete="
 					+ writeTime + "ms"
-					// + "; spo=" + elapsed_SPO + "ms, pos="
-					// + elapsed_POS + "ms, osp=" + elapsed_OSP
-					// + "ms, jst=" + elapsed_JST
+//                    + "; spo=" + elapsed_SPO + "ms, pos="
+//                    + elapsed_POS + "ms, osp=" + elapsed_OSP
+//                    + "ms, jst=" + elapsed_JST
 					);
 
 		}
@@ -2114,8 +2101,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
 	 * Adds justifications to the store.
 	 * 
 	 * @param itr
-	 *            The iterator from which we will read the {@link Justification}
-	 *            s to be added. The iterator is closed by this operation.
+     *            The iterator from which we will read the {@link Justification}s
+     *            to be added. The iterator is closed by this operation.
 	 * 
 	 * @return The #of {@link Justification}s written on the justifications
 	 *         index.
@@ -2138,14 +2125,14 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 			final long begin = System.currentTimeMillis();
 
-			// /*
-			// * Note: This capacity estimate is based on N longs per SPO, one
-			// * head, and 2-3 SPOs in the tail. The capacity will be extended
-			// * automatically if necessary.
-			// */
-			//
-			// final KeyBuilder keyBuilder = new KeyBuilder(IRawTripleStore.N
-			// * (1 + 3) * Bytes.SIZEOF_LONG);
+//            /*
+//             * Note: This capacity estimate is based on N longs per SPO, one
+//             * head, and 2-3 SPOs in the tail. The capacity will be extended
+//             * automatically if necessary.
+//             */
+//
+//            final KeyBuilder keyBuilder = new KeyBuilder(IRawTripleStore.N
+//                    * (1 + 3) * Bytes.SIZEOF_LONG);
 
 			long nwritten = 0;
 
@@ -2167,9 +2154,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 				for (int i = 0; i < n; i++) {
 
-					// final Justification jst = a[i];
+//                    final Justification jst = a[i];
 
-					keys[i] = tupleSer.serializeKey(a[i]);// jst.getKey(keyBuilder);
+                    keys[i] = tupleSer.serializeKey(a[i]);//jst.getKey(keyBuilder);
 
 				}
 

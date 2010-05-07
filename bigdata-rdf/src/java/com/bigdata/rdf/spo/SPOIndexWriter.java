@@ -40,7 +40,7 @@ suggestions and support of the Cognitive Web.
 
 Modifications:
 
- */
+*/
 /*
  * Created on Apr 9, 2008
  */
@@ -68,7 +68,7 @@ import com.bigdata.relation.accesspath.IElementFilter;
  */
 public class SPOIndexWriter implements Callable<Long> {
 
-	// private final AbstractTripleStore statementStore;
+//    private final AbstractTripleStore statementStore;
 
 	private final ISPO[] stmts;
 
@@ -235,7 +235,7 @@ public class SPOIndexWriter implements Callable<Long> {
 		// dense array of statements to write.
 		final ISPO[] denseStmts = reportMutation ? new ISPO[numStmts] : null;
 
-		final ByteArrayBuffer vbuf = new ByteArrayBuffer(1 + 8/* max length */);
+        final ByteArrayBuffer vbuf = new ByteArrayBuffer(1+8/*max length*/);
 
 		for (int i = 0; i < numStmts; i++) {
 
@@ -269,7 +269,7 @@ public class SPOIndexWriter implements Callable<Long> {
 			// generate value for the index.
 			vals[numToAdd] = spo.serializeValue(vbuf);
 
-			if (reportMutation)
+            if(reportMutation)
 				denseStmts[numToAdd] = spo;
 
 			last = spo;

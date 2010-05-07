@@ -22,16 +22,22 @@ import com.bigdata.striterator.AbstractChunkedResolverator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 
 /**
- * Efficiently resolve term identifiers in Bigdata {@link ISolution}s to RDF {@link BigdataValue}s.
+ * Efficiently resolve term identifiers in Bigdata {@link ISolution}s to RDF
+ * {@link BigdataValue}s.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class BigdataStatementIteratorImpl extends AbstractChunkedResolverator<ISPO, BigdataStatement, AbstractTripleStore> implements BigdataStatementIterator {
+public class BigdataStatementIteratorImpl
+        extends
+        AbstractChunkedResolverator<ISPO, BigdataStatement, AbstractTripleStore>
+        implements BigdataStatementIterator {
 
     /**
-     * An optional map of known blank node term identifiers and the corresponding {@link BigdataBNodeImpl} objects. This map may be used to resolve term
-     * identifiers to the corresponding blank node objects across a "connection" context.
+     * An optional map of known blank node term identifiers and the
+     * corresponding {@link BigdataBNodeImpl} objects. This map may be used to
+     * resolve term identifiers to the corresponding blank node objects across a
+     * "connection" context.
      */
     private final Map<Long, BigdataBNode> bnodes;
 
@@ -40,12 +46,14 @@ public class BigdataStatementIteratorImpl extends AbstractChunkedResolverator<IS
      * @param db
      *            Used to resolve term identifiers to {@link Value} objects.
      * @param src
-     *            The source iterator (will be closed when this iterator is closed).
+     *            The source iterator (will be closed when this iterator is
+     *            closed).
      */
-    public BigdataStatementIteratorImpl(final AbstractTripleStore db, final IChunkedOrderedIterator<ISPO> src) {
+    public BigdataStatementIteratorImpl(final AbstractTripleStore db,
+            final IChunkedOrderedIterator<ISPO> src) {
 
         this(db, null/* bnodes */, src);
-
+        
     }
 
     /**
@@ -53,17 +61,20 @@ public class BigdataStatementIteratorImpl extends AbstractChunkedResolverator<IS
      * @param db
      *            Used to resolve term identifiers to {@link Value} objects.
      * @param bnodes
-     *            An optional map of known blank node term identifiers and the corresponding {@link BigdataBNodeImpl} objects. This map may be used to resolve
-     *            blank node term identifiers to blank node objects across a "connection" context.
+     *            An optional map of known blank node term identifiers and the
+     *            corresponding {@link BigdataBNodeImpl} objects. This map may
+     *            be used to resolve blank node term identifiers to blank node
+     *            objects across a "connection" context.
      * @param src
-     *            The source iterator (will be closed when this iterator is closed).
+     *            The source iterator (will be closed when this iterator is
+     *            closed).
      */
     public BigdataStatementIteratorImpl(final AbstractTripleStore db, final Map<Long, BigdataBNode> bnodes, final IChunkedOrderedIterator<ISPO> src) {
 
         super(db, src, new BlockingBuffer<BigdataStatement[]>(db.getChunkOfChunksCapacity(), db.getChunkCapacity(), db.getChunkTimeout(), TimeUnit.MILLISECONDS));
 
         this.bnodes = bnodes;
-
+        
     }
 
     /**

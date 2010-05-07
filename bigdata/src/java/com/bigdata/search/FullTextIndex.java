@@ -21,7 +21,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
- */
+*/
 /*
  * Created on Jan 23, 2008
  */
@@ -294,7 +294,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	 */
 	public IIndex getIndex() {
 
-		if (ndx == null) {
+        if(ndx == null) {
 
 			synchronized (this) {
 
@@ -314,23 +314,22 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	/**
 	 * Options understood by the {@link FullTextIndex}.
 	 * 
-	 * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
-	 *         Thompson</a>
-	 * @version $Id$
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
 	 */
 	public interface Options {
 
 		/**
 		 * <code>indexer.overwrite</code> - boolean option (default
-		 * <code>true</code>) controls the behavior when a write is requested on
-		 * the index and the {term,doc,field} tuple which forms the key is
-		 * already present in the index. When <code>true</code>, the new value
-		 * will be written on the index. When <code>false</code>, the existing
-		 * value will be retained. This option is an optimization which makes
-		 * sense when the corpus (a) only grows; and (b) the content of the
-		 * documents in the corpus never changes. For example, this is true for
-		 * an RDF database since the set of terms only grows and each term is
-		 * immutable.
+         * <code>true</code>) controls the behavior when a write is requested
+         * on the index and the {term,doc,field} tuple which forms the key is
+         * already present in the index. When <code>true</code>, the new
+         * value will be written on the index. When <code>false</code>, the
+         * existing value will be retained. This option is an optimization which
+         * makes sense when the corpus (a) only grows; and (b) the content of
+         * the documents in the corpus never changes. For example, this is true
+         * for an RDF database since the set of terms only grows and each term
+         * is immutable.
 		 */
 		String OVERWRITE = "indexer.overwrite";
 
@@ -394,8 +393,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	public static final transient String NAME_SEARCH = "search";
 
 	/**
-	 * <code>true</code> unless {{@link #getTimestamp()} is
-	 * {@link ITx#UNISOLATED}.
+     * <code>true</code> unless {{@link #getTimestamp()} is {@link ITx#UNISOLATED}.
 	 */
 	final public boolean isReadOnly() {
 
@@ -405,7 +403,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 
 	protected void assertWritable() {
 
-		if (isReadOnly()) {
+        if(isReadOnly()) {
 
 			throw new IllegalStateException("READ_ONLY");
 
@@ -413,7 +411,6 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 
 	}
 
-	
 	/**
 	 * Ctor specified by {@link DefaultResourceLocator}.
 	 * 
@@ -467,8 +464,8 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 		/*
 		 * Note: defer resolution of the index.
 		 */
-		// // resolve index (might not exist, in which case this will be null).
-		// ndx = getIndex(getNamespace()+"."+NAME_SEARCH);
+//        // resolve index (might not exist, in which case this will be null).
+//        ndx = getIndex(getNamespace()+"."+NAME_SEARCH);
 
 	}
 
@@ -486,20 +483,20 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 
 		assertWritable();
 
-		final String name = getNamespace() + "." + NAME_SEARCH;
+        final String name = getNamespace() + "."+NAME_SEARCH;
 
 		final IIndexManager indexManager = getIndexManager();
 
-		// final IResourceLock resourceLock = acquireExclusiveLock();
-		//
-		// try {
+//        final IResourceLock resourceLock = acquireExclusiveLock();
+//
+//        try {
 
 		/*
-		 * FIXME register a tuple serializer that knows how to unpack the values
-		 * and how to extract the bytes corresponding to the encoded text (they
-		 * can not be decoded) from key and how to extract the document and
-		 * field identifiers from the key. It should also encapsulate the use of
-		 * PRIMARY strength for the key builder.
+             * FIXME register a tuple serializer that knows how to unpack the
+             * values and how to extract the bytes corresponding to the encoded
+             * text (they can not be decoded) from key and how to extract the
+             * document and field identifiers from the key. It should also
+             * encapsulate the use of PRIMARY strength for the key builder.
 		 * 
 		 * FIXME put the IKeyBuilderFactory on the index.
 		 */
@@ -516,13 +513,13 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 		/*
 		 * Note: defer resolution of the index.
 		 */
-		// ndx = getIndex(name);
+//            ndx = getIndex(name);
 
-		// } finally {
-		//
-		// unlock(resourceLock);
-		//
-		// }
+//        } finally {
+//
+//            unlock(resourceLock);
+//
+//        }
 
 	}
 
@@ -539,7 +536,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 
 		try {
 
-			indexManager.dropIndex(getNamespace() + "." + NAME_SEARCH);
+            indexManager.dropIndex(getNamespace() +"."+ NAME_SEARCH);
 
 		} finally {
 
@@ -645,15 +642,14 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	 * Note: There MUST be an entry under the empty string (""). This entry will
 	 * be requested when there is no entry for the specified language code.
 	 */
-	private Map<String, AnalyzerConstructor> analyzers;
+    private Map<String,AnalyzerConstructor> analyzers;
 
 	/**
 	 * Initializes the various kinds of analyzers that we know about.
 	 * <p>
 	 * Note: Each {@link Analyzer} is registered under both the 3 letter and the
 	 * 2 letter language codes. See <a
-	 * href="http://www.loc.gov/standards/iso639-2/php/code_list.php">ISO
-	 * 639-2</a>.
+     * href="http://www.loc.gov/standards/iso639-2/php/code_list.php">ISO 639-2</a>.
 	 * 
 	 * @todo get some informed advice on which {@link Analyzer}s map onto which
 	 *       language codes.
@@ -670,7 +666,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	 * @todo There are a lot of pidgins based on french, english, and other
 	 *       languages that are not being assigned here.
 	 */
-	synchronized private Map<String, AnalyzerConstructor> getAnalyzers() {
+    synchronized private Map<String,AnalyzerConstructor> getAnalyzers() {
 
 		if (analyzers != null) {
 
@@ -721,14 +717,14 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 					return new CJKAnalyzer(Version.LUCENE_CURRENT);
 				}
 			};
-			// analyzers.put("zho", a);
-			// analyzers.put("chi", a);
-			// analyzers.put("zh", a);
+//            analyzers.put("zho", a);
+//            analyzers.put("chi", a);
+//            analyzers.put("zh", a);
 			analyzers.put("jpn", a);
 			analyzers.put("ja", a);
 			analyzers.put("jpn", a);
-			analyzers.put("kor", a);
-			analyzers.put("ko", a);
+            analyzers.put("kor",a);
+            analyzers.put("ko",a);
 		}
 
 		{
@@ -737,9 +733,9 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 					return new CzechAnalyzer(Version.LUCENE_CURRENT);
 				}
 			};
-			analyzers.put("ces", a);
-			analyzers.put("cze", a);
-			analyzers.put("cs", a);
+            analyzers.put("ces",a);
+            analyzers.put("cze",a);
+            analyzers.put("cs",a);
 		}
 
 		{
@@ -748,9 +744,9 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 					return new DutchAnalyzer(Version.LUCENE_CURRENT);
 				}
 			};
-			analyzers.put("dut", a);
-			analyzers.put("nld", a);
-			analyzers.put("nl", a);
+            analyzers.put("dut",a);
+            analyzers.put("nld",a);
+            analyzers.put("nl",a);
 		}
 
 		{
@@ -759,9 +755,9 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 					return new FrenchAnalyzer(Version.LUCENE_CURRENT);
 				}
 			};
-			analyzers.put("fra", a);
-			analyzers.put("fre", a);
-			analyzers.put("fr", a);
+            analyzers.put("fra",a); 
+            analyzers.put("fre",a); 
+            analyzers.put("fr",a);
 		}
 
 		/*
@@ -774,9 +770,9 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 					return new GermanAnalyzer(Version.LUCENE_CURRENT);
 				}
 			};
-			analyzers.put("deu", a);
-			analyzers.put("ger", a);
-			analyzers.put("de", a);
+            analyzers.put("deu",a); 
+            analyzers.put("ger",a); 
+            analyzers.put("de",a);
 		}
 
 		// Note: ancient greek has a different code (grc).
@@ -786,9 +782,9 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 					return new GreekAnalyzer(Version.LUCENE_CURRENT);
 				}
 			};
-			analyzers.put("gre", a);
-			analyzers.put("ell", a);
-			analyzers.put("el", a);
+            analyzers.put("gre",a); 
+            analyzers.put("ell",a); 
+            analyzers.put("el",a);
 		}
 
 		// @todo what about other Cyrillic scripts?
@@ -798,8 +794,8 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 					return new RussianAnalyzer(Version.LUCENE_CURRENT);
 				}
 			};
-			analyzers.put("rus", a);
-			analyzers.put("ru", a);
+            analyzers.put("rus",a); 
+            analyzers.put("ru",a); 
 		}
 
 		{
@@ -808,8 +804,8 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 					return new ThaiAnalyzer(Version.LUCENE_CURRENT);
 				}
 			};
-			analyzers.put("tha", a);
-			analyzers.put("th", a);
+            analyzers.put("tha",a); 
+            analyzers.put("th",a); 
 		}
 
 		// English
@@ -833,6 +829,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 
 	}
 
+    
 	/*
 	 * thread-local key builder.
 	 */
@@ -894,10 +891,10 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	/**
 	 * Index a field in a document.
 	 * <p>
-	 * Note: This method does NOT force a write on the indices. If the
-	 * <i>buffer</i> overflows, then there will be an index write. Once the
-	 * caller is done indexing, they MUST invoke {@link TokenBuffer#flush()} to
-	 * force any data remaining in their <i>buffer</i> to the indices.
+     * Note: This method does NOT force a write on the indices. If the <i>buffer</i>
+     * overflows, then there will be an index write. Once the caller is done
+     * indexing, they MUST invoke {@link TokenBuffer#flush()} to force any data
+     * remaining in their <i>buffer</i> to the indices.
 	 * <p>
 	 * Note: If a document is pre-existing, then the existing data for that
 	 * document MUST be removed unless you know that the fields to be found in
@@ -918,8 +915,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	 * 
 	 * @see TokenBuffer#flush()
 	 */
-	public void index(final TokenBuffer buffer, final long docId,
-			final int fieldId,
+    public void index(final TokenBuffer buffer, final long docId, final int fieldId,
 			final String languageCode, final Reader r) {
 
 		/*
@@ -928,22 +924,21 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 		 * will only occur on {document,field} tuple boundaries, so it will
 		 * never overflow when indexing a search query.
 		 */
-		// assertWritable();
+//        assertWritable();
 
 		int n = 0;
 
-		// tokenize (note: docId,fieldId are not on the tokenStream, but the
-		// field could be).
+        // tokenize (note: docId,fieldId are not on the tokenStream, but the field could be).
 		final TokenStream tokenStream = getTokenStream(languageCode, r);
 		try {
 			while (tokenStream.incrementToken()) {
-				TermAttribute term = tokenStream.getAttribute(TermAttribute.class);
+            TermAttribute term=tokenStream.getAttribute(TermAttribute.class);
 				buffer.add(docId, fieldId, term.term());
 
 				n++;
 
 			}
-		} catch (IOException ioe) {
+        }catch(IOException ioe) {
 
 		}
 		if (log.isInfoEnabled())
@@ -965,8 +960,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	 * 
 	 * @return The extracted token stream.
 	 */
-	protected TokenStream getTokenStream(final String languageCode,
-			final Reader r) {
+    protected TokenStream getTokenStream(final String languageCode, final Reader r) {
 
 		/*
 		 * Note: This stripping out stopwords by default.
@@ -992,15 +986,15 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	 * @param token
 	 *            The token whose key will be formed.
 	 * @param successor
-	 *            When <code>true</code> the successor of the token's text will
-	 *            be encoded into the key. This is useful when forming the
+     *            When <code>true</code> the successor of the token's text
+     *            will be encoded into the key. This is useful when forming the
 	 *            <i>toKey</i> in a search.
 	 * @param docId
-	 *            The document identifier - use {@link Long#MIN_VALUE} when
-	 *            forming a search key.
+     *            The document identifier - use {@link Long#MIN_VALUE} when forming a
+     *            search key.
 	 * @param fieldId
-	 *            The field identifier - use {@link Integer#MIN_VALUE} when
-	 *            forming a search key.
+     *            The field identifier - use {@link Integer#MIN_VALUE} when forming a
+     *            search key.
 	 * 
 	 * @return The key.
 	 */
@@ -1022,8 +1016,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 		if (log.isDebugEnabled()) {
 
 			log.debug("{" + termText + "," + docId + "," + fieldId
-					+ "}, successor=" + (successor ? "true " : "false")
-					+ ", key="
+                    + "}, successor=" + (successor?"true ":"false") + ", key="
 					+ BytesUtil.toString(key));
 
 		}
@@ -1055,8 +1048,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	 *       quite small (it depends on the #of stopwords) so use a nibble
 	 *       format for this.
 	 */
-	protected byte[] getTokenValue(final ByteArrayBuffer buf,
-			final TermMetadata metadata) {
+    protected byte[] getTokenValue(final ByteArrayBuffer buf, final TermMetadata metadata) {
 
 		final int termFreq = metadata.termFreq();
 
@@ -1092,8 +1084,8 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 
 	/**
 	 * Performs a full text search against indexed documents returning a hit
-	 * list using a default minCosine of <code>0.4</code>, a default maxRank of
-	 * <code>10,000</code>, and the configured default timeout.
+     * list using a default minCosine of <code>0.4</code>, a default maxRank
+     * of <code>10,000</code>, and the configured default timeout.
 	 * 
 	 * @param query
 	 *            The query (it will be parsed into tokens).
@@ -1139,8 +1131,8 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	 *            The query (it will be parsed into tokens).
 	 * @param languageCode
 	 *            The language code that should be used when tokenizing the
-	 *            query -or- <code>null</code> to use the default {@link Locale}
-	 *            ).
+     *            query -or- <code>null</code> to use the default
+     *            {@link Locale}).
 	 * @param minCosine
 	 *            The minimum cosine that will be returned.
 	 * @param maxRank
@@ -1181,15 +1173,15 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 	 * The collection of hits is scored and hits that fail a threshold are
 	 * discarded. The remaining hits are placed into a total order and the
 	 * caller is returned an iterator which can read from that order. If the
-	 * operation is interrupted, then only those {@link IHit}s that have already
-	 * been computed will be returned.
+     * operation is interrupted, then only those {@link IHit}s that have
+     * already been computed will be returned.
 	 * 
 	 * @param query
 	 *            The query (it will be parsed into tokens).
 	 * @param languageCode
 	 *            The language code that should be used when tokenizing the
-	 *            query -or- <code>null</code> to use the default {@link Locale}
-	 *            ).
+     *            query -or- <code>null</code> to use the default
+     *            {@link Locale}).
 	 * @param minCosine
 	 *            The minimum cosine that will be returned.
 	 * @param maxRank
@@ -1229,8 +1221,8 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 
 		final long begin = System.currentTimeMillis();
 
-		// if (languageCode == null)
-		// throw new IllegalArgumentException();
+//        if (languageCode == null)
+//            throw new IllegalArgumentException();
 
 		if (query == null)
 			throw new IllegalArgumentException();
@@ -1290,11 +1282,11 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 
 		}
 
-		final ConcurrentHashMap<Long/* docId */, Hit> hits;
+        final ConcurrentHashMap<Long/*docId*/,Hit> hits;
 		{
 
 			// @todo use size of collection as upper bound.
-			final int initialCapacity = Math.min(maxRank, 10000);
+            final int initialCapacity = Math.min(maxRank,10000);
 
 			hits = new ConcurrentHashMap<Long, Hit>(initialCapacity);
 
@@ -1354,7 +1346,7 @@ public class FullTextIndex extends AbstractRelation implements ITextIndexer {
 		 */
 
 		if (log.isInfoEnabled())
-			log.info("Rank ordering " + nhits + " hits by relevance");
+            log.info("Rank ordering "+nhits+" hits by relevance");
 
 		final Hit[] a = hits.values().toArray(new Hit[0]);
 

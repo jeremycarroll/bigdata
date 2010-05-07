@@ -114,8 +114,8 @@ public class SPOIndexRemover implements Callable<Long> {
 
 		final long begin = System.currentTimeMillis();
 
-		// // thread-local key builder.
-		// final RdfKeyBuilder keyBuilder = db.getKeyBuilder();
+//        // thread-local key builder.
+//        final RdfKeyBuilder keyBuilder = db.getKeyBuilder();
 
 		final IIndex ndx = spoRelation.getIndex(keyOrder);
 
@@ -147,8 +147,7 @@ public class SPOIndexRemover implements Callable<Long> {
 				 * the temp store are generally only stored in the database.
 				 */
 
-				log.debug("Removing " + spo.toString(/* db */) + " from "
-						+ keyOrder);
+                log.debug("Removing " + spo.toString(/*db*/) + " from " + keyOrder);
 
 			}
 

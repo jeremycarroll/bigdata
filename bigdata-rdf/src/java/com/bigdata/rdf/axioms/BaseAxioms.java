@@ -287,7 +287,7 @@ public abstract class BaseAxioms implements Axioms, Externalizable {
         final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
         
         metadata.setBranchingFactor(branchingFactor);
-        
+
         tupleSer = new SPOTupleSerializer(SPOKeyOrder.SPO);
         
         metadata.setTupleSerializer(tupleSer);

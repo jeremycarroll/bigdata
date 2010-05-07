@@ -72,7 +72,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import org.apache.log4j.Logger;
 import org.openrdf.OpenRDFUtil;
 import org.openrdf.model.Namespace;
@@ -108,7 +109,6 @@ import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailConnectionListener;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.helpers.SailBase;
-
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.ITransactionService;
@@ -153,7 +153,6 @@ import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.CloseableIteratorWrapper;
 import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
-
 import cutthecrap.utils.striterators.Expander;
 import cutthecrap.utils.striterators.Striterator;
 
@@ -2441,15 +2440,16 @@ public class BigdataSail extends SailBase implements Sail {
 //            // discard any changes that might be lying around.
 //            rollback();
 
-            // notify the SailBase that the connection is no longer in use.
-            BigdataSail.this.connectionClosed(this);
-
-            // release the reentrant lock
-            if (lock != null) {
-                lock.unlock();
+            try {
+                // notify the SailBase that the connection is no longer in use.
+                BigdataSail.this.connectionClosed(this);
+            } finally {
+                // release the reentrant lock
+                if (lock != null) {
+                    lock.unlock();
+                }
+                open = false;
             }
-            
-            open = false;
             
         }
         

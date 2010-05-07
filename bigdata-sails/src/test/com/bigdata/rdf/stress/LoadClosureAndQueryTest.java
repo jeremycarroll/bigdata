@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.CognitiveWeb.util.PropertyUtil;
 import org.apache.log4j.Logger;
+import org.apache.system.SystemUtil;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.algebra.evaluation.QueryBindingSet;
@@ -85,14 +86,12 @@ import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 import com.bigdata.rdf.sail.BigdataSail.Options;
-import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.DataLoader;
 import com.bigdata.rdf.store.LocalTripleStore;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.relation.RelationSchema;
-import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.resources.OverflowManager;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.EmbeddedClient;
@@ -393,6 +392,9 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
 
     /**
      * Return various interesting metadata about the KB state.
+     * 
+     * @todo add some information about nextOffset for the WORM and space waster
+     *       for the RW store.
      */
     protected StringBuilder getKBInfo(final AbstractTripleStore tripleStore) {
         
@@ -622,22 +624,13 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
         /*
          * Destroy the database.
          */
-        
-        if(indexManager instanceof Journal) {
-            
-            ((Journal)indexManager).destroy();
-            
-        } else if( fed != null ) {
-            
-            fed.destroy();
-            
-        } else if (jiniServicesHelper != null) {
+        if (jiniServicesHelper != null) {
             
             jiniServicesHelper.destroy();
             
         } else {
             
-            throw new AssertionError();
+            indexManager.destroy();
             
         }
             
@@ -667,17 +660,25 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
          * Any of the constants defined by {@link DatabaseModel}.
          */
         String DATABASE_MODEL = "databaseModel";
-        
+
         /**
-         * Optional resource identifying a file or directory to be loaded
-         * as data.
+         * Optional resource identifying a file containing an ontology. This can
+         * also be specified using the {@link System} property of the same name.
+         */
+        String ONTOLOGY = "ontology";
+
+        /**
+         * Optional resource identifying a file or directory to be loaded as
+         * data. This can also be specified using the {@link System} property of
+         * the same name.
          */
         String DATA = "data";
 
         /**
          * Optional resource identifying a file or directory containing SPARQL
          * queries. Queries will be executed after all data has been loaded and
-         * the optional closure has been computed.
+         * the optional closure has been computed. This can also be specified
+         * using the {@link System} property of the same name.
          */
         String QUERY = "query";
 
@@ -751,6 +752,9 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
         // load the data and optionally compute the closure
         loadData(properties);
 
+        // OS specific hook to drop the file system cache.
+        dropFileSystemCache();
+        
         // run the queries.
         runQueries(properties, queryParser, queries);
 
@@ -758,6 +762,36 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
 
     }
 
+    /**
+     * @todo only handles linux right now.
+     * 
+     * @todo move to a test utility class?
+     */
+    protected void dropFileSystemCache() {
+        try {
+            if (SystemUtil.isLinux()) {
+                /*
+                 * See http://linux-mm.org/Drop_Caches
+                 * 
+                 * sync && echo 3 > /proc/sys/vm/drop_caches
+                 */
+                Runtime
+                        .getRuntime()
+                        .exec(new String[] {//
+                                "/bin/bash",//
+                                        "-c",//
+                                        "\"sync && echo 3 > /proc/sys/vm/drop_caches && echo dropped cache\"" });
+            } else {
+                log.error("Do not know how to drop the file system cache: "
+                        + SystemUtil.operatingSystem());
+            }
+        } catch (IOException ex) {
+            log.error("Did drop the file system cache: "
+                    + SystemUtil.operatingSystem() + ", ex");
+        }
+        log.info("Dropped file system cache.");
+    }
+    
     /**
      * Filter accepts anything that looks like an RDF data file.
      */
@@ -794,7 +828,12 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
      */
     public void loadData(Properties properties) throws InterruptedException {
 
-        final File dataDir = new File(properties.getProperty(TestOptions.DATA));
+        /*
+         * Note: This makes it possible to override the DATA directory from a
+         * system property.  That feature is used by the ant tasks.
+         */
+        final File dataDir = new File(System.getProperty(TestOptions.DATA,
+                properties.getProperty(TestOptions.DATA)));
 
         if (!dataDir.exists()) {
             
@@ -835,6 +874,25 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
 
         final long begin = System.currentTimeMillis();
 
+        {
+            
+            /*
+             * Note: This makes it possible to override the DATA directory from
+             * a system property. That feature is used by the ant tasks.
+             */
+            final String tmp = System.getProperty(TestOptions.ONTOLOGY,
+                    properties.getProperty(TestOptions.ONTOLOGY));
+
+            if (tmp != null) {
+
+                final File ontologyFile = new File(tmp);
+
+                loadOntology(ontologyFile.getAbsolutePath().toString());
+
+            }
+
+        }
+        
         /*
          * Load data.
          */
@@ -916,7 +974,7 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
 
         /*
          * If incremental truth maintenance was not performed the axiom model
-         * includes at least RDFS then wecompute the database-at-once closure.
+         * includes at least RDFS then we compute the database-at-once closure.
          */
         final boolean didDatabaseAtOnceClosure = !didTruthMaintenance
                 && sail.getDatabase().getAxioms().isRdfSchema();
@@ -977,6 +1035,48 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
     }
 
     /**
+     * Loads just the ontology file.
+     */
+    protected void loadOntology(final String ontology) {
+
+        final long begin = System.currentTimeMillis();
+        
+        final DataLoader dataLoader = sail.getDatabase().getDataLoader();
+        
+        // load the ontology.
+        try {
+
+            final String filename = ontology;
+
+            System.out.print("Loading ontology: " + ontology + "...");
+
+            final String baseURI = new File(filename).toURI().toString();
+            
+            final RDFFormat rdfFormat = RDFFormat.forFileName(filename);
+
+            if (rdfFormat == null) {
+
+                throw new RuntimeException("Could not identify RDF format: "
+                        + filename);
+                
+            }
+            
+            dataLoader.loadData(filename, baseURI, rdfFormat);
+
+            System.out.println("done.");
+            
+        } catch (Throwable ex) {
+
+            final long elapsed = System.currentTimeMillis() - begin;
+
+            throw new RuntimeException("Exception loading ontology: " + ex
+                    + " after " + elapsed + "ms", ex);
+            
+        }
+
+    }
+        
+    /**
      * Commits the store and writes some basic information onto {@link System#out}.
      */
     protected void commit() {
@@ -984,17 +1084,17 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
         // make the changes restart-safe
         sail.getDatabase().commit();
 
-        if (sail.getDatabase().getIndexManager() instanceof Journal) {
-
-            /*
-             * This reports the #of bytes used on the Journal.
-             */
-            
-            System.out.println("nextOffset: "
-                    + ((Journal) sail.getDatabase().getIndexManager()).getRootBlockView()
-                            .getNextOffset());
-            
-        }
+//        if (sail.getDatabase().getIndexManager() instanceof Journal) {
+//
+//            /*
+//             * This reports the #of bytes used on the Journal.
+//             */
+//            
+//            System.out.println("nextOffset: "
+//                    + ((Journal) sail.getDatabase().getIndexManager()).getRootBlockView()
+//                            .getNextOffset());
+//            
+//        }
 
         // show some info on the KB state (#of triples, #of terms).
         System.out.println(getKBInfo(sail.getDatabase()));
@@ -1133,11 +1233,14 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
      * Read the queries from file(s), parse them into label and query, and
      * return an ordered collection of those {@link Query}s.
      */
-    public List<Query> readQueries(Properties properties) {
+    public List<Query> readQueries(final Properties properties) {
 
         // source file/dir containing queries.
-        final File file = new File(properties.getProperty(TestOptions.QUERY));
-        
+        final File file = new File(System.getProperty(TestOptions.QUERY,
+                properties.getProperty(TestOptions.QUERY)));
+
+        System.out.println("Reading queries from: "+file);
+
         final List<Query> list = new LinkedList<Query>();
         
         try {
@@ -1392,7 +1495,8 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
 
             final long queryTime = System.currentTimeMillis() - begin;
 
-            result.put("queryTime", "" + queryTime);
+            // report the average total query time across the trials.
+            result.put("queryTime", "" + queryTime/ntrials);
 
         }
 
