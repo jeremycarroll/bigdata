@@ -330,12 +330,12 @@ public class RootBlockView implements IRootBlockView {
         }
         
         if (firstCommitTime != 0 && lastCommitTime < firstCommitTime) {
-        
+        /*
             throw new IllegalArgumentException(
                     "last transaction identifier is less than first transaction identifier: lastCommitTime="
                             + lastCommitTime
                             + ", firstCommitTime="
-                            + firstCommitTime);
+                            + firstCommitTime);*/
         }
         
         if (commitCounter < 0) {
