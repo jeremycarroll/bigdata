@@ -75,7 +75,7 @@ public class LookupStarter extends Thread {
     private static String defaultCodebasePort = "23333";
 
     private static String group = 
-        System.getProperty("bigdata.fedname", defaultGroup);
+        System.getProperty("federation.name", defaultGroup);
     private static String codebasePortStr = 
         System.getProperty("codebase.port", defaultCodebasePort);
     private static int codebasePort = Integer.parseInt(codebasePortStr);

@@ -1240,15 +1240,6 @@ ${postInstallMessage}</echo>
       <mkdir dir="${dist.var.config.zookeeper}"/>
       <mkdir dir="${dist.var.config.jini}"/>
 
-      <!-- Copy build.properties to the top-level config file -->
-      <!-- <root>/dist/bigdata/var/config/bigdata.properties  -->
-
-      <property name="build.properties.from.file" location="${bigdata.dir}/build.properties" />
-      <property name="build.properties.to.path" location="${dist.var.config}/build.properties" />
-      <property name="build.properties.to.file" location="${build.properties.to.path}/bigdata.properties" />
-      <copy file="${build.properties.from.file}"
-            tofile="${build.properties.to.file}"/>
-
       <!-- Copy the jar files created by the jar target to        -->
       <!-- an application-specific but non-version-specific       -->
       <!-- jar file to either the lib or lib-dl staging           -->
@@ -1257,10 +1248,11 @@ ${postInstallMessage}</echo>
       <!-- file name should be changed here.                      -->
 
       <property name="bigdata.lib" location="${bigdata.dir}/bigdata/lib" />
-      <property name="bigdata-jini.lib" location="${bigdata.dir}/bigdata-jini/lib/jini/lib" />
+      <property name="bigdata-jini.dir" location="${bigdata.dir}/bigdata-jini" />
+      <property name="bigdata-jini.lib" location="${bigdata-jini.dir}/lib/jini/lib" />
       <property name="bigdata-rdf.lib" location="${bigdata.dir}/bigdata-rdf/lib" />
       <property name="bigdata-sails.lib" location="${bigdata.dir}/bigdata-sails/lib" />
-      <property name="bigdata-zookeeper.lib" location="${bigdata.dir}/bigdata-jini/lib/apache" />
+      <property name="bigdata-zookeeper.lib" location="${bigdata-jini.dir}/lib/apache" />
 
       <!-- Utility libraries -->
 
@@ -1325,7 +1317,7 @@ ${postInstallMessage}</echo>
       <copy file="${bigdata-jini.lib}/tools.jar"
             todir="${dist.lib}"/>
 
-      <property name="bigdata-jini.lib.dl" location="${bigdata.dir}/bigdata-jini/lib/jini/lib-dl" />
+      <property name="bigdata-jini.lib.dl" location="${bigdata-jini.dir}/lib/jini/lib-dl" />
 
       <copy file="${bigdata-jini.lib.dl}/browser-dl.jar"
             todir="${dist.lib.dl}"/>
@@ -1340,7 +1332,7 @@ ${postInstallMessage}</echo>
       <copy file="${bigdata-jini.lib.dl}/sdm-dl.jar"
             todir="${dist.lib.dl}"/>
 
-      <property name="bigdata-jini.lib.ext" location="${bigdata.dir}/bigdata-jini/lib/jini/lib-ext" />
+      <property name="bigdata-jini.lib.ext" location="${bigdata-jini.dir}/lib/jini/lib-ext" />
 
       <copy file="${bigdata-jini.lib.ext}/jsk-policy.jar"
             todir="${dist.lib.ext}"/>
@@ -1353,27 +1345,44 @@ ${postInstallMessage}</echo>
       <property name="src.resources" location="${bigdata.dir}/src/resources" />
       <property name="src.resources.config" location="${src.resources}/config" />
 
-      <!-- Utility scripts -->
+      <!-- Copy deployment properties to the top-level config file -->
+      <!-- <root>/dist/bigdata/var/config/bigdata.properties  -->
+
+      <property name="build.properties.from.file" location="${bigdata.dir}/build.properties" />
+
+      <property name="deploy.properties.path" location="${bigdata-jini.dir}/src/java/com/bigdata/util/config" />
+      <property name="default.properties.from.file" location="${deploy.properties.path}/default-deploy.properties" />
+      <property name="deploy.properties.from.file" location="${deploy.properties.path}/deploy.properties" />
+
+      <copy file="${build.properties.from.file}"
+            todir="${dist.var.config}"/>
+
+      <copy file="${default.properties.from.file}"
+            todir="${dist.var.config}"/>
+
+      <copy file="${deploy.properties.from.file}"
+            todir="${dist.var.config}"/>
+
+      <!-- Stage utility scripts and related resources -->
+
       <copy file="${src.resources}/bin/pstart"
             todir="${dist.bin}"/>
       <chmod file="${dist.bin}/pstart" perm="ugo+x"/>
 
       <copy file="${src.resources}/bin/config/browser.config"
             todir="${dist.bin.config}"/>
-      <copy file="${src.resources}/bin/config/reggie.config"
-            todir="${dist.bin.config}"/>
       <copy file="${src.resources}/bin/config/serviceStarter.config"
-            todir="${dist.bin.config}"/>
-      <copy file="${src.resources}/bin/config/zookeeper.config"
             todir="${dist.bin.config}"/>
 
       <!-- Stage security policy (config) files -->
+
       <copy file="${src.resources.config}/policy.all"
             todir="${dist.var.config.policy}"/>
       <copy file="${src.resources.config}/service.policy"
             todir="${dist.var.config.policy}"/>
 
-      <!-- Stage logging config files -->
+      <!-- Stage the bigdata logging config files -->
+
       <property name="logging.to.path" location="${dist.var.config.logging}" />
 
       <property name="log4j.from.file" location="${bigdata.dir}/bigdata/src/resources/logging/log4j.properties" />
@@ -1397,25 +1406,112 @@ ${postInstallMessage}</echo>
             todir="${logging.to.path}"/>
       <copy file="${src.resources.config}/reggie-logging.properties"
             todir="${logging.to.path}"/>
-      <copy file="${src.resources.config}/browser-logging.properties"
-            todir="${logging.to.path}"/>
 
+      <!-- Stage service-specific logging config file -->
 
-      <!-- Stage Zookeeper config files -->
+      <property name="bigdata-jini.root" location="${bigdata-jini.dir}/src/java/com/bigdata" />
+      <property name="util.logging.file" location="${bigdata-jini.root}/util/config/util-logging.properties" />
+      <property name="jini.logging.file" location="${bigdata-jini.root}/util/config/jini-logging.properties" />
 
+      <property name="loadbalancer.head.file" location="${bigdata-jini.root}/loadbalancer/config/logging.properties" />
+      <property name="loadbalancer.dest.file" location="${logging.to.path}/loadbalancer-logging.properties" />
+      <sequential>
+        <concat destfile="${loadbalancer.dest.file}">
+          <fileset file="${loadbalancer.head.file}"/>
+          <fileset file="${util.logging.file}"/>
+          <fileset file="${jini.logging.file}"/>
+        </concat>
+      </sequential>
 
-      <!-- Stage Jini config files -->
+      <property name="metadata.head.file" location="${bigdata-jini.root}/metadata/config/logging.properties" />
+      <property name="metadata.dest.file" location="${logging.to.path}/metadata-logging.properties" />
+      <sequential>
+        <concat destfile="${metadata.dest.file}">
+          <fileset file="${metadata.head.file}"/>
+          <fileset file="${util.logging.file}"/>
+          <fileset file="${jini.logging.file}"/>
+        </concat>
+      </sequential>
+
+      <property name="shard.head.file" location="${bigdata-jini.root}/shard/config/logging.properties" />
+      <property name="shard.dest.file" location="${logging.to.path}/shard-logging.properties" />
+      <sequential>
+        <concat destfile="${shard.dest.file}">
+          <fileset file="${shard.head.file}"/>
+          <fileset file="${util.logging.file}"/>
+          <fileset file="${jini.logging.file}"/>
+        </concat>
+      </sequential>
+
+      <property name="executor.head.file" location="${bigdata-jini.root}/executor/config/logging.properties" />
+      <property name="executor.dest.file" location="${logging.to.path}/executor-logging.properties" />
+      <sequential>
+        <concat destfile="${executor.dest.file}">
+          <fileset file="${executor.head.file}"/>
+          <fileset file="${util.logging.file}"/>
+          <fileset file="${jini.logging.file}"/>
+        </concat>
+      </sequential>
+
+      <property name="transaction.head.file" location="${bigdata-jini.root}/transaction/config/logging.properties" />
+      <property name="transaction.dest.file" location="${logging.to.path}/transaction-logging.properties" />
+      <sequential>
+        <concat destfile="${transaction.dest.file}">
+          <fileset file="${transaction.head.file}"/>
+          <fileset file="${util.logging.file}"/>
+          <fileset file="${jini.logging.file}"/>
+        </concat>
+      </sequential>
+
+      <property name="quorum.head.file" location="${bigdata-jini.root}/quorum/config/logging.properties" />
+      <property name="quorum.dest.file" location="${logging.to.path}/quorum-logging.properties" />
+      <sequential>
+        <concat destfile="${quorum.dest.file}">
+          <fileset file="${quorum.head.file}"/>
+          <fileset file="${util.logging.file}"/>
+          <fileset file="${jini.logging.file}"/>
+        </concat>
+      </sequential>
+
+      <copy file="${bigdata-jini.root}/util/config/browser-logging.properties"
+            todir="${dist.bin.config}"/>
+
+      <!-- Stage the bigdata Jini config files -->
+
       <copy file="${src.resources.config}/bigdataCluster.config"
             todir="${dist.var.config.jini}"/>
       <copy file="${src.resources.config}/bigdataCluster16.config"
             todir="${dist.var.config.jini}"/>
+      <copy file="${src.resources.config}/standalone/bigdataStandalone.config"
+            todir="${dist.var.config.jini}"/>
+
+      <!-- Stage the infrastructure service config files -->
 
       <copy file="${src.resources.config}/jini/reggie.config"
             todir="${dist.var.config.jini}"/>
-      <copy file="${src.resources.config}/jini/browser.config"
+      <copy file="${src.resources.config}/jini/zookeeper.config"
             todir="${dist.var.config.jini}"/>
-      <copy file="${src.resources.config}/jini/startAll.config"
+
+      <!-- Stage the service-specific config files -->
+
+      <copy file="${bigdata-jini.root}/loadbalancer/config/loadbalancer.config"
             todir="${dist.var.config.jini}"/>
+
+      <copy file="${bigdata-jini.root}/metadata/config/metadata.config"
+            todir="${dist.var.config.jini}"/>
+
+      <copy file="${bigdata-jini.root}/shard/config/shard.config"
+            todir="${dist.var.config.jini}"/>
+
+      <copy file="${bigdata-jini.root}/executor/config/executor.config"
+            todir="${dist.var.config.jini}"/>
+
+      <copy file="${bigdata-jini.root}/transaction/config/transaction.config"
+            todir="${dist.var.config.jini}"/>
+
+      <copy file="${bigdata-jini.root}/quorum/config/quorum.config"
+            todir="${dist.var.config.jini}"/>
+
     </target>
 
     <target name="testCompile"
@@ -1602,7 +1698,7 @@ ${postInstallMessage}</echo>
       <property name="java.security.policy" value="${dist.var.config.policy}/policy.all"/>
       <property name="log4j.configuration" value="${bigdata.test.log4j.rel}"/>
       <property name="java.net.preferIPv4Stack" value="true"/>
-      <property name="bigdata.fedname" value="bigdata.test.group-${this.hostname}"/>
+      <property name=".federation.name" value="bigdata.test.group-${this.hostname}"/>
 
       <delete file="${build.properties.test.to.file}" quiet="true"/>
       <copy file="${build.properties.from.file}"
@@ -1644,7 +1740,7 @@ ${postInstallMessage}</echo>
     </target>
 
     <target name="startLookup">
-      <echo>java -Dapp.home=${app.home} -Djini.lib=${dist.lib} -Djini.lib.dl=${dist.lib.dl} -Djava.security.policy=${java.security.policy} -Djava.security.debug=off -Djava.protocol.handler.pkgs=net.jini.url -Dlog4j.configuration=${log4j.configuration} -Dcodebase.port=${test.codebase.port} -Djava.net.preferIPv4Stack=${java.net.preferIPv4Stack} -Dbigdata.fedname=${bigdata.fedname} -jar ${bigdata-test.lib}/lookupstarter.jar
+      <echo>java -Dapp.home=${app.home} -Djini.lib=${dist.lib} -Djini.lib.dl=${dist.lib.dl} -Djava.security.policy=${java.security.policy} -Djava.security.debug=off -Djava.protocol.handler.pkgs=net.jini.url -Dlog4j.configuration=${log4j.configuration} -Dcodebase.port=${test.codebase.port} -Djava.net.preferIPv4Stack=${java.net.preferIPv4Stack} -D.federation.name=${federation.name} -jar ${bigdata-test.lib}/lookupstarter.jar
 </echo>
       <echo>
 </echo>
@@ -1661,12 +1757,12 @@ ${postInstallMessage}</echo>
         <sysproperty key="log4j.configuration" value="${log4j.configuration}"/>
         <sysproperty key="codebase.port" value="${test.codebase.port}"/>
         <sysproperty key="java.net.preferIPv4Stack" value="${java.net.preferIPv4Stack}"/>
-        <sysproperty key="bigdata.fedname" value="${bigdata.fedname}"/>
+        <sysproperty key="federation.name" value="${federation.name}"/>
       </java>
     </target>
 
     <target name="stopLookup">
-      <echo>java -Dapp.home=${app.home} -Djini.lib=${dist.lib} -Djini.lib.dl=${dist.lib.dl} -Djava.security.policy=${java.security.policy} -Dlog4j.configuration=${log4j.configuration} -Djava.net.preferIPv4Stack=${java.net.preferIPv4Stack} -Dbigdata.fedname=${bigdata.fedname} -jar ${bigdata-test.lib}/lookupstarter.jar -stop
+      <echo>java -Dapp.home=${app.home} -Djini.lib=${dist.lib} -Djini.lib.dl=${dist.lib.dl} -Djava.security.policy=${java.security.policy} -Dlog4j.configuration=${log4j.configuration} -Djava.net.preferIPv4Stack=${java.net.preferIPv4Stack} -D.federation.name=${federation.name} -jar ${bigdata-test.lib}/lookupstarter.jar -stop
 </echo>
       <echo>
 </echo>
@@ -1679,7 +1775,7 @@ ${postInstallMessage}</echo>
         <sysproperty key="java.security.policy" value="${java.security.policy}"/>
         <sysproperty key="log4j.configuration" value="${log4j.configuration}"/>
         <sysproperty key="java.net.preferIPv4Stack" value="${java.net.preferIPv4Stack}"/>
-        <sysproperty key="bigdata.fedname" value="${bigdata.fedname}"/>
+        <sysproperty key="federation.name" value="${federation.name}"/>
         <arg value="-stop" />
       </java>
     </target>
@@ -1736,7 +1832,7 @@ ${postInstallMessage}</echo>
 </echo>
       <echo>    preferIPv4:   ${java.net.preferIPv4Stack}
 </echo>
-      <echo>    federation:   ${bigdata.fedname}
+      <echo>    federation:   ${federation.name}
 </echo>
       <echo>
 </echo>
@@ -1793,6 +1889,8 @@ ${postInstallMessage}</echo>
 
         <sysproperty key="log4j.path" value="${bigdata.test.log4j.abs.path}"/>
 
+        <sysproperty key="app.home" value="${app.home}"/>
+
         <sysproperty key="classserver.jar" value="${dist.lib}/classserver.jar" />
         <sysproperty key="colt.jar" value="${dist.lib}/colt.jar" />
         <sysproperty key="ctc_utils.jar" value="${dist.lib}/ctc_utils.jar" />
@@ -1811,7 +1909,7 @@ ${postInstallMessage}</echo>
         <sysproperty key="zookeeper.jar" value="${dist.lib}/zookeeper.jar" />
 
         <!-- Jini group name -->
-        <sysproperty key="bigdata.fedname" value="${bigdata.fedname}"/>
+        <sysproperty key="federationname" value="${federation.name}"/>
 
         <classpath refid="run.class.path.id"/>
         <sysproperty key="java.class.path" value="${run.class.path}" />
