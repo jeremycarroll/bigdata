@@ -799,7 +799,7 @@ public class NestedSubqueryWithJoinThreadsTask implements IStepTask {
                 ruleStats.subqueryCount[tailIndex]++;
 
                 // run the subquery.
-                apply(orderIndex + 1, bset, buffer);
+                apply(orderIndex + 1, (orderIndex==order.length-1)?bset.copy(variablesToKeep):bset, buffer);
 
             }
 

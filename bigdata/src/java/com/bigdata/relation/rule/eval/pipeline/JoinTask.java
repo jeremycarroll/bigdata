@@ -1545,7 +1545,7 @@ abstract public class JoinTask implements Callable<Void> {
                         if (joinNexus.bind(rule, tailIndex, e, bset)) {
 
                             // Accept this binding set.
-                            unsyncBuffer.add(bset);
+                            unsyncBuffer.add((orderIndex==order.length-1)?bset.copy(requiredVars[tailIndex]):bset);
 
                             naccepted++;
 

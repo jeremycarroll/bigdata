@@ -49,6 +49,7 @@ import com.bigdata.sparse.AutoIncIntegerCounter;
 import com.bigdata.sparse.IRowStoreConstants;
 import com.bigdata.sparse.ITPS;
 import com.bigdata.sparse.ITPV;
+import com.bigdata.sparse.LogicalRowSplitHandler;
 import com.bigdata.sparse.Schema;
 import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.sparse.TPS.TPV;
@@ -450,9 +451,9 @@ public class BigdataFileSystem extends
             {
 
                 /*
-                 * FIXME specify an appropriate split handler (keeps the row
-                 * together). This is a hard requirement. The atomic read/update
-                 * guarentee depends on this.
+                 * Note: This specifies an split handler that keeps the logical
+                 * row together. This is a hard requirement. The atomic
+                 * read/update guarantee depends on this.
                  */
 
                 final String name = getNamespace()+"."+FILE_METADATA_INDEX_BASENAME;
@@ -460,6 +461,9 @@ public class BigdataFileSystem extends
                 final IndexMetadata md = new IndexMetadata(indexManager, tmp,
                         name, UUID.randomUUID());
                 
+                // Ensure that splits do not break logical rows.
+                md.setSplitHandler(LogicalRowSplitHandler.INSTANCE);
+
                 indexManager.registerIndex(md);
 
                 final IIndex ndx = indexManager.getIndex(name, getTimestamp());

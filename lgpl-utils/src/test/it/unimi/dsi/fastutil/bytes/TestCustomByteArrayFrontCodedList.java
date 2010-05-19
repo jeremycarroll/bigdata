@@ -4,6 +4,7 @@
 
 package it.unimi.dsi.fastutil.bytes;
 
+import it.unimi.dsi.fastutil.bytes.custom.CustomByteArrayFrontCodedList;
 import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 
 import java.io.ByteArrayInputStream;

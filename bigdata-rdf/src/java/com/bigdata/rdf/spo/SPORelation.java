@@ -87,7 +87,6 @@ import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IConstant;
 import com.bigdata.relation.rule.IPredicate;
-import com.bigdata.relation.rule.ISolutionExpander;
 import com.bigdata.relation.rule.IVariable;
 import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.relation.rule.Var;
@@ -1460,7 +1459,110 @@ public class SPORelation extends AbstractRelation<ISPO> {
 		return new ChunkedWrappedIterator<Long>(itr);
 
 	}
+	/**
+     * Efficient scan of the distinct term identifiers that appear in the first
+     * position of the keys for the statement index corresponding to the
+     * specified {@link IKeyOrder}. For example, using {@link SPOKeyOrder#POS}
+     * will give you the term identifiers for the distinct predicates actually
+     * in use within statements in the {@link SPORelation}.
+     * 
+     * @param keyOrder
+     *            The selected index order.
+     * 
+     * @return An iterator visiting the distinct term identifiers.
+     */
+    public IChunkedIterator<Long> distinctMultiTermScan(final IKeyOrder<ISPO> keyOrder,long[] knownTerms) {
 
+        return distinctMultiTermScan(keyOrder,knownTerms,/* termIdFilter */null);
+
+    }
+
+    /**
+     * Efficient scan of the distinct term identifiers that appear in the first
+     * position of the keys for the statement index corresponding to the
+     * specified {@link IKeyOrder}. For example, using {@link SPOKeyOrder#POS}
+     * will give you the term identifiers for the distinct predicates actually
+     * in use within statements in the {@link SPORelation}.
+     * 
+     * @param keyOrder
+     *            The selected index order.
+     * 
+     * @return An iterator visiting the distinct term identifiers.
+     * 
+     * @todo add the ability to specify {@link IRangeQuery#PARALLEL} here for
+     *       fast scans across multiple shards when chunk-wise order is Ok.
+     */
+    public IChunkedIterator<Long> distinctMultiTermScan(
+            final IKeyOrder<ISPO> keyOrder,long[] knownTerms, final ITermIdFilter termIdFilter) {
+
+        final FilterConstructor<SPO> filter = new FilterConstructor<SPO>();
+        final int terms=knownTerms.length;
+
+        KeyBuilder fromKey = new KeyBuilder(32);
+        for(long l:knownTerms) {
+            fromKey.append(l);
+        }
+       
+        KeyBuilder toKey = new KeyBuilder(32);
+        for(int i=0;i<terms;i++) {
+            if(i==terms-1) {
+                toKey.append(knownTerms[i]+1);
+            }else {
+                toKey.append(knownTerms[i]);
+            }
+        }
+        /*
+         * Layer in the logic to advance to the tuple that will have the
+         * next distinct term identifier in the first position of the key.
+         */
+        filter.addFilter(new DistinctMultiTermAdvancer(terms));
+
+        if (termIdFilter != null) {
+
+            /*
+             * Layer in a filter for only the desired term types.
+             */
+
+            filter.addFilter(new TupleFilter<SPO>() {
+
+                private static final long serialVersionUID = 1L;
+
+                @Override
+                protected boolean isValid(final ITuple<SPO> tuple) {
+
+                    final long id = KeyBuilder.decodeLong(tuple
+                            .getKeyBuffer().array(), 0);
+
+                    return termIdFilter.isValid(id);
+
+                }
+
+            });
+
+        }
+       
+
+     
+        @SuppressWarnings("unchecked")
+        final Iterator<Long> itr = new Striterator(getIndex(keyOrder)
+                .rangeIterator(fromKey.getKey() , toKey.getKey() ,
+                        0/* capacity */, IRangeQuery.KEYS | IRangeQuery.CURSOR,
+                        filter)).addFilter(new Resolver() {
+            private static final long serialVersionUID = 1L;
+
+            /**
+             * Resolve SPO key to Long.
+             */
+            @Override
+            protected Long resolve(Object obj) {
+                return KeyBuilder.decodeLong(((ITuple) obj)
+                                .getKeyBuffer().array(), (terms-1)*8);
+            }
+        });
+
+        return new ChunkedWrappedIterator<Long>(itr);
+
+    }
 	public SPO newElement(final IPredicate<ISPO> predicate,
 			final IBindingSet bindingSet) {
 
