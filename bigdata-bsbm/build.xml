@@ -8,7 +8,16 @@
 		<fileset dir="${bsbm.dir}/lib">
 			<include name="**/*.jar" />
 		</fileset>
-		<fileset dir="${bigdata.build.dir}/lib">
+		<fileset dir="${bigdata.dir}/bigdata/lib">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset dir="${bigdata.dir}/bigdata-jini/lib">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset dir="${bigdata.dir}/bigdata-rdf/lib">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset dir="${bigdata.build.dir}">
 			<include name="**/*.jar" />
 		</fileset>
 	</path>
@@ -132,7 +141,7 @@
 	[1] http://www4.wiwiss.fu-berlin.de/bizer/BerlinSPARQLBenchmark/datasets/qualification.ttl.gz
 	[2] http://www4.wiwiss.fu-berlin.de/bizer/BerlinSPARQLBenchmark/datasets/td_data_q.zip
 	[3] http://www4.wiwiss.fu-berlin.de/bizer/BerlinSPARQLBenchmark/code/correct.qual
-	[3] http://www4.wiwiss.fu-berlin.de/bizer/BerlinSPARQLBenchmark/spec/index.html#qualification
+	[4] http://www4.wiwiss.fu-berlin.de/bizer/BerlinSPARQLBenchmark/spec/index.html#qualification
 
 	-->
 		
@@ -165,7 +174,7 @@
 			<jvmarg value="-server"/>
 			<jvmarg value="-Xmx${bsbm.maxMem}"/>
 			<jvmarg value="-Dlog4j.configuration=log4j.properties"/>
-			<jvmarg value="-Dcom.bigdata.journal.AbstractJournal.file=${bsbm.journalFile}"/>
+			<jvmarg value="-Dcom.bigdata.journal.AbstractJournal.file=${bsbm.qualJournal}"/>
 			<classpath>
 				<path refid="runtime.classpath" />
             </classpath>

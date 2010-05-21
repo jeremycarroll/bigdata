@@ -352,6 +352,9 @@ public class TestDriver {
 						if(queryResult!=null)
 							objectOutput.writeObject(queryResult);
 						queryMix.setCurrent(0, -1.0);
+                        if (next.getNr() == 1) {
+                            System.out.println("\n"+next.getQueryString());
+                        }
 					}
 					System.out.print(".");
 				}

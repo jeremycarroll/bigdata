@@ -42,6 +42,7 @@ import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ILocalBTreeView;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleCursor;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.Tuple;
 import com.bigdata.btree.filter.FilterConstructor;
@@ -1248,7 +1249,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         return rangeIterator(0/* capacity */, flags, filter);
 
     }
-
+    
     @SuppressWarnings( { "unchecked" })
     protected ITupleIterator<R> rangeIterator(final int capacity,
             final int flags, final IFilterConstructor<R> filter) {

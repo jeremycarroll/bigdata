@@ -431,4 +431,10 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
         return spoa;
     }
 
+    public int getFlags() {
+        
+        return flags;
+        
+    }
+    
 }

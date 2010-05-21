@@ -30,6 +30,7 @@ package com.bigdata.relation.accesspath;
 
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IRangeQuery;
+import com.bigdata.btree.ITupleCursor;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.relation.IRelation;
 import com.bigdata.relation.rule.IPredicate;
@@ -104,7 +105,7 @@ public interface IAccessPath<R> extends Iterable<R> {
      * {@link ITupleIterator} returned by this method.
      */
     public ITupleIterator<R> rangeIterator();
-
+    
     /**
      * An iterator visiting elements using the natural order of the index
      * selected for the {@link IPredicate}. This is equivalent to

@@ -1,23 +1,21 @@
 package benchmark.bigdata;
 
+import info.aduna.xml.XMLWriter;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Properties;
-
 import org.openrdf.query.QueryLanguage;
+import org.openrdf.query.TupleQuery;
+import org.openrdf.query.resultio.sparqlxml.SPARQLResultsXMLWriter;
 import org.openrdf.repository.RepositoryConnection;
-import org.openrdf.rio.rdfxml.RDFXMLWriter;
-
 import benchmark.testdriver.TestDriver;
-
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailGraphQuery;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.service.jini.JiniClient;
@@ -150,7 +148,8 @@ public class BigdataQueryDriver {
             repo.initialize();
             
             // run TestDriver with bsbmArgs, repo
-            TestDriver.main(bsbmArgs, repo);
+//            TestDriver.main(bsbmArgs, repo);
+            testRepo(repo);
             
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -205,21 +204,37 @@ public class BigdataQueryDriver {
 "        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:validTo ?validTo " +
 "}";
 */
-"PREFIX rev: <http://purl.org/stuff/rev#> " +
-"DESCRIBE ?x " +
-"WHERE { <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromRatingSite1/Review96> rev:reviewer ?x }";
-                       
+//"PREFIX rev: <http://purl.org/stuff/rev#> " +
+//"DESCRIBE ?x " +
+//"WHERE { <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromRatingSite1/Review96> rev:reviewer ?x }";
+
+"PREFIX bsbm-inst: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/> " +
+"PREFIX bsbm: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/> " +
+"PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> " +
+"SELECT DISTINCT ?product ?label ?value1 " +
+"WHERE { " +
+"    ?product a <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/ProductType66> . " +
+"    ?product bsbm:productFeature <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/ProductFeature3> . " +
+"    ?product bsbm:productFeature <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/ProductFeature1967> . " +
+"    ?product rdfs:label ?label . " +
+"    ?product bsbm:productPropertyNumeric1 ?value1 . " +
+"    FILTER (?value1 > 136) " +
+"    } " +
+"ORDER BY ?label " +
+"LIMIT 10"; 
+            
             StringWriter writer = new StringWriter();
-/*            
+            
             TupleQuery query = 
                 cxn.prepareTupleQuery(QueryLanguage.SPARQL, queryString);
             query.evaluate(new SPARQLResultsXMLWriter(new XMLWriter(writer)));
-*/
+/*
             BigdataSailGraphQuery query = (BigdataSailGraphQuery)
                 cxn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
             query.setUseNativeConstruct(false);
             query.evaluate(new RDFXMLWriter(writer));
-
+*/
             System.out.println(queryString);
             System.out.println(writer.toString());
             

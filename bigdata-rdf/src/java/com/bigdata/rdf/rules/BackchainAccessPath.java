@@ -33,6 +33,7 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
 import com.bigdata.btree.IIndex;
+import com.bigdata.btree.ITupleCursor;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.rdf.axioms.Axioms;
 import com.bigdata.rdf.inf.BackchainTypeResourceIterator;

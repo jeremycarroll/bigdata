@@ -2,6 +2,7 @@ package com.bigdata.relation.rule.eval.pipeline;
 
 import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -19,10 +20,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-
 import com.bigdata.btree.BytesUtil;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.ConcurrencyManager;
@@ -30,7 +29,11 @@ import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.IJournal;
 import com.bigdata.journal.ITx;
+import com.bigdata.rdf.spo.SPO;
+import com.bigdata.rdf.spo.SPOAccessPath;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.spo.SPOStarJoin;
+import com.bigdata.rdf.spo.SPOStarJoin.SPOStarConstraint;
 import com.bigdata.relation.IRelation;
 import com.bigdata.relation.accesspath.AbstractAccessPath;
 import com.bigdata.relation.accesspath.AbstractUnsynchronizedArrayBuffer;
@@ -41,15 +44,19 @@ import com.bigdata.relation.accesspath.IAsynchronousIterator;
 import com.bigdata.relation.accesspath.IBlockingBuffer;
 import com.bigdata.relation.accesspath.IBuffer;
 import com.bigdata.relation.accesspath.UnsynchronizedArrayBuffer;
+import com.bigdata.relation.rule.ArrayBindingSet;
+import com.bigdata.relation.rule.Constant;
+import com.bigdata.relation.rule.HashBindingSet;
 import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.IRule;
+import com.bigdata.relation.rule.IStarJoin;
 import com.bigdata.relation.rule.IVariable;
+import com.bigdata.relation.rule.IVariableOrConstant;
+import com.bigdata.relation.rule.IStarJoin.IStarConstraint;
 import com.bigdata.relation.rule.eval.ChunkTrace;
 import com.bigdata.relation.rule.eval.IJoinNexus;
-import com.bigdata.relation.rule.eval.IRuleState;
 import com.bigdata.relation.rule.eval.ISolution;
-import com.bigdata.relation.rule.eval.RuleState;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IDataService;
 import com.bigdata.striterator.IChunkedOrderedIterator;
@@ -1213,7 +1220,7 @@ abstract public class JoinTask implements Callable<Void> {
          * {@link IPredicate} is {@link IAccessPath#getPredicate()}.
          */
         final private IAccessPath accessPath;
-
+        
         /**
          * Return the <em>fromKey</em> for the {@link IAccessPath} generated
          * from the {@link IBindingSet} for this task.
@@ -1329,17 +1336,27 @@ abstract public class JoinTask implements Callable<Void> {
             if (halt)
                 throw new RuntimeException(firstCause.get());
 
-            final AbstractUnsynchronizedArrayBuffer<IBindingSet> unsyncBuffer = threadLocalBufferFactory
-                    .get();
-
-            boolean nothingAccepted = true;
+            final AbstractUnsynchronizedArrayBuffer<IBindingSet> unsyncBuffer = 
+                threadLocalBufferFactory.get();
 
             stats.accessPathCount++;
 
+            if (accessPath.getPredicate() instanceof IStarJoin) {
+                
+                IStarJoin starJoin = (IStarJoin) accessPath.getPredicate();
+                
+//                return starJoin.getStarJoinHandler().handleStarJoin();
+                
+                return handleStarJoin(bindingSets, unsyncBuffer);
+                
+            }
+            
             // Obtain the iterator for the current join dimension.
             final IChunkedOrderedIterator itr = accessPath.iterator();
 
             try {
+
+                boolean nothingAccepted = true;
 
                 while (itr.hasNext()) {
 
@@ -1390,6 +1407,292 @@ abstract public class JoinTask implements Callable<Void> {
 
             }
 
+        }
+        
+        protected Object handleStarJoin(IBindingSet[] solutions, 
+                AbstractUnsynchronizedArrayBuffer<IBindingSet> unsyncBuffer) {
+
+            final IStarJoin starJoin = (IStarJoin) accessPath.getPredicate();
+            
+            // Obtain the iterator for the current join dimension.
+            final IChunkedOrderedIterator itr = accessPath.iterator();
+            
+            Object[] spos = null;
+            
+            try {
+
+                while (itr.hasNext()) {
+
+                    if (spos == null) {
+                        
+                        spos = (Object[]) itr.nextChunk();
+                        
+                    } else {
+                    
+                        final Object[] chunk = (Object[]) itr.nextChunk();
+                        
+                        final Object[] tmp = new Object[spos.length + chunk.length];
+                        
+                        System.arraycopy(spos, 0, tmp, 0, spos.length);
+                        
+                        System.arraycopy(chunk, 0, tmp, spos.length-1, chunk.length);
+                        
+                        spos = tmp;
+                            
+                    }
+
+                } // next chunk.
+/*                
+                if (spos != null) {
+                    
+                    final Iterator<IStarConstraint> it = 
+                        starJoin.getStarConstraints();
+                    
+                    final IBindingSet[][] solutions = 
+                        new IBindingSet[starJoin.getNumStarConstraints()][];
+
+                    int i = 0;
+                    
+                    while (it.hasNext()) {
+                        
+                        final SPOStarConstraint constraint = 
+                            (SPOStarConstraint) it.next();
+                        
+                        boolean constraintSatisfied = false;
+                        
+                        final IVariableOrConstant<Long> p = constraint.p();
+                        
+                        final IVariableOrConstant<Long> o = constraint.o();
+                        
+                        final boolean optional = constraint.isOptional();
+                        
+                        Collection<IBindingSet> constraintSolutions = 
+                            new ArrayList<IBindingSet>();
+                        
+                        if (p.isConstant() && o.isConstant() && !optional) {
+                            
+                            // special case: p & o both bound, non-optional
+                            // just check for existence of matching SPO
+                            
+                            for (SPO spo : spos) {
+                             
+                                if (spo.p == p.get() && spo.o == o.get()) {
+                                    
+                                    constraintSatisfied = true;
+                                    
+                                    break;
+                                    
+                                }
+                                
+                            }                            
+                            
+                        } else if (p.isVar() && o.isVar()) {
+                            
+                            // special case: p & o both variables
+                            // always satisfied, create binding set for every SPO
+                            
+                            constraintSatisfied = true;
+                            
+                            for (SPO spo : spos) {
+
+                                IBindingSet bs = new ArrayBindingSet(2);
+                                
+                                bs.set((IVariable) p, new Constant<Long>(spo.p));
+                               
+                                bs.set((IVariable) o, new Constant<Long>(spo.o));
+                                
+                                constraintSolutions.add(bs);
+                                
+                            }
+                            
+                        } else if (p.isConstant()) {
+                            
+                            for (SPO spo : spos) {
+
+                                if (p.get() == spo.p) {
+                                    
+                                    constraintSatisfied = true;
+                                    
+                                    IBindingSet bs = new ArrayBindingSet(1);
+                                    
+                                    bs.set((IVariable) o, new Constant<Long>(spo.o));
+                                    
+                                    constraintSolutions.add(bs);
+                                    
+                                }
+                                
+                            }
+                            
+                        } else if (o.isConstant()) {
+                            
+                            for (SPO spo : spos) {
+
+                                if (o.get() == spo.o) {
+                                    
+                                    constraintSatisfied = true;
+                                    
+                                    IBindingSet bs = new ArrayBindingSet(1);
+                                    
+                                    bs.set((IVariable) p, new Constant<Long>(spo.p));
+                                    
+                                    constraintSolutions.add(bs);
+                                    
+                                }
+                                
+                            }
+                            
+                        }
+                        
+                        if (!constraintSatisfied) {
+                            
+                            // fail the join - how?
+                            
+                        } else {
+                            
+                            solutions[i] = constraintSolutions.toArray(
+                                    new IBindingSet[constraintSolutions.size()]);
+                            
+                        }
+                        
+                        i++;
+                        
+                    }
+                    
+                }
+*/
+                if (spos != null) {
+                    
+                    final Iterator<IStarConstraint> it = 
+                        starJoin.getStarConstraints();
+                    
+                    boolean constraintFailed = false;
+                    
+                    while (it.hasNext()) {
+                        
+                        final IStarConstraint constraint = it.next();
+                        
+//                        final IVariableOrConstant<Long> p = constraint.p();
+
+//                        final IVariableOrConstant<Long> o = constraint.o();
+
+                        Collection<IBindingSet> constraintSolutions = null;
+                        
+//                        int numVars = (p.isVar() ? 1 : 0) + 
+//                                      (o.isVar() ? 1 : 0);
+                        int numVars = constraint.getNumVars();
+                        
+                        for (Object spo : spos) {
+
+//                            if ((p.isVar() || p.get() == spo.p) &&
+//                                (o.isVar() || o.get() == spo.o)) {    
+                            if (constraint.isMatch(spo)) {
+                                
+                                // for each match for the constraint, 
+                                // we clone the old solutions and create a new 
+                                // solutions that appends the varable bindings from 
+                                // this match
+                                
+                                // at the end, we set the old solutions collection 
+                                // to the new solutions collection 
+                                
+                                if (constraintSolutions == null) {
+                                    
+                                    constraintSolutions = 
+                                        new LinkedList<IBindingSet>();
+                                    
+                                }
+                                
+                                for (IBindingSet bs : solutions) {
+                                
+                                    if (numVars > 0) {
+                                        
+                                        bs = bs.clone();
+                                        
+                                        constraint.bind(bs, spo);
+                                        /*
+                                        if (p.isVar()) {
+                                            
+                                            bs.set((IVariable) p, 
+                                                new Constant<Long>(spo.p));
+                                            
+                                        }
+                                        
+                                        if (o.isVar()) {
+                                            
+                                            bs.set((IVariable) o, 
+                                                new Constant<Long>(spo.o));
+                                            
+                                        }
+                                        */
+                                    }
+                                    
+                                    constraintSolutions.add(bs);
+
+                                }
+                                
+                                // no reason to keep testing SPOs, there can
+                                // be only one
+                                if (numVars == 0) {
+                                    
+                                    break;
+                                    
+                                }
+                                
+                            }
+                            
+                        }
+                        
+                        if (constraintSolutions == null) {
+                            
+                            // we did not find any matches to this constraint
+                            // that is ok, as long it's optional
+                            if (constraint.isOptional() == false) {
+                                
+                                // fail the join, how?
+                                
+                                constraintFailed = true;
+                                
+                                break;
+                                
+                            }
+                            
+                        } else {
+                            
+                            // set the old solutions to the new solutions, and
+                            // move on to the next constraint
+                            solutions = constraintSolutions.toArray(
+                                    new IBindingSet[constraintSolutions.size()]);
+                            
+                        }
+                        
+                    }
+                    
+                    if (!constraintFailed) {
+                        
+                        for (IBindingSet bs : solutions) {
+                            
+                            unsyncBuffer.add(bs);
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+                return null;
+
+            } catch (Throwable t) {
+
+                halt(t);
+
+                throw new RuntimeException(t);
+
+            } finally {
+
+                itr.close();
+
+            }
+            
         }
 
         /**
@@ -1532,8 +1835,7 @@ abstract public class JoinTask implements Callable<Void> {
                          * Clone the binding set since it is tested for each
                          * element visited.
                          */
-                        //bset = bset.clone();
-                        bset = bset.copy(variablesToKeep);
+                        bset = bset.clone();
 
                         if (INFO) {
                             log.info("tailIndex: " + tailIndex);
@@ -1544,6 +1846,8 @@ abstract public class JoinTask implements Callable<Void> {
                         // propagate bindings from the visited element.
                         if (joinNexus.bind(rule, tailIndex, e, bset)) {
 
+                            bset = bset.copy(variablesToKeep);
+                            
                             // Accept this binding set.
                             unsyncBuffer.add(bset);
 

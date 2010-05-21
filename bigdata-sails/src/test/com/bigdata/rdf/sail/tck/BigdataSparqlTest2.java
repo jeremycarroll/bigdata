@@ -38,8 +38,10 @@ public class BigdataSparqlTest2 extends TestCase {
 //      Dataset crap
         // "http://www.w3.org/2001/sw/DataAccess/tests/data-r2/i18n/manifest#normalization-1"
             
-        "http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-01"
-        
+        // "http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-01",
+            
+        "http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#plus-1",
+            
     });
     
     protected static BigdataSparqlTest getSingleTest(String testURI) throws Exception {

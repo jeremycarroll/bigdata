@@ -57,24 +57,24 @@ public class SPOPredicate implements IPredicate<ISPO> {
      */
     private static final long serialVersionUID = 1396017399712849975L;
 
-    private final String[] relationName;
+    protected final String[] relationName;
 
-    private final int partitionId;
+    protected final int partitionId;
     
-    private final IVariableOrConstant<Long> s;
+    protected final IVariableOrConstant<Long> s;
 
-    private final IVariableOrConstant<Long> p;
+    protected final IVariableOrConstant<Long> p;
 
-    private final IVariableOrConstant<Long> o;
+    protected final IVariableOrConstant<Long> o;
 
     /** The context position MAY be <code>null</code>. */
-    private final IVariableOrConstant<Long> c;
+    protected final IVariableOrConstant<Long> c;
 
-    private final boolean optional;
+    protected final boolean optional;
     
-    private final IElementFilter<ISPO> constraint;
+    protected final IElementFilter<ISPO> constraint;
 
-    private final ISolutionExpander<ISPO> expander;
+    protected final ISolutionExpander<ISPO> expander;
     
     public String getOnlyRelationName() {
         
@@ -782,7 +782,13 @@ public class SPOPredicate implements IPredicate<ISPO> {
     }
 
     public String toString(final IBindingSet bindingSet) {
-
+        
+        return toStringBuilder(bindingSet).toString();
+        
+    }
+    
+    protected StringBuilder toStringBuilder(final IBindingSet bindingSet) {
+        
         final StringBuilder sb = new StringBuilder();
 
         sb.append("(");
@@ -858,7 +864,7 @@ public class SPOPredicate implements IPredicate<ISPO> {
             
         }
         
-        return sb.toString();
+        return sb;
 
     }
 

@@ -83,6 +83,7 @@ import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IConstant;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.ISolutionExpander;
+import com.bigdata.relation.rule.IStarJoin;
 import com.bigdata.relation.rule.IVariable;
 import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.relation.rule.Var;
@@ -1218,7 +1219,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
          */
 //      * Note: We can specify READ_ONLY here since the tail predicates are not
 //      * mutable for rule execution.
-        final int flags = IRangeQuery.KEYS | IRangeQuery.VALS;// | IRangeQuery.READONLY;
+        final int flags = IRangeQuery.KEYS | IRangeQuery.VALS
+            | (predicate instanceof SPOStarJoin ? IRangeQuery.CURSOR : 0);
 
         final long timestamp = getTimestamp();//getReadTimestamp();
         
@@ -1286,6 +1288,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 | (TimestampUtility.isReadOnly(getTimestamp()) ? IRangeQuery.READONLY
                         : 0)
                 | IRangeQuery.PARALLEL
+                | (predicate instanceof SPOStarJoin ? IRangeQuery.CURSOR : 0)
                 ;
         
         final AbstractTripleStore container = getContainer();

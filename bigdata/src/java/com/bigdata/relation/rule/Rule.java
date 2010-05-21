@@ -449,6 +449,22 @@ public class Rule<E> implements IRule<E> {
                 }
 
             }
+            
+            if (pred instanceof IStarJoin) {
+                
+                final IStarJoin starJoin = (IStarJoin) pred;
+                
+                final Iterator<IVariable> it = starJoin.getVariables();
+                
+                while (it.hasNext()) {
+                    
+                    IVariable v = it.next();
+                    
+                    vars.add(v);
+                    
+                }
+                
+            }
 
         }
         

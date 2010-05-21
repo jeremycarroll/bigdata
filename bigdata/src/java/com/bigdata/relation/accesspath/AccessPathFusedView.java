@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleCursor;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.view.FusedTupleIterator;
 import com.bigdata.btree.view.FusedView;
@@ -180,7 +181,7 @@ public class AccessPathFusedView<E> implements IAccessPath<E> {
                 });
 
     }
-
+    
     public IChunkedOrderedIterator<E> iterator() {
 
         return iterator(0L/* offset */, 0L/* limit */, 0/* capacity */);
