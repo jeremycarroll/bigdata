@@ -150,6 +150,7 @@ public class BigdataQueryDriver {
             // run TestDriver with bsbmArgs, repo
 //            TestDriver.main(bsbmArgs, repo);
             testRepo(repo);
+//            testRepo(repo);
             
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -177,33 +178,30 @@ public class BigdataQueryDriver {
             }
 */            
             String queryString = 
-/*
-"PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
-"PREFIX rev: <http://purl.org/stuff/rev#> " +
-"PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
-"PREFIX bsbm: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/> " +
-"PREFIX bsbm-export: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/export/> " +
-"PREFIX dc: <http://purl.org/dc/elements/1.1/> " +
-"CONSTRUCT {  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:product ?productURI . " +
-"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:productlabel ?productlabel . " +
-"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:vendor ?vendorname . " +
-"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:vendorhomepage ?vendorhomepage . " +
-"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:offerURL ?offerURL . " +
-"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:price ?price . " +
-"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:deliveryDays ?deliveryDays . " +
-"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:validuntil ?validTo } " +
-// "SELECT * " +
-"WHERE { <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:product ?productURI . " +
-"        ?productURI rdfs:label ?productlabel .  " +
-"        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:vendor ?vendorURI . " +
-"        ?vendorURI rdfs:label ?vendorname . " +
-"        ?vendorURI foaf:homepage ?vendorhomepage . " +
-"        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:offerWebpage ?offerURL . " +
-"        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:price ?price . " +
-"        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:deliveryDays ?deliveryDays . " +
-"        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:validTo ?validTo " +
-"}";
-*/
+//"PREFIX bsbm-inst: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/> " +
+//"PREFIX bsbm: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/> " +
+//"PREFIX bsbm-export: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/export/> " +
+//"PREFIX dc: <http://purl.org/dc/elements/1.1/> " +
+//"CONSTRUCT {  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:product ?productURI . " +
+//"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:productlabel ?productlabel . " +
+//"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:vendor ?vendorname . " +
+//"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:vendorhomepage ?vendorhomepage . " +
+//"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:offerURL ?offerURL . " +
+//"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:price ?price . " +
+//"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:deliveryDays ?deliveryDays . " +
+//"             <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm-export:validuntil ?validTo } " +
+//// "SELECT * " +
+//"WHERE { <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:product ?productURI . " +
+//"        ?productURI rdfs:label ?productlabel .  " +
+//"        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:vendor ?vendorURI . " +
+//"        ?vendorURI rdfs:label ?vendorname . " +
+//"        ?vendorURI foaf:homepage ?vendorhomepage . " +
+//"        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:offerWebpage ?offerURL . " +
+//"        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:price ?price . " +
+//"        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:deliveryDays ?deliveryDays . " +
+//"        <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromVendor1/Offer9> bsbm:validTo ?validTo " +
+//"}";
+
 //"PREFIX rev: <http://purl.org/stuff/rev#> " +
 //"DESCRIBE ?x " +
 //"WHERE { <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/dataFromRatingSite1/Review96> rev:reviewer ?x }";
