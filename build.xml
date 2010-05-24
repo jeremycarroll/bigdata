@@ -157,17 +157,17 @@
 		</jar>
 		<jar destfile="${build.dir}/com.bigdata-${osgi.version}.jar">
 			<fileset dir="${build.dir}/classes"  />
-			<fileset dir="${build.dir}">
-							<include name="**/colt-1.2.0.jar" />
-							<include name="**/fastutil-5.1.5.jar" />
-							<include name="**/ctc_utils-5-4-2005.jar" />
-							<include name="**/cweb-commons-1.1-b2-dev.jar" />
-							<include name="**/cweb-extser-0.1-b2-dev.jar" />
-							<include name="**/dsi-utils-1.0-b5-dev-200410.jar" />
-							<include name="**/iris-0.58.jar" />
-							<include name="**/lgpl-utils-1.0-b5-dev-110510.jar" />
-							<include name="**/high-scale-lib-v1.1.2.jar" />
-			</fileset>
+			<fileset dir="bigdata/LEGAL"  />
+			<zipfileset src="${build.dir}/lib/unimi/colt-1.2.0.jar"/>
+			<zipfileset src="${build.dir}/lib/unimi/fastutil-5.1.5.jar" />
+			<zipfileset src="${build.dir}/lib/ctc_utils-5-4-2005.jar" />
+			<zipfileset src="${build.dir}/lib/cweb-commons-1.1-b2-dev.jar" />
+			<zipfileset src="${build.dir}/lib/cweb-extser-0.1-b2-dev.jar" />
+			<zipfileset src="${build.dir}/lib/dsi-utils-1.0-b5-dev-200410.jar" />
+			<zipfileset src="${build.dir}/lib/iris-0.58.jar" />
+			<zipfileset src="${build.dir}/lib/lgpl-utils-1.0-b5-dev-110510.jar" />
+			<zipfileset src="${build.dir}/lib/high-scale-lib-v1.1.2.jar" />
+			
 			<manifest>
 				<attribute name="Bundle-Name" value="com.bigdata"/>
 				<attribute name="Bundle-Vendor" value="Systap"/>
@@ -177,17 +177,7 @@
 				<attribute name="Bundle-DocURL" value="http://www.bigdata.com"/>
 				<attribute name="Bundle-Description" value="Bigdata API"/>
 				<attribute name="DynamicImport-Package" value="*"/>
-				<attribute name="Bundle-ClassPath" value="
-					lib/ctc_utils-5-4-2005.jar,
-					 lib/cweb-commons-1.1-b2-dev.jar,
-					 lib/cweb-extser-0.1-b2-dev.jar,
-					 lib/dsi-utils-1.0-b5-dev-200410.jar,
-					 lib/iris-0.58.jar,
-					 .,
-					 lib/unimi/colt-1.2.0.jar,
-					 lib/unimi/fastutil-5.1.5.jar,
-					 lib/lgpl-utils-1.0-b5-dev-110510.jar,
-					 lib/high-scale-lib-v1.1.2.jar"/>
+				<attribute name="Bundle-ClassPath" value="."/>
 				<attribute name="Export-Package" value='
 com.bigdata;version="${osgi.version}",
 com.bigdata.bfs;version="${osgi.version}",

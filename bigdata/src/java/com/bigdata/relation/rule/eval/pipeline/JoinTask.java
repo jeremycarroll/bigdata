@@ -520,7 +520,7 @@ abstract public class JoinTask implements Callable<Void> {
             
             /*
              * This is used for processing errors and also if this task is
-             * interrupted (because a SLICE has been satisified).
+             * interrupted (because a SLICE has been satisfied).
              * 
              * @todo For a SLICE, consider that the query solution buffer
              * proxy could return the #of solutions added so far so that we
@@ -1532,8 +1532,7 @@ abstract public class JoinTask implements Callable<Void> {
                          * Clone the binding set since it is tested for each
                          * element visited.
                          */
-                        //bset = bset.clone();
-                        bset = bset.copy(variablesToKeep);
+                        bset = bset.clone();
 
                         if (INFO) {
                             log.info("tailIndex: " + tailIndex);
@@ -1544,8 +1543,10 @@ abstract public class JoinTask implements Callable<Void> {
                         // propagate bindings from the visited element.
                         if (joinNexus.bind(rule, tailIndex, e, bset)) {
 
+                            bset = bset.copy(variablesToKeep);
+                            
                             // Accept this binding set.
-                            unsyncBuffer.add((orderIndex==order.length-1)?bset.copy(requiredVars[tailIndex]):bset);
+                            unsyncBuffer.add(bset);
 
                             naccepted++;
 

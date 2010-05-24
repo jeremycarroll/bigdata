@@ -1,15 +1,13 @@
 package com.bigdata.rdf.inf;
 
 import java.util.Arrays;
-
 import org.apache.log4j.Logger;
-
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.rdf.rules.RuleContextEnum;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
-import com.bigdata.rdf.spo.SPOKeyOrderProvider;
+import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.spo.SPOPredicate;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
@@ -400,7 +398,7 @@ public class OwlSameAsPropertiesExpandingIterator implements
             }
             if (spo != null) {
                 return new ChunkedArrayIterator<ISPO>(1, new SPO[] { spo },
-                		db.getKeyOrderProvider().getSubjectFirstKeyOrder(false));
+                        SPOKeyOrder.SPO);
             } else {
                 return null;
             }
@@ -516,6 +514,27 @@ public class OwlSameAsPropertiesExpandingIterator implements
                 return false;
             }
             return true;
+        }
+        
+        public IVariable[] getVariables() {
+            
+            final IVariable[] vars = new IVariable[
+                (_s.isVar() ? 1 : 0) +
+                (_p.isVar() ? 1 : 0) +
+                (_o.isVar() ? 1 : 0)
+                ];
+            int i = 0;
+            if (_s.isVar()) {
+                vars[i++] = (IVariable) _s;
+            }
+            if (_p.isVar()) {
+                vars[i++] = (IVariable) _p;
+            }
+            if (_o.isVar()) {
+                vars[i++] = (IVariable) _o;
+            }
+            return vars;
+            
         }
 
         public long getValue(IVariableOrConstant<Long> _x, IBindingSet bindings) {
