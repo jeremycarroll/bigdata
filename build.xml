@@ -1252,6 +1252,7 @@ ${postInstallMessage}</echo>
       <property name="dist.var.config.logging" location="${dist.var.config}/logging" />
       <property name="dist.var.config.zookeeper" location="${dist.var.config}/zookeeper" />
       <property name="dist.var.config.jini" location="${dist.var.config}/jini" />
+      <property name="dist.var.config.deploy" location="${dist.var.config}/deploy" />
 
       <delete dir="${dist.dir}" quiet="true"/>
       <mkdir dir="${dist.dir}"/>
@@ -1265,6 +1266,7 @@ ${postInstallMessage}</echo>
       <mkdir dir="${dist.var.config.logging}"/>
       <mkdir dir="${dist.var.config.zookeeper}"/>
       <mkdir dir="${dist.var.config.jini}"/>
+      <mkdir dir="${dist.var.config.deploy}"/>
 
       <!-- Copy the jar files created by the jar target to        -->
       <!-- an application-specific but non-version-specific       -->
@@ -1386,10 +1388,10 @@ ${postInstallMessage}</echo>
             todir="${dist.var.config}"/>
 
       <copy file="${default.properties.from.file}"
-            todir="${dist.var.config}"/>
+            todir="${dist.var.config.deploy}"/>
 
       <copy file="${deploy.properties.from.file}"
-            todir="${dist.var.config}"/>
+            todir="${dist.var.config.deploy}"/>
 
       <!-- Stage utility scripts and related resources -->
 

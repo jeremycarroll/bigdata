@@ -323,7 +323,8 @@ public class ConfigDeployUtil {
             rootPath = appDotHome + File.separator 
                                + "dist" + File.separator + "bigdata";
         }
-        String relPath = "var" + File.separator + "config";
+        String relPath = "var" + File.separator + "config" 
+                               + File.separator + "deploy";
         String retPath = rootPath + File.separator + relPath;
         //eclipse
         if( !(new File(retPath)).exists() ) {
