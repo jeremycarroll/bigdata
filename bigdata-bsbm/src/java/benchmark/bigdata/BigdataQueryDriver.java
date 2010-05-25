@@ -148,9 +148,7 @@ public class BigdataQueryDriver {
             repo.initialize();
             
             // run TestDriver with bsbmArgs, repo
-//            TestDriver.main(bsbmArgs, repo);
-            testRepo(repo);
-//            testRepo(repo);
+            TestDriver.main(bsbmArgs, repo);
             
         } catch (Exception ex) {
             ex.printStackTrace();

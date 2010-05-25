@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.relation.rule;
 
 import java.io.Serializable;
+import java.util.Iterator;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.relation.IMutableRelation;
 import com.bigdata.relation.IRelation;
@@ -196,6 +197,11 @@ public interface IPredicate<E> extends Cloneable, Serializable {
      * @see #getVariableCount(IKeyOrder)
      */
     public int getVariableCount();
+    
+    /**
+     * The variables contained in the predicate.
+     */
+    public Iterator<IVariable> getVariables();
 
     /**
      * The #of arguments in the predicate required for the specified

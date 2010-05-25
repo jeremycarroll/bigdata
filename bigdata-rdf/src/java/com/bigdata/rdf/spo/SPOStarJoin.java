@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.UUID;
 import com.bigdata.relation.accesspath.IElementFilter;
 import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IBindingSet;
@@ -35,6 +36,7 @@ import com.bigdata.relation.rule.ISolutionExpander;
 import com.bigdata.relation.rule.IStarJoin;
 import com.bigdata.relation.rule.IVariable;
 import com.bigdata.relation.rule.IVariableOrConstant;
+import com.bigdata.relation.rule.Var;
 
 /**
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
@@ -44,6 +46,14 @@ public class SPOStarJoin extends SPOPredicate implements IStarJoin<ISPO> {
     private static final long serialVersionUID = 1L;
     
     protected final Collection<IStarConstraint> starConstraints;
+
+    public SPOStarJoin(final SPOPredicate pred) {
+        
+        this(pred.relationName, pred.partitionId, pred.s(), Var.var(), 
+                Var.var(), pred.c(), pred.isOptional(), 
+                pred.getConstraint(), pred.getSolutionExpander());
+        
+    }
     
     public SPOStarJoin(final String relationName,
             final IVariableOrConstant<Long> s,
@@ -92,6 +102,33 @@ public class SPOStarJoin extends SPOPredicate implements IStarJoin<ISPO> {
         
     }
     
+    @Override
+    public int getVariableCount() {
+
+        final Set<IVariable> vars = new HashSet<IVariable>();
+
+        for (IStarConstraint constraint : starConstraints) {
+            
+            if (((SPOStarConstraint) constraint).p.isVar()) {
+                vars.add((IVariable) ((SPOStarConstraint) constraint).p);
+            }
+            
+            if (((SPOStarConstraint) constraint).o.isVar()) {
+                vars.add((IVariable) ((SPOStarConstraint) constraint).o);
+            }
+            
+        }
+        
+        Iterator<IVariable> it = super.getVariables();
+        while (it.hasNext()) {
+            vars.add(it.next());
+        }
+        
+        return vars.size();
+        
+    }
+    
+    @Override
     public Iterator<IVariable> getVariables() {
         
         final Set<IVariable> vars = new HashSet<IVariable>();
@@ -106,6 +143,11 @@ public class SPOStarJoin extends SPOPredicate implements IStarJoin<ISPO> {
                 vars.add((IVariable) ((SPOStarConstraint) constraint).o);
             }
             
+        }
+        
+        Iterator<IVariable> it = super.getVariables();
+        while (it.hasNext()) {
+            vars.add(it.next());
         }
         
         return vars.iterator();

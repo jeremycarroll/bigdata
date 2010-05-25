@@ -29,6 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.relation.rule;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import com.bigdata.relation.accesspath.IElementFilter;
 import com.bigdata.striterator.IKeyOrder;
@@ -364,6 +367,20 @@ public class Predicate<E> implements IPredicate<E> {
         
     }
 
+    public Iterator<IVariable> getVariables() {
+        
+        final Set<IVariable> vars = new HashSet<IVariable>();
+
+        for (int i = 0; i < arity(); i++) {
+            if (get(i).isVar()) {
+                vars.add((IVariable) get(i));
+            }
+        }
+        
+        return vars.iterator();
+
+    }
+    
     /**
      * {@inheritDoc}
      * 

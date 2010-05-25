@@ -1417,150 +1417,35 @@ abstract public class JoinTask implements Callable<Void> {
             // Obtain the iterator for the current join dimension.
             final IChunkedOrderedIterator itr = accessPath.iterator();
             
-            Object[] spos = null;
+            Object[] elements = null;
             
             try {
 
                 while (itr.hasNext()) {
 
-                    if (spos == null) {
+                    if (elements == null) {
                         
-                        spos = (Object[]) itr.nextChunk();
+                        elements = (Object[]) itr.nextChunk();
                         
                     } else {
                     
                         final Object[] chunk = (Object[]) itr.nextChunk();
                         
-                        final Object[] tmp = new Object[spos.length + chunk.length];
+                        final Object[] tmp = 
+                            new Object[elements.length + chunk.length];
                         
-                        System.arraycopy(spos, 0, tmp, 0, spos.length);
+                        System.arraycopy(elements, 0, tmp, 0, elements.length);
                         
-                        System.arraycopy(chunk, 0, tmp, spos.length-1, chunk.length);
+                        System.arraycopy(chunk, 0, tmp, elements.length-1, 
+                                chunk.length);
                         
-                        spos = tmp;
+                        elements = tmp;
                             
                     }
 
                 } // next chunk.
-/*                
-                if (spos != null) {
-                    
-                    final Iterator<IStarConstraint> it = 
-                        starJoin.getStarConstraints();
-                    
-                    final IBindingSet[][] solutions = 
-                        new IBindingSet[starJoin.getNumStarConstraints()][];
 
-                    int i = 0;
-                    
-                    while (it.hasNext()) {
-                        
-                        final SPOStarConstraint constraint = 
-                            (SPOStarConstraint) it.next();
-                        
-                        boolean constraintSatisfied = false;
-                        
-                        final IVariableOrConstant<Long> p = constraint.p();
-                        
-                        final IVariableOrConstant<Long> o = constraint.o();
-                        
-                        final boolean optional = constraint.isOptional();
-                        
-                        Collection<IBindingSet> constraintSolutions = 
-                            new ArrayList<IBindingSet>();
-                        
-                        if (p.isConstant() && o.isConstant() && !optional) {
-                            
-                            // special case: p & o both bound, non-optional
-                            // just check for existence of matching SPO
-                            
-                            for (SPO spo : spos) {
-                             
-                                if (spo.p == p.get() && spo.o == o.get()) {
-                                    
-                                    constraintSatisfied = true;
-                                    
-                                    break;
-                                    
-                                }
-                                
-                            }                            
-                            
-                        } else if (p.isVar() && o.isVar()) {
-                            
-                            // special case: p & o both variables
-                            // always satisfied, create binding set for every SPO
-                            
-                            constraintSatisfied = true;
-                            
-                            for (SPO spo : spos) {
-
-                                IBindingSet bs = new ArrayBindingSet(2);
-                                
-                                bs.set((IVariable) p, new Constant<Long>(spo.p));
-                               
-                                bs.set((IVariable) o, new Constant<Long>(spo.o));
-                                
-                                constraintSolutions.add(bs);
-                                
-                            }
-                            
-                        } else if (p.isConstant()) {
-                            
-                            for (SPO spo : spos) {
-
-                                if (p.get() == spo.p) {
-                                    
-                                    constraintSatisfied = true;
-                                    
-                                    IBindingSet bs = new ArrayBindingSet(1);
-                                    
-                                    bs.set((IVariable) o, new Constant<Long>(spo.o));
-                                    
-                                    constraintSolutions.add(bs);
-                                    
-                                }
-                                
-                            }
-                            
-                        } else if (o.isConstant()) {
-                            
-                            for (SPO spo : spos) {
-
-                                if (o.get() == spo.o) {
-                                    
-                                    constraintSatisfied = true;
-                                    
-                                    IBindingSet bs = new ArrayBindingSet(1);
-                                    
-                                    bs.set((IVariable) p, new Constant<Long>(spo.p));
-                                    
-                                    constraintSolutions.add(bs);
-                                    
-                                }
-                                
-                            }
-                            
-                        }
-                        
-                        if (!constraintSatisfied) {
-                            
-                            // fail the join - how?
-                            
-                        } else {
-                            
-                            solutions[i] = constraintSolutions.toArray(
-                                    new IBindingSet[constraintSolutions.size()]);
-                            
-                        }
-                        
-                        i++;
-                        
-                    }
-                    
-                }
-*/
-                if (spos != null) {
+                if (elements != null) {
                     
                     final Iterator<IStarConstraint> it = 
                         starJoin.getStarConstraints();
@@ -1571,29 +1456,21 @@ abstract public class JoinTask implements Callable<Void> {
                         
                         final IStarConstraint constraint = it.next();
                         
-//                        final IVariableOrConstant<Long> p = constraint.p();
-
-//                        final IVariableOrConstant<Long> o = constraint.o();
-
                         Collection<IBindingSet> constraintSolutions = null;
                         
-//                        int numVars = (p.isVar() ? 1 : 0) + 
-//                                      (o.isVar() ? 1 : 0);
                         int numVars = constraint.getNumVars();
                         
-                        for (Object spo : spos) {
+                        for (Object e : elements) {
 
-//                            if ((p.isVar() || p.get() == spo.p) &&
-//                                (o.isVar() || o.get() == spo.o)) {    
-                            if (constraint.isMatch(spo)) {
+                            if (constraint.isMatch(e)) {
                                 
                                 // for each match for the constraint, 
                                 // we clone the old solutions and create a new 
-                                // solutions that appends the varable bindings from 
-                                // this match
+                                // solutions that appends the varable bindings 
+                                // from this match
                                 
-                                // at the end, we set the old solutions collection 
-                                // to the new solutions collection 
+                                // at the end, we set the old solutions 
+                                // collection to the new solutions collection 
                                 
                                 if (constraintSolutions == null) {
                                     
@@ -1608,22 +1485,8 @@ abstract public class JoinTask implements Callable<Void> {
                                         
                                         bs = bs.clone();
                                         
-                                        constraint.bind(bs, spo);
-                                        /*
-                                        if (p.isVar()) {
-                                            
-                                            bs.set((IVariable) p, 
-                                                new Constant<Long>(spo.p));
-                                            
-                                        }
-                                        
-                                        if (o.isVar()) {
-                                            
-                                            bs.set((IVariable) o, 
-                                                new Constant<Long>(spo.o));
-                                            
-                                        }
-                                        */
+                                        constraint.bind(bs, e);
+
                                     }
                                     
                                     constraintSolutions.add(bs);
@@ -1647,8 +1510,6 @@ abstract public class JoinTask implements Callable<Void> {
                             // we did not find any matches to this constraint
                             // that is ok, as long it's optional
                             if (constraint.isOptional() == false) {
-                                
-                                // fail the join, how?
                                 
                                 constraintFailed = true;
                                 

@@ -709,7 +709,7 @@ public class BigdataSail extends SailBase implements Sail {
                         " = " + NoVocabulary.class.getName());
                 
             }
-
+            
         }
         
         if (quads || quadsMode) {

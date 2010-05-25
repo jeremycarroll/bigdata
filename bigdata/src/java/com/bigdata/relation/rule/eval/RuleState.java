@@ -363,6 +363,7 @@ public class RuleState implements IRuleState {
                 final IPredicate nextPred = rule.getTail(nextTailIndex);
 
                 // add the next tail's variables
+                /*
                 final int arity = nextPred.arity();
                 for (int j = 0; j < arity; j++) {
                     final IVariableOrConstant t = nextPred.get(j);
@@ -370,6 +371,11 @@ public class RuleState implements IRuleState {
                         final IVariable v = (IVariable) t;
                         required.add(v);
                     }
+                }
+                */
+                final Iterator<IVariable> vars = nextPred.getVariables();
+                while (vars.hasNext()) {
+                    required.add(vars.next());
                 }
                 
                 // add the variables from the constraints on the rule

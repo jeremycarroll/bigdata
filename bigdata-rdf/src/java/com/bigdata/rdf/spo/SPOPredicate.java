@@ -24,7 +24,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.spo;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
+import com.bigdata.rdf.spo.SPOStarJoin.SPOStarConstraint;
 import com.bigdata.relation.accesspath.IElementFilter;
 import com.bigdata.relation.rule.ArrayBindingSet;
 import com.bigdata.relation.rule.Constant;
@@ -34,6 +38,7 @@ import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.ISolutionExpander;
 import com.bigdata.relation.rule.IVariable;
 import com.bigdata.relation.rule.IVariableOrConstant;
+import com.bigdata.relation.rule.IStarJoin.IStarConstraint;
 import com.bigdata.striterator.IKeyOrder;
 
 /**
@@ -387,6 +392,28 @@ public class SPOPredicate implements IPredicate<ISPO> {
     }
 
     /**
+     * Pure copy constructor.
+     */
+    protected SPOPredicate(final SPOPredicate src) {
+
+        this.relationName = src.relationName;
+        
+        this.partitionId = src.partitionId;
+        
+        this.s = src.s;
+        this.p = src.p;
+        this.o = src.o;
+        this.c = src.c;
+        
+        this.optional = src.optional;
+        
+        this.constraint = src.constraint;
+        
+        this.expander = src.expander;
+        
+    }
+
+    /**
      * Constrain the predicate by setting the context position. If the context
      * position on the {@link SPOPredicate} is non-<code>null</code>, then you
      * must use {@link #asBound(IBindingSet)} to replace all occurrences of the
@@ -583,10 +610,24 @@ public class SPOPredicate implements IPredicate<ISPO> {
      * The #of arguments in the predicate that are variables (the context
      * position iff it is non-null).
      */
-    final public int getVariableCount() {
+    public int getVariableCount() {
 
         return (s.isVar() ? 1 : 0) + (p.isVar() ? 1 : 0) + (o.isVar() ? 1 : 0)
                 + (c == null ? 0 : (c.isVar() ? 1 : 0));
+
+    }
+    
+    public Iterator<IVariable> getVariables() {
+        
+        final Set<IVariable> vars = new HashSet<IVariable>();
+
+        for (int i = 0; i < arity(); i++) {
+            if (get(i).isVar()) {
+                vars.add((IVariable) get(i));
+            }
+        }
+        
+        return vars.iterator();
 
     }
     
