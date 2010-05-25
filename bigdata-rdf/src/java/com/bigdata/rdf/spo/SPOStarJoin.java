@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.rdf.spo;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -41,9 +42,13 @@ import com.bigdata.relation.rule.Var;
 /**
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  */
-public class SPOStarJoin extends SPOPredicate implements IStarJoin<ISPO> {
+public class SPOStarJoin extends SPOPredicate 
+        implements IStarJoin<ISPO>, Serializable {
 
-    private static final long serialVersionUID = 1L;
+    /**
+     * generated serial version UID 
+     */
+    private static final long serialVersionUID = 981603459301801862L;
     
     protected final Collection<IStarConstraint> starConstraints;
 
@@ -197,8 +202,14 @@ public class SPOStarJoin extends SPOPredicate implements IStarJoin<ISPO> {
         
     }
     
-    public static class SPOStarConstraint implements IStarConstraint<SPO> {
+    public static class SPOStarConstraint implements IStarConstraint<SPO>, 
+            Serializable {
         
+        /**
+         * generated serial version UID
+         */
+        private static final long serialVersionUID = 997244773880938817L;
+
         protected final IVariableOrConstant<Long> p, o;
         
         protected final boolean optional;
