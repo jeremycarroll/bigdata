@@ -762,10 +762,6 @@ public class SPORelation extends AbstractRelation<ISPO> {
 			/*
 			 * Note: this value coder does not know about statement identifiers.
 			 * Therefore it is turned off if statement identifiers are enabled.
-			 * 
-			 * @todo Examine some options for value compression for the
-			 * statement indices when statement identifiers are enabled. Of
-			 * course, the CanonicalHuffmanRabaCoder can always be used.
 			 */
 
 			leafValSer = new FastRDFValueCoder2();
@@ -773,8 +769,20 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
 		} else {
 
+            /*
+             * The default is canonical huffman coding, which is relatively slow
+             * and does not achieve very good compression on term identifiers.
+             */
 			leafValSer = DefaultTupleSerializer.getDefaultValuesCoder();
 
+            /*
+             * @todo This is much faster than huffman coding, but less space
+             * efficient. However, it appears that there are some cases where
+             * SIDs are enabled but only the flag bits are persisted. What
+             * gives?
+             */
+//            leafValSer = new FixedLengthValueRabaCoder(1 + 8);
+            
 		}
 
 		metadata.setTupleSerializer(new SPOTupleSerializer(keyOrder,
@@ -1140,8 +1148,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
 	 */
 	final private SPOAccessPath _getAccessPath(final IPredicate<ISPO> predicate) {
 
-		final SPOKeyOrder keyOrder = keyOrderProvider.getKeyOrder(predicate,
-				keyArity);
+        final SPOKeyOrder keyOrder = keyOrderProvider.getKeyOrder(predicate, keyArity);
 
 		final SPOAccessPath accessPath = getAccessPath(keyOrder, predicate);
 

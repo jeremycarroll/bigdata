@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 Portions of this code are:
 
-Copyright Aduna (http://www.aduna-software.com/) © 2001-2007
+Copyright Aduna (http://www.aduna-software.com/) ? 2001-2007
 
 All rights reserved.
 
@@ -72,8 +72,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+
 import org.apache.log4j.Logger;
 import org.openrdf.OpenRDFUtil;
 import org.openrdf.model.Namespace;
@@ -108,8 +107,8 @@ import org.openrdf.sail.Sail;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailConnectionListener;
 import org.openrdf.sail.SailException;
+
 import com.bigdata.journal.IIndexManager;
-import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
@@ -152,6 +151,7 @@ import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.CloseableIteratorWrapper;
 import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+
 import cutthecrap.utils.striterators.Expander;
 import cutthecrap.utils.striterators.Striterator;
 
@@ -347,6 +347,14 @@ public class BigdataSail extends SailBase implements Sail {
         
         public static final String DEFAULT_ISOLATABLE_INDICES = "false";
 
+        /**
+         * Experimental new star joins feature.  Not yet performant.
+         */
+        public static final String STAR_JOINS = BigdataSail.class
+                .getPackage().getName()
+                + ".starJoins";
+        
+        public static final String DEFAULT_STAR_JOINS = "false";
         
     }
 
@@ -413,6 +421,15 @@ public class BigdataSail extends SailBase implements Sail {
     }
     
     /**
+     * Return <code>true</code> iff star joins are enabled.
+     */
+    public boolean isStarJoins() {
+    	
+    	return starJoins;
+    	
+    }
+    
+    /**
      * The configured capacity for the statement buffer(s).
      * 
      * @see Options#BUFFER_CAPACITY
@@ -467,9 +484,16 @@ public class BigdataSail extends SailBase implements Sail {
     /**
      * When true, read/write transactions are allowed.
      * 
-     * @see Options#ISOLATABLE_INDICES
+     * @see {@link Options#ISOLATABLE_INDICES}
      */
     final private boolean isolatable;
+    
+    /**
+     * When true, enable star joins.
+     * 
+     * @See {@link Options#STAR_JOINS}
+     */
+    final private boolean starJoins;
     
     /**
      * <code>true</code> iff the {@link BigdataSail} has been
@@ -672,6 +696,10 @@ public class BigdataSail extends SailBase implements Sail {
                 BigdataSail.Options.TRUTH_MAINTENANCE,
                 BigdataSail.Options.DEFAULT_TRUTH_MAINTENANCE));
         
+        final boolean justify = Boolean.parseBoolean(properties.getProperty(
+                BigdataSail.Options.JUSTIFY,
+                BigdataSail.Options.DEFAULT_JUSTIFY));
+        
         final boolean noAxioms = properties.getProperty(
                 BigdataSail.Options.AXIOMS_CLASS,
                 BigdataSail.Options.DEFAULT_AXIOMS_CLASS).equals(
@@ -709,6 +737,15 @@ public class BigdataSail extends SailBase implements Sail {
                         "Cannot use transactions with a vocabulary class. " +
                         "Set option " + Options.VOCABULARY_CLASS + 
                         " = " + NoVocabulary.class.getName());
+                
+            }
+
+            if (justify) {
+                
+                throw new UnsupportedOperationException(
+                        "Cannot use transactions with justification chains. " +
+                        "Set option " + Options.JUSTIFY + 
+                        " = " + Boolean.FALSE);
                 
             }
 
@@ -860,6 +897,19 @@ public class BigdataSail extends SailBase implements Sail {
             if (log.isInfoEnabled())
                 log.info(BigdataSail.Options.ISOLATABLE_INDICES + "="
                         + isolatable);
+            
+        }
+
+        // star joins
+        { 
+            
+            starJoins = Boolean.parseBoolean(properties.getProperty(
+                    BigdataSail.Options.STAR_JOINS,
+                    BigdataSail.Options.DEFAULT_STAR_JOINS));
+
+            if (log.isInfoEnabled())
+                log.info(BigdataSail.Options.STAR_JOINS + "="
+                        + starJoins);
             
         }
 
@@ -2867,7 +2917,7 @@ public class BigdataSail extends SailBase implements Sail {
 
             final BigdataEvaluationStrategyImpl2 strategy = new BigdataEvaluationStrategyImpl2(
                     (BigdataTripleSource) tripleSource, dataset,
-                    nativeJoins);
+                    nativeJoins, starJoins);
 
             final QueryOptimizerList optimizerList = new QueryOptimizerList();
             optimizerList.add(new BindingAssigner());
@@ -2946,7 +2996,7 @@ public class BigdataSail extends SailBase implements Sail {
 
                 final BigdataEvaluationStrategyImpl2 strategy = new BigdataEvaluationStrategyImpl2(
                         (BigdataTripleSource) tripleSource, dataset,
-                        nativeJoins);
+                        nativeJoins, starJoins);
 
                 final QueryOptimizerList optimizerList = new QueryOptimizerList();
                 optimizerList.add(new BindingAssigner());
