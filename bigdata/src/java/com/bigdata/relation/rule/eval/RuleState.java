@@ -323,7 +323,7 @@ public class RuleState implements IRuleState {
         final int tailCount = rule.getTailCount();
 
         final IVariable[][] a = new IVariable[tailCount][];
-        
+
         final Set<IVariable> constraintVars = new HashSet<IVariable>();
         if (rule.getConstraintCount() > 0) {
             final Iterator<IConstraint> constraints = rule.getConstraints();

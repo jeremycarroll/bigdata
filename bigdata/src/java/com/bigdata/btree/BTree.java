@@ -633,7 +633,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
         
         if (INFO)
             log.info("old=" + this.lastCommitTime + ", new=" + lastCommitTime);
-        
+        // Note: Commented out to allow replay of historical transactions.
         /*if (this.lastCommitTime != 0L && this.lastCommitTime > lastCommitTime) {
 
             throw new IllegalStateException("Updated lastCommitTime: old="

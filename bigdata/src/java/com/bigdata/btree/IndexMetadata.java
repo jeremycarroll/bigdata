@@ -2157,7 +2157,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
              * the SPO index, must override this default.
              */
             this.splitHandler2 = null;
-        
+            
         }
 
         /*
@@ -2440,7 +2440,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
      * The childLocks feature was dropped in this version.
      */
     private static transient final int VERSION9 = 0x09;
-    
+
     /**
      * The split handler was changed from an implementation based on the #of
      * tuples to one based on the size on disk of an index segment after a

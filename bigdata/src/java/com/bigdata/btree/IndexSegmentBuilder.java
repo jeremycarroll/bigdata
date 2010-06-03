@@ -2718,7 +2718,7 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
      * @param commitTime
      * 
      * @throws IOException
-     * @throws InterruptedException 
+     * @throws InterruptedException
      * 
      *             FIXME There is no sense of an atomic commit when building a
      *             new index segment. We should write ZEROs into the checkpoint

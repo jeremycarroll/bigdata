@@ -153,7 +153,7 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
                 (getClass().getName()+".executorService"));
 
         {
-
+            
             final int readPoolSize = Integer.valueOf(properties.getProperty(
                     Options.READ_POOL_SIZE, Options.DEFAULT_READ_POOL_SIZE));
             

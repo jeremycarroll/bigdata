@@ -1,6 +1,6 @@
-/*
+/**
 
-Copyright (C) SYSTAP, LLC 2006-2008.  All rights reserved.
+Copyright (C) SYSTAP, LLC 2006-2010.  All rights reserved.
 
 Contact:
      SYSTAP, LLC
@@ -28,43 +28,52 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.spo;
 
 import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleCursor;
 import com.bigdata.btree.filter.Advancer;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.rawstore.Bytes;
-import com.bigdata.rdf.store.IRawTripleStore;
+import com.bigdata.relation.accesspath.IAccessPath;
+import com.bigdata.striterator.IKeyOrder;
 
 /**
- * Advances the source {@link ITupleCursor} through the distinct term identifiers for some {@link SPOAccessPath}. Each time a new {@link ITuple} is visited, the
- * term identifier for the first position in that tuple is decoded and its successor is formed. The source {@link ITupleCursor} is then advanced to the key
- * having that term identifier in its first position and {@link IRawTripleStore#NULL} in its 2nd and 3rd position. For example, if the {@link ITupleCursor}
- * visits an {@link ITuple} whose term identifiers are, in the order in which they appear in the key:
+ * This was cloned from the {@link DistinctTermAdvancer}. It supports an
+ * efficient scan of the distinct term identifiers that appear in the first
+ * position(s) of the keys for the statement index corresponding to the
+ * specified {@link IKeyOrder}. For example, using {@link SPOKeyOrder#POS} will
+ * give you the term identifiers for the distinct predicates actually in use
+ * within statements in the {@link SPORelation}.
+ * <p>
+ * Note: This class only offers additional functionality over the
+ * {@link DistinctTermAdvancer} for a quad store. For example, consider a triple
+ * store with 2-bound on the {@link SPOKeyOrder#SPO} index. SInce you are only
+ * going to visit the distinct Object values, the advancer will not "advance"
+ * over anything and you might as well use a normal {@link IAccessPath} or
+ * rangeIterator.
  * 
- * <pre>
- * [ 12, 4, 44 ]
- * </pre>
- * 
- * Then the source {@link ITupleCursor} will be advanced to the key:
- * 
- * <pre>
- * [ 13, 0, 0 ]
- * </pre>
- * 
- * This is used to efficiently visit the distinct terms actually appearing in the subject, predicate, or object position of {@link SPO}s in the database.
+ * @see DistinctTermAdvancer
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
+ * @version $Id: DistinctMultiTermAdvancer.java 2886 2010-05-19 19:16:49Z
+ *          mroycsi $
+ * 
+ * @todo Unit tests?
  */
 public class DistinctMultiTermAdvancer extends Advancer<SPO> {
 
-    private static final long    serialVersionUID = 2500001864793869957L;
+//    private static final long    serialVersionUID = 2500001864793869957L;
 
+    /**
+     * New version for this class, which  
+     */
+    private static final long serialVersionUID = -7326621294779476500L;
+    
+    private final int arity;
     private final int            boundEntries;
 
     private transient KeyBuilder keyBuilder;
 
-    public DistinctMultiTermAdvancer(final int boundEntries) {
+    public DistinctMultiTermAdvancer(final int arity,final int boundEntries) {
 
+        this.arity = arity;
         this.boundEntries = boundEntries;
     }
 
@@ -80,19 +89,29 @@ public class DistinctMultiTermAdvancer extends Advancer<SPO> {
              * This is Ok since the iterator pattern is single threaded.
              */
 
-            keyBuilder = new KeyBuilder(Bytes.SIZEOF_LONG * 4);
+            keyBuilder = new KeyBuilder(Bytes.SIZEOF_LONG * arity);
 
         }
-        long keys[] = new long[4];
+
+        final long keys[] = new long[4];
+        
         for (int i = 0; i < boundEntries + 1; i++) {
-            keys[i] = KeyBuilder.decodeLong(tuple.getKeyBuffer().array(), i * 8);
+        
+            keys[i] = KeyBuilder
+                    .decodeLong(tuple.getKeyBuffer().array(), i * 8);
+            
         }
+
         keys[boundEntries] += 1;
 
         keyBuilder = (KeyBuilder) keyBuilder.reset();
+
         for (int i = 0; i < boundEntries + 1; i++) {
+            
             keyBuilder.append(keys[i]);
+            
         }
+
         src.seek(keyBuilder.getBuffer());
 
     }

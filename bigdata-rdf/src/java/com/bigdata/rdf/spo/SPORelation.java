@@ -1493,6 +1493,11 @@ public class SPORelation extends AbstractRelation<ISPO> {
      * 
      * @param keyOrder
      *            The selected index order.
+     * @param knownTerms
+     *            An array of term identifiers to be interpreted as bindings
+     *            using the <i>keyOrder</i>.
+     * @param termIdFilter
+     *            An optional filter.
      * 
      * @return An iterator visiting the distinct term identifiers.
      * 
@@ -1500,29 +1505,31 @@ public class SPORelation extends AbstractRelation<ISPO> {
      *       fast scans across multiple shards when chunk-wise order is Ok.
      */
     public IChunkedIterator<Long> distinctMultiTermScan(
-            final IKeyOrder<ISPO> keyOrder,long[] knownTerms, final ITermIdFilter termIdFilter) {
+            final IKeyOrder<ISPO> keyOrder, final long[] knownTerms,
+            final ITermIdFilter termIdFilter) {
 
         final FilterConstructor<SPO> filter = new FilterConstructor<SPO>();
-        final int terms=knownTerms.length;
+        final int nterms = knownTerms.length;
 
-        KeyBuilder fromKey = new KeyBuilder(32);
-        for(long l:knownTerms) {
+        final KeyBuilder fromKey = new KeyBuilder(getKeyArity() * 8);
+        for (long l : knownTerms) {
             fromKey.append(l);
         }
        
-        KeyBuilder toKey = new KeyBuilder(32);
-        for(int i=0;i<terms;i++) {
-            if(i==terms-1) {
-                toKey.append(knownTerms[i]+1);
-            }else {
+        final KeyBuilder toKey = new KeyBuilder(getKeyArity() * 8);
+        for (int i = 0; i < nterms; i++) {
+            if (i == nterms - 1) {
+                toKey.append(knownTerms[i] + 1);
+            } else {
                 toKey.append(knownTerms[i]);
             }
         }
+        
         /*
-         * Layer in the logic to advance to the tuple that will have the
-         * next distinct term identifier in the first position of the key.
+         * Layer in the logic to advance to the tuple that will have the next
+         * distinct term identifier in the first position of the key.
          */
-        filter.addFilter(new DistinctMultiTermAdvancer(terms));
+        filter.addFilter(new DistinctMultiTermAdvancer(getKeyArity(), nterms));
 
         if (termIdFilter != null) {
 
@@ -1548,11 +1555,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
 
         }
        
-
-     
         @SuppressWarnings("unchecked")
         final Iterator<Long> itr = new Striterator(getIndex(keyOrder)
-                .rangeIterator(fromKey.getKey() , toKey.getKey() ,
+                .rangeIterator(fromKey.getKey(), toKey.getKey(),
                         0/* capacity */, IRangeQuery.KEYS | IRangeQuery.CURSOR,
                         filter)).addFilter(new Resolver() {
             private static final long serialVersionUID = 1L;
@@ -1562,8 +1567,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
              */
             @Override
             protected Long resolve(Object obj) {
-                return KeyBuilder.decodeLong(((ITuple) obj)
-                                .getKeyBuffer().array(), (terms-1)*8);
+                return KeyBuilder.decodeLong(((ITuple) obj).getKeyBuffer()
+                        .array(), (nterms - 1) * 8);
             }
         });
 

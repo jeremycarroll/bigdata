@@ -47,10 +47,10 @@ import com.bigdata.sparse.SparseRowStore;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
-     * 
+ * 
  * @deprecated by {@link ISimpleSplitHandler}. This is only kept around to
  *             deserialize existing instances.
-     */
+ */
 public interface ISplitHandler extends Serializable {
 
 //    /**

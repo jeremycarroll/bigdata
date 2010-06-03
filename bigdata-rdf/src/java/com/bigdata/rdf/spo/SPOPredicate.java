@@ -809,7 +809,7 @@ public class SPOPredicate implements IPredicate<ISPO> {
     }
 
     public String toString(final IBindingSet bindingSet) {
-
+        
         return toStringBuilder(bindingSet).toString();
         
     }

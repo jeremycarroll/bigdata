@@ -36,7 +36,6 @@ import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
-import org.openrdf.sail.SailConnection;
 
 import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataStatement;
@@ -150,5 +149,5 @@ public interface IStatementBuffer<F extends Statement> extends IBuffer<F> {
      *             if the map has already been allocated.
      */
     public void setBNodeMap(Map<String, BigdataBNode> bnodes);
-
+    
 }

@@ -28,8 +28,6 @@
 package com.bigdata.rdf.lexicon;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -47,6 +45,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 import org.omg.CORBA.portable.ValueFactory;
@@ -81,7 +80,6 @@ import com.bigdata.journal.IResourceLock;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.lexicon.Term2IdWriteProc.Term2IdWriteProcConstructor;
 import com.bigdata.rdf.model.BigdataBNode;
-import com.bigdata.rdf.model.BigdataBNodeImpl;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.BigdataValueFactoryImpl;
@@ -90,11 +88,9 @@ import com.bigdata.rdf.model.TermIdComparator2;
 import com.bigdata.rdf.rio.IStatementBuffer;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.ISPO;
-import com.bigdata.rdf.spo.ISPOKeyOrderProvider;
 import com.bigdata.rdf.spo.SPOComparator;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
-import com.bigdata.rdf.store.AbstractTripleStore.Options;
 import com.bigdata.relation.AbstractRelation;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.accesspath.IElementFilter;
@@ -103,7 +99,6 @@ import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.IRule;
 import com.bigdata.search.FullTextIndex;
-import com.bigdata.search.TokenBuffer;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.Split;
 import com.bigdata.striterator.ChunkedArrayIterator;
@@ -143,17 +138,15 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 
 	private final Set<String> indexNames;
 
-	private ITextIndexer textIndexer;
+    private final AtomicReference<ITextIndexer> viewRef = new AtomicReference<ITextIndexer>();
 
-	protected Class determineValueFactoryClass() {
-
-		// vocabularyClass
-		{
+	@SuppressWarnings("unchecked")
+    protected Class<BigdataValueFactory> determineValueFactoryClass() {
 
 			final String className = getProperty(
 					AbstractTripleStore.Options.VALUE_FACTORY_CLASS,
 					AbstractTripleStore.Options.DEFAULT_VALUE_FACTORY_CLASS);
-			final Class cls;
+        final Class<?> cls;
 			try {
 				cls = Class.forName(className);
 			} catch (ClassNotFoundException e) {
@@ -164,24 +157,22 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 			if (!BigdataValueFactory.class.isAssignableFrom(cls)) {
 				throw new RuntimeException(
 						AbstractTripleStore.Options.VALUE_FACTORY_CLASS
-								+ ": Must extend: "
-								+ ISPOKeyOrderProvider.class.getName());
+                            + ": Must implement: "
+                            + BigdataValueFactory.class.getName());
 			}
 
-			return cls;
+        return (Class<BigdataValueFactory>) cls;
 
 		}
 
-	}
-
-	protected Class determineTextIndexerClass() {
-
-		{
+    @SuppressWarnings("unchecked")
+    protected Class<ITextIndexer> determineTextIndexerClass() {
 
 			final String className = getProperty(
 					AbstractTripleStore.Options.TEXT_INDEXER_CLASS,
 					AbstractTripleStore.Options.DEFAULT_TEXT_INDEXER_CLASS);
-			final Class cls;
+        
+        final Class<?> cls;
 			try {
 				cls = Class.forName(className);
 			} catch (ClassNotFoundException e) {
@@ -192,13 +183,11 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 			if (!ITextIndexer.class.isAssignableFrom(cls)) {
 				throw new RuntimeException(
 						AbstractTripleStore.Options.TEXT_INDEXER_CLASS
-								+ ": Must extend: "
+                            + ": Must implement: "
 								+ ITextIndexer.class.getName());
 			}
 
-			return cls;
-
-		}
+        return (Class<ITextIndexer>) cls;
 
 	}
 
@@ -324,9 +313,10 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 		 * read-committed, and unisolated views of the lexicon for a given
 		 * triple store.
 		 */
+//        valueFactory = BigdataValueFactoryImpl.getInstance(namespace);
 		try {
-			Class vfc = determineValueFactoryClass();
-			Method gi = vfc.getMethod("getInstance", String.class);
+			final Class<BigdataValueFactory> vfc = determineValueFactoryClass();
+			final Method gi = vfc.getMethod("getInstance", String.class);
 			this.valueFactory = (BigdataValueFactory) gi.invoke(null, namespace);
 		} catch (NoSuchMethodException e) {
 			throw new IllegalArgumentException(
@@ -395,7 +385,6 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 
 	}
 
-	@Override
     public void create() {
 
 		final IResourceLock resourceLock = acquireExclusiveLock();
@@ -444,7 +433,6 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 
 	}
 
-	@Override
     public void destroy() {
 
 		final IResourceLock resourceLock = acquireExclusiveLock();
@@ -464,7 +452,9 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 			if (textIndex) {
 
 				getSearchEngine().destroy();
-				textIndexer=null;
+
+                viewRef.set(null);
+
 			}
 
 			// discard the value factory for the lexicon's namespace.
@@ -605,33 +595,44 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 	 */
 	public ITextIndexer getSearchEngine() {
 
-        if (!textIndex) {
+        if (!textIndex)
 			return null;
-		}else {
-			synchronized(this) {
-				if(textIndexer==null) {
+
+        /*
+         * Note: Double-checked locking pattern requires [volatile] variable or
+         * AtomicReference. This uses the AtomicReference since that gives us a
+         * lock object which is specific to this request.
+         */
+        if (viewRef.get() == null) {
+
+            synchronized (viewRef) {
+
+                if (viewRef.get() == null) {
+
+                    final ITextIndexer tmp;
 					try {
-						Class vfc = determineTextIndexerClass();
-						Method gi = vfc.getMethod("getInstance", IIndexManager.class,String.class,Long.class,Properties.class);
-						if(gi!=null) {
-							this.textIndexer = (ITextIndexer) gi.invoke(null, getIndexManager(), getNamespace(),getTimestamp(), getProperties());
-						}
-					} catch (NoSuchMethodException e) {
+                        final Class<?> vfc = determineTextIndexerClass();
+                        final Method gi = vfc.getMethod("getInstance",
+                                IIndexManager.class, String.class, Long.class,
+                                Properties.class);
+                        tmp = (ITextIndexer) gi.invoke(null/* object */,
+                                getIndexManager(), getNamespace(),
+                                getTimestamp(), getProperties());
+//                        new FullTextIndex(getIndexManager(),
+//                                getNamespace(), getTimestamp(), getProperties())
+                        viewRef.set(tmp);
+                    } catch (Throwable e) {
 						throw new IllegalArgumentException(
-								AbstractTripleStore.Options.TEXT_INDEXER_CLASS, e);
-					} catch (InvocationTargetException e) {
-						e.printStackTrace();
-						throw new IllegalArgumentException(
-								AbstractTripleStore.Options.TEXT_INDEXER_CLASS, e);
-					} catch (IllegalAccessException e) {
-						throw new IllegalArgumentException(
-								AbstractTripleStore.Options.TEXT_INDEXER_CLASS, e);
+                                AbstractTripleStore.Options.TEXT_INDEXER_CLASS,
+                                e);
 					}
 				}
 			}
-			return textIndexer;
+
 		}
         
+        return viewRef.get();
+
 	}
 
 	protected IndexMetadata getTerm2IdIndexMetadata(final String name) {
@@ -1301,7 +1302,11 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 	 * @param itr
 	 *            Iterator visiting the terms to be indexed.
 	 * 
-	 * @see #textSearch(String, String)
+     * @throws UnsupportedOperationException
+     *             unless full text indexing was enabled.
+     * 
+     * @see ITextIndexer
+     * @see AbstractTripleStore.Options#TEXT_INDEX
 	 * 
 	 * @todo allow registeration of datatype specific tokenizers (we already
 	 *       have language family based lookup).
@@ -1313,6 +1318,13 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 			final Iterator<BigdataValue> itr) {
 
 		final ITextIndexer ndx = getSearchEngine();
+		
+		if(ndx == null) {
+		    
+		    throw new UnsupportedOperationException();
+		    
+		}
+		
 		ndx.index(capacity, itr);
 
 	}
@@ -1367,7 +1379,7 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 				assert value.getValueFactory() == valueFactory;
 
 				// resolved.
-				ret.put(lid, value);// valueFactory.asValue(value));
+                ret.put(lid, value);//valueFactory.asValue(value));
 
 				continue;
 
@@ -2150,7 +2162,6 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 					 * @param obj
 					 *            the serialized term.
 					 */
-					@Override
                     protected Object resolve(final Object obj) {
 
 						return ((ITuple<BigdataValue>) obj).getObject();
@@ -2181,7 +2192,6 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 			 * @param val
 			 *            The serialized term identifier.
 			 */
-			@Override
             protected Object resolve(final Object val) {
 
 				final ITuple tuple = (ITuple) val;
@@ -2236,7 +2246,6 @@ public class LexiconRelation extends AbstractRelation<BigdataValue> {
 			 * @param val
 			 *            the term identifier (Long).
 			 */
-			@Override
             protected Object resolve(final Object val) {
 
 				// resolve against the id:term index (random lookup).

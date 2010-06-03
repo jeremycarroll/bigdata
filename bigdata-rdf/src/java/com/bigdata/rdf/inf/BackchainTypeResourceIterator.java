@@ -170,6 +170,7 @@ public class BackchainTypeResourceIterator implements IChunkedOrderedIterator<IS
             return _src;
             
         }
+           
         if (_src == null)
             throw new IllegalArgumentException();
         
@@ -207,7 +208,7 @@ public class BackchainTypeResourceIterator implements IChunkedOrderedIterator<IS
              * for that).
              */
 
-//            resourceIds = db.getSPORelation().distinctTermScan(SPOKeyOrder.getSubjectFirstKeyOrder(false));
+//            resourceIds = db.getSPORelation().distinctTermScan(SPOKeyOrder.SPO);
             
             resourceIds = new PushbackIterator<Long>(new MergedOrderedIterator(//
                     db.getSPORelation().distinctTermScan(db.getKeyOrderProvider().getSubjectFirstKeyOrder(false)), //

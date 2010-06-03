@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 Portions of this code are:
 
-Copyright Aduna (http://www.aduna-software.com/) ? 2001-2007
+Copyright Aduna (http://www.aduna-software.com/) � 2001-2007
 
 All rights reserved.
 
@@ -58,7 +58,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package com.bigdata.rdf.sail;
 
 import info.aduna.iteration.CloseableIteration;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -72,7 +71,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import org.apache.log4j.Logger;
 import org.openrdf.OpenRDFUtil;
 import org.openrdf.model.Namespace;
@@ -107,8 +107,8 @@ import org.openrdf.sail.Sail;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailConnectionListener;
 import org.openrdf.sail.SailException;
-
 import com.bigdata.journal.IIndexManager;
+import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
@@ -151,7 +151,6 @@ import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.CloseableIteratorWrapper;
 import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
-
 import cutthecrap.utils.striterators.Expander;
 import cutthecrap.utils.striterators.Striterator;
 
@@ -2941,7 +2940,7 @@ public class BigdataSail extends SailBase implements Sail {
             return tupleExpr;
 
         }
-        
+
         /**
          * Note: The <i>includeInferred</i> argument is applied in two ways.
          * First, inferences are stripped out of the {@link SPOAccessPath}.

@@ -460,7 +460,7 @@ public class BigdataFileSystem extends
                 
                 final IndexMetadata md = new IndexMetadata(indexManager, tmp,
                         name, UUID.randomUUID());
-                
+
                 // Ensure that splits do not break logical rows.
                 md.setSplitHandler(LogicalRowSplitHandler.INSTANCE);
 

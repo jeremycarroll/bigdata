@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
@@ -83,6 +82,7 @@ import com.bigdata.rdf.axioms.OwlAxioms;
 import com.bigdata.rdf.inf.IJustificationIterator;
 import com.bigdata.rdf.inf.Justification;
 import com.bigdata.rdf.inf.JustificationIterator;
+import com.bigdata.rdf.lexicon.BigdataRDFFullTextIndex;
 import com.bigdata.rdf.lexicon.ITermIndexCodes;
 import com.bigdata.rdf.lexicon.ITextIndexer;
 import com.bigdata.rdf.lexicon.LexiconRelation;
@@ -147,7 +147,6 @@ import com.bigdata.relation.rule.eval.IJoinNexusFactory;
 import com.bigdata.relation.rule.eval.IRuleTaskFactory;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.search.FullTextIndex;
-import com.bigdata.search.IHit;
 import com.bigdata.service.AbstractEmbeddedDataService;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
@@ -814,15 +813,41 @@ abstract public class AbstractTripleStore extends
         
         String DEFAULT_QUADS_MODE = "false";
 
-        String VALUE_FACTORY_CLASS=AbstractTripleStore.class.getName()
+        /**
+         * The name of the {@link BigdataValueFactory} class. The implementation
+         * MUST declare a method with the following signature which will be used
+         * as a canonicalizing factory for the instances of that class.
+         * 
+         * <pre>
+         * public static BigdataValueFactory getInstance(final String namespace)
+         * </pre>
+         * 
+         * @see #DEFAULT_VALUE_FACTORY_CLASS
+         */
+        String VALUE_FACTORY_CLASS = AbstractTripleStore.class.getName()
         + ".valueFactoryClass";
         
-        String DEFAULT_VALUE_FACTORY_CLASS=BigdataValueFactoryImpl.class.getName();
+        String DEFAULT_VALUE_FACTORY_CLASS = BigdataValueFactoryImpl.class
+                .getName();
         
-        String TEXT_INDEXER_CLASS=AbstractTripleStore.class.getName()
+        /**
+         * The name of the {@link ITextIndexer} class. The implementation MUST
+         * declare a method with the following signature which will be used to
+         * locate instances of that class.
+         * 
+         * <pre>
+         * static public ITextIndexer getInstance(final IIndexManager indexManager,
+         *             final String namespace, final Long timestamp,
+         *             final Properties properties)
+         * </pre>
+         * 
+         * @see #DEFAULT_TEXT_INDEXER_CLASS
+         */
+        String TEXT_INDEXER_CLASS = AbstractTripleStore.class.getName()
         + ".textIndexerClass";
         
-        String DEFAULT_TEXT_INDEXER_CLASS=FullTextIndex.class.getName();
+        String DEFAULT_TEXT_INDEXER_CLASS = BigdataRDFFullTextIndex.class
+                .getName();
     
         
         String KEYORDER_PROVIDER_CLASS=AbstractTripleStore.class.getName()
@@ -1530,25 +1555,26 @@ abstract public class AbstractTripleStore extends
     }
     private LexiconRelation lexiconRelation;
 
-    /**
-     * Full text information retrieval for RDF essentially treats the RDF
-     * Literals as "documents." The literals are broken down into "token"s to
-     * obtain a "token frequency distribution" for that literal/document. The
-     * full text index contains the indexed token data.
-     * 
-     * @return The object managing the text search indices or <code>null</code>
-     *         iff text search is not enabled.
-     * 
-     * @see Options#TEXT_INDEX
-     * @see Options#TEXT_INDEX_DATATYPE_LITERALS
-     */
-    final public ITextIndexer getSearchEngine() {
-
-        if (!lexicon)
-            return null;
-
-        return  getLexiconRelation().getSearchEngine();
-    }
+// Note: Use LexiconRelation#getSearchEngine().
+//    /**
+//     * Full text information retrieval for RDF essentially treats the RDF
+//     * Literals as "documents." The literals are broken down into "token"s to
+//     * obtain a "token frequency distribution" for that literal/document. The
+//     * full text index contains the indexed token data.
+//     * 
+//     * @return The object managing the text search indices or <code>null</code>
+//     *         iff text search is not enabled.
+//     * 
+//     * @see Options#TEXT_INDEX
+//     * @see Options#TEXT_INDEX_DATATYPE_LITERALS
+//     */
+//    final public ITextIndexer getSearchEngine() {
+//
+//        if (!lexicon)
+//            return null;
+//
+//        return getLexiconRelation().getSearchEngine();
+//    }
     
     final public long getNamedGraphCount() {
 
@@ -3640,45 +3666,46 @@ abstract public class AbstractTripleStore extends
 
     }
     
-    /**
-     * <p>
-     * Performs a full text search against literals returning an {@link IHit}
-     * list visiting the term identifiers for literals containing tokens parsed
-     * from the query. Those term identifiers may be used to join against the
-     * statement indices in order to bring back appropriate results.
-     * </p>
-     * <p>
-     * Note: If you want to discover a data typed value, then form the
-     * appropriate data typed {@link Literal} and use
-     * {@link IRawTripleStore#getTermId(Value)}. Likewise, that method is also
-     * more appropriate when you want to lookup a specific {@link URI}.
-     * </p>
-     * 
-     * @param languageCode
-     *            The language code that should be used when tokenizing the
-     *            query (an empty string will be interpreted as the default
-     *            {@link Locale}).
-     * @param text
-     *            The query (it will be parsed into tokens).
-     * 
-     * @return An iterator that visits each term in the lexicon in which one or
-     *         more of the extracted tokens has been found. The value returned
-     *         by {@link IHit#getDocId()} is in fact the <i>termId</i> and you
-     *         can resolve it to the term using {@link #getTerm(long)}.
-     * 
-     * @throws InterruptedException
-     *             if the search operation is interrupted.
-     * 
-     * @todo Abstract the search api so that it queries the terms index directly
-     *       when a data typed literal or a URI is used (typed query).
-     */
-    @SuppressWarnings("unchecked")
-    public Iterator<IHit> textSearch(final String languageCode,
-            final String text) throws InterruptedException {
-
-        return getSearchEngine().search(text, languageCode);
-
-    }
+// Use getLexiconRelation().getSearchEngine().search(...)
+//    /**
+//     * <p>
+//     * Performs a full text search against literals returning an {@link IHit}
+//     * list visiting the term identifiers for literals containing tokens parsed
+//     * from the query. Those term identifiers may be used to join against the
+//     * statement indices in order to bring back appropriate results.
+//     * </p>
+//     * <p>
+//     * Note: If you want to discover a data typed value, then form the
+//     * appropriate data typed {@link Literal} and use
+//     * {@link IRawTripleStore#getTermId(Value)}. Likewise, that method is also
+//     * more appropriate when you want to lookup a specific {@link URI}.
+//     * </p>
+//     * 
+//     * @param languageCode
+//     *            The language code that should be used when tokenizing the
+//     *            query (an empty string will be interpreted as the default
+//     *            {@link Locale}).
+//     * @param text
+//     *            The query (it will be parsed into tokens).
+//     * 
+//     * @return An iterator that visits each term in the lexicon in which one or
+//     *         more of the extracted tokens has been found. The value returned
+//     *         by {@link IHit#getDocId()} is in fact the <i>termId</i> and you
+//     *         can resolve it to the term using {@link #getTerm(long)}.
+//     * 
+//     * @throws InterruptedException
+//     *             if the search operation is interrupted.
+//     * 
+//     * @todo Abstract the search api so that it queries the terms index directly
+//     *       when a data typed literal or a URI is used (typed query).
+//     */
+//    @SuppressWarnings("unchecked")
+//    public Iterator<IHit> textSearch(final String languageCode,
+//            final String text) throws InterruptedException {
+//
+//        return getSearchEngine().search(text, languageCode);
+//
+//    }
 
     /**
      * 

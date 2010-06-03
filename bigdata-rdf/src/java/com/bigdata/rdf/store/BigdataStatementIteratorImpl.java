@@ -69,9 +69,15 @@ public class BigdataStatementIteratorImpl
      *            The source iterator (will be closed when this iterator is
      *            closed).
      */
-    public BigdataStatementIteratorImpl(final AbstractTripleStore db, final Map<Long, BigdataBNode> bnodes, final IChunkedOrderedIterator<ISPO> src) {
-
-        super(db, src, new BlockingBuffer<BigdataStatement[]>(db.getChunkOfChunksCapacity(), db.getChunkCapacity(), db.getChunkTimeout(), TimeUnit.MILLISECONDS));
+    public BigdataStatementIteratorImpl(final AbstractTripleStore db,
+            final Map<Long, BigdataBNode> bnodes,
+                final IChunkedOrderedIterator<ISPO> src) {
+        
+        super(db, src, new BlockingBuffer<BigdataStatement[]>(
+                db.getChunkOfChunksCapacity(), 
+                db.getChunkCapacity(),
+                db.getChunkTimeout(),
+                TimeUnit.MILLISECONDS));
 
         this.bnodes = bnodes;
         
@@ -106,9 +112,10 @@ public class BigdataStatementIteratorImpl
          * LongOpenHashMap here to be of benefit.
          */
 
-        //        final LongOpenHashSet ids = new LongOpenHashSet(chunk.length*4);
+//        final LongOpenHashSet ids = new LongOpenHashSet(chunk.length*4);
 
-        final Collection<Long> ids = new LinkedHashSet<Long>(chunk.length * state.getSPOKeyArity());
+        final Collection<Long> ids = new LinkedHashSet<Long>(chunk.length
+                * state.getSPOKeyArity());
 
         for (ISPO spo : chunk) {
 
@@ -136,7 +143,8 @@ public class BigdataStatementIteratorImpl
 
                 final long c = spo.c();
 
-                if (c != IRawTripleStore.NULL && (bnodes == null || !bnodes.containsKey(c)))
+                if (c != IRawTripleStore.NULL
+                        && (bnodes == null || !bnodes.containsKey(c)))
                     ids.add(c);
 
             }
@@ -169,12 +177,12 @@ public class BigdataStatementIteratorImpl
              */
             final BigdataResource s = (BigdataResource) resolve(terms, spo.s());
             final BigdataURI p = (BigdataURI) resolve(terms, spo.p());
-            //            try {
-            //                p = (BigdataURI) resolve(terms, spo.p());
-            //            } catch (ClassCastException ex) {
-            //                log.error("spo="+spo+", p="+resolve(terms, spo.p()));
-            //                throw ex;
-            //            }
+//            try {
+//                p = (BigdataURI) resolve(terms, spo.p());
+//            } catch (ClassCastException ex) {
+//                log.error("spo="+spo+", p="+resolve(terms, spo.p()));
+//                throw ex;
+//            }
             final BigdataValue o = resolve(terms, spo.o());
             final long _c = spo.c();
             final BigdataResource c;
@@ -186,7 +194,7 @@ public class BigdataStatementIteratorImpl
                  * BigdataSolutionResolverator.
                  */
                 final BigdataResource tmp = (BigdataResource) resolve(terms, _c);
-                if (tmp.equals(BD.NULL_GRAPH)) {
+                if(tmp.equals(BD.NULL_GRAPH)) {
                     /*
                      * Strip off the "nullGraph" context.
                      */
@@ -200,12 +208,14 @@ public class BigdataStatementIteratorImpl
 
             if (spo.hasStatementType() == false) {
 
-                log.error("statement with no type: " + valueFactory.createStatement(s, p, o, c, null));
+                log.error("statement with no type: "
+                        + valueFactory.createStatement(s, p, o, c, null));
 
             }
 
             // the statement.
-            final BigdataStatement stmt = valueFactory.createStatement(s, p, o, c, spo.getStatementType());
+            final BigdataStatement stmt = valueFactory.createStatement(s, p, o,
+                    c, spo.getStatementType());
 
             // save the reference.
             stmts[i++] = stmt;
@@ -217,7 +227,8 @@ public class BigdataStatementIteratorImpl
     }
 
     /**
-     * Resolve a term identifier to the {@link BigdataValue}, checking the {@link #bnodes} map if it is defined.
+     * Resolve a term identifier to the {@link BigdataValue}, checking the
+     * {@link #bnodes} map if it is defined.
      * 
      * @param terms
      *            The terms mapping obtained from the lexicon.
@@ -226,7 +237,8 @@ public class BigdataStatementIteratorImpl
      * 
      * @return The {@link BigdataValue}.
      */
-    private BigdataValue resolve(final Map<Long, BigdataValue> terms, final long termId) {
+    private BigdataValue resolve(final Map<Long, BigdataValue> terms,
+            final long termId) {
 
         BigdataValue v = null;
 

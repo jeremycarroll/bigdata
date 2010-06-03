@@ -2379,28 +2379,28 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
                      * block.
                      */
                     assertPriorCommitTimeAdvances(commitTime,priorCommitTime);
-                    
+
 
                 }
 
                 final long lastCommitTime = commitTime;
                 final long metaStartAddr = _bufferStrategy.getMetaStartAddr();
                 final long metaBitsAddr = _bufferStrategy.getMetaBitsAddr();
-              
-	                // Create the new root block.
-	            final IRootBlockView newRootBlock = new RootBlockView(!old
-	                     .isRootBlock0(), old.getOffsetBits(), nextOffset,
-	                     firstCommitTime, lastCommitTime, newCommitCounter,
-	                     commitRecordAddr, commitRecordIndexAddr, old.getUUID(),
-	                     metaStartAddr, metaBitsAddr, old.getStoreType(),
-	                     old.getCreateTime(), old.getCloseTime(), checker);
-	
-	             _bufferStrategy.writeRootBlock(newRootBlock, forceOnCommit);
-	
-	             _rootBlock = newRootBlock;
-	
-	             _commitRecord = commitRecord;
-				
+
+                // Create the new root block.
+                final IRootBlockView newRootBlock = new RootBlockView(!old
+                        .isRootBlock0(), old.getOffsetBits(), nextOffset,
+                        firstCommitTime, lastCommitTime, newCommitCounter,
+                        commitRecordAddr, commitRecordIndexAddr, old.getUUID(),
+                        metaStartAddr, metaBitsAddr, old.getStoreType(),
+                        old.getCreateTime(), old.getCloseTime(), checker);
+
+                _bufferStrategy.writeRootBlock(newRootBlock, forceOnCommit);
+
+                _rootBlock = newRootBlock;
+
+                _commitRecord = commitRecord;
+
             }
 
             final long elapsedNanos = System.nanoTime() - beginNanos;

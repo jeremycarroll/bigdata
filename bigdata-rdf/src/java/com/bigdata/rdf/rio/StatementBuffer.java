@@ -398,7 +398,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
      * <ol>
      * 
      * <li> Collect all deferred statements whose blank node bindings never show
-     * up in the context position of a statement ({@link BigdataBNode#statementIdentifier}
+     * up in the context position of a statement ({@link BigdataBNode#getStatementIdentifier()}
      * is <code>false</code>). Those blank nodes are NOT statement
      * identifiers so we insert them into the lexicon and the insert the
      * collected statements as well. </li>
