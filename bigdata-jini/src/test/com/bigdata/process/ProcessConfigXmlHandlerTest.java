@@ -112,8 +112,8 @@ public class ProcessConfigXmlHandlerTest extends TestCase {
 
         // type=standalone, layout=1-of-1
 
-        // role=bigdata, processes=lookup, zookeeper,
-        //                         loadbalancer, metadata, transaction,
+        // role=bigdata, processes=lookup, quorum,
+        //                         loadbalancer, shardlocator, transaction,
         //                         executor, shard
         String type   = "standalone";
         String layout = "1-of-1";
@@ -121,8 +121,8 @@ public class ProcessConfigXmlHandlerTest extends TestCase {
             String role = NODE_ROLES[i];
             String[] procByRole;
             if( "bigdata".equals(role) ) {
-                procByRole = new String[] {"lookup", "zookeeper",
-                                           "loadbalancer", "metadata",
+                procByRole = new String[] {"lookup", "quorum",
+                                           "loadbalancer", "shardlocator",
                                            "transaction","executor", "shard" };
             } else if( "binary".equals(role) ) {
 continue;//TODO
@@ -149,85 +149,85 @@ continue;//TODO
 
         // type=infrastructure, layout=1-of-1
 
-        // role=bigdata, processes=lookup, zookeeper,
-        //                         executor,loadbalancer,metadata,transaction
+        // role=bigdata, processes=lookup, quorum, executor, loadbalancer,
+        //                         shardlocator, transaction
         pInfo = new ProcessInfo("infrastructure", "1-of-1", "bigdata");
         rInfo = new RoleInfo(pInfo);
         rInfo.addProcess("lookup");
-        rInfo.addProcess("zookeeper");
+        rInfo.addProcess("quorum");
         rInfo.addProcess("loadbalancer");
-        rInfo.addProcess("metadata");
+        rInfo.addProcess("shardlocator");
         rInfo.addProcess("transaction");
         rInfo.addProcess("executor");
         rolesMap.put(pInfo, rInfo);
 
         // type=infrastructure, layout=1-of-3
 
-        // role=bigdata, processes=lookup, zookeeper, loadbalancer
+        // role=bigdata, processes=lookup, quorum, loadbalancer
         pInfo = new ProcessInfo("infrastructure", "1-of-3", "bigdata");
         rInfo = new RoleInfo(pInfo);
         rInfo.addProcess("lookup");
-        rInfo.addProcess("zookeeper");
+        rInfo.addProcess("quorum");
         rInfo.addProcess("loadbalancer");
         rolesMap.put(pInfo, rInfo);
 
         // type=infrastructure, layout=2-of-3
 
-        // role=bigdata, processes=lookup, zookeeper, executor, metadata
+        // role=bigdata, processes=lookup, quorum, executor, shardlocator
         pInfo = new ProcessInfo("infrastructure", "2-of-3", "bigdata");
         rInfo = new RoleInfo(pInfo);
         rInfo.addProcess("lookup");
-        rInfo.addProcess("zookeeper");
-        rInfo.addProcess("metadata");
+        rInfo.addProcess("quorum");
+        rInfo.addProcess("shardlocator");
         rInfo.addProcess("executor");
         rolesMap.put(pInfo, rInfo);
 
         // type=infrastructure, layout=3-of-3
 
-        // role=bigdata, processes=zookeeper, loadbalancer, transaction
+        // role=bigdata, processes=quorum, loadbalancer, transaction
         pInfo = new ProcessInfo("infrastructure", "3-of-3", "bigdata");
         rInfo = new RoleInfo(pInfo);
-        rInfo.addProcess("zookeeper");
+        rInfo.addProcess("quorum");
         rInfo.addProcess("transaction");
         rInfo.addProcess("loadbalancer");
         rolesMap.put(pInfo, rInfo);
 
         // type=infrastructure, layout=1-of-5
 
-        // role=bigdata, processes=lookup, zookeeper, loadbalancer
+        // role=bigdata, processes=lookup, quorum, loadbalancer
         pInfo = new ProcessInfo("infrastructure", "1-of-5", "bigdata");
         rInfo = new RoleInfo(pInfo);
         rInfo.addProcess("lookup");
-        rInfo.addProcess("zookeeper");
+        rInfo.addProcess("quorum");
         rInfo.addProcess("loadbalancer");
         rolesMap.put(pInfo, rInfo);
 
-        // role=bigdata, processes=lookup, zookeeper, metadata
+        // role=bigdata, processes=lookup, quorum, shardlocator
         pInfo = new ProcessInfo("infrastructure", "2-of-5", "bigdata");
         rInfo = new RoleInfo(pInfo);
         rInfo.addProcess("lookup");
-        rInfo.addProcess("zookeeper");
-        rInfo.addProcess("metadata");
+        rInfo.addProcess("quorum");
+        rInfo.addProcess("shardlocator");
         rolesMap.put(pInfo, rInfo);
 
-        // role=bigdata, processes=zookeeper, transaction
+        // role=bigdata, processes=quorum, transaction
         pInfo = new ProcessInfo("infrastructure", "3-of-5", "bigdata");
         rInfo = new RoleInfo(pInfo);
-        rInfo.addProcess("zookeeper");
+        rInfo.addProcess("quorum");
         rInfo.addProcess("transaction");
         rolesMap.put(pInfo, rInfo);
 
-        // role=bigdata, processes=zookeeper, executor
+        // role=bigdata, processes=quorum, executor
         pInfo = new ProcessInfo("infrastructure", "4-of-5", "bigdata");
         rInfo = new RoleInfo(pInfo);
-        rInfo.addProcess("zookeeper");
+        rInfo.addProcess("quorum");
         rInfo.addProcess("executor");
         rolesMap.put(pInfo, rInfo);
 
-        // role=bigdata, processes=zookeeper, executor
+        // role=bigdata, processes=quorum, executor
         pInfo = new ProcessInfo("infrastructure", "5-of-5", "bigdata");
         rInfo = new RoleInfo(pInfo);
-        rInfo.addProcess("zookeeper");
+        rInfo.addProcess("quorum");
         rInfo.addProcess("executor");
         rolesMap.put(pInfo, rInfo);
     }

@@ -1259,7 +1259,6 @@ ${postInstallMessage}</echo>
       <property name="dist.var.config" location="${dist.var}/config" />
       <property name="dist.var.config.policy" location="${dist.var.config}/policy" />
       <property name="dist.var.config.logging" location="${dist.var.config}/logging" />
-      <property name="dist.var.config.zookeeper" location="${dist.var.config}/zookeeper" />
       <property name="dist.var.config.jini" location="${dist.var.config}/jini" />
       <property name="dist.var.config.deploy" location="${dist.var.config}/deploy" />
 
@@ -1274,7 +1273,6 @@ ${postInstallMessage}</echo>
       <mkdir dir="${dist.var.config}"/>
       <mkdir dir="${dist.var.config.policy}"/>
       <mkdir dir="${dist.var.config.logging}"/>
-      <mkdir dir="${dist.var.config.zookeeper}"/>
       <mkdir dir="${dist.var.config.jini}"/>
       <mkdir dir="${dist.var.config.deploy}"/>
 
@@ -1333,10 +1331,6 @@ ${postInstallMessage}</echo>
       <!-- Zookeeper library -->
       <copy file="${bigdata-zookeeper.lib}/zookeeper-3.2.1.jar"
             tofile="${dist.lib}/zookeeper.jar"/>
-<!--
-      <copy file="/home/brmurphy/zookeeper/cdd99c5/build/zookeeper-3.3.0.jar"
-            tofile="${dist.lib}/zookeeper.jar"/>
--->
 
       <!-- Jini library -->
 
@@ -1492,8 +1486,6 @@ ${postInstallMessage}</echo>
       <copy file="${server.log4j.from.file}"
             todir="${logging.to.path}"/>
 
-      <copy file="${src.resources.config}/zookeeper-logging.properties"
-            todir="${logging.to.path}"/>
       <copy file="${src.resources.config}/reggie-logging.properties"
             todir="${logging.to.path}"/>
 
@@ -1524,7 +1516,7 @@ ${postInstallMessage}</echo>
       </sequential>
 
       <property name="metadata.head.file" location="${bigdata-jini.root}/metadata/config/logging.properties" />
-      <property name="metadata.dest.file" location="${logging.to.path}/metadata-logging.properties" />
+      <property name="metadata.dest.file" location="${logging.to.path}/shardlocator-logging.properties" />
       <sequential>
         <concat destfile="${metadata.dest.file}">
           <fileset file="${metadata.head.file}"/>
@@ -1595,9 +1587,11 @@ ${postInstallMessage}</echo>
 
       <copy file="${src.resources.config}/jini/start-reggie.config"
             todir="${dist.var.config.jini}"/>
+
       <copy file="${src.resources.config}/jini/reggie.config"
             todir="${dist.var.config.jini}"/>
-      <copy file="${src.resources.config}/jini/zookeeper.config"
+
+      <copy file="${bigdata-jini.root}/quorum/config/quorum.config"
             todir="${dist.var.config.jini}"/>
 
       <!-- Stage the service-specific config files -->
@@ -1608,7 +1602,7 @@ ${postInstallMessage}</echo>
       <copy file="${bigdata-jini.root}/loadbalancer/config/loadbalancer.config"
             todir="${dist.var.config.jini}"/>
 
-      <copy file="${bigdata-jini.root}/metadata/config/metadata.config"
+      <copy file="${bigdata-jini.root}/metadata/config/shardlocator.config"
             todir="${dist.var.config.jini}"/>
 
       <copy file="${bigdata-jini.root}/shard/config/shard.config"
@@ -1618,9 +1612,6 @@ ${postInstallMessage}</echo>
             todir="${dist.var.config.jini}"/>
 
       <copy file="${bigdata-jini.root}/transaction/config/transaction.config"
-            todir="${dist.var.config.jini}"/>
-
-      <copy file="${bigdata-jini.root}/quorum/config/quorum.config"
             todir="${dist.var.config.jini}"/>
 
     </target>

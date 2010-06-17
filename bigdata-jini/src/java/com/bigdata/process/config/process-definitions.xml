@@ -27,9 +27,9 @@
           <roles>
             <role name="bigdata">
               <start tag="lookup"/>
-              <start tag="zookeeper"/>
+              <start tag="quorum"/>
               <start tag="loadbalancer"/>
-              <start tag="metadata"/>
+              <start tag="shardlocator"/>
               <start tag="transaction"/>
               <start tag="executor"/>
               <start tag="shard"/>
@@ -64,9 +64,9 @@
           <roles>
             <role name="bigdata">
               <start tag="lookup"/>
-              <start tag="zookeeper"/>
+              <start tag="quorum"/>
               <start tag="loadbalancer"/>
-              <start tag="metadata"/>
+              <start tag="shardlocator"/>
               <start tag="transaction"/>
               <start tag="executor"/>
             </role>
@@ -79,7 +79,7 @@
           <roles>
             <role name="bigdata">
               <start tag="lookup"/>
-              <start tag="zookeeper"/>
+              <start tag="quorum"/>
               <start tag="loadbalancer"/>
             </role>
           </roles>
@@ -89,8 +89,8 @@
           <roles>
             <role name="bigdata">
               <start tag="lookup"/>
-              <start tag="zookeeper"/>
-              <start tag="metadata"/>
+              <start tag="quorum"/>
+              <start tag="shardlocator"/>
               <start tag="executor"/>
             </role>
           </roles>
@@ -99,7 +99,7 @@
         <layout name="3-of-3">
           <roles>
             <role name="bigdata">
-              <start tag="zookeeper"/>
+              <start tag="quorum"/>
               <start tag="transaction"/>
               <start tag="loadbalancer"/>
             </role>
@@ -112,7 +112,7 @@
           <roles>
             <role name="bigdata">
               <start tag="lookup"/>
-              <start tag="zookeeper"/>
+              <start tag="quorum"/>
               <start tag="loadbalancer"/>
             </role>
           </roles>
@@ -122,8 +122,8 @@
           <roles>
             <role name="bigdata">
               <start tag="lookup"/>
-              <start tag="zookeeper"/>
-              <start tag="metadata"/>
+              <start tag="quorum"/>
+              <start tag="shardlocator"/>
             </role>
           </roles>
         </layout>
@@ -131,7 +131,7 @@
         <layout name="3-of-5">
           <roles>
             <role name="bigdata">
-              <start tag="zookeeper"/>
+              <start tag="quorum"/>
               <start tag="transaction"/>
             </role>
           </roles>
@@ -140,7 +140,7 @@
         <layout name="4-of-5">
           <roles>
             <role name="bigdata">
-              <start tag="zookeeper"/>
+              <start tag="quorum"/>
               <start tag="executor"/>
             </role>
           </roles>
@@ -149,7 +149,7 @@
         <layout name="5-of-5">
           <roles>
             <role name="bigdata">
-              <start tag="zookeeper"/>
+              <start tag="quorum"/>
               <start tag="executor"/>
             </role>
           </roles>
@@ -168,7 +168,7 @@
     <autorestart/>
   </process>
 
-  <process tag="zookeeper" description="Quorum peer service">
+  <process tag="quorum" description="Quorum peer service (zookeeper)">
     <autorestart/>
   </process>
 
@@ -180,7 +180,7 @@
     <autorestart/>
   </process>
 
-  <process tag="metadata" description="Shard locator service">
+  <process tag="shardlocator" description="Shard locator (metadata) service">
     <autorestart/>
   </process>
 

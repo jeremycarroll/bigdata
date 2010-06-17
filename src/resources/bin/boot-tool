@@ -6,10 +6,10 @@ from os.path import dirname
 from sys import stderr
 
 procTagList = [ "lookup", \
-                "zookeeper", \
+                "quorum", \
                 "executor", \
                 "loadbalancer", \
-                "metadata", \
+                "shardlocator", \
                 "shard", \
                 "transaction" ]
 

@@ -34,10 +34,10 @@
     <arg value="${bigdata.configDir}/jini/start-reggie.config"/>
   </process>
 
-  <process tag="zookeeper" class="java">
+  <process tag="quorum" class="java">
     <javaprop name="exportPort" value="0"/>
     <javaprop name="log4j.primary.configuration"
-        value="${bigdata.configDir}/logging/zookeeper-logging.properties"/>
+        value="${bigdata.configDir}/logging/quorum-logging.properties"/>
     <javaprop name="java.util.logging.config.file"
         value="${bigdata.configDir}/logging/logging.properties"/>
 
@@ -48,8 +48,8 @@
     <arg value="jsk-dl.jar"/>
     <arg value="lib/bigdata.jar"/>
     <arg value="com.bigdata.quorum.ServiceImpl"/>
-    <arg value="${bigdata.configDir}/jini/zookeeper.config"/>
-    <arg value="com.bigdata.quorum.persistenceDirectory=&quot;${bigdata.stateDir}/zookeeperState&quot;"/>
+    <arg value="${bigdata.configDir}/jini/quorum.config"/>
+    <arg value="com.bigdata.quorum.persistenceDirectory=&quot;${bigdata.stateDir}/quorumState&quot;"/>
   </process>
 
   <process tag="loadbalancer" class="java">
@@ -70,10 +70,10 @@
     <arg value="com.bigdata.loadbalancer.persistenceDirectory=&quot;${bigdata.stateDir}/loadbalancerState&quot;"/>
   </process>
 
-  <process tag="metadata" class="java">
+  <process tag="shardlocator" class="java">
     <javaprop name="exportPort" value="0"/>
     <javaprop name="log4j.primary.configuration"
-        value="${bigdata.configDir}/logging/metadata-logging.properties"/>
+        value="${bigdata.configDir}/logging/shardlocator-logging.properties"/>
     <javaprop name="java.util.logging.config.file"
         value="${bigdata.configDir}/logging/logging.properties"/>
 
@@ -84,8 +84,8 @@
     <arg value="jsk-dl.jar"/>
     <arg value="lib/bigdata.jar"/>
     <arg value="com.bigdata.metadata.ServiceImpl"/>
-    <arg value="${bigdata.configDir}/jini/metadata.config"/>
-    <arg value="com.bigdata.metadata.persistenceDirectory=&quot;${bigdata.stateDir}/metadataState&quot;"/>
+    <arg value="${bigdata.configDir}/jini/shardlocator.config"/>
+    <arg value="com.bigdata.metadata.persistenceDirectory=&quot;${bigdata.stateDir}/shardlocatorState&quot;"/>
   </process>
 
   <process tag="transaction" class="java">

@@ -302,7 +302,7 @@ class BigdataMetaservice(BigdataService):
         BigdataService.__init__(self, serviceName, params)
         if serviceName == "all":
             services = [ "httpd", "reggie", "quorum",
-                         "shard", "metadata","loadbalancer",
+                         "shard", "shardlocator","loadbalancer",
                          "executor", "transaction" ]
             del self.properties['log4j.primary.configuration']
             del self.properties['java.util.logging.config.file']
@@ -364,7 +364,7 @@ bigdataServiceMap = {
     'browser'           : (JiniBrowser,             9020),
     'quorum'            : (BigdataService,          9334, 20334),
     'shard'             : (BigdataService,          9250, 21050),
-    'metadata'          : (BigdataService,          9251, 21051),
+    'shardlocator'      : (BigdataService,          9251, 21051),
     'loadbalancer'      : (BigdataService,          9252, 21052),
     'executor'          : (BigdataService,          9253, 21053),
     'transaction'       : (BigdataService,          9254, 21054),
