@@ -1,0 +1,17 @@
+// General purpose policy file used with the Jini Service Starter
+
+
+// JMX Permissions - Allows remote JMX clients (jconsole, msconsole)
+// to connect to the JVM.
+grant principal javax.management.remote.JMXPrincipal "monitorRole" {
+	permission java.security.AllPermission;
+};
+
+grant principal javax.management.remote.JMXPrincipal "controlRole" {
+	permission java.security.AllPermission;
+};
+
+// Grant all permissions to local code
+grant codebase "file:${appHome}/lib/*" {
+	permission java.security.AllPermission "", "";
+};

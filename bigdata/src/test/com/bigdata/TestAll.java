@@ -84,6 +84,13 @@ public class TestAll extends TestCase {
         
         final TestSuite suite = new TestSuite("bigdata");
 
+        // boot launcher tests
+        suite.addTestSuite(com.bigdata.boot.BootComponentTest.class);
+        suite.addTestSuite
+            (com.bigdata.boot.launcher.ConfigReaderUnitTest.class);
+        suite.addTestSuite
+            (com.bigdata.process.ProcessConfigXmlHandlerTest.class);
+
         // core bigdata packages.
         suite.addTest( com.bigdata.cache.TestAll.suite() );
         suite.addTest( com.bigdata.io.TestAll.suite() );

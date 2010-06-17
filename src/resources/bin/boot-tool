@@ -1,0 +1,160 @@
+#!/usr/bin/python
+
+import os, sys, socket, string
+from getopt import getopt, GetoptError
+from os.path import dirname
+from sys import stderr
+
+procTagList = [ "lookup", \
+                "zookeeper", \
+                "executor", \
+                "loadbalancer", \
+                "metadata", \
+                "shard", \
+                "transaction" ]
+
+def usage():
+    str1 = """Usage: %s [options] <command> [process tag]
+
+Convenient command line utility that executes the class
+com.bigdata.boot.BootTool to start, stop, or provide
+status for, a given process.
+
+Command:
+    start
+        If a valid process tag is provided, launches the associated process;
+        otherwise, launches all processes.
+    stop
+        If a valid process tag is provided, shuts down the associated process;
+        otherwise, shuts down launches all processes, including the launcher
+        itself.
+    status
+        If a valid process tag is provided, displays the current state of the
+        associated process (STOPPED, STARTING, RUNNING). If not process tag
+        is provided, displays the current state of all processes.
+
+Options:
+    -D<name>=<value>
+        Sets a Java system property for BootTool.
+
+    -h, --help
+        Prints this help message.
+
+Tags:
+    Must be one (or none) of the elements of the following list
+
+"""
+    stderr.write(str1 % os.path.basename(sys.argv[0]))
+    print procTagList
+    print " "
+    
+class ArgumentError(Exception):
+    pass
+
+def exec_boot_tool(program, args, tag):
+    extended_args = args[:]
+    extended_args.append(tag)
+#    stderr.write("exec: " + " ".join(extended_args) + "\n")
+    pid = os.fork()
+    if not pid:
+        os.execvp(program, extended_args)
+    return os.wait()[0]
+
+class Paths:
+    def __init__(self, classpath, properties):
+        self.classpath = classpath
+        self.properties = properties
+
+    def transform(self, func):
+        return Paths(
+            classpath = [func(p) for p in self.classpath],
+            properties = dict([(k, func(v)) for k, v in
+                               self.properties.iteritems()]))
+
+    def setProperties(self, propList):
+        for k, v in propList:
+            self.properties[k] = v
+
+app_paths = Paths(
+    classpath = [
+        "lib/bigdata.jar"],
+    properties = {
+        "java.util.logging.config.file":
+        "var/config/logging/launcher-logging.properties" })
+
+java_class = "com.bigdata.boot.BootTool"
+
+if __name__ == '__main__':
+    err = None
+    java_args = []
+    java_props = { }
+
+    try:
+        opts, args = getopt(sys.argv[1:], "D:h", ["help"])
+
+        propertyOverrides = []
+        for o, v in opts:
+            if o == '-D':
+                kv = v.split('=', 2)
+                if len(kv) != 2:
+                    print "Invalid property definition: " + a
+                    sys.exit(1)
+                propertyOverrides.append(kv)
+            elif o == "-h" or o == "--help":
+                usage()
+                sys.exit(0)
+            else:
+                java_args.append(v)
+
+        paths = app_paths
+        root = dirname(dirname(os.path.abspath(sys.argv[0])))
+
+        paths = paths.transform(
+            lambda p: os.path.join(root, p.replace("/", os.path.sep)))
+
+        paths.setProperties(propertyOverrides)
+        for k, v in paths.properties.iteritems():
+            java_props.setdefault(k, v)
+
+        exec_args = ["java", "-cp", os.path.pathsep.join(paths.classpath)]
+        exec_args.extend(
+            ["-D%s=%s" % (k, v) for k, v in java_props.iteritems()])
+        exec_args.append(java_class)
+        for e1 in java_args: exec_args.append(e1)
+
+        if len(args) == 0:
+            raise ArgumentError("insufficient arguments")
+
+        if len(args) == 1:
+            bootCmd = args[0]
+            if bootCmd == "status":
+                exec_args.append(bootCmd)
+#                stderr.write("exec: " + " ".join(exec_args) + "\n")
+                os.execvp(exec_args[0], exec_args)
+            elif bootCmd == "stop":
+                exec_args.append("stoplauncher")
+#                stderr.write("exec: " + " ".join(exec_args) + "\n")
+                os.execvp(exec_args[0], exec_args)
+            elif bootCmd == "start":
+                exec_args.append(bootCmd)
+                for p in procTagList:
+                    exec_boot_tool(exec_args[0], exec_args, p)
+            else:
+                raise ArgumentError("bad first argument: " + bootCmd)
+        elif len(args) == 2:
+            bootCmd = args[0]
+            procTag = args[1]
+            exec_args.append(bootCmd)
+            exec_args.append(procTag)
+#            stderr.write("exec: " + " ".join(exec_args) + "\n")
+            os.execvp(exec_args[0], exec_args)
+        else:
+            raise ArgumentError("too many arguments: " + " ".join(args))
+
+    except IndexError:
+        err = "insufficient arguments"
+    except (GetoptError, ArgumentError), e:
+        err = str(e)
+    if err:
+        stderr.write(err + "\n")
+        sys.exit(1)

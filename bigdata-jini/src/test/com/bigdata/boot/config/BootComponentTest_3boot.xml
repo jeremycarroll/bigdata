@@ -1,0 +1,6 @@
+<boot>
+  <include file="BootComponentTest_boot-processes.xml"/>
+  <autostart tag="idleProc1"/>
+  <autostart tag="idleProc2"/>
+  <autostart tag="idleProc3"/>
+</boot>

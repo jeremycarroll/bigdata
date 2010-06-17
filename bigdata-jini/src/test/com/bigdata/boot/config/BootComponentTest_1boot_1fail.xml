@@ -1,0 +1,4 @@
+<boot>
+  <include file="BootComponentTest_boot-processes.xml"/>
+  <autostart tag="initFailsProc"/>
+</boot>

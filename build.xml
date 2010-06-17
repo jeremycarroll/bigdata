@@ -1249,6 +1249,7 @@ ${postInstallMessage}</echo>
       <property name="dist.dir" location="${bigdata.dir}/dist/bigdata" />
 
       <property name="dist.bin" location="${dist.dir}/bin" />
+      <property name="dist.etc" location="${dist.dir}/etc" />
       <property name="dist.bin.config" location="${dist.bin}/config" />
       <property name="dist.lib" location="${dist.dir}/lib" />
       <property name="dist.lib.dl" location="${dist.dir}/lib-dl" />
@@ -1265,6 +1266,7 @@ ${postInstallMessage}</echo>
       <delete dir="${dist.dir}" quiet="true"/>
       <mkdir dir="${dist.dir}"/>
       <mkdir dir="${dist.bin}"/>
+      <mkdir dir="${dist.etc}"/>
       <mkdir dir="${dist.lib}"/>
       <mkdir dir="${dist.lib.dl}"/>
       <mkdir dir="${dist.lib.ext}"/>
@@ -1382,9 +1384,22 @@ ${postInstallMessage}</echo>
 
       <property name="src.resources" location="${bigdata.dir}/src/resources" />
       <property name="src.resources.config" location="${src.resources}/config" />
+      <property name="src.resources.scripts" location="${src.resources}/scripts" />
 
-      <!-- Copy deployment properties to the top-level config file -->
-      <!-- <root>/dist/bigdata/var/config/bigdata.properties  -->
+      <!-- Stage the Bigdata deployment scripts -->
+
+      <property name="bigdata.initd.from.file" location="${src.resources.scripts}/bigdata.initd" />
+      <property name="initd.processes.from.file" location="${src.resources.scripts}/initd-processes.sh" />
+
+      <copy file="${initd.processes.from.file}"
+            todir="${dist.bin}"/>
+      <chmod file="${dist.bin}/initd-processes.sh" perm="755"/>
+
+      <copy file="${bigdata.initd.from.file}"
+            todir="${dist.etc}"/>
+      <chmod file="${dist.etc}/bigdata.initd" perm="755"/>
+
+      <!-- Stage the top-level bigdata deployment configuration files -->
 
       <property name="build.properties.from.file" location="${bigdata.dir}/build.properties" />
 
@@ -1399,24 +1414,61 @@ ${postInstallMessage}</echo>
             todir="${dist.var.config.deploy}"/>
 
       <copy file="${deploy.properties.from.file}"
-            todir="${dist.var.config.deploy}"/>
+            tofile="${dist.var.config.deploy}/example-deploy.properties"/>
 
       <!-- Stage utility scripts and related resources -->
 
+      <copy file="${src.resources}/bin/launcher"
+            todir="${dist.bin}"/>
+      <chmod file="${dist.bin}/launcher" perm="ugo+x"/>
+
+      <copy file="${src.resources}/bin/disco-tool"
+            todir="${dist.bin}"/>
+      <chmod file="${dist.bin}/disco-tool" perm="755"/>
+
+      <copy file="${src.resources}/bin/boot-tool"
+            todir="${dist.bin}"/>
+      <chmod file="${dist.bin}/boot-tool" perm="755"/>
+
       <copy file="${src.resources}/bin/pstart"
             todir="${dist.bin}"/>
-      <chmod file="${dist.bin}/pstart" perm="ugo+x"/>
+      <chmod file="${dist.bin}/pstart" perm="755"/>
 
       <copy file="${src.resources}/bin/config/browser.config"
             todir="${dist.bin.config}"/>
+
       <copy file="${src.resources}/bin/config/serviceStarter.config"
             todir="${dist.bin.config}"/>
+
+      <!-- Stage the boot launcher configuration files -->
+
+      <property name="boot.launcher.path" location="${bigdata-jini.dir}/src/java/com/bigdata" />
+
+      <copy file="${boot.launcher.path}/process/config/process-definitions.xml"
+            todir="${dist.var.config}/jini/boot"/>
+
+      <copy file="${boot.launcher.path}/boot/config/boot-processes.xml"
+            todir="${dist.var.config}/jini/boot"/>
+
+      <copy file="${boot.launcher.path}/boot/config/boot-properties.xml"
+            todir="${dist.var.config}/jini/boot"/>
+
+      <copy file="${boot.launcher.path}/boot/policy/launcher.policy"
+            todir="${dist.var.config.policy}"/>
+
+      <copy file="${boot.launcher.path}/boot/launcher/logging.properties"
+            tofile="${dist.var.config.logging}/launcher-logging.properties"/>
 
       <!-- Stage security policy (config) files -->
 
       <copy file="${src.resources.config}/policy.all"
             todir="${dist.var.config.policy}"/>
+      <copy file="${src.resources.config}/servicestarter.policy"
+            todir="${dist.var.config.policy}"/>
       <copy file="${src.resources.config}/service.policy"
+            todir="${dist.var.config.policy}"/>
+
+      <copy file="${boot.launcher.path}/boot/policy/launcher.policy"
             todir="${dist.var.config.policy}"/>
 
       <!-- Stage the bigdata logging config files -->
@@ -1450,6 +1502,16 @@ ${postInstallMessage}</echo>
       <property name="bigdata-jini.root" location="${bigdata-jini.dir}/src/java/com/bigdata" />
       <property name="util.logging.file" location="${bigdata-jini.root}/util/config/util-logging.properties" />
       <property name="jini.logging.file" location="${bigdata-jini.root}/util/config/jini-logging.properties" />
+
+      <property name="process.head.file" location="${bigdata-jini.root}/process/config/logging.properties" />
+      <property name="process.dest.file" location="${logging.to.path}/process-logging.properties" />
+      <sequential>
+        <concat destfile="${process.dest.file}">
+          <fileset file="${process.head.file}"/>
+          <fileset file="${util.logging.file}"/>
+          <fileset file="${jini.logging.file}"/>
+        </concat>
+      </sequential>
 
       <property name="loadbalancer.head.file" location="${bigdata-jini.root}/loadbalancer/config/logging.properties" />
       <property name="loadbalancer.dest.file" location="${logging.to.path}/loadbalancer-logging.properties" />
@@ -1511,6 +1573,12 @@ ${postInstallMessage}</echo>
         </concat>
       </sequential>
 
+      <copy file="${bigdata-jini.root}/disco/config/disco.config"
+            todir="${dist.bin.config}"/>
+
+      <copy file="${bigdata-jini.root}/disco/config/logging.properties"
+            tofile="${dist.bin.config}/disco-logging.properties"/>
+
       <copy file="${bigdata-jini.root}/util/config/browser-logging.properties"
             todir="${dist.bin.config}"/>
 
@@ -1525,12 +1593,17 @@ ${postInstallMessage}</echo>
 
       <!-- Stage the infrastructure service config files -->
 
+      <copy file="${src.resources.config}/jini/start-reggie.config"
+            todir="${dist.var.config.jini}"/>
       <copy file="${src.resources.config}/jini/reggie.config"
             todir="${dist.var.config.jini}"/>
       <copy file="${src.resources.config}/jini/zookeeper.config"
             todir="${dist.var.config.jini}"/>
 
       <!-- Stage the service-specific config files -->
+
+      <copy file="${bigdata-jini.root}/process/config/process.config"
+            todir="${dist.var.config.jini}"/>
 
       <copy file="${bigdata-jini.root}/loadbalancer/config/loadbalancer.config"
             todir="${dist.var.config.jini}"/>
@@ -1550,6 +1623,37 @@ ${postInstallMessage}</echo>
       <copy file="${bigdata-jini.root}/quorum/config/quorum.config"
             todir="${dist.var.config.jini}"/>
 
+    </target>
+
+    <target name="release-dist" depends="clean, stage"
+            description="Create compressed tar file containing Bigdata distribution.">
+        <tar destfile="${bigdata.dir}/REL.${version}.tgz" 
+                compression="gzip">
+
+          <tarfileset dir="${bigdata.dir}/dist">
+            <include name="bigdata/**" />
+
+            <exclude name="bigdata/bin/boot-tool" />
+            <exclude name="bigdata/bin/disco-tool" />
+            <exclude name="bigdata/bin/initd-processes.sh" />
+            <exclude name="bigdata/bin/launcher" />
+            <exclude name="bigdata/bin/pstart" />
+
+            <exclude name="bigdata/etc/bigdata.initd" />
+          </tarfileset>
+
+          <!-- Add scripts separately, making them executable -->
+
+          <tarfileset dir="${bigdata.dir}/dist" filemode="755">
+            <include name="bigdata/bin/boot-tool" />
+            <include name="bigdata/bin/disco-tool" />
+            <include name="bigdata/bin/initd-processes.sh" />
+            <include name="bigdata/bin/launcher" />
+            <include name="bigdata/bin/pstart" />
+
+            <include name="bigdata/etc/bigdata.initd" />
+          </tarfileset>
+        </tar>
     </target>
 
     <target name="testCompile"
@@ -1966,6 +2070,10 @@ ${postInstallMessage}</echo>
         <test name="${testName}" todir="${test.results.dir}" if="testName"/>
 
         <!-- Test suites to run when -DtestName is not set -->
+
+        <test name="com.bigdata.boot.BootComponentTest" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.boot.launcher.ConfigReaderUnitTest" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.process.ProcessConfigXmlHandlerTest" todir="${test.results.dir}" unless="testName" />
 
         <test name="com.bigdata.cache.TestAll" todir="${test.results.dir}" unless="testName" />
         <test name="com.bigdata.io.TestAll" todir="${test.results.dir}" unless="testName" />

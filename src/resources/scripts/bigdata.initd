@@ -1,0 +1,59 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          bigdata
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:     $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      S 0 1 6
+# Short-Description: Starts and stops Bigdata processes.
+# Description:       Script registered with /etc/init.d that starts and stops Bigdata processes.
+### END INIT INFO
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+. /lib/lsb/init-functions
+
+export JAVA_HOME=/usr/lib/jvm/java-6-sun
+
+# Set variables if not already set
+BIGDATA_USER=${BIGDATA_USER:-"root"}
+BIGDATA_HOME=${BIGDATA_HOME:-"/opt/bigdata"}
+BIGDATA_PGRP=${BIGDATA_PGRP:-"/var/run/bigdata.pgrp"}
+
+# Exit if software package is not installed
+if [ ! -f "${BIGDATA_HOME}/bin/initd-processes.sh" ]; then
+	echo "Bigdata software is not installed."
+	exit 255
+fi
+
+# Exit if the software isn't configured
+if [ ! -f "${BIGDATA_HOME}/var/config/deploy/deploy.properties" ]; then
+	echo "Bigdata configuration file not found [${BIGDATA_HOME}/var/config/deploy/deploy.properties]"
+	exit 255
+fi
+
+# Load the start/stop functions
+. "${BIGDATA_HOME}/bin/initd-processes.sh"
+
+case "$1" in
+start)
+	do_start
+	;;
+stop)
+	do_stop
+	;;
+status)
+	do_status
+	;;
+restart|force-reload)
+	do_stop || exit 1
+	do_start
+	;;
+*)
+	echo "Usage: $0 {start|stop|status|restart|force-reload}" >&2
+	exit 3
+	;;
+esac
+
+exit 0

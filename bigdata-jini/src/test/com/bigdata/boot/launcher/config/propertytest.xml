@@ -1,0 +1,21 @@
+<boot>
+  <!-- propertyTagTest -->
+  <property name="val123Prop" value="thisisaVALUE 123"/>
+
+  <!-- javapropTagTest -->
+  <javaprop name="java.foo.policy" value="fooPolicyVal"/>
+
+  <!-- envVarTest -->
+  <property name="env.BIGDATA_HOME" value="/opt/bigdata"/>
+
+  <!-- propertySubstitutionTest -->
+  <property name="lisa" value="xX${val123Prop}Xx"/>
+
+  <!-- envVarSubstitutionTest -->
+  <!--<property name="homer" value="${env.TESTENVAR}"/>-->
+
+  <!-- propertyOverrideTest -->
+  <property name="bart" value="old value"/>
+  <property name="bart" value="THE_NEW_VALUE"/>
+
+</boot>

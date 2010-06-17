@@ -1,0 +1,6 @@
+<boot>
+  <property name="propname" value="propvalue">
+    <process tag="testproc" class="std">
+    </process>
+  </property>
+</boot>

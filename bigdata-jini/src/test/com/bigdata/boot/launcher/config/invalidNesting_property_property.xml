@@ -1,0 +1,5 @@
+<boot>
+  <property name="propname" value="propvalue">
+    <property name="propname2" value="propvalue2"/>
+  </property>
+</boot>

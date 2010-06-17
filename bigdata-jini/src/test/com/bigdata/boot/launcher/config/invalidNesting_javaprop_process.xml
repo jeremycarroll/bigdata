@@ -1,0 +1,6 @@
+<boot>
+  <javaprop name="jpropname" value="jvalue">
+    <process tag="testproc" class="std">
+    </process>
+  </javaprop>
+</boot>

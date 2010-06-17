@@ -1,0 +1,6 @@
+<boot>
+  <javaprop name="jpropname" value="jvalue">
+    <boot>
+    </boot>
+  </javaprop>
+</boot>

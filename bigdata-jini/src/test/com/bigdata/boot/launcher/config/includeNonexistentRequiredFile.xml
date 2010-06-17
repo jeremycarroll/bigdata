@@ -1,0 +1,4 @@
+<boot>
+<!-- includeNonexistentRequiredFileTest -->
+<include file="nonexistant.xml"/>
+</boot>

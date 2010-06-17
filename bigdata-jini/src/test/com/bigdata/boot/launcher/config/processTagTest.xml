@@ -1,0 +1,16 @@
+<boot>
+  <property name="commonProp" value="commonPropVal"/>
+  <property name="overriddenProp" value="WONTSEE"/>
+
+  <process tag="testproc1" class="std1">
+    <property name="overriddenProp" value="inTestProc1"/>
+    <arg value="--junk1"/>
+    <arg value="--verbose"/>
+  </process>
+
+  <process tag="testproc2" class="std2">
+    <property name="overriddenProp" value="valueForTestProc2"/>
+    <arg value="--quiet"/>
+    <arg value="--junk2"/>
+  </process>
+</boot>

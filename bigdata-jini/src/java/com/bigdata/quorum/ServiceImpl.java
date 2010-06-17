@@ -998,7 +998,7 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setClientPort(zClientPort);
 
                     //dataDir
-                    String defaultDataDir = persistBaseStr+"data";
+                    String defaultDataDir = "data";
                     String zDataDir = persistBaseStr + F_SEP
                         + (String)config.getEntry(COMPONENT_NAME,
                                                   "zookeeperDataDir",
@@ -1011,7 +1011,7 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setDataDir(zDataDir);
 
                     //dataLogDir
-                    String defaultDataLogDir = persistBaseStr+"data.log";
+                    String defaultDataLogDir = "data.log";
                     String zDataLogDir = persistBaseStr + F_SEP
                         + (String)config.getEntry
                                           (COMPONENT_NAME,
@@ -1169,7 +1169,6 @@ class ServiceImpl implements PrivateInterface {
                 // Persist the configuration retrieved above
                 persistQuorumPeerState(this.peerState);
             }
-
             File dataDir = new File(this.peerState.getDataDir());
             if(!(dataDir.exists() ? dataDir.isDirectory() : dataDir.mkdir())) {
                 throw new IOException
