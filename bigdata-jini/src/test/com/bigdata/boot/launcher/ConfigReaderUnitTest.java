@@ -24,10 +24,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.boot.launcher;
 
-import static org.junit.Assert.*;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.Test;
+// NOTE: remove commented out references to org.junit and annotations
+//       when/if the junit infrastructure is upgraded to a version that
+//       supports those constructs.
+
+import static junit.framework.Assert.*;
+
+//import static org.junit.Assert.*;
+//import org.junit.After;
+//import org.junit.BeforeClass;
+//import org.junit.Test;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -46,6 +52,7 @@ import java.util.Collection;
 public class ConfigReaderUnitTest extends TestCase {
 
     private static String F_SEP    = System.getProperty("file.separator");
+    private static String USER_DIR = System.getProperty("user.dir");
     private static String ROOT_DIR = "bigdata-jini"
                                      +F_SEP+"src"
                                      +F_SEP+"test"
@@ -60,7 +67,7 @@ public class ConfigReaderUnitTest extends TestCase {
     private static Logger logger;
 
     // NOTE: remove constructors and tearDown when/if the junit infrastructure
-    //       is upgraded to version that supports annotations and this test
+    //       is upgraded to a version that supports annotations and this test
     //       is changed so that it no longer has to extend TestCase.
 
     public ConfigReaderUnitTest() {
@@ -76,10 +83,11 @@ public class ConfigReaderUnitTest extends TestCase {
         cleanUp();
     }
 
-    @BeforeClass public static void initAll() {
-        String logConfigFile = "ant-build"
-                               +F_SEP+"classes"
-                               +F_SEP+"test"
+//    @BeforeClass public static void initAll() {
+    public static void initAll() {
+        String logConfigFile = USER_DIR
+                               +F_SEP+"bigdata"
+                               +F_SEP+"src"
                                +F_SEP+"resources"
                                +F_SEP+"logging"
                                +F_SEP+"log4j.properties";
@@ -88,7 +96,8 @@ public class ConfigReaderUnitTest extends TestCase {
                             ( (ConfigReaderUnitTest.class).getName() );
     }
 
-    @After public void cleanUp() {
+//    @After public void cleanUp() {
+    public void cleanUp() {
 
         if(testName != null) {
             String prefix = (testPassed ? "PASSED: " : "FAILED: ");
@@ -102,7 +111,7 @@ public class ConfigReaderUnitTest extends TestCase {
 
     // File structural tests
 
-    @Test
+//    @Test
     public void testEmptyFileParse() throws Exception {
 
         testName = "testEmptyFileParseTest";
@@ -125,7 +134,7 @@ public class ConfigReaderUnitTest extends TestCase {
         testPassed = true;
     }
 
-    @Test(expected=IOException.class)
+//    @Test(expected=IOException.class)
     public void testNonexistantFile() throws Exception {
         testName = "testNonexistantFileTest";
         testPassed = false;
@@ -140,7 +149,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testMissingBootTag() throws Exception {
         testName = "testmissingBootTagTest";
         testPassed = false;
@@ -155,7 +164,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidTag() throws Exception {
         testName = "testinvalidTagTest";
         testPassed = false;
@@ -170,7 +179,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_boot_arg() throws Exception {
         testName = "testinvalidNesting_boot_arg";
         testPassed = false;
@@ -186,7 +195,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_boot_boot() throws Exception {
         testName = "testinvalidNesting_boot_boot";
         testPassed = false;
@@ -201,7 +210,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_javaprop_arg() throws Exception {
         testName = "testInvalidNesting_javaprop_arg";
         testPassed = false;
@@ -216,7 +225,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_javaprop_boot() throws Exception {
         testName = "testInvalidNesting_javaprop_boot";
         testPassed = false;
@@ -231,7 +240,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_javaprop_javaprop() throws Exception {
         testName = "testInvalidNesting_javaprop_javapro";
         testPassed = false;
@@ -246,7 +255,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_javaprop_process() throws Exception {
         testName = "testInvalidNesting_javaprop_process";
         testPassed = false;
@@ -261,7 +270,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_javaprop_property() throws Exception {
         testName = "testInvalidNesting_javaprop_property";
         testPassed = false;
@@ -276,7 +285,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_process_boot() throws Exception {
         testName = "testInvalidNesting_process_boot";
         testPassed = false;
@@ -291,7 +300,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_property_arg() throws Exception {
         testName = "testInvalidNesting_property_arg";
         testPassed = false;
@@ -306,7 +315,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_property_boot() throws Exception {
         testName = "testInvalidNesting_property_boot";
         testPassed = false;
@@ -321,7 +330,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_property_javaprop() throws Exception {
         testName = "testInvalidNesting_property_javaprop";
         testPassed = false;
@@ -336,7 +345,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_property_process() throws Exception {
         testName = "testInvalidNesting_property_process";
         testPassed = false;
@@ -351,7 +360,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidNesting_property_property() throws Exception {
         testName = "testInvalidNesting_property_property";
         testPassed = false;
@@ -368,7 +377,7 @@ public class ConfigReaderUnitTest extends TestCase {
 
     // Property tag tests
 
-    @Test
+//    @Test
     public void testPropertyTag() throws Exception {
         testName = "testPropertyTagTest";
         testPassed = false;
@@ -381,7 +390,7 @@ public class ConfigReaderUnitTest extends TestCase {
         testPassed = true;
     }
 
-    @Test
+//    @Test
     public void testJavapropTag() throws Exception {
         testName = "testJavapropTagTest";
         testPassed = false;
@@ -394,7 +403,7 @@ public class ConfigReaderUnitTest extends TestCase {
         testPassed = true;
     }
 
-    @Test
+//    @Test
     public void testEnvVar() throws Exception {
         testName = "testEnvVarTest";
         testPassed = false;
@@ -406,7 +415,7 @@ public class ConfigReaderUnitTest extends TestCase {
         testPassed = true;
     }
 
-    @Test
+//    @Test
     public void testPropertySubstitution() throws Exception {
         testName = "testPropertySubstitutionTest";
         testPassed = false;
@@ -423,7 +432,7 @@ public class ConfigReaderUnitTest extends TestCase {
 // not possible to set environment variables for the junit tests.
 //    // This test requires the environment variable "TESTENVAR" to be
 //    // set to "Doh".
-//    @Test
+////    @Test
 //    public void testEnvVarSubstitution() throws Exception {
 //        testName = "testenvVarSubstitutionTest";
 //        testPassed = false;
@@ -436,7 +445,7 @@ public class ConfigReaderUnitTest extends TestCase {
 //    }
 
 
-    @Test
+//    @Test
     public void testPropertyOverride() throws Exception {
         testName = "testPropertyOverrideTest";
         testPassed = false;
@@ -455,7 +464,7 @@ public class ConfigReaderUnitTest extends TestCase {
 
     // File inclusion tests
 
-    @Test
+//    @Test
     public void testIncludeFile() throws Exception {
         testName = "testIncludeFileTest";
         testPassed = false;
@@ -467,7 +476,7 @@ public class ConfigReaderUnitTest extends TestCase {
         testPassed = true;
     }
 
-    @Test
+//    @Test
     public void testIncludeNonexistentFile() throws Exception {
         testName = "testIncludeNonexistentFileTest";
         testPassed = false;
@@ -480,7 +489,7 @@ public class ConfigReaderUnitTest extends TestCase {
         testPassed = true;
     }
 
-    @Test(expected=IOException.class)
+//    @Test(expected=IOException.class)
     public void testIncludeNonexistentRequiredFile() throws Exception {
         testName = "testIncludeNonexistentRequiredFileTest";
         testPassed = false;
@@ -497,7 +506,7 @@ public class ConfigReaderUnitTest extends TestCase {
 
     // <process> tag tests
 
-    @Test
+//    @Test
     public void testProcessTag() throws Exception {
         testName = "testProcessTagTest";
         testPassed = false;
@@ -540,7 +549,7 @@ public class ConfigReaderUnitTest extends TestCase {
         testPassed = true;
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidProcessTag_missingTag() throws Exception {
         testName = "testInvalidProcessTag_missingTag";
         testPassed = false;
@@ -555,7 +564,7 @@ public class ConfigReaderUnitTest extends TestCase {
         }
     }
 
-    @Test(expected=SAXException.class)
+//    @Test(expected=SAXException.class)
     public void testInvalidProcessTag_missingClass() throws Exception {
         testName = "testInvalidProcessTag_missingClass";
         testPassed = false;

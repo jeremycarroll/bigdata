@@ -1,5 +1,6 @@
 <boot>
-  <property name="java.classpath" value="ant-build${/}classes${/}test${:}ant-build${/}classes"/>
+  <!-- test & classes dirs when using ant, bin dir when using eclipse -->
+  <property name="java.classpath" value="ant-build${/}classes${/}test${:}ant-build${/}classes${:}bin"/>
 
   <!-- This process just initializes and then waits to shut down -->
   <process tag="idleProc1" class="java">

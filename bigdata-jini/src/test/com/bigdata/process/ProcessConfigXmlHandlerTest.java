@@ -24,10 +24,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.process;
 
-import static org.junit.Assert.*;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.Test;
+// NOTE: remove commented out references to org.junit and annotations
+//       when/if the junit infrastructure is upgraded to a version that
+//       supports those constructs.
+
+import static junit.framework.Assert.*;
+
+//import static org.junit.Assert.*;
+//import org.junit.After;
+//import org.junit.BeforeClass;
+//import org.junit.Test;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -56,7 +62,8 @@ import javax.xml.parsers.SAXParserFactory;
 
 public class ProcessConfigXmlHandlerTest extends TestCase {
 
-    private static String F_SEP = System.getProperty("file.separator");
+    private static String F_SEP       = System.getProperty("file.separator");
+    private static String USER_DIR    = System.getProperty("user.dir");
     private static String CONFIG_FILE = "bigdata-jini"
                                         +F_SEP+"src"
                                         +F_SEP+"java"
@@ -78,7 +85,7 @@ public class ProcessConfigXmlHandlerTest extends TestCase {
     private static Logger logger;
 
     // NOTE: remove constructors and tearDown when/if the junit infrastructure
-    //       is upgraded to version that supports annotations and this test
+    //       is upgraded to a version that supports annotations and this test
     //       is changed so that it no longer has to extend TestCase.
 
     public ProcessConfigXmlHandlerTest() {
@@ -94,10 +101,11 @@ public class ProcessConfigXmlHandlerTest extends TestCase {
         cleanUp();
     }
 
-    @BeforeClass public static void initAll() {
-        String logConfigFile = "ant-build"
-                               +F_SEP+"classes"
-                               +F_SEP+"test"
+//    @BeforeClass public static void initAll() {
+    public static void initAll() {
+        String logConfigFile = USER_DIR
+                               +F_SEP+"bigdata"
+                               +F_SEP+"src"
                                +F_SEP+"resources"
                                +F_SEP+"logging"
                                +F_SEP+"log4j.properties";
@@ -232,7 +240,8 @@ continue;//TODO
         rolesMap.put(pInfo, rInfo);
     }
 
-    @After public void cleanUp() {
+//    @After public void cleanUp() {
+    public void cleanUp() {
 
         if(testName != null) {
             String prefix = (testPassed ? "PASSED: " : "FAILED: ");
@@ -264,7 +273,7 @@ continue;//TODO
 
     // File structural tests
 
-    @Test
+//    @Test
     public void testParseDefsVerifyRoles() throws Exception {
 
         testName = "testParseDefsVerifyRolesTest";
@@ -286,7 +295,7 @@ continue;//TODO
         testPassed = true;
     }
 
-    @Test
+//    @Test
     public void testParseDefsVerifyProcesses() throws Exception {
 
         testName = "testParseDefsVerifyProcessesTest";
@@ -306,7 +315,7 @@ continue;//TODO
         testPassed = true;
     }
 
-    @Test
+//    @Test
     public void testParseDefsVerifyRestartGroups() throws Exception {
 
         testName = "testParseDefsVerifyRestartGroupsTest";
@@ -347,7 +356,7 @@ continue;//TODO
         testPassed = true;
     }
 
-    @Test
+//    @Test
     public void testParseDefsVerifyNodeConfig() throws Exception {
 
         testName = "testParseDefsVerifyRestartGroupsTest";

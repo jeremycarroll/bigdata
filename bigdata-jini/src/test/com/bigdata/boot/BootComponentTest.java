@@ -24,10 +24,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.boot;
 
-import static org.junit.Assert.*;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.Test;
+// NOTE: remove commented out references to org.junit and annotations
+//       when/if the junit infrastructure is upgraded to a version that
+//       supports those constructs.
+
+import static junit.framework.Assert.*;
+
+//import static org.junit.Assert.*;
+//import org.junit.After;
+//import org.junit.BeforeClass;
+//import org.junit.Test;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -52,8 +58,9 @@ import java.util.List;
  */
 public class BootComponentTest extends TestCase {
 
-    private static String F_SEP = System.getProperty("file.separator");
-    private static String P_SEP = System.getProperty("path.separator");
+    private static String F_SEP    = System.getProperty("file.separator");
+    private static String P_SEP    = System.getProperty("path.separator");
+    private static String USER_DIR = System.getProperty("user.dir");
 
     private Process bootProcess;
 
@@ -63,7 +70,7 @@ public class BootComponentTest extends TestCase {
     private static Logger logger;
 
     // NOTE: remove constructors and tearDown when/if the junit infrastructure
-    //       is upgraded to version that supports annotations and this test
+    //       is upgraded to a version that supports annotations and this test
     //       is changed so that it no longer has to extend TestCase.
 
     public BootComponentTest() {
@@ -80,10 +87,11 @@ public class BootComponentTest extends TestCase {
     }
 
 
-    @BeforeClass public static void initAll() {
-        String logConfigFile = "ant-build"
-                               +F_SEP+"classes"
-                               +F_SEP+"test"
+//    @BeforeClass public static void initAll() {
+    public static void initAll() {
+        String logConfigFile = USER_DIR
+                               +F_SEP+"bigdata"
+                               +F_SEP+"src"
                                +F_SEP+"resources"
                                +F_SEP+"logging"
                                +F_SEP+"log4j.properties";
@@ -93,7 +101,8 @@ public class BootComponentTest extends TestCase {
     }
 
     // Kills any lingering processes
-    @After public void cleanUp() {
+//    @After public void cleanUp() {
+    public void cleanUp() {
 
         if(bootProcess != null) {
             logger.log(Level.DEBUG, 
@@ -116,12 +125,18 @@ public class BootComponentTest extends TestCase {
 
     private void startBootLauncher(String configFileName) throws IOException {
 
+        // NOTE: below, the classes dir is used when running tests from ant,
+        //       and the bin dir is used when running tests from eclipse.
+
         String javaCmd = "java";
         String cpArg   = "-cp";
-        String cpVal   = "ant-build"+F_SEP+"classes";
+        String cpVal   = "ant-build"+F_SEP+"classes"
+                         +P_SEP
+                         +"bin";//ant-build/classes for ant, bin for eclipse
         String logProp = "-Djava.util.logging.config.file="
-                         +F_SEP+"ant-build"
-                         +F_SEP+"classes"
+                         +"bigdata-jini"
+                         +F_SEP+"src"
+                         +F_SEP+"test"
                          +F_SEP+"com"
                          +F_SEP+"bigdata"
                          +F_SEP+"boot"
@@ -163,7 +178,7 @@ public class BootComponentTest extends TestCase {
 
     // Test the BootManager API
 
-    @Test(timeout=3000, expected=IOException.class)
+//    @Test(timeout=3000, expected=IOException.class)
     public void testBootManager_noConnect() throws Exception {
         try {
             BootManager bootMgr = new BootManager();
@@ -174,7 +189,7 @@ public class BootComponentTest extends TestCase {
         }
     }
 
-    @Test(timeout=5000)
+//    @Test(timeout=5000)
     public void testBootManager_getProcessTags() throws Exception {
         testName = "testBootManager_getProcessTags";
         testPassed = false;
@@ -201,7 +216,7 @@ public class BootComponentTest extends TestCase {
         testPassed = true;
     }
 
-    @Test(timeout=5000)
+//    @Test(timeout=5000)
     public void testBootManager_getState() throws Exception {
 
         testName = "testBootManager_getState";
@@ -226,7 +241,7 @@ public class BootComponentTest extends TestCase {
         testPassed = true;
     }
 
-    @Test(timeout=5000, expected=IllegalArgumentException.class)
+//    @Test(timeout=5000, expected=IllegalArgumentException.class)
     public void testBootManager_getState_noSuchProcess() throws Exception {
 
         testName = "testBootManager_getState_noSuchProcess";
@@ -247,7 +262,7 @@ public class BootComponentTest extends TestCase {
         }
     }
 
-    @Test(timeout=5000, expected=IllegalArgumentException.class)
+//    @Test(timeout=5000, expected=IllegalArgumentException.class)
     public void testBootManager_startProcess_noSuchProcess() throws Exception {
 
         testName = "testBootManager_startProcess_noSuchProcess";
@@ -268,7 +283,7 @@ public class BootComponentTest extends TestCase {
         }
     }
 
-    @Test(timeout=5000, expected=IllegalArgumentException.class)
+//    @Test(timeout=5000, expected=IllegalArgumentException.class)
     public void testBootManager_stopProcess_noSuchProcess() throws Exception {
 
         testName = "testBootManager_stopProcess_noSuchProcess";
@@ -292,7 +307,7 @@ public class BootComponentTest extends TestCase {
     // Test boot launcher starting/stopping
 
     // Start and stop an empty launcher
-    @Test(timeout=10000)
+//    @Test(timeout=10000)
     public void testStartAndStopEmptyLauncher() throws Exception {
 
         testName = "testStartAndStopEmptyLauncher";
@@ -318,7 +333,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a launcher with 1 boot process that succeeds in starting
-    @Test(timeout=6000)
+//    @Test(timeout=6000)
     public void testStartLauncher1Process() throws Exception {
 
         testName = "testStartLauncherProcess";
@@ -327,30 +342,21 @@ public class BootComponentTest extends TestCase {
         StateSequenceListener listener =
             new StartTransitionListener("idleProc1");
 
-        logger.log(Level.DEBUG, 
-                   "startBootLauncher >>> BootComponentTest_1boot.xml");
         startBootLauncher("BootComponentTest_1boot.xml");
-        logger.log(Level.DEBUG, "boot launcher started");
 
         // Connect a BootManager to the launcher and register a listener
-        logger.log(Level.DEBUG, "connect to boot manager");
         BootManager bootMgr = getBootManager();
-        logger.log(Level.DEBUG, "boot manager connection SUCCESSFUL");
-        logger.log(Level.DEBUG, "register listener with boot manager");
         bootMgr.registerListener(listener);
-        logger.log(Level.DEBUG, "listener registration SUCCESSFUL");
 
         // The listener verifies state transitions and reports back
-        logger.log(Level.DEBUG, "WAITING for listener");
         String failureReason = listener.waitUntilDone();
-        logger.log(Level.DEBUG, "listener done: ["+failureReason+"]");
         if(failureReason != null) fail(failureReason);
 
         testPassed = true;
     }
 
     // Start a launcher with 1 boot process that fails to start
-    @Test(timeout=6000)
+//    @Test(timeout=6000)
     public void testStartLauncher1Process1Fails() throws Exception {
 
         testName = "testStartLauncher1ProcessFails";
@@ -379,7 +385,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a launcher with 3 boot processes that all succeed in starting
-    @Test(timeout=12000)
+//    @Test(timeout=12000)
     public void testStartLauncher3Processes() throws Exception {
 
         testName = "testStartLauncher3Processes";
@@ -415,7 +421,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a launcher with 3 boot processes, 1 of which fails to start
-    @Test(timeout=12000)
+//    @Test(timeout=12000)
     public void testStartLauncher3Processes1Fails() throws Exception {
 
         testName = "testStartLauncher3Processes1Fails";
@@ -458,7 +464,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Stop a launcher with 3 running processes
-    @Test(timeout=12000)
+//    @Test(timeout=12000)
     public void testStopLauncher3Processes() throws Exception {
 
         testName = "testStopLauncher3Processes";
@@ -531,7 +537,7 @@ public class BootComponentTest extends TestCase {
 
     // Start a launcher with 3 boot processes, 1 of which eventually crashes
     // causing the boot launcher to shut down
-    @Test(timeout=20000)
+//    @Test(timeout=20000)
     public void testBootProcessCrash() throws Exception {
 
         testName = "testBootProcessCrash";
@@ -577,7 +583,7 @@ public class BootComponentTest extends TestCase {
     // Test state transition processing
 
     // Start a process that fails to start
-    @Test(timeout=10000)
+//    @Test(timeout=10000)
     public void testStartProcessFailToStart() throws Exception {
 
         testName = "testStartProcessFailToStart";
@@ -605,7 +611,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a process that succeeds in starting
-    @Test(timeout=10000)
+//    @Test(timeout=10000)
     public void testStartProcessSuccess() throws Exception {
 
         testName = "testStartProcessSuccess";
@@ -633,7 +639,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Stop a process
-    @Test(timeout=10000)
+//    @Test(timeout=10000)
     public void testStopProcessSuccess() throws Exception {
 
         testName = "testStopProcessSuccess";
@@ -674,7 +680,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Stop a process and it exceeds the stop timelimit
-    @Test(timeout=10000)
+//    @Test(timeout=10000)
     public void testStopProcessExceedTimelimit() throws Exception {
 
         testName = "testStopProcessExceedTimelimit";
@@ -724,7 +730,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a process that stops itself
-    @Test(timeout=8000)
+//    @Test(timeout=8000)
     public void testSelfStopProcessSuccess() throws Exception {
 
         testName = "testSelfStopProcessSuccess";
@@ -754,7 +760,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a process that stops itself but exceeds the stop time limit
-    @Test(timeout=20000)
+//    @Test(timeout=20000)
     public void testSelfStopProcessExceedTimelimit() throws Exception {
 
         testName = "testSelfStopProcessExceedTimelimit";
