@@ -4,7 +4,8 @@
 
 # Function called by /etc/init.d/bigdata to start the Bigdata processes
 do_start() {
-    log_begin_msg "Starting Bigdata processes"
+#    log_begin_msg "Starting Bigdata processes" # Ubuntu/Debian
+    log_success_msg "Starting Bigdata processes" # CentOS/Ubuntu/Debian/etc
 
     BIGDATA_VAR="${BIGDATA_HOME}/var"
     DEPLOY_FILE="${BIGDATA_VAR}/config/deploy/deploy.properties"
@@ -45,12 +46,14 @@ do_start() {
         --chuid "${BIGDATA_USER}" --chdir "${BIGDATA_HOME}" \
         --exec "${BIGDATA_HOME}/bin/launcher" > /dev/null 2>&1 &
 
-    log_end_msg $?
+#    log_end_msg $? # Ubuntu/Debian
+    log_success_msg $? # CentOS/Ubuntu/Debian/etc
 }
 
 # Function called by /etc/init.d/bigdata to stop the Bigdata processes
 do_stop() {
-    log_begin_msg "Stopping Bigdata processes"
+#    log_begin_msg "Stopping Bigdata processes" # Ubuntu/Debian
+    log_success_msg "Stopping Bigdata processes" # CentOS/Ubuntu/Debian/etc
 
     if [ -f "${BIGDATA_PGRP}" ]; then
 
@@ -64,7 +67,8 @@ do_stop() {
         rm -f "${BIGDATA_PGRP}"
     fi
 
-    log_end_msg $?
+#    log_end_msg $? # Ubuntu/Debian
+    log_success_msg $? # CentOS/Ubuntu/Debian/etc
 }
 
 # Function called by /etc/init.d/bigdata to retrieve status of the 

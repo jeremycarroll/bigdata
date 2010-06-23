@@ -9,12 +9,24 @@
 # Description:       Script registered with /etc/init.d that starts and stops Bigdata processes.
 ### END INIT INFO
 
+#export JAVA_HOME=/usr/lib/jvm/java-6-sun # Standard installation
+export JAVA_HOME=/usr/java/lib/jvm/java-6-sun # Non-standard installation
+
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
-PATH=/usr/sbin:/usr/bin:/sbin:/bin
+#
+# Note: on a standard installation, it is expected that
+#       /usr/bin/java -> /etc/alternatives/java ->
+#       /usr/lib/jvm/java-6-sun/jre/bin/java which
+#       means that the simple the PATH variable below
+#       will allow the boot launcher to find and execute
+#       the simple java command. But if this script is
+#       installed on a system witout a standard java
+#       installation, then the PATH variable must include
+#       the bin directory under JAVA_HOME.
+#PATH=/usr/sbin:/usr/bin:/sbin:/bin
+PATH="/usr/sbin:/usr/bin:/sbin:/bin:${JAVA_HOME}/bin"
 
 . /lib/lsb/init-functions
-
-export JAVA_HOME=/usr/lib/jvm/java-6-sun
 
 # Set variables if not already set
 BIGDATA_USER=${BIGDATA_USER:-"root"}
