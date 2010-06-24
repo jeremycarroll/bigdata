@@ -10,7 +10,7 @@
 ### END INIT INFO
 
 #export JAVA_HOME=/usr/lib/jvm/java-6-sun # Standard installation
-export JAVA_HOME=/usr/java/lib/jvm/java-6-sun # Non-standard installation
+export JAVA_HOME=/usr/java/jdk1.6.0_17 # Non-standard installation
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 #
