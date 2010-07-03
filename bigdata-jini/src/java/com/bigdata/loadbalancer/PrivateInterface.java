@@ -30,6 +30,7 @@ import com.sun.jini.admin.DestroyAdmin;
 import net.jini.admin.Administrable;
 import net.jini.admin.JoinAdmin;
 
+import java.io.IOException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.UUID;
@@ -40,28 +41,38 @@ interface PrivateInterface extends Remote, Administrable,
 {
     //Related to LoadBalancer
 
-    void notify(UUID serviceId, byte[] data) throws RemoteException;
+    void notify(UUID serviceId, byte[] data) 
+             throws RemoteException, IOException;
 
     void warn(String msg, UUID serviceId) throws RemoteException;
 
     void urgent(String msg, UUID serviceId) throws RemoteException;
 
     UUID getUnderUtilizedDataService()
-        throws RemoteException, TimeoutException, InterruptedException;
+        throws RemoteException, IOException,
+               TimeoutException, InterruptedException;
 
     UUID[] getUnderUtilizedDataServices
         (int minCount, int maxCount, UUID exclude)
-            throws RemoteException, TimeoutException, InterruptedException;
+            throws RemoteException, IOException,
+                   TimeoutException, InterruptedException;
 
-    boolean isHighlyUtilizedDataService(UUID serviceId) throws RemoteException;
+    boolean isHighlyUtilizedDataService(UUID serviceId) 
+                throws RemoteException, IOException;
 
-    boolean isUnderUtilizedDataService(UUID serviceId) throws RemoteException;
+    boolean isUnderUtilizedDataService(UUID serviceId)
+                throws RemoteException, IOException;
 
     //Related to EventReceivingService
 
-    void notifyEvent(Event e) throws RemoteException;
+    void notifyEvent(Event e) throws RemoteException, IOException;
 
-    //Related to TestAdmin
+
+    // Related to ShutdownAdmin
+
+    void shutdown() throws RemoteException;
+
+    void shutdownNow() throws RemoteException;
 
     void kill(int status) throws RemoteException;
 }

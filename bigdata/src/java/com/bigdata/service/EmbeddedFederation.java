@@ -44,6 +44,10 @@ import com.bigdata.journal.ResourceLockService;
 import com.bigdata.journal.WriteExecutorService;
 import com.bigdata.service.EmbeddedClient.Options;
 
+//BTM
+import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+import net.jini.lookup.ServiceDiscoveryManager;
+
 /**
  * An implementation that uses an embedded database rather than a distributed
  * database. An embedded federation runs entirely in process, but uses the same
@@ -119,9 +123,11 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
     private final ResourceLockService resourceLockManager;
     
     /**
-     * The (in process) {@link LoadBalancerService}.
+BTM     * The (in process) {@link LoadBalancerService}.
+* The (in process) {@link LoadBalancer} service.
      */
-    private final LoadBalancerService loadBalancerService;
+//BTM    private final LoadBalancerService loadBalancerService;
+private final EmbeddedLoadBalancer loadBalancerService;
     
     /**
      * The (in process) {@link MetadataService}.
@@ -179,9 +185,11 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
     }
     
     /**
-     * The (in process) {@link LoadBalancerService}.
+BTM     * The (in process) {@link LoadBalancerService}.
+* The (in process) {@link LoadBalancer} service.
      */
-    final public ILoadBalancerService getLoadBalancerService() {
+//BTM    final public ILoadBalancerService getLoadBalancerService() {
+final public LoadBalancer getLoadBalancerService() {
 
         // Note: return null if service not available/discovered.
 
@@ -412,39 +420,53 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
          */
         resourceLockManager = new ResourceLockService();
         
-        {
+//BTM*** For now, move the creation of the loadBalancerService to a
+//BTM*** point below AFTER the creation of the dataServices, so that the
+//BTM*** dataServiceByUUID map, when passed into the EmbeddedLoadBalancer,
+//BTM*** is populated with those created dataServices, and the
+//BTM*** EmbeddedLoadBalancer can then "discover" those DataServices.
+//BTM*** But once the DataService is converted to a smart proxy model
+//BTM*** and the shard.ServiceImpl/EmbeddedDataService instantiated below
+//BTM*** registers with the lookup service, the dataServiceByUUID map
+//BTM*** can be removed and a non-null SDM can be used by the
+//BTM*** loadBalancerService to actually discover that DataService.
 
-            final Properties p = new Properties(properties);
-            
-            if (isTransient) {
-
-                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
-
-            } else {
-                
-                // specify the data directory for the load balancer.
-                p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR,
-                        new File(dataDir, "lbs").toString());
-                
-            }
-
+//BTM        {
+//BTM
+//BTM            final Properties p = new Properties(properties);
+//BTM            
+//BTM            if (isTransient) {
+//BTM
+//BTM //BTM                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
+//BTM p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.TRANSIENT, "true");
+//BTM
+//BTM            } else {
+//BTM                
+//BTM                // specify the data directory for the load balancer.
+//BTM
+//BTM                p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR,
+//BTM                        new File(dataDir, "lbs").toString());
+//BTM                
+//BTM            }
+//BTM
             /*
              * Start the load balancer.
              */
-            try {
-         
-                loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID
-                        .randomUUID(), p).start();
-            
-            } catch (Throwable t) {
-            
-                log.error(t, t);
-                
-                throw new RuntimeException(t);
-                
-            }
+//BTM            try {
+//BTM         
+//BTM                loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID
+//BTM                        .randomUUID(), p).start();
+//BTM            
+//BTM            } catch (Throwable t) {
+//BTM            
+//BTM                log.error(t, t);
+//BTM                
+//BTM                throw new RuntimeException(t);
+//BTM                
+//BTM            }
+//BTM
+//BTM        }
 
-        }
 
         /*
          * The directory in which the data files will reside.
@@ -588,8 +610,36 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
         }
 
         {
-        
             final String hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
+
+//BTM*** ------------------------------------------------------------------------------
+            final Properties p = new Properties(properties);
+            
+            if (isTransient) {
+
+//BTM                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
+p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.TRANSIENT, "true");
+
+            } else {
+                
+                // specify the data directory for the load balancer.
+
+                p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR,
+                        new File(dataDir, "lbs").toString());
+                
+            }
+
+//BTM*** remove after EmbeddedDataServiceImpl/shard.ServiceImpl/EmbeddedDataService
+//BTM*** is converted to smart proxy?
+loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID.randomUUID(),
+                                                          hostname,
+                                                          null,//SDM - replace with real SDM after conversion to smart proxy?
+//BTM*** EmbeddedDataService.this,
+//BTM*** remove after EmbeddedDataService is converted to smart proxy
+                                                          dataServiceByUUID,
+                                                          p);
+//BTM*** ------------------------------------------------------------------------------
+
 
             /*
              * Have the data services join the load balancer.
@@ -599,7 +649,10 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
                 try {
 
                     loadBalancerService.join(ds.getServiceUUID(), ds
-                            .getServiceIface(), hostname);
+                            .getServiceIface(), 
+//BTM
+ds.getServiceName(),
+hostname);
 
                 } catch (IOException e) {
 
@@ -616,13 +669,22 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
              */
 
             loadBalancerService.join(abstractTransactionService.getServiceUUID(),
-                    abstractTransactionService.getServiceIface(), hostname);
+                    abstractTransactionService.getServiceIface(), 
+//BTM
+(abstractTransactionService.getServiceUUID()).toString(),
+hostname);
 
             loadBalancerService.join(loadBalancerService.getServiceUUID(),
-                    loadBalancerService.getServiceIface(), hostname);
+                    loadBalancerService.getServiceIface(), 
+//BTM
+(loadBalancerService.getServiceUUID()).toString(),
+hostname);
 
             loadBalancerService.join(metadataService.getServiceUUID(),
-                    metadataService.getServiceIface(), hostname);
+                    metadataService.getServiceIface(), 
+//BTM
+(metadataService.getServiceUUID()).toString(),
+hostname);
 
         }
 
@@ -769,24 +831,39 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
 
     }
     
-    protected class EmbeddedLoadBalancerServiceImpl extends AbstractEmbeddedLoadBalancerService {
+//BTM    protected class EmbeddedLoadBalancerServiceImpl extends AbstractEmbeddedLoadBalancerService {
+protected class EmbeddedLoadBalancerServiceImpl extends EmbeddedLoadBalancer {
         
         /**
          * @param serviceUUID
          * @param properties
          */
-        public EmbeddedLoadBalancerServiceImpl(UUID serviceUUID, Properties properties) {
-       
-            super(serviceUUID, properties);
-            
-        }
+//BTM        public EmbeddedLoadBalancerServiceImpl(UUID serviceUUID, Properties properties) {
+//BTM       
+//BTM            super(serviceUUID, properties);
+//BTM            
+//BTM        }
 
-        @Override
-        public EmbeddedFederation<T> getFederation() {
+//BTM        @Override
+//BTM        public EmbeddedFederation<T> getFederation() {
+//BTM
+//BTM            return EmbeddedFederation.this;
+//BTM
+//BTM        }
 
-            return EmbeddedFederation.this;
-
-        }
+public EmbeddedLoadBalancerServiceImpl(UUID serviceUUID, 
+                                       String hostname,
+                                       ServiceDiscoveryManager sdm,
+//BTM - remove once EmbeddedDataService converted to smart proxy
+Map<UUID, DataService> dataServiceMap,
+                                       Properties properties)
+{
+    super(serviceUUID, hostname, 
+sdm,
+//BTM*** EmbeddedFederation.this,
+dataServiceMap,//BTM*** - remove after DataService smart proxy?
+          properties);
+}
 
     }
     

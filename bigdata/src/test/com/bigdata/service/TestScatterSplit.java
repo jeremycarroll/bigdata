@@ -52,6 +52,9 @@ import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.ndx.ClientIndexView;
 import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
+//BTM
+import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+
 /**
  * Some unit tests for moving an index partition.
  * 
@@ -106,6 +109,8 @@ public class TestScatterSplit extends AbstractEmbeddedFederationTestCase {
 //         * service so that it will use our fakes scores.
 //         */
 //        properties.setProperty(LoadBalancerService.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
+//BTM
+//properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
 
         // turn off acceleration features.
         properties.setProperty(Options.ACCELERATE_OVERFLOW_THRESHOLD, "0");

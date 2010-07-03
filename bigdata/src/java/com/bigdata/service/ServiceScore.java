@@ -2,18 +2,28 @@ package com.bigdata.service;
 
 import java.util.UUID;
 
-import com.bigdata.service.LoadBalancerService.UpdateTask;
+//BTM import com.bigdata.service.LoadBalancerService.UpdateTask;
 
 /**
- * Per-service metadata and a score for that service which gets updated
- * periodically by the {@link UpdateTask}. {@link ServiceScore}s are a
- * <em>resource utilization</em> measure. They are higher for a service
- * which is more highly utilized. There are several ways to look at the
- * score, including the {@link #rawScore}, the {@link #rank}, and the
- * {@link #drank normalized double-precision rank}. The ranks move in the
- * same direction as the {@link #rawScore}s - a higher rank indicates
- * higher utilization. The least utilized service is always rank zero (0).
- * The most utilized service is always in the last rank.
+BTM * Per-service metadata and a score for that service which gets updated
+BTM * periodically by the {@link UpdateTask}. {@link ServiceScore}s are a
+BTM * <em>resource utilization</em> measure. They are higher for a service
+BTM * which is more highly utilized. There are several ways to look at the
+BTM * score, including the {@link #rawScore}, the {@link #rank}, and the
+BTM * {@link #drank normalized double-precision rank}. The ranks move in the
+BTM * same direction as the {@link #rawScore}s - a higher rank indicates
+BTMBTM * higher utilization. The least utilized service is always rank zero (0).
+BTM * The most utilized service is always in the last rank.
+ * Per-service metadata and a score for that service which gets
+ * updated periodically by
+ * <code>com.bigdata.loadbalancer.EmbeddedLoadBalancer.UpdateTask</code>.
+ * {@link ServiceScore}s are a <em>resource utilization</em> measure. They
+ * are higher for a service which is more highly utilized. There are
+ * several ways to look at the score, including the {@link #rawScore}, the
+ * {@link #rank}, and the {@link #drank normalized double-precision rank}.
+ * The ranks move in the same direction as the {@link #rawScore}s - a higher
+ * rank indicates higher utilization. The least utilized service is always
+ * rank zero (0). The most utilized service is always in the last rank.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$

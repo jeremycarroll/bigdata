@@ -61,11 +61,14 @@ import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.EventType;
 import com.bigdata.service.IDataService;
-import com.bigdata.service.ILoadBalancerService;
+//BTM import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.LatchedExecutor;
+
+//BTM
+import com.bigdata.service.LoadBalancer;
 
 /**
  * This class examines the named indices defined on the journal identified by
@@ -1324,15 +1327,19 @@ public class AsynchronousOverflowTask implements Callable<Object> {
     }
 
     /**
-     * Return the {@link ILoadBalancerService} if it can be discovered.
+BTM     * Return the {@link ILoadBalancerService} if it can be discovered.
+* Return the {@link LoadBalancer} if it can be discovered.
      * 
-     * @return the {@link ILoadBalancerService} if it can be discovered and
+BTM     * @return the {@link ILoadBalancerService} if it can be discovered and
+* @return the {@link LoadBalancer} service if it can be discovered and
      *         otherwise <code>null</code>.
      */
-    protected ILoadBalancerService getLoadBalancerService() {
+//BTM    protected ILoadBalancerService getLoadBalancerService() {
+protected LoadBalancer getLoadBalancerService() {
 
         // lookup the load balancer service.
-        final ILoadBalancerService loadBalancerService;
+//BTM        final ILoadBalancerService loadBalancerService;
+final LoadBalancer loadBalancerService;
         
         try {
 
@@ -1370,7 +1377,8 @@ public class AsynchronousOverflowTask implements Callable<Object> {
      * @param loadBalancerService
      *            The load balancer.
      */
-    protected boolean shouldMove(final ILoadBalancerService loadBalancerService) {
+//BTM    protected boolean shouldMove(final ILoadBalancerService loadBalancerService) {
+protected boolean shouldMove(final LoadBalancer loadBalancerService) {
 
         if (loadBalancerService == null)
             throw new IllegalArgumentException();
@@ -1457,7 +1465,8 @@ public class AsynchronousOverflowTask implements Callable<Object> {
      * @return The tasks.
      */
     private List<AbstractTask> chooseMoves(
-            final ILoadBalancerService loadBalancerService) {
+final LoadBalancer loadBalancerService) {
+//BTM            final ILoadBalancerService loadBalancerService) {
         
         if (resourceManager.maximumMovesPerTarget == 0) {
 
@@ -2379,7 +2388,8 @@ public class AsynchronousOverflowTask implements Callable<Object> {
      * Running out of DISK space causes an urgent condition and can lead to
      * failure or all services on the same host. Therefore, when a host is near
      * to exhausting its DISK space it (a) MUST notify the
-     * {@link ILoadBalancerService}; (b) temporary files SHOULD be purged; it
+BTM     * {@link ILoadBalancerService}; (b) temporary files SHOULD be purged; it
+* {@link ILoadBalancerService}; (b) temporary files SHOULD be purged; it
      * MAY choose to shed indices that are "hot for write" since that will slow
      * down the rate at which the disk space is consumed; (d) index partitions
      * may be aggressively moved off of the LDS; (e) the transaction service MAY
@@ -2454,7 +2464,8 @@ public class AsynchronousOverflowTask implements Callable<Object> {
              * When it is not available we simply do not consider index
              * partition moves.
              */
-            final ILoadBalancerService lbs = getLoadBalancerService();
+//BTM            final ILoadBalancerService lbs = getLoadBalancerService();
+final LoadBalancer lbs = getLoadBalancerService();
             
             if(lbs != null && shouldMove(lbs)) {
 

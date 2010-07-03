@@ -83,6 +83,9 @@ import com.bigdata.util.NV;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 
+//BTM
+import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+
 /**
  * Test suite for concurrent operations on a {@link DataService}. A federation
  * consisting of a {@link MetadataService} and a single {@link DataService} is
@@ -168,13 +171,16 @@ public class StressTestConcurrent extends
          * Note: Disables the initial round robin policy for the load balancer
          * service so that it will use our fakes scores.
          */
-        properties.setProperty(
-                LoadBalancerService.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT,
-                "0");
+//BTM        properties.setProperty(
+//BTM                LoadBalancerService.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT,
+//BTM                "0");
+properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
 
         // load balancer update delay
 //      properties.setProperty(LoadBalancerService.Options.UPDATE_DELAY,"10000");
-      
+//BTM
+//properties.setProperty(EmbeddedLoadBalancer.Options.UPDATE_DELAY,"10000");
+
         // make sure scatter splits are enabled.
         properties.setProperty(Options.SCATTER_SPLIT_ENABLED, "true");
 

@@ -55,6 +55,9 @@ import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.ndx.ClientIndexView;
 import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
+//BTM
+import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+
 /**
  * Some unit tests for moving an index partition.
  * 
@@ -108,7 +111,8 @@ public class TestMove extends AbstractEmbeddedFederationTestCase {
          * Note: Disables the initial round robin policy for the load balancer
          * service so that it will use our fakes scores.
          */
-        properties.setProperty(LoadBalancerService.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
+//BTM        properties.setProperty(LoadBalancerService.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
+properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
 
         // turn off acceleration features.
         properties.setProperty(Options.ACCELERATE_OVERFLOW_THRESHOLD, "0");
@@ -291,10 +295,12 @@ public class TestMove extends AbstractEmbeddedFederationTestCase {
             System.err.println("Setting up LBS for move.");
 
             // explicitly set the log level for the load balancer.
-            LoadBalancerService.log.setLevel(Level.INFO);
-            
-            final AbstractEmbeddedLoadBalancerService lbs = ((AbstractEmbeddedLoadBalancerService) ((EmbeddedFederation) fed)
-                    .getLoadBalancerService());
+//BTM            LoadBalancerService.log.setLevel(Level.INFO);
+EmbeddedLoadBalancer.logger.setLevel(Level.INFO);
+
+//BTM            final AbstractEmbeddedLoadBalancerService lbs = ((AbstractEmbeddedLoadBalancerService) ((EmbeddedFederation) fed)
+//BTM                    .getLoadBalancerService());
+final EmbeddedLoadBalancer lbs = ((EmbeddedLoadBalancer)((EmbeddedFederation)fed).getLoadBalancerService());
 
             final ServiceScore[] fakeServiceScores = new ServiceScore[2];
 

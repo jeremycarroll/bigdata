@@ -84,7 +84,8 @@ public interface IBigdataFederation<T> extends IIndexManager, IFederationDelegat
      * 
      * @return The service -or- <code>null</code> if the service has not been discovered.
      */
-    public ILoadBalancerService getLoadBalancerService();
+//BTM    public ILoadBalancerService getLoadBalancerService();
+public LoadBalancer getLoadBalancerService();
     
     /**
      * Return the metadata service (or a proxy for the metadata service).
@@ -102,11 +103,13 @@ public interface IBigdataFederation<T> extends IIndexManager, IFederationDelegat
 
     /**
      * The {@link CounterSet} which the client will use report its statistics to
-     * the {@link ILoadBalancerService}.
+BTM     * the {@link ILoadBalancerService}.
+* the {@link LoadBalancer} service.
      * <p>
      * Note: Applications MAY add their own counters (within a suitable
      * namespace) to the returned {@link CounterSet} in order to report their
-     * own performance data to the {@link ILoadBalancerService}.
+BTM     * own performance data to the {@link ILoadBalancerService}.
+* own performance data to the {@link LoadBalancer} service.
      * 
      * @see #getServiceCounterSet()
      * @see #getServiceCounterPathPrefix()
@@ -180,7 +183,8 @@ public interface IBigdataFederation<T> extends IIndexManager, IFederationDelegat
      * and which is part of the connected federation.
      * <p>
      * Note: This method is here as a failsafe when the
-     * {@link ILoadBalancerService} is not available.
+BTM     * {@link ILoadBalancerService} is not available.
+* {@link LoadBalancer} service is not available.
      * 
      * @return <code>null</code> if there are NO known {@link IDataService}s.
      */
@@ -247,7 +251,8 @@ public interface IBigdataFederation<T> extends IIndexManager, IFederationDelegat
      *            {@link IndexMetadata.Options#INITIAL_DATA_SERVICE} was
      *            specified, then the identified service will be used. Otherwise
      *            an underutilized service will be selected using the
-     *            {@link ILoadBalancerService}.
+BTM     *            {@link ILoadBalancerService}.
+*            {@link LoadBalancer} service.
      * 
      * @return The UUID of the registered index.
      * 

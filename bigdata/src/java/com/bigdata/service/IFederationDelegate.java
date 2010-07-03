@@ -61,7 +61,8 @@ public interface IFederationDelegate<T> {
     /**
      * Return the class or interface that is the most interesting facet of the
      * client and which will be used to identify this client in the performance
-     * counters reported to the {@link ILoadBalancerService}.
+BTM     * counters reported to the {@link ILoadBalancerService}.
+* counters reported to the {@link LoadBalancer} service.
      * 
      * @return The class or interface and never <code>null</code>.
      */
@@ -79,7 +80,8 @@ public interface IFederationDelegate<T> {
      * Offers the service an opportunity to dynamically detach and re-attach
      * performance counters. This can be invoked either in response to an http
      * GET or the periodic reporting of performance counters to the
-     * {@link ILoadBalancerService}. In general, implementations should limit
+BTM     * {@link ILoadBalancerService}. In general, implementations should limit
+* {@link LoadBalancer} service. In general, implementations should limit
      * the frequency of update, e.g., to no more than once a second.
      */
     public void reattachDynamicCounters();

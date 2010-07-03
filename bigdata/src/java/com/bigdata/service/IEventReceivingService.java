@@ -38,7 +38,8 @@ import java.util.UUID;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface IEventReceivingService extends Remote {
+//BTM public interface IEventReceivingService extends Remote {
+public interface IEventReceivingService {
 
     /**
      * Accepts the event, either updates the existing event with the same

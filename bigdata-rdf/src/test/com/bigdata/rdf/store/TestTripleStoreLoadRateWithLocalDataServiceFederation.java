@@ -115,6 +115,8 @@ public class TestTripleStoreLoadRateWithLocalDataServiceFederation extends
 
 //        // change the default port for httpd exposed by the load balancer. 
 //        properties.setProperty(com.bigdata.service.LoadBalancerService.Options.HTTPD_PORT,"8080");
+//BTM
+//properties.setProperty(com.bigdata.loadbalancer.EmbeddedLoadBalancer.Options.HTTPD_PORT,"8080");
         
         return properties;
         
@@ -153,7 +155,8 @@ public class TestTripleStoreLoadRateWithLocalDataServiceFederation extends
 
     public void test_U1() throws InterruptedException {
         
-        final File file = new File("../rdf-data/lehigh/U1");
+//BTM        final File file = new File("../rdf-data/lehigh/U1");
+final File file = new File("bigdata-rdf/src/resources/data/lehigh/U1");
 //      final File file = new File("../rdf-data/lehigh/U1/University0_0.owl");
       
         RDFLoadAndValidateHelper helper = new RDFLoadAndValidateHelper(client.getFederation(),
@@ -167,7 +170,7 @@ public class TestTripleStoreLoadRateWithLocalDataServiceFederation extends
         helper.shutdownNow();
         
     }
-    
+
     public void test_U10() throws InterruptedException {
 
         final File file = new File("../rdf-data/lehigh/U10");

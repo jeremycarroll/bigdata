@@ -71,16 +71,26 @@ import net.jini.lookup.ServiceDiscoveryManager;
 import java.io.IOException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 /**
  * Backend implementation of the load balancer service.
+ *
+ * Note: this class is currently declared public rather than the preferred
+ *       package protected scope. This is so that the JiniServicesHelper
+ *       utility can instantiate this class in the tests that are currently
+ *       implemented to interact directly with the service's backend;
+ *       as opposed to starting the service with the ServiceStarter and
+ *       then interacting with the service through the discovered service
+ *       frontend.
  */
+public 
 class ServiceImpl implements PrivateInterface {
 
-    private static Logger logger = LogUtil.getLog4jLogger
-                                          ( (ServiceImpl.class).getName() ) ;
+    private static Logger logger = 
+        LogUtil.getLog4jLogger(COMPONENT_NAME);
     private static String shutdownStr;
     private static String killStr;
 
@@ -101,6 +111,9 @@ class ServiceImpl implements PrivateInterface {
     private LookupLocator[] locatorsToJoin = new LookupLocator[0];
     private DiscoveryManagement ldm;
     private JoinManager joinMgr;
+    private ServiceDiscoveryManager sdm;
+
+    private EmbeddedLoadBalancer embeddedLoadBalancer;
 
     private Thread waitThread;
 
@@ -110,63 +123,79 @@ class ServiceImpl implements PrivateInterface {
         try {
             init(args);
         } catch(Throwable e) {
-            Util.cleanupOnExit(innerProxy, serverExporter, joinMgr, ldm);
+            Util.cleanupOnExit(innerProxy,serverExporter,joinMgr,sdm,ldm);
             Util.handleInitThrowable(e, logger);
         }
     }
 
     // Remote method(s) required by PrivateInterface
 
-    public void notify(UUID serviceId, byte[] data) throws RemoteException {
+    public void notify(UUID serviceId, byte[] data) 
+                    throws RemoteException, IOException
+    {
 	readyState.check();
-//TODO
+        embeddedLoadBalancer.notify(serviceId, data);
     }
 
     public void warn(String msg, UUID serviceId) throws RemoteException {
 	readyState.check();
-//TODO
+        embeddedLoadBalancer.warn(msg, serviceId);
     }
 
     public void urgent(String msg, UUID serviceId) throws RemoteException {
 	readyState.check();
-//TODO
+        embeddedLoadBalancer.urgent(msg, serviceId);
     }
 
     public UUID getUnderUtilizedDataService()
-        throws RemoteException, TimeoutException, InterruptedException
+        throws RemoteException, IOException,
+               TimeoutException, InterruptedException
     {
 	readyState.check();
-return null;//TODO
+        return embeddedLoadBalancer.getUnderUtilizedDataService();
     }
 
     public UUID[] getUnderUtilizedDataServices
         (int minCount, int maxCount, UUID exclude)
-            throws RemoteException, TimeoutException, InterruptedException
+            throws RemoteException, IOException,
+                   TimeoutException, InterruptedException
     {
 	readyState.check();
-return null;//TODO
+        return embeddedLoadBalancer.getUnderUtilizedDataServices
+                                        (minCount, maxCount, exclude);
     }
 
     public boolean isHighlyUtilizedDataService(UUID serviceId) 
-                                                  throws RemoteException
+                       throws RemoteException, IOException
     {
 	readyState.check();
-return false;//TODO
+        return embeddedLoadBalancer.isHighlyUtilizedDataService(serviceId);
     }
 
     public boolean isUnderUtilizedDataService(UUID serviceId)
-                                                 throws RemoteException
+                       throws RemoteException, IOException
     {
 	readyState.check();
-return false;//TODO
+        return embeddedLoadBalancer.isUnderUtilizedDataService(serviceId);
     }
 
-    public void notifyEvent(Event e) throws RemoteException {
+    public void notifyEvent(Event e) throws RemoteException, IOException {
 	readyState.check();
-//TODO
+        embeddedLoadBalancer.notifyEvent(e);
+    }
+
+    public void shutdown() throws RemoteException {
+	readyState.check();
+	readyState.shutdown();
+        shutdownDo();
+    }
+
+    public void shutdownNow() throws RemoteException {
+        this.shutdown();
     }
 
     public void kill(int status) throws RemoteException {
+	readyState.check();
 	readyState.shutdown();
         killDo(status);
     }
@@ -181,9 +210,7 @@ return false;//TODO
     // Required by DestroyAdmin
 
     public void destroy() throws RemoteException {
-	readyState.check();
-	readyState.shutdown();
-        shutdownDo();
+        this.shutdown();
     }
 
     // Required by JoinAdmin
@@ -287,13 +314,13 @@ return false;//TODO
         }
 
         innerProxy = (PrivateInterface)serverExporter.export(this);
-        outerProxy = ServiceProxy.createProxy
-                         (innerProxy, proxyId, 
-                          NicUtil.getIpAddress(
+        String hostname = NicUtil.getIpAddress(
                               System.getProperty(
                                   "exportNic", 
                                   ConfigDeployUtil.getString(
-                                      "node.serviceNetwork"))) );
+                                      "node.serviceNetwork")));
+        outerProxy = ServiceProxy.createProxy
+                         (innerProxy, proxyId, hostname);
         adminProxy = AdminProxy.createProxy(innerProxy, proxyId);
 
         //Setup lookup discovery
@@ -312,6 +339,14 @@ return false;//TODO
         //array of attributes for JoinManager
         Entry[] serviceAttrs = serviceAttrsList.toArray
                                        (new Entry[serviceAttrsList.size()]);
+
+        //Empty properties object for the EmbeddedLoadBalancer
+        Properties props = new Properties();
+        this.sdm = new ServiceDiscoveryManager(ldm, null, config);
+        embeddedLoadBalancer = 
+            new EmbeddedLoadBalancer(proxyId, hostname, sdm, 
+null,//BTM*** - remove uuid map when DataService converted to smart proxy?
+                                                            props);
 
         //advertise this service
         joinMgr = new JoinManager(outerProxy, serviceAttrs, serviceId, ldm,
@@ -353,6 +388,8 @@ return false;//TODO
 
         public void run() {
 
+            embeddedLoadBalancer.shutdown();
+
             //Before terminating the discovery manager, retrieve the
             // current groups and locs; which may have been administratively
             // changed between the time this service was started and now.
@@ -371,7 +408,7 @@ return false;//TODO
                 waitThread.join();
             } catch (InterruptedException e) {/*exiting, so swallow*/}
 
-            Util.cleanupOnExit(innerProxy, serverExporter, joinMgr, ldm);
+            Util.cleanupOnExit(innerProxy,serverExporter,joinMgr,sdm,ldm);
 
             // Tell the ServiceStarter framework it's ok to release for gc
             if(lifeCycle != null)  {

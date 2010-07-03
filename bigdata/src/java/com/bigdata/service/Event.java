@@ -48,8 +48,10 @@ import com.bigdata.journal.ITransactionService;
 
 /**
  * An event. Events are queued by the {@link IBigdataClient} and self-reported
- * periodically to the {@link ILoadBalancerService}. The event is assigned a
- * {@link UUID} when it is created and the {@link ILoadBalancerService} assigned
+BTM * periodically to the {@link ILoadBalancerService}. The event is assigned a
+BTM * {@link UUID} when it is created and the {@link ILoadBalancerService} assigned
+* periodically to the {@link LoadBalancer} service. The event is assigned a
+* {@link UUID} when it is created and the {@link LoadBalancer} service assigned
  * start and end event times based on its local clock as the events are received
  * (this helps to reduce the demand on the {@link ITransactionService} for
  * global timestamp).
@@ -58,7 +60,8 @@ import com.bigdata.journal.ITransactionService;
  * @version $Id$
  * 
  * @todo compact event serialization when reporting to the
- *       {@link ILoadBalancerService}, including factoring out of the common
+BTM *       {@link ILoadBalancerService}, including factoring out of the common
+*       {@link LoadBalancer} service, including factoring out of the common
  *       metadata (some stuff will always be the same for a given reported and
  *       does not need to be reported with each event).
  * 

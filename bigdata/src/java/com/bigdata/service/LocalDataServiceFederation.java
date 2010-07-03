@@ -44,6 +44,11 @@ import com.bigdata.service.EmbeddedFederation.EmbeddedTransactionServiceImpl;
 import com.bigdata.service.ndx.DataServiceIndex;
 import com.bigdata.util.InnerCause;
 
+//BTM
+import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Integration provides a view of a local {@link DataService} as if it were a
  * federation. The {@link LocalDataServiceFederation} runs its own embedded
@@ -71,7 +76,8 @@ public class LocalDataServiceFederation<T> extends AbstractFederation<T> {
     private final File dataDir;
     private final AbstractTransactionService abstractTransactionService;
     private final ResourceLockService resourceLockManager = new ResourceLockService();
-    private final LoadBalancerService loadBalancerService;
+//BTM    private final LoadBalancerService loadBalancerService;
+private final EmbeddedLoadBalancer loadBalancerService;
     private final LocalDataServiceImpl dataService;
 
 //    /**
@@ -88,6 +94,9 @@ public class LocalDataServiceFederation<T> extends AbstractFederation<T> {
     public LocalDataServiceFederation(final LocalDataServiceClient<T> client) {
         
         super(client);
+
+//BTM
+final String hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
 
         final Properties properties = client.getProperties();
 
@@ -125,23 +134,34 @@ public class LocalDataServiceFederation<T> extends AbstractFederation<T> {
             final Properties p = new Properties(properties);
 
             // set the directory for the log files.
-            p.setProperty(LoadBalancerService.Options.LOG_DIR, new File(
-                    dataDir, "lbs").toString());
+//BTM            p.setProperty(LoadBalancerService.Options.LOG_DIR, new File(
+//BTM                    dataDir, "lbs").toString());
+p.setProperty(EmbeddedLoadBalancer.Options.LOG_DIR, new File(dataDir, "lbs").toString());
 
             /*
              * Note: This will expose the counters for the local data service.
              */
-            loadBalancerService = new AbstractEmbeddedLoadBalancerService(UUID
-                    .randomUUID(), p) {
+//BTM*** For now, move the creation of the loadBalancerService to a
+//BTM*** point below AFTER the creation of the dataService, so that the
+//BTM*** dataServiceMap can be populated with the created dataService
+//BTM*** and then passed into the EmbeddedLoadBalancer so that the
+//BTM*** EmbeddedLoadBalancer can "discover" the created DataService.
+//BTM*** But once the DataService is converted to a smart proxy model
+//BTM*** and the LocalDataServiceImpl instantiated below registers with
+//BTM*** the lookup service, the dataServiceMap can be removed and a
+//BTM*** non-null SDM can be used by the loadBalancerService to actually
+//BTM*** discover that DataService.
 
-                public LocalDataServiceFederation getFederation() {
-
-                    return LocalDataServiceFederation.this;
-
-                }
-
-            }.start();
-
+//BTM            loadBalancerService = new AbstractEmbeddedLoadBalancerService(UUID
+//BTM                    .randomUUID(), p) {
+//BTM
+//BTM                public LocalDataServiceFederation getFederation() {
+//BTM
+//BTM                    return LocalDataServiceFederation.this;
+//BTM
+//BTM                }
+//BTM
+//BTM            }.start();
         }
 
         {
@@ -166,18 +186,36 @@ public class LocalDataServiceFederation<T> extends AbstractFederation<T> {
             // create the embedded data service.
             dataService = new LocalDataServiceImpl(p).start();
 
+//BTM*** remove after LocalDataServiceImpl/shard.ServiceImpl/EmbeddedDataService
+//BTM*** is converted to smart proxy?
+Map<UUID, DataService> dataServiceMap = new HashMap<UUID, DataService>();
+dataServiceMap.put(dataService.getServiceUUID(), dataService);
+loadBalancerService = new EmbeddedLoadBalancer(UUID.randomUUID(),
+                                               hostname,
+                                               null,//SDM - replace with real SDM after conversion to smart proxy?
+//BTM*** LocalDataServiceFederation.this,
+//BTM*** remove after EmbeddedDataService is converted to smart proxy?
+                                               dataServiceMap,
+                                               p);
+
         }
 
         // notify service joins.
         {
 
-            final String hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
+//BTM            final String hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
 
             loadBalancerService.join(dataService.getServiceUUID(), dataService
-                    .getServiceIface(), hostname);
+                    .getServiceIface(), 
+//BTM
+dataService.getServiceName(),
+hostname);
 
             loadBalancerService.join(dataService.getServiceUUID(),
-                    loadBalancerService.getServiceIface(), hostname);
+                    loadBalancerService.getServiceIface(), 
+//BTM
+dataService.getServiceName(),
+hostname);
 
         }
         
@@ -377,7 +415,8 @@ public class LocalDataServiceFederation<T> extends AbstractFederation<T> {
         
     }
 
-    public ILoadBalancerService getLoadBalancerService() {
+//BTM    public ILoadBalancerService getLoadBalancerService() {
+public LoadBalancer getLoadBalancerService() {
 
         assertOpen();
 

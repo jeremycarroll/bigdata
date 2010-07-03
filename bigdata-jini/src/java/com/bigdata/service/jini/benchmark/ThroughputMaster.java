@@ -57,13 +57,16 @@ import com.bigdata.relation.accesspath.IRunnableBuffer;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
-import com.bigdata.service.LoadBalancerService;
+//BTM import com.bigdata.service.LoadBalancerService;
 import com.bigdata.service.jini.DataServer;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.master.TaskMaster;
 import com.bigdata.service.ndx.IScaleOutClientIndex;
 import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
+
+//BTM
+import com.bigdata.service.LoadBalancer;
 
 /**
  * Utility class for benchmarking index operations on a federation. This test
@@ -125,14 +128,16 @@ import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
  * <dt>Operating System</dt>
  * <dd>The {@link AbstractFederation} collects performance counters from the
  * underlying operating system using <code>vmstat</code> or the equivalent and
- * relays them to the {@link LoadBalancerService}. This is done (by default)
+BTM * relays them to the {@link LoadBalancerService}. This is done (by default)
+* relays them to the {@link LoadBalancer} service. This is done (by default)
  * for all machines participating in a federation, including those running
  * clients.</dd>
  * <dt>Client</dt>
  * <dd>The {@link AbstractFederation} collects statistics on its work queues,
  * including the moving average of the queue length and the moving average of
  * the queueing time. This information is collected for all clients (including
- * the {@link DataService}s) and is relayed to the {@link LoadBalancerService}.
+BTM * the {@link DataService}s) and is relayed to the {@link LoadBalancerService}.
+* the {@link DataService}s) and is relayed to the {@link LoadBalancer} service.
  * This mechanism may be extended by an application to report additional
  * performance counters. Clients MAY also report their own {@link Event}s.</dd>
  * <dt>Data services</dt>
@@ -141,10 +146,12 @@ import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
  * moving average of the queueing time for those queues. The most interesting
  * queue is generally the "write service", which is where tasks which will write
  * on an index are queued. The {@link DataServer} also reports a variety of
- * {@link Event}s to the {@link LoadBalancerService}, most of which deal with
+BTM * {@link Event}s to the {@link LoadBalancerService}, most of which deal with
+* {@link Event}s to the {@link LoadBalancer} service, most of which deal with
  * synchronous and asynchronous overflow handling.</dd>
  * </dl>
- * The {@link LoadBalancerService} normally exposes an {@link CounterSetHTTPD}
+BTM * The {@link LoadBalancerService} normally exposes an {@link CounterSetHTTPD}
+* The {@link LoadBalancer} service normally exposes an {@link CounterSetHTTPD}
  * instance which may be used to examine the aggregated performance counters
  * using a navigational model or as correlated timeseries and pivot tables
  * suitable for import into a worksheet program. The {@link CounterSetHTTPD}
@@ -153,7 +160,8 @@ import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
  * {@link CounterSetHTTPD} instance giving a "live" look at the performance
  * counters for that host and service, but only the current value for each
  * counter will be available (no timeseries). Finally, the
- * {@link LoadBalancerService} logs both the performance counters and the
+BTM * {@link LoadBalancerService} logs both the performance counters and the
+* {@link LoadBalancer} service logs both the performance counters and the
  * {@link Event}s. The performance counter logs are available for post-mortem
  * analysis using {@link CounterSetHTTPDServer}. The {@link Event}s are logged
  * in a tab-delimited format and may be imported into a worksheet for further

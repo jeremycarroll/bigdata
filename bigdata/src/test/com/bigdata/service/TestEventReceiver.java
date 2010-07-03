@@ -625,7 +625,8 @@ public class TestEventReceiver extends TestCase2 {
             return 0;
         }
 
-        public ILoadBalancerService getLoadBalancerService() {
+//BTM        public ILoadBalancerService getLoadBalancerService() {
+public LoadBalancer getLoadBalancerService() {
             return null;
         }
 

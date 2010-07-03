@@ -41,12 +41,15 @@ import com.bigdata.relation.accesspath.IBlockingBuffer;
 import com.bigdata.relation.accesspath.IRunnableBuffer;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.ILoadBalancerService;
+//BTM import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.Split;
 import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
 import com.bigdata.service.ndx.pipeline.IndexAsyncWriteStats;
 import com.bigdata.service.ndx.pipeline.KVOC;
 import com.bigdata.service.ndx.pipeline.KVOLatch;
+
+//BTM
+import com.bigdata.service.LoadBalancer;
 
 /**
  * Interface for asynchronous writes on scale-out indices. 
@@ -84,7 +87,8 @@ public interface IAsynchronousWriteBufferFactory {
      * {@link Future} will not terminate (other than by error) until the buffer
      * has been {@link IBlockingBuffer#close() closed}. The {@link Future}
      * evaluates to an {@link IndexAsyncWriteStats} object. Those statistics are
-     * also reported to the {@link ILoadBalancerService} via the
+BTM     * also reported to the {@link ILoadBalancerService} via the
+* also reported to the {@link LoadBalancer} service via the
      * {@link IBigdataFederation}.
      * <p>
      * Each buffer returned by this method is independent, and writes onto

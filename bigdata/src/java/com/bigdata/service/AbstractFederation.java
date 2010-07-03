@@ -370,7 +370,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      * Counters that aggregate across all tasks submitted by the client against
      * the connected federation. Those counters are sampled by a
      * {@link ThreadPoolExecutorStatisticsTask} and reported by the client to
-     * the {@link ILoadBalancerService}.
+BTM     * the {@link ILoadBalancerService}.
+* the {@link LoadBalancer} service.
      */
     private final TaskCounters taskCounters = new TaskCounters();
 
@@ -398,7 +399,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      * performed by the client against the connected federation. These
      * {@link TaskCounters} are sampled by a
      * {@link ThreadPoolExecutorStatisticsTask} and the sampled data are
-     * reported by the client to the {@link ILoadBalancerService}.
+BTM     * reported by the client to the {@link ILoadBalancerService}.
+* reported by the client to the {@link LoadBalancer} service.
      */
     public TaskCounters getTaskCounters() {
 
@@ -411,7 +413,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      * for this client. There is only a single instance per scale-out index and
      * all operations by this client on that index are aggregated by that
      * instance. These counters are reported by the client to the
-     * {@link ILoadBalancerService}.
+BTM     * {@link ILoadBalancerService}.
+* {@link LoadBalancer} service.
      * 
      * @param name
      *            The scale-out index name.
@@ -451,7 +454,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
     
     /**
      * Collects interesting statistics on the client's host and process
-     * for reporting to the {@link ILoadBalancerService}.
+BTM     * for reporting to the {@link ILoadBalancerService}.
+* for reporting to the {@link LoadBalancer} service.
      */
     private AbstractStatisticsCollector statisticsCollector;
     
@@ -460,13 +464,15 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      * or until the federation is {@link #shutdown()}.
      * <p>
      * Note: Tasks run on this service generally update sampled values on
-     * {@link ICounter}s reported to the {@link ILoadBalancerService}. Basic
+BTM     * {@link ICounter}s reported to the {@link ILoadBalancerService}. Basic
+* {@link ICounter}s reported to the {@link LoadBalancer} service. Basic
      * information on the {@link #getExecutorService()} is reported
      * automatically. Clients may add additional tasks to report on client-side
      * aspects of their application.
      * <p>
      * Note: Non-sampled counters are automatically conveyed to the
-     * {@link ILoadBalancerService} once added to the basic {@link CounterSet}
+BTM     * {@link ILoadBalancerService} once added to the basic {@link CounterSet}
+* {@link LoadBalancer} service once added to the basic {@link CounterSet}
      * returned by {@link #getCounterSet()}.
      * 
      * @param task
@@ -678,7 +684,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
             
             if (dataServiceUUID == null) {
 
-                final ILoadBalancerService loadBalancerService = getLoadBalancerService();
+//BTM                final ILoadBalancerService loadBalancerService = getLoadBalancerService();
+final LoadBalancer loadBalancerService = getLoadBalancerService();
 
                 if (loadBalancerService == null) {
 
@@ -823,7 +830,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
 
     /**
      * Forces the immediate reporting of the {@link CounterSet} to the
-     * {@link ILoadBalancerService}. Any errors will be logged, not thrown.
+BTM     * {@link ILoadBalancerService}. Any errors will be logged, not thrown.
+* {@link LoadBalancer} service. Any errors will be logged, not thrown.
      */
     public void reportCounters() {
 
@@ -994,8 +1002,10 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      * the (required) {@link ReportTask}.
      * <p>
      * Note: The {@link ReportTask} will relay any collected performance
-     * counters to the {@link ILoadBalancerService}, but it also lets the
-     * {@link ILoadBalancerService} know which services exist, which is
+BTM     * counters to the {@link ILoadBalancerService}, but it also lets the
+BTM     * {@link ILoadBalancerService} know which services exist, which is
+* counters to the {@link LoadBalancer} service, but it also lets the
+* {@link LoadBalancer} service know which services exist, which is
      * important for some of its functions.
      * <p>
      * Once these task(s) have been started, this task will throw an exception
@@ -1311,7 +1321,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
     
     /**
      * Periodically report performance counter data to the
-     * {@link ILoadBalancerService}.
+BTM     * {@link ILoadBalancerService}.
+* {@link LoadBalancer} service.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
@@ -1388,7 +1399,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
 
             }
 
-            final ILoadBalancerService loadBalancerService = fed.getLoadBalancerService();
+//BTM            final ILoadBalancerService loadBalancerService = fed.getLoadBalancerService();
+final LoadBalancer loadBalancerService = fed.getLoadBalancerService();
 
             if (loadBalancerService == null) {
 
@@ -1483,7 +1495,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
     }
 
     /**
-     * Queues up an event to be sent to the {@link ILoadBalancerService}.
+BTM     * Queues up an event to be sent to the {@link ILoadBalancerService}.
+* Queues up an event to be sent to the {@link LoadBalancer} service.
      * Events are maintained on a non-blocking queue (no fixed capacity) and
      * sent by a scheduled task.
      * 
@@ -1502,12 +1515,14 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
     }
     
     /**
-     * Queue of events sent periodically to the {@link ILoadBalancerService}.
+BTM     * Queue of events sent periodically to the {@link ILoadBalancerService}.
+* Queue of events sent periodically to the {@link LoadBalancer} service.
      */
     final private BlockingQueue<Event> events = new LinkedBlockingQueue<Event>();
     
     /**
-     * Sends events to the {@link ILoadBalancerService}.
+BTM     * Sends events to the {@link ILoadBalancerService}.
+* Sends events to the {@link LoadBalancer} service.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
@@ -1527,7 +1542,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
 
             try {
 
-                final ILoadBalancerService lbs = getLoadBalancerService();
+//BTM                final ILoadBalancerService lbs = getLoadBalancerService();
+final LoadBalancer lbs = getLoadBalancerService();
 
                 if (lbs == null) {
 
@@ -1559,7 +1575,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
                     // avoid modification when sending the event.
                     synchronized(e) {
 
-                        lbs.notifyEvent(e);
+//BTM                        lbs.notifyEvent(e);
+((com.bigdata.service.EventReceivingService)lbs).notifyEvent(e);
                         
                     }
 
@@ -1578,6 +1595,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
             } catch (Throwable t) {
 
                 log.warn(getServiceName(), t);
+//BTM
+t.printStackTrace();
 
             }
 
