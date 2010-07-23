@@ -43,7 +43,7 @@ import com.bigdata.service.jini.DataServer;
 import com.bigdata.service.jini.FakeLifeCycle;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
-import com.bigdata.service.jini.LoadBalancerServer;
+//BTM import com.bigdata.service.jini.LoadBalancerServer;
 import com.bigdata.service.jini.MetadataServer;
 import com.bigdata.service.jini.TransactionServer;
 import com.bigdata.util.concurrent.DaemonThreadFactory;

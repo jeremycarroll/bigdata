@@ -1388,7 +1388,7 @@ BTM     * {@link ILoadBalancerService}.
 
             // Note: This _is_ a local method call.
             final UUID serviceUUID = fed.getServiceUUID();
-
+System.out.println("\n>>>>> AbstractFederation.reportPerformanceCounters: serviceUUID = "+serviceUUID);
             // Will be null until assigned by the service registrar.
             if (serviceUUID == null) {
 
@@ -1403,12 +1403,14 @@ BTM     * {@link ILoadBalancerService}.
 final LoadBalancer loadBalancerService = fed.getLoadBalancerService();
 
             if (loadBalancerService == null) {
+System.out.println(">>>>> AbstractFederation.reportPerformanceCounters: loadBalancerService = NULL");
 
                 log.warn("Could not discover load balancer service.");
 
                 return;
 
             }
+System.out.println(">>>>> AbstractFederation.reportPerformanceCounters: loadBalancerService = "+loadBalancerService);
 
             /*
              * @todo this is probably worth compressing as there will be a lot
@@ -1419,9 +1421,12 @@ final LoadBalancer loadBalancerService = fed.getLoadBalancerService();
             final ByteArrayOutputStream baos = new ByteArrayOutputStream(
                     Bytes.kilobyte32 * 2);
 
+System.out.println(">>>>> AbstractFederation.reportPerformanceCounters: CALLING fed.getCounterSet() ...");
             fed.getCounterSet().asXML(baos, "UTF-8", null/* filter */);
 
+System.out.println(">>>>> AbstractFederation.reportPerformanceCounters: CALLING loadBalancer.notify ...");
             loadBalancerService.notify(serviceUUID, baos.toByteArray());
+System.out.println(">>>>> AbstractFederation.reportPerformanceCounters: DONE CALLING loadBalancer.notify");
 
             if (log.isInfoEnabled())
                 log.info("Notified the load balancer.");

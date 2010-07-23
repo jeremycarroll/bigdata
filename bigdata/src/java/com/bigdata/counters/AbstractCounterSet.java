@@ -42,6 +42,8 @@ import java.util.regex.Pattern;
  */
 public abstract class AbstractCounterSet implements ICounterSet {
 
+public static org.apache.log4j.Logger logger = com.bigdata.util.config.LogUtil.getLog4jLogger((AbstractCounterSet.class).getName());
+
     protected final String name;
     protected AbstractCounterSet parent;
 
@@ -198,11 +200,39 @@ public abstract class AbstractCounterSet implements ICounterSet {
         
         if( path.contains("//")) {
 
+if (logger.isEnabledFor(org.apache.log4j.Level.WARN)) {
+    logger.warn("***** AbstractCounterSet.getPath: CONTAINS SLASH-SLASH: path INPUT = "+path);
+    logger.warn("***** AbstractCounterSet.getPath: path.length = "+path.length());
+    byte[] pathBytes = path.getBytes();
+    StringBuffer strBuf = new StringBuffer();
+    if( (pathBytes[0] < 32) || (pathBytes[0] > 126) ) {
+        strBuf.append("X");
+    }else{
+        strBuf.append( new String(new byte[] {pathBytes[0]}) );
+    }
+    for(int i=1;i<pathBytes.length; i++) {
+        if( (pathBytes[i] < 32) || (pathBytes[i] > 126) ) {
+            strBuf.append("X");
+        }else{
+            strBuf.append( new String(new byte[] {pathBytes[i]}) );
+        }
+    }
+    logger.warn("***** AbstractCounterSet.getPath: CONTAINS SLASH-SLASH: path CONVERTED = "+strBuf.toString());
+}
+int slashSlashIndex = path.indexOf("//");
+if(slashSlashIndex >= 0) {//contains "//"
+    logger.warn("***** AbstractCounterSet.getPath: INDEX OF SLASH-SLASH = "+slashSlashIndex);
+}else{//does not contain "//"
+    logger.warn("***** AbstractCounterSet.getPath: !!!! path CONTAINS SLASH-SLASH, but indexOf = "+slashSlashIndex+" !!!!");
+}
+
+if(slashSlashIndex >= 0) {//throw exception only if BOTH path.contains AND path.indexOf say that the given path contains "//"
             /*
              * Empty path names are not allowed.
              */
             
             throw new IllegalArgumentException(path);
+}//BTM
             
         }
         

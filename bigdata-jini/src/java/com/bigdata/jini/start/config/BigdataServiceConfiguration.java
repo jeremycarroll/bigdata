@@ -40,6 +40,9 @@ import com.bigdata.service.jini.DataServer;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.util.NV;
 
+//BTM
+import com.bigdata.service.Service;
+
 /**
  * A bigdata service. Most services have additional parameters which must be
  * specified. Those services are handled by subclasses.
@@ -70,17 +73,24 @@ public class BigdataServiceConfiguration extends
      * @param config
      * @throws ConfigurationException
      */
-    public BigdataServiceConfiguration(Class<? extends AbstractServer> cls,
-            Configuration config) throws ConfigurationException {
-
+//BTM    public BigdataServiceConfiguration(Class<? extends AbstractServer> cls,
+//BTM            Configuration config) throws ConfigurationException {
+    public BigdataServiceConfiguration(Class cls, Configuration config)
+               throws ConfigurationException
+    {
         super(cls.getName(), config);
+System.out.println("*** BigdataServiceConfiguration: constructor");
 
-        if (log4j == null) {
-            
-            throw new ConfigurationException("Must specify: " + Options.LOG4J);
-            
+        if( !( (com.bigdata.loadbalancer.ServiceImpl.class.isAssignableFrom(cls)) ||
+               (AbstractServer.class.isAssignableFrom(cls)) ) )
+        {
+            throw new ClassCastException("must be instance of service "
+                                         +"backend impl or AbstractServer "
+                                         +"["+cls+"]");
         }
-        
+        if (log4j == null) {
+            throw new ConfigurationException("Must specify: " + Options.LOG4J);
+        }
     }
 
     protected void toString(StringBuilder sb) {

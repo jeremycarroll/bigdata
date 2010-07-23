@@ -144,12 +144,14 @@ public class ZookeeperProcessHelper extends ProcessHelper {
         final ZookeeperServerConfiguration serverConfig = new ZookeeperServerConfiguration(
                 config);
 
+System.out.println("---- ZookeeperProcessHelper.startZookeeper: [localhost="+InetAddress.getLocalHost()+", clientPort="+serverConfig.clientPort+"] ----");
         if (ZooHelper.isRunning(InetAddress.getLocalHost(), serverConfig.clientPort)) {
 
             if (log.isInfoEnabled())
                 log.info("Zookeeper already running: "
                         + InetAddress.getLocalHost().getCanonicalHostName()
                         + ":" + serverConfig.clientPort);
+System.out.println("---- ZookeeperProcessHelper.startZookeeper: Zookeeper ALREADY RUNNING ----");
 
             // will not consider start.
             return 0;
@@ -177,6 +179,7 @@ public class ZookeeperProcessHelper extends ProcessHelper {
         for (ZookeeperServerEntry entry : entries) {
 
             if (entry.isLocalHost()) {
+System.out.println("---- ZookeeperProcessHelper.startZookeeper: IS LOCAL HOST ----");
 
                 if (log.isInfoEnabled())
                     log.info("Zookeeper instance is local: " + entry);
@@ -200,7 +203,8 @@ public class ZookeeperProcessHelper extends ProcessHelper {
                     log.error("Could not start: entry=" + entry, ex);
 
                 }
-
+}else{
+System.out.println("---- ZookeeperProcessHelper.startZookeeper: is NOT local host ----");
             }
 
         } // next entry

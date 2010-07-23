@@ -172,9 +172,8 @@ public class JavaServiceConfiguration extends ServiceConfiguration {
      */
     public JavaServiceConfiguration(final String component,
             final Configuration config) throws ConfigurationException {
-
         super(getClassName(component, config), config);
-
+System.out.println("*** JavaServiceConfiguration: constructor");
         this.javaHome = getJavaHome(component, config);
 
         this.defaultJavaArgs = getDefaultJavaArgs(component, config);
@@ -182,7 +181,6 @@ public class JavaServiceConfiguration extends ServiceConfiguration {
         this.log4j = getLog4j(component, config);
 
         this.classpath = getClasspath(component, config);
-
     }
 
      public JavaServiceStarter newServiceStarter(IServiceListener listener)
@@ -409,12 +407,14 @@ public class JavaServiceConfiguration extends ServiceConfiguration {
 
         String log4j = (String) config.getEntry(component, Options.LOG4J,
                 String.class, null/* defaultValue */);
+System.out.println("*** JavaServiceConfiguration.getLog4j: 1st try - log4j="+log4j+" [component="+component+", Options.LOG4J="+Options.LOG4J+"]");
 
         if (log4j == null) {
 
             log4j = (String) config.getEntry(Options.NAMESPACE, Options.LOG4J,
                     String.class, null/* defaultValue */);
 
+System.out.println("*** JavaServiceConfiguration.getLog4j: 2nd try - log4j="+log4j+" [Options.NAMESPACE="+Options.NAMESPACE+", Options.LOG4J="+Options.LOG4J+"]");
         }
 
         return log4j;

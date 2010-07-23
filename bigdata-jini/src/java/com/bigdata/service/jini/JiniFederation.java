@@ -230,6 +230,7 @@ public class JiniFederation<T> extends AbstractDistributedFederation<T> implemen
 
             try {
 
+System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath="+zpath+"]");
                 zookeeper.create(zpath, new byte[] {}/* data */, acl,
                         CreateMode.PERSISTENT);
 

@@ -107,6 +107,7 @@ public class ManageLogicalServiceTask<V extends ServiceConfiguration>
         this.configZPath = configZPath;
         this.children = children;
         this.config = config;
+System.out.println("\nEEEE ManageLogicalServiceTask.constructor: configZPath="+this.configZPath);
         
     }
 
@@ -178,6 +179,7 @@ public class ManageLogicalServiceTask<V extends ServiceConfiguration>
      */
     protected void newLogicalService() throws KeeperException, InterruptedException {
 
+System.out.println("\nEEEE ManageLogicalServiceTask.newLogicalService: className="+config.className);
         if (INFO)
             log.info("className=" + config.className);
 
@@ -194,31 +196,38 @@ public class ManageLogicalServiceTask<V extends ServiceConfiguration>
         /*
          * Create zpath for the new logical service.
          */
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: CREATING ZNODE ---> configZPath="+configZPath+", LOGICAL_SERVICE_PREFIX="+BigdataZooDefs.LOGICAL_SERVICE_PREFIX+", path="+(configZPath+"/"+BigdataZooDefs.LOGICAL_SERVICE_PREFIX));
         final String logicalServiceZPath = zookeeper.create(configZPath + "/"
                 + BigdataZooDefs.LOGICAL_SERVICE_PREFIX, new byte[0], acl,
                 CreateMode.PERSISTENT_SEQUENTIAL);
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: CREATED ZNODE ---> logicalServiceZPath="+logicalServiceZPath);
 
         /*
          * The new znode (last path component of the new zpath).
          */
         final String logicalServiceZNode = logicalServiceZPath
                 .substring(logicalServiceZPath.lastIndexOf('/') + 1);
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: logicalServiceZNode="+logicalServiceZNode);
         
         /*
          * Create the znode that is the parent for the physical service
          * instances (direct child of the logicalSevice znode).
          */
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: CREATING ZNODE Physical Service Parent ---> logicalServiceZPath="+logicalServiceZPath+", PHYSICAL_SERVICES_CONTAINER="+BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER+", path="+(logicalServiceZPath+"/"+BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER));
         zookeeper.create(logicalServiceZPath + "/"
                 + BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER, new byte[0], acl,
                 CreateMode.PERSISTENT);
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: CREATED Parent ZNODE ---> "+(logicalServiceZPath+"/"+BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER));
 
         /*
          * Create the znode for the election of the primary physical service for
          * this logical service (direct child of the logicalSevice znode).
          */
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: CREATING Election ZNODE ---> logicalServiceZPath="+logicalServiceZPath+", MASTER_ELECTION="+BigdataZooDefs.MASTER_ELECTION+", path="+(logicalServiceZPath+"/"+BigdataZooDefs.MASTER_ELECTION));
         zookeeper.create(logicalServiceZPath + "/"
                 + BigdataZooDefs.MASTER_ELECTION, new byte[0], acl,
                 CreateMode.PERSISTENT);
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: CREATED Election ZNODE ---> "+(logicalServiceZPath+"/"+BigdataZooDefs.MASTER_ELECTION));
 
         try {
 
@@ -239,14 +248,19 @@ public class ManageLogicalServiceTask<V extends ServiceConfiguration>
              * lock.
              */
 
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: zroot="+(fed.getZooConfig().zroot)+", LOCKS_CREATE_PHYSICAL_SERVICE="+BigdataZooDefs.LOCKS_CREATE_PHYSICAL_SERVICE+", className="+config.className+", UNDERSCORE, logicalServiceZNode="+logicalServiceZNode);
+
             final String lockNodeZPath = fed.getZooConfig().zroot + "/"
                     + BigdataZooDefs.LOCKS_CREATE_PHYSICAL_SERVICE + "/"
                     + config.className + "_" + logicalServiceZNode;
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: *** lockNodeZPath="+lockNodeZPath);
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: CREATING ZNODE for physical service host decision ---> logicalServiceZPath="+logicalServiceZPath);
 
             zookeeper
                     .create(lockNodeZPath, SerializerUtil
                             .serialize(logicalServiceZPath), acl,
                             CreateMode.PERSISTENT);
+System.out.println("EEEE ManageLogicalServiceTask.newLogicalService: CREATED ZNODE for physical service host decision ---> logicalServiceZPath="+logicalServiceZPath);
 
             if (INFO)
                 log.info("Created lock node: " + lockNodeZPath);

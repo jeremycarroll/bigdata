@@ -1,6 +1,7 @@
 package com.bigdata.jini.start;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.channels.FileLock;
 import java.rmi.RemoteException;
@@ -121,12 +122,15 @@ public class MonitorCreatePhysicalServiceLocksTask implements
      * Note: This task runs until cancelled.
      */
     public Void call() throws Exception {
+System.out.println("\nDDDD MonitorCreatePhysicalServiceLocksTask.call: zroot="+fed.getZooConfig().zroot);
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.call: BigdataZooDefs.LOCKS_CREATE_PHYSICAL_SERVICE="+BigdataZooDefs.LOCKS_CREATE_PHYSICAL_SERVICE);
 
         /*
          * All the locks of interest are direct children of this znode.
          */
         final String locksZPath = fed.getZooConfig().zroot + "/"
                 + BigdataZooDefs.LOCKS_CREATE_PHYSICAL_SERVICE;
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.call: locksZPath="+locksZPath);
 
         while (true) {
 
@@ -170,15 +174,17 @@ public class MonitorCreatePhysicalServiceLocksTask implements
 
     protected void acquireWatcherAndRun(final String locksZPath)
             throws KeeperException, InterruptedException {
-
         final ZooKeeper zookeeper = fed.getZookeeper();
         
         /*
          * Note: The UnknownChildrenWatcher will keep trying until it is
          * able to establish the watch. 
          */
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.acquireWatcherAndRun: locksZPath="+locksZPath);
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.acquireWatcherAndRun: ADD EVENT WATCHER");
         final UnknownChildrenWatcher watcher = new UnknownChildrenWatcher(
                 zookeeper, locksZPath);
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.acquireWatcherAndRun: EVENT WATCHER ADDED");
      
         try {
 
@@ -188,7 +194,9 @@ public class MonitorCreatePhysicalServiceLocksTask implements
                 try {
 
                     // child znode.
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.acquireWatcherAndRun: WAITING FOR EVENT ...");
                     final String znode = watcher.queue.take();
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.acquireWatcherAndRun: *** EVENT ---> znode="+znode);
 
                     if (znode.endsWith(ZLockImpl.INVALID)) {
 
@@ -204,6 +212,7 @@ public class MonitorCreatePhysicalServiceLocksTask implements
 
                     // path to the new lock node.
                     final String lockNodeZPath = locksZPath + "/" + znode;
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.acquireWatcherAndRun: lockNodeZPath="+lockNodeZPath);
 
                     if (log.isInfoEnabled())
                         log.info("new lock: zpath=" + lockNodeZPath);
@@ -508,6 +517,8 @@ public class MonitorCreatePhysicalServiceLocksTask implements
             final String logicalServiceZPath = (String) SerializerUtil
                     .deserialize(zookeeper.getData(lockNodeZPath, false,
                             new Stat()));
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.checkConstraintsAndStartService: lockNodeZPath="+lockNodeZPath);
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.checkConstraintsAndStartService: **** logicalServiceZPath="+logicalServiceZPath);
 
             /*
              * If we hack off the last path component, we now have the zpath for the
@@ -515,6 +526,7 @@ public class MonitorCreatePhysicalServiceLocksTask implements
              */
             final String serviceConfigZPath = logicalServiceZPath.substring(0,
                     logicalServiceZPath.lastIndexOf('/'));
+System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.checkConstraintsAndStartService: **** serviceConfigZPath="+serviceConfigZPath);
 
             if (log.isInfoEnabled())
                 log.info("logicalServiceZPath=" + logicalServiceZPath);
@@ -662,6 +674,7 @@ public class MonitorCreatePhysicalServiceLocksTask implements
         try {
 
             if (!isLocalService(attributes)) {
+System.out.println("*** MonitorCreatePhysicalServiceLocks.restartIfNotRunning: NOT local service >>> RETURNING WITHOUT STARTING ["+serviceConfig.className+"]");
 
                 /*
                  * The service does not live on this host so we do not have
@@ -672,7 +685,9 @@ public class MonitorCreatePhysicalServiceLocksTask implements
 
             }
 
-        } catch (UnknownHostException ex) {
+        } catch (IOException ex) {//SocketException or UnknownHostException
+System.out.println("*** MonitorCreatePhysicalServiceLocks.restartIfNotRunning: IOException ["+serviceConfig.className+"]");
+ex.printStackTrace();
 
             log.warn("className=" + serviceConfig.className
                     + ", physicalServiceZPath=" + physicalServiceZPath, ex);
@@ -686,6 +701,7 @@ public class MonitorCreatePhysicalServiceLocksTask implements
                     + ", physicalServiceZPath=" + physicalServiceZPath);
 
         // block until we can evaluate this service for restart.
+System.out.println("*** MonitorCreatePhysicalServiceLocks.restartIfNotRunning: LOCAL SERVICE >>> start it ["+serviceConfig.className+"] ... BLOCKING");
         lock.lockInterruptibly();
         try {
 
@@ -695,6 +711,7 @@ public class MonitorCreatePhysicalServiceLocksTask implements
                 
                 if (!shouldRestartPhysicalService(zookeeper, serviceConfig,
                         physicalServiceZPath, attributes)) {
+System.out.println("*** MonitorCreatePhysicalServiceLocks.restartIfNotRunning: should NOT RESTART service ["+serviceConfig.className+"]");
                     
                     if (log.isInfoEnabled())
                         log.info("Will not restart: className="
@@ -709,6 +726,8 @@ public class MonitorCreatePhysicalServiceLocksTask implements
 
             } catch (RemoteException ex) {
 
+System.out.println("*** MonitorCreatePhysicalServiceLocks.restartIfNotRunning: RemoteException ["+serviceConfig.className+"]");
+ex.printStackTrace();
                 log.error("RMI problem: className=" + serviceConfig.className
                         + ", physicalServiceZPath=" + physicalServiceZPath, ex);
 
@@ -716,6 +735,8 @@ public class MonitorCreatePhysicalServiceLocksTask implements
                 return false;
 
             } catch (KeeperException ex) {
+System.out.println("*** MonitorCreatePhysicalServiceLocks.restartIfNotRunning: KeeperException ["+serviceConfig.className+"]");
+ex.printStackTrace();
 
                 log.error("Zookeeper problem: className="
                         + serviceConfig.className + ", physicalServiceZPath="
@@ -740,6 +761,7 @@ public class MonitorCreatePhysicalServiceLocksTask implements
             final LinkedList<IServiceConstraint> violatedConstraints = new LinkedList<IServiceConstraint>();
 			if (!serviceConfig.canStartService(fed, violatedConstraints)) {
 
+System.out.println("*** MonitorCreatePhysicalServiceLocks.restartIfNotRunning: restart PREVENTED BY CONSTRAINTS ["+serviceConfig.className+"] >>> violatedConstraints="+violatedConstraints);
                 log.warn("Restart prevented by constraints: className="
 						+ serviceConfig.className + ", physicalServiceZPath="
 						+ physicalServiceZPath + ", violatedConstraints="
@@ -755,6 +777,7 @@ public class MonitorCreatePhysicalServiceLocksTask implements
 
                 log.warn("Will restart: className=" + serviceConfig.className
                         + ", physicalServiceZPath=" + physicalServiceZPath);
+System.out.println("*** MonitorCreatePhysicalServiceLocks.restartIfNotRunning: WILL RESTART service ["+serviceConfig.className+"] >>> restartPhysicalService");
 
                 return restartPhysicalService(serviceConfig,
                         logicalServiceZPath, physicalServiceZPath, attributes);
@@ -764,11 +787,15 @@ public class MonitorCreatePhysicalServiceLocksTask implements
                 log.error("Service restart interrupted: className="
                         + serviceConfig.className + ", physicalServiceZPath="
                         + physicalServiceZPath);
+System.out.println("*** MonitorCreatePhysicalServiceLocks.restartIfNotRunning: InterruptedException ["+serviceConfig.className+"]");
+t.printStackTrace();
 
                 // rethrow so that the caller will see the interrupt.
                 throw t;
 
             } catch (Throwable t) {
+System.out.println("*** MonitorCreatePhysicalServiceLocks.restartIfNotRunning: RESTART ERROR - "+t+" ["+serviceConfig.className+"]");
+t.printStackTrace();
 
                 // log and ignore.
                 log.error("Service restart error: className="
@@ -1148,10 +1175,11 @@ public class MonitorCreatePhysicalServiceLocksTask implements
      * 
      * @return <code>true</code> if the service lives on this host.
      * 
+     * @throws SocketException
      * @throws UnknownHostException
      */
     protected boolean isLocalService(final Entry[] attributes)
-            throws UnknownHostException {
+            throws SocketException, UnknownHostException {
 
         boolean isLocalHost = false;
 

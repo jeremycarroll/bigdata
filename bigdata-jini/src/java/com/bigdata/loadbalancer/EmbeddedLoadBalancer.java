@@ -62,8 +62,12 @@ import com.bigdata.counters.ICounterSet.IInstrumentFactory;
 import com.bigdata.counters.IHostCounters;
 import com.bigdata.counters.IRequiredHostCounters;
 import com.bigdata.counters.PeriodEnum;
+import com.bigdata.jini.lookup.entry.Hostname;
+import com.bigdata.jini.lookup.entry.ServiceUUID;
+import com.bigdata.jini.start.IServicesManagerService;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.ConcurrencyManager.IConcurrencyManagerCounters;
+import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.Journal;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.ResourceManager.IResourceManagerCounters;
@@ -81,23 +85,33 @@ import com.bigdata.service.EventReceiver.EventBTree;
 import com.bigdata.service.EventReceivingService;
 import com.bigdata.service.HostScore;
 import com.bigdata.service.IBigdataFederation;
+import com.bigdata.service.IClientService;
 import com.bigdata.service.IDataService;          //BTM*** - replace with ShardService after DataService smart proxy conversion?
 import com.bigdata.service.IEventReportingService;
 import com.bigdata.service.IMetadataService;      //BTM*** - replace with ShardLocatorService after smart proxy conversion?
+import com.bigdata.service.IService;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.LoadBalancer;
+import com.bigdata.service.Service;
 import com.bigdata.service.ServiceScore;
+import com.bigdata.service.ShardService;
+import com.bigdata.util.EntryUtil;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.IQueueCounters.IThreadPoolExecutorTaskCounters;
 import com.bigdata.util.config.LogUtil;
 
-
+import net.jini.core.entry.Entry;
+import net.jini.core.lookup.ServiceID;
 import net.jini.core.lookup.ServiceItem;
 import net.jini.core.lookup.ServiceTemplate;
 import net.jini.lookup.LookupCache;
+import net.jini.lookup.ServiceDiscoveryEvent;
+import net.jini.lookup.ServiceDiscoveryListener;
 import net.jini.lookup.ServiceDiscoveryManager;
 import net.jini.lookup.ServiceItemFilter;
+import net.jini.lookup.entry.Name;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
@@ -134,8 +148,8 @@ public class EmbeddedLoadBalancer implements LoadBalancer,
                                              IEventReportingService,
                                              IServiceShutdown
 {
-    public static Logger logger = 
-        LogUtil.getLog4jLogger(COMPONENT_NAME);
+    public static Logger logger =
+        LogUtil.getLog4jLogger((EmbeddedLoadBalancer.class).getName());
 
     private UUID thisServiceUUID;
     private String hostname;
@@ -143,9 +157,12 @@ public class EmbeddedLoadBalancer implements LoadBalancer,
 private CounterSet countersRoot;
 private CounterSet serviceRoot;
 private AbstractStatisticsCollector statisticsCollector;
-private Map<UUID, String> serviceNameMap = new HashMap<UUID, String>();
-private Map<UUID, DataService> dataServiceMap;
+private Map<UUID, String> serviceNameMap = new ConcurrentHashMap<UUID, String>();
+private Map<UUID, DataService> embeddedDataServiceMap;
 private ServiceDiscoveryManager sdm;
+private LookupCache smartProxyCache;
+private LookupCache remoteServiceCache;
+
 //BTM***
 
     final protected String ps = ICounterSet.pathSeparator;
@@ -464,7 +481,8 @@ private ServiceDiscoveryManager sdm;
     public EmbeddedLoadBalancer(final UUID               serviceUUID,
                                 final String             hostname,
 final ServiceDiscoveryManager sdm,
-final Map<UUID, DataService> dataServiceMap,//BTM*** remove when EmbeddedDataService converted to smart proxy?
+final String                  persistenceDir,
+final Map<UUID, DataService> embeddedDataServiceMap,//BTM*** remove when EmbeddedDataService converted to smart proxy?
                                 final Properties         properties)
     {
         if (serviceUUID == null) {
@@ -485,7 +503,7 @@ if (sdm != null) {
 //BTM***            throw new IllegalArgumentException("null federation");
 //BTM***        }   
 //BTM***        this.federation = federation;
-this.dataServiceMap = dataServiceMap;
+this.embeddedDataServiceMap = embeddedDataServiceMap;
 
         if (properties == null) {
             throw new NullPointerException("null properties");
@@ -496,34 +514,39 @@ this.dataServiceMap = dataServiceMap;
             Boolean.valueOf
                 (properties.getProperty(Options.TRANSIENT,
                                         Options.DEFAULT_TRANSIENT));
-        if (logger.isInfoEnabled()) {
-            logger.info(Options.TRANSIENT + "=" + isTransient);
+        if (logger.isDebugEnabled()) {
+            logger.debug(Options.TRANSIENT + "=" + isTransient);
         }
         
-        if(isTransient) {
-            logDir = null;
-        } else {
-            // setup the log directory.
-            final String val = 
-                properties.getProperty(Options.LOG_DIR,
-                                       Options.DEFAULT_LOG_DIR);
-            logDir = new File(val);
-
-            if (logger.isInfoEnabled()) {
-                logger.info(Options.LOG_DIR + "=" + logDir);                
+//BTM        if(isTransient) {
+//BTM            logDir = null;
+//BTM        } else {
+//BTM            // setup the log directory.
+//BTM            final String val = 
+//BTM                properties.getProperty(Options.LOG_DIR,
+//BTM                                       Options.DEFAULT_LOG_DIR);
+//BTM            logDir = new File(val);
+//BTM
+if(persistenceDir != null) {
+    this.logDir = new File(persistenceDir);
+} else {
+    this.logDir = new File(".");
+}
+            if (logger.isDebugEnabled()) {
+                logger.debug(Options.LOG_DIR + "=" + logDir);                
             }
-
-            // ensure exists.
-            logDir.mkdirs();
-        }
+//BTM
+//BTM            // ensure exists.
+//BTM            logDir.mkdirs();
+//BTM        }
 
         logDelayMillis = 
             Long.parseLong(properties.getProperty
                                (Options.LOG_DELAY,
                                 Options.DEFAULT_LOG_DELAY));
 
-        if (logger.isInfoEnabled()) {
-            logger.info(Options.LOG_DELAY + "=" + logDelayMillis);
+        if (logger.isDebugEnabled()) {
+            logger.debug(Options.LOG_DELAY + "=" + logDelayMillis);
         }
 
         logMaxFiles = 
@@ -531,8 +554,8 @@ this.dataServiceMap = dataServiceMap;
                 (properties.getProperty(Options.LOG_MAX_FILES,
                                         Options.DEFAULT_LOG_MAX_FILES));
 
-        if (logger.isInfoEnabled()) {
-            logger.info(Options.LOG_MAX_FILES + "=" + logMaxFiles);
+        if (logger.isDebugEnabled()) {
+            logger.debug(Options.LOG_MAX_FILES + "=" + logMaxFiles);
         }
         
         historyMinutes = 
@@ -540,8 +563,8 @@ this.dataServiceMap = dataServiceMap;
                 (properties.getProperty(Options.HISTORY_MINUTES,
                                         Options.DEFAULT_HISTORY_MINUTES));
             
-        if (logger.isInfoEnabled()) {
-            logger.info(Options.HISTORY_MINUTES+"="+historyMinutes);
+        if (logger.isDebugEnabled()) {
+            logger.debug(Options.HISTORY_MINUTES+"="+historyMinutes);
         }
 
         // a reasonable range check.
@@ -555,8 +578,8 @@ this.dataServiceMap = dataServiceMap;
                 (properties.getProperty(Options.SERVICE_JOIN_TIMEOUT,
                                         Options.DEFAULT_SERVICE_JOIN_TIMEOUT));
             
-        if (logger.isInfoEnabled()) {
-            logger.info(Options.SERVICE_JOIN_TIMEOUT+"="+serviceJoinTimeout);
+        if (logger.isDebugEnabled()) {
+            logger.debug(Options.SERVICE_JOIN_TIMEOUT+"="+serviceJoinTimeout);
         }
             
         if (serviceJoinTimeout <= 0L) {
@@ -571,21 +594,21 @@ this.dataServiceMap = dataServiceMap;
                      (Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT,
                       Options.DEFAULT_INITIAL_ROUND_ROBIN_UPDATE_COUNT));
 
-        if (logger.isInfoEnabled()) {
-            logger.info(Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT+"="
+        if (logger.isDebugEnabled()) {
+            logger.debug(Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT+"="
                      +initialRoundRobinUpdateCount);
         }
 
 //BTM***        this.roundRobinServiceLoadHelper = new RoundRobinServiceLoadHelper();
-this.roundRobinServiceLoadHelper = new RoundRobinServiceLoadHelper(sdm, dataServiceMap);
+this.roundRobinServiceLoadHelper = new RoundRobinServiceLoadHelper(sdm, embeddedDataServiceMap);
             
         final long delay = 
             Long.parseLong
                 (properties.getProperty(Options.UPDATE_DELAY,
                                         Options.DEFAULT_UPDATE_DELAY));
 
-        if (logger.isInfoEnabled()) {
-            logger.info(Options.UPDATE_DELAY+"="+delay);
+        if (logger.isDebugEnabled()) {
+            logger.debug(Options.UPDATE_DELAY+"="+delay);
         }
 
         /*
@@ -612,8 +635,8 @@ this.roundRobinServiceLoadHelper = new RoundRobinServiceLoadHelper(sdm, dataServ
                      (Options.EVENT_HISTORY_MILLIS,
                       Options.DEFAULT_EVENT_HISTORY_MILLIS));
 
-        if (logger.isInfoEnabled()) {
-            logger.info(Options.EVENT_HISTORY_MILLIS+"="+eventHistoryMillis);
+        if (logger.isDebugEnabled()) {
+            logger.debug(Options.EVENT_HISTORY_MILLIS+"="+eventHistoryMillis);
         }
 
         /*
@@ -658,6 +681,30 @@ this.roundRobinServiceLoadHelper = new RoundRobinServiceLoadHelper(sdm, dataServ
                             eventBTree = EventBTree.create(eventStore));
         }
         eventReceiver = new EventReceiver(eventHistoryMillis, eventBTree);
+
+//BTM - BEGIN
+        if(sdm != null) {
+            Class[] smartProxyType = new Class[] {Service.class};
+            Class[] remoteType = new Class[] {IService.class};
+
+            ServiceTemplate smartProxyTmpl = 
+                            new ServiceTemplate(null, smartProxyType, null);
+            ServiceTemplate remoteTmpl = 
+                            new ServiceTemplate(null, remoteType, null);
+            try {
+                this.smartProxyCache = sdm.createLookupCache
+                                     ( smartProxyTmpl, 
+                                       new CacheFilter(),
+                                       new CacheListener(logger) );
+                this.remoteServiceCache = sdm.createLookupCache
+                                     ( remoteTmpl,
+                                       null,
+                                       new CacheListener(logger) );
+            } catch(RemoteException e) {
+                logger.warn(e.getMessage(), e);
+            }
+        }
+//BTM - END
     }
 
 //BTM
@@ -685,24 +732,42 @@ this.roundRobinServiceLoadHelper = new RoundRobinServiceLoadHelper(sdm, dataServ
     public void notify(final UUID serviceUUID, final byte[] data) {
         setupLoggingContext();
         try {        
-            if (logger.isInfoEnabled()) {
-                logger.info("serviceUUID=" + serviceUUID);
+            if (logger.isDebugEnabled()) {
+                logger.debug("load balancer received notification [from "+serviceUUID+"]");
             }
             if (!serviceUUID.equals(thisServiceUUID)) {
-                /*
-                 * Don't do this for the load balancer itself!
-                 * 
-                 * @todo the load balancer probably should not
-                 *       bother to notify() itself.
-                 */
                 try {
                     // read the counters into our local history.
 //BTM***                    federation.getCounterSet().readXML(
 //BTM***                            new ByteArrayInputStream(data), instrumentFactory,
 //BTM***                            null/* filter */);
+
 getCounterSet().readXML(new ByteArrayInputStream(data), instrumentFactory, null/* filter */);
                 } catch (Exception e) {
                     logger.warn(e.getMessage(), e);
+
+if (logger.isEnabledFor(org.apache.log4j.Level.DEBUG)) {
+    logger.warn("***** EmbeddedLoadBalancer.notify: byte[] data - CONTAINS SLASH-SLASH???");
+    logger.warn("***** EmbeddedLoadBalancer.notify: data.length = "+data.length);
+    StringBuffer strBuf = new StringBuffer();
+    if( (data[0] < 32) || (data[0] > 126) ) {
+        strBuf.append("X");
+    }else{
+        strBuf.append( new String(new byte[] {data[0]}) );
+    }
+    for(int i=1;i<data.length; i++) {
+        if( (data[i] < 32) || (data[i] > 126) ) {
+            strBuf.append("X");
+        }else{
+            strBuf.append( new String(new byte[] {data[i]}) );
+        }
+        if( (data[i-1] == 47) && (data[i] == 47) ) {
+            logger.warn("***** EmbeddedLoadBalancer.notify: data array CONTAINS SLASH-SLASH at indices "+(i-1)+" & "+i);
+        }
+    }
+    logger.warn("***** EmbeddedLoadBalancer.notify: CONTAINS SLASH-SLASH: path CONVERTED = "+strBuf.toString());
+}
+
                     throw new RuntimeException(e);
                 }
             }
@@ -738,15 +803,16 @@ getCounterSet().readXML(new ByteArrayInputStream(data), instrumentFactory, null/
 
             // No scores yet?
             if (scores == null) {
-                if(logger.isInfoEnabled()) logger.info("No scores yet");
+                if(logger.isDebugEnabled()) logger.debug("No scores yet");
                 return false;
             }
 
             final ServiceScore score = activeDataServices.get(serviceUUID);
 
             if (score == null) {
-                if (logger.isInfoEnabled()) {
-                    logger.info("Service is not scored: " + serviceUUID);
+                if (logger.isDebugEnabled()) {
+                    logger.debug
+                        ("shard service is not scored ["+serviceUUID+"]");
                 }
                 return false;
             }
@@ -766,7 +832,7 @@ getCounterSet().readXML(new ByteArrayInputStream(data), instrumentFactory, null/
 
             // No scores yet?
             if (scores == null) {
-                if(logger.isInfoEnabled()) logger.info("No scores yet");
+                if(logger.isDebugEnabled()) logger.debug("No scores yet");
 
                 return false;
             }
@@ -774,8 +840,9 @@ getCounterSet().readXML(new ByteArrayInputStream(data), instrumentFactory, null/
             final ServiceScore score = activeDataServices.get(serviceUUID);
 
             if (score == null) {
-                if (logger.isInfoEnabled()) {
-                    logger.info("Service is not scored: " + serviceUUID);
+                if (logger.isDebugEnabled()) {
+                    logger.debug
+                        ("shard service is not scored ["+serviceUUID+"]");
                 }
                 return false;
             }
@@ -802,8 +869,9 @@ getCounterSet().readXML(new ByteArrayInputStream(data), instrumentFactory, null/
             highlyUtilized = true;
         }
 
-        if (logger.isInfoEnabled()) {
-            logger.info("highlyUtilized=" + highlyUtilized + " : " + score);
+        if (logger.isDebugEnabled()) {
+            logger.debug
+                ("highlyUtilized="+highlyUtilized+": [score="+score+"]");
         }
         return highlyUtilized;
 
@@ -825,8 +893,9 @@ getCounterSet().readXML(new ByteArrayInputStream(data), instrumentFactory, null/
             underUtilized = true;
         }
 
-        if (logger.isInfoEnabled()) {
-            logger.info("underUtilized=" + underUtilized + " : " + score);
+        if (logger.isDebugEnabled()) {
+            logger.debug
+                ("underUtilized="+underUtilized+" : [score="+score+"]");
         }
         return underUtilized;
     }
@@ -860,8 +929,8 @@ getCounterSet().readXML(new ByteArrayInputStream(data), instrumentFactory, null/
     synchronized public void shutdown() {
         if(!isOpen()) return;
         
-        if (logger.isInfoEnabled()) {
-            logger.info("begin");
+        if (logger.isDebugEnabled()) {
+            logger.debug("begin shutdown [EmbeddedLoadBalancer]");
         }
         updateService.shutdown();
 
@@ -884,16 +953,16 @@ getCounterSet().readXML(new ByteArrayInputStream(data), instrumentFactory, null/
         } finally {
             lock.unlock();
         }        
-        if (logger.isInfoEnabled()) {
-            logger.info("done");
+        if (logger.isDebugEnabled()) {
+            logger.debug("shutdown complete [EmbeddedLoadBalancer]");
         }
     }
 
     synchronized public void shutdownNow() {
         if(!isOpen()) return;
 
-        if (logger.isInfoEnabled()) {
-            logger.info("begin");
+        if (logger.isDebugEnabled()) {
+            logger.debug("begin shutdown [EmbeddedLoadBalancer]");
         }
         updateService.shutdownNow();
         
@@ -904,7 +973,7 @@ getCounterSet().readXML(new ByteArrayInputStream(data), instrumentFactory, null/
         eventStore.shutdownNow();
 
         if (logger.isInfoEnabled()) {
-            logger.info("done");
+            logger.debug("shutdown complete [EmbeddedLoadBalancer]");
         }
     }
 
@@ -932,7 +1001,8 @@ BTM     * Notify the {@link LoadBalancerService} that a new service is available
                      final Class serviceIface,
 final String serviceName,
                      final String hostname)
-    {   
+    {  
+System.err.println("\n*** ENTERED EmbeddedLoadBalancer.join ***"); 
         if (serviceUUID == null) throw new IllegalArgumentException("null serviceUUID");
         if (serviceIface == null) throw new IllegalArgumentException("null serviceIface");
 //BTM***
@@ -1032,6 +1102,7 @@ getCounterSet().makePath( AbstractFederation.getServiceCounterPathPrefix(service
      * @see #join(UUID, Class, String)
      */
     public void leave(final UUID serviceUUID) {
+System.err.println("\n*** ENTERED EmbeddedLoadBalancer.leave ***"); 
         if (logger.isInfoEnabled()) {
             logger.info("serviceUUID=" + serviceUUID);
         }
@@ -1268,8 +1339,8 @@ serviceNameMap.remove(serviceUUID);
 
         if (file == null) throw new IllegalArgumentException();
         
-        if (logger.isInfoEnabled()) {
-            logger.info("Writing counters on " + file);
+        if (logger.isDebugEnabled()) {
+            logger.debug("[EmbeddedLoadBalancer] Writing counters on " + file);
         }
         
         OutputStream os = null;
@@ -2398,11 +2469,11 @@ BTM     * Integration with the {@link LoadBalancerService}.
     {
 private LookupCache shardLocatorCache;
 private LookupCache shardCache;
-private Map<UUID, DataService> dataServiceMap;
+private Map<UUID, DataService> embeddedDataServiceMap;
 RoundRobinServiceLoadHelper(final ServiceDiscoveryManager sdm,
-final Map<UUID, DataService> dataServiceMap)//BTM*** - remove when DataService converted to smart proxy?
+                            final Map<UUID, DataService> embeddedDataServiceMap)//BTM*** - remove when DataService converted to smart proxy?
 {
-    this.dataServiceMap = dataServiceMap;//BTM*** - remove when DataService converted to smart proxy?
+    this.embeddedDataServiceMap = embeddedDataServiceMap;//BTM*** - remove when DataService converted to smart proxy?
 
     if(sdm != null) {
         Class[] shardLocatorType = new Class[] {IMetadataService.class};//BTM*** - replace with MetadataService after smart proxy
@@ -2466,7 +2537,7 @@ if( (shardLocatorCache != null) && (shardLocatorCache != null) ) {
                                +"shard services ["+uuids.length
                                +" discovered but "+minCount+" required");
 } else {
-    Set<UUID> uuidSet = dataServiceMap.keySet();
+    Set<UUID> uuidSet = embeddedDataServiceMap.keySet();
     return uuidSet.toArray(new UUID[uuidSet.size()]);
 }
         }
@@ -2550,7 +2621,7 @@ if( (shardLocatorCache != null) && (shardLocatorCache != null) ) {
     }
     
     /**
-     * Integration with the {@link LoadBalancerService}.
+     * Integration with the {@link LoadBalancer} service.
      */
     protected class ServiceLoadHelperWithScores
                         extends AbstractServiceLoadHelperWithScores
@@ -2588,4 +2659,430 @@ if( (shardLocatorCache != null) && (shardLocatorCache != null) ) {
                     scores);
         }
     }
+
+//BTM - BEGIN
+    private class CacheListener implements ServiceDiscoveryListener {
+        private Logger logger;
+        CacheListener(Logger logger) {
+            this.logger = logger;
+        }
+	public void serviceAdded(ServiceDiscoveryEvent event) {
+            ServiceItem item = event.getPostEventServiceItem();
+
+            ServiceID serviceId = item.serviceID;
+            Object service = item.service;
+            Entry[] attrs = item.attributeSets;
+
+            Class serviceType = service.getClass();
+
+            UUID serviceUUID = null;
+            String hostname = null;
+            String serviceName = null;
+            Class serviceIface = null;
+
+            if( (IService.class).isAssignableFrom(serviceType) ) {
+
+                // Avoid remote calls by getting info from attrs
+                ServiceUUID serviceUUIDAttr = 
+                    (ServiceUUID)(EntryUtil.getEntryByType
+                        (attrs, ServiceUUID.class));
+                if(serviceUUIDAttr != null) {
+                    serviceUUID = serviceUUIDAttr.serviceUUID;
+                } else {
+                    if(service != null) {
+                        try {
+                            serviceUUID = 
+                            ((IService)service).getServiceUUID();
+                        } catch(IOException e) {
+                            if(logger.isDebugEnabled()) {
+                                logger.log(Level.DEBUG, 
+                                           "failed to retrieve "
+                                           +"serviceUUID "
+                                           +"[service="+serviceType+", "
+                                            +"ID="+serviceId+"]", e);
+                            }
+                        }
+                    }
+                }
+                Hostname hostNameAttr =
+                    (Hostname)(EntryUtil.getEntryByType
+                                  (attrs, Hostname.class));
+                if(hostNameAttr != null) {
+                    hostname = hostNameAttr.hostname;
+                } else {
+                    if(service != null) {
+                        try {
+                            hostname = 
+                            ((IService)service).getHostname();
+                        } catch(IOException e) {
+                            if(logger.isDebugEnabled()) {
+                                logger.log(Level.DEBUG, 
+                                           "failed to retrieve "
+                                           +"hostname "
+                                           +"[service="+serviceType+", "
+                                            +"ID="+serviceId+"]", e);
+                            }
+                        }
+                    }
+                }
+                Name serviceNameAttr = 
+                    (Name)(EntryUtil.getEntryByType
+                                         (attrs, Name.class));
+                if(serviceNameAttr != null) {
+                    serviceName = serviceNameAttr.name;
+                } else {
+                    if(service != null) {
+                        try {
+                            serviceName = 
+                            ((IService)service).getServiceName();
+                        } catch(IOException e) {
+                            if(logger.isDebugEnabled()) {
+                                logger.log(Level.DEBUG, 
+                                           "failed to retrieve "
+                                           +"serviceName "
+                                           +"[service="+serviceType+", "
+                                            +"ID="+serviceId+"]", e);
+                            }
+                        }
+                    }
+                }
+
+                if( (IMetadataService.class).isAssignableFrom
+                                                 (serviceType) )
+                {
+                    serviceIface = IMetadataService.class;
+                } else if( (IDataService.class).isAssignableFrom
+                                             (serviceType) )
+                {
+                    serviceIface = IDataService.class;
+                } else if( (IClientService.class).isAssignableFrom
+                                                      (serviceType) )
+                {
+                    serviceIface = IClientService.class;
+                } else if( (ITransactionService.class).isAssignableFrom
+                                                        (serviceType) )
+                {
+                    serviceIface = ITransactionService.class;
+
+                } else if( (IServicesManagerService.class).isAssignableFrom
+                                                        (serviceType) )
+                {
+                    if(logger.isDebugEnabled()) {
+                        logger.log(Level.DEBUG, "serviceAdded "
+                                   +"[service=IServicesManagerService, "
+                                   +"ID="+serviceId+"]");
+                    }
+                    return;
+                } else {
+                    if(logger.isDebugEnabled()) {
+                        logger.log(Level.WARN, "UNEXPECTED serviceAdded "
+                                   +"[service="+serviceType+", "
+                                   +"ID="+serviceId+"]");
+                    }
+                    return;
+                }
+
+            } else if( (Service.class).isAssignableFrom(serviceType) ) {
+
+                serviceUUID = ((Service)service).getServiceUUID();
+                hostname = ((Service)service).getHostname();
+                serviceName = ((Service)service).getServiceName();
+                serviceIface = ((Service)service).getServiceIface();
+
+            } else {
+
+                if(logger.isDebugEnabled()) {
+                    logger.log(Level.WARN, "UNEXPECTED serviceAdded "
+                               +"[service="+serviceType+", "
+                               +"ID="+serviceId+"]");
+                }
+                return;
+            }
+
+            if(logger.isDebugEnabled()) {
+                logger.log(Level.DEBUG, "serviceAdded [service="
+                           +serviceIface+", ID="+serviceId+"]");
+            }
+
+            if(serviceUUID == null) return;
+
+            serviceNameMap.put(serviceUUID, serviceName);
+
+            if( activeHosts.putIfAbsent
+                    (hostname, new HostScore(hostname)) == null)
+            {
+                if(logger.isDebugEnabled()) {
+                    logger.debug("new host joined: "
+                                 +"[hostname="+hostname+"]");
+                }
+            }
+
+            // Only data/shard services are registered as [activeServices]
+            // since load balancing decisions are made on only 
+            // those service types.
+            if( (ShardService.class).isAssignableFrom(serviceType) ||
+                (  (IDataService.class).isAssignableFrom(serviceType) &&
+                  !(IMetadataService.class).isAssignableFrom(serviceType) ) )
+            {
+                if( activeDataServices.putIfAbsent
+                        (serviceUUID,
+                         new ServiceScore
+                             (hostname, serviceUUID, serviceName)) == null)
+                {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("shard service join: "
+                                     +"[hostname="+hostname+", "
+                                     +"serviceUUID="+serviceUUID+"]");
+                    }
+                }
+            }
+
+            // Create a node for the discovered service's history in
+            // this load balancer's counter set.
+            getCounterSet().makePath
+                ( AbstractFederation.getServiceCounterPathPrefix
+                      (serviceUUID, serviceIface, hostname) );
+	}
+
+	public void serviceRemoved(ServiceDiscoveryEvent event) {
+            ServiceItem item = event.getPreEventServiceItem();
+
+            ServiceID serviceId = item.serviceID;
+            Object service = item.service;
+            Entry[] attrs = item.attributeSets;
+
+            Class serviceType = service.getClass();
+
+            UUID serviceUUID = null;
+            Class serviceIface = null;
+
+            if( (IService.class).isAssignableFrom(serviceType) ) {
+
+                // Avoid remote calls by getting info from attrs
+                ServiceUUID serviceUUIDAttr = 
+                    (ServiceUUID)(EntryUtil.getEntryByType
+                        (attrs, ServiceUUID.class));
+                if(serviceUUIDAttr != null) {
+                    serviceUUID = serviceUUIDAttr.serviceUUID;
+                } else {
+                    if(service != null) {
+                        try {
+                            serviceUUID = 
+                            ((IService)service).getServiceUUID();
+                        } catch(IOException e) {
+                            if(logger.isDebugEnabled()) {
+                                logger.log(Level.DEBUG, 
+                                           "failed to retrieve "
+                                           +"serviceUUID "
+                                           +"[service="+serviceType+", "
+                                            +"ID="+serviceId+"]", e);
+                            }
+                        }
+                    }
+                }
+
+                if( (IMetadataService.class).isAssignableFrom
+                                                 (serviceType) )
+                {
+                    serviceIface = IMetadataService.class;
+                } else if( (IDataService.class).isAssignableFrom
+                                             (serviceType) )
+                {
+                    serviceIface = IDataService.class;
+                } else if( (IClientService.class).isAssignableFrom
+                                                      (serviceType) )
+                {
+                    serviceIface = IClientService.class;
+                } else if( (ITransactionService.class).isAssignableFrom
+                                                        (serviceType) )
+                {
+                    serviceIface = ITransactionService.class;
+
+                } else if( (IServicesManagerService.class).isAssignableFrom
+                                                        (serviceType) )
+                {
+                    if(logger.isDebugEnabled()) {
+                        logger.log(Level.DEBUG, "serviceRemoved "
+                                   +"[service=IServicesManagerService, "
+                                   +"ID="+serviceId+"]");
+                    }
+                    return;
+                } else {
+                    if(logger.isDebugEnabled()) {
+                        logger.log(Level.WARN, "UNEXPECTED serviceRemoved "
+                                   +"[service="+serviceType+", "
+                                   +"ID="+serviceId+"]");
+                    }
+                    return;
+                } 
+
+            } else if( (Service.class).isAssignableFrom(serviceType) ) {
+
+                serviceUUID = ((Service)service).getServiceUUID();
+                serviceIface = ((Service)service).getServiceIface();
+
+            } else {
+
+                if(logger.isDebugEnabled()) {
+                    logger.log(Level.WARN, "UNEXPECTED serviceRemoved "
+                                   +"[service="+serviceType+", "
+                                   +"ID="+serviceId+"]");
+                }
+                return;
+            }
+
+            if(logger.isDebugEnabled()) {
+                logger.log(Level.DEBUG, "serviceRemoved [service="
+                           +serviceIface+", ID="+serviceId+"]");
+            }
+
+            if(serviceUUID == null) return;
+
+            activeDataServices.remove(serviceUUID);
+            serviceNameMap.remove(serviceUUID);
+        }
+
+	public void serviceChanged(ServiceDiscoveryEvent event) {
+
+            ServiceItem preItem  = event.getPreEventServiceItem();
+            ServiceItem postItem = event.getPostEventServiceItem();
+
+            ServiceID serviceId = postItem.serviceID;
+            Object service = postItem.service;
+
+            Class serviceType = service.getClass();
+
+            Entry[] preAttrs  = preItem.attributeSets;
+            Entry[] postAttrs = postItem.attributeSets; 
+
+            UUID serviceUUID = null;
+            Class serviceIface = null;
+
+            if( (IService.class).isAssignableFrom(serviceType) ) {
+
+                // Avoid remote calls by getting info from attrs
+                ServiceUUID serviceUUIDAttr = 
+                    (ServiceUUID)(EntryUtil.getEntryByType
+                        (preAttrs, ServiceUUID.class));
+                if(serviceUUIDAttr != null) {
+                    serviceUUID = serviceUUIDAttr.serviceUUID;
+                } else {
+                    if(service != null) {
+                        try {
+                            serviceUUID = 
+                            ((IService)service).getServiceUUID();
+                        } catch(IOException e) {
+                            if(logger.isDebugEnabled()) {
+                                logger.log(Level.DEBUG, 
+                                           "failed to retrieve "
+                                           +"serviceUUID "
+                                           +"[service="+serviceType+", "
+                                            +"ID="+serviceId+"]", e);
+                            }
+                        }
+                    }
+                }
+
+                if( (IMetadataService.class).isAssignableFrom
+                                                 (serviceType) )
+                {
+                    serviceIface = IMetadataService.class;
+                } else if( (IDataService.class).isAssignableFrom
+                                             (serviceType) )
+                {
+                    serviceIface = IDataService.class;
+                } else if( (IClientService.class).isAssignableFrom
+                                                      (serviceType) )
+                {
+                    serviceIface = IClientService.class;
+                } else if( (ITransactionService.class).isAssignableFrom
+                                                        (serviceType) )
+                {
+                    serviceIface = ITransactionService.class;
+
+                } else if( (IServicesManagerService.class).isAssignableFrom
+                                                        (serviceType) )
+                {
+                    if(logger.isDebugEnabled()) {
+                        logger.log(Level.DEBUG, "serviceChanged "
+                                   +"[service=IServicesManagerService, "
+                                   +"ID="+serviceId+"]");
+                    }
+                    return;
+                } else {
+                    if(logger.isDebugEnabled()) {
+                        logger.log(Level.WARN, "UNEXPECTED serviceChanged "
+                                   +"[service="+serviceType+", "
+                                   +"ID="+serviceId+"]");
+                    }
+                    return;
+                }
+
+            } else if( (Service.class).isAssignableFrom(serviceType) ) {
+
+                serviceUUID = ((Service)service).getServiceUUID();
+                serviceIface = ((Service)service).getServiceIface();
+
+            } else {
+
+                if(logger.isDebugEnabled()) {
+                    logger.log(Level.WARN, "UNEXPECTED serviceChanged "
+                                   +"[service="+serviceType+", "
+                                   +"ID="+serviceId+"]");
+                }
+                return;
+            }
+
+            if(logger.isDebugEnabled()) {
+                logger.log(Level.DEBUG, "serviceChanged [service="
+                           +serviceIface+", ID="+serviceId+"]");
+            }
+
+            for(int i=0; i<preAttrs.length; i++) {
+                Entry pre = preAttrs[i];
+                Class preType = pre.getClass();
+                for(int j=0; j<postAttrs.length; j++) {
+                    Entry post = postAttrs[j];
+                    Class postType = post.getClass();
+                    /* If same attribute type, test for and display change */
+                    if(    (preType.isAssignableFrom(postType))
+                        && (postType.isAssignableFrom(preType)) )
+                    {
+                        if(!EntryUtil.compareEntries(pre,post,logger)) {
+                            if( logger.isTraceEnabled() ) {//display change
+                                logger.log(Level.TRACE,
+                                       ": attribute changed ["+pre+"]" );
+                                logger.log(Level.TRACE,
+                                       ": ===============================");
+                                logger.log(Level.TRACE,
+                                       ": --- PRE Change Event ---- ");
+                                EntryUtil.displayEntry(pre, logger);
+                                logger.log(Level.TRACE,
+                                       ": ===============================");
+                                logger.log(Level.TRACE,
+                                       ": --- POST Change Event --- ");
+                                EntryUtil.displayEntry(post, logger);
+                            }
+                        }
+                    }
+                }//end loop(post:j)
+            }//end loop(pre:i)
+        }
+    }
+
+    private class CacheFilter implements ServiceItemFilter {
+	public boolean check(ServiceItem item) {
+            if(item == null) return false;
+            Object service = item.service;
+            if(service == null) return false;
+            Class serviceType = service.getClass();
+            if( (LoadBalancer.class).isAssignableFrom(serviceType) ) {
+                return false;
+            }
+            return true;
+	}
+    }
+
+
+//BTM - END
 }

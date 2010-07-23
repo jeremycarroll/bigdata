@@ -41,11 +41,14 @@ import cern.colt.Arrays;
 import com.bigdata.jini.start.ServicesManagerServer;
 import com.bigdata.service.jini.ClientServer;
 import com.bigdata.service.jini.DataServer;
-import com.bigdata.service.jini.LoadBalancerServer;
+//BTM import com.bigdata.service.jini.LoadBalancerServer;
 import com.bigdata.service.jini.MetadataServer;
 import com.bigdata.service.jini.TransactionServer;
 import com.sun.jini.start.NonActivatableServiceDescriptor;
 import com.sun.jini.start.ServiceStarter;
+
+//BTM
+import com.bigdata.service.LoadBalancer;
 
 /**
  * For the {@link ServicesManagerServer}.
@@ -128,8 +131,9 @@ public class ServicesManagerConfiguration extends BigdataServiceConfiguration {
          */
         String ZOOKEEPER_DISCOVERY_TIMEOUT_NANOS = "zookeeperDiscoveryTimeout";
 
-        long DEFAULT_ZOOKEEPER_DISCOVERY_TIMEOUT_NANOS = TimeUnit.MINUTES
-                .toNanos(3);
+//BTM        long DEFAULT_ZOOKEEPER_DISCOVERY_TIMEOUT_NANOS = TimeUnit.MINUTES
+//BTM                .toNanos(3);
+long DEFAULT_ZOOKEEPER_DISCOVERY_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
         
     }
 
@@ -204,9 +208,11 @@ public class ServicesManagerConfiguration extends BigdataServiceConfiguration {
              * The following are hacked.
              */
             if (a.equals("jini")) {
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: Lookup Service BEGIN");
 
                 v.add(new JiniCoreServicesConfiguration(config));
 
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: Lookup Service END\n");
 //            } else if (a.equals(ServiceStarter.class.getName())) {
 //
 //                /*
@@ -217,30 +223,44 @@ public class ServicesManagerConfiguration extends BigdataServiceConfiguration {
 //                        .getName(), config));
 
             } else if (a.equals(QuorumPeerMain.class.getName())) {
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: QuorumPeerMain BEGIN");
 
                     v.add(new ZookeeperServerConfiguration(config));
 
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: QuorumPeerMain END\n");
             } else if (a.equals(TransactionServer.class.getName())) {
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: TransactionServer BEGIN");
 
                 v.add(new TransactionServerConfiguration(config));
 
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: TransactionServer END\n");
             } else if (a.equals(MetadataServer.class.getName())) {
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: MetaDataServer BEGIN");
 
                 v.add(new MetadataServerConfiguration(config));
 
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: MetaDataServer END\n");
             } else if (a.equals(DataServer.class.getName())) {
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: DataServer BEGIN");
 
                 v.add(new DataServerConfiguration(config));
 
-            } else if (a.equals(LoadBalancerServer.class.getName())) {
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: DataServer END\n");
+//BTM            } else if (a.equals(LoadBalancerServer.class.getName())) {
+} else if (a.equals(com.bigdata.loadbalancer.ServiceImpl.class.getName())) {
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bigdata.loadbalancer.ServiceImpl BEGIN");
 
                 v.add(new LoadBalancerConfiguration(config));
 
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigdata.loadbalancer.ServiceImpl END\n");
             } else if (a.equals(ClientServer.class.getName())) {
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: ClientServer BEGIN");
 
                 v.add(new ClientServerConfiguration(config));
 
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: ClientServer END\n");
             } else {
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: "+a+" BEGIN");
 
                 /*
                  * This interprets any unknown value as a java service
@@ -254,6 +274,7 @@ public class ServicesManagerConfiguration extends BigdataServiceConfiguration {
                  * hacked above for known kinds of managed configurations.
                  */
                 v.add(new JavaServiceConfiguration(a,config));
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: "+a+" END\n");
                 
 //                throw new ConfigurationException(Options.SERVICES
 //                        + " : Unknown class/name: " + a);

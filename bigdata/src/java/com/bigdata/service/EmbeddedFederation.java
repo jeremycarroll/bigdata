@@ -620,6 +620,9 @@ final public LoadBalancer getLoadBalancerService() {
 //BTM                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
 p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.TRANSIENT, "true");
 
+p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR,
+              new File(EmbeddedLoadBalancerServiceImpl.Options.DEFAULT_LOG_DIR).toString());
+
             } else {
                 
                 // specify the data directory for the load balancer.
@@ -860,6 +863,7 @@ Map<UUID, DataService> dataServiceMap,
 {
     super(serviceUUID, hostname, 
 sdm,
+properties.getProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR),
 //BTM*** EmbeddedFederation.this,
 dataServiceMap,//BTM*** - remove after DataService smart proxy?
           properties);

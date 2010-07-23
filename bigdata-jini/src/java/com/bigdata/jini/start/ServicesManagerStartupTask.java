@@ -139,6 +139,7 @@ public class ServicesManagerStartupTask implements Callable<Void> {
         for (ServiceConfiguration serviceConfig : serviceConfigurations) {
 
             if (serviceConfig instanceof ZookeeperServerConfiguration) {
+System.out.println("\n---- ServicesManagerStartupTask.doStartup: startZookeeperService() ----");
 
                 startZookeeperService(config);
 
@@ -153,6 +154,7 @@ public class ServicesManagerStartupTask implements Callable<Void> {
 
             if (serviceConfig instanceof JiniCoreServicesConfiguration) {
 
+System.out.println("\n---- ServicesManagerStartupTask.doStartup: startJiniCoreServices() ----");
                 startJiniCoreServices(config);
 
             }
@@ -169,10 +171,11 @@ public class ServicesManagerStartupTask implements Callable<Void> {
 
             final long begin = System.nanoTime();
 
-            long nanos = TimeUnit.MILLISECONDS
-                    .toNanos(selfConfig.zookeeperDiscoveryTimeoutNanos);
-
+//BTM            long nanos = TimeUnit.MILLISECONDS
+//BTm                    .toNanos(selfConfig.zookeeperDiscoveryTimeoutNanos);
+long nanos = selfConfig.zookeeperDiscoveryTimeoutNanos;
             // await zookeeper connection.
+System.out.println("\n*** ServicesManagerStartupTask.doStartup: WAIT FOR ZOOKEEPER [zookeeperDiscoveryTimeoutNanos="+selfConfig.zookeeperDiscoveryTimeoutNanos+", nanos="+nanos+"] ***");
             if (!fed.getZookeeperAccessor().awaitZookeeperConnected(nanos,
                     TimeUnit.NANOSECONDS)) {
 
@@ -189,6 +192,7 @@ public class ServicesManagerStartupTask implements Callable<Void> {
              * discovered and you can kill it if there is a problem.
              */
             // await jini registrar(s)
+System.out.println("\n*** ServicesManagerStartupTask.doStartup: WAIT FOR LOOKUP ["+nanos+" nanoseconds] ***");
             if (!fed.awaitJiniRegistrars(nanos, TimeUnit.NANOSECONDS)) {
 
                 throw new Exception(
@@ -197,6 +201,7 @@ public class ServicesManagerStartupTask implements Callable<Void> {
             }
 
         }
+System.out.println("\n*** ServicesManagerStartupTask.doStartup: Lookup Service DISCOVERED ***");
 
         /*
          * Make sure that the key znodes are defined and then push the
@@ -249,11 +254,14 @@ public class ServicesManagerStartupTask implements Callable<Void> {
 
         try {
 
+System.out.println("\n*** ServicesManagerStartupTask.startJiniCoreServices: JiniCoreServicesProcessHelper.startCoreServices() ***");
             return JiniCoreServicesProcessHelper.startCoreServices(config,
                     service);
 
         } catch (Throwable t) {
 
+System.out.println("*** ServicesManagerStartupTask.startJiniCoreServices: JiniCoreServicesProcessHelper.startCoreServices() COULD NOT START JINI SERVICES --> "+t+"\n");
+t.printStackTrace();
             log.error(
                     "Could not start jini services: " + t, t);
 
@@ -403,12 +411,16 @@ public class ServicesManagerStartupTask implements Callable<Void> {
 
             }
 
+System.out.println("\nBBBBB ServicesManagerStartupTask.pushConfiguration: zconfig = "+zconfig);
             final String zpath = zconfig + BigdataZooDefs.ZSLASH + x.className;
+System.out.println("BBBBB ServicesManagerStartupTask.pushConfiguration: zpath = "+zpath);
+System.out.println("BBBBB ServicesManagerStartupTask.pushConfiguration: SERIALIZING CONFIG = "+x);
 
             final byte[] data = SerializerUtil.serialize(x);
 
             try {
 
+System.out.println("BBBBB ServicesManagerStartupTask.pushConfiguration: CREATING ZNODE ["+zpath+"]\n");
                 zookeeper.create(zpath, data, acl, CreateMode.PERSISTENT);
 
                 if (log.isDebugEnabled())
@@ -417,6 +429,7 @@ public class ServicesManagerStartupTask implements Callable<Void> {
                     log.info("Created: " + zpath);
 
             } catch (NodeExistsException ex) {
+System.out.println("BBBBB ServicesManagerStartupTask.pushConfiguration: ZNODE EXISTS ---> update ZNODE ["+zpath+"]\n");
 
                 try {
                     zookeeper.setData(zpath, data, -1/* version */);

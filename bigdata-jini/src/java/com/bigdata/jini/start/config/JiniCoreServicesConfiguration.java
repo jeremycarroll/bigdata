@@ -121,6 +121,7 @@ public class JiniCoreServicesConfiguration extends ServiceConfiguration {
         
         configFile = (File) config.getEntry(Options.NAMESPACE,
                 Options.CONFIG_FILE, File.class, null/* default */);
+System.out.println("*** JiniCoreServicesConfiguration: constructor [nameSpace="+Options.NAMESPACE+", configFile="+configFile+"]");
 
     }
 
@@ -144,6 +145,7 @@ public class JiniCoreServicesConfiguration extends ServiceConfiguration {
     @Override
     public JiniCoreServicesStarter newServiceStarter(IServiceListener listener)
             throws Exception {
+System.out.println("*** JiniCoreServicesConfiguration: newServiceStarter() - THROW UnsupportedOperationException ***");
 
         throw new UnsupportedOperationException();
 
@@ -161,6 +163,7 @@ public class JiniCoreServicesConfiguration extends ServiceConfiguration {
             JiniClientConfig clientConfig)
             throws Exception {
 
+System.out.println("*** JiniCoreServicesConfiguration: newServiceStarter() ***");
         return new JiniCoreServicesStarter<JiniCoreServicesProcessHelper>(
                 listener, clientConfig);
 
@@ -185,6 +188,7 @@ public class JiniCoreServicesConfiguration extends ServiceConfiguration {
                 final JiniClientConfig clientConfig) {
 
             super(listener);
+System.out.println("*** JiniCoreServicesConfiguration.JiniCoreServicesStarter: constructor ***");
 
             if (clientConfig == null)
                 throw new IllegalArgumentException();
@@ -199,6 +203,7 @@ public class JiniCoreServicesConfiguration extends ServiceConfiguration {
                 ProcessBuilder processBuilder, IServiceListener listener)
                 throws IOException {
 
+System.out.println("*** JiniCoreServicesConfiguration.JiniCoreServicesStarter: newProcessHelper() ***");
             if(configFile == null) {
                 throw new NullPointerException("no entry named '"+Options.CONFIG_FILE
                     +"' in test configuration [under namespace '"+Options.NAMESPACE+"' ]" );
@@ -221,6 +226,7 @@ public class JiniCoreServicesConfiguration extends ServiceConfiguration {
          */
         @Override
         protected void addCommand(final List<String> cmds) {
+System.out.println("*** JiniCoreServicesConfiguration.JiniCoreServicesStarter: addCommand() ***");
 
 //            // the executable.
 //            
@@ -257,6 +263,7 @@ public class JiniCoreServicesConfiguration extends ServiceConfiguration {
 
             // essentially the JVM args.
             super.addCommandArgs(cmds);
+System.out.println("*** JiniCoreServicesConfiguration.JiniCoreServicesStarter: addCommandArgs() ***");
             
             // the class name.
             cmds.add(ServiceStarter.class.getName());
@@ -300,6 +307,7 @@ public class JiniCoreServicesConfiguration extends ServiceConfiguration {
         protected void awaitServiceStart(final V processHelper,
                 final long timeout, final TimeUnit unit) throws Exception,
                 TimeoutException, InterruptedException {
+System.out.println("*** JiniCoreServicesConfiguration.JiniCoreServicesStarter: awaitServiceStart() ***");
 
             final long begin = System.nanoTime();
             

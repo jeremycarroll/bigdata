@@ -369,7 +369,7 @@ return false;//TODO
                    +", locators="
                    +Util.writeArrayElementsToString(locatorsToJoin));
 
-        waitThread = new Util.WaitOnInterruptThread();
+        waitThread = new Util.WaitOnInterruptThread(logger);
         waitThread.start();
 
         readyState.ready();//ready to accept calls from clients

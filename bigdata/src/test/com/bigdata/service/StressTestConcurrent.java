@@ -791,10 +791,12 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
             throws IOException {
 
         // explicitly set the log level for the load balancer.
-        LoadBalancerService.log.setLevel(Level.INFO);
+//BTM        LoadBalancerService.log.setLevel(Level.INFO);
+EmbeddedLoadBalancer.logger.setLevel(Level.INFO);
 
-        final AbstractEmbeddedLoadBalancerService lbs = ((AbstractEmbeddedLoadBalancerService) ((EmbeddedFederation<?>) fed)
-                .getLoadBalancerService());
+//BTM        final AbstractEmbeddedLoadBalancerService lbs = ((AbstractEmbeddedLoadBalancerService) ((EmbeddedFederation<?>) fed)
+//BTM                .getLoadBalancerService());
+final EmbeddedLoadBalancer lbs = ((EmbeddedLoadBalancer)((EmbeddedFederation)fed).getLoadBalancerService());
 
         final ServiceScore[] fakeServiceScores = new ServiceScore[2];
 

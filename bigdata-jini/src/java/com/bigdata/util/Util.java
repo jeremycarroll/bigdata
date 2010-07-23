@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.util;
 
 import com.bigdata.util.config.ConfigDeployUtil;
+import com.bigdata.util.config.LogUtil;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -400,15 +401,25 @@ public class Util {
     }
 
     public static class WaitOnInterruptThread extends InterruptedStatusThread {
-	public WaitOnInterruptThread() {
+        private Logger logger;
+	public WaitOnInterruptThread(final Logger logger) {
 	    super("WaitOnInterruptThread");
 	    setDaemon(true);
+            this.logger = (logger == null ? 
+                LogUtil.getLog4jLogger((this.getClass()).getName()) :
+                logger);
 	}
 	public void run() {
             while (!hasBeenInterrupted()) {
                 try {
                     Thread.sleep(Long.MAX_VALUE);
-                } catch (InterruptedException e) { /*exit while loop*/ }
+                } catch (InterruptedException e) {
+                    if( logger.isDebugEnabled() ) {
+                        logger.log(Level.DEBUG, 
+                                   "Util.WaitOnInterruptThread: "
+                                   +"interrupt received");
+                    }
+                }
             }
         }
     }

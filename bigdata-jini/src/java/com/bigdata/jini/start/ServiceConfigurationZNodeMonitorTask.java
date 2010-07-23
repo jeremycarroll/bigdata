@@ -93,6 +93,13 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
 
         // zpath for the service configuration node.
         serviceConfigZPath = zroot + "/" + BigdataZooDefs.CONFIG + "/" + className;
+
+System.out.println("\nGGGG ServiceConfigurationZNodeMonitorTask.constructor: zroot                        = "+zroot);
+System.out.println(  "GGGG ServiceConfigurationZNodeMonitorTask.constructor: className                    = "+className);
+System.out.println(  "GGGG ServiceConfigurationZNodeMonitorTask.constructor: LOCKS_SERVICE_CONFIG_MONITOR = "+BigdataZooDefs.LOCKS_SERVICE_CONFIG_MONITOR);
+System.out.println(  "GGGG ServiceConfigurationZNodeMonitorTask.constructor: CONFIG                       = "+BigdataZooDefs.CONFIG);
+System.out.println(  "GGGG ServiceConfigurationZNodeMonitorTask.constructor: lockZPath                    = "+lockZPath);
+System.out.println(  "GGGG ServiceConfigurationZNodeMonitorTask.constructor: serviceConfigZPath           = "+serviceConfigZPath);
         
     }
 
@@ -216,6 +223,7 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
          * Note: This is done while we are holding the zlock. If we loose the
          * zlock, the we cancel the watcher until we can reacquire the zlock.
          */
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: SETTING WATCHER for ZNodes of interest ...");
         final ServiceConfigurationHierarchyWatcher watcher = new ServiceConfigurationHierarchyWatcher(
                 zookeeper, serviceConfigZPath);
 
@@ -225,7 +233,11 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
          * them now and make sure that everything is in balance.
          */
         final String[] watchedSet = watcher.getWatchedNodes();
-
+if(watchedSet == null) {
+    System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: znodes-of-interest = "+watchedSet);
+}else{
+    System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: znodes-of-interest = "+java.util.Arrays.asList(watchedSet));
+}
         // Get the service configuration.
         final ManagedServiceConfiguration config = (ManagedServiceConfiguration) SerializerUtil
                 .deserialize(zookeeper.getData(serviceConfigZPath, false,
@@ -237,16 +249,20 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
 
             while (true) {
 
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: WAITING FOR EVENT ...");
                 final WatchedEvent e = watcher.queue.take();
 
                 if (!zlock.isLockHeld()) {
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: LOST THE LOCK [event="+e+"]");
 
                     // Lost the lock.
                     break;
 
                 }
 
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: HANDLE EVENT [event="+e+"]");
                 handleEvent(zookeeper, watcher, e);
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: EVENT HANDLED [event="+e+"]");
 
             }
 
@@ -307,6 +323,7 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
         if (config.serviceCount != children.size()) {
 
             // adjust the #of logical service instances (blocks).
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: *** NEW LOGICAL SERVICE TASK");
             config.newLogicalServiceTask(fed, listener, serviceConfigZPath,
                     children).call();
 
@@ -339,6 +356,7 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
             throws KeeperException, InterruptedException {
 
         for (String s : watchedSet) {
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.balancePhysicalServices: serviceConfigZPath = "+serviceConfigZPath+", zpath="+s);
 
             switch (ServiceConfigurationZNodeEnum
                     .getType(serviceConfigZPath, s)) {
@@ -348,10 +366,12 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
                 // the parent is the logicalService.
                 final String logicalServiceZPath = s.substring(0, s
                         .lastIndexOf('/'));
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.balancePhysicalServices: logicalServiceZPath = "+logicalServiceZPath);
                 
                 // the znode of the logical service (last path component).
                 final String logicalServiceZNode = logicalServiceZPath
                         .substring(logicalServiceZPath.lastIndexOf('/') + 1);
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.balancePhysicalServices: logicalServiceZNode = "+logicalServiceZNode);
                 
                 // get children (the list of physical services).
                 final List<String> children = zookeeper.getChildren(
@@ -365,9 +385,11 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
                             + ", targetReplicationCount="
                             + config.replicationCount + ", #children="
                             + children.size() + ", children=" + children);
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.balancePhysicalServices: serviceConfigZPath=" + serviceConfigZPath+ ", logicalServiceZPath=" + logicalServiceZPath+ ", targetReplicationCount="+ config.replicationCount + ", #children="+ children.size() + ", children=" + children);
 
                 // too few instances? : @todo handle too many instances also.
                 if (config.replicationCount > children.size()) {
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.balancePhysicalServices: (config.replicationCount > children.size()) ["+config.replicationCount+" > "+children.size()+"]");
 
                     try {
 
@@ -384,9 +406,11 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
                                 + "/" + config.className + "_"
                                 + logicalServiceZNode;
 
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.balancePhysicalServices: *** CREATING logicalServiceZPath under lockNodeZPath ---> [zroot="+zroot+", LOCKS_CREATE_PHYSICAL_SERVICE="+BigdataZooDefs.LOCKS_CREATE_PHYSICAL_SERVICE+", className="+config.className+", UNDERSCORE, logicalServiceZNode="+logicalServiceZNode+"] ---> lockNodeZPath = "+lockNodeZPath);
                         zookeeper.create(lockNodeZPath, SerializerUtil
                                 .serialize(logicalServiceZPath), fed
                                 .getZooConfig().acl, CreateMode.PERSISTENT);
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.balancePhysicalServices: *** CREATED ZNODE logicalServiceZNode under lockNodeZPath ---> logicalServiceZPath="+logicalServiceZPath+", lockNodeZPath="+lockNodeZPath);
 
                         if (log.isInfoEnabled())
                             log.info("Created lock node: " + lockNodeZPath);
@@ -396,7 +420,8 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
                         // ignore.
 
                     }
-
+}else{
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.balancePhysicalServices: (config.replicationCount NOT GREATER THAN children.size()) ["+config.replicationCount+" <= "+children.size()+"]");
                 }
             
             default:
@@ -468,6 +493,7 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
                 .getType(serviceConfigZPath, zpath)) {
 
         case ServiceConfiguration: {
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.handleEvent - CASE = ServiceConfiguration: HANDLE EVENT [event="+e+"]");
 
             // Get the service configuration.
             final ManagedServiceConfiguration config = (ManagedServiceConfiguration) SerializerUtil
@@ -481,6 +507,7 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
         }
 
         case LogicalService: {
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.handleEvent - CASE = LogicalService: HANDLE EVENT [event="+e+"]");
 
             // Get the service configuration.
             final ManagedServiceConfiguration config = (ManagedServiceConfiguration) SerializerUtil
@@ -494,12 +521,14 @@ public class ServiceConfigurationZNodeMonitorTask implements Callable<Void> {
         }
 
         case PhysicalServicesContainer: {
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.handleEvent - CASE = PhysicalServiceContainter: HANDLE EVENT [event="+e+"]");
 
             // Get the service configuration.
             final ManagedServiceConfiguration config = (ManagedServiceConfiguration) SerializerUtil
                     .deserialize(zookeeper.getData(serviceConfigZPath, false,
                             new Stat()));
 
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.handleEvent - CASE = PhysicalServiceContainter >>> balancePhysicalServices [event="+e+"]");
             balancePhysicalServices(zookeeper, config, watchedSet);
 
             break;

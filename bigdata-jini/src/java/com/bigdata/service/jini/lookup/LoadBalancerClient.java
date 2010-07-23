@@ -229,7 +229,7 @@ if(groups == null) {
             }
         }
 //BTM
-System.err.println("\n**** LoadBalancerClient: item = "+item);
+//System.err.println("\n**** LoadBalancerClient: item = "+item);
         if(item == null) return null;
         return (LoadBalancer)(item.service);
     }

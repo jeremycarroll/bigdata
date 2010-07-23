@@ -67,6 +67,7 @@ public abstract class AbstractServicesManagerService extends AbstractService
                  * processes.
                  */
                 
+System.out.println("\nXXXXXXX AbstractServicesManagerService.add >>>>> KILLING process = "+service.name);
                 service.kill(true/* immediateShutdown */);
                 
             } catch (InterruptedException e) {
@@ -121,6 +122,7 @@ public abstract class AbstractServicesManagerService extends AbstractService
         // halt our monitor tasks.
         getFederation().cancelMonitoredTasks(true/* mayInterruptIfRunning */);
         
+System.out.println("\nXXXXXXX AbstractServicesManagerService.shutdown >>>>> KILLING CHILD PROCESSES");
         // kill our children.
         killChildProcesses(false/* immediateShutdown */);
 
@@ -146,6 +148,7 @@ public abstract class AbstractServicesManagerService extends AbstractService
         // halt our monitor tasks.
         getFederation().cancelMonitoredTasks(true/* mayInterruptIfRunning */);
 
+System.out.println("\nXXXXXXX AbstractServicesManagerService.shutdownNow >>>>> KILLING CHILD PROCESSES");
         // kill our children.
         killChildProcesses(true/* immediateShutdown */);
 
@@ -186,6 +189,7 @@ public abstract class AbstractServicesManagerService extends AbstractService
 
             try {
 
+System.out.println("\nXXXXXXX AbstractServicesManagerService.killChildProcesses >>>>> calling Process.kill");
                 helper.kill(immediateShutdown);
                 
             } catch (Throwable t) {
@@ -301,6 +305,7 @@ public abstract class AbstractServicesManagerService extends AbstractService
         /*
          * Run startup.
          */
+System.out.println("\n*** AbstractServicesManagerService: setup() - ServicesManagerStartupTask().call() ***\n");
         new ServicesManagerStartupTask(fed, config, true/* pushConfig */,
                 true/* restartServices */, this/* listener */).call();
         

@@ -85,7 +85,9 @@ class ServiceProxy implements LoadBalancer, EventReceivingService,
     // Remote methods required by the LoadBalancer interface
 
     public void notify(UUID serviceId, byte[] data) throws IOException {
+System.out.println("\n>>>>> **** com.bigdata.loadbalancer.ServiceProxy.notify: CALLING ServiceImpl.notify\n");
         innerProxy.notify(serviceId, data);
+System.out.println(">>>>> **** com.bigdata.loadbalancer.ServiceProxy.notify: DONE CALLING ServiceImpl.notify\n");
     }
 
     public void warn(String msg, UUID serviceId) throws IOException {

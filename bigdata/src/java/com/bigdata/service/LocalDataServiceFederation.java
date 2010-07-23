@@ -193,6 +193,7 @@ dataServiceMap.put(dataService.getServiceUUID(), dataService);
 loadBalancerService = new EmbeddedLoadBalancer(UUID.randomUUID(),
                                                hostname,
                                                null,//SDM - replace with real SDM after conversion to smart proxy?
+p.getProperty(EmbeddedLoadBalancer.Options.LOG_DIR),
 //BTM*** LocalDataServiceFederation.this,
 //BTM*** remove after EmbeddedDataService is converted to smart proxy?
                                                dataServiceMap,

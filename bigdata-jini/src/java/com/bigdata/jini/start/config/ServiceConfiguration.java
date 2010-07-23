@@ -191,6 +191,7 @@ abstract public class ServiceConfiguration implements Serializable {
      * @see Options#TIMEOUT
      */
     public final long timeout;
+
     
     public String toString() {
 
@@ -246,7 +247,7 @@ abstract public class ServiceConfiguration implements Serializable {
      */
     public ServiceConfiguration(final String className,
             final Configuration config) throws ConfigurationException {
-
+System.out.println("\n*** ServiceConfiguration: constructor - BEGIN [className="+className+"]");
         if (className == null)
             throw new IllegalArgumentException();
         
@@ -261,6 +262,7 @@ abstract public class ServiceConfiguration implements Serializable {
             throw new IllegalArgumentException();
 
         for (String s : args) {
+System.out.println("*** ServiceConfiguration: constructor [arg="+s+"]");
 
             if (s == null)
                 throw new IllegalArgumentException();
@@ -276,6 +278,7 @@ abstract public class ServiceConfiguration implements Serializable {
             throw new IllegalArgumentException();
 
         for (String s : options) {
+System.out.println("*** ServiceConfiguration: constructor [option="+s+"]");
 
             if (s == null)
                 throw new IllegalArgumentException();
@@ -337,6 +340,7 @@ abstract public class ServiceConfiguration implements Serializable {
 
         if (log.isInfoEnabled())
             log.info(Options.CONSTRAINTS + "=" + Arrays.toString(constraints));
+System.out.println("*** ServiceConfiguration: constructor - END");
 
     }
 
@@ -490,6 +494,7 @@ abstract public class ServiceConfiguration implements Serializable {
          *             if the service detectably did not start.
          */
         public V call() throws Exception {
+System.out.println("*** ServiceConfiguration: call() [className="+className+"]");
 
             if (log.isInfoEnabled())
                 log.info("config: " + this);
@@ -892,7 +897,7 @@ abstract public class ServiceConfiguration implements Serializable {
                     + Options.ARGS);
 
         }
-
+System.out.println("*** "+className+" ---> Options.ARGS = "+Options.ARGS);
         return (String[]) config.getEntry(className, Options.ARGS,
                 String[].class, new String[] {});
 

@@ -155,6 +155,7 @@ abstract public class JiniServiceConfiguration extends
             final Configuration config) throws ConfigurationException {
 
         super(className, config);
+System.out.println("*** JiniServiceConfiguration: constructor");
 
         final JiniClientConfig tmp = new JiniClientConfig(className, config);
 
@@ -853,7 +854,7 @@ abstract public class JiniServiceConfiguration extends
                     log.info("Discovered service: elapsed=" + elapsed
                             + ", name=" + processHelper.name + ", item="
                             + items[0]);
-
+System.out.println("\n**** JiniServiceConfiguration: DISCOVERED SERVICE ---> "+items[0].service+" ****\n");
                 return items[0];
                 
             } finally {

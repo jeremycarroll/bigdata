@@ -58,7 +58,7 @@ import com.bigdata.journal.ITransactionService;
 import com.bigdata.service.DataService;
 import com.bigdata.service.DefaultServiceFederationDelegate;
 import com.bigdata.service.IDataService;
-import com.bigdata.service.ILoadBalancerService;
+//BTM import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.jini.AbstractServer;
@@ -69,6 +69,9 @@ import com.bigdata.service.jini.RemoteDestroyAdmin;
 import com.sun.jini.start.LifeCycle;
 import com.sun.jini.start.ServiceDescriptor;
 import com.sun.jini.start.ServiceStarter;
+
+//BTM
+import com.bigdata.service.LoadBalancer;
 
 /**
  * A class for bootstrapping a {@link JiniFederation} across a cluster based on
@@ -215,7 +218,8 @@ import com.sun.jini.start.ServiceStarter;
  * The two main services which require failover are the
  * {@link ITransactionService} and the {@link IDataService} (which includes the
  * {@link IMetadataService} as a special case). The loss of the
- * {@link ILoadBalancerService} is normally not critical as only history about
+BTM * {@link ILoadBalancerService} is normally not critical as only history about
+* {@link LoadBalancer} service is normally not critical as only history about
  * the system load over time is lost.
  * 
  * <h4>Transaction service</h4>
@@ -295,7 +299,8 @@ import com.sun.jini.start.ServiceStarter;
  *       and supports transactions over operations on the space. Gigaspaces has
  *       defined a variety of extensions that provide FIFO queues.
  * 
- * @todo The {@link MetadataService}, the {@link ILoadBalancerService}, and
+BTM * @todo The {@link MetadataService}, the {@link ILoadBalancerService}, and
+* @todo The {@link MetadataService}, the {@link LoadBalancer} service, and
  *       the {@link ITransactionService} MUST NOT have more than one logical
  *       instance in a federation. They can (eventually) have failover
  *       instances, but not peers. The {@link DataService} is the only one that
@@ -617,11 +622,42 @@ public class ServicesManagerServer extends AbstractServer {
         @Override
         synchronized public void shutdownNow() {
             
+try {
+    net.jini.lookup.ServiceDiscoveryManager sdm = (server.getClient().getFederation()).getServiceDiscoveryManager();
+    net.jini.core.lookup.ServiceTemplate tmpl = new net.jini.core.lookup.ServiceTemplate(null, new Class[] {com.bigdata.service.Service.class}, null);
+    net.jini.core.lookup.ServiceItem[] serviceItems = sdm.lookup(tmpl, Integer.MAX_VALUE, Integer.MAX_VALUE, null, 5000L);
+    if(serviceItems.length > 0) {
+        for(int i=0; i<serviceItems.length; i++) {
+            Object srvcRef = serviceItems[i].service;
+            if(srvcRef == null) continue;
+            if(srvcRef instanceof net.jini.admin.Administrable) {
+                try {
+                    Object srvcRefAdmin  = ((net.jini.admin.Administrable)srvcRef).getAdmin();
+                    if(srvcRefAdmin instanceof com.sun.jini.admin.DestroyAdmin) {
+                        try {
+                            ((com.sun.jini.admin.DestroyAdmin)srvcRefAdmin).destroy();
+                        } catch(Throwable t) { }
+                    } else {
+System.out.println("\nAAAA*** ServicesManagerService.shutdownNow: SERVICE ADMIN NOT INSTANCE OF DestroyAdmin ["+srvcRef+"]");
+                    }//endif
+                } catch(Throwable t) {
+                    t.printStackTrace();
+                }
+            } else {
+System.out.println("\nAAAA*** ServicesManagerService.shutdownNow: SERVICE NOT Administrable ["+srvcRef+"]");
+            }
+        }
+    }
+} catch(Throwable t) {
+    t.printStackTrace();
+}
+
             // immediate service shutdown (blocks).
             super.shutdownNow();
             
             // jini service and server shutdown.
             server.shutdownNow(false/*destroy*/);
+
             
         }
 
@@ -678,6 +714,7 @@ public class ServicesManagerServer extends AbstractServer {
                 final ConfigurationFile config = (ConfigurationFile) ConfigurationProvider
                         .getInstance(server.args);
 
+System.out.println("\nAAAA*** ServicesManagerService.AdministrableServicesManagerService: sighup() - fed.submitMonitoredTask(new ServicesManagerStartupTask() ***\n");
                 fed.submitMonitoredTask(new ServicesManagerStartupTask(fed,
                         config, pushConfig, restartServices, this));
 

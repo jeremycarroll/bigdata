@@ -34,11 +34,15 @@ import net.jini.core.entry.Entry;
 import com.bigdata.jini.start.IServiceListener;
 import com.bigdata.jini.start.process.JiniServiceProcessHelper;
 import com.bigdata.service.jini.JiniFederation;
-import com.bigdata.service.jini.LoadBalancerServer;
+//BTM import com.bigdata.service.jini.LoadBalancerServer;
 import com.bigdata.util.NV;
 
+//BTM
+import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+
 /**
- * Configuration for the {@link LoadBalancerServer}.
+BTM * Configuration for the {@link LoadBalancerServer}.
+* Configuration for the {@link LoadBalancer} service.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -57,14 +61,16 @@ public class LoadBalancerConfiguration extends
     public LoadBalancerConfiguration(Configuration config)
             throws ConfigurationException {
 
-        super(LoadBalancerServer.class, config);
-
+//BTM        super(LoadBalancerServer.class, config);
+super(com.bigdata.loadbalancer.ServiceImpl.class, config);
+System.out.println("*** LoadBalancerConfiguration: constructor ***");
     }
 
     public LoadBalancerServiceStarter newServiceStarter(JiniFederation fed,
             IServiceListener listener, String zpath, Entry[] attributes)
             throws Exception {
 
+System.out.println("*** LoadBalancerConfiguration ---> newServiceStarter ***");
         return new LoadBalancerServiceStarter(fed, listener, zpath, attributes);
 
     }
@@ -81,13 +87,17 @@ public class LoadBalancerConfiguration extends
                 IServiceListener listener, String zpath, Entry[] attributes) {
 
             super(fed, listener, zpath, attributes);
+System.out.println("*** LoadBalancerConfiguration.LoadBalancerServiceStarter: constructor ***");
 
         }
 
         @Override
         protected NV getDataDir() {
             
-            return new NV(LoadBalancerServer.Options.LOG_DIR, serviceDir
+System.out.println("*** LoadBalancerConfiguration.LoadBalancerServiceStarter: getDataDir [EmbeddedLoadBalancer.Options.LOG_DIR="+EmbeddedLoadBalancer.Options.LOG_DIR+", serviceDir="+serviceDir.toString()+"] ***");
+
+//BTM            return new NV(LoadBalancerServer.Options.LOG_DIR, serviceDir
+return new NV(EmbeddedLoadBalancer.Options.LOG_DIR, serviceDir
                     .toString());
             
         }
