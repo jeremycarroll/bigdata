@@ -174,6 +174,7 @@ System.out.println("DDDD MonitorCreatePhysicalServiceLocksTask.call: locksZPath=
 
     protected void acquireWatcherAndRun(final String locksZPath)
             throws KeeperException, InterruptedException {
+
         final ZooKeeper zookeeper = fed.getZookeeper();
         
         /*
