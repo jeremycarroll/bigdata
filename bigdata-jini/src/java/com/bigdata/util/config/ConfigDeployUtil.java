@@ -187,7 +187,7 @@ public class ConfigDeployUtil {
      * files.
      */
     public static ServiceInfo initServiceInfo(UUID source, String serviceName)
-                                throws SocketException, ConfigurationException
+                  throws SocketException, IOException, ConfigurationException
     {
         ServiceInfo serviceInfo = new ServiceInfo();
         serviceInfo.source = source;
@@ -198,8 +198,8 @@ public class ConfigDeployUtil {
         // Get the common token that all services running on the same
         // node agree on. Use the MAC address or IP address as default token
         String nodeNicName = getString("node.serviceNetwork");
-        String nodeIp = NicUtil.getIpAddress(nodeNicName, false);
-        serviceInfo.nodeToken = NicUtil.getMacAddress(nodeNicName);
+        String nodeIp = NicUtil.getIpAddress("default.nic",nodeNicName,false);
+        serviceInfo.nodeToken = NicUtil.getMacAddress(nodeIp);
         if(serviceInfo.nodeToken == null) serviceInfo.nodeToken = nodeIp;
 
         serviceInfo.nodeId = null;//not set until a node service exists

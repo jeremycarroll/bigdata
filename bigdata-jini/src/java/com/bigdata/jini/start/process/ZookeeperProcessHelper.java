@@ -16,6 +16,8 @@ import com.bigdata.jini.start.IServiceListener;
 import com.bigdata.jini.start.config.ZookeeperServerConfiguration;
 import com.bigdata.jini.start.config.ZookeeperServerEntry;
 import com.bigdata.jini.start.config.ZookeeperServerConfiguration.ZookeeperRunningException;
+import com.bigdata.util.config.ConfigDeployUtil;
+import com.bigdata.util.config.NicUtil;
 import com.bigdata.zookeeper.ZooHelper;
 
 /**
@@ -39,6 +41,14 @@ import com.bigdata.zookeeper.ZooHelper;
 public class ZookeeperProcessHelper extends ProcessHelper {
 
     protected final int clientPort;
+    
+    protected static InetAddress thisInetAddr = null;
+    static {
+	try {
+            thisInetAddr = InetAddress.getByName
+                    (NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false));
+	} catch (Throwable t) { /* swallow */ }
+    }
     
     /**
      * @param name
@@ -144,14 +154,16 @@ public class ZookeeperProcessHelper extends ProcessHelper {
         final ZookeeperServerConfiguration serverConfig = new ZookeeperServerConfiguration(
                 config);
 
-System.out.println("---- ZookeeperProcessHelper.startZookeeper: [localhost="+InetAddress.getLocalHost()+", clientPort="+serverConfig.clientPort+"] ----");
-        if (ZooHelper.isRunning(InetAddress.getLocalHost(), serverConfig.clientPort)) {
+//BTM
+System.out.println("---- ZookeeperProcessHelper.startZookeeper: [localhost="+thisInetAddr.getCanonicalHostName()+", clientPort="+serverConfig.clientPort+"] ----");
+        if (ZooHelper.isRunning(thisInetAddr, serverConfig.clientPort)) {
 
             if (log.isInfoEnabled())
                 log.info("Zookeeper already running: "
-                        + InetAddress.getLocalHost().getCanonicalHostName()
+                        + thisInetAddr.getCanonicalHostName()
                         + ":" + serverConfig.clientPort);
-System.out.println("---- ZookeeperProcessHelper.startZookeeper: Zookeeper ALREADY RUNNING ----");
+//BTM
+System.out.println("---- ZookeeperProcessHelper.startZookeeper: Zookeeper ALREADY RUNNING on "+thisInetAddr.getCanonicalHostName()+" ----");
 
             // will not consider start.
             return 0;
@@ -179,7 +191,6 @@ System.out.println("---- ZookeeperProcessHelper.startZookeeper: Zookeeper ALREAD
         for (ZookeeperServerEntry entry : entries) {
 
             if (entry.isLocalHost()) {
-System.out.println("---- ZookeeperProcessHelper.startZookeeper: IS LOCAL HOST ----");
 
                 if (log.isInfoEnabled())
                     log.info("Zookeeper instance is local: " + entry);
@@ -203,8 +214,6 @@ System.out.println("---- ZookeeperProcessHelper.startZookeeper: IS LOCAL HOST --
                     log.error("Could not start: entry=" + entry, ex);
 
                 }
-}else{
-System.out.println("---- ZookeeperProcessHelper.startZookeeper: is NOT local host ----");
             }
 
         } // next entry

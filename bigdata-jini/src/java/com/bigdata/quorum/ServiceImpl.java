@@ -1092,12 +1092,7 @@ class ServiceImpl implements PrivateInterface {
                     // servers are discovered and a leader is elected.
 
                     //zookeeperNetwork (peerAddress)
-                    String zookeeperNetwork =
-                        NicUtil.getIpAddress(
-                              System.getProperty(
-                                  "exportNic", 
-                                  ConfigDeployUtil.getString(
-                                      "node.serviceNetwork")));
+                    String zookeeperNetwork = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
 
                     if(zookeeperNetwork == null) {
                         throw new ConfigurationException

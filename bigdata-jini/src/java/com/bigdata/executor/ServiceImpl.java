@@ -244,13 +244,9 @@ return null;//TODO
         }
 
         innerProxy = (PrivateInterface)serverExporter.export(this);
+        String hostname = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
         outerProxy = ServiceProxy.createProxy
-                         (innerProxy, proxyId, 
-                          NicUtil.getIpAddress(
-                              System.getProperty(
-                                  "exportNic", 
-                                  ConfigDeployUtil.getString(
-                                      "node.serviceNetwork"))) );
+                         (innerProxy, proxyId, hostname);
         adminProxy = AdminProxy.createProxy(innerProxy, proxyId);
 
         //Setup lookup discovery

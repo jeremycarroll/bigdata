@@ -123,12 +123,12 @@ private static ServiceImpl thisImpl;
 
 //To start service using the old bigdata ServicesManagerService mechanism or from the command line or tests without the Jini ServiceStarter
 public static void main(String[] args) {
-String str1 = "/raglan/service/com.bigdata.jini.start.IServicesManagerService/61e99f71-a6f7-4a61-a330-ce7a04e6a0fb/Thread Pool/Service Time";
-String str2 = "/raglan/service/com.bigdata.jini.start.IServicesManagerService/61e99f71-a6f7-4a61-a330-ce7a04e6a0fb";
-String str3 = "/raglan/service/com.bigdata.jini.start.IServicesManagerService/";
-System.out.println("\n\n SSSSS >>>>> "+str1+ "str1.contains(//) >>>> "+str1.contains("//"));
-System.out.println("\n\n SSSSS >>>>> "+str2+ "str1.contains(//) >>>> "+str2.contains("//"));
-System.out.println("\n\n SSSSS >>>>> "+str3+ "str1.contains(//) >>>> "+str3.contains("//"));
+//String str1 = "/raglan/service/com.bigdata.jini.start.IServicesManagerService/61e99f71-a6f7-4a61-a330-ce7a04e6a0fb/Thread Pool/Service Time";
+//String str2 = "/raglan/service/com.bigdata.jini.start.IServicesManagerService/61e99f71-a6f7-4a61-a330-ce7a04e6a0fb";
+//String str3 = "/raglan/service/com.bigdata.jini.start.IServicesManagerService/";
+//System.out.println("\n\n SSSSS >>>>> "+str1+ "str1.contains(//) >>>> "+str1.contains("//"));
+//System.out.println("\n\n SSSSS >>>>> "+str2+ "str1.contains(//) >>>> "+str2.contains("//"));
+//System.out.println("\n\n SSSSS >>>>> "+str3+ "str1.contains(//) >>>> "+str3.contains("//"));
     try {
         ArrayList<String> argsList = new ArrayList<String>();
 
@@ -416,17 +416,17 @@ logger.log(Level.DEBUG, ">>>>> **** com.bigdata.loadbalancer.ServiceImpl.notify:
                                        ( args,
                                          (this.getClass()).getClassLoader() );
 if(smsProxyId == null) {//service assigns its own proxyId
-System.out.println("XXXXX LOAD BALANCER ServiceImpl: smsProxyId = null ---> service-assigned id");
+logger.warn("XXXXX LOAD BALANCER ServiceImpl: smsProxyId = null ---> service-assigned id");
         BootStateUtil bootStateUtil = 
            new BootStateUtil(config, COMPONENT_NAME, this.getClass(), logger);
         proxyId   = bootStateUtil.getProxyId();
         serviceId = bootStateUtil.getServiceId();
 } else {//ServicesManagerService assigned the proxyId
-System.out.println("XXXXX LOAD BALANCER ServiceImpl: smsProxyId NOT null ---> SMS-assigned id");
+logger.warn("XXXXX LOAD BALANCER ServiceImpl: smsProxyId NOT null ---> SMS-assigned id");
     proxyId = smsProxyId;
     serviceId = com.bigdata.jini.util.JiniUtil.uuid2ServiceID(proxyId);
 }
-System.out.println("XXXXX LOAD BALANCER ServiceImpl: proxyId = "+proxyId+"\n");
+logger.warn("XXXXX LOAD BALANCER ServiceImpl: proxyId = "+proxyId+"\n");
 
         //Service export and proxy creation
         ServerEndpoint endpoint = TcpServerEndpoint.getInstance(0);
@@ -445,11 +445,7 @@ System.out.println("XXXXX LOAD BALANCER ServiceImpl: proxyId = "+proxyId+"\n");
         }
 
         innerProxy = (PrivateInterface)serverExporter.export(this);
-        String hostname = NicUtil.getIpAddress(
-                              System.getProperty(
-                                  "exportNic", 
-                                  ConfigDeployUtil.getString(
-                                      "node.serviceNetwork")));
+        String hostname = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
         outerProxy = ServiceProxy.createProxy
                          (innerProxy, proxyId, hostname);
         adminProxy = AdminProxy.createProxy(innerProxy, proxyId);

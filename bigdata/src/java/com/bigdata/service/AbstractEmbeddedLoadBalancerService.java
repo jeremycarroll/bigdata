@@ -5,6 +5,9 @@ import java.net.UnknownHostException;
 import java.util.Properties;
 import java.util.UUID;
 
+import com.bigdata.util.config.ConfigDeployUtil;
+import com.bigdata.util.config.NicUtil;
+
 /**
  * Embedded {@link LoadBalancerService}.
  * 
@@ -14,7 +17,7 @@ import java.util.UUID;
 abstract public class AbstractEmbeddedLoadBalancerService extends LoadBalancerService {
 
 //    final private UUID serviceUUID;
-    final private String hostname;
+    private String hostname = NicUtil.getIpAddressByLocalHost();//for now, maintain the same failure logic as in constructor
     
     public AbstractEmbeddedLoadBalancerService(UUID serviceUUID,
             Properties properties) {
@@ -28,17 +31,11 @@ abstract public class AbstractEmbeddedLoadBalancerService extends LoadBalancerSe
         
         setServiceUUID(serviceUUID);
         
-        String hostname;
         try {
-            
-            hostname = Inet4Address.getLocalHost().getCanonicalHostName();
-            
-        } catch (UnknownHostException e) {
-            
-            hostname = "localhost";
-            
+            this.hostname = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
+        } catch(Throwable t) {
+            t.printStackTrace();
         }
-        this.hostname = hostname;
 
     }
 

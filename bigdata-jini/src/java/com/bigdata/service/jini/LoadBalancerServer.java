@@ -36,12 +36,15 @@ import com.bigdata.service.LoadBalancerService;
 import com.bigdata.service.jini.util.DumpFederation;
 import com.bigdata.service.jini.util.DumpFederation.FormatRecord;
 import com.bigdata.service.jini.util.DumpFederation.FormatTabTable;
+import com.bigdata.util.config.ConfigDeployUtil;
+import com.bigdata.util.config.NicUtil;
 import com.bigdata.util.httpd.AbstractHTTPD;
 import com.bigdata.util.httpd.NanoHTTPD;
 import com.bigdata.util.httpd.NanoHTTPD.Response;
 import com.sun.jini.start.LifeCycle;
 import com.sun.jini.start.ServiceDescriptor;
 import com.sun.jini.start.ServiceStarter;
+
 
 /**
  * The load balancer server.
@@ -634,15 +637,10 @@ public class LoadBalancerServer extends AbstractServer {
                  * This exception gets thrown if the client has made a direct
                  * (vs RMI) call.
                  */
-
                 try {
-
-                    clientAddr = Inet4Address.getLocalHost();
-
-                } catch (UnknownHostException ex) {
-
-                    return "localhost";
-
+                    clientAddr = InetAddress.getByName(NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.dataNetwork"), false));
+                } catch(Throwable t) {//for now, maintain the same failure logic as used previously
+                    return NicUtil.getIpAddressByLocalHost();
                 }
 
             }

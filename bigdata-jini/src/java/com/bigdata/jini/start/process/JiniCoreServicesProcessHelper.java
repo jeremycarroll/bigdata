@@ -42,6 +42,8 @@ import com.bigdata.jini.start.config.JiniCoreServicesConfiguration.JiniCoreServi
 import com.bigdata.service.jini.JiniClientConfig;
 import com.bigdata.service.jini.util.JiniServicesHelper;
 import com.bigdata.service.jini.util.LookupStarter;
+import com.bigdata.util.config.ConfigDeployUtil;
+import com.bigdata.util.config.NicUtil;
 
 /**
  * Class for starting the jini services.
@@ -83,12 +85,14 @@ public class JiniCoreServicesProcessHelper extends ProcessHelper {
     public static boolean startCoreServices(final Configuration config,
             final IServiceListener listener) throws Exception {
 
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: new JiniCoreServicesConfiguration() ...");
         final JiniCoreServicesConfiguration serviceConfig = new JiniCoreServicesConfiguration(
                 config);
 
         // Note: will throw NPE or IAE if constraint relies on fed!
         if (!serviceConfig.canStartService(null/* fed */)) {
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: Constraints do NOT permit start --> "+serviceConfig);
 
             // refuse to start.
@@ -97,11 +101,13 @@ System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: Constra
 
         }
 
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: new JiniClientConfig() ...");
         final JiniClientConfig clientConfig = new JiniClientConfig(
                 null/* class */, config);
 
         final LookupLocator[] locators = clientConfig.locators;
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: locators.length = "+locators.length);
         
         if (locators.length > 0) {
@@ -120,6 +126,7 @@ System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: locator
             
             int i = 0;
             for (LookupLocator locator : locators) {
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: locator["+i+"] = "+locator);
 
                 allowed[i++] = locator.getHost();
@@ -130,6 +137,7 @@ System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: locator
 
                 if (log.isInfoEnabled())
                     log.info("Host not selected by locator(s).");
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: locator NOT ALLOWED");
                 
                 return false;
@@ -144,6 +152,7 @@ System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: locator
 
             if (log.isInfoEnabled())
                 log.info("Constraint(s) do not allow service start: " + config);
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: CONSTRAINTS do not allow start ["+config+"]");
 
             return false;
@@ -153,6 +162,7 @@ System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: CONSTRA
         /*
          * The #of registrars that we can locate within a timeout.
          */
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: JiniServicesHelper.getServiceRegistrars() ...");
         final ServiceRegistrar[] registrars = JiniServicesHelper
                 .getServiceRegistrars(Integer.MAX_VALUE/* maxCount */,
@@ -162,13 +172,13 @@ System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: JiniSer
         if (log.isInfoEnabled())
             log.info("registrars: #found=" + registrars.length + ", #desired="
                     + serviceConfig.serviceCount);
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: JiniServicesHelper.getServiceRegistrars() - #found=" + registrars.length + ", #desired=" + serviceConfig.serviceCount);
 
         if (registrars.length >= serviceConfig.serviceCount) {
 
             if (log.isInfoEnabled())
                 log.info("Enough instances - will not start another.");
-System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: Enough instances - will not start another.");
 
             return false;
 
@@ -179,17 +189,20 @@ System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: Enough 
          */
 
         if (log.isInfoEnabled())
-            log.info("Will start instance: " + InetAddress.getLocalHost()
+            log.info("Will start instance: " + NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false)
                     + ", config=" + config);
 
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: serviceConfig.newServiceStarter() ...");
         final JiniCoreServicesStarter<JiniCoreServicesProcessHelper> serviceStarter = serviceConfig
                 .newServiceStarter(listener, clientConfig);
 
         // start jini.
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: serviceStarter.call() ...");
         final JiniCoreServicesProcessHelper processHelper = serviceStarter
                 .call();
+//BTM
 System.out.println("*** JiniCoreServicesProcessHelper.startCoreServices: serviceStarter.call() ... RETURNED!!!");
 
         return true;

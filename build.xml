@@ -563,6 +563,7 @@ an "NOP" bash script or edit your crontab.
 	<replacefilter token="@NTP_NETWORK@" value="${NTP_NETWORK}" />
 	<replacefilter token="@NTP_NETMASK@" value="${NTP_NETMASK}" />
 	<replacefilter token="@CLASSPATH@" value="${myclasspath}" />
+	<replacefilter token="@APP_HOME@" value="${APP_HOME}" />
 </replace>
 <replace dir="${install.config.dir}" summary="true">
 	<replacefilter token="@FED@" value="${FED}" />
@@ -601,6 +602,7 @@ an "NOP" bash script or edit your crontab.
 	<replacefilter token="@NTP_NETWORK@" value="${NTP_NETWORK}" />
 	<replacefilter token="@NTP_NETMASK@" value="${NTP_NETMASK}" />
 	<replacefilter token="@CLASSPATH@" value="${myclasspath}" />
+	<replacefilter token="@APP_HOME@" value="${APP_HOME}" />
 	<!-- updates the configuration file to locate the lubm ontology. -->
 	<replacefilter token="@install.lubm.config.dir@" value="${install.lubm.config.dir}" />
 </replace>
@@ -775,6 +777,7 @@ ${postInstallMessage}</echo>
 		<replacefilter token="@LUBM_RMI_CODEBASE_URL@" value="${LUBM_RMI_CODEBASE_URL}" />
 		<replacefilter token="@install.lubm.lib.dir@" value="${install.lubm.lib.dir}" />
 		<replacefilter token="@install.lubm.config.dir@" value="${install.lubm.config.dir}" />
+                <replacefilter token="@APP_HOME@" value="${APP_HOME}" />
 	</replace>
 	<replace dir="${install.lubm.config.dir}" summary="true">
 		<replacefilter token="@NAS@" value="${NAS}" />
@@ -785,6 +788,7 @@ ${postInstallMessage}</echo>
 		<replacefilter token="@LUBM_RMI_CODEBASE_URL@" value="${LUBM_RMI_CODEBASE_URL}" />
 		<replacefilter token="@install.lubm.lib.dir@" value="${install.lubm.lib.dir}" />
 		<replacefilter token="@install.lubm.config.dir@" value="${install.lubm.config.dir}" />
+	        <replacefilter token="@APP_HOME@" value="${APP_HOME}" />
 	</replace>
 	<!-- fix newlines (otherwise substitutions cause things to break). -->
 	<fixcrlf srcDir="${install.bin.dir}" >
@@ -1675,6 +1679,7 @@ ${postInstallMessage}</echo>
             <replacefilter token="@NTP_NETWORK@" value="${NTP_NETWORK}" />
             <replacefilter token="@NTP_NETMASK@" value="${NTP_NETMASK}" />
             <replacefilter token="@CLASSPATH@" value="${myclasspath}" />
+	    <replacefilter token="@APP_HOME@" value="${APP_HOME}" />
             </replace>
 
         <replace dir="${install.config.dir}" summary="true">
@@ -1714,6 +1719,7 @@ ${postInstallMessage}</echo>
             <replacefilter token="@NTP_NETWORK@" value="${NTP_NETWORK}" />
             <replacefilter token="@NTP_NETMASK@" value="${NTP_NETMASK}" />
             <replacefilter token="@CLASSPATH@" value="${myclasspath}" />
+	    <replacefilter token="@APP_HOME@" value="${APP_HOME}" />
             <!-- updates the configuration file to locate the lubm ontology. -->
             <replacefilter token="@install.lubm.config.dir@" value="${install.lubm.config.dir}" />
         </replace>
@@ -2027,7 +2033,6 @@ ${postInstallMessage}</echo>
         <sysproperty key="java.net.preferIPv4Stack" value="${java.net.preferIPv4Stack}"/>
         <sysproperty key="federation.name" value="${federation.name}"/>
         <sysproperty key="default.nic" value="${default.nic}"/>
-        <sysproperty key="default.nic" value="${default.nic}"/>
       </java>
     </target>
 
@@ -2046,7 +2051,6 @@ ${postInstallMessage}</echo>
         <sysproperty key="log4j.configuration" value="${log4j.configuration}"/>
         <sysproperty key="java.net.preferIPv4Stack" value="${java.net.preferIPv4Stack}"/>
         <sysproperty key="federation.name" value="${federation.name}"/>
-        <sysproperty key="default.nic" value="${default.nic}"/>
         <sysproperty key="default.nic" value="${default.nic}"/>
         <arg value="-stop" />
       </java>
@@ -2101,6 +2105,8 @@ ${postInstallMessage}</echo>
       <echo>    jini.lib.dl:  ${dist.lib.dl}
 </echo>
       <echo>    policy:       ${java.security.policy}
+</echo>
+      <echo>    default.nic:  ${default.nic}
 </echo>
       <echo>    hostname:     ${this.hostname}
 </echo>
@@ -2164,6 +2170,7 @@ ${postInstallMessage}</echo>
         <sysproperty key="log4j.path" value="${bigdata.test.log4j.abs.path}"/>
 
         <sysproperty key="app.home" value="${app.home}"/>
+        <sysproperty key="default.nic" value="${default.nic}"/>
 
         <sysproperty key="classserver.jar" value="${dist.lib}/classserver.jar" />
         <sysproperty key="colt.jar" value="${dist.lib}/colt.jar" />

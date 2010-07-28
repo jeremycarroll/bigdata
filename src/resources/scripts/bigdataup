@@ -79,6 +79,7 @@ fi
 #
 java ${JAVA_OPTS} -Xmx400m \
 	 -cp ${CLASSPATH} \
+	 -DappHome=@APP_HOME@ \
 	 com.bigdata.jini.start.ServicesManagerServer \
 	 ${BIGDATA_CONFIG} ${BIGDATA_CONFIG_OVERRIDES} &
 
