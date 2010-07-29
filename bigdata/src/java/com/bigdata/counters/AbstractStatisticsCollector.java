@@ -288,7 +288,7 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
                 serviceRoot.makePath(
                         IProcessCounters.Memory + ICounterSet.pathSeparator
                                 + "DirectBufferPool").attach(
-                        DirectBufferPool.INSTANCE.getCounters());
+                        DirectBufferPool.getCounters());
                 
             }
 
