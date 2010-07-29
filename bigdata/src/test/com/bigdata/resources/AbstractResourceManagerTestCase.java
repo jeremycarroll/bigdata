@@ -641,8 +641,8 @@ public LoadBalancer getLoadBalancerService() {
                     new IResourceMetadata[] {//
                             resourceManager.getLiveJournal().getResourceMetadata(), //
                     }, //
-                    IndexPartitionCause.register(resourceManager),
-                    "" // history
+                    IndexPartitionCause.register(resourceManager)
+//                    ,"" // history
                     ));
 
             // submit task to register the index and wait for it to complete.

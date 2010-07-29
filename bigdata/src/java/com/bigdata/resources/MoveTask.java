@@ -1368,9 +1368,10 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                             // Historical writes from the source DS.
                             historySegmentMetadata//
                         },
-                        IndexPartitionCause.move(resourceManager),
-                        // history line.
-                        oldpmd.getHistory() + summary + " "));
+                        IndexPartitionCause.move(resourceManager)
+//                        // history line.
+//                        ,oldpmd.getHistory() + summary + " "
+                ));
                         
                 /*
                  * Create the BTree to aborb writes for the target index
