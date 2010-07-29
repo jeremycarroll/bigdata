@@ -59,7 +59,7 @@ public class TestBigdataSailWithSidsWithoutInlining extends AbstractBigdataSailT
          * Use a proxy test suite and specify the delegate.
          */
 
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate, "SAIL with SIDS (no inlining)");
+        final ProxyTestSuite suite = new ProxyTestSuite(delegate, "SAIL with Triples (with SIDs, no inlining)");
 
         // test pruning of variables not required for downstream processing.
         suite.addTestSuite(TestPruneBindingSets.class);
@@ -76,6 +76,14 @@ public class TestBigdataSailWithSidsWithoutInlining extends AbstractBigdataSailT
         suite.addTestSuite(TestBigdataSailEvaluationStrategyImpl.class);
         
         suite.addTestSuite(TestReadWriteTransactions.class);
+        
+        suite.addTestSuite(TestOrderBy.class);
+        
+        suite.addTestSuite(TestSids.class);
+        
+        suite.addTestSuite(TestUnions.class);
+        
+        suite.addTestSuite(TestDescribe.class);
         
         return suite;
         
