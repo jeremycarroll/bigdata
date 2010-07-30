@@ -586,7 +586,7 @@ for(int i=0; i<options.length; i++) {
     optionsList.add(options[i]);
 }
 String joinGroupsOverrideStr = 
-                   "com.bigdata.loadblancer.groupsToJoin=new String[] "
+                   "com.bigdata.loadbalancer.groupsToJoin=new String[] "
                    +"{"
                    +"\""+fedname+"\""
                    +"}";
