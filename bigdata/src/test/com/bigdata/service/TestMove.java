@@ -40,7 +40,7 @@ import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.KV;
-import com.bigdata.btree.keys.KeyBuilder;
+import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.btree.proc.BatchInsert.BatchInsertConstructor;
 import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.io.SerializerUtil;
@@ -223,7 +223,7 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
 
                 for (int i = 0; i < batchSize; i++) {
 
-                    keys[i] = KeyBuilder.asSortKey(nwritten + i);
+                    keys[i] = TestKeyBuilder.asSortKey(nwritten + i);
 
                     vals[i] = SerializerUtil.serialize(nwritten + i);
                     
