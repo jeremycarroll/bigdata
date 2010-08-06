@@ -32,7 +32,7 @@ import java.util.concurrent.TimeoutException;
  * Interface for collecting, reporting, and decision-making based on node and
  * service utilization statistics.
  */
-public interface LoadBalancer extends Service {
+public interface LoadBalancer {
     
     /**
      * This method is called by an entity that wishes to send its
@@ -175,4 +175,16 @@ public interface LoadBalancer extends Service {
      *                     that calls this method.
      */
     boolean isUnderUtilizedDataService(UUID serviceId) throws IOException;
+
+
+    /**
+     * Special method that instructs the load balancer service to log the
+     * counters managed by that service to a temporary file. This method
+     * is intended as replacement for the system based sighup mechanism.
+     * 
+     * @throws IOException if there is a communication failure between
+     *                     this load balancer service and the entity
+     *                     that calls this method.
+     */
+    public void sighup() throws IOException;
 }

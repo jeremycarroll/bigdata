@@ -46,7 +46,7 @@ import com.bigdata.util.httpd.AbstractHTTPD;
 
 /**
  * Basic delegate for services that need to override the service UUID and
- * service interface reported to the {@link ILoadBalancerService}.
+ * service interface reported to the load balancer service.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$

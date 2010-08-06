@@ -66,7 +66,7 @@ import com.sun.jini.admin.DestroyAdmin;
  *            A class or interface implemented by all services whose proxies
  *            will be discovered and cached by this class.
  */
-abstract public class AbstractCachingServiceClient<S extends Remote> {
+abstract public class AbstractCachingServiceClient<S extends Object> {
 
     protected static final transient Logger log = Logger
             .getLogger(AbstractCachingServiceClient.class);

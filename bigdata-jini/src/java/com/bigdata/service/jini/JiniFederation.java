@@ -82,7 +82,6 @@ import com.bigdata.service.AbstractDistributedFederation;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.IClientService;
 import com.bigdata.service.IDataService;
-//BTM import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.IService;
 import com.bigdata.service.jini.lookup.ClientServicesClient;
@@ -575,8 +574,7 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
         
     }
     
-//BTM    public ILoadBalancerService getLoadBalancerService() {
-public LoadBalancer getLoadBalancerService() {
+    public LoadBalancer getLoadBalancerService() {
 
         // Note: return null if service not available/discovered.
         if (loadBalancerClient == null)
@@ -807,8 +805,7 @@ public LoadBalancer getLoadBalancerService() {
      * <li>{@link ITransactionService} (blocks until shutdown).</li>
      * <li>{@link IDataService}s (blocks until all are shutdown).</li>
      * <li>{@link IMetadataService}</li>
-BTM     * <li>{@link ILoadBalancerService}</li>
-* <li>{@link LoadBalancer}</li>
+     * <li>load balancer service</li>
      * </ol>
      * 
      * @param immediateShutdown

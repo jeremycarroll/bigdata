@@ -41,7 +41,7 @@ import cern.colt.Arrays;
 import com.bigdata.jini.start.ServicesManagerServer;
 import com.bigdata.service.jini.ClientServer;
 import com.bigdata.service.jini.DataServer;
-//BTM import com.bigdata.service.jini.LoadBalancerServer;
+import com.bigdata.service.jini.LoadBalancerServer;
 import com.bigdata.service.jini.MetadataServer;
 import com.bigdata.service.jini.TransactionServer;
 import com.sun.jini.start.NonActivatableServiceDescriptor;
@@ -131,8 +131,8 @@ public class ServicesManagerConfiguration extends BigdataServiceConfiguration {
          */
         String ZOOKEEPER_DISCOVERY_TIMEOUT_NANOS = "zookeeperDiscoveryTimeout";
 
-//BTM        long DEFAULT_ZOOKEEPER_DISCOVERY_TIMEOUT_NANOS = TimeUnit.MINUTES
-//BTM                .toNanos(3);
+//BTM - trac #97        long DEFAULT_ZOOKEEPER_DISCOVERY_TIMEOUT_NANOS = TimeUnit.MINUTES
+//BTM - trac #97               .toNanos(3);
 long DEFAULT_ZOOKEEPER_DISCOVERY_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
         
     }
@@ -246,13 +246,16 @@ System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: DataSe
                 v.add(new DataServerConfiguration(config));
 
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: DataServer END\n");
-//BTM            } else if (a.equals(LoadBalancerServer.class.getName())) {
-} else if (a.equals(com.bigdata.loadbalancer.ServiceImpl.class.getName())) {
+
+            } else if (a.equals(LoadBalancerServer.class.getName())) {
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: LoadBalancerServer BEGIN");
+                v.add(new LoadBalancerConfiguration(LoadBalancerServer.class, config));
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: LoadBalancerServer END\n");
+            } else if (a.equals(com.bigdata.loadbalancer.ServiceImpl.class.getName())) {
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bigdata.loadbalancer.ServiceImpl BEGIN");
-
-                v.add(new LoadBalancerConfiguration(config));
-
+                v.add(new LoadBalancerConfiguration(com.bigdata.loadbalancer.ServiceImpl.class, config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigdata.loadbalancer.ServiceImpl END\n");
+
             } else if (a.equals(ClientServer.class.getName())) {
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: ClientServer BEGIN");
 

@@ -29,7 +29,6 @@ import com.bigdata.resources.OverflowManager.ResourceScores;
 import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
-//BTM import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.ndx.ClientIndexView;
 
@@ -513,8 +512,7 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
          * critically overloaded, but that should probably be handled by
          * different logic.]
          */
-//BTM        ILoadBalancerService loadBalancerService = null;
-LoadBalancer loadBalancerService = null;
+        LoadBalancer loadBalancerService = null;
         if (vmd.getPercentOfSplit() < resourceManager.maximumMovePercentOfSplit
                 && resourceManager.maximumMovesPerTarget != 0
                 && resourceManager.getLiveJournal().getName2Addr().rangeCount() > resourceManager.minimumActiveIndexPartitions
@@ -562,19 +560,15 @@ LoadBalancer loadBalancerService = null;
     }
 
     /**
-BTM     * Return the {@link ILoadBalancerService} if it can be discovered.
-* Return the {@link LoadBalancer} service if it can be discovered.
+     * Return the load balancer service if it can be discovered.
      * 
-BTM     * @return the {@link ILoadBalancerService} if it can be discovered and
-* @return the {@link LoadBalancer} service if it can be discovered and
+     * @return the load balancer service if it can be discovered and
      *         otherwise <code>null</code>.
      */
-//BTM    private ILoadBalancerService getLoadBalancerService() {
-private LoadBalancer getLoadBalancerService() {
+    private LoadBalancer getLoadBalancerService() {
 
         // lookup the load balancer service.
-//BTM        final ILoadBalancerService loadBalancerService;
-final LoadBalancer loadBalancerService;
+        final LoadBalancer loadBalancerService;
         
         try {
 
@@ -612,8 +606,7 @@ final LoadBalancer loadBalancerService;
      * @param loadBalancerService
      *            The load balancer.
      */
-//BTM    protected boolean shouldMove(final ILoadBalancerService loadBalancerService) {
-protected boolean shouldMove(final LoadBalancer loadBalancerService) {
+    protected boolean shouldMove(final LoadBalancer loadBalancerService) {
 
         if (loadBalancerService == null)
             throw new IllegalArgumentException();
@@ -692,8 +685,7 @@ protected boolean shouldMove(final LoadBalancer loadBalancerService) {
      * behavior).
      */
     private UUID getMoveTarget(final UUID sourceServiceUUID,
-final LoadBalancer loadBalancerService) {
-//BTM            final ILoadBalancerService loadBalancerService) {
+            final LoadBalancer loadBalancerService) {
 
         try {
 

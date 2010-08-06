@@ -40,7 +40,6 @@ import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.ISlice;
 import com.bigdata.relation.rule.IStep;
 import com.bigdata.relation.rule.Rule;
-//BTM import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.striterator.IKeyOrder;
 
 import com.bigdata.service.LoadBalancer;
@@ -60,8 +59,7 @@ import com.bigdata.service.LoadBalancer;
  * In order to aggregate the data on rule execution, we want to roll up the data
  * for the individual rules along the same lines as the program structure.
  * 
-BTM * @todo Report as counters aggregated by the {@link ILoadBalancerService}?
-* @todo Report as counters aggregated by the {@link LoadBalancer} service?
+ * @todo Report as counters aggregated by the load balancer service?
  * 
  * @author mikep
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>

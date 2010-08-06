@@ -67,10 +67,13 @@ import com.bigdata.service.jini.util.JiniServicesHelper;
  */
 public class TestMappedRDFDataLoadMaster extends TestCase2 {
 
+    protected boolean serviceImplRemote;
+
     /**
      * 
      */
     public TestMappedRDFDataLoadMaster() {
+        this.serviceImplRemote = false;
     }
 
     /**
@@ -78,6 +81,19 @@ public class TestMappedRDFDataLoadMaster extends TestCase2 {
      */
     public TestMappedRDFDataLoadMaster(String name) {
         super(name);
+        this.serviceImplRemote = false;
+    }
+
+    public TestMappedRDFDataLoadMaster(boolean serviceImplRemote) {
+        this.serviceImplRemote = serviceImplRemote;
+    }
+
+    /**
+     * @param name
+     */
+    public TestMappedRDFDataLoadMaster(String name, boolean serviceImplRemote) {
+        super(name);
+        this.serviceImplRemote = serviceImplRemote;
     }
     
     private JiniServicesHelper helper;
@@ -86,7 +102,7 @@ public class TestMappedRDFDataLoadMaster extends TestCase2 {
 //        
 //        super.setUp();
 //
-//        helper = new JiniServicesHelper();
+//        helper = new JiniServicesHelper(serviceImplRemote);
 //
 //    }
 //
@@ -132,7 +148,7 @@ public class TestMappedRDFDataLoadMaster extends TestCase2 {
 
         try {
 
-            helper = new JiniServicesHelper(args);
+            helper = new JiniServicesHelper(args, serviceImplRemote);
 
             helper.start();
 

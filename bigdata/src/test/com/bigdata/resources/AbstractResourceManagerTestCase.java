@@ -69,7 +69,6 @@ import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataClient;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IDataService;
-//BTM import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.IService;
 import com.bigdata.service.Session;
@@ -479,8 +478,7 @@ public class AbstractResourceManagerTestCase extends
             return null;
         }
 
-//BTM        public ILoadBalancerService getLoadBalancerService() {
-public LoadBalancer getLoadBalancerService() {
+        public LoadBalancer getLoadBalancerService() {
 
             return null;
         }

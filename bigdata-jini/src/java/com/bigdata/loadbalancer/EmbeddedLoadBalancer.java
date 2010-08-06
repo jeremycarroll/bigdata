@@ -1,55 +1,11 @@
 package com.bigdata.loadbalancer;
 
-//BTM import java.io.BufferedOutputStream;
-//BTM import java.io.ByteArrayInputStream;
-//BTM import java.io.File;
-//BTM import java.io.FileFilter;
-//BTM import java.io.FileOutputStream;
-//BTM import java.io.IOException;
-//BTM import java.io.OutputStream;
-//BTM import java.text.NumberFormat;
-//BTM import java.util.Arrays;
-//BTM import java.util.Iterator;
-//BTM import java.util.Properties;
-//BTM import java.util.UUID;
-//BTM import java.util.Vector;
-//BTM import java.util.concurrent.ConcurrentHashMap;
-//BTM import java.util.concurrent.Executors;
-//BTM import java.util.concurrent.ScheduledExecutorService;
-//BTM import java.util.concurrent.TimeUnit;
-//BTM import java.util.concurrent.TimeoutException;
-//BTM import java.util.concurrent.atomic.AtomicReference;
-//BTM import java.util.concurrent.locks.Condition;
-//BTM import java.util.concurrent.locks.Lock;
-//BTM import java.util.concurrent.locks.ReentrantLock;
-
-//BTM import org.apache.log4j.Logger;
-
-//BTM import com.bigdata.counters.AbstractStatisticsCollector;
-//BTM import com.bigdata.counters.CounterSet;
-//BTM import com.bigdata.counters.DefaultInstrumentFactory;
-//BTM import com.bigdata.counters.History;
-//BTM import com.bigdata.counters.HistoryInstrument;
-//BTM import com.bigdata.counters.ICounter;
-//BTM import com.bigdata.counters.ICounterSet;
-//BTM import com.bigdata.counters.IHostCounters;
-//BTM import com.bigdata.counters.IRequiredHostCounters;
-//BTM import com.bigdata.counters.PeriodEnum;
-//BTM import com.bigdata.counters.ICounterSet.IInstrumentFactory;
-//BTM import com.bigdata.journal.BufferMode;
-//BTM import com.bigdata.journal.Journal;
-//BTM import com.bigdata.journal.ConcurrencyManager.IConcurrencyManagerCounters;
-//BTM import com.bigdata.rawstore.Bytes;
-//BTM import com.bigdata.resources.ResourceManager.IResourceManagerCounters;
-//BTM import com.bigdata.resources.StoreManager.IStoreManagerCounters;
-//BTM import com.bigdata.service.DataService.IDataServiceCounters;
-//BTM import com.bigdata.service.EventReceiver.EventBTree;
-//BTM import com.bigdata.util.concurrent.DaemonThreadFactory;
-//BTM import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
-//BTM import com.bigdata.util.concurrent.IQueueCounters.IThreadPoolExecutorTaskCounters;
-
-//BTM
 import static com.bigdata.loadbalancer.Constants.*;
+
+import com.bigdata.service.DataService;//BTM*** - replace with ShardService after DataService smart proxy conversion?
+import com.bigdata.service.DataService.IDataServiceCounters;//BTM*** - replace with EmbeddedDataService.IDataServiceCounters?
+import com.bigdata.service.IDataService;          //BTM*** - replace with ShardService after DataService smart proxy conversion?
+import com.bigdata.service.IMetadataService;      //BTM*** - replace with ShardLocatorService after smart proxy conversion?
 
 import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
@@ -77,8 +33,6 @@ import com.bigdata.service.AbstractRoundRobinServiceLoadHelper;
 import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.AbstractServiceLoadHelperWithScores;
 import com.bigdata.service.AbstractServiceLoadHelperWithoutScores;
-import com.bigdata.service.DataService;//BTM*** - replace with ShardService after DataService smart proxy conversion?
-import com.bigdata.service.DataService.IDataServiceCounters;//BTM*** - replace with EmbeddedDataService.IDataServiceCounters?
 import com.bigdata.service.Event;
 import com.bigdata.service.EventReceiver;
 import com.bigdata.service.EventReceiver.EventBTree;
@@ -86,9 +40,7 @@ import com.bigdata.service.EventReceivingService;
 import com.bigdata.service.HostScore;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IClientService;
-import com.bigdata.service.IDataService;          //BTM*** - replace with ShardService after DataService smart proxy conversion?
 import com.bigdata.service.IEventReportingService;
-import com.bigdata.service.IMetadataService;      //BTM*** - replace with ShardLocatorService after smart proxy conversion?
 import com.bigdata.service.IService;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.LoadBalancer;
@@ -153,6 +105,7 @@ public class EmbeddedLoadBalancer implements LoadBalancer,
 
     private UUID thisServiceUUID;
     private String hostname;
+
 //BTM***    private IBigdataFederation federation;
 private CounterSet countersRoot;
 private CounterSet serviceRoot;
@@ -162,7 +115,6 @@ private Map<UUID, DataService> embeddedDataServiceMap;
 private ServiceDiscoveryManager sdm;
 private LookupCache smartProxyCache;
 private LookupCache remoteServiceCache;
-
 //BTM***
 
     final protected String ps = ICounterSet.pathSeparator;
@@ -900,6 +852,21 @@ if (logger.isEnabledFor(org.apache.log4j.Level.DEBUG)) {
         return underUtilized;
     }
 
+
+    /**
+     * Logs the counters to a temporary file.
+     */
+    public void sighup() throws IOException {
+        if (isTransient) {
+            logger.warn
+                ("transient load balancer service - request ignored");
+            return;
+        }
+        final File file = 
+            File.createTempFile("counters-hup", ".xml", logDir);
+        logCounters(file);
+    }
+
 //BTM
 // Required by IEventReportingService interface
 
@@ -1361,7 +1328,7 @@ getCounterSet().asXML(os, "UTF-8", null/* filter */);
             }
         }
     }
-    
+
 //BTM private methods of EmbeddedLoadBalancer
 
     /**
@@ -1567,7 +1534,7 @@ this.serviceRoot, SERVICE_NAME, SERVICE_TYPE, this.getProperties());
      *       the logic to compute those scores).
      * 
      * @todo if a client does not
-     *       {@link ILoadBalancerService#notify(String, byte[])} for 120 seconds
+     *       {@link LoadBalancer#notify(String, byte[])} for 120 seconds
      *       then presume dead? this requires that we compute the age of the
      *       last reported counter value. e.g., do a counter scan for the
      *       service and report the largest value for lastModified() on any
@@ -2276,8 +2243,7 @@ String serviceName = serviceNameMap.get(serviceUUID);
          * Note: The host and service scores will not appear until the
          * {@link UpdateTask} has executed and those scores have been computed.
          * 
-BTM         * @see LoadBalancerService.Options#UPDATE_DELAY
-* @see EmbeddedLoadBalancer.Options#UPDATE_DELAY
+         * @see EmbeddedLoadBalancer.Options#UPDATE_DELAY
          * 
          * @todo counters for service scores should be eventually removed after
          *       the service leaves. Likewise for host scores. However, these
@@ -2461,8 +2427,7 @@ getServiceCounterSet();
     }//end class UpdateTask
 
     /**
-BTM     * Integration with the {@link LoadBalancerService}.
-* Integration with the {@link LoadBalancer} service.
+     * Integration with the {@link LoadBalancer} service.
      */
     protected class RoundRobinServiceLoadHelper 
                         extends AbstractRoundRobinServiceLoadHelper

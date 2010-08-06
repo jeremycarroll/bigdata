@@ -123,11 +123,13 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
     private final ResourceLockService resourceLockManager;
     
     /**
-BTM     * The (in process) {@link LoadBalancerService}.
-* The (in process) {@link LoadBalancer} service.
+     * The (in process) load balancer service.
      */
 //BTM    private final LoadBalancerService loadBalancerService;
-private final EmbeddedLoadBalancer loadBalancerService;
+//private final EmbeddedLoadBalancer loadBalancerService;
+private final LoadBalancer loadBalancerService;
+private final EmbeddedLoadBalancerServiceImpl remoteLbs;
+private final EmbeddedLoadBalancerImpl lbs;
     
     /**
      * The (in process) {@link MetadataService}.
@@ -185,11 +187,9 @@ private final EmbeddedLoadBalancer loadBalancerService;
     }
     
     /**
-BTM     * The (in process) {@link LoadBalancerService}.
-* The (in process) {@link LoadBalancer} service.
+     * Returns the (in process) load balancer service.
      */
-//BTM    final public ILoadBalancerService getLoadBalancerService() {
-final public LoadBalancer getLoadBalancerService() {
+    final public LoadBalancer getLoadBalancerService() {
 
         // Note: return null if service not available/discovered.
 
@@ -313,6 +313,8 @@ final public LoadBalancer getLoadBalancerService() {
                 .getProperty(Options.CREATE_TEMP_FILE,
                         ""+Options.DEFAULT_CREATE_TEMP_FILE));
 
+boolean serviceImplRemote = ( (null != properties.getProperty(EmbeddedClient.Options.SERVICE_IMPL_REMOTE)) ? true : false);
+System.out.println("\n*** serviceImplRemote = "+serviceImplRemote);
         /*
          * The directory in which the data files will reside.
          */
@@ -617,77 +619,101 @@ final public LoadBalancer getLoadBalancerService() {
             
             if (isTransient) {
 
-//BTM                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
-p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.TRANSIENT, "true");
+                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
+                p.setProperty(EmbeddedLoadBalancer.Options.TRANSIENT, "true");
 
-p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR,
-              new File(EmbeddedLoadBalancerServiceImpl.Options.DEFAULT_LOG_DIR).toString());
-
+                p.setProperty(EmbeddedLoadBalancerImpl.Options.LOG_DIR,
+                              new File
+                    (EmbeddedLoadBalancerImpl.Options.DEFAULT_LOG_DIR).toString());
             } else {
-                
                 // specify the data directory for the load balancer.
-
                 p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR,
                         new File(dataDir, "lbs").toString());
-                
+                p.setProperty(EmbeddedLoadBalancerImpl.Options.LOG_DIR,
+                        new File(dataDir, "lbs").toString());
             }
 
+            if(serviceImplRemote) {
+                try {
+                    loadBalancerService = 
+                        new EmbeddedLoadBalancerServiceImpl
+                                (UUID.randomUUID(), p).start();
+                } catch (Throwable t) {
+                    log.error(t, t);
+                    throw new RuntimeException(t);
+                }
+                remoteLbs = (EmbeddedLoadBalancerServiceImpl)loadBalancerService;
+                lbs = null;
+            } else {
 //BTM*** remove after EmbeddedDataServiceImpl/shard.ServiceImpl/EmbeddedDataService
 //BTM*** is converted to smart proxy?
-loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID.randomUUID(),
-                                                          hostname,
-                                                          null,//SDM - replace with real SDM after conversion to smart proxy?
+                loadBalancerService = 
+                    new EmbeddedLoadBalancerImpl
+                            (UUID.randomUUID(),
+                             hostname,
+                             null,//SDM - replace with real SDM after conversion to smart proxy?
 //BTM*** EmbeddedDataService.this,
 //BTM*** remove after EmbeddedDataService is converted to smart proxy
-                                                          dataServiceByUUID,
-                                                          p);
+                             dataServiceByUUID,
+                             p);
+                remoteLbs = null;
+                lbs = (EmbeddedLoadBalancerImpl)loadBalancerService;
+            }
+System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> remoteLbs = "+remoteLbs);
+System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> lbs       = "+lbs);
 //BTM*** ------------------------------------------------------------------------------
-
 
             /*
              * Have the data services join the load balancer.
              */
             for (IDataService ds : this.dataService) {
-
                 try {
-
-                    loadBalancerService.join(ds.getServiceUUID(), ds
-                            .getServiceIface(), 
-//BTM
-ds.getServiceName(),
-hostname);
-
+                    if(remoteLbs != null) {
+                        remoteLbs.join(ds.getServiceUUID(), 
+                                       ds.getServiceIface(),
+                                       hostname);
+                    } else {
+                        lbs.join(ds.getServiceUUID(),
+                                 ds.getServiceIface(), 
+                                 ds.getServiceName(),
+                                 hostname);
+                    }
                 } catch (IOException e) {
-
                     // Should never be thrown for an embedded service.
-
                     log.warn(e.getMessage(), e);
-
                 }
-
             }
 
             /*
              * Other service joins.
              */
-
-            loadBalancerService.join(abstractTransactionService.getServiceUUID(),
-                    abstractTransactionService.getServiceIface(), 
-//BTM
-(abstractTransactionService.getServiceUUID()).toString(),
-hostname);
-
-            loadBalancerService.join(loadBalancerService.getServiceUUID(),
-                    loadBalancerService.getServiceIface(), 
-//BTM
-(loadBalancerService.getServiceUUID()).toString(),
-hostname);
-
-            loadBalancerService.join(metadataService.getServiceUUID(),
-                    metadataService.getServiceIface(), 
-//BTM
-(metadataService.getServiceUUID()).toString(),
-hostname);
+            if(remoteLbs != null) {
+                remoteLbs.join
+                    (abstractTransactionService.getServiceUUID(),
+                     abstractTransactionService.getServiceIface(), 
+                     hostname);
+                remoteLbs.join(remoteLbs.getServiceUUID(),
+                               remoteLbs.getServiceIface(), 
+                               hostname);
+                remoteLbs.join(metadataService.getServiceUUID(),
+                               metadataService.getServiceIface(), 
+                               hostname);
+            } else {//smart proxy
+                
+                lbs.join
+                    (abstractTransactionService.getServiceUUID(),
+                     abstractTransactionService.getServiceIface(), 
+                     (abstractTransactionService.getServiceUUID()).toString(),
+                     hostname);
+                lbs.join(lbs.getServiceUUID(),
+                         lbs.getServiceIface(), 
+                         (lbs.getServiceUUID()).toString(),
+                         hostname);
+                lbs.join(metadataService.getServiceUUID(),
+                         metadataService.getServiceIface(), 
+                         (metadataService.getServiceUUID()).toString(),
+                         hostname);
+            }
 
         }
 
@@ -834,41 +860,35 @@ hostname);
 
     }
     
-//BTM    protected class EmbeddedLoadBalancerServiceImpl extends AbstractEmbeddedLoadBalancerService {
-protected class EmbeddedLoadBalancerServiceImpl extends EmbeddedLoadBalancer {
+    protected class EmbeddedLoadBalancerServiceImpl extends AbstractEmbeddedLoadBalancerService {
         
         /**
          * @param serviceUUID
          * @param properties
          */
-//BTM        public EmbeddedLoadBalancerServiceImpl(UUID serviceUUID, Properties properties) {
-//BTM       
-//BTM            super(serviceUUID, properties);
-//BTM            
-//BTM        }
+        public EmbeddedLoadBalancerServiceImpl(UUID serviceUUID, Properties properties) {
+            super(serviceUUID, properties);
+        }
 
-//BTM        @Override
-//BTM        public EmbeddedFederation<T> getFederation() {
-//BTM
-//BTM            return EmbeddedFederation.this;
-//BTM
-//BTM        }
+        @Override
+        public EmbeddedFederation<T> getFederation() {
+            return EmbeddedFederation.this;
+        }
+    }
 
-public EmbeddedLoadBalancerServiceImpl(UUID serviceUUID, 
-                                       String hostname,
-                                       ServiceDiscoveryManager sdm,
-//BTM - remove once EmbeddedDataService converted to smart proxy
-Map<UUID, DataService> dataServiceMap,
-                                       Properties properties)
-{
-    super(serviceUUID, hostname, 
-sdm,
-properties.getProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR),
-//BTM*** EmbeddedFederation.this,
-dataServiceMap,//BTM*** - remove after DataService smart proxy?
-          properties);
-}
-
+    protected class EmbeddedLoadBalancerImpl extends EmbeddedLoadBalancer {
+        
+        public EmbeddedLoadBalancerImpl(UUID serviceUUID, 
+                                        String hostname,
+                                        ServiceDiscoveryManager sdm,
+                                        Map<UUID, DataService> dataServiceMap,//BTM - remove once EmbeddedDataService converted to smart proxy?
+                                        Properties properties)
+        {
+            super(serviceUUID, hostname, sdm,
+                  properties.getProperty(EmbeddedLoadBalancerImpl.Options.LOG_DIR),
+                  dataServiceMap,//BTM*** - remove after DataService smart proxy?
+                  properties);
+        }
     }
     
     protected class EmbeddedTransactionServiceImpl extends AbstractEmbeddedTransactionService {
@@ -937,7 +957,11 @@ dataServiceMap,//BTM*** - remove after DataService smart proxy?
         
         if (loadBalancerService != null) {
 
-            loadBalancerService.shutdown();
+            if(remoteLbs != null) {
+                remoteLbs.shutdown();
+            } else {
+                lbs.shutdown();
+            }
 
 //            loadBalancerService = null;
             
@@ -981,7 +1005,11 @@ dataServiceMap,//BTM*** - remove after DataService smart proxy?
 
         if (loadBalancerService != null) {
 
-            loadBalancerService.shutdownNow();
+            if(remoteLbs != null) {
+                remoteLbs.shutdownNow();
+            } else {
+                lbs.shutdownNow();
+            }
 
 //            loadBalancerService = null;
             
@@ -1026,8 +1054,11 @@ dataServiceMap,//BTM*** - remove after DataService smart proxy?
             metadataService.destroy();
 
         }
-
-        loadBalancerService.destroy();
+        if(remoteLbs != null) {
+            remoteLbs.destroy();
+        } else {
+            lbs.destroy();
+        }
 
         if (!isTransient && !dataDir.delete()) {
 

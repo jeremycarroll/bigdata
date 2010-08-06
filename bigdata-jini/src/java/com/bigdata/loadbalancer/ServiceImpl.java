@@ -117,119 +117,20 @@ class ServiceImpl implements PrivateInterface {
 
     private Thread waitThread;
 
-// ************************************************************************************************************
-private static UUID smsProxyId = null;
-private static ServiceImpl thisImpl;
-
-//To start service using the old bigdata ServicesManagerService mechanism or from the command line or tests without the Jini ServiceStarter
-public static void main(String[] args) {
-//String str1 = "/raglan/service/com.bigdata.jini.start.IServicesManagerService/61e99f71-a6f7-4a61-a330-ce7a04e6a0fb/Thread Pool/Service Time";
-//String str2 = "/raglan/service/com.bigdata.jini.start.IServicesManagerService/61e99f71-a6f7-4a61-a330-ce7a04e6a0fb";
-//String str3 = "/raglan/service/com.bigdata.jini.start.IServicesManagerService/";
-//System.out.println("\n\n SSSSS >>>>> "+str1+ "str1.contains(//) >>>> "+str1.contains("//"));
-//System.out.println("\n\n SSSSS >>>>> "+str2+ "str1.contains(//) >>>> "+str2.contains("//"));
-//System.out.println("\n\n SSSSS >>>>> "+str3+ "str1.contains(//) >>>> "+str3.contains("//"));
-    try {
-        ArrayList<String> argsList = new ArrayList<String>();
-
-        int begIndx = 0;
-        String configFile = System.getProperty("config");
-        if(configFile != null) {
-            // Replace args[1] with config file location
-            argsList.add(configFile);
-            begIndx = 1;
-        }
-        for(int i=begIndx; i<args.length; i++) {
-            argsList.add(args[i]);
-        }
-        // ServicesManagerService waits on the discovery of a service
-        // of this type having the serviceId assigned in the cluster
-        // config file
-        if(System.getProperty("usingServicesManagerService") != null) {
-            Configuration smsConfig = 
-                ConfigurationProvider.getInstance
-                    ( args, (ServiceImpl.class).getClassLoader() );
-
-            Entry[] smsEntries = 
-                (Entry[])smsConfig.getEntry
-                    ("com.bigdata.service.jini.JiniClient",
-                     "entries",
-                     net.jini.core.entry.Entry[].class,
-                     null);
-            if(smsEntries != null) {
-                //see JiniServiceConfiguration.getEntries
-                smsProxyId = 
-                ((com.bigdata.jini.lookup.entry.ServiceUUID)smsEntries[3]).serviceUUID;
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: smsProxyId = "+smsProxyId);
-            }
-            String logicalServiceZPath = 
-                (String)smsConfig.getEntry
-                    ((ServiceImpl.class).getName(),
-                     "logicalServiceZPath",
-                     String.class,
-                     null);
-            String physicalServiceZPath = null;
-            if(logicalServiceZPath != null) {
-                physicalServiceZPath = logicalServiceZPath
-                                       +com.bigdata.jini.start.BigdataZooDefs.ZSLASH 
-                                       +com.bigdata.jini.start.BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER 
-                                       +com.bigdata.jini.start.BigdataZooDefs.ZSLASH 
-                                       +smsProxyId;
-            }
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: logicalServiceZPath = "+logicalServiceZPath);
-            if(physicalServiceZPath != null) {
-                org.apache.zookeeper.data.ACL[] acl =
-                (org.apache.zookeeper.data.ACL[])smsConfig.getEntry
-                    ("org.apache.zookeeper.ZooKeeper", "acl",
-                     org.apache.zookeeper.data.ACL[].class, null);
-                if(acl != null) {
-                    java.util.List<org.apache.zookeeper.data.ACL> aclList =
-                    java.util.Arrays.asList(acl);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: aclList = "+aclList);
-                   String servers = 
-                       (String)smsConfig.getEntry
-                           ("org.apache.zookeeper.ZooKeeper",
-                            "servers", String.class, null);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: servers = "+servers);
-                    if(servers != null) {
-                        int sessionTimeout = 
-                        (Integer)smsConfig.getEntry
-                           ("org.apache.zookeeper.ZooKeeper",
-                            "sessionTimeout", int.class, 300000);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: sessionTimeout = "+sessionTimeout);
-
-                        byte[] data = com.bigdata.io.SerializerUtil.serialize(smsEntries);
-                        org.apache.zookeeper.ZooKeeper zookeeperClient =
-                        new org.apache.zookeeper.ZooKeeper(servers, sessionTimeout, null);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: ZOOKEEPER CLIENT CREATED ***");
-                        try {
-                            zookeeperClient.create(physicalServiceZPath, data, aclList,
-                                                   org.apache.zookeeper.CreateMode.PERSISTENT);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: ZNODE CREATED ["+physicalServiceZPath+"] ***");
-                        } catch(org.apache.zookeeper.KeeperException.NodeExistsException e) {
-                            zookeeperClient.setData(physicalServiceZPath, data, -1);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: ZNODE UPDATED ["+physicalServiceZPath+"] ***");
-                        }
-                    }
-}else{
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: acl = "+acl);
-                }
-            }
-        }
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: new ServiceImpl() ....");
-        thisImpl = new ServiceImpl
-                ( argsList.toArray(new String[argsList.size()]),
-                  new com.bigdata.service.jini.FakeLifeCycle() );
-    } catch(Throwable t) {
-        logger.log(Level.WARN, "failed to start load balancer service", t);
-// System.err.println("FAILED TO START LOAD BALANCER ["+t+"]");
-// t.printStackTrace();
-    }
-}
-// ************************************************************************************************************
-
-
-    /* Constructor used by Service Starter Framework to start this service */
+    /**
+     * Constructor used to instantiate this service. This constructor is
+     * currently invoked by a number of different mechanisms:
+     * <p><ul>
+     * <li>by the Service Starter Framework as part of the deployment
+     *     mechanism
+     * <li>by the <code>com.bigdata.service.jini.util.JiniServicesHelper</code>
+     *     class when running unit tests that require an instance of this
+     *     service (ex. <code>com.bigdata.service.jini.TestBigdataClient</code>
+     *<code>com/bigdata/service/jini/master/TestMappedRDFDataLoadMaster</code>)
+     * <li>by the <code>main</code> method of this class when this service
+     *     is started by the ServicesManagerService
+     * </ul></p>
+     */
     public ServiceImpl(String[] args, LifeCycle lifeCycle) throws Exception {
 logger.log(Level.DEBUG, "XXXXX LOAD BALANCER ServiceImpl: constructor");
 System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: constructor");
@@ -300,6 +201,11 @@ logger.log(Level.DEBUG, ">>>>> **** com.bigdata.loadbalancer.ServiceImpl.notify:
     {
 	readyState.check();
         return embeddedLoadBalancer.isUnderUtilizedDataService(serviceId);
+    }
+
+    public void sighup() throws RemoteException, IOException {
+	readyState.check();
+        embeddedLoadBalancer.sighup();
     }
 
     public void notifyEvent(Event e) throws RemoteException, IOException {
@@ -415,17 +321,18 @@ logger.log(Level.DEBUG, ">>>>> **** com.bigdata.loadbalancer.ServiceImpl.notify:
         config = ConfigurationProvider.getInstance
                                        ( args,
                                          (this.getClass()).getClassLoader() );
-if(smsProxyId == null) {//service assigns its own proxyId
+        if(smsProxyId == null) {//service assigns & persists its own proxyId
 logger.warn("XXXXX LOAD BALANCER ServiceImpl: smsProxyId = null ---> service-assigned id");
-        BootStateUtil bootStateUtil = 
-           new BootStateUtil(config, COMPONENT_NAME, this.getClass(), logger);
-        proxyId   = bootStateUtil.getProxyId();
-        serviceId = bootStateUtil.getServiceId();
-} else {//ServicesManagerService assigned the proxyId
+            BootStateUtil bootStateUtil = 
+                new BootStateUtil
+                        (config, COMPONENT_NAME, this.getClass(), logger);
+            proxyId   = bootStateUtil.getProxyId();
+            serviceId = bootStateUtil.getServiceId();
+        } else {//ServicesManagerService assigned the proxyId
 logger.warn("XXXXX LOAD BALANCER ServiceImpl: smsProxyId NOT null ---> SMS-assigned id");
-    proxyId = smsProxyId;
-    serviceId = com.bigdata.jini.util.JiniUtil.uuid2ServiceID(proxyId);
-}
+            proxyId = smsProxyId;
+            serviceId = com.bigdata.jini.util.JiniUtil.uuid2ServiceID(proxyId);
+        }
 logger.warn("XXXXX LOAD BALANCER ServiceImpl: proxyId = "+proxyId+"\n");
 
         //Service export and proxy creation
@@ -563,5 +470,155 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
                    +Util.writeArrayElementsToString(locatorsToJoin)+"]");
 
         System.exit(status);
+    }
+
+    /**
+     * When using the ServicesManagerService to start this service, the
+     * following information may be useful to keep in mind:
+     * <p>
+     * The ServicesManagerService exec's the <code>main</code> method,
+     * defined below, using the Java <code>ProcessBuilder</code> class;
+     * which results in this service implementation class being instantiated.
+     * <p>
+     * The ServicesManagerService generates a jini configuration for this
+     * service; and that configuration is passed to this service in the
+     * args array of the main method, and is also stored in zookeeper for
+     * retrieval when the ServicesManagerService restarts this service.
+     * <p>
+     * In the generated configuration, the ServicesManagerService includes a
+     * section with component name, "com.bigdata.service.jini.JiniClient";
+     * which contains among its configuration entries, an array whose elements
+     * are each of instances of <code>net.jini.core.entry.Entry</code>;
+     * where those elements are generated in the following order:
+     *
+     *   - net.jini.lookup.entry.Name
+     *   - com.bigdata.jini.lookup.entry.Hostname
+     *   - com.bigdata.jini.lookup.entry.ServiceDir
+     *   - com.bigdata.jini.lookup.entry.ServiceUUID
+     *   - net.jini.lookup.entry.Comment
+     *
+     * Thus, when this service is started by the ServicesManagerService,
+     * it is the ServicesManagerService that generates a service id for
+     * this service, rather than this service generating its own service id.
+     * The value of that service id is retrieved in the <code>main</code>
+     * method and stored in the <code>smdProxyId</code> field so that
+     * this service's <code>init</code> method can take the appropriate
+     * action with respect to the service id; that is, generate and persist
+     * (or retrieve from persistent storage) its own service id if the
+     * service is not started by the ServicesManagerService, or use the
+     * service id passed in through the generated configuration if the
+     * service is being started by the ServicesManagerService.
+     * <p>
+     * Once an instance of this service implementation class has been 
+     * created, that instance is stored in the <code>thisImpl</code>
+     * field to prevent the instance from being garbage collected until
+     * the service is actually shutdown.
+     */
+    private static UUID smsProxyId = null;
+    private static ServiceImpl thisImpl;
+
+    public static void main(String[] args) {
+        try {
+
+            // If the system property with name "config" is set, then
+            // use the value of that property to override the value
+            // input in the first element of the args array
+            ArrayList<String> argsList = new ArrayList<String>();
+            int begIndx = 0;
+            String configFile = System.getProperty("config");
+            if(configFile != null) {
+                // Replace args[1] with config file location
+                argsList.add(configFile);
+                begIndx = 1;
+            }
+            for(int i=begIndx; i<args.length; i++) {
+                argsList.add(args[i]);
+            }
+
+            // ServicesManagerService waits on the discovery of a service
+            // of this type having the same service id as that placed
+            // by the ServicesManagerService in the config file it generated
+            // for the service being started.
+            if(System.getProperty("usingServicesManagerService") != null) {
+                Configuration smsConfig = 
+                    ConfigurationProvider.getInstance
+                        ( args, (ServiceImpl.class).getClassLoader() );
+
+                Entry[] smsEntries = 
+                    (Entry[])smsConfig.getEntry
+                        ("com.bigdata.service.jini.JiniClient",
+                         "entries",
+                         net.jini.core.entry.Entry[].class,
+                         null);
+                if(smsEntries != null) {
+                    // See JiniServiceConfiguration.getEntries to see why
+                    // the element at index 3 is retrieved.
+                    smsProxyId = 
+                        ((com.bigdata.jini.lookup.entry.ServiceUUID)
+                             smsEntries[3]).serviceUUID;
+System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: smsProxyId = "+smsProxyId);
+                }
+                String logicalServiceZPath = 
+                    (String)smsConfig.getEntry((ServiceImpl.class).getName(),
+                                               "logicalServiceZPath",
+                                               String.class,
+                                               null);
+                String physicalServiceZPath = null;
+                if(logicalServiceZPath != null) {
+                    physicalServiceZPath = 
+                        logicalServiceZPath
+                        +com.bigdata.jini.start.BigdataZooDefs.ZSLASH 
+            +com.bigdata.jini.start.BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER 
+                        +com.bigdata.jini.start.BigdataZooDefs.ZSLASH 
+                        +smsProxyId;
+                }
+System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: logicalServiceZPath = "+logicalServiceZPath);
+                if(physicalServiceZPath != null) {
+                    org.apache.zookeeper.data.ACL[] acl =
+                    (org.apache.zookeeper.data.ACL[])smsConfig.getEntry
+                        ("org.apache.zookeeper.ZooKeeper", "acl",
+                         org.apache.zookeeper.data.ACL[].class, null);
+                    if(acl != null) {
+                        java.util.List<org.apache.zookeeper.data.ACL> aclList =
+                            java.util.Arrays.asList(acl);
+System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: aclList = "+aclList);
+                       String servers = (String)smsConfig.getEntry
+                                            ("org.apache.zookeeper.ZooKeeper",
+                                             "servers", String.class, null);
+System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: servers = "+servers);
+                        if(servers != null) {
+                            int sessionTimeout = 
+                                    (Integer)smsConfig.getEntry
+                                        ("org.apache.zookeeper.ZooKeeper",
+                                         "sessionTimeout", int.class, 300000);
+System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: sessionTimeout = "+sessionTimeout);
+
+                            byte[] data = 
+                                com.bigdata.io.SerializerUtil.serialize
+                                    (smsEntries);
+                            org.apache.zookeeper.ZooKeeper zookeeperClient =
+                                new org.apache.zookeeper.ZooKeeper
+                                        (servers, sessionTimeout, null);
+System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: ZOOKEEPER CLIENT CREATED ***");
+                            try {
+                                zookeeperClient.create
+                                  (physicalServiceZPath, data, aclList,
+                                   org.apache.zookeeper.CreateMode.PERSISTENT);
+System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: ZNODE CREATED ["+physicalServiceZPath+"] ***");
+                            } catch(org.apache.zookeeper.KeeperException.NodeExistsException e) {
+                                zookeeperClient.setData(physicalServiceZPath, data, -1);
+System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: ZNODE UPDATED ["+physicalServiceZPath+"] ***");
+                            }
+                        }
+                    }
+                }
+            }
+System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: new ServiceImpl() ....");
+            thisImpl = new ServiceImpl
+                ( argsList.toArray(new String[argsList.size()]),
+                  new com.bigdata.service.jini.FakeLifeCycle() );
+        } catch(Throwable t) {
+            logger.log(Level.WARN, "failed to start load balancer service", t);
+        }
     }
 }

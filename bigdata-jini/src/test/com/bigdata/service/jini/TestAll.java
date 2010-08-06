@@ -54,6 +54,7 @@ public class TestAll extends TestCase {
          * Test of a single client talking to a bigdata federation.
          */
         suite.addTestSuite(TestBigdataClient.class);
+        suite.addTestSuite(TestBigdataClientRemote.class);
 
         // test execution of jobs on a federation.
         suite.addTest(com.bigdata.service.jini.master.TestAll.suite());

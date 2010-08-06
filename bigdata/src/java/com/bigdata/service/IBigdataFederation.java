@@ -84,8 +84,7 @@ public interface IBigdataFederation<T> extends IIndexManager, IFederationDelegat
      * 
      * @return The service -or- <code>null</code> if the service has not been discovered.
      */
-//BTM    public ILoadBalancerService getLoadBalancerService();
-public LoadBalancer getLoadBalancerService();
+    public LoadBalancer getLoadBalancerService();
     
     /**
      * Return the metadata service (or a proxy for the metadata service).
@@ -103,13 +102,11 @@ public LoadBalancer getLoadBalancerService();
 
     /**
      * The {@link CounterSet} which the client will use report its statistics to
-BTM     * the {@link ILoadBalancerService}.
-* the {@link LoadBalancer} service.
+     * the load balancer service.
      * <p>
      * Note: Applications MAY add their own counters (within a suitable
      * namespace) to the returned {@link CounterSet} in order to report their
-BTM     * own performance data to the {@link ILoadBalancerService}.
-* own performance data to the {@link LoadBalancer} service.
+     * own performance data to the load balancer service.
      * 
      * @see #getServiceCounterSet()
      * @see #getServiceCounterPathPrefix()
@@ -183,8 +180,7 @@ BTM     * own performance data to the {@link ILoadBalancerService}.
      * and which is part of the connected federation.
      * <p>
      * Note: This method is here as a failsafe when the
-BTM     * {@link ILoadBalancerService} is not available.
-* {@link LoadBalancer} service is not available.
+     * load balancer service is not available.
      * 
      * @return <code>null</code> if there are NO known {@link IDataService}s.
      */
@@ -251,8 +247,7 @@ BTM     * {@link ILoadBalancerService} is not available.
      *            {@link IndexMetadata.Options#INITIAL_DATA_SERVICE} was
      *            specified, then the identified service will be used. Otherwise
      *            an underutilized service will be selected using the
-BTM     *            {@link ILoadBalancerService}.
-*            {@link LoadBalancer} service.
+     *            load balancer service.
      * 
      * @return The UUID of the registered index.
      * 

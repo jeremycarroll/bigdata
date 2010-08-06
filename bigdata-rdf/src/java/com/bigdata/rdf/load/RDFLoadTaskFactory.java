@@ -8,7 +8,6 @@ import com.bigdata.counters.Instrument;
 import com.bigdata.rdf.rio.IAsynchronousWriteStatementBufferFactory;
 import com.bigdata.rdf.rio.RDFParserOptions;
 import com.bigdata.rdf.store.AbstractTripleStore;
-//BTM import com.bigdata.service.ILoadBalancerService;
 
 import com.bigdata.service.LoadBalancer;
 
@@ -71,8 +70,7 @@ public class RDFLoadTaskFactory<S extends Statement,T extends Runnable> extends
 
     /**
      * Sets up some additional counters for reporting by the client to the
-BTM     * {@link ILoadBalancerService}.
-* {@link LoadBalancer}.
+     * load balancer service.
      * 
      * @todo in the base class also?
      */

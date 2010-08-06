@@ -29,6 +29,7 @@ import static com.bigdata.loadbalancer.Constants.*;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventReceivingService;
 import com.bigdata.service.LoadBalancer;
+import com.bigdata.service.Service;
 
 import net.jini.admin.Administrable;
 
@@ -40,7 +41,7 @@ import java.rmi.RemoteException;
 import java.util.concurrent.TimeoutException;
 import java.util.UUID;
 
-class ServiceProxy implements LoadBalancer, EventReceivingService,
+class ServiceProxy implements LoadBalancer, Service, EventReceivingService,
                               Administrable, Serializable
 {
     private static final long serialVersionUID = 1L;
@@ -85,9 +86,7 @@ class ServiceProxy implements LoadBalancer, EventReceivingService,
     // Remote methods required by the LoadBalancer interface
 
     public void notify(UUID serviceId, byte[] data) throws IOException {
-System.out.println("\n>>>>> **** com.bigdata.loadbalancer.ServiceProxy.notify: CALLING ServiceImpl.notify\n");
         innerProxy.notify(serviceId, data);
-System.out.println(">>>>> **** com.bigdata.loadbalancer.ServiceProxy.notify: DONE CALLING ServiceImpl.notify\n");
     }
 
     public void warn(String msg, UUID serviceId) throws IOException {
@@ -123,6 +122,10 @@ System.out.println(">>>>> **** com.bigdata.loadbalancer.ServiceProxy.notify: DON
     {
         return innerProxy.isUnderUtilizedDataService(serviceId);
 
+    }
+
+    public void sighup() throws IOException {
+        innerProxy.sighup();
     }
 
     // Remote methods required by the EventReceivingService interface

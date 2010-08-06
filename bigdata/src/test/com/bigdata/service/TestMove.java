@@ -111,7 +111,7 @@ public class TestMove extends AbstractEmbeddedFederationTestCase {
          * Note: Disables the initial round robin policy for the load balancer
          * service so that it will use our fakes scores.
          */
-//BTM        properties.setProperty(LoadBalancerService.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
+       properties.setProperty(LoadBalancerService.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
 properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
 
         // turn off acceleration features.
@@ -295,12 +295,13 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
             System.err.println("Setting up LBS for move.");
 
             // explicitly set the log level for the load balancer.
-//BTM            LoadBalancerService.log.setLevel(Level.INFO);
+            LoadBalancerService.log.setLevel(Level.INFO);
 EmbeddedLoadBalancer.logger.setLevel(Level.INFO);
 
 //BTM            final AbstractEmbeddedLoadBalancerService lbs = ((AbstractEmbeddedLoadBalancerService) ((EmbeddedFederation) fed)
 //BTM                    .getLoadBalancerService());
-final EmbeddedLoadBalancer lbs = ((EmbeddedLoadBalancer)((EmbeddedFederation)fed).getLoadBalancerService());
+//final EmbeddedLoadBalancer lbs = ((EmbeddedLoadBalancer)((EmbeddedFederation)fed).getLoadBalancerService());
+final LoadBalancer lbs = ((EmbeddedFederation)fed).getLoadBalancerService();
 
             final ServiceScore[] fakeServiceScores = new ServiceScore[2];
 
@@ -313,7 +314,14 @@ final EmbeddedLoadBalancer lbs = ((EmbeddedLoadBalancer)((EmbeddedFederation)fed
                     dataService1.getServiceUUID(), "dataService1", 0.0/* rawScore */);
 
             // set the fake scores on the load balancer.
-            lbs.setServiceScores(fakeServiceScores);
+//BTM
+if(lbs instanceof LoadBalancerService) {
+System.out.println("*** serviceImpl (TestMove) >>> AbstractEmbeddedLoadBalancerService [remote]");
+        ((AbstractEmbeddedLoadBalancerService)lbs).setServiceScores(fakeServiceScores);
+} else {
+System.out.println("*** serviceImpl (TestMove) >>> EmbeddedLoadBalancer [NON-remote]");
+        ((EmbeddedLoadBalancer)lbs).setServiceScores(fakeServiceScores);
+}
             
         }
 

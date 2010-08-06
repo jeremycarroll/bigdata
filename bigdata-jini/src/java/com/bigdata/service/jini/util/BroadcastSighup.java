@@ -36,9 +36,9 @@ import net.jini.config.ConfigurationException;
 import net.jini.core.lookup.ServiceItem;
 
 import com.bigdata.jini.start.IServicesManagerService;
-import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
+import com.bigdata.service.LoadBalancer;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 import java.net.InetAddress;
@@ -48,16 +48,13 @@ import net.jini.core.lookup.ServiceTemplate;
 import net.jini.lookup.ServiceItemFilter;
 
 /**
- * Utility will broadcast the 
- * {@link IServicesManagerService#sighup(boolean,boolean)} method or
- * {@link ILoadBalancerService#sighup()} method to either local or
- * all discovered {@link IServicesManagerService}s 
- * or {@link ILoadBalancerService}s in federation to which it
- * connects. Each discovered {@link IServicesManagerService} will push the
- * service configuration to zookeeper and then restart any processes for which
- * it has responsibility which are not currently running.
- * Each discovered {@link ILoadBalancerService} will log current counters to
- * files.
+ * Utility will call the <code>sighup(boolean,boolean)</code> method
+ * on all discovered {@link IServicesManagerService} instances or
+ * load balancer services. Each discovered {@link IServicesManagerService}
+ * will push the service configuration to zookeeper and then restart
+ * any processes for which it has responsibility which are not currently
+ * running. Each discovered load balancer service will log current
+ * counters to files.
  * <p>
  * Note: If you are running a federation on a cluster, you can achieve the same
  * effect by changing the federation run state to <code>hup</code> and then
@@ -87,8 +84,8 @@ public class BroadcastSighup {
      * 
      * <dt>signalTarget</dt>
      * <dd>If "servicesManager", then send signals only to instances of 
-     * IServicesManagerService. If "loadBalancer", then send signals only to 
-     * instances of ILoadBalancerService. </dd>
+     * IServicesManagerService. If "loadBalancer", then send signals only
+     * to discovered load balancer service(s). </dd>
      * 
      * <dt>discoveryDelay</dt>
      * <dd>The time in milliseconds to wait for service discovery before
@@ -152,7 +149,7 @@ public class BroadcastSighup {
         if (signalTarget.equals("servicesManager")) {
             iface = IServicesManagerService.class;
         } else if (signalTarget.equals("loadBalancer")) {
-            iface = ILoadBalancerService.class;
+            iface = LoadBalancer.class;
         } else {
             log.warn("Unexpected target for signal: " + signalTarget);
             System.exit(1);
@@ -203,7 +200,7 @@ public class BroadcastSighup {
                     ++n;
 
                 } else if (signalTarget.equals("loadBalancer")) {
-                    ((ILoadBalancerService) item.service).sighup();
+                    ((LoadBalancer) item.service).sighup();
                     ++n;
 
                 } else {

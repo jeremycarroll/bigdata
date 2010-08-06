@@ -35,6 +35,7 @@ import junit.framework.TestSuite;
 import com.bigdata.journal.AbstractIndexManagerTestCase;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.service.TestEDS;
+import com.bigdata.service.TestEDSRemote;
 import com.bigdata.service.TestJournal;
 
 /**
@@ -87,6 +88,7 @@ public class TestAll extends TestCase {
 
         // test row store backed by EDS.
         suite.addTest(proxySuite(new TestEDS("EDS row store"),"EDS"));
+        suite.addTest(proxySuite(new TestEDSRemote("EDS row store Remote"),"EDS Remote"));
 
         /*
          * For EDS:

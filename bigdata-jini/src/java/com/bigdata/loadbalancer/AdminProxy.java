@@ -133,7 +133,6 @@ class AdminProxy implements JoinAdmin, ShutdownAdmin, Serializable {
         innerProxy.destroy();
     }
 
-
     //Methods for good proxy behavior: hashCode, equals, readObject, etc.
 
     public int hashCode() {

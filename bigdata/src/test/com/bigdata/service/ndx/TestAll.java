@@ -28,8 +28,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.service.ndx;
 
 import com.bigdata.service.TestBasicIndexStuff;
+import com.bigdata.service.TestBasicIndexStuffRemote;
 import com.bigdata.service.TestEmbeddedClient;
+import com.bigdata.service.TestEmbeddedClientRemote;
 import com.bigdata.service.TestRangeQuery;
+import com.bigdata.service.TestRangeQueryRemote;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -70,12 +73,15 @@ public class TestAll extends TestCase {
 
         // client basics, including static partitioning of indices.
         suite.addTestSuite(TestEmbeddedClient.class);
+        suite.addTestSuite(TestEmbeddedClientRemote.class);
 
         // test basic index operations.
         suite.addTestSuite(TestBasicIndexStuff.class);
+        suite.addTestSuite(TestBasicIndexStuffRemote.class);
 
         // test range iterators (within and across index partitions).
         suite.addTestSuite(TestRangeQuery.class);
+        suite.addTestSuite(TestRangeQueryRemote.class);
 
         // unit tests for the streaming index write API.
         suite.addTest(com.bigdata.service.ndx.pipeline.TestAll.suite());

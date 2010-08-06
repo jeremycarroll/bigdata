@@ -1,20 +1,13 @@
 package com.bigdata.service;
 
-//BTM import com.bigdata.service.LoadBalancerService.UpdateTask;
-
 /**
-BTM * Per-host metadata and a score for that host which gets updated
-BTM * periodically by {@link UpdateTask}. {@link HostScore}s are a
-BTM * <em>resource utilization</em> measure. They are higher for a host which
-BTM * is more highly utilized. There are several ways to look at the score,
-BTM * including the {@link #rawScore}, the {@link #rank}, and the
-BTM * {@link #drank normalized double-precision rank}. The ranks move in the
- * Per-host metadata and a score for that host which gets updated periodically
- * by <code>com.bigdata.loadbalancer.EmbeddedLoadBalancer.UpdateTask</code>.
- * {@link HostScore}s are a <em>resource utilization</em> measure. They are
- * higher for a host which is more highly utilized. There are several ways to
- * look at the score, including the {@link #rawScore}, the {@link #rank}, and
- * the {@link #drank normalized double-precision rank}. The ranks move in the
+ * Per-host metadata and a score for that host which gets updated
+ * periodically by the <code>UpdateTask</code> of the current
+ * implementation of the load balancer service. {@link HostScore}s are a
+ * <em>resource utilization</em> measure. They are higher for a host which
+ * is more highly utilized. There are several ways to look at the score,
+ * including the {@link #rawScore}, the {@link #rank}, and the
+ * {@link #drank normalized double-precision rank}. The ranks move in the
  * same direction as the {@link #rawScore}s - a higher rank indicates
  * higher utilization. The least utilized host is always rank zero (0). The
  * most utilized host is always in the last rank.

@@ -40,9 +40,6 @@ import com.bigdata.service.jini.DataServer;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.util.NV;
 
-//BTM
-import com.bigdata.service.Service;
-
 /**
  * A bigdata service. Most services have additional parameters which must be
  * specified. Those services are handled by subclasses.
@@ -81,11 +78,18 @@ public class BigdataServiceConfiguration extends
         super(cls.getName(), config);
 System.out.println("*** BigdataServiceConfiguration: constructor");
 
-        if( !( (com.bigdata.loadbalancer.ServiceImpl.class.isAssignableFrom(cls)) ||
-               (AbstractServer.class.isAssignableFrom(cls)) ) )
-        {
+        boolean classCastOk = false;
+        if( AbstractServer.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
+        } else if( com.bigdata.service.jini.LoadBalancerServer.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
+        } else if( com.bigdata.loadbalancer.ServiceImpl.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
+        }
+
+        if( !classCastOk ) {
             throw new ClassCastException("must be instance of service "
-                                         +"backend impl or AbstractServer "
+                                         +"backend impl type or AbstractServer "
                                          +"["+cls+"]");
         }
         if (log4j == null) {

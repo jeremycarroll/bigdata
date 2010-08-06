@@ -23,23 +23,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 /*
- * Created on Mar 2, 2008
+ * Created on Feb 19, 2008
  */
 
 package com.bigdata.service;
 
+import java.util.Properties;
+
 /**
- * <code>Remote</code> interface for collecting, reporting, and
- * decision-making based on node and service utilization statistics.
- *
- * @see LoadBalancer
- * @see IService
- * @see IEventReceivingService
- * 
- * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+ * Test suite for the ability to re-open an {@link EmbeddedFederation}
+ * using purely remote service implementations.
  */
-public interface ILoadBalancerService 
-                 extends LoadBalancer, IService, IEventReceivingService
-{
-    
+public class TestRestartSafeRemote extends TestRestartSafe {
+
+    public TestRestartSafeRemote() { }
+
+    public TestRestartSafeRemote(String arg0) {
+        super(arg0);
+    }
+
+    public Properties getProperties() {
+        final Properties properties = new Properties(super.getProperties());
+        properties.setProperty
+            (EmbeddedClient.Options.SERVICE_IMPL_REMOTE, "true");
+        return properties;
+    }
 }

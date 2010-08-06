@@ -55,7 +55,6 @@ import com.bigdata.journal.ITransactionService;
 import com.bigdata.service.DataService;
 import com.bigdata.service.DefaultServiceFederationDelegate;
 import com.bigdata.service.IDataService;
-//BTM import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.jini.AbstractServer;
@@ -66,9 +65,6 @@ import com.bigdata.service.jini.RemoteDestroyAdmin;
 import com.sun.jini.start.LifeCycle;
 import com.sun.jini.start.ServiceDescriptor;
 import com.sun.jini.start.ServiceStarter;
-
-//BTM
-import com.bigdata.service.LoadBalancer;
 
 /**
  * A class for bootstrapping a {@link JiniFederation} across a cluster based on
@@ -215,8 +211,7 @@ import com.bigdata.service.LoadBalancer;
  * The two main services which require failover are the
  * {@link ITransactionService} and the {@link IDataService} (which includes the
  * {@link IMetadataService} as a special case). The loss of the
-BTM * {@link ILoadBalancerService} is normally not critical as only history about
-* {@link LoadBalancer} service is normally not critical as only history about
+ * load balancer service is normally not critical as only history about
  * the system load over time is lost.
  * 
  * <h4>Transaction service</h4>
@@ -296,8 +291,7 @@ BTM * {@link ILoadBalancerService} is normally not critical as only history abou
  *       and supports transactions over operations on the space. Gigaspaces has
  *       defined a variety of extensions that provide FIFO queues.
  * 
-BTM * @todo The {@link MetadataService}, the {@link ILoadBalancerService}, and
-* @todo The {@link MetadataService}, the {@link LoadBalancer} service, and
+ * @todo The {@link MetadataService}, the load balancer service, and
  *       the {@link ITransactionService} MUST NOT have more than one logical
  *       instance in a federation. They can (eventually) have failover
  *       instances, but not peers. The {@link DataService} is the only one that

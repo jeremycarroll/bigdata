@@ -155,15 +155,15 @@ public class ZookeeperProcessHelper extends ProcessHelper {
                 config);
 
 //BTM
-System.out.println("---- ZookeeperProcessHelper.startZookeeper: [localhost="+thisInetAddr.getCanonicalHostName()+", clientPort="+serverConfig.clientPort+"] ----");
+System.out.println("---- ZookeeperProcessHelper.startZookeeper: [localhost="+thisInetAddr.getHostName()+", clientPort="+serverConfig.clientPort+"] ----");
         if (ZooHelper.isRunning(thisInetAddr, serverConfig.clientPort)) {
 
             if (log.isInfoEnabled())
                 log.info("Zookeeper already running: "
-                        + thisInetAddr.getCanonicalHostName()
+                        + thisInetAddr.getHostName()
                         + ":" + serverConfig.clientPort);
 //BTM
-System.out.println("---- ZookeeperProcessHelper.startZookeeper: Zookeeper ALREADY RUNNING on "+thisInetAddr.getCanonicalHostName()+" ----");
+System.out.println("---- ZookeeperProcessHelper.startZookeeper: Zookeeper ALREADY RUNNING on "+thisInetAddr.getHostName()+" ----");
 
             // will not consider start.
             return 0;

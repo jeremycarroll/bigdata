@@ -171,15 +171,15 @@ public class StressTestConcurrent extends
          * Note: Disables the initial round robin policy for the load balancer
          * service so that it will use our fakes scores.
          */
-//BTM        properties.setProperty(
-//BTM                LoadBalancerService.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT,
-//BTM                "0");
+        properties.setProperty(
+                LoadBalancerService.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT,
+                "0");
 properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
 
         // load balancer update delay
 //      properties.setProperty(LoadBalancerService.Options.UPDATE_DELAY,"10000");
 //BTM
-//properties.setProperty(EmbeddedLoadBalancer.Options.UPDATE_DELAY,"10000");
+//BTM properties.setProperty(EmbeddedLoadBalancer.Options.UPDATE_DELAY,"10000");
 
         // make sure scatter splits are enabled.
         properties.setProperty(Options.SCATTER_SPLIT_ENABLED, "true");
@@ -791,12 +791,13 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
             throws IOException {
 
         // explicitly set the log level for the load balancer.
-//BTM        LoadBalancerService.log.setLevel(Level.INFO);
+        LoadBalancerService.log.setLevel(Level.INFO);
 EmbeddedLoadBalancer.logger.setLevel(Level.INFO);
 
 //BTM        final AbstractEmbeddedLoadBalancerService lbs = ((AbstractEmbeddedLoadBalancerService) ((EmbeddedFederation<?>) fed)
 //BTM                .getLoadBalancerService());
-final EmbeddedLoadBalancer lbs = ((EmbeddedLoadBalancer)((EmbeddedFederation)fed).getLoadBalancerService());
+//final EmbeddedLoadBalancer lbs = ((EmbeddedLoadBalancer)((EmbeddedFederation)fed).getLoadBalancerService());
+final LoadBalancer lbs = ((EmbeddedFederation)fed).getLoadBalancerService();
 
         final ServiceScore[] fakeServiceScores = new ServiceScore[2];
 
@@ -836,7 +837,14 @@ final EmbeddedLoadBalancer lbs = ((EmbeddedLoadBalancer)((EmbeddedFederation)fed
         }
 
         // set the fake scores on the load balancer.
-        lbs.setServiceScores(fakeServiceScores);
+//BTM
+if(lbs instanceof LoadBalancerService) {
+System.out.println("*** serviceImpl (StressTestConcurrent) >>> AbstractEmbeddedLoadBalancerService [remote]");
+        ((AbstractEmbeddedLoadBalancerService)lbs).setServiceScores(fakeServiceScores);
+} else {
+System.out.println("*** serviceImpl (StressTestConcurrent) >>> EmbeddedLoadBalancer [NON-remote]");
+        ((EmbeddedLoadBalancer)lbs).setServiceScores(fakeServiceScores);
+}
 
     }
     

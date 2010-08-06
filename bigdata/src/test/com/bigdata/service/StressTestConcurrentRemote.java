@@ -1,6 +1,6 @@
-/*
+/**
 
-Copyright (C) SYSTAP, LLC 2006-2008.  All rights reserved.
+Copyright (C) SYSTAP, LLC 2006-2007.  All rights reserved.
 
 Contact:
      SYSTAP, LLC
@@ -20,26 +20,28 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
 */
-/*
- * Created on Mar 2, 2008
- */
 
 package com.bigdata.service;
 
+import java.util.Properties;
+
 /**
- * <code>Remote</code> interface for collecting, reporting, and
- * decision-making based on node and service utilization statistics.
- *
- * @see LoadBalancer
- * @see IService
- * @see IEventReceivingService
- * 
- * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+ * Uses an embedded federation of the purely remote service implementations.
  */
-public interface ILoadBalancerService 
-                 extends LoadBalancer, IService, IEventReceivingService
+public class StressTestConcurrentRemote
+                 extends StressTestConcurrent
 {
-    
+    public StressTestConcurrentRemote() { }
+
+    public StressTestConcurrentRemote(String arg0) {
+        super(arg0);
+    }
+
+    public Properties getProperties() {
+        final Properties properties = new Properties(super.getProperties());
+        properties.setProperty
+            (EmbeddedClient.Options.SERVICE_IMPL_REMOTE, "true");
+        return properties;
+    }
 }

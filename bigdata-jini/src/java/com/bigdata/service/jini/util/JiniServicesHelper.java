@@ -43,7 +43,7 @@ import com.bigdata.service.jini.DataServer;
 import com.bigdata.service.jini.FakeLifeCycle;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
-//BTM import com.bigdata.service.jini.LoadBalancerServer;
+import com.bigdata.service.jini.LoadBalancerServer;
 import com.bigdata.service.jini.MetadataServer;
 import com.bigdata.service.jini.TransactionServer;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
@@ -76,7 +76,9 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
     public DataServer dataServer0;
 
 //BTM    public LoadBalancerServer loadBalancerServer0;
-public LoadBalancerTask loadBalancerServer0;
+public LoadBalancerServer lbsRemote0;
+public LoadBalancerTask lbs0;
+private boolean serviceImplRemote;
 
     public TransactionServer transactionServer0;
 
@@ -226,7 +228,36 @@ public LoadBalancerTask loadBalancerServer0;
      *            optional jini overrides.
      */
     public JiniServicesHelper(final String[] args) {
+//BTM
+//BTM        if (args == null)
+//BTM            throw new IllegalArgumentException();
+//BTM
+//BTM        if (args.length == 0)
+//BTM            throw new IllegalArgumentException();
+//BTM
+//BTM        if (args[0] == null)
+//BTM            throw new IllegalArgumentException();
+//BTM
+//BTM        if (!new File(args[0]).exists()) {
+//BTM
+//BTM            throw new RuntimeException("Configuration file not found: "
+//BTM                    + args[0]);
+//BTM            
+//BTM        }
+//BTM        
+//BTM        this.args = args;
+this(new String[] { CONFIG_STANDALONE.getPath() }, false);
+    }
 
+//BTM
+    public JiniServicesHelper(boolean serviceImplRemote) {
+        this(new String[] { CONFIG_STANDALONE.getPath() },
+             serviceImplRemote);   
+    }
+
+    public JiniServicesHelper(final String[] args,
+                              boolean serviceImplRemote)
+    {
         if (args == null)
             throw new IllegalArgumentException();
 
@@ -244,8 +275,10 @@ public LoadBalancerTask loadBalancerServer0;
         }
         
         this.args = args;
-
+        this.serviceImplRemote = serviceImplRemote;
     }
+
+
 
     private final String[] args;
 
@@ -577,30 +610,39 @@ try {
 
         threadPool.execute(metadataServer0 = new MetadataServer(concat(args,
                 options), new FakeLifeCycle()));
-//BTM
+
 //BTM        threadPool.execute(loadBalancerServer0 = new LoadBalancerServer(concat(
 //BTM                args, options), new FakeLifeCycle()));
+//BTM
 //BTM -----------------------------------------------------------------------
-java.util.ArrayList<String> optionsList = new java.util.ArrayList<String>();
-for(int i=0; i<options.length; i++) {
-    optionsList.add(options[i]);
-}
-String joinGroupsOverrideStr = 
+if(serviceImplRemote) {
+System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> LoadBalancerServer [purely remote]");
+
+        threadPool.execute(lbsRemote0 = new LoadBalancerServer(concat(
+                args, options), new FakeLifeCycle()));
+} else {
+    java.util.ArrayList<String> optionsList = new java.util.ArrayList<String>();
+    for(int i=0; i<options.length; i++) {
+        optionsList.add(options[i]);
+    }
+    String joinGroupsOverrideStr = 
                    "com.bigdata.loadbalancer.groupsToJoin=new String[] "
                    +"{"
                    +"\""+fedname+"\""
                    +"}";
-optionsList.add(joinGroupsOverrideStr);
-String[] loadBalancerArgs = 
- concat(args, optionsList.toArray(new String[optionsList.size()]) );
+    optionsList.add(joinGroupsOverrideStr);
+    String[] loadBalancerArgs = 
+         concat(args, optionsList.toArray(new String[optionsList.size()]) );
 
 System.err.println("\n**** BTM - JiniServicesHelper ****");
 for(int i=0; i<loadBalancerArgs.length; i++) {
     System.err.println("**** BTM - loadBalancerArgs["+i+"] = "+loadBalancerArgs[i]);
 }
+System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> LoadBalancerTask [NON-remote]");
 
-loadBalancerServer0 = new LoadBalancerTask(loadBalancerArgs);
-threadPool.execute(loadBalancerServer0);
+    lbs0 = new LoadBalancerTask(loadBalancerArgs);
+    threadPool.execute(lbs0);
+}
 //BTM -----------------------------------------------------------------------
 
         // Wait until all the services are up.
@@ -609,9 +651,11 @@ threadPool.execute(loadBalancerServer0);
         getServiceID(metadataServer0);
         getServiceID(dataServer0);
         getServiceID(dataServer1);
-//BTM -----------------------------------------------------------------------
 //BTM        getServiceID(loadBalancerServer0);
-getServiceID(com.bigdata.service.LoadBalancer.class, sdm);
+//BTM
+//BTM -----------------------------------------------------------------------
+if(lbsRemote0 != null) getServiceID(lbsRemote0);
+if(lbs0 != null) getServiceID(com.bigdata.service.LoadBalancer.class, sdm);
 if(sdm != null) sdm.terminate();
 if(ldm != null) ldm.terminate();
 //BTM -----------------------------------------------------------------------
@@ -684,13 +728,21 @@ if(ldm != null) ldm.terminate();
 
         }
         
-        if (loadBalancerServer0 != null) {
-
-            loadBalancerServer0.destroy();
-
-            loadBalancerServer0 = null;
-
-        }
+//BTM        if (loadBalancerServer0 != null) {
+//BTM
+//BTM            loadBalancerServer0.destroy();
+//BTM
+//BTM            loadBalancerServer0 = null;
+//BTM
+//BTM        }
+if (lbsRemote0 != null) {
+    lbsRemote0.destroy();
+    lbsRemote0 = null;
+}
+if (lbs0 != null) {
+    lbs0.destroy();
+    lbs0 = null;
+}
 
         if (transactionServer0 != null) {
 

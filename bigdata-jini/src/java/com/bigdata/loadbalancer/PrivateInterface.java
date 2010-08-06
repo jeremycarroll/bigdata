@@ -63,6 +63,8 @@ interface PrivateInterface extends Remote, Administrable,
     boolean isUnderUtilizedDataService(UUID serviceId)
                 throws RemoteException, IOException;
 
+    void sighup() throws RemoteException, IOException;
+
     //Related to EventReceivingService
 
     void notifyEvent(Event e) throws RemoteException, IOException;

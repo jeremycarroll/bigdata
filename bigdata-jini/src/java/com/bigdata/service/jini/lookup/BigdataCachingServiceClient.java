@@ -45,7 +45,7 @@ import com.bigdata.service.jini.JiniFederation;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class BigdataCachingServiceClient<S extends Remote> extends
+public class BigdataCachingServiceClient<S extends Object> extends
         AbstractCachingServiceClient<S> {
 
     /**
