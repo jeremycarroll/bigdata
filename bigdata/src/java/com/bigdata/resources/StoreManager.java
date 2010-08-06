@@ -85,8 +85,9 @@ import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Name2Addr;
 import com.bigdata.journal.TemporaryStore;
+import com.bigdata.journal.WORMStrategy;
 import com.bigdata.journal.WriteExecutorService;
-import com.bigdata.journal.DiskOnlyStrategy.StoreCounters;
+import com.bigdata.journal.WORMStrategy.StoreCounters;
 import com.bigdata.mdi.IPartitionMetadata;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.IndexPartitionCause;
@@ -673,7 +674,7 @@ abstract public class StoreManager extends ResourceEvents implements
     protected final long accelerateOverflowThreshold;
     
     /**
-     * Used to run the {@link Startup}.
+     * Used to run the {@link Startup}.  @todo defer to init() outside of ctor.  Also, defer {@link Startup} until init() outside of ctor.
      */
     private final ExecutorService startupService = Executors
             .newSingleThreadExecutor(new DaemonThreadFactory
@@ -1415,22 +1416,45 @@ abstract public class StoreManager extends ResourceEvents implements
              * Verify that the concurrency manager has been set and wait a while
              * it if is not available yet.
              */
-            if (log.isInfoEnabled())
-                log.info("Waiting for concurrency manager");
-            for (int i = 0; i < 5; i++) {
-                try {
-                    getConcurrencyManager();
-                } catch (IllegalStateException ex) {
-                    Thread.sleep(100/* ms */);
-                }
+			{
+				int nwaits = 0;
+				while (true) {
+					try {
+						getConcurrencyManager();
+						break;
+					} catch (IllegalStateException ex) {
+						Thread.sleep(100/* ms */);
+						if (++nwaits % 50 == 0)
+							log.warn("Waiting for concurrency manager");
+					}
+				}
             }
-            getConcurrencyManager();
-            if (Thread.interrupted())
-                throw new InterruptedException();
 
-            /*
-             * Look for pre-existing data files.
-             */
+			try {
+				final IBigdataFederation<?> fed = getFederation();
+				if (fed == null) {
+					/*
+					 * Some of the unit tests do not start the txs until after
+					 * the DataService. For those unit tests getFederation()
+					 * will return null during startup() of the DataService. To
+					 * have a common code path, we throw the exception here
+					 * which is caught below.
+					 */
+					throw new UnsupportedOperationException();
+				}
+				while (true) {
+					if (fed.getTransactionService() != null) {
+						break;
+					}
+					log.warn("Waiting for transaction service discovery");
+				}
+			} catch (UnsupportedOperationException ex) {
+				log.warn("Federation not available - running in test case?");
+			}
+
+			/*
+			 * Look for pre-existing data files.
+			 */
             if (!isTransient) {
 
                 if (log.isInfoEnabled())
@@ -2452,6 +2476,11 @@ abstract public class StoreManager extends ResourceEvents implements
             if (getBufferStrategy() instanceof DiskOnlyStrategy) {
 
                 ((DiskOnlyStrategy) getBufferStrategy())
+                        .setStoreCounters(getStoreCounters());
+
+            } else if (getBufferStrategy() instanceof WORMStrategy) {
+
+                ((WORMStrategy) getBufferStrategy())
                         .setStoreCounters(getStoreCounters());
 
             }
@@ -4556,7 +4585,7 @@ abstract public class StoreManager extends ResourceEvents implements
         // make sure that directory exists.
         indexDir.mkdirs();
 
-        final String partitionStr = (partitionId == -1 ? "" : "_part"
+        final String partitionStr = (partitionId == -1 ? "" : "_shardId"
                 + leadingZeros.format(partitionId));
 
         final String prefix = mungedName + "" + partitionStr + "_";
