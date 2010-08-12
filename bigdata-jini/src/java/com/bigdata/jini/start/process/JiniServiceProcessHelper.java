@@ -65,6 +65,7 @@ public class JiniServiceProcessHelper extends ProcessHelper {
             IServiceListener listener) throws IOException {
 
         super(name, builder, listener);
+System.out.println("*** JiniServiceProcessHelper: constructor [name="+name+"] ***");
 
     }
 

@@ -44,6 +44,10 @@ import com.bigdata.journal.ResourceLockService;
 import com.bigdata.journal.WriteExecutorService;
 import com.bigdata.service.EmbeddedClient.Options;
 
+//BTM
+import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+import net.jini.lookup.ServiceDiscoveryManager;
+
 /**
  * An implementation that uses an embedded database rather than a distributed
  * database. An embedded federation runs entirely in process, but uses the same
@@ -119,9 +123,13 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
     private final ResourceLockService resourceLockManager;
     
     /**
-     * The (in process) {@link LoadBalancerService}.
+     * The (in process) load balancer service.
      */
-    private final LoadBalancerService loadBalancerService;
+//BTM    private final LoadBalancerService loadBalancerService;
+//private final EmbeddedLoadBalancer loadBalancerService;
+private final LoadBalancer loadBalancerService;
+private final EmbeddedLoadBalancerServiceImpl remoteLbs;
+private final EmbeddedLoadBalancerImpl lbs;
     
     /**
      * The (in process) {@link MetadataService}.
@@ -179,9 +187,9 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
     }
     
     /**
-     * The (in process) {@link LoadBalancerService}.
+     * Returns the (in process) load balancer service.
      */
-    final public ILoadBalancerService getLoadBalancerService() {
+    final public LoadBalancer getLoadBalancerService() {
 
         // Note: return null if service not available/discovered.
 
@@ -305,6 +313,8 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
                 .getProperty(Options.CREATE_TEMP_FILE,
                         ""+Options.DEFAULT_CREATE_TEMP_FILE));
 
+boolean serviceImplRemote = ( (null != properties.getProperty(EmbeddedClient.Options.SERVICE_IMPL_REMOTE)) ? true : false);
+System.out.println("\n*** serviceImplRemote = "+serviceImplRemote);
         /*
          * The directory in which the data files will reside.
          */
@@ -412,39 +422,53 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
          */
         resourceLockManager = new ResourceLockService();
         
-        {
+//BTM*** For now, move the creation of the loadBalancerService to a
+//BTM*** point below AFTER the creation of the dataServices, so that the
+//BTM*** dataServiceByUUID map, when passed into the EmbeddedLoadBalancer,
+//BTM*** is populated with those created dataServices, and the
+//BTM*** EmbeddedLoadBalancer can then "discover" those DataServices.
+//BTM*** But once the DataService is converted to a smart proxy model
+//BTM*** and the shard.ServiceImpl/EmbeddedDataService instantiated below
+//BTM*** registers with the lookup service, the dataServiceByUUID map
+//BTM*** can be removed and a non-null SDM can be used by the
+//BTM*** loadBalancerService to actually discover that DataService.
 
-            final Properties p = new Properties(properties);
-            
-            if (isTransient) {
-
-                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
-
-            } else {
-                
-                // specify the data directory for the load balancer.
-                p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR,
-                        new File(dataDir, "lbs").toString());
-                
-            }
-
+//BTM        {
+//BTM
+//BTM            final Properties p = new Properties(properties);
+//BTM            
+//BTM            if (isTransient) {
+//BTM
+//BTM //BTM                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
+//BTM p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.TRANSIENT, "true");
+//BTM
+//BTM            } else {
+//BTM                
+//BTM                // specify the data directory for the load balancer.
+//BTM
+//BTM                p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR,
+//BTM                        new File(dataDir, "lbs").toString());
+//BTM                
+//BTM            }
+//BTM
             /*
              * Start the load balancer.
              */
-            try {
-         
-                loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID
-                        .randomUUID(), p).start();
-            
-            } catch (Throwable t) {
-            
-                log.error(t, t);
-                
-                throw new RuntimeException(t);
-                
-            }
+//BTM            try {
+//BTM         
+//BTM                loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID
+//BTM                        .randomUUID(), p).start();
+//BTM            
+//BTM            } catch (Throwable t) {
+//BTM            
+//BTM                log.error(t, t);
+//BTM                
+//BTM                throw new RuntimeException(t);
+//BTM                
+//BTM            }
+//BTM
+//BTM        }
 
-        }
 
         /*
          * The directory in which the data files will reside.
@@ -588,41 +612,108 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
         }
 
         {
-        
             final String hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
+
+//BTM*** ------------------------------------------------------------------------------
+            final Properties p = new Properties(properties);
+            
+            if (isTransient) {
+
+                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
+                p.setProperty(EmbeddedLoadBalancer.Options.TRANSIENT, "true");
+
+                p.setProperty(EmbeddedLoadBalancerImpl.Options.LOG_DIR,
+                              new File
+                    (EmbeddedLoadBalancerImpl.Options.DEFAULT_LOG_DIR).toString());
+            } else {
+                // specify the data directory for the load balancer.
+                p.setProperty(EmbeddedLoadBalancerServiceImpl.Options.LOG_DIR,
+                        new File(dataDir, "lbs").toString());
+                p.setProperty(EmbeddedLoadBalancerImpl.Options.LOG_DIR,
+                        new File(dataDir, "lbs").toString());
+            }
+
+            if(serviceImplRemote) {
+                try {
+                    loadBalancerService = 
+                        new EmbeddedLoadBalancerServiceImpl
+                                (UUID.randomUUID(), p).start();
+                } catch (Throwable t) {
+                    log.error(t, t);
+                    throw new RuntimeException(t);
+                }
+                remoteLbs = (EmbeddedLoadBalancerServiceImpl)loadBalancerService;
+                lbs = null;
+            } else {
+//BTM*** remove after EmbeddedDataServiceImpl/shard.ServiceImpl/EmbeddedDataService
+//BTM*** is converted to smart proxy?
+                loadBalancerService = 
+                    new EmbeddedLoadBalancerImpl
+                            (UUID.randomUUID(),
+                             hostname,
+                             null,//SDM - replace with real SDM after conversion to smart proxy?
+//BTM*** EmbeddedDataService.this,
+//BTM*** remove after EmbeddedDataService is converted to smart proxy
+                             dataServiceByUUID,
+                             p);
+                remoteLbs = null;
+                lbs = (EmbeddedLoadBalancerImpl)loadBalancerService;
+            }
+System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> remoteLbs = "+remoteLbs);
+System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> lbs       = "+lbs);
+//BTM*** ------------------------------------------------------------------------------
 
             /*
              * Have the data services join the load balancer.
              */
             for (IDataService ds : this.dataService) {
-
                 try {
-
-                    loadBalancerService.join(ds.getServiceUUID(), ds
-                            .getServiceIface(), hostname);
-
+                    if(remoteLbs != null) {
+                        remoteLbs.join(ds.getServiceUUID(), 
+                                       ds.getServiceIface(),
+                                       hostname);
+                    } else {
+                        lbs.join(ds.getServiceUUID(),
+                                 ds.getServiceIface(), 
+                                 ds.getServiceName(),
+                                 hostname);
+                    }
                 } catch (IOException e) {
-
                     // Should never be thrown for an embedded service.
-
                     log.warn(e.getMessage(), e);
-
                 }
-
             }
 
             /*
              * Other service joins.
              */
-
-            loadBalancerService.join(abstractTransactionService.getServiceUUID(),
-                    abstractTransactionService.getServiceIface(), hostname);
-
-            loadBalancerService.join(loadBalancerService.getServiceUUID(),
-                    loadBalancerService.getServiceIface(), hostname);
-
-            loadBalancerService.join(metadataService.getServiceUUID(),
-                    metadataService.getServiceIface(), hostname);
+            if(remoteLbs != null) {
+                remoteLbs.join
+                    (abstractTransactionService.getServiceUUID(),
+                     abstractTransactionService.getServiceIface(), 
+                     hostname);
+                remoteLbs.join(remoteLbs.getServiceUUID(),
+                               remoteLbs.getServiceIface(), 
+                               hostname);
+                remoteLbs.join(metadataService.getServiceUUID(),
+                               metadataService.getServiceIface(), 
+                               hostname);
+            } else {//smart proxy
+                
+                lbs.join
+                    (abstractTransactionService.getServiceUUID(),
+                     abstractTransactionService.getServiceIface(), 
+                     (abstractTransactionService.getServiceUUID()).toString(),
+                     hostname);
+                lbs.join(lbs.getServiceUUID(),
+                         lbs.getServiceIface(), 
+                         (lbs.getServiceUUID()).toString(),
+                         hostname);
+                lbs.join(metadataService.getServiceUUID(),
+                         metadataService.getServiceIface(), 
+                         (metadataService.getServiceUUID()).toString(),
+                         hostname);
+            }
 
         }
 
@@ -776,18 +867,28 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
          * @param properties
          */
         public EmbeddedLoadBalancerServiceImpl(UUID serviceUUID, Properties properties) {
-       
             super(serviceUUID, properties);
-            
         }
 
         @Override
         public EmbeddedFederation<T> getFederation() {
-
             return EmbeddedFederation.this;
-
         }
+    }
 
+    protected class EmbeddedLoadBalancerImpl extends EmbeddedLoadBalancer {
+        
+        public EmbeddedLoadBalancerImpl(UUID serviceUUID, 
+                                        String hostname,
+                                        ServiceDiscoveryManager sdm,
+                                        Map<UUID, DataService> dataServiceMap,//BTM - remove once EmbeddedDataService converted to smart proxy?
+                                        Properties properties)
+        {
+            super(serviceUUID, hostname, sdm,
+                  properties.getProperty(EmbeddedLoadBalancerImpl.Options.LOG_DIR),
+                  dataServiceMap,//BTM*** - remove after DataService smart proxy?
+                  properties);
+        }
     }
     
     protected class EmbeddedTransactionServiceImpl extends AbstractEmbeddedTransactionService {
@@ -856,7 +957,11 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
         
         if (loadBalancerService != null) {
 
-            loadBalancerService.shutdown();
+            if(remoteLbs != null) {
+                remoteLbs.shutdown();
+            } else {
+                lbs.shutdown();
+            }
 
 //            loadBalancerService = null;
             
@@ -900,7 +1005,11 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
 
         if (loadBalancerService != null) {
 
-            loadBalancerService.shutdownNow();
+            if(remoteLbs != null) {
+                remoteLbs.shutdownNow();
+            } else {
+                lbs.shutdownNow();
+            }
 
 //            loadBalancerService = null;
             
@@ -945,8 +1054,11 @@ public class EmbeddedFederation<T> extends AbstractScaleOutFederation<T> {
             metadataService.destroy();
 
         }
-
-        loadBalancerService.destroy();
+        if(remoteLbs != null) {
+            remoteLbs.destroy();
+        } else {
+            lbs.destroy();
+        }
 
         if (!isTransient && !dataDir.delete()) {
 

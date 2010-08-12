@@ -58,11 +58,24 @@ import com.bigdata.service.jini.util.JiniServicesHelper;
  */
 public class TestBigdataClient extends AbstractServerTestCase {
 
+    protected boolean serviceImplRemote;
+
     public TestBigdataClient() {
+        this.serviceImplRemote = false;
     }
 
     public TestBigdataClient(String name) {
         super(name);
+        this.serviceImplRemote = false;
+    }
+
+    public TestBigdataClient(boolean serviceImplRemote) {
+        this.serviceImplRemote = serviceImplRemote;
+    }
+
+    public TestBigdataClient(String name, boolean serviceImplRemote) {
+        super(name);
+        this.serviceImplRemote = serviceImplRemote;
     }
 
     /**
@@ -74,7 +87,7 @@ public class TestBigdataClient extends AbstractServerTestCase {
 
         super.setUp();
 
-        helper = new JiniServicesHelper();
+        helper = new JiniServicesHelper(serviceImplRemote);
 
         helper.start();
         

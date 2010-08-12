@@ -104,6 +104,8 @@ public class ServiceCache implements ServiceDiscoveryListener {
         if (log.isInfoEnabled())
             log.info("" + e + ", class="
                     + e.getPostEventServiceItem().toString());
+//BTM
+System.err.println("\n**** SERVICE ADDED: "+ ((e.getPostEventServiceItem()).service).getClass());
 
         serviceIdMap.put(e.getPostEventServiceItem().serviceID, e
                 .getPostEventServiceItem());
@@ -124,6 +126,8 @@ public class ServiceCache implements ServiceDiscoveryListener {
         if (log.isInfoEnabled())
             log.info("" + e + ", class="
                     + e.getPostEventServiceItem().toString());
+//BTM
+System.err.println("\n**** SERVICE CHANGED: "+ ((e.getPostEventServiceItem()).service).getClass());
 
         serviceIdMap.put(e.getPostEventServiceItem().serviceID, e
                 .getPostEventServiceItem());
@@ -169,6 +173,8 @@ public class ServiceCache implements ServiceDiscoveryListener {
         if (log.isInfoEnabled())
             log.info("" + e + ", class="
                     + e.getPreEventServiceItem().toString());
+//BTM
+System.err.println("\n**** SERVICE REMOVED: "+ ((e.getPreEventServiceItem()).service).getClass());
 
         serviceIdMap.remove(e.getPreEventServiceItem().serviceID);
 

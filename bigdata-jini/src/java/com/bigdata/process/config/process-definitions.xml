@@ -1,0 +1,204 @@
+<definitions>
+
+  <!-- process definitions by node type and role -->
+
+  <types>
+
+    <!-- services to start on all nodes (any type, role, or layout) -->
+<!--
+    <type name="*">
+      <layouts>
+        <layout name="*">
+          <roles>
+            <role name="*">
+              <start tag="node"/>
+            </role>
+          </roles>
+        </layout>
+      </layouts>
+    </type>
+-->
+
+    <!-- standalone: all services started on 1 node -->
+
+    <type name="standalone">
+      <layouts>
+        <layout name="1-of-1">
+          <roles>
+            <role name="bigdata">
+              <start tag="lookup"/>
+              <start tag="quorum"/>
+              <start tag="loadbalancer"/>
+              <start tag="shardlocator"/>
+              <start tag="transaction"/>
+              <start tag="executor"/>
+              <start tag="shard"/>
+            </role>
+          </roles>
+        </layout>
+      </layouts>
+    </type>
+
+    <!-- storage services to start (any layout) -->
+
+    <type name="storage">
+      <layouts>
+        <layout name="*">
+          <roles>
+            <role name="bigdata">
+              <start tag="shard"/>
+            </role>
+          </roles>
+        </layout>
+      </layouts>
+    </type>
+
+    <!-- infrastructure services to start (various layous) -->
+
+    <type name="infrastructure">
+      <layouts>
+
+        <!-- infrastructure services to start on a single node -->
+
+        <layout name="1-of-1">
+          <roles>
+            <role name="bigdata">
+              <start tag="lookup"/>
+              <start tag="quorum"/>
+              <start tag="loadbalancer"/>
+              <start tag="shardlocator"/>
+              <start tag="transaction"/>
+              <start tag="executor"/>
+            </role>
+          </roles>
+        </layout>
+
+        <!-- infrastructure services spread among 3 nodes -->
+
+        <layout name="1-of-3">
+          <roles>
+            <role name="bigdata">
+              <start tag="lookup"/>
+              <start tag="quorum"/>
+              <start tag="loadbalancer"/>
+            </role>
+          </roles>
+        </layout>
+
+        <layout name="2-of-3">
+          <roles>
+            <role name="bigdata">
+              <start tag="lookup"/>
+              <start tag="quorum"/>
+              <start tag="shardlocator"/>
+              <start tag="executor"/>
+            </role>
+          </roles>
+        </layout>
+
+        <layout name="3-of-3">
+          <roles>
+            <role name="bigdata">
+              <start tag="quorum"/>
+              <start tag="transaction"/>
+              <start tag="loadbalancer"/>
+            </role>
+          </roles>
+        </layout>
+
+        <!-- infrastructure services spread among 5 nodes -->
+
+        <layout name="1-of-5">
+          <roles>
+            <role name="bigdata">
+              <start tag="lookup"/>
+              <start tag="quorum"/>
+              <start tag="loadbalancer"/>
+            </role>
+          </roles>
+        </layout>
+
+        <layout name="2-of-5">
+          <roles>
+            <role name="bigdata">
+              <start tag="lookup"/>
+              <start tag="quorum"/>
+              <start tag="shardlocator"/>
+            </role>
+          </roles>
+        </layout>
+
+        <layout name="3-of-5">
+          <roles>
+            <role name="bigdata">
+              <start tag="quorum"/>
+              <start tag="transaction"/>
+            </role>
+          </roles>
+        </layout>
+
+        <layout name="4-of-5">
+          <roles>
+            <role name="bigdata">
+              <start tag="quorum"/>
+              <start tag="executor"/>
+            </role>
+          </roles>
+        </layout>
+
+        <layout name="5-of-5">
+          <roles>
+            <role name="bigdata">
+              <start tag="quorum"/>
+              <start tag="executor"/>
+            </role>
+          </roles>
+        </layout>
+
+      </layouts>
+
+    </type>
+
+  </types>
+
+
+  <!-- process definitions -->
+
+  <process tag="lookup" description="Service directory">
+    <autorestart/>
+  </process>
+
+  <process tag="quorum" description="Quorum peer service (zookeeper)">
+    <autorestart/>
+  </process>
+
+  <process tag="loadbalancer" description="Loadbalancer service">
+    <autorestart/>
+  </process>
+
+  <process tag="transaction" description="Transaction service">
+    <autorestart/>
+  </process>
+
+  <process tag="shardlocator" description="Shard locator (metadata) service">
+    <autorestart/>
+  </process>
+
+  <process tag="shard" description="Shard service">
+    <autorestart/>
+  </process>
+
+  <process tag="executor" description="Callable executor service">
+    <autorestart/>
+  </process>
+
+
+<!-- TODO: define the following -->
+
+<!--
+  <process tag="node" description="Node service">
+    <autorestart/>
+  </process>
+-->
+
+</definitions>

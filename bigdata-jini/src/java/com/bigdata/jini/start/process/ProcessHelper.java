@@ -217,6 +217,8 @@ public class ProcessHelper {
              * safe to invoke on a process which has already been terminated.
              */
             
+System.out.println("\nXXXXXXX ProcessHelper.kill >>>>> KILLING process by calling Process.destroy");
+Thread.dumpStack();
             process.destroy();
 
             // fall through
@@ -311,7 +313,7 @@ public class ProcessHelper {
                     // no longer running.
                     lock.lock();
                     try {
-
+System.out.println("\n\nXXXXXXX THREAD finally block >>>>> DESTROYING process = "+name+" XXXXXXXXX\n\n");
                         // ensure process is destroyed.
                         process.destroy();
 

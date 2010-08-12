@@ -78,6 +78,7 @@ import com.bigdata.service.jini.AbstractServer;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniClientConfig;
 import com.bigdata.service.jini.JiniFederation;
+import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 import com.bigdata.zookeeper.ZNodeCreatedWatcher;
 
@@ -158,6 +159,8 @@ abstract public class JiniServiceConfiguration extends
             final Configuration config) throws ConfigurationException {
 
         super(className, config);
+//BTM
+System.out.println("*** JiniServiceConfiguration: constructor");
 
         final JiniClientConfig tmp = new JiniClientConfig(className, config);
 
@@ -180,7 +183,7 @@ abstract public class JiniServiceConfiguration extends
         }
 
         try {
-            this.serviceIpAddr = NicUtil.getIpAddress("default.nic", "default", false);
+            this.serviceIpAddr = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
         } catch(IOException e) {
             throw new ConfigurationException(e.getMessage(), e);
         }
@@ -861,7 +864,8 @@ abstract public class JiniServiceConfiguration extends
                     log.info("Discovered service: elapsed=" + elapsed
                             + ", name=" + processHelper.name + ", item="
                             + items[0]);
-
+//BTM
+System.out.println("\n**** JiniServiceConfiguration.awaitServiceDiscoveryOrDeath: DISCOVERED ---> "+items[0].service+" ****");
                 return items[0];
                 
             } finally {

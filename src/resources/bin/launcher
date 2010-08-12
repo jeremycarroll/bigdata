@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+
+THIS_SCRIPT=$(readlink -e $0)
+if [ $? -ne 0 ]; then
+	echo "cannot determine the location of this script" 1>&2
+	exit 1
+fi
+#echo "THIS_SCRIPT=${THIS_SCRIPT}"
+
+if [ "${JAVA_HOME}" ]; then
+	JAVA="${JAVA_HOME}/bin/java"
+else
+	JAVA="java"
+fi
+#echo "JAVA=${JAVA}"
+
+cd $(dirname "${THIS_SCRIPT}")/..
+exec "${JAVA}" -cp lib/bigdata.jar \
+        -Xmx96m \
+        -Dboot.processtag=bootLauncher \
+        -Djava.util.logging.config.file=var/config/logging/launcher-logging.properties \
+        -Djava.security.manager= \
+        -Djava.security.policy=var/config/policy/launcher.policy \
+        com.bigdata.boot.launcher.LauncherMain \
+        var/config/jini/boot/boot-properties.xml

@@ -1,10 +1,9 @@
 package com.bigdata.service;
 
-import com.bigdata.service.LoadBalancerService.UpdateTask;
-
 /**
  * Per-host metadata and a score for that host which gets updated
- * periodically by {@link UpdateTask}. {@link HostScore}s are a
+ * periodically by the <code>UpdateTask</code> of the current
+ * implementation of the load balancer service. {@link HostScore}s are a
  * <em>resource utilization</em> measure. They are higher for a host which
  * is more highly utilized. There are several ways to look at the score,
  * including the {@link #rawScore}, the {@link #rank}, and the

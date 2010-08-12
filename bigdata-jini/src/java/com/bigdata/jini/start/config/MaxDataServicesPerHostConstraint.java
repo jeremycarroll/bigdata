@@ -11,6 +11,7 @@ import com.bigdata.jini.lookup.entry.ServiceItemFilterChain;
 import com.bigdata.service.IDataService;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.lookup.DataServiceFilter;
+import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 
 /**
@@ -48,7 +49,7 @@ public class MaxDataServicesPerHostConstraint extends
         // only consider data services.
         filter.add(DataServiceFilter.INSTANCE);
 
-        final String hostname = NicUtil.getIpAddress("default.nic", "default", false);
+        final String hostname = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
         final String canonicalHostname = hostname;
 
         // filters for _this_ host.

@@ -1,0 +1,4 @@
+<boot>
+<!-- includeFileTest -->
+<include file="fileToInclude.xml"/>
+</boot>

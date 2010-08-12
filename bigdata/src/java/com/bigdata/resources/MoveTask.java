@@ -63,6 +63,7 @@ import com.bigdata.service.IDataService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.ResourceService;
+import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 
 /**
@@ -482,7 +483,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
             this.parentEvent = parentEvent;
 
             try {
-                this.thisInetAddr = InetAddress.getByName(NicUtil.getIpAddress("default.nic", "default", false));
+                this.thisInetAddr = InetAddress.getByName(NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.dataNetwork"), false));
             } catch(Throwable t) {
                 throw new IllegalArgumentException(t.getMessage(), t);
             }

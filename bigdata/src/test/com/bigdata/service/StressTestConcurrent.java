@@ -83,6 +83,9 @@ import com.bigdata.util.NV;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 
+//BTM
+import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+
 /**
  * Test suite for concurrent operations on a {@link DataService}. A federation
  * consisting of a {@link MetadataService} and a single {@link DataService} is
@@ -171,10 +174,13 @@ public class StressTestConcurrent extends
         properties.setProperty(
                 LoadBalancerService.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT,
                 "0");
+properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_COUNT, "0");
 
         // load balancer update delay
 //      properties.setProperty(LoadBalancerService.Options.UPDATE_DELAY,"10000");
-      
+//BTM
+//BTM properties.setProperty(EmbeddedLoadBalancer.Options.UPDATE_DELAY,"10000");
+
         // make sure scatter splits are enabled.
         properties.setProperty(Options.SCATTER_SPLIT_ENABLED, "true");
 
@@ -626,20 +632,14 @@ public class StressTestConcurrent extends
                  * and when we have not since forcing overflow will trigger
                  * compacting merges. So you are more likely to find a problem
                  * if you DO NOT force overflow.
-                 * 
-                 * Note: This DOES NOT guarantee that overflow is forced on a
-                 * given data service. it is forced if the method can gain the
-                 * exclusive write lock for that data service. otherwise it will
-                 * timeout and overflow processing will not be triggered on that
-                 * data service.
                  */
                 final boolean forceOverflow = false;
                 if (forceOverflow) {
 
                     System.err.println("Forcing overflow: " + new Date());
 
-                    ((AbstractScaleOutFederation<?>) federation)
-                            .forceOverflow(true/* truncateJournal */);
+					((AbstractScaleOutFederation<?>) federation)
+							.forceOverflow(true/* compactingMerge */, true/* truncateJournal */);
 
                     System.err.println("Forced  overflow: " + new Date());
 
@@ -786,9 +786,12 @@ public class StressTestConcurrent extends
 
         // explicitly set the log level for the load balancer.
         LoadBalancerService.log.setLevel(Level.INFO);
+EmbeddedLoadBalancer.logger.setLevel(Level.INFO);
 
-        final AbstractEmbeddedLoadBalancerService lbs = ((AbstractEmbeddedLoadBalancerService) ((EmbeddedFederation<?>) fed)
-                .getLoadBalancerService());
+//BTM        final AbstractEmbeddedLoadBalancerService lbs = ((AbstractEmbeddedLoadBalancerService) ((EmbeddedFederation<?>) fed)
+//BTM                .getLoadBalancerService());
+//final EmbeddedLoadBalancer lbs = ((EmbeddedLoadBalancer)((EmbeddedFederation)fed).getLoadBalancerService());
+final LoadBalancer lbs = ((EmbeddedFederation)fed).getLoadBalancerService();
 
         final ServiceScore[] fakeServiceScores = new ServiceScore[2];
 
@@ -828,7 +831,14 @@ public class StressTestConcurrent extends
         }
 
         // set the fake scores on the load balancer.
-        lbs.setServiceScores(fakeServiceScores);
+//BTM
+if(lbs instanceof LoadBalancerService) {
+System.out.println("*** serviceImpl (StressTestConcurrent) >>> AbstractEmbeddedLoadBalancerService [remote]");
+        ((AbstractEmbeddedLoadBalancerService)lbs).setServiceScores(fakeServiceScores);
+} else {
+System.out.println("*** serviceImpl (StressTestConcurrent) >>> EmbeddedLoadBalancer [NON-remote]");
+        ((EmbeddedLoadBalancer)lbs).setServiceScores(fakeServiceScores);
+}
 
     }
     

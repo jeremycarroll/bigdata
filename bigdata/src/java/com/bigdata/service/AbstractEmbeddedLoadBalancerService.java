@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 import java.util.Properties;
 import java.util.UUID;
 
+import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 
 /**
@@ -31,7 +32,7 @@ abstract public class AbstractEmbeddedLoadBalancerService extends LoadBalancerSe
         setServiceUUID(serviceUUID);
         
         try {
-            this.hostname = NicUtil.getIpAddress("default.nic", "default", false);
+            this.hostname = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
         } catch(Throwable t) {
             t.printStackTrace();
         }

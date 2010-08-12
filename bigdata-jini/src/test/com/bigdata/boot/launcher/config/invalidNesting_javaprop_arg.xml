@@ -1,0 +1,5 @@
+<boot>
+  <javaprop name="jpropname" value="jvalue">
+    <arg value="-stoppable"/>
+  </javaprop>
+</boot>

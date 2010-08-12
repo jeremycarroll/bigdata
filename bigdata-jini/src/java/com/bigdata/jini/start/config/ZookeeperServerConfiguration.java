@@ -54,6 +54,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerMain;
 import com.bigdata.io.FileLockUtility;
 import com.bigdata.jini.start.IServiceListener;
 import com.bigdata.jini.start.process.ZookeeperProcessHelper;
+import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 import com.bigdata.zookeeper.ZooHelper;
 
@@ -322,7 +323,7 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
         putIfDefined(config, Options.SKIP_ACL, Boolean.TYPE);
 
         try {
-            thisInetAddr = InetAddress.getByName(NicUtil.getIpAddress("default.nic", "default", false));
+            thisInetAddr = InetAddress.getByName(NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false));
         } catch(IOException e) {
             throw new ConfigurationException(e.getMessage(), e);
         }

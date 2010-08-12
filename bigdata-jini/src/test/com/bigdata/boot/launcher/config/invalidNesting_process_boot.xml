@@ -1,0 +1,6 @@
+<boot>
+  <process tag="testproc" class="std">
+    <boot>
+    </boot>
+  </process>
+</boot>

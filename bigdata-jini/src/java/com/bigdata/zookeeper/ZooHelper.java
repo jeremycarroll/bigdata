@@ -42,6 +42,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
 import com.bigdata.jini.start.config.AbstractHostConstraint;
+import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 
 /**
@@ -58,7 +59,7 @@ public class ZooHelper {
     static {
 	try {
             thisInetAddr = InetAddress.getByName
-                    (NicUtil.getIpAddress("default.nic", "default", false));
+                    (NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false));
 	} catch (Throwable t) { /* swallow */ }
     }
 

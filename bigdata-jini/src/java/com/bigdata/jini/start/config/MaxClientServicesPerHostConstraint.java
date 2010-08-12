@@ -10,6 +10,7 @@ import com.bigdata.jini.lookup.entry.HostnameFilter;
 import com.bigdata.jini.lookup.entry.ServiceItemFilterChain;
 import com.bigdata.service.IClientService;
 import com.bigdata.service.jini.JiniFederation;
+import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 
 /**
@@ -52,7 +53,7 @@ public class MaxClientServicesPerHostConstraint extends
 //		 */
 //        filter.add(ClientServiceFilter.INSTANCE);
 
-        final String hostname = NicUtil.getIpAddress("default.nic", "default", false);
+        final String hostname = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
         final String canonicalHostname = hostname;
 
         // filters for _this_ host.

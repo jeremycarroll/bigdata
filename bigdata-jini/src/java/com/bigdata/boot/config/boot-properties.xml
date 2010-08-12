@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<boot>
+
+  <!-- Common property values -->
+
+  <property name="bigdata.logDir" value="var/log"/>
+  <property name="bigdata.stateDir" value="var/state"/>
+  <property name="bigdata.configDir" value="var/config"/>
+
+  <property name="bigdata.codebase.rootDir" value="lib-dl"/>
+  <property name="bigdata.codebase.port" value="8081"/>
+
+  <!-- Java system properties set on the VM -->
+
+  <javaprop name="appHome" value="."/>
+
+  <!-- System properties related to security policy -->
+
+  <javaprop name="java.security.manager" value=""/>
+  <javaprop name="java.security.policy" 
+            value="${bigdata.configDir}/policy/servicestarter.policy"/>
+  <javaprop name="java.security.debug" value="off"/>
+
+  <!-- System properties related to logging -->
+
+  <javaprop name="bigdata.logDir" value="${bigdata.logDir}"/>
+  <javaprop name="log4j.configuration"
+            value="${bigdata.configDir}/logging/log4j.properties"/>
+  <javaprop name="java.util.logging.manager"
+            value="com.sun.jini.logging.LogManager"/>
+  <javaprop name="java.util.logging.config.file"
+            value="${bigdata.configDir}/logging/logging.properties"/>
+
+  <javaprop name="bigdata.codebase.rootDir" value="${bigdata.codebase.rootDir}"/>
+  <javaprop name="bigdata.codebase.port" value="${bigdata.codebase.port}"/>
+
+  <!-- System properties related to networking -->
+
+  <javaprop name="java.protocol.handler.pkgs" value="net.jini.url"/>
+  <javaprop name="java.net.preferIPv4Stack" value="true"/>
+
+  <!-- Specify info needed for executing the ProcessManager service -->
+
+  <property name="bootLauncherClasspath"
+            value="lib/start.jar${:}lib/jsk-lib.jar${:}lib/log4j.jar${:}lib/bigdata.jar${:}lib/zookeeper.jar"/>
+
+  <include file="boot-processes.xml"/>
+
+  <autostart tag="classserver"/>
+  <autostart tag="process"/>
+
+</boot>

@@ -82,7 +82,7 @@ abstract public class AbstractService implements IService {
      * <p>
      * Several things depend on when this method is invoked, including the setup
      * of the per-service {@link CounterSet} reported by the service to the
-     * {@link ILoadBalancerService}.
+     * load balancer service.
      * 
      * @param serviceUUID
      *            The {@link UUID} assigned to the service.

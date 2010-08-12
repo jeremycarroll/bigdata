@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+<boot>
+
+  <process tag="classserver" class="java" stopTimeout="5">
+
+    <!-- Note: tools.jar is in the service starter's classpath instead of
+         the importCodebase because the service starter requires access
+         to the com.sun.jini.tool.ClassServer class. -->
+
+    <property name="java.classpath"
+              value="${bootLauncherClasspath}${:}lib/tools.jar"/>
+    <property name="java.maxmemory" value="64m"/>
+    <property name="java.app.mainclass"
+        value="com.bigdata.boot.starter.SingleNonActivatableServiceStarter"/>
+    <arg value="var/config/policy/service.policy"/>
+    <arg value=""/>
+    <arg value=""/>
+    <arg value="com.sun.jini.tool.ClassServer"/>
+    <arg value="-port"/><arg value="${bigdata.codebase.port}"/>
+    <arg value="-dir"/><arg value="${bigdata.codebase.rootDir}"/>
+    <arg value="-stoppable"/>
+
+  </process>
+
+  <process tag="lookup" class="java" stopTimeout="10">
+    <javaprop name="exportPort" value="0"/>
+    <javaprop name="log4j.primary.configuration"
+            value="${bigdata.configDir}/logging/logging.properties"/>
+    <javaprop name="java.util.logging.config.file"
+            value="${bigdata.configDir}/logging/logging.properties"/>
+    <property name="java.classpath" value="${bootLauncherClasspath}"/>
+    <property name="java.app.mainclass"
+              value="com.bigdata.boot.starter.ServiceStarter"/>
+    <arg value="${bigdata.configDir}/jini/start-reggie.config"/>
+  </process>
+
+  <process tag="quorum" class="java">
+    <javaprop name="exportPort" value="0"/>
+    <javaprop name="log4j.primary.configuration"
+        value="${bigdata.configDir}/logging/quorum-logging.properties"/>
+    <javaprop name="java.util.logging.config.file"
+        value="${bigdata.configDir}/logging/logging.properties"/>
+
+    <property name="java.classpath" value="${bootLauncherClasspath}"/>
+    <property name="java.app.mainclass"
+        value="com.bigdata.boot.starter.SingleNonActivatableServiceStarter"/>
+    <arg value="${bigdata.configDir}/policy/service.policy"/>
+    <arg value="jsk-dl.jar"/>
+    <arg value="lib/bigdata.jar"/>
+    <arg value="com.bigdata.quorum.ServiceImpl"/>
+    <arg value="${bigdata.configDir}/jini/quorum.config"/>
+    <arg value="com.bigdata.quorum.persistenceDirectory=&quot;${bigdata.stateDir}/quorumState&quot;"/>
+  </process>
+
+  <process tag="loadbalancer" class="java">
+    <javaprop name="exportPort" value="0"/>
+    <javaprop name="log4j.primary.configuration"
+        value="${bigdata.configDir}/logging/loadbalancer-logging.properties"/>
+    <javaprop name="java.util.logging.config.file"
+        value="${bigdata.configDir}/logging/logging.properties"/>
+
+    <property name="java.classpath" value="${bootLauncherClasspath}${:}lib/fastutil.jar${:}lib/dsiutils.jar${:}lib/cweb-extser.jar${:}lib/icu4j.jar${:}lib/ctc_utils.jar${:}lib/lgplutils.jar"/>
+    <property name="java.app.mainclass"
+        value="com.bigdata.boot.starter.SingleNonActivatableServiceStarter"/>
+    <arg value="${bigdata.configDir}/policy/service.policy"/>
+    <arg value="jsk-dl.jar"/>
+    <arg value="lib/bigdata.jar"/>
+    <arg value="com.bigdata.loadbalancer.ServiceImpl"/>
+    <arg value="${bigdata.configDir}/jini/loadbalancer.config"/>
+    <arg value="com.bigdata.loadbalancer.persistenceDirectory=&quot;${bigdata.stateDir}/loadbalancerState&quot;"/>
+  </process>
+
+  <process tag="shardlocator" class="java">
+    <javaprop name="exportPort" value="0"/>
+    <javaprop name="log4j.primary.configuration"
+        value="${bigdata.configDir}/logging/shardlocator-logging.properties"/>
+    <javaprop name="java.util.logging.config.file"
+        value="${bigdata.configDir}/logging/logging.properties"/>
+
+    <property name="java.classpath" value="${bootLauncherClasspath}"/>
+    <property name="java.app.mainclass"
+        value="com.bigdata.boot.starter.SingleNonActivatableServiceStarter"/>
+    <arg value="${bigdata.configDir}/policy/service.policy"/>
+    <arg value="jsk-dl.jar"/>
+    <arg value="lib/bigdata.jar"/>
+    <arg value="com.bigdata.metadata.ServiceImpl"/>
+    <arg value="${bigdata.configDir}/jini/shardlocator.config"/>
+    <arg value="com.bigdata.metadata.persistenceDirectory=&quot;${bigdata.stateDir}/shardlocatorState&quot;"/>
+  </process>
+
+  <process tag="transaction" class="java">
+    <javaprop name="exportPort" value="0"/>
+    <javaprop name="log4j.primary.configuration"
+        value="${bigdata.configDir}/logging/transaction-logging.properties"/>
+    <javaprop name="java.util.logging.config.file"
+        value="${bigdata.configDir}/logging/logging.properties"/>
+
+    <property name="java.classpath" value="${bootLauncherClasspath}"/>
+    <property name="java.app.mainclass"
+        value="com.bigdata.boot.starter.SingleNonActivatableServiceStarter"/>
+    <arg value="${bigdata.configDir}/policy/service.policy"/>
+    <arg value="jsk-dl.jar"/>
+    <arg value="lib/bigdata.jar"/>
+    <arg value="com.bigdata.transaction.ServiceImpl"/>
+    <arg value="${bigdata.configDir}/jini/transaction.config"/>
+    <arg value="com.bigdata.transaction.persistenceDirectory=&quot;${bigdata.stateDir}/transactionState&quot;"/>
+  </process>
+
+  <process tag="executor" class="java">
+    <javaprop name="exportPort" value="0"/>
+    <javaprop name="log4j.primary.configuration"
+        value="${bigdata.configDir}/logging/executor-logging.properties"/>
+    <javaprop name="java.util.logging.config.file"
+        value="${bigdata.configDir}/logging/logging.properties"/>
+
+    <property name="java.classpath" value="${bootLauncherClasspath}"/>
+    <property name="java.app.mainclass"
+        value="com.bigdata.boot.starter.SingleNonActivatableServiceStarter"/>
+    <arg value="${bigdata.configDir}/policy/service.policy"/>
+    <arg value="jsk-dl.jar"/>
+    <arg value="lib/bigdata.jar"/>
+    <arg value="com.bigdata.executor.ServiceImpl"/>
+    <arg value="${bigdata.configDir}/jini/executor.config"/>
+    <arg value="com.bigdata.executor.persistenceDirectory=&quot;${bigdata.stateDir}/executorState&quot;"/>
+  </process>
+
+  <process tag="shard" class="java">
+    <javaprop name="exportPort" value="0"/>
+    <javaprop name="log4j.primary.configuration"
+        value="${bigdata.configDir}/logging/shard-logging.properties"/>
+    <javaprop name="java.util.logging.config.file"
+        value="${bigdata.configDir}/logging/logging.properties"/>
+
+    <property name="java.classpath" value="${bootLauncherClasspath}"/>
+    <property name="java.app.mainclass"
+        value="com.bigdata.boot.starter.SingleNonActivatableServiceStarter"/>
+    <arg value="${bigdata.configDir}/policy/service.policy"/>
+    <arg value="jsk-dl.jar"/>
+    <arg value="lib/bigdata.jar"/>
+    <arg value="com.bigdata.shard.ServiceImpl"/>
+    <arg value="${bigdata.configDir}/jini/shard.config"/>
+    <arg value="com.bigdata.shard.persistenceDirectory=&quot;${bigdata.stateDir}/shardState&quot;"/>
+  </process>
+
+  <process tag="process" class="java">
+    <javaprop name="log4j.primary.configuration"
+         value="${bigdata.configDir}/logging/process-logging.properties"/>
+    <javaprop name="java.util.logging.config.file"
+         value="${bigdata.configDir}/logging/logging.properties"/>
+
+    <property name="java.maxmemory" value="500M"/>
+    <property name="java.classpath" value="${bootLauncherClasspath}"/>
+    <property name="java.app.mainclass"
+        value="com.bigdata.boot.starter.SingleNonActivatableServiceStarter"/>
+    <arg value="${bigdata.configDir}/policy/service.policy"/>
+    <arg value="jsk-dl.jar"/>
+    <arg value="lib/bigdata.jar"/>
+    <arg value="com.bigdata.process.ServiceImpl"/>
+    <arg value="${bigdata.configDir}/jini/process.config"/>
+    <arg value="com.bigdata.process.persistenceDirectory=&quot;${bigdata.stateDir}/processState&quot;"/>
+  </process>
+
+</boot>

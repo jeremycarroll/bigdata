@@ -152,7 +152,8 @@ public class EmbeddedClient<T> extends AbstractScaleOutClient<T> {
         public static final String DATA_DIR = EmbeddedFederation.class
                 .getName()
                 + ".dataDir";
-
+//BTM
+        public static String SERVICE_IMPL_REMOTE = "serviceImplRemote";
     }
 
 }

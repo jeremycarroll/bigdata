@@ -82,7 +82,6 @@ import com.bigdata.service.AbstractDistributedFederation;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.IClientService;
 import com.bigdata.service.IDataService;
-import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.IService;
 import com.bigdata.service.jini.lookup.ClientServicesClient;
@@ -107,6 +106,9 @@ import com.bigdata.service.proxy.RemoteRunnableBufferImpl;
 import com.bigdata.zookeeper.ZooHelper;
 import com.bigdata.zookeeper.ZooKeeperAccessor;
 import com.bigdata.zookeeper.ZooResourceLockService;
+
+//BTM
+import com.bigdata.service.LoadBalancer;
 
 /**
  * Concrete implementation for Jini.
@@ -227,6 +229,7 @@ public class JiniFederation<T> extends AbstractDistributedFederation<T> implemen
 
             try {
 
+System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath="+zpath+"]");
                 zookeeper.create(zpath, new byte[] {}/* data */, acl,
                         CreateMode.PERSISTENT);
 
@@ -571,7 +574,7 @@ public class JiniFederation<T> extends AbstractDistributedFederation<T> implemen
         
     }
     
-    public ILoadBalancerService getLoadBalancerService() {
+    public LoadBalancer getLoadBalancerService() {
 
         // Note: return null if service not available/discovered.
         if (loadBalancerClient == null)
@@ -802,7 +805,7 @@ public class JiniFederation<T> extends AbstractDistributedFederation<T> implemen
      * <li>{@link ITransactionService} (blocks until shutdown).</li>
      * <li>{@link IDataService}s (blocks until all are shutdown).</li>
      * <li>{@link IMetadataService}</li>
-     * <li>{@link ILoadBalancerService}</li>
+     * <li>load balancer service</li>
      * </ol>
      * 
      * @param immediateShutdown

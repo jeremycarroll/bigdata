@@ -76,14 +76,14 @@ public class LookupStarter extends Thread {
 	try {
             thisHost = NicUtil.getIpAddress("default.nic", "default", true);
             defaultGroup = 
-                System.getProperty("bigdata.fedname",
+                System.getProperty("federation.name",
                                    "bigdata.test.group-"+thisHost);
 	} catch (Throwable t) { /* swallow */ }
     }
     private static String defaultCodebasePort = "23333";
 
     private static String group = 
-        System.getProperty("bigdata.fedname", defaultGroup);
+        System.getProperty("federation.name", defaultGroup);
     private static String codebasePortStr = 
         System.getProperty("codebase.port", defaultCodebasePort);
     private static int codebasePort = Integer.parseInt(codebasePortStr);

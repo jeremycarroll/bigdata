@@ -31,39 +31,49 @@ import java.rmi.RemoteException;
 
 import net.jini.core.lookup.ServiceTemplate;
 
-import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.jini.JiniFederation;
 
+//BTM
+import com.bigdata.service.LoadBalancer;
+import com.bigdata.service.ShutdownAdmin;
+import com.bigdata.service.jini.JiniClient;
+import com.bigdata.service.jini.JiniClientConfig;
+import com.sun.jini.admin.DestroyAdmin;
+import net.jini.admin.Administrable;
+import net.jini.config.Configuration;
+import net.jini.config.ConfigurationException;
+import net.jini.core.lookup.ServiceItem;
+import net.jini.discovery.LookupDiscoveryManager;
+import net.jini.lookup.LookupCache;
+import net.jini.lookup.ServiceDiscoveryListener;
+import net.jini.lookup.ServiceDiscoveryManager;
+import net.jini.lookup.ServiceItemFilter;
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+
 /**
- * Class handles discovery of an {@link ILoadBalancerService}.  Clients are responsible
- * for generating notification events.
- * 
- * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
+ * Class handles discovery of a load balancer service.
+ * Clients are responsible for generating notification events.
  */
-public class LoadBalancerClient extends
-        BigdataCachingServiceClient<ILoadBalancerService> {
-
+public class LoadBalancerClient 
+                 extends BigdataCachingServiceClient<LoadBalancer>
+{
     public LoadBalancerClient(final JiniFederation fed, final long timeout) throws RemoteException {
-
-        super(fed, ILoadBalancerService.class, new ServiceTemplate(null,
-                new Class[] { ILoadBalancerService.class }, null),
-                null/* filter */, timeout);
-        
+        super(fed, LoadBalancer.class, new ServiceTemplate(null,
+                new Class[] { LoadBalancer.class }, null),
+                null/* filter */, timeout);        
     }
-    
+   
+
     /**
-     * Return the {@link ILoadBalancerService} service from the cache -or-
-     * <code>null</code> if there is no such service in the cache and a remote
-     * lookup times out.
+     * Return the load balancer service from the cache -or-
+     * <code>null</code> if there is no such service in the cache
+     * and a remote lookup times out.
      * 
      * @todo handle multiple service instances for failover but always designate
      *       a primary.
      */
-    public ILoadBalancerService getLoadBalancerService() {
-
+    public LoadBalancer getLoadBalancerService() {
         return super.getService();
-        
     }
-
 }

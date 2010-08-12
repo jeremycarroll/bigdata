@@ -23,8 +23,8 @@ public interface IServiceLoadHelper {
      * @throws InterruptedException
      * @throws TimeoutException
      * 
-     * @see ILoadBalancerService#getUnderUtilizedDataServices(int, int,
-     *      UUID)
+     * @see getUnderUtilizedDataServices(int, int, UUID) of the load balancer
+     *      service interface
      */
     public UUID[] getUnderUtilizedDataServices(int minCount, int maxCount,
             UUID exclude) throws InterruptedException, TimeoutException;

@@ -162,7 +162,7 @@ class BigdataServiceBase:
            convey it the information."""
         if sys.platform == "win32":
             if len(params.groups) > 0:
-                self.properties['groupsToJoin'] = \
+                self.properties['federation.name'] = \
                     "\"" + "{" + \
                     "\\" + \
                     "\"" + \
@@ -171,7 +171,7 @@ class BigdataServiceBase:
                     "\"" + \
                     "}" + "\""
             else:
-                self.properties['groupsToJoin'] = "\"" + "{}" + "\""
+                self.properties['federation.name'] = "\"" + "{}" + "\""
             if len(params.lookupLocators) > 0:
                 self.properties['locsToJoin'] = \
                     "\"" + "{" + \
@@ -185,10 +185,10 @@ class BigdataServiceBase:
                 self.properties['locsToJoin'] = "\"" + "{}" + "\""
         else:
             if len(params.groups) > 0:
-                self.properties['groupsToJoin'] = \
+                self.properties['federation.name'] = \
                     "{\"" + "\",\"".join(params.groups) + "\"}"
             else:
-                self.properties['groupsToJoin'] = "{}"
+                self.properties['federation.name'] = "{}"
             if len(params.lookupLocators) > 0:
                 self.properties['locsToJoin'] = "{new LookupLocator(\"" + \
                     "\"),new LookupLocator(\"".join(params.lookupLocators) + \
@@ -266,7 +266,7 @@ class GenericBigdataService(BigdataServiceBase):
            the class "com.bigdata.<service>.ServiceImpl"
          * The codebase Jar file is named "${appHome}/lib-dl/<service>-dl.jar"
          * The service config file is named
-           "${appHome}/bin/config/<service>.config"
+           "${appHome}/var/config/jini/<service>.config"
     """
     def __init__(self, serviceName, params):
         BigdataServiceBase.__init__(self, serviceName, params)
@@ -279,7 +279,7 @@ class GenericBigdataService(BigdataServiceBase):
             ".ServiceImpl"
         self.properties['entityCodebaseJar'] = self.serviceName + "-dl.jar"
         self.properties['entityConfig'] = os.path.join(self.appHome, \
-            "bin", "config", self.serviceName, + ".config")
+            "var", "config", "jini", self.serviceName, + ".config")
 
         self.properties['entityPolicy'] = os.path.join(self.appHome, \
             "var", "config", "policy", "service.policy")
@@ -345,8 +345,9 @@ class BigdataMetaservice(BigdataService):
     def __init__(self, serviceName, params):
         BigdataService.__init__(self, serviceName, params)
         if serviceName == "all":
-            services = [ "httpd", "reggie", "zookeeper", "dataserver",
-                         "metadataserver", "loadbalancer", "txnserver" ]
+            services = [ "httpd", "reggie", "quorum",
+                         "shard", "shardlocator","loadbalancer",
+                         "executor", "transaction" ]
             del self.properties['log4j.primary.configuration']
             del self.properties['java.util.logging.config.file']
         elif (serviceName == "jini" or serviceName == "reggie"):
@@ -394,10 +395,10 @@ class JiniBrowser(BigdataService):
     def __init__(self, serviceName, params):
         BigdataService.__init__(self, serviceName, params)
         self.properties['log4j.primary.configuration'] = os.path.join( \
-            self.appHome, "var", "config", "logging", \
+            self.appHome, "bin", "config", \
             "browser-logging.properties")
         self.properties['java.util.logging.config.file'] = os.path.join( \
-            self.appHome, "var", "config", "logging", \
+            self.appHome, "bin", "config", \
             "browser-logging.properties")
 
 
@@ -413,14 +414,14 @@ bigdataServiceMap = {
     'reggie'            : (BigdataMetaservice,      9010, 20010),
     'httpd'             : (BigdataServiceOldLog,    9010),
     'browser'           : (JiniBrowser,             9020),
-    'zookeeper'         : (BigdataService,          9333, 20333),
-    'dataserver'        : (BigdataService,          9250, 21050),
-    'metadataserver'    : (BigdataService,          9251, 21051),
+    'quorum'            : (BigdataService,          9334, 20334),
+    'shard'             : (BigdataService,          9250, 21050),
+    'shardlocator'      : (BigdataService,          9251, 21051),
     'loadbalancer'      : (BigdataService,          9252, 21052),
-    'txnserver'         : (BigdataService,          9253, 21053),
-    'clientserver'      : (BigdataService,          9254, 21054),
+    'executor'          : (BigdataService,          9253, 21053),
+    'transaction'       : (BigdataService,          9254, 21054),
 
-    'all'               : (BigdataMetaservice,      9010, 20010),
+    'all'               : (BigdataMetaservice,      9012, 0),
 }
 
 

@@ -1387,6 +1387,10 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
         physicalServiceZPath = logicalServiceZPath + "/"
                 + BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER + "/"
                 + serviceUUID;
+System.out.println("\nAAAAA AbstractServer.notifyZookeeper: logicalServiceZPath         = "+logicalServiceZPath);
+System.out.println(  "AAAAA AbstractServer.notifyZookeeper: PHYSICAL_SERVICES_CONTAINER = "+BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER);
+System.out.println(  "AAAAA AbstractServer.notifyZookeeper: serviceUUID                 = "+serviceUUID);
+System.out.println(  "AAAAA AbstractServer.notifyZookeeper: physicalServiceZPath        = "+physicalServiceZPath);
 
         /*
          * Note: The znode data contains the attributes currently associated
@@ -1408,6 +1412,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
 
             final List<ACL> acl = fed.getZooConfig().acl;
 
+System.out.println(  "AAAAA AbstractServer.notifyZookeeper: CREATING ZNODE \n");
             zookeeper.create(physicalServiceZPath, data, acl,
                     isPersistent() ? CreateMode.PERSISTENT
                             : CreateMode.EPHEMERAL);
@@ -1419,6 +1424,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
              * just update the Entry[] on the znode if it already exists.
              */
 
+System.out.println(  "AAAAA AbstractServer.notifyZookeeper: NODE EXISTS ---> update ZNODE\n");
             zookeeper.setData(physicalServiceZPath, data, -1/* version */);
 
         }
@@ -2114,6 +2120,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
                 throw new IllegalArgumentException();
             
             this.server = server;
+System.out.println("\nAAAAA AbstractServer.ShutdownThread constructor ---> server = "+this.server+"\n");
             
             setDaemon(true);
             
@@ -2132,6 +2139,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
                  * service and termination of jini processing.
                  */
                 
+System.out.println("\nAAAAA AbstractServer.ShutdownThread run ---> server.shutdownNow [server = "+this.server+"]\n]");
                 server.shutdownNow(false/* destroy */);
                 
             } catch (Exception ex) {

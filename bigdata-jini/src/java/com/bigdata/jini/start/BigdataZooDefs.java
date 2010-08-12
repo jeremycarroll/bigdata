@@ -28,7 +28,7 @@ import com.bigdata.zookeeper.ZLock;
  *     serviceConfigMonitor 
  *       com.bigdata.service.jini.DataServer 
  *         lock0000000000 (Ephemeral) 
- *       com.bigdata.service.jini.LoadBalancerServer 
+ *       com.bigdata.service.jini.LoadBalancerServer or com.bigdata.loadbalancer.ServiceImpl 
  *         lock0000000000 (Ephemeral) 
  *       com.bigdata.service.jini.MetadataServer 
  *         lock0000000000 (Ephemeral) 
@@ -43,7 +43,7 @@ import com.bigdata.zookeeper.ZLock;
  *       logicalService0000000000 
  *         election 
  *         physicalServiceb2bf8b98-da0c-42f5-ac65-027bf3304429 (Ephemeral) {UUID}
- *     com.bigdata.service.jini.LoadBalancerServer {LoadBalancerServiceConfiguration}
+ *     com.bigdata.service.jini.LoadBalancerServer or com.bigdata.loadbalancer.ServiceImpl {LoadBalancerConfiguration}
  *       logicalService0000000000 
  *         election 
  *         physicalService911a9b28-7396-4932-ab80-77078119e7e2 (Ephemeral) {UUID}
@@ -58,7 +58,7 @@ import com.bigdata.zookeeper.ZLock;
  *   services
  *       com.bigdata.service.jini.TransactionServer 
  *          instances (persistent znodes)
- *       com.bigdata.service.jini.LoadBalancerServer
+ *       com.bigdata.service.jini.LoadBalancerServer or com.bigdata.loadbalancer.ServiceImpl
  *           instances (persistent znodes)
  *       com.bigdata.service.jini.MetadataServer
  *          instances (persistent znodes) 

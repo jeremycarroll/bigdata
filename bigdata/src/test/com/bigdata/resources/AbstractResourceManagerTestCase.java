@@ -69,7 +69,6 @@ import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataClient;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IDataService;
-import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.IService;
 import com.bigdata.service.Session;
@@ -77,6 +76,8 @@ import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.httpd.AbstractHTTPD;
+
+import com.bigdata.service.LoadBalancer;
 
 /**
  * Base class for {@link ResourceManager} test suites that can use normal
@@ -144,28 +145,24 @@ public class AbstractResourceManagerTestCase extends
 
             final private UUID dataServiceUUID = UUID.randomUUID();
             
+            @Override
             public IBigdataFederation getFederation() {
                 
                 return fed;
                 
             }
             
+            @Override
             public DataService getDataService() {
                 
                 throw new UnsupportedOperationException();
                 
             }
             
+            @Override
             public UUID getDataServiceUUID() {
                 
                 return dataServiceUUID;
-                
-            }
-
-            /** Note: no failover services. */
-            public UUID[] getDataServiceUUIDs() {
-                
-                return new UUID[] { dataServiceUUID };
                 
             }
 
@@ -173,9 +170,17 @@ public class AbstractResourceManagerTestCase extends
 
         txService = new MockTransactionService(properties){
 
+        	@Override
             protected void setReleaseTime(long releaseTime) {
                 
                 super.setReleaseTime(releaseTime);
+
+				if (log.isInfoEnabled())
+					log
+							.info("Propagating new release time to the resourceManager: releaseTime="
+									+ releaseTime
+									+ ", releaseAge="
+									+ getMinReleaseAge());
 
                 // propagate the new release time to the resource manager.
                 resourceManager.setReleaseTime(releaseTime);
@@ -477,7 +482,7 @@ public class AbstractResourceManagerTestCase extends
             return null;
         }
 
-        public ILoadBalancerService getLoadBalancerService() {
+        public LoadBalancer getLoadBalancerService() {
 
             return null;
         }

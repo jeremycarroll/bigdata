@@ -29,9 +29,11 @@ import com.bigdata.resources.OverflowManager.ResourceScores;
 import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
-import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.ndx.ClientIndexView;
+
+//BTM
+import com.bigdata.service.LoadBalancer;
 
 /**
  * Task builds an {@link IndexSegment} from the fused view of an index partition
@@ -510,7 +512,7 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
          * critically overloaded, but that should probably be handled by
          * different logic.]
          */
-        ILoadBalancerService loadBalancerService = null;
+        LoadBalancer loadBalancerService = null;
         if (vmd.getPercentOfSplit() < resourceManager.maximumMovePercentOfSplit
                 && resourceManager.maximumMovesPerTarget != 0
                 && resourceManager.getLiveJournal().getName2Addr().rangeCount() > resourceManager.minimumActiveIndexPartitions
@@ -558,15 +560,15 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
     }
 
     /**
-     * Return the {@link ILoadBalancerService} if it can be discovered.
+     * Return the load balancer service if it can be discovered.
      * 
-     * @return the {@link ILoadBalancerService} if it can be discovered and
+     * @return the load balancer service if it can be discovered and
      *         otherwise <code>null</code>.
      */
-    private ILoadBalancerService getLoadBalancerService() {
+    private LoadBalancer getLoadBalancerService() {
 
         // lookup the load balancer service.
-        final ILoadBalancerService loadBalancerService;
+        final LoadBalancer loadBalancerService;
         
         try {
 
@@ -604,7 +606,7 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
      * @param loadBalancerService
      *            The load balancer.
      */
-    protected boolean shouldMove(final ILoadBalancerService loadBalancerService) {
+    protected boolean shouldMove(final LoadBalancer loadBalancerService) {
 
         if (loadBalancerService == null)
             throw new IllegalArgumentException();
@@ -683,7 +685,7 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
      * behavior).
      */
     private UUID getMoveTarget(final UUID sourceServiceUUID,
-            final ILoadBalancerService loadBalancerService) {
+            final LoadBalancer loadBalancerService) {
 
         try {
 

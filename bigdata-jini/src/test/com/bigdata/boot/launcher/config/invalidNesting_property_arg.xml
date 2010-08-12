@@ -1,0 +1,5 @@
+<boot>
+  <property name="propname" value="propvalue">
+    <arg value="--testing"/>
+  </property>
+</boot>

@@ -447,8 +447,8 @@ public interface IBigdataClient<T> {
         String DEFAULT_COLLECT_QUEUE_STATISTICS = "true";
 
         /**
-         * The delay between reports of performance counters to the
-         * {@link ILoadBalancerService} in milliseconds ({@value #DEFAULT_REPORT_DELAY}).
+         * The delay between reports of performance counters to the load
+         * balancer service in milliseconds ({@value #DEFAULT_REPORT_DELAY}).
          * 
          * @see #DEFAULT_REPORT_DELAY
          */
@@ -466,10 +466,10 @@ public interface IBigdataClient<T> {
          * used. The httpd service may be disabled by specifying <code>-1</code>
          * as the port.
          * <p>
-         * Note: The httpd service for the {@link LoadBalancerService} is
+         * Note: The httpd service for the load balancer service is
          * normally run on a known port in order to make it easy to locate that
          * service, e.g., port 80, 8000 or 8080, etc. This MUST be overridden for
-         * the {@link LoadBalancerService} it its configuration since
+         * the load balancer service in its configuration since
          * {@link #DEFAULT_HTTPD_PORT} will otherwise cause a random port to be
          * assigned.
          */

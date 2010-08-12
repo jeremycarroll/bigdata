@@ -75,7 +75,10 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
 
     public DataServer dataServer0;
 
-    public LoadBalancerServer loadBalancerServer0;
+//BTM    public LoadBalancerServer loadBalancerServer0;
+public LoadBalancerServer lbsRemote0;
+public LoadBalancerTask lbs0;
+private boolean serviceImplRemote;
 
     public TransactionServer transactionServer0;
 
@@ -225,7 +228,36 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
      *            optional jini overrides.
      */
     public JiniServicesHelper(final String[] args) {
+//BTM
+//BTM        if (args == null)
+//BTM            throw new IllegalArgumentException();
+//BTM
+//BTM        if (args.length == 0)
+//BTM            throw new IllegalArgumentException();
+//BTM
+//BTM        if (args[0] == null)
+//BTM            throw new IllegalArgumentException();
+//BTM
+//BTM        if (!new File(args[0]).exists()) {
+//BTM
+//BTM            throw new RuntimeException("Configuration file not found: "
+//BTM                    + args[0]);
+//BTM            
+//BTM        }
+//BTM        
+//BTM        this.args = args;
+this(new String[] { CONFIG_STANDALONE.getPath() }, false);
+    }
 
+//BTM
+    public JiniServicesHelper(boolean serviceImplRemote) {
+        this(new String[] { CONFIG_STANDALONE.getPath() },
+             serviceImplRemote);   
+    }
+
+    public JiniServicesHelper(final String[] args,
+                              boolean serviceImplRemote)
+    {
         if (args == null)
             throw new IllegalArgumentException();
 
@@ -243,8 +275,10 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
         }
         
         this.args = args;
-
+        this.serviceImplRemote = serviceImplRemote;
     }
+
+
 
     private final String[] args;
 
@@ -326,6 +360,9 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
             ConfigurationException, KeeperException {
 
         System.setSecurityManager(new SecurityManager());
+//BTM
+net.jini.discovery.LookupDiscoveryManager ldm = null;
+net.jini.lookup.ServiceDiscoveryManager sdm = null;
 
         /*
          * Pull some fields out of the configuration file that we need to
@@ -360,7 +397,14 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
             System.err.println("fedServiceDir=" + fedServiceDir);
 
             this.fedServiceDir = fedServiceDir;
-            
+
+//BTM
+try {
+    ldm = new net.jini.discovery.LookupDiscoveryManager(new String[] {fedname}, null, null, config);
+    sdm = new net.jini.lookup.ServiceDiscoveryManager(ldm, null, config);
+} catch(Throwable t) {
+    t.printStackTrace();
+}
         }
 
         /*
@@ -567,8 +611,39 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
         threadPool.execute(metadataServer0 = new MetadataServer(concat(args,
                 options), new FakeLifeCycle()));
 
-        threadPool.execute(loadBalancerServer0 = new LoadBalancerServer(concat(
+//BTM        threadPool.execute(loadBalancerServer0 = new LoadBalancerServer(concat(
+//BTM                args, options), new FakeLifeCycle()));
+//BTM
+//BTM -----------------------------------------------------------------------
+if(serviceImplRemote) {
+System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> LoadBalancerServer [purely remote]");
+
+        threadPool.execute(lbsRemote0 = new LoadBalancerServer(concat(
                 args, options), new FakeLifeCycle()));
+} else {
+    java.util.ArrayList<String> optionsList = new java.util.ArrayList<String>();
+    for(int i=0; i<options.length; i++) {
+        optionsList.add(options[i]);
+    }
+    String joinGroupsOverrideStr = 
+                   "com.bigdata.loadbalancer.groupsToJoin=new String[] "
+                   +"{"
+                   +"\""+fedname+"\""
+                   +"}";
+    optionsList.add(joinGroupsOverrideStr);
+    String[] loadBalancerArgs = 
+         concat(args, optionsList.toArray(new String[optionsList.size()]) );
+
+System.err.println("\n**** BTM - JiniServicesHelper ****");
+for(int i=0; i<loadBalancerArgs.length; i++) {
+    System.err.println("**** BTM - loadBalancerArgs["+i+"] = "+loadBalancerArgs[i]);
+}
+System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> LoadBalancerTask [NON-remote]");
+
+    lbs0 = new LoadBalancerTask(loadBalancerArgs);
+    threadPool.execute(lbs0);
+}
+//BTM -----------------------------------------------------------------------
 
         // Wait until all the services are up.
         getServiceID(clientServer0);
@@ -576,7 +651,14 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
         getServiceID(metadataServer0);
         getServiceID(dataServer0);
         getServiceID(dataServer1);
-        getServiceID(loadBalancerServer0);
+//BTM        getServiceID(loadBalancerServer0);
+//BTM
+//BTM -----------------------------------------------------------------------
+if(lbsRemote0 != null) getServiceID(lbsRemote0);
+if(lbs0 != null) getServiceID(com.bigdata.service.LoadBalancer.class, sdm);
+if(sdm != null) sdm.terminate();
+if(ldm != null) ldm.terminate();
+//BTM -----------------------------------------------------------------------
 
     }
 
@@ -646,13 +728,21 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
 
         }
         
-        if (loadBalancerServer0 != null) {
-
-            loadBalancerServer0.destroy();
-
-            loadBalancerServer0 = null;
-
-        }
+//BTM        if (loadBalancerServer0 != null) {
+//BTM
+//BTM            loadBalancerServer0.destroy();
+//BTM
+//BTM            loadBalancerServer0 = null;
+//BTM
+//BTM        }
+if (lbsRemote0 != null) {
+    lbsRemote0.destroy();
+    lbsRemote0 = null;
+}
+if (lbs0 != null) {
+    lbs0.destroy();
+    lbs0 = null;
+}
 
         if (transactionServer0 != null) {
 
@@ -843,6 +933,64 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
         }
 
     }
+
+//BTM -----------------------------------------------------------------------
+    private ServiceID getServiceID(Class classType,
+                                   net.jini.lookup.ServiceDiscoveryManager sdm)
+    {
+        if(sdm == null) {
+            throw new RuntimeException
+                               ("JiniServicesHelper.getServiceID: null sdm");
+        }
+        net.jini.core.lookup.ServiceTemplate tmpl = 
+        new net.jini.core.lookup.ServiceTemplate
+                              (null, new Class[] {classType}, null);
+        net.jini.core.lookup.ServiceItem item = null;
+        try {
+            item = sdm.lookup(tmpl, null, (20L*200L) );
+        } catch(Throwable t) { 
+            t.printStackTrace();
+        }
+
+        if ( (item == null) || (item.service == null) ) {
+            throw new RuntimeException("JiniServicesHelper.getServiceID: "
+                                       +"server did not start? "
+                                       +"["+classType+"]");
+        }
+        return item.serviceID;
+    }
+
+    // Convenience class that allows one to instantiate and run the
+    // load balancer's ServiceImpl class as a task in a thread pool.
+    private class LoadBalancerTask implements Runnable {
+        private String[] args;
+        private com.bigdata.loadbalancer.ServiceImpl loadBalancer;
+        LoadBalancerTask(String[] args) {
+            this.args = args;
+        }
+        public void run() {
+            try {
+                this.loadBalancer =
+                    new com.bigdata.loadbalancer.ServiceImpl
+                                                 (args,new FakeLifeCycle());
+            } catch(Throwable t) {
+                t.printStackTrace();
+                return;
+            }
+            while( !(Thread.currentThread()).isInterrupted() ) {
+                try {
+                    Thread.sleep(Long.MAX_VALUE);
+                } catch (InterruptedException e) { /*exit while loop*/ }
+            }
+        }
+        public void destroy() {
+            try {
+                this.loadBalancer.destroy();
+            } catch(Throwable t) { /* swallow */ }
+            Thread.currentThread().interrupt();
+        }
+    }
+//BTM -----------------------------------------------------------------------
 
     /**
      * Mock implementation used by some unit tests.

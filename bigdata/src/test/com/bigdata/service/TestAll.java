@@ -82,12 +82,14 @@ public class TestAll extends TestCase {
         
         // tests of the metadata index.
         suite.addTestSuite(TestMetadataIndex.class);
+        suite.addTestSuite(TestMetadataIndexRemote.class);
 
         // tests of the client's view of a scale-out index.
         suite.addTest(com.bigdata.service.ndx.TestAll.suite());
         
         // test ability to re-open an embedded federation.
         suite.addTestSuite(TestRestartSafe.class);
+        suite.addTestSuite(TestRestartSafeRemote.class);
 
         // unit tests for the distributed transaction service's snapshots.
         suite.addTestSuite(TestSnapshotHelper.class);
@@ -97,23 +99,29 @@ public class TestAll extends TestCase {
         
         // unit tests of single-phase and distributed tx commit protocol.
         suite.addTestSuite(TestDistributedTransactionService.class);
+        suite.addTestSuite(TestDistributedTransactionServiceRemote.class);
         
         // test basic journal overflow scenario.
         suite.addTestSuite(TestOverflow.class);
+        suite.addTestSuite(TestOverflowRemote.class);
         
         // test split/join (inserts eventually split; deletes eventually join).
         suite.addTestSuite(TestSplitJoin.class);
+        suite.addTestSuite(TestSplitJoinRemote.class);
 
         // test scatter splits with 2DS.
         suite.addTestSuite(TestScatterSplit.class);
+        suite.addTestSuite(TestScatterSplitRemote.class);
 
         // test journal overflow scenarios (move)
         suite.addTestSuite(TestMove.class);
+        suite.addTestSuite(TestMoveRemote.class);
 
         /*
          * Stress test of concurrent clients writing on a single data service.
          */
         suite.addTestSuite(StressTestConcurrent.class);
+        suite.addTestSuite(StressTestConcurrentRemote.class);
 
         return suite;
         

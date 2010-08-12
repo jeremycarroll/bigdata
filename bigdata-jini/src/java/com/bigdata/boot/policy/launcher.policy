@@ -1,0 +1,16 @@
+// Policy file for the Jini boot launcher
+
+grant codebase "file:lib${/}bigdata.jar" {
+    permission java.lang.RuntimePermission "getenv.*";
+    permission java.lang.RuntimePermission "exitVM.*";
+    permission java.lang.RuntimePermission "shutdownHooks";
+
+    permission java.util.PropertyPermission "user.dir", "read";
+    permission java.util.PropertyPermission "file.separator", "read";
+    permission java.util.PropertyPermission "path.separator", "read";
+    permission java.util.PropertyPermission "os.*", "read";
+
+    permission java.io.FilePermission "var/config/jini/boot/*", "read";
+    permission java.io.FilePermission "<<ALL FILES>>", "execute";
+    permission java.net.SocketPermission "localhost:1024-", "connect,accept";
+};

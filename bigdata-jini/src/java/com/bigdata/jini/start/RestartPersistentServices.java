@@ -171,12 +171,15 @@ public class RestartPersistentServices implements Callable<Boolean> {
         if (log.isInfoEnabled())
 			log.info("Considering " + serviceConfigZNodes.size()
 					+ " service configurations");
+System.out.println("\n*********************************************************");
+System.out.println("*** RestartPersistentServices.runOnce: Considering " + serviceConfigZNodes.size()+ " service configurations");
         
         for (String serviceConfigZNode : serviceConfigZNodes) {
 
             if (log.isInfoEnabled())
 				log.info("Considering service configuration: "
 						+ serviceConfigZNode);
+System.out.println("*** RestartPersistentServices.runOnce: Considering service configuration: "+ serviceConfigZNode);
             
             /*
              * Get the service configuration. We will need it iff we restart an
@@ -200,6 +203,7 @@ public class RestartPersistentServices implements Callable<Boolean> {
 				log.info("Considering " + logicalServiceZNodes.size()
 						+ " logical services configurations for "
 						+ serviceConfigZNode);
+System.out.println("*** RestartPersistentServices.runOnce: Considering " + logicalServiceZNodes.size()+ " logical services configurations for "+ serviceConfigZNode);
 
             for (String logicalServiceZNode : logicalServiceZNodes) {
 
@@ -224,6 +228,7 @@ public class RestartPersistentServices implements Callable<Boolean> {
 									+ " physical services configurations for "
 									+ logicalServiceZNode + " of "
 									+ serviceConfigZNode);
+System.out.println("*** RestartPersistentServices.runOnce: Considering " + physicalServiceZNodes.size()+ " physical services configurations for "+ logicalServiceZNode + " of "+ serviceConfigZNode);
                 
                 for (String physicalServiceZNode : physicalServiceZNodes) {
 
@@ -238,6 +243,7 @@ public class RestartPersistentServices implements Callable<Boolean> {
                         log.info("Considering: "
                                 + physicalServicesContainerZPath);
                     
+System.out.println("*** RestartPersistentServices.runOnce >>>  monitorCreatePhysicalServiceLocksTask.restartIfNotRunning <<<< [serviceConfig="+serviceConfig+", logicalServiceZPath="+logicalServiceZPath+", physicalServiceZPath="+physicalServiceZPath+"]");
                     monitorCreatePhysicalServiceLocksTask.restartIfNotRunning(
                             serviceConfig, logicalServiceZPath,
                             physicalServiceZPath, attributes);
@@ -247,6 +253,7 @@ public class RestartPersistentServices implements Callable<Boolean> {
             }
 
         }
+System.out.println("*********************************************************\n");
 
         // Success.
         return true;

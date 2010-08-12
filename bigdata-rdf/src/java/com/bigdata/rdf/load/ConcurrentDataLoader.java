@@ -55,7 +55,6 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.accesspath.IBuffer;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
@@ -359,7 +358,7 @@ public class ConcurrentDataLoader<T extends Runnable, F> {
     
     /**
      * Return the {@link CounterSet} to be reported to the
-     * {@link ILoadBalancerService}. The caller is responsible for attaching
+     * load balancer service. The caller is responsible for attaching
      * the counters to those reported by {@link JiniFederation#getCounterSet()}
      * <p>
      * Note: the CDL relies on some side-effects on the returned

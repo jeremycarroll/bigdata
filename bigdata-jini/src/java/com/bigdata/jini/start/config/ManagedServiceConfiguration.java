@@ -70,8 +70,8 @@ abstract public class ManagedServiceConfiguration extends JavaServiceConfigurati
     public ManagedServiceConfiguration(String className, Configuration config)
             throws ConfigurationException {
      
-        super(className, config);
-
+       super(className, config);
+System.out.println("*** ManagedServiceConfiguration: constructor");
     }
 
     /**

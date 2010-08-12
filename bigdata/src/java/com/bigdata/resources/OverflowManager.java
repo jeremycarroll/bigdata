@@ -287,6 +287,14 @@ abstract public class OverflowManager extends IndexManager {
      */
     protected final AtomicBoolean asyncOverflowEnabled = new AtomicBoolean(true);
 
+	/**
+	 * Flag may be set to force overflow processing during the next group
+	 * commit. The flag is cleared by {@link #overflow()}.
+	 * 
+	 * @see DataService#forceOverflow(boolean, boolean)
+	 */
+    public final AtomicBoolean forceOverflow = new AtomicBoolean(false);
+
     /**
      * A flag that may be set to force the next asynchronous overflow to perform
      * a compacting merge for all indices that are not simply copied over to the
@@ -295,6 +303,8 @@ abstract public class OverflowManager extends IndexManager {
      * made compact and SHOULD NOT be used for deployed federations</strong>).
      * The state of the flag is cleared each time asynchronous overflow
      * processing begins.
+     * 
+	 * @see DataService#forceOverflow(boolean, boolean)
      */
     public final AtomicBoolean compactingMerge = new AtomicBoolean(false);
 
@@ -724,33 +734,36 @@ abstract public class OverflowManager extends IndexManager {
                 + ".movePercentCpuTimeThreshold";
 
         String DEFAULT_MOVE_PERCENT_CPU_TIME_THRESHOLD = ".7";
-        
-        /**
-         * The maximum #of optional compacting merge operations that will be
-         * performed during a single overflow event (default
-         * {@value #DEFAULT_OPTIONAL_COMPACTING_MERGES_PER_OVERFLOW}).
-         * <p>
-         * Once this #of optional compacting merge tasks have been identified
-         * for a given overflow event, the remainder of the index partitions
-         * that are neither split, joined, moved, nor copied will use
-         * incremental builds. An incremental build is generally cheaper since
-         * it only copies the data on the mutable {@link BTree} for the
-         * lastCommitTime rather than the fused view. A compacting merge permits
-         * the older index segments to be released and results in a simpler view
-         * with view {@link IndexSegment}s. Either a compacting merge or an
-         * incremental build will permit old journals to be released once the
-         * commit points on those journals are no longer required.
-         * <p>
-         * Note: Mandatory compacting merges are identified based on
-         * {@link #MAXIMUM_JOURNALS_PER_VIEW} and
-         * {@link #MAXIMUM_SEGMENTS_PER_VIEW}. There is NO limit the #of
-         * mandatory compacting merges that will be performed during an
-         * asynchronous overflow event. However, each mandatory compacting merge
-         * does count towards the maximum #of optional merges. Therefore if the
-         * #of mandatory compacting merges is greater than this parameter then
-         * NO optional compacting merges will be selected in a given overflow
-         * cycle.
-         */
+
+		/**
+		 * The maximum #of optional compacting merge operations that will be
+		 * performed during a single overflow event (default
+		 * {@value #DEFAULT_OPTIONAL_COMPACTING_MERGES_PER_OVERFLOW}).
+		 * <p>
+		 * Once this #of optional compacting merge tasks have been identified
+		 * for a given overflow event, the remainder of the index partitions
+		 * that are neither split, joined, moved, nor copied will use
+		 * incremental builds. An incremental build is generally cheaper since
+		 * it only copies the data on the mutable {@link BTree} for the
+		 * lastCommitTime rather than the fused view. A compacting merge permits
+		 * the older index segments to be released and results in a simpler view
+		 * with view {@link IndexSegment}s. Either a compacting merge or an
+		 * incremental build will permit old journals to be released once the
+		 * commit points on those journals are no longer required.
+		 * <p>
+		 * Note: Mandatory compacting merges are identified based on
+		 * {@link #MAXIMUM_JOURNALS_PER_VIEW} and
+		 * {@link #MAXIMUM_SEGMENTS_PER_VIEW}. There is NO limit the #of
+		 * mandatory compacting merges that will be performed during an
+		 * asynchronous overflow event. However, each mandatory compacting merge
+		 * does count towards the maximum #of optional merges. Therefore if the
+		 * #of mandatory compacting merges is greater than this parameter then
+		 * NO optional compacting merges will be selected in a given overflow
+		 * cycle.
+		 * 
+		 * @deprecated merges are now performed in priority order while time
+		 *             remains in a given asynchronous overflow cycle.
+		 */
         String MAXIMUM_OPTIONAL_MERGES_PER_OVERFLOW = OverflowManager.class
                 .getName()
                 + ".maximumOptionalMergesPerOverflow";
@@ -1701,7 +1714,7 @@ abstract public class OverflowManager extends IndexManager {
         }
      
         if(overflowEnabled) {
-
+        	// @todo defer allocation until init() outside of ctor.
             overflowService = Executors.newFixedThreadPool(1,
                     new DaemonThreadFactory((serviceName == null ? ""
                             : serviceName + "-")
@@ -1846,6 +1859,19 @@ abstract public class OverflowManager extends IndexManager {
      */
     public boolean shouldOverflow() {
      
+        if(forceOverflow.get()) {
+
+        	/*
+        	 * Note: forceOverflow trumps everything else.
+        	 */
+        	
+        	if (log.isInfoEnabled())
+                log.info("Forcing overflow.");
+            
+        	return true;
+        	
+        }
+        
         if (isTransient()) {
 
             /*
@@ -1883,7 +1909,7 @@ abstract public class OverflowManager extends IndexManager {
             return false;
             
         }
-        
+
         /*
          * Look for overflow condition on the "live" journal.
          */
@@ -1956,8 +1982,18 @@ abstract public class OverflowManager extends IndexManager {
      */
     public Future<Object> overflow() {
 
-        assert overflowAllowed.get();
+//        assert overflowAllowed.get();
 
+		/*
+		 * Atomically test and clear the flag. The local boolean is inspected
+		 * below. When true, asynchronous overflow processing will occur unless
+		 * an error occurs during synchronous overflow processing. This ensures
+		 * that we can force a compacting merge on the shards of a data service
+		 * even if that data service has not buffer sufficient writes to warrant
+		 * a build on any of the index segments.
+		 */
+    	final boolean forceOverflow = this.forceOverflow.getAndSet(false/* newValue */);
+    	
         final Event e = new Event(getFederation(), new EventResource(),
                 EventType.SynchronousOverflow).addDetail(
                 "synchronousOverflowCounter",
@@ -1979,7 +2015,12 @@ abstract public class OverflowManager extends IndexManager {
 
             if (asyncOverflowEnabled.get()) {
 
-                if (overflowMetadata.postProcess) {
+				/*
+				 * Do overflow processing if overflow is being forced OR if we
+				 * need to do a build for at least one index partition.
+				 */
+				
+				if (forceOverflow || overflowMetadata.postProcess) {
 
                     /*
                      * Post-processing SHOULD be performed.

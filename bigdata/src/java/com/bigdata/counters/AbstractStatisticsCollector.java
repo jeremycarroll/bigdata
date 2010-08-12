@@ -48,6 +48,7 @@ import com.bigdata.counters.linux.StatisticsCollectorForLinux;
 import com.bigdata.counters.win.StatisticsCollectorForWindows;
 import com.bigdata.io.DirectBufferPool;
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 import com.bigdata.util.httpd.AbstractHTTPD;
 
@@ -83,7 +84,7 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
     
     	String s;
         try {
-            s = NicUtil.getIpAddress("default.nic", "default", false);
+            s = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
         } catch(Throwable t) {//for now, maintain same failure logic as used previously
             t.printStackTrace();
             s = NicUtil.getIpAddressByLocalHost();
@@ -277,19 +278,19 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
             AbstractStatisticsCollector
                     .addGarbageCollectorMXBeanCounters(serviceRoot
                             .makePath(ICounterHierarchy.Memory_GarbageCollectors));
-            
-            /*
-             * Add counters reporting on the various DirectBufferPools.
-             */
-            {
 
-                // general purpose pool.
-                serviceRoot.makePath(
-                        IProcessCounters.Memory + ICounterSet.pathSeparator
-                                + "DirectBufferPool").attach(
-                        DirectBufferPool.getCounters());
-                
-            }
+            // Moved since counters must be dynamically reattached to reflect pool hierarchy.
+//            /*
+//             * Add counters reporting on the various DirectBufferPools.
+//             */
+//            {
+//
+//                serviceRoot.makePath(
+//                        IProcessCounters.Memory + ICounterSet.pathSeparator
+//                                + "DirectBufferPool").attach(
+//                        DirectBufferPool.getCounters());
+//                
+//            }
 
             if (LRUNexus.INSTANCE != null) {
 

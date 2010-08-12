@@ -16,6 +16,7 @@ import com.bigdata.jini.start.IServiceListener;
 import com.bigdata.jini.start.config.ZookeeperServerConfiguration;
 import com.bigdata.jini.start.config.ZookeeperServerEntry;
 import com.bigdata.jini.start.config.ZookeeperServerConfiguration.ZookeeperRunningException;
+import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 import com.bigdata.zookeeper.ZooHelper;
 
@@ -45,7 +46,7 @@ public class ZookeeperProcessHelper extends ProcessHelper {
     static {
 	try {
             thisInetAddr = InetAddress.getByName
-                    (NicUtil.getIpAddress("default.nic", "default", false));
+                    (NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false));
 	} catch (Throwable t) { /* swallow */ }
     }
     
@@ -153,12 +154,16 @@ public class ZookeeperProcessHelper extends ProcessHelper {
         final ZookeeperServerConfiguration serverConfig = new ZookeeperServerConfiguration(
                 config);
 
+//BTM
+System.out.println("---- ZookeeperProcessHelper.startZookeeper: [localhost="+thisInetAddr.getHostName()+", clientPort="+serverConfig.clientPort+"] ----");
         if (ZooHelper.isRunning(thisInetAddr, serverConfig.clientPort)) {
 
             if (log.isInfoEnabled())
                 log.info("Zookeeper already running: "
-                        + thisInetAddr.getCanonicalHostName()
+                        + thisInetAddr.getHostName()
                         + ":" + serverConfig.clientPort);
+//BTM
+System.out.println("---- ZookeeperProcessHelper.startZookeeper: Zookeeper ALREADY RUNNING on "+thisInetAddr.getHostName()+" ----");
 
             // will not consider start.
             return 0;
@@ -209,7 +214,6 @@ public class ZookeeperProcessHelper extends ProcessHelper {
                     log.error("Could not start: entry=" + entry, ex);
 
                 }
-
             }
 
         } // next entry

@@ -37,8 +37,11 @@ import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.LoadBalancerServer;
 import com.bigdata.util.NV;
 
+//BTM
+import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+
 /**
- * Configuration for the {@link LoadBalancerServer}.
+ * Configuration for the load balancer service.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -54,17 +57,27 @@ public class LoadBalancerConfiguration extends
     /**
      * @param config
      */
-    public LoadBalancerConfiguration(Configuration config)
-            throws ConfigurationException {
-
-        super(LoadBalancerServer.class, config);
-
+//BTM - BEGIN
+//BTM    public LoadBalancerConfiguration(Configuration config)
+//BTM            throws ConfigurationException {
+//BTM
+//BTM        super(LoadBalancerServer.class, config);
+//BTM    }
+//BTM
+    public LoadBalancerConfiguration(Class         classType,
+                                     Configuration config)
+               throws ConfigurationException
+    {
+        super(classType, config);
+System.out.println("*** LoadBalancerConfiguration: constructor ***");
     }
+//BTM - END
 
     public LoadBalancerServiceStarter newServiceStarter(JiniFederation fed,
             IServiceListener listener, String zpath, Entry[] attributes)
             throws Exception {
 
+System.out.println("*** LoadBalancerConfiguration ---> newServiceStarter ***");
         return new LoadBalancerServiceStarter(fed, listener, zpath, attributes);
 
     }
@@ -81,15 +94,22 @@ public class LoadBalancerConfiguration extends
                 IServiceListener listener, String zpath, Entry[] attributes) {
 
             super(fed, listener, zpath, attributes);
+System.out.println("*** LoadBalancerConfiguration.LoadBalancerServiceStarter: constructor ***");
 
         }
 
         @Override
         protected NV getDataDir() {
-            
-            return new NV(LoadBalancerServer.Options.LOG_DIR, serviceDir
-                    .toString());
-            
+            // className field defined/set in ServiceConfiguration parent
+            if ( (LoadBalancerServer.class.getName()).equals(className) ) {
+System.out.println("*** LoadBalancerConfiguration.LoadBalancerServiceStarter: getDataDir [LoadBalancerServer.Options.LOG_DIR="+LoadBalancerServer.Options.LOG_DIR+", serviceDir="+serviceDir.toString()+"] ***");
+                return new NV(LoadBalancerServer.Options.LOG_DIR, serviceDir.toString());
+            } else if ( (com.bigdata.loadbalancer.ServiceImpl.class.getName()).equals(className) ) {
+System.out.println("*** LoadBalancerConfiguration.LoadBalancerServiceStarter: getDataDir [EmbeddedLoadBalancer.Options.LOG_DIR="+EmbeddedLoadBalancer.Options.LOG_DIR+", serviceDir="+serviceDir.toString()+"] ***");
+                return new NV(EmbeddedLoadBalancer.Options.LOG_DIR, serviceDir.toString());
+            } else {
+                return null;
+            }
         }
         
     }

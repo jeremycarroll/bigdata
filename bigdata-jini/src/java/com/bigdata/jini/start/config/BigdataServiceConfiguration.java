@@ -70,17 +70,31 @@ public class BigdataServiceConfiguration extends
      * @param config
      * @throws ConfigurationException
      */
-    public BigdataServiceConfiguration(Class<? extends AbstractServer> cls,
-            Configuration config) throws ConfigurationException {
-
+//BTM    public BigdataServiceConfiguration(Class<? extends AbstractServer> cls,
+//BTM            Configuration config) throws ConfigurationException {
+    public BigdataServiceConfiguration(Class cls, Configuration config)
+               throws ConfigurationException
+    {
         super(cls.getName(), config);
+System.out.println("*** BigdataServiceConfiguration: constructor");
 
-        if (log4j == null) {
-            
-            throw new ConfigurationException("Must specify: " + Options.LOG4J);
-            
+        boolean classCastOk = false;
+        if( AbstractServer.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
+        } else if( com.bigdata.service.jini.LoadBalancerServer.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
+        } else if( com.bigdata.loadbalancer.ServiceImpl.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
         }
-        
+
+        if( !classCastOk ) {
+            throw new ClassCastException("must be instance of service "
+                                         +"backend impl type or AbstractServer "
+                                         +"["+cls+"]");
+        }
+        if (log4j == null) {
+            throw new ConfigurationException("Must specify: " + Options.LOG4J);
+        }
     }
 
     protected void toString(StringBuilder sb) {
