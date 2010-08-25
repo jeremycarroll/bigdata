@@ -1,0 +1,60 @@
+<boot>
+  <!-- test & classes dirs when using ant, bin dir when using eclipse -->
+  <property name="java.classpath" value="lib${/}bigdata.jar${:}testing${/}lib-test${/}bigdata-tests.jar${:}target${/}classes${/}test${:}bin"/>
+
+  <!-- This process just initializes and then waits to shut down -->
+  <process tag="idleProc1" class="java">
+    <property name="java.app.mainclass"
+              value="com.bigdata.boot.SimulatedApp"/>
+    <arg value="waitForShutdown"/>
+  </process>
+
+  <!-- This process just initializes and then waits to shut down -->
+  <process tag="idleProc2" class="java">
+    <property name="java.app.mainclass"
+              value="com.bigdata.boot.SimulatedApp"/>
+    <arg value="waitForShutdown"/>
+  </process>
+
+  <!-- This process just initializes and then waits to shut down -->
+  <process tag="idleProc3" class="java">
+    <property name="java.app.mainclass"
+              value="com.bigdata.boot.SimulatedApp"/>
+    <arg value="waitForShutdown"/>
+  </process>
+
+  <!-- This process exits before it signals initialization is complete -->
+  <process tag="initFailsProc" class="java">
+    <property name="java.app.mainclass"
+              value="com.bigdata.boot.SimulatedApp"/>
+    <arg value="crashBeforeInitComplete"/>
+  </process>
+
+  <!-- This process exits 6 seconds after it completes initialization -->
+  <process tag="idleProcFails6sec" class="java">
+    <property name="java.app.mainclass"
+              value="com.bigdata.boot.SimulatedApp"/>
+    <arg value="crashAfter6Seconds"/>
+  </process>
+
+  <!-- This process starts normally but doesn't shut down when it is told -->
+  <process tag="idleProcDoesntStop" class="java" stopTimeout="5">
+    <property name="java.app.mainclass"
+              value="com.bigdata.boot.SimulatedApp"/>
+    <arg value="ignoreShutdown"/>
+  </process>
+
+  <!-- This process shuts itself down -->
+  <process tag="selfShutdownProc" class="java">
+    <property name="java.app.mainclass"
+              value="com.bigdata.boot.SimulatedApp"/>
+    <arg value="selfShutdown"/>
+  </process>
+
+  <!-- This process starts to shut itself down, then freezes -->
+  <process tag="selfShutdownProcFreezes" class="java" stopTimeout="5">
+    <property name="java.app.mainclass"
+              value="com.bigdata.boot.SimulatedApp"/>
+    <arg value="selfShutdownFreeze"/>
+  </process>
+</boot>

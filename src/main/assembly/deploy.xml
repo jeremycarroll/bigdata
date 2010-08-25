@@ -1,0 +1,89 @@
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.0 http://maven.apache.org/xsd/assembly-1.1.0.xsd">
+  <id>deploy</id>
+  <includeBaseDirectory>true</includeBaseDirectory><!-- root directory in tarball will be artifact-version/  -->
+  <formats>
+    <format>dir</format>
+  </formats>
+  <fileSets>
+    <fileSet>
+      <includes>
+        <include>${project.basedir}/README*</include>
+        <include>${project.basedir}/LICENSE*</include>
+        <include>${project.basedir}/NOTICE*</include>
+        <include>${project.basedir}/LEGAL/**/*</include>
+      </includes>
+      <excludes>
+        <exclude>${project.outputDirectory}/**</exclude>
+      </excludes>
+    </fileSet>
+
+    <fileSet>
+      <directory>${project.basedir}/src/main/deploy/</directory>
+      <outputDirectory>dist/bigdata</outputDirectory>
+    </fileSet>
+
+    <fileSet>
+      <directory>${project.basedir}/src/test/deploy</directory>
+      <outputDirectory>dist/bigdata</outputDirectory>
+    </fileSet>
+
+    <fileSet><!-- TODO: verify which items need to be in the jar, and which are accessed by file -->
+      <directory>${project.basedir}/src/main/resources/</directory>
+      <outputDirectory>dist/bigdata/conf</outputDirectory>            
+    </fileSet>
+
+
+    <!-- The following filesets are to get the staged dependency libraries from the build directory.  It would normally
+         be preferable to do the entire thing in this file using dependencySets, but the dependencySet filtering lacked
+         the expressivity to prevent duplicate jars when breaking out runtime,test, and dl libraries.  The desired effect
+         was achieved using a combination of dependency:copy-dependencies in the pom, and fileSet + dependencySet here.
+    -->
+    <fileSet> <!-- gets all runtime jars except the main bigdata artifact -->
+        <directory>${project.build.directory}/dependencies/lib</directory>
+        <outputDirectory>dist/bigdata/lib</outputDirectory>
+    </fileSet>
+
+    <fileSet>  <!-- gets the jini dl jars which are downloaded via RMI/JERI codebase, not the bootstrap classpath. -->
+        <directory>${project.build.directory}/dependencies/lib-dl</directory>
+        <outputDirectory>dist/bigdata/lib-dl</outputDirectory>
+    </fileSet>
+
+    <fileSet> <!-- gets the test jars that were not already present in the runtime set. -->
+        <directory>${project.build.directory}/dependencies/lib-test</directory>
+        <outputDirectory>dist/bigdata/testing/lib-test</outputDirectory>
+        <excludes>
+            <exclude>**/*dl.jar</exclude> <!-- TODO: couldn't get the dependency copy to exclude the jini dl jars, just runtime -->
+        </excludes>
+    </fileSet>
+
+
+  </fileSets>
+
+    <dependencySets>
+        <dependencySet><!-- copies just the main bigdata artifact -->
+            <scope>runtime</scope>
+            <outputDirectory>dist/bigdata/lib</outputDirectory>
+            <useProjectArtifact>true</useProjectArtifact>
+            <useProjectAttachments>true</useProjectAttachments>
+            <outputFileNameMapping>${artifact.artifactId}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
+            <includes>
+                <include>${project.groupId}:${project.artifactId}:*:jar</include>
+            </includes>
+        </dependencySet>
+
+        <dependencySet><!-- copies just the jarred bigdata tests -->
+            <scope>test</scope>
+            <outputDirectory>dist/bigdata/testing/lib-test</outputDirectory>
+            <useProjectArtifact>true</useProjectArtifact>
+            <useProjectAttachments>true</useProjectAttachments>
+            <outputFileNameMapping>${artifact.artifactId}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
+            <includes>
+                <include>${project.groupId}:${project.artifactId}:*:test-jar:*</include>
+            </includes>
+        </dependencySet>
+
+
+    </dependencySets>
+</assembly>

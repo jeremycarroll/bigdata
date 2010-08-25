@@ -1,0 +1,4 @@
+
+Files and directories placed in this "src/main/deploy" directory are copied directly into the deployment artifact under
+the path "{buildname}/dist/bigdata/".
+     

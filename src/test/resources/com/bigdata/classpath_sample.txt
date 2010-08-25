@@ -1,0 +1,2 @@
+
+This data file is used to verify the DataFinder class can find data packaged up inside the test jar.

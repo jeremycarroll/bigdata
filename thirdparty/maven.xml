@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="maven-helper" default="thirdparty_install" xmlns:maven="antlib:org.apache.maven.artifact.ant">
+
+    <path id="maven-ant-tasks.classpath" path="${basedir}/helper/maven-ant-tasks-2.1.1.jar" />        
+
+    <typedef resource="org/apache/maven/artifact/ant/antlib.xml"
+           uri="antlib:org.apache.maven.artifact.ant"
+           classpathref="maven-ant-tasks.classpath"
+    />
+
+    <property name="thirdparty.dir" location="${basedir}/lib" />
+
+
+
+    <macrodef name="installJar">
+       <attribute name="jar"/>
+       <attribute name="groupId"/>
+       <attribute name="artifactId"/>
+       <attribute name="version"/>
+       <attribute name="packaging" default="jar"/>
+       <sequential>
+           <maven:pom id="@{artifactId}" groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" packaging="@{packaging}" />
+           <maven:writepom pomrefid="@{artifactId}" file="temp.pom" />
+           <maven:install file="@{jar}">
+               <maven:pom file="temp.pom" />
+           </maven:install>
+       </sequential>
+    </macrodef>
+
+
+    <macrodef name="installJarWithDl">
+       <attribute name="jar"/>
+       <attribute name="dl-jar"/>
+       <attribute name="groupId"/>
+       <attribute name="artifactId"/>
+       <attribute name="version"/>
+       <attribute name="packaging" default="jar"/>
+       <sequential>
+           <maven:pom id="@{artifactId}" groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" packaging="@{packaging}" />
+           <maven:writepom pomrefid="@{artifactId}" file="temp.pom" />
+           <maven:install file="@{jar}">
+               <maven:pom file="temp.pom" />
+               <attach file="@{dl-jar}" type="jar" classifier="dl" />
+           </maven:install>
+       </sequential>
+    </macrodef>
+
+    <macrodef name="installDlOnly">
+       <attribute name="dl-jar"/>
+       <attribute name="groupId"/>
+       <attribute name="artifactId"/>
+       <attribute name="version"/>
+       <attribute name="packaging" default="jar"/>
+       <sequential>
+           <maven:pom id="@{artifactId}" groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" packaging="@{packaging}" />
+           <maven:writepom pomrefid="@{artifactId}" file="temp.pom" />
+           <maven:install >
+               <maven:pom file="temp.pom" />
+               <attach file="@{dl-jar}" type="jar" classifier="dl" />
+           </maven:install>
+       </sequential>
+    </macrodef>
+
+    <target  name="clean" >
+        <delete file = "temp.pom" />
+    </target>
+
+    <target name="thirdparty_install" >
+        <installJar groupId="com.bigdata.thirdparty" artifactId="ctc-utils" version="5-4-2005" jar="${thirdparty.dir}/ctc_utils-5-4-2005.jar" />
+        <installJar groupId="com.bigdata.thirdparty" artifactId="cweb-commons" version="1.1.0-b2-dev" jar="${thirdparty.dir}/cweb-commons-1.1-b2-dev.jar" />
+        <installJar groupId="com.bigdata.thirdparty" artifactId="cweb-extser" version="0.1.0-b2-dev" jar="${thirdparty.dir}/cweb-extser-0.1-b2-dev.jar" />
+        <installJar groupId="com.bigdata.thirdparty" artifactId="cweb-junit-ext" version="1.1.0-b3-dev" jar="${thirdparty.dir}/cweb-junit-ext-1.1-b3-dev.jar" />
+        <installJar groupId="com.bigdata.thirdparty" artifactId="dsi-utils" version="1.0.6-020610" jar="${thirdparty.dir}/dsi-utils-1.0.6-020610.jar" />
+        <installJar groupId="com.bigdata.thirdparty" artifactId="unimi-fastutil" version="5.1.5" jar="${thirdparty.dir}/fastutil-5.1.5.jar" />
+        <installJar groupId="com.bigdata.thirdparty" artifactId="high-scale-lib" version="1.1.2" jar="${thirdparty.dir}/high-scale-lib-v1.1.2.jar" />
+        <installJar groupId="com.bigdata.thirdparty" artifactId="iris" version="0.58" jar="${thirdparty.dir}/iris-0.58.jar" />
+        <installJar groupId="com.bigdata.thirdparty" artifactId="jgrapht-jdk1.5" version="0.7.1" jar="${thirdparty.dir}/jgrapht-jdk1.5-0.7.1.jar" />
+        <installJar groupId="com.bigdata.thirdparty" artifactId="lgpl-utils" version="1.0.6" jar="${thirdparty.dir}/lgpl-utils-1.0.6-020610.jar" />
+        <installJar groupId="com.bigdata.thirdparty" artifactId="nxparser" version="6-22-2010" jar="${thirdparty.dir}/nxparser-6-22-2010.jar" />
+        
+        <installJar groupId="org.apache.hadoop" artifactId="zookeeper" version="3.2.1" jar="${thirdparty.dir}/zookeeper-3.2.1.jar" />
+
+        <!-- These are Sun packages that cannot be distributed freely.  If maven complains about these, download them and drop them and uncomment these lines.
+        -->
+        <!--<installJar groupId="com.sun.jdmk" artifactId="jmxtools" version="1.2.1" jar="${thirdparty.dir}/jmxtools-1.2.1.jar" />-->
+        <!--<installJar groupId="com.sun.jmx" artifactId="jmxri" version="1.2.1" jar="${thirdparty.dir}/jmxri-1.2.1.jar" />-->
+        <!--<installJar groupId="javax.jms" artifactId="jms" version="1.1" jar="${thirdparty.dir}/jms-1.1.jar" />-->
+        <!--<installJar groupId="javax.activation" artifactId="activation" version="1.1" jar="${thirdparty.dir}/activation-1.1.jar" />-->
+        <!--<installJar groupId="javax.mail" artifactId="mail" version="1.4" jar="${thirdparty.dir}/mail-1.4.jar" />-->
+
+        <installJar groupId="org.apache.river" artifactId="start" version="2.1" jar="${thirdparty.dir}/start.jar" />
+        <installJar groupId="org.apache.river" artifactId="tools" version="2.1" jar="${thirdparty.dir}/tools.jar" />
+        <installJar groupId="org.apache.river" artifactId="classserver" version="2.1" jar="${thirdparty.dir}/classserver.jar" />
+        <installJar groupId="org.apache.river" artifactId="jsk-lib" version="2.1" jar="${thirdparty.dir}/jsk-lib.jar" />
+        <installJar groupId="org.apache.river" artifactId="jsk-platform" version="2.1" jar="${thirdparty.dir}/jsk-platform.jar" />
+        <installDlOnly groupId="org.apache.river" artifactId="jsk" version="2.1" dl-jar="${thirdparty.dir}/jsk-dl.jar" />
+        <installJarWithDl groupId="org.apache.river" artifactId="browser" version="2.1" jar="${thirdparty.dir}/browser.jar" dl-jar="${thirdparty.dir}/browser-dl.jar" />
+        <installJarWithDl groupId="org.apache.river" artifactId="reggie" version="2.1" jar="${thirdparty.dir}/reggie.jar" dl-jar="${thirdparty.dir}/reggie-dl.jar" />
+
+        <antcall target="clean" />
+        
+    </target>
+
+
+</project>
