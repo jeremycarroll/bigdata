@@ -59,10 +59,13 @@ import com.bigdata.service.jini.TransactionServer;
  */
 public class TestServiceConfiguration extends TestCase2 {
 
+    protected boolean serviceImplRemote;
+
     /**
      * 
      */
     public TestServiceConfiguration() {
+        this.serviceImplRemote = false;
     }
 
     /**
@@ -70,6 +73,18 @@ public class TestServiceConfiguration extends TestCase2 {
      */
     public TestServiceConfiguration(String arg0) {
         super(arg0);
+        this.serviceImplRemote = false;
+    }
+
+    public TestServiceConfiguration(boolean serviceImplRemote) {
+        this.serviceImplRemote = serviceImplRemote;
+    }
+
+    public TestServiceConfiguration
+               (String arg0, boolean serviceImplRemote)
+    {
+        super(arg0);
+        this.serviceImplRemote = serviceImplRemote;
     }
 
     /**
@@ -98,16 +113,71 @@ public class TestServiceConfiguration extends TestCase2 {
             (File)config.getEntry(ServiceConfiguration.class.getName(), "serviceDir",
                                   File.class, new File("serviceDir-NOT-SET"));
 
-        final BigdataServiceConfiguration serviceConfig = new TransactionServerConfiguration(
-                config);
-
-        assertEquals(TransactionServer.class.getName(), serviceConfig.className);
-
-        assertEquals(new String[] {"-Xmx1G", "-server"}, serviceConfig.args);
-
-        assertEquals(
+        BigdataServiceConfiguration serviceConfig = null;
+        if(serviceImplRemote) {
+            serviceConfig = new TransactionServerConfiguration
+                                    (TransactionServer.class, config);
+            assertEquals(TransactionServer.class.getName(), serviceConfig.className);
+            assertEquals(new String[] {"-Xmx1G", "-server"}, serviceConfig.args);
+            assertEquals(
                 new String[] { "com.bigdata.service.jini.TransactionServer.Options.SNAPSHOT_INTERVAL=60000" },
                 serviceConfig.options);
+        } else {
+            serviceConfig = 
+                new TransactionServerConfiguration
+                        (com.bigdata.transaction.ServiceImpl.class, config);
+
+            assertEquals(com.bigdata.transaction.ServiceImpl.class.getName(), serviceConfig.className);
+
+            String appHome = System.getProperty("app.home");
+            String fSep = System.getProperty("file.separator");
+            String logDir = 
+                appHome+fSep+"dist"+fSep+"bigdata"+fSep+"var"+fSep+"log";
+            String logFile =
+                appHome+fSep+"dist"+fSep+"bigdata"+fSep+"var"+fSep+"config"
+                       +fSep+"logging"+fSep+"transaction-logging.properties";
+            String configFile =
+                appHome+fSep+"dist"+fSep+"bigdata"+fSep+"var"+fSep+"config"
+                       +fSep+"jini"+fSep+"transaction.config";
+
+            String memVal = "-Xmx1G";
+            String securityMgr = "-Djava.security.manager=";
+            String log4jProp = "-Dlog4j.configuration="+logFile;
+            String log4jPrimProp = "-Dlog4j.primary.configuration="+logFile;
+            String logDirProp = "-Dbigdata.logDir="+logDir;
+            String javaUtilProp = "-Djava.util.logging.config.file="+logFile;
+            String appHomeProp = "-Dapp.home="+appHome;
+            String configProp = "-Dconfig="+configFile;
+            String usingProp = "-DusingServiceConfiguration=true";
+
+            String[] expectedArgsArray = 
+                new String[] { memVal, securityMgr, log4jProp, log4jPrimProp,
+                               javaUtilProp, logDirProp, appHomeProp,
+                               configProp, usingProp };
+
+            assertEquals(expectedArgsArray, serviceConfig.args);
+
+            String quote = "\"";
+            String comma = ",";
+            String openBracket = "{";
+            String closeBracket = "}";
+            String snapshotOpt = "com.bigdata.transaction.EmbeddedTransactionService.Options.SNAPSHOT_INTERVAL=60000";
+            String groupsOpt = "com.bigdata.transaction.groupsToJoin="
+                               +"new String[]"
+                               +openBracket
+                               +quote+ System.getProperty("federation.name","testFed")+quote
+                               +comma
+                               +quote+System.getProperty("bigdata.zrootname","testZroot")+quote
+                               +closeBracket;
+            String locatorsOpt = "com.bigdata.transaction.locatorsToJoin="
+                                 +"new LookupLocator[]"
+                                 +openBracket
+                                 +closeBracket;
+
+            String[] expectedOptsArray = new String[] { snapshotOpt, groupsOpt, locatorsOpt };
+
+            assertEquals( expectedOptsArray, serviceConfig.options);
+        }
 
         assertEquals(serviceDirFromConfig, serviceConfig.serviceDir);
 
@@ -115,8 +185,7 @@ public class TestServiceConfiguration extends TestCase2 {
 
         assertEquals(1, serviceConfig.replicationCount);
 
-        assertEquals(new IServiceConstraint[0], serviceConfig.constraints);
-        
+        assertEquals(new IServiceConstraint[0], serviceConfig.constraints);        
     }
 
 }

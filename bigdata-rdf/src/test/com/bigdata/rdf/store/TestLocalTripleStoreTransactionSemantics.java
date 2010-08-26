@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Properties;
 import org.openrdf.model.Statement;
 import com.bigdata.journal.IIndexManager;
-import com.bigdata.journal.ITransactionService;
+//BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.rdf.axioms.NoAxioms;
@@ -18,6 +18,9 @@ import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.vocab.NoVocabulary;
+
+//BTM
+import com.bigdata.journal.TransactionService;
 
 /**
  * Test suite for the transaction semantics of the {@link LocalTripleStore}.
@@ -206,7 +209,8 @@ public class TestLocalTripleStoreTransactionSemantics extends ProxyTestCase {
             final IIndexManager indexManager = initialKb.getIndexManager();
 
             // @todo no way to get the txService here w/o a cast?
-            final ITransactionService txService = ((Journal) indexManager)
+//BTM            final ITransactionService txService = ((Journal) indexManager)
+final TransactionService txService = ((Journal) indexManager)
                     .getTransactionManager().getTransactionService();
 
             // verify kb does not exist with read-historical tx.

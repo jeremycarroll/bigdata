@@ -48,7 +48,7 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.journal.IResourceLockService;
-import com.bigdata.journal.ITransactionService;
+import com.bigdata.journal.TransactionService;
 import com.bigdata.journal.TemporaryStore;
 import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.relation.locator.IResourceLocator;
@@ -58,6 +58,7 @@ import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.httpd.AbstractHTTPD;
 import com.ibm.icu.impl.LinkedHashMap;
+
 
 /**
  * Unit tests for the {@link EventReceiver}.
@@ -633,7 +634,7 @@ public class TestEventReceiver extends TestCase2 {
             return null;
         }
 
-        public IMetadataService getMetadataService() {
+        public ShardLocator getMetadataService() {
             return null;
         }
 
@@ -645,7 +646,7 @@ public class TestEventReceiver extends TestCase2 {
             return null;
         }
 
-        public ITransactionService getTransactionService() {
+        public TransactionService getTransactionService() {
             return null;
         }
 
@@ -708,7 +709,9 @@ public class TestEventReceiver extends TestCase2 {
         public void serviceJoin(IService service, UUID serviceUUID) {
             
         }
-
+//BTM - BEGIN
+        public void serviceJoin(Service service, UUID serviceUUID) { }
+//BTM - END
         public void serviceLeave(UUID serviceUUID) {
             
         }

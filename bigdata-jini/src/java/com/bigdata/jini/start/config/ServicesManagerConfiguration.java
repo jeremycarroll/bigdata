@@ -223,45 +223,64 @@ System.out.println("*** ServicesManagerConfiguration.getConfigurations: Lookup S
 //                        .getName(), config));
 
             } else if (a.equals(QuorumPeerMain.class.getName())) {
+
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: QuorumPeerMain BEGIN");
-
                     v.add(new ZookeeperServerConfiguration(config));
-
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: QuorumPeerMain END\n");
+
             } else if (a.equals(TransactionServer.class.getName())) {
+
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: TransactionServer BEGIN");
-
-                v.add(new TransactionServerConfiguration(config));
-
+                v.add(new TransactionServerConfiguration(TransactionServer.class, config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: TransactionServer END\n");
+
             } else if (a.equals(MetadataServer.class.getName())) {
+
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: MetaDataServer BEGIN");
-
-                v.add(new MetadataServerConfiguration(config));
-
+                v.add(new MetadataServerConfiguration(MetadataServer.class, config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: MetaDataServer END\n");
+
             } else if (a.equals(DataServer.class.getName())) {
+
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: DataServer BEGIN");
-
                 v.add(new DataServerConfiguration(config));
-
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: DataServer END\n");
 
             } else if (a.equals(LoadBalancerServer.class.getName())) {
+
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: LoadBalancerServer BEGIN");
                 v.add(new LoadBalancerConfiguration(LoadBalancerServer.class, config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: LoadBalancerServer END\n");
-            } else if (a.equals(com.bigdata.loadbalancer.ServiceImpl.class.getName())) {
+
+            } else if (a.equals(ClientServer.class.getName())) {
+
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: ClientServer BEGIN");
+                v.add(new ClientServerConfiguration(config));
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: ClientServer END\n");
+
+
+//BTM - BEGIN: smart proxy impls ------------------------------------------------------------
+
+            } else if (a.equals(com.bigdata.transaction.ServiceImpl.class.getName())) {//transaction service
+
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bigdata.transaction.ServiceImpl BEGIN");
+                v.add(new TransactionServerConfiguration(com.bigdata.transaction.ServiceImpl.class, config));
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigdata.transaction.ServiceImpl END\n");
+
+            } else if (a.equals(com.bigdata.metadata.ServiceImpl.class.getName())) {//shard locator (metadata) service
+
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bigdata.metadata.ServiceImpl BEGIN");
+                v.add(new MetadataServerConfiguration(com.bigdata.metadata.ServiceImpl.class, config));
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigdata.metadata.ServiceImpl END\n");
+
+            } else if (a.equals(com.bigdata.loadbalancer.ServiceImpl.class.getName())) {//load balancer service
+
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bigdata.loadbalancer.ServiceImpl BEGIN");
                 v.add(new LoadBalancerConfiguration(com.bigdata.loadbalancer.ServiceImpl.class, config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigdata.loadbalancer.ServiceImpl END\n");
 
-            } else if (a.equals(ClientServer.class.getName())) {
-System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: ClientServer BEGIN");
+//BTM - END: smart proxy impls ------------------------------------------------------------
 
-                v.add(new ClientServerConfiguration(config));
-
-System.out.println("*** ServicesManagerConfiguration.getConfigurations: ClientServer END\n");
             } else {
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: "+a+" BEGIN");
 

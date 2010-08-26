@@ -39,7 +39,8 @@ public class IndexCache extends AbstractIndexCache<IScaleOutClientIndex>{
             if (INFO)
                 log.info("name=" + name + " @ " + timestamp
                         + " : is not registered");
-
+//BTM
+log.warn("\nIndexCache.newView >>>> META_DATA INDEX = NULL\n");
             return null;
 
         }

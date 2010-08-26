@@ -52,7 +52,7 @@ import com.bigdata.journal.AbstractLocalTransactionManager;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.ConcurrencyManager;
 import com.bigdata.journal.IResourceLockService;
-import com.bigdata.journal.ITransactionService;
+//BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.RegisterIndexTask;
 import com.bigdata.journal.TemporaryStore;
 import com.bigdata.mdi.IMetadataIndex;
@@ -77,7 +77,15 @@ import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.httpd.AbstractHTTPD;
 
+//BTM
+import com.bigdata.journal.TransactionService;
+import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.LoadBalancer;
+import com.bigdata.service.Service;
+import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShutdownAdmin;
+import com.sun.jini.admin.DestroyAdmin;
+import net.jini.admin.Administrable;
 
 /**
  * Base class for {@link ResourceManager} test suites that can use normal
@@ -122,7 +130,8 @@ public class AbstractResourceManagerTestCase extends
         
     }
     
-    protected IMetadataService metadataService;
+//BTM    protected IMetadataService metadataService;
+protected ShardLocator metadataService;
     protected ResourceManager resourceManager;
     protected ConcurrencyManager concurrencyManager;
     private AbstractTransactionService txService;
@@ -212,8 +221,22 @@ public class AbstractResourceManagerTestCase extends
         if (fed != null)
             fed.destroy();
         
-        if (metadataService != null)
-            metadataService.destroy();
+//BTM        if (metadataService != null)
+//BTM            metadataService.destroy();
+if (metadataService != null) {
+    if(metadataService instanceof IService) {
+        ((IService)metadataService).destroy();
+    } else if(metadataService instanceof Administrable) {
+        Object serviceAdmin  = ((Administrable)metadataService).getAdmin();
+        if(serviceAdmin instanceof DestroyAdmin) {
+            ((DestroyAdmin)serviceAdmin).destroy();
+        }
+    } else if(metadataService instanceof ShutdownAdmin) {
+        ((ShutdownAdmin)metadataService).shutdownNow();
+    } else if(metadataService instanceof IServiceShutdown) {
+        ((IServiceShutdown)metadataService).shutdownNow();
+    }
+}
 
         if (resourceManager != null)
             resourceManager.shutdownNow();
@@ -231,7 +254,7 @@ public class AbstractResourceManagerTestCase extends
     }
 
     /**
-     * A minimal implementation of {@link IMetadataService} - only those methods
+     * A minimal implementation of the shard locator service - only those methods
      * actually used by the {@link ResourceManager} are implemented. This avoids
      * conflicts with the {@link ResourceManager} instance whose behavior we are
      * trying to test.
@@ -239,7 +262,8 @@ public class AbstractResourceManagerTestCase extends
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    protected static class MockMetadataService implements IMetadataService {
+//BTM    protected static class MockMetadataService implements IMetadataService {
+protected static class MockMetadataService implements ShardLocator {
 
         private AtomicInteger partitionId = new AtomicInteger(0);
        
@@ -492,13 +516,15 @@ public class AbstractResourceManagerTestCase extends
             return null;
         }
 
-        public IMetadataService getMetadataService() {
+//BTM        public IMetadataService getMetadataService() {
+public ShardLocator getMetadataService() {
 
             return metadataService;
             
         }
 
-        public ITransactionService getTransactionService() {
+//BTM        public ITransactionService getTransactionService() {
+public TransactionService getTransactionService() {
 
             return txService;
         
@@ -609,6 +635,10 @@ public class AbstractResourceManagerTestCase extends
 
         public void serviceJoin(IService service, UUID serviceUUID) {
         }
+
+//BTM - BEGIN
+        public void serviceJoin(Service service, UUID serviceUUID) { }
+//BTM - END
 
         public void serviceLeave(UUID serviceUUID) {
         }

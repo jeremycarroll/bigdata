@@ -300,7 +300,7 @@ return null;//TODO
         private long EXECUTOR_TERMINATION_TIMEOUT = 1L*60L*1000L;
 
         public ShutdownThread() {
-            super("Build Server Request Service Shutdown thread");
+            super("callable executor service shutdown thread");
             setDaemon(false);
         }
 

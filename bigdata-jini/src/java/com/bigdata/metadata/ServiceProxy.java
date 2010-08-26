@@ -27,8 +27,13 @@ package com.bigdata.metadata;
 import static com.bigdata.metadata.Constants.*;
 
 import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.ResultSet;
+import com.bigdata.btree.filter.IFilterConstructor;
+import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.mdi.PartitionLocator;
+import com.bigdata.service.Service;
 import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardManagement;
 
 import net.jini.admin.Administrable;
 
@@ -38,9 +43,12 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
-class ServiceProxy implements ShardLocator, Administrable, Serializable
+class ServiceProxy implements ShardLocator, ShardManagement, Service,
+                              Administrable, Serializable
 {
     private static final long serialVersionUID = 1L;
 
@@ -138,6 +146,45 @@ class ServiceProxy implements ShardLocator, Administrable, Serializable
            throws InterruptedException, ExecutionException, IOException
     {
         return innerProxy.find(name, timestamp, key);
+    }
+
+    // Remote methods required by the ShardManagement interface
+
+    public IndexMetadata getIndexMetadata(String name, long timestamp)
+            throws IOException, InterruptedException, ExecutionException
+    {
+        return innerProxy.getIndexMetadata(name, timestamp);
+    }
+
+    public ResultSet rangeIterator(long tx,
+                                   String name,
+                                   byte[] fromKey,
+                                   byte[] toKey,
+                                   int capacity,
+                                   int flags,
+                                   IFilterConstructor filter)
+                  throws InterruptedException, ExecutionException, IOException
+    {
+        return innerProxy.rangeIterator
+                   (tx, name, fromKey, toKey, capacity, flags, filter);
+    }
+
+    public Future<? extends Object> submit(Callable<? extends Object> proc)
+                                        throws IOException
+    {
+        return innerProxy.submit(proc);
+    }
+
+    public Future submit(long tx, String name, IIndexProcedure proc)
+                      throws IOException
+    {
+        return innerProxy.submit(tx, name, proc);
+    }
+
+    public boolean purgeOldResources(long timeout, boolean truncateJournal)
+                throws IOException, InterruptedException
+    {
+        return innerProxy.purgeOldResources(timeout, truncateJournal);
     }
 
     // Required by net.jini.admin.Administrable

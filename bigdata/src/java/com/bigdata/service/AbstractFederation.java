@@ -764,8 +764,12 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
         
         assertOpen();
 
-        return getIndexCache().getIndex(name, timestamp);
-        
+//BTM        return getIndexCache().getIndex(name, timestamp);
+
+AbstractIndexCache cache = getIndexCache();
+com.bigdata.btree.IRangeQuery index = cache.getIndex(name, timestamp);
+log.warn("\n>>>>AbstractFederation.getIndex: name="+name+", timestamp="+timestamp+", indexCache="+cache+", index="+index+"\n");
+return (IClientIndex)index;
     }
 
     public void dropIndex(String name) {
@@ -943,6 +947,16 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
         client.getDelegate().serviceJoin(service, serviceUUID);
 
     }
+
+//BTM - BEGIN
+    public void serviceJoin(final Service service, final UUID serviceUUID) {
+        if (!isOpen()) return;
+        if (log.isInfoEnabled()) {
+            log.info("service=" + service + ", serviceUUID" + serviceUUID);
+        }
+        client.getDelegate().serviceJoin(service, serviceUUID);
+    }
+//BTM - END
 
     /**
      * Delegated. {@inheritDoc}
@@ -1432,12 +1446,21 @@ System.out.println(">>>>> AbstractFederation.reportPerformanceCounters: DONE CAL
 
             if (service == null) {
 
+//BTM
+ShardLocator mds = null;
                 if (mdsUUID == null) {
                 
                     try {
                     
-                        mdsUUID = fed.getMetadataService().getServiceUUID();
-                        
+//BTM                        mdsUUID = fed.getMetadataService().getServiceUUID();
+mds = fed.getMetadataService();
+if( mds instanceof IService ) {
+    mdsUUID = ((IService)mds).getServiceUUID();
+} else if( mds instanceof Service ) {
+    mdsUUID = ((Service)mds).getServiceUUID();
+} else {
+    log.warn("wrong type for shard locator service ["+mds.getClass()+"]");
+}                        
                     } catch (IOException ex) {
                         
                         throw new RuntimeException(ex);
@@ -1456,7 +1479,9 @@ System.out.println(">>>>> AbstractFederation.reportPerformanceCounters: DONE CAL
                      * want the service.
                      */
 
-                    service = fed.getMetadataService();
+//BTM                    service = fed.getMetadataService();
+if( (mds != null) && (mds instanceof IDataService) ) service = (IDataService)mds;
+
                 }
                 
             }

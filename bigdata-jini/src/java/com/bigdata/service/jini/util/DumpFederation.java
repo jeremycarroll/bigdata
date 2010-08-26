@@ -78,12 +78,16 @@ import com.bigdata.resources.StoreManager.ManagedJournal;
 import com.bigdata.service.DataService;
 import com.bigdata.service.DataServiceCallable;
 import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
+//BTM import com.bigdata.service.IMetadataService;
 import com.bigdata.service.ListIndicesTask;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.util.InnerCause;
+
+//BTM
+import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardManagement;
 
 /**
  * A client utility that connects to and dumps various interesting aspects of a
@@ -878,7 +882,8 @@ public class DumpFederation {
             
         }
         
-        final IMetadataService mds = fed.getMetadataService();
+//BTM        final IMetadataService mds = fed.getMetadataService();
+final ShardLocator mds = fed.getMetadataService();
         
         if(mds == null) {
             
@@ -886,7 +891,15 @@ public class DumpFederation {
             
         }
         
-        return (String[]) mds.submit(new ListIndicesTask(ts, namespace)).get();
+//BTM        return (String[]) mds.submit(new ListIndicesTask(ts, namespace)).get();
+//BTM
+if(mds instanceof IDataService) {
+    return (String[]) ((IDataService)mds).submit(new ListIndicesTask(ts, namespace)).get();
+} else if(mds instanceof ShardManagement) {
+    return (String[]) ((ShardManagement)mds).submit(new ListIndicesTask(ts, namespace)).get();
+} else {
+    throw new RuntimeException("DumpFederation.getIndexNames: shard locator (metadata) service is not a shard manager [type="+mds.getClass()+"]");
+}
 
     }
 
@@ -1754,14 +1767,22 @@ public class DumpFederation {
              * @todo restricted to (meta)data services by use of type specific
              * cache!
              */
-            final ServiceItem serviceItem = fed.getDataServicesClient()
+//BTM            final ServiceItem serviceItem = fed.getDataServicesClient()
+ServiceItem serviceItem = fed.getDataServicesClient()
                     .getServiceItem(uuid);
 
             if (serviceItem == null) {
 
-                throw new RuntimeException("No such (Meta)DataService? uuid="
-                        + uuid);
+//BTM - BEGIN
+//BTM                throw new RuntimeException("No such (Meta)DataService? uuid="
+//BTM                        + uuid);
 
+// no shard service with that uuid, try shard locator service
+serviceItem = fed.getShardLocatorClient().getServiceItem(uuid);
+if (serviceItem == null) {
+    throw new RuntimeException("No such shard or shard locator service [uuid="+uuid+"]");
+}
+//BTM - END
             }
             
             String hostname = null;

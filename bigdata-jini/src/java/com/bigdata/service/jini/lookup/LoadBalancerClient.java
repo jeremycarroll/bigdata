@@ -35,21 +35,6 @@ import com.bigdata.service.jini.JiniFederation;
 
 //BTM
 import com.bigdata.service.LoadBalancer;
-import com.bigdata.service.ShutdownAdmin;
-import com.bigdata.service.jini.JiniClient;
-import com.bigdata.service.jini.JiniClientConfig;
-import com.sun.jini.admin.DestroyAdmin;
-import net.jini.admin.Administrable;
-import net.jini.config.Configuration;
-import net.jini.config.ConfigurationException;
-import net.jini.core.lookup.ServiceItem;
-import net.jini.discovery.LookupDiscoveryManager;
-import net.jini.lookup.LookupCache;
-import net.jini.lookup.ServiceDiscoveryListener;
-import net.jini.lookup.ServiceDiscoveryManager;
-import net.jini.lookup.ServiceItemFilter;
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Class handles discovery of a load balancer service.

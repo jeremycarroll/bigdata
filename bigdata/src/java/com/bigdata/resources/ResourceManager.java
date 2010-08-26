@@ -44,9 +44,12 @@ import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.DataService;
-import com.bigdata.service.IMetadataService;
+//BTM import com.bigdata.service.IMetadataService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.util.ReverseLongComparator;
+
+//BTM
+import com.bigdata.service.ShardLocator;
 
 /**
  * The {@link ResourceManager} has broad responsibility for journal files, index
@@ -725,7 +728,7 @@ abstract public class ResourceManager extends OverflowManager implements
 
     /**
      * Requests a new index partition identifier from the
-     * {@link MetadataService} for the specified scale-out index (RMI).
+     * shard locator service for the specified scale-out index (RMI).
      * 
      * @return The new index partition identifier.
      * 
@@ -734,7 +737,8 @@ abstract public class ResourceManager extends OverflowManager implements
      */
     public int nextPartitionId(final String scaleOutIndexName) {
 
-        final IMetadataService mds = getFederation().getMetadataService();
+//BTM        final IMetadataService mds = getFederation().getMetadataService();
+final ShardLocator mds = getFederation().getMetadataService();
 
         if (mds == null) {
 

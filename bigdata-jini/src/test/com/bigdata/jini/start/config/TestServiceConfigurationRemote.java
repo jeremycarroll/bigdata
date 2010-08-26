@@ -20,25 +20,22 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
 */
-package com.bigdata.transaction;
 
-import com.bigdata.journal.TransactionService;
+package com.bigdata.jini.start.config;
 
 /**
- * Constants shared by classes in this service implementation's package.
+ * Uses the purely remote implementation of the service(s) tested
+ * by this test's smart proxy based super class counterpart.
  */
-public interface Constants {
+public class TestServiceConfigurationRemote 
+                 extends TestServiceConfiguration
+{
+    public TestServiceConfigurationRemote() {
+        super(true);        
+    }
 
-    Class  SERVICE_TYPE = TransactionService.class;
-    String SERVICE_NAME = SERVICE_TYPE.getSimpleName();
-
-    /* Name of this component; used in config entry retrieval and the logger.*/
-    String COMPONENT_NAME = ((Constants.class).getPackage()).getName();
-    String F_SEP          = System.getProperty("file.separator");
-
-    int  LOWER_BOUND_THREAD_POOL_SIZE = 1;
-    int  UPPER_BOUND_THREAD_POOL_SIZE = 100;
-    int  DEFAULT_THREAD_POOL_SIZE     = 30;
+    public TestServiceConfigurationRemote(String arg0) {
+        super(arg0, true);
+    }
 }

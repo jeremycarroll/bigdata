@@ -1,7 +1,9 @@
 package com.bigdata.resources;
 
 import com.bigdata.journal.AbstractLocalTransactionManager;
-import com.bigdata.journal.ITransactionService;
+//BTM import com.bigdata.journal.ITransactionService;
+//BTM
+import com.bigdata.journal.TransactionService;
 
 /**
  * Mock implementation used by some of the unit tests.
@@ -11,15 +13,18 @@ import com.bigdata.journal.ITransactionService;
  */
 class MockLocalTransactionManager extends AbstractLocalTransactionManager {
 
-    private final ITransactionService txService;
+//BTM    private final ITransactionService txService;
+private final TransactionService txService;
     
-    public MockLocalTransactionManager(ITransactionService txService) {
+//BTM    public MockLocalTransactionManager(ITransactionService txService) {
+public MockLocalTransactionManager(TransactionService txService) {
 
         this.txService = txService;
 
     }
 
-    public ITransactionService getTransactionService() {
+//BTM    public ITransactionService getTransactionService() {
+public TransactionService getTransactionService() {
 
         return txService;
         

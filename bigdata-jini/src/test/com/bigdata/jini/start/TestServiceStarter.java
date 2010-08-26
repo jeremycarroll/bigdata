@@ -51,6 +51,7 @@ import com.bigdata.jini.start.config.ManagedServiceConfiguration.ManagedServiceS
 import com.bigdata.jini.start.process.ProcessHelper;
 import com.bigdata.jini.util.JiniUtil;
 import com.bigdata.service.IService;
+import com.bigdata.service.Service;
 import com.bigdata.service.jini.RemoteDestroyAdmin;
 import com.bigdata.service.jini.TransactionServer;
 import com.bigdata.zookeeper.ZNodeDeletedWatcher;
@@ -65,10 +66,13 @@ import com.bigdata.zookeeper.ZooHelper;
  */
 public class TestServiceStarter extends AbstractFedZooTestCase {
 
+    protected boolean serviceImplRemote;
+
     /**
      * 
      */
     public TestServiceStarter() {
+        this.serviceImplRemote = false;
         
     }
 
@@ -78,7 +82,17 @@ public class TestServiceStarter extends AbstractFedZooTestCase {
     public TestServiceStarter(String arg0) {
 
         super(arg0);
+        this.serviceImplRemote = false;
         
+    }
+
+    public TestServiceStarter(boolean serviceImplRemote) {
+        this.serviceImplRemote = serviceImplRemote;
+    }
+
+    public TestServiceStarter(String arg0, boolean serviceImplRemote) {
+        super(arg0);
+        this.serviceImplRemote = serviceImplRemote;
     }
 
     /**
@@ -101,8 +115,15 @@ public class TestServiceStarter extends AbstractFedZooTestCase {
 
         final ZooKeeper zookeeper = fed.getZookeeper();
 
-        final TransactionServerConfiguration serviceConfig = new TransactionServerConfiguration(
-                config);
+        TransactionServerConfiguration serviceConfig = null;
+        if(serviceImplRemote) {
+            serviceConfig = new TransactionServerConfiguration
+                                    (TransactionServer.class, config);
+        } else {
+            serviceConfig = 
+                new TransactionServerConfiguration
+                        (com.bigdata.transaction.ServiceImpl.class, config);
+        }
 
         // znode for serviceConfiguration
         final String zserviceConfig = zookeeper.create(fed.getZooConfig().zroot
@@ -153,7 +174,8 @@ public class TestServiceStarter extends AbstractFedZooTestCase {
 
         // verify that the physicalService was registered with zookeeper. 
         final ServiceItem serviceItem;
-        final IService proxy;
+        IService proxy = null;
+        Service smartProxy = null;
         final String physicalServiceZPath;
         {
             
@@ -186,19 +208,40 @@ public class TestServiceStarter extends AbstractFedZooTestCase {
             assertNotNull(serviceItem);
             
             // save reference to the service proxy.
-            proxy = (IService)serviceItem.service;
-            
+            if(serviceItem.service instanceof IService) {
+                proxy = (IService)serviceItem.service;
+            } else if(serviceItem.service instanceof Service) {
+                smartProxy = (Service)serviceItem.service;
+            } else {
+                fail("service not an instance of either Service or IService");
+            }
         }
-        
+
         // Verify the service UUID using the proxy
-        assertEquals(JiniUtil.serviceID2UUID(serviceItem.serviceID), proxy
-                .getServiceUUID());
+        if(proxy == null) {
+            assertEquals(JiniUtil.serviceID2UUID(serviceItem.serviceID), smartProxy.getServiceUUID());
+        } else {
+            assertEquals(JiniUtil.serviceID2UUID(serviceItem.serviceID), proxy.getServiceUUID());
+        }
 
         // Verify the service name using the proxy
-        assertEquals(serviceStarter.serviceName, proxy.getServiceName());
+        // (Note: only do this for the remote case,
+        //  names will be different for smart proxy case)
+        if(proxy != null) {
+            assertEquals(serviceStarter.serviceName, proxy.getServiceName());
+        }
 
         // Tell the service to destroy itself.
-        ((RemoteDestroyAdmin)proxy).destroy();
+        if(proxy == null) {
+            try {
+                ((com.sun.jini.admin.DestroyAdmin)(((net.jini.admin.Administrable)smartProxy).getAdmin())).destroy();
+            } catch(Throwable t) { 
+                System.out.println("TestServiceStarter: SHUTDOWN WARNING ["+t+"]");
+                t.printStackTrace();
+            }
+        } else {
+            ((RemoteDestroyAdmin)proxy).destroy();
+        }
 //        listener.running.get(0).destroy();
 
         // wait a bit for the process to die.

@@ -101,9 +101,16 @@ public class TestRestartSafe extends AbstractEmbeddedFederationTestCase {
         assertEquals("#dataServices", 2,
                 ((EmbeddedFederation) fed).getDataServiceCount());
         
-        final UUID metadataServiceUUID = fed.getMetadataService()
-                .getServiceUUID();
-
+//BTM        final UUID metadataServiceUUID = fed.getMetadataService().getServiceUUID();
+ShardLocator mds = fed.getMetadataService();
+UUID metadataServiceUUID = null;
+if(mds != null) {
+    if(mds instanceof IService) {
+        metadataServiceUUID = ((IService)mds).getServiceUUID();
+    } else if(mds instanceof Service) {
+        metadataServiceUUID = ((Service)mds).getServiceUUID();
+    }
+}
         final UUID dataService0UUID = ((EmbeddedFederation) fed)
                 .getDataService(0).getServiceUUID();
         
@@ -243,8 +250,16 @@ public class TestRestartSafe extends AbstractEmbeddedFederationTestCase {
          * one of the expected data services.
          */
         
-        assertEquals("metadataService UUID", metadataServiceUUID, fed
-                .getMetadataService().getServiceUUID());
+//BTM        assertEquals("metadataService UUID", metadataServiceUUID, fed.getMetadataService().getServiceUUID());
+UUID mdsUUID = null;
+if(mds != null) {
+    if(mds instanceof IService) {
+        mdsUUID = ((IService)mds).getServiceUUID();
+    } else if(mds instanceof Service) {
+        mdsUUID = ((Service)mds).getServiceUUID();
+    }
+}
+assertEquals("metadataService UUID", metadataServiceUUID, mdsUUID);
 
         // verify services have distinct UUIDs.
         assertNotSame(dataService0.getServiceUUID(), dataService1

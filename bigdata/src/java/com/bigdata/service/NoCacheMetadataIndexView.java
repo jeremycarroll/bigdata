@@ -30,13 +30,18 @@ public class NoCacheMetadataIndexView implements IMetadataIndex {
 
     final private MetadataIndexMetadata mdmd;
 
+//BTM
+private IDataService remoteShardMgr = null;
+private ShardManagement shardMgr = null;
+
     public MetadataIndexMetadata getIndexMetadata() {
 
         return mdmd;
         
     }
 
-    protected IMetadataService getMetadataService() {
+//BTM    protected IMetadataService getMetadataService() {
+protected ShardLocator getMetadataService() {
 
         return fed.getMetadataService();
 
@@ -66,6 +71,15 @@ public class NoCacheMetadataIndexView implements IMetadataIndex {
 
         this.mdmd = mdmd;
         
+ShardLocator mds = getMetadataService();
+if(mds == null) {
+    return;
+}
+if(mds instanceof IDataService) {
+    this.remoteShardMgr = (IDataService)mds;
+} else if(mds instanceof ShardManagement) {
+    this.shardMgr = (ShardManagement)mds;
+}
     }
     
     // @todo re-fetch if READ_COMMITTED or UNISOLATED? it's very unlikely to change.
@@ -117,11 +131,20 @@ public class NoCacheMetadataIndexView implements IMetadataIndex {
         final IIndexProcedure proc = new RangeCountProcedure(
                 false/* exact */, false/*deleted*/, fromKey, toKey);
 
-        final Long rangeCount;
+//BTM        final Long rangeCount;
+Long rangeCount = null;
         try {
 
-            rangeCount = (Long) getMetadataService().submit(timestamp,
-                    MetadataService.getMetadataIndexName(name), proc).get();
+//BTM            rangeCount = (Long) getMetadataService().submit(timestamp,
+//BTM                    MetadataService.getMetadataIndexName(name), proc).get();
+
+String indexName = MetadataService.getMetadataIndexName(name);
+if(remoteShardMgr != null) {
+    rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
+} else if(shardMgr != null) {
+    rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
+}
+if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.rangeCount: null range count");
 
         } catch (Exception e) {
 
@@ -138,11 +161,19 @@ public class NoCacheMetadataIndexView implements IMetadataIndex {
         final IIndexProcedure proc = new RangeCountProcedure(
                 true/* exact */, false/*deleted*/, fromKey, toKey);
 
-        final Long rangeCount;
+//BTM        final Long rangeCount;
+Long rangeCount = null;
         try {
 
-            rangeCount = (Long) getMetadataService().submit(timestamp,
-                    MetadataService.getMetadataIndexName(name), proc).get();
+//BTM            rangeCount = (Long) getMetadataService().submit(timestamp,
+//BTM                    MetadataService.getMetadataIndexName(name), proc).get();
+String indexName = MetadataService.getMetadataIndexName(name);
+if(remoteShardMgr != null) {
+    rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
+} else if(shardMgr != null) {
+    rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
+}
+if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.rangeCountExact: null range count");
 
         } catch (Exception e) {
 
@@ -159,11 +190,19 @@ public class NoCacheMetadataIndexView implements IMetadataIndex {
         final IIndexProcedure proc = new RangeCountProcedure(
                 true/* exact */, true/*deleted*/, fromKey, toKey);
 
-        final Long rangeCount;
+//BTM        final Long rangeCount;
+Long rangeCount = null;
         try {
 
-            rangeCount = (Long) getMetadataService().submit(timestamp,
-                    MetadataService.getMetadataIndexName(name), proc).get();
+//BTM            rangeCount = (Long) getMetadataService().submit(timestamp,
+//BTM                    MetadataService.getMetadataIndexName(name), proc).get();
+String indexName = MetadataService.getMetadataIndexName(name);
+if(remoteShardMgr != null) {
+    rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
+} else if(shardMgr != null) {
+    rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
+}
+if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.rangeCountExactWithDeleted: null range count");
 
         } catch (Exception e) {
 

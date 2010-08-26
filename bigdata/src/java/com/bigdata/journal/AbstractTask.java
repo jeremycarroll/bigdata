@@ -539,6 +539,8 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
      */
     synchronized final public ILocalBTreeView getIndex(final String name) {
 
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: ENTERED [name="+name+"]\n");
         if (name == null) {
 
             // @todo change to IllegalArgumentException for API consistency?
@@ -548,9 +550,13 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
         
         // validate that this is a declared index.
         assertResource(name);
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: VALIDATED [name="+name+"]\n");
 
         // verify still running.
         assertRunning();
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: RUNNING [name="+name+"]\n");
         
         /*
          * Test the named index cache first.
@@ -560,10 +566,14 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
             final ILocalBTreeView index = indexCache.get(name);
 
             if (index != null) {
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: INDEX NOT NULL ---> return\n");
 
                 // Cached value.
                 return index;
-
+}else{
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: NULL INDEX ---> continue\n");
             }
 
         }
@@ -573,6 +583,8 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
             final StaleLocatorReason reason = resourceManager.getIndexPartitionGone(name);
             
             if (reason != null) {
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: STALE LOCATOR\n");
 
                 throw new StaleLocatorException(name, reason);
                 
@@ -582,6 +594,8 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
             final Entry entry = n2a.get(name);
 
             if (entry == null) {
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: NO SUCH INDEX ---> continue\n");
 
                 // index did not exist at that time.
                 throw new NoSuchIndexException(name);
@@ -599,11 +613,15 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
             
             // the unisolated name2Addr object.
             final Name2Addr name2Addr = resourceManager.getLiveJournal()._getName2Addr();
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: getName2Addr\n");
 
             synchronized (name2Addr) {
 
                 // recover from unisolated index cache.
                 btree = name2Addr.getIndexCache(name);
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: btree = name2Addr.getIndexCache\n");
                 
                 if (btree == null) {
 
@@ -613,15 +631,23 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
                             entry.checkpointAddr,//
                             false// readOnly
                             );
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: RE-LOADED btree from store\n");
 
                     // set the lastCommitTime on the index.
                     btree.setLastCommitTime(entry.commitTime);
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: SET LAST COMMIT TIME\n");
 
                     // add to the unisolated index cache (must not exist).
                     name2Addr.putIndexCache(name, btree, false/* replace */);
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: ADD TO INDEX CACHE\n");
 
                     if(resourceManager instanceof ResourceManager) {
                         
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: SET BTREE COUNTERS\n");
                         btree
                                 .setBTreeCounters(((ResourceManager) resourceManager)
                                         .getIndexCounters(name));
@@ -634,9 +660,13 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
 
             try {
              
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: RETURN UNISOLATED INDEX VIEW\n");
                 return getUnisolatedIndexView(name, btree);
                 
             } catch (NoSuchStoreException ex) {
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: NO SUCH STORE EXCEPTION\n");
                 
                 /*
                  * Add a little more information to the stack trace.
@@ -648,9 +678,13 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
 
         } else {
 
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: resourceManager.getIndex [name="+name+", timestamp="+timestamp+"]\n");
             final ILocalBTreeView tmp = resourceManager.getIndex(name, timestamp);
 
             if (tmp == null) {
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: tmp == null ---> NO SUCH INDEX EXCEPTION\n");
 
                 // Presume client has made a bad request
                 throw new NoSuchIndexException(name + ", timestamp="
@@ -664,8 +698,12 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
              * we can hold onto it for the duration of the operation.
              */
 
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: PUT INDEX INTO HARD REFERENCE CACHE\n");
             indexCache.put(name, tmp);
 
+//BTM
+log.warn("\n*** AbstractTask.getIndex >>> ILocalBTreeView: EXIT ---> return cahced ILocalBTreeView\n");
             return tmp;
 
         }
@@ -1915,6 +1953,8 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
         }
 
         public IIndex getIndex(String name) {
+//BTM
+log.warn("\n*** AbstractTask#DelegateTask.getIndex: delegate.getIndex [name="+name+"]\n");
 
             return delegate.getIndex(name);
             
@@ -2215,6 +2255,8 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
 
             try {
 
+//BTM
+log.warn("\n*** AbstractTask.#IsolatedActionJournal: AbstractTask.this.getIndex [name="+name+"]\n");
                 return AbstractTask.this.getIndex(name);
                 
             } catch(NoSuchIndexException ex) {
@@ -2233,6 +2275,8 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
          */
         public IIndex getIndex(String name, long timestamp) {
 
+//BTM
+log.warn("\n*** AbstractTask#IsolatedActionJournal: getIndex [name="+name+", timestamp="+timestamp+"]\n");
             if (timestamp == ITx.UNISOLATED) {
                 
                 return getIndex(name);
@@ -2532,6 +2576,8 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
          * Note: Does not allow access to {@link ITx#UNISOLATED} indices.
          */
         public IIndex getIndex(String name, long timestamp) {
+//BTM
+log.warn("\n*** AbstractTask#ReadOnlyJournal: getIndex [name="+name+", timestamp="+timestamp+"]\n");
 
             if (timestamp == ITx.UNISOLATED)
                 throw new UnsupportedOperationException();
@@ -2562,6 +2608,8 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
          * {@link ITx#UNISOLATED} index.
          */
         public IIndex getIndex(String name) {
+//BTM
+log.warn("\n*** AbstractTask#ReadOnlyJournal: getIndex [name="+name+"] >>> UnsupportedOperationException\n");
 
             throw new UnsupportedOperationException();
             
@@ -2884,6 +2932,8 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
         }
 
         public IIndex getIndex(String name, long timestamp) {
+//BTM
+log.warn("\n*** AbstractTask#DelegateIndexManager: getIndex [name="+name+", timestamp="+timestamp+"]\n");
             return delegate.getIndex(name, timestamp);
         }
 

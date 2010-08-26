@@ -36,6 +36,7 @@ import net.jini.admin.Administrable;
 import net.jini.core.lookup.ServiceItem;
 
 import com.bigdata.jini.start.IServiceListener;
+import com.bigdata.service.Service;
 import com.bigdata.service.jini.RemoteAdministrable;
 import com.bigdata.service.jini.RemoteDestroyAdmin;
 import com.sun.jini.admin.DestroyAdmin;
@@ -123,28 +124,41 @@ System.out.println("*** JiniServiceProcessHelper: constructor [name="+name+"] **
         final Object admin;
         {
             
-            final Remote proxy = (Remote) serviceItem.service;
+            if(serviceItem.service instanceof Remote) {
+                final Remote proxy = (Remote) serviceItem.service;
 
-            final Method getAdmin;
-            try {
+                final Method getAdmin;
+                try {
 
-                getAdmin = proxy.getClass().getMethod("getAdmin",
+                    getAdmin = proxy.getClass().getMethod("getAdmin",
                         new Class[] {});
 
-            } catch (Throwable t) {
-                // can't resolve the method for some reason.
-                log.warn(this, t);
-                return super.kill(immediateShutdown);
-            }
+                } catch (Throwable t) {
+                    // can't resolve the method for some reason.
+                    log.warn(this, t);
+                    return super.kill(immediateShutdown);
+                }
 
-            try {
-                admin = getAdmin.invoke(proxy, new Object[] {});
-            } catch (Throwable t) {
-                // can't invoke the method for some reason.
-                log.warn(this, t);
+                try {
+                    admin = getAdmin.invoke(proxy, new Object[] {});
+                } catch (Throwable t) {
+                    // can't invoke the method for some reason.
+                    log.warn(this, t);
+                    return super.kill(immediateShutdown);
+                }
+            } else if(serviceItem.service instanceof Service) {
+                try {
+                    admin = 
+                    ((Administrable)(serviceItem.service)).getAdmin();
+                } catch(Throwable t) { 
+                    log.warn("cannot retrieve service admin", t);
+                    return super.kill(immediateShutdown);
+                }
+            } else {
+                log.warn("service not instance of Remote or Service "
+                         +"["+serviceItem.service+"]");
                 return super.kill(immediateShutdown);
             }
-            
         }
 
         if (admin instanceof RemoteDestroyAdmin) {

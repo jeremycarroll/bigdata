@@ -24,7 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.metadata;
 
-import com.sun.jini.admin.DestroyAdmin;
+import com.bigdata.service.ShutdownAdmin;
+
 import net.jini.admin.JoinAdmin;
 import net.jini.core.discovery.LookupLocator;
 import net.jini.core.entry.Entry;
@@ -38,7 +39,7 @@ import java.rmi.RemoteException;
 import java.util.Map;
 import java.util.UUID;
 
-class AdminProxy implements DestroyAdmin, JoinAdmin, TestAdmin, Serializable {
+class AdminProxy implements JoinAdmin, ShutdownAdmin, Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -57,13 +58,8 @@ class AdminProxy implements DestroyAdmin, JoinAdmin, TestAdmin, Serializable {
         this.proxyId    = proxyId;
     }
 
-    // Required by com.sun.jini.admin.DestroyAdmin
+    // Required by net.jini.admin.JoinAdmin
 
-    public void destroy() throws RemoteException {
-        innerProxy.destroy();
-    }
-
-    //Method implementations required by net.jini.admin.JoinAdmin
     public Entry[] getLookupAttributes() throws RemoteException {
         return innerProxy.getLookupAttributes();
     }
@@ -117,10 +113,24 @@ class AdminProxy implements DestroyAdmin, JoinAdmin, TestAdmin, Serializable {
         innerProxy.setLookupLocators(locators);
     }
 
-    // Required by TestAdmin
+    // Required by ShutdownAdmin
+
+    public void shutdown() throws IOException {
+        innerProxy.shutdown();
+    }
+
+    public void shutdownNow() throws IOException {
+        innerProxy.shutdownNow();
+    }
 
     public void kill(int status) throws IOException {
         innerProxy.kill(status);
+    }
+
+    // Required by com.sun.jini.admin.DestroyAdmin (from ShutdownAdmin)
+
+    public void destroy() throws RemoteException {
+        innerProxy.destroy();
     }
 
     //Methods for good proxy behavior: hashCode, equals, readObject, etc.

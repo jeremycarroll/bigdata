@@ -37,6 +37,9 @@ import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.TransactionServer;
 import com.bigdata.util.NV;
 
+//BTM
+import com.bigdata.transaction.EmbeddedTransactionService;
+
 /**
  * Configuration for the {@link TransactionServer}.
  * 
@@ -54,17 +57,27 @@ public class TransactionServerConfiguration extends
     /**
      * @param config
      */
-    public TransactionServerConfiguration(Configuration config)
-            throws ConfigurationException {
-
-        super(TransactionServer.class, config);
-
+//BTM - BEGIN
+//BTM    public TransactionServerConfiguration(Configuration config)
+//BTM            throws ConfigurationException {
+//BTM
+//BTM        super(TransactionServer.class, config);
+//BTM
+//BTM    }
+    public TransactionServerConfiguration(Class         classType,
+                                          Configuration config)
+               throws ConfigurationException
+    {
+        super(classType, config);
+System.out.println("*** TransactionServerConfiguration: constructor ***");
     }
+//BTM - END
 
     public TransactionServiceStarter newServiceStarter(JiniFederation fed,
             IServiceListener listener, String zpath, Entry[] attributes)
             throws Exception {
 
+System.out.println("*** TransactionServerConfiguration ---> newServiceStarter ***");
         return new TransactionServiceStarter(fed, listener, zpath, attributes);
 
     }
@@ -81,14 +94,26 @@ public class TransactionServerConfiguration extends
                 IServiceListener listener, String zpath, Entry[] attributes) {
 
             super(fed, listener, zpath, attributes);
+System.out.println("*** TransactionServerConfiguration.TransactionServiceStarter: constructor ***");
 
         }
 
         @Override
         protected NV getDataDir() {
             
-            return new NV(TransactionServer.Options.DATA_DIR, serviceDir
-                    .toString());
+            // className field defined/set in ServiceConfiguration parent
+            if ( (TransactionServer.class.getName()).equals(className) ) {
+System.out.println("*** TransactionServerConfiguration.TransactionServiceStarter: getDataDir [TransactionServer.Options.DATA_DIR="+TransactionServer.Options.DATA_DIR+", serviceDir="+serviceDir.toString()+"] ***");
+
+                return new NV(TransactionServer.Options.DATA_DIR, serviceDir.toString());
+
+            } else if ( (com.bigdata.transaction.ServiceImpl.class.getName()).equals(className) ) {
+System.out.println("*** TransactionServerConfiguration.TransactionServiceStarter: getDataDir [EmbeddedTransactionService.Options.DATA_DIR="+EmbeddedTransactionService.Options.DATA_DIR+", serviceDir="+serviceDir.toString()+"] ***");
+
+                return new NV(EmbeddedTransactionService.Options.DATA_DIR, serviceDir.toString());
+            } else {
+                return null;
+            }
             
         }
         

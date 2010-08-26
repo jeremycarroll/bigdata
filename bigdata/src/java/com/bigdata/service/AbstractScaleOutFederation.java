@@ -228,8 +228,12 @@ public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T
         
         assertOpen();
 
-        return getMetadataIndexCache().getIndex(name, timestamp);
-         
+//BTM        return getMetadataIndexCache().getIndex(name, timestamp);
+
+MetadataIndexCache cache = getMetadataIndexCache();
+IMetadataIndex index = cache.getIndex(name, timestamp);
+log.warn("\n>>>>AbstractScaleOutFederation.getMetadataIndex: name="+name+", timestamp="+timestamp+", metadataIndexCache="+cache+", metadataIndex="+index+"\n");
+return index;
     }
     
     /**
@@ -377,7 +381,7 @@ public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T
     }
 
     /**
-     * Await the availability of an {@link IMetadataService} and the specified
+     * Await the availability of a shard locator service and the specified
      * minimum #of {@link IDataService}s.
      * 
      * @param minDataServices
@@ -398,7 +402,7 @@ public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T
      *             if the client is not connected to the federation.
      * @throws InterruptedException
      *             if this thread is interrupted while awaiting the availability
-     *             of the {@link MetadataService} or the specified #of
+     *             of the shard locator service or the specified #of
      *             {@link DataService}s.
      * @throws TimeoutException
      *             If a timeout occurs.
@@ -432,7 +436,8 @@ public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T
         int ntries = 0;
         
         // updated each time through the loop.
-        IMetadataService metadataService = null;
+//BTM        IMetadataService metadataService = null;
+ShardLocator metadataService = null;
         
         // updated each time through the loop.
         UUID[] dataServiceUUIDs = null;
@@ -524,7 +529,7 @@ public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T
 	 *            to force the {@link DataService} to its minimum possible
 	 *            footprint.
 	 * 
-	 * @todo when overflow processing is enabled for the {@link MetadataService}
+	 * @todo when overflow processing is enabled for the shard locator service
 	 *       we will have to modify this to also trigger overflow for those
 	 *       services.
 	 */
@@ -616,6 +621,22 @@ public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T
 
         private final boolean truncateJournal;
 
+//BTM - BEGIN
+private final ShardLocator metadataService;
+public PurgeResourcesTask(final ShardLocator metadataService, final boolean truncateJournal) {
+    if (metadataService == null) {
+        throw new IllegalArgumentException
+                              ("null shard locator service");
+    }
+
+    this.dataService = null;
+    this.metadataService = metadataService;
+
+    this.truncateJournal = truncateJournal;
+
+}
+//BTM - END
+
         public PurgeResourcesTask(final IDataService dataService,
                 final boolean truncateJournal) {
 
@@ -623,6 +644,8 @@ public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T
                 throw new IllegalArgumentException();
 
             this.dataService = dataService;
+//BTM
+this.metadataService = null;
 
             this.truncateJournal = truncateJournal;
 
@@ -630,6 +653,8 @@ public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T
 
         public Void call() throws Exception {
 
+//BTM
+if(dataService != null) {
             if (log.isInfoEnabled())
                 log.info("dataService: " + dataService.getServiceName());
 
@@ -639,6 +664,36 @@ public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T
                         .warn("Could not pause write service - resources will not be purged.");
 
             }
+}
+if(metadataService != null) {
+            String serviceName = null;
+    IDataService remoteShardMgr = null;
+    ShardManagement shardMgr = null;
+            if(metadataService instanceof IMetadataService) {
+                serviceName = 
+                    ((IMetadataService)metadataService).getServiceName();
+                remoteShardMgr = (IDataService)metadataService;
+            } else if(metadataService instanceof Service) {
+                serviceName = 
+                    ((Service)metadataService).getServiceName();
+                shardMgr = (ShardManagement)metadataService;
+            } else {
+                log.warn("wrong type for shard locator service "
+                         +"["+metadataService.getClass()+"]");
+            }
+            if (log.isInfoEnabled()) {
+                log.info("metadataService: " + serviceName);
+            }
+    boolean resourcesPurged = false;
+    if(remoteShardMgr != null) {
+        resourcesPurged = remoteShardMgr.purgeOldResources(5000/* ms */, truncateJournal);
+    } else if(shardMgr != null) {
+        resourcesPurged = shardMgr.purgeOldResources(5000/* ms */, truncateJournal);
+    }
+            if (!resourcesPurged) {
+                log.warn("Could not pause write service - resources will not be purged.");
+            }
+}
 
             return null;
 

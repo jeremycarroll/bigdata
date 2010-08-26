@@ -31,29 +31,32 @@ import java.rmi.RemoteException;
 
 import net.jini.core.lookup.ServiceTemplate;
 
-import com.bigdata.journal.ITransactionService;
+//BTMimport com.bigdata.journal.ITransactionService;
 import com.bigdata.service.jini.JiniFederation;
 
+//BTM
+import com.bigdata.journal.TransactionService;
+
 /**
- * Client manages discovery of an {@link ITransactionService}.
+ * Client manages discovery of a transaction service.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
 public class TransactionServiceClient extends
-        BigdataCachingServiceClient<ITransactionService> {
+        BigdataCachingServiceClient<TransactionService> {
 
     public TransactionServiceClient(final JiniFederation fed, final long timeout)
             throws RemoteException {
 
-        super(fed, ITransactionService.class, new ServiceTemplate(null,
-                new Class[] { ITransactionService.class }, null),
+        super(fed, TransactionService.class, new ServiceTemplate(null,
+                new Class[] { TransactionService.class }, null),
                 null/* filter */, timeout);
 
     }
 
     /**
-     * Return the {@link ITransactionService} service from the cache -or-
+     * Return the transaction service from the cache -or-
      * <code>null</code> if there is no such service in the cache and a remote
      * lookup times out.
      * 
@@ -61,7 +64,7 @@ public class TransactionServiceClient extends
      *       a primary. secondaries MUST listen to the primary so that time
      *       continues to move forward.
      */
-    public ITransactionService getTransactionService() {
+    public TransactionService getTransactionService() {
 
         return super.getService();
 

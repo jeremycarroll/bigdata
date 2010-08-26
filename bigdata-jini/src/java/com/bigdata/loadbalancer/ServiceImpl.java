@@ -28,7 +28,9 @@ package com.bigdata.loadbalancer;
 import static com.bigdata.loadbalancer.Constants.*;
 
 import com.bigdata.attr.ServiceInfo;
+import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.service.Event;
+import com.bigdata.service.IServiceShutdown.ShutdownType;
 import com.bigdata.util.BootStateUtil;
 import com.bigdata.util.Util;
 import com.bigdata.util.config.ConfigDeployUtil;
@@ -37,6 +39,9 @@ import com.bigdata.util.config.NicUtil;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NodeExistsException;
 
 import com.sun.jini.config.Config;
 import com.sun.jini.start.LifeCycle;
@@ -214,16 +219,21 @@ logger.log(Level.DEBUG, ">>>>> **** com.bigdata.loadbalancer.ServiceImpl.notify:
     }
 
     public void shutdown() throws RemoteException {
+logger.warn("XXXXX LOAD BALANCER ServiceImpl: SHUTDOWN CALLED");
 	readyState.check();
 	readyState.shutdown();
-        shutdownDo();
+        shutdownDo(ShutdownType.GRACEFUL);
     }
 
     public void shutdownNow() throws RemoteException {
-        this.shutdown();
+logger.warn("XXXXX LOAD BALANCER ServiceImpl: SHUTDOWN_NOW CALLED");
+	readyState.check();
+	readyState.shutdown();
+        shutdownDo(ShutdownType.IMMEDIATE);
     }
 
     public void kill(int status) throws RemoteException {
+logger.warn("XXXXX LOAD BALANCER ServiceImpl: KILL CALLED");
 	readyState.check();
 	readyState.shutdown();
         killDo(status);
@@ -239,7 +249,10 @@ logger.log(Level.DEBUG, ">>>>> **** com.bigdata.loadbalancer.ServiceImpl.notify:
     // Required by DestroyAdmin
 
     public void destroy() throws RemoteException {
-        this.shutdown();
+logger.warn("XXXXX LOAD BALANCER ServiceImpl: DESTROY CALLED");
+	readyState.check();
+	readyState.shutdown();
+        shutdownDo(ShutdownType.DESTROY_STATE);
     }
 
     // Required by JoinAdmin
@@ -321,19 +334,20 @@ logger.log(Level.DEBUG, ">>>>> **** com.bigdata.loadbalancer.ServiceImpl.notify:
         config = ConfigurationProvider.getInstance
                                        ( args,
                                          (this.getClass()).getClassLoader() );
-        if(smsProxyId == null) {//service assigns & persists its own proxyId
-logger.warn("XXXXX LOAD BALANCER ServiceImpl: smsProxyId = null ---> service-assigned id");
+        if(smsProxyId == null) {//service assigns & persists its own proxy id
             BootStateUtil bootStateUtil = 
                 new BootStateUtil
                         (config, COMPONENT_NAME, this.getClass(), logger);
             proxyId   = bootStateUtil.getProxyId();
             serviceId = bootStateUtil.getServiceId();
-        } else {//ServicesManagerService assigned the proxyId
-logger.warn("XXXXX LOAD BALANCER ServiceImpl: smsProxyId NOT null ---> SMS-assigned id");
+            logger.debug("smsProxyId = null - service generated & persisted "
+                         +"(or retreieved) its own proxy id ["+proxyId+"]");
+        } else {//ServicesConfiguration pre-generated the proxy id
             proxyId = smsProxyId;
             serviceId = com.bigdata.jini.util.JiniUtil.uuid2ServiceID(proxyId);
+            logger.debug("smsProxyId != null - service retrieved proxy id "
+                         +"from supplied configuration ["+proxyId+"]");
         }
-logger.warn("XXXXX LOAD BALANCER ServiceImpl: proxyId = "+proxyId+"\n");
 
         //Service export and proxy creation
         ServerEndpoint endpoint = TcpServerEndpoint.getInstance(0);
@@ -352,7 +366,10 @@ logger.warn("XXXXX LOAD BALANCER ServiceImpl: proxyId = "+proxyId+"\n");
         }
 
         innerProxy = (PrivateInterface)serverExporter.export(this);
-        String hostname = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
+        String hostname =
+            NicUtil.getIpAddress
+                ("default.nic",
+                 ConfigDeployUtil.getString("node.serviceNetwork"), false);
         outerProxy = ServiceProxy.createProxy
                          (innerProxy, proxyId, hostname);
         adminProxy = AdminProxy.createProxy(innerProxy, proxyId);
@@ -380,10 +397,10 @@ logger.warn("XXXXX LOAD BALANCER ServiceImpl: proxyId = "+proxyId+"\n");
         embeddedLoadBalancer = 
             new EmbeddedLoadBalancer
                     (proxyId, hostname, sdm,
+null,//BTM*** - remove uuid map when DataService converted to smart proxy?
                      (String)config.getEntry(COMPONENT_NAME,
                                              "persistenceDirectory",
                                              String.class, "."),
-null,//BTM*** - remove uuid map when DataService converted to smart proxy?
                      props);
 
         //advertise this service
@@ -408,8 +425,8 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
         readyState.ready();//ready to accept calls from clients
     }
 
-    private void shutdownDo() {
-        (new ShutdownThread()).start();
+    private void shutdownDo(ShutdownType type) {
+        (new ShutdownThread(type)).start();
     }
 
     /**
@@ -418,15 +435,27 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
     private class ShutdownThread extends Thread {
 
         private long EXECUTOR_TERMINATION_TIMEOUT = 1L*60L*1000L;
+        private ShutdownType type;
 
-        public ShutdownThread() {
-            super("Build Server Request Service Shutdown thread");
+        public ShutdownThread(ShutdownType type) {
+            super("load balancer shutdown thread");
             setDaemon(false);
+            this.type = type;
         }
 
         public void run() {
 
-            embeddedLoadBalancer.shutdown();
+            switch (type) {
+                case GRACEFUL:
+                    embeddedLoadBalancer.shutdown();
+                case IMMEDIATE:
+                    embeddedLoadBalancer.shutdownNow();
+                case DESTROY_STATE:
+                    embeddedLoadBalancer.destroy();
+                    break;
+                default:
+                    logger.warn("unexpected shutdown type ["+type+"]");
+            }
 
             //Before terminating the discovery manager, retrieve the
             // current groups and locs; which may have been administratively
@@ -473,53 +502,124 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
     }
 
     /**
-     * When using the ServicesManagerService to start this service, the
-     * following information may be useful to keep in mind:
+     * This main() method is provided because it may be desirable (for
+     * testing or other reasons) to be able to start this service using
+     * a command line that is either manually entered in a command window
+     * or supplied to the java ProcessBuilder class for execution.
      * <p>
-     * The ServicesManagerService exec's the <code>main</code> method,
-     * defined below, using the Java <code>ProcessBuilder</code> class;
-     * which results in this service implementation class being instantiated.
+     * The mechanism that currently employs the ProcessBuilder class to
+     * execute a dynamically generated command line will be referred to
+     * as the 'ServiceConfiguration mechanism', which involves the use of
+     * the ServiceConfiguration class hierarchy; that is, 
      * <p>
-     * The ServicesManagerService generates a jini configuration for this
-     * service; and that configuration is passed to this service in the
-     * args array of the main method, and is also stored in zookeeper for
-     * retrieval when the ServicesManagerService restarts this service.
+     * <ul>
+     *   <li> <service-name>Configuration
+     *   <li> BigdataServiceConfiguration
+     *   <li> JiniServiceConfiguration
+     *   <li> ManagedServiceConfiguration
+     *   <li> JavaServiceConfiguration
+     *   <li> ServiceConfiguration
+     * </ul>
+     * </p>
+     * The ServicesConfiguration mechanism may involve the use of the
+     * ServicesManagerService directly to execute this service, or it may
+     * involve the use of the junit framework to start this service. In
+     * either case, a command line is constructed from information at 
+     * specified at each of the various ServiceConfiguration levels, and
+     * is ultimately executed in a ProcessBuilder instance (in the
+     * ProcessHelper class).
      * <p>
-     * In the generated configuration, the ServicesManagerService includes a
+     * In order for this method to know whether or not the 
+     * ServiceConfiguration mechanism is being used to start the service,
+     * this method must be told that the ServiceConfiguration mechanism is
+     * being used. This is done by setting the system property named
+     * <code>usingServiceConfiguration</code> to any non-null value.
+     * <p>
+     * When the ServiceConfiguration mechanism is <i>not</i> used to start
+     * this service, this method assumes that the element at index 0
+     * of the args array references the path to the jini configuration
+     * file that will be input by this method to this service's constructor.
+     * On the other hand, when the ServiceConfiguration mechanism <i>is</i>
+     * used to start this service, the service's configuration is handled
+     * differently, as described below.
+     * <p>   
+     * When using the ServiceConfiguration mechanism, in addition to
+     * generating a command line to start the service, although an initial,
+     * pre-constructed jini configuration file is supplied (to the
+     * ServicesManagerService or the test framework, for example), a
+     * second jini configuration file is generated <i>on the fly</i> as
+     * well. When generating that new configuration file, a subset of the
+     * components and entries specified in the initial jini configuration
+     * are retrieved and placed in the new configuration being generated.
+     * It is that second, newly-generated configuration file that is input
+     * to this method through the args elements at index 0. It is important
+     * to note that the generated configuration file is also stored in
+     * zookeeper for retrieval when the ServicesManagerService restarts 
+     * this service.
+     * <p>
+     * When the ServiceConfiguration mechanism is used to invoke this method,
+     * this method makes a number of assumptions. One assumption is that
+     * there is a component with name equal to the fully qualified name
+     * of this class. Another assumption is that an entry named 'args' 
+     * is contained in that component. The 'args' entry is assumed to be
+     * a <code>String</code> array in which one of the elments is specified
+     * to be a system property named 'config' whose value is equal to the
+     * path and filename of yet a third jini configuration file; that is,
+     * something of the form, "-Dconfig=<path-to-another-jini-config>".
+     * It is this third jini configuration file that the service will
+     * ultimately use to initialize itself when the ServiceConfiguration
+     * mechanism is being used to start the service. In that case then,
+     * this method will retrieve the path to the third jini configuration
+     * file from the configuration file supplied to this method in the args
+     * array at index 0, and then replace the element at index 0 with that
+     * path; so that when the service is instantiated (using this class'
+     * constructor), that third configuration file is made available to
+     * the service instance.
+     * <p>
+     * A final assumption that this method makes when the ServiceConfiguration 
+     * mechanism is used to start the service is that the generated
+     * configuration file supplied to this method at args[0] includes a
      * section with component name, "com.bigdata.service.jini.JiniClient";
      * which contains among its configuration entries, an array whose elements
-     * are each of instances of <code>net.jini.core.entry.Entry</code>;
-     * where those elements are generated in the following order:
-     *
-     *   - net.jini.lookup.entry.Name
-     *   - com.bigdata.jini.lookup.entry.Hostname
-     *   - com.bigdata.jini.lookup.entry.ServiceDir
-     *   - com.bigdata.jini.lookup.entry.ServiceUUID
-     *   - net.jini.lookup.entry.Comment
-     *
-     * Thus, when this service is started by the ServicesManagerService,
-     * it is the ServicesManagerService that generates a service id for
-     * this service, rather than this service generating its own service id.
-     * The value of that service id is retrieved in the <code>main</code>
-     * method and stored in the <code>smdProxyId</code> field so that
-     * this service's <code>init</code> method can take the appropriate
-     * action with respect to the service id; that is, generate and persist
-     * (or retrieve from persistent storage) its own service id if the
-     * service is not started by the ServicesManagerService, or use the
-     * service id passed in through the generated configuration if the
-     * service is being started by the ServicesManagerService.
+     * are each instances of <code>net.jini.core.entry.Entry</code>, where
+     * those elements are generated in the following order:
      * <p>
-     * Once an instance of this service implementation class has been 
-     * created, that instance is stored in the <code>thisImpl</code>
+     * <ul>
+     *   <li> net.jini.lookup.entry.Name
+     *   <li> com.bigdata.jini.lookup.entry.Hostname
+     *   <li> com.bigdata.jini.lookup.entry.ServiceDir
+     *   <li> com.bigdata.jini.lookup.entry.ServiceUUID
+     *   <li> net.jini.lookup.entry.Comment
+     * </ul>
+     * </p>
+     * Note that the item at index 3 (<code>ServiceUUID</code>) means
+     * that a service is generated for the service being started; as 
+     * opposed to the service generating its own service id. Thus, if
+     * the ServiceConfiguration mechanism is being used, then this
+     * method retrieves the pre-generated service id from the entries
+     * array described above, stores that value in the <code>smsProxyId</code>
+     * field so that this service's <code>init</code> method can take
+     * the appropriate action with respect to the service id. That is,
+     * during initialization, the service will examine the value of
+     * <code>smsProxyId</code> and if it has not been set (indicating 
+     * that the ServiceConfiguration mechanism is not being used),
+     * will generate and persist (or retrieve from persistent storage)
+     * its own service id; otherwise, the service will use the service
+     * id passed in through the generated configuration and retrieved
+     * by this method.
+     * <p>
+     * Finally, once an instance of this service implementation class
+     * has been created, that instance is stored in the <code>thisImpl</code>
      * field to prevent the instance from being garbage collected until
      * the service is actually shutdown.
      */
+
     private static UUID smsProxyId = null;
     private static ServiceImpl thisImpl;
 
     public static void main(String[] args) {
+        logger.debug("[main]: appHome="+System.getProperty("appHome"));
         try {
-
             // If the system property with name "config" is set, then
             // use the value of that property to override the value
             // input in the first element of the args array
@@ -535,11 +635,11 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
                 argsList.add(args[i]);
             }
 
-            // ServicesManagerService waits on the discovery of a service
-            // of this type having the same service id as that placed
-            // by the ServicesManagerService in the config file it generated
-            // for the service being started.
-            if(System.getProperty("usingServicesManagerService") != null) {
+            // The ServiceConfiguration mechanism waits on the discovery
+            // of a service of this type having the same service id as
+            // that placed in the generated config file that was passed
+            // to this method in args[0].
+            if(System.getProperty("usingServiceConfiguration") != null) {
                 Configuration smsConfig = 
                     ConfigurationProvider.getInstance
                         ( args, (ServiceImpl.class).getClassLoader() );
@@ -556,7 +656,7 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
                     smsProxyId = 
                         ((com.bigdata.jini.lookup.entry.ServiceUUID)
                              smsEntries[3]).serviceUUID;
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: smsProxyId = "+smsProxyId);
+                    logger.debug("[main]: smsProxyId="+smsProxyId);
                 }
                 String logicalServiceZPath = 
                     (String)smsConfig.getEntry((ServiceImpl.class).getName(),
@@ -567,12 +667,13 @@ System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: smsProxyId = "+smsProxyId
                 if(logicalServiceZPath != null) {
                     physicalServiceZPath = 
                         logicalServiceZPath
-                        +com.bigdata.jini.start.BigdataZooDefs.ZSLASH 
-            +com.bigdata.jini.start.BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER 
-                        +com.bigdata.jini.start.BigdataZooDefs.ZSLASH 
+                        +BigdataZooDefs.ZSLASH 
+                        +BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER 
+                        +BigdataZooDefs.ZSLASH 
                         +smsProxyId;
                 }
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: logicalServiceZPath = "+logicalServiceZPath);
+                logger.debug
+                    ("[main]: logicalServiceZPath="+logicalServiceZPath);
                 if(physicalServiceZPath != null) {
                     org.apache.zookeeper.data.ACL[] acl =
                     (org.apache.zookeeper.data.ACL[])smsConfig.getEntry
@@ -581,17 +682,18 @@ System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: logicalServiceZPath = "+l
                     if(acl != null) {
                         java.util.List<org.apache.zookeeper.data.ACL> aclList =
                             java.util.Arrays.asList(acl);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: aclList = "+aclList);
-                       String servers = (String)smsConfig.getEntry
+                        logger.debug("[main]: aclList="+aclList);
+                        String servers = (String)smsConfig.getEntry
                                             ("org.apache.zookeeper.ZooKeeper",
                                              "servers", String.class, null);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: servers = "+servers);
+                        logger.debug("[main]: zookeeper servers="+servers);
                         if(servers != null) {
                             int sessionTimeout = 
                                     (Integer)smsConfig.getEntry
                                         ("org.apache.zookeeper.ZooKeeper",
                                          "sessionTimeout", int.class, 300000);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: sessionTimeout = "+sessionTimeout);
+                            logger.debug("[main]: zookeeper session timeout="
+                                         +sessionTimeout);
 
                             byte[] data = 
                                 com.bigdata.io.SerializerUtil.serialize
@@ -599,21 +701,32 @@ System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: sessionTimeout = "+sessio
                             org.apache.zookeeper.ZooKeeper zookeeperClient =
                                 new org.apache.zookeeper.ZooKeeper
                                         (servers, sessionTimeout, null);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: ZOOKEEPER CLIENT CREATED ***");
+                            logger.debug("[main]: zookeeper client created");
                             try {
                                 zookeeperClient.create
                                   (physicalServiceZPath, data, aclList,
                                    org.apache.zookeeper.CreateMode.PERSISTENT);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: ZNODE CREATED ["+physicalServiceZPath+"] ***");
-                            } catch(org.apache.zookeeper.KeeperException.NodeExistsException e) {
-                                zookeeperClient.setData(physicalServiceZPath, data, -1);
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: ZNODE UPDATED ["+physicalServiceZPath+"] ***");
+                                logger.debug("[main]: zookeeper znode created "
+                                             +"[physicalServiceZPath="
+                                             +physicalServiceZPath+"]");
+                            } catch(NodeExistsException e) {
+                                zookeeperClient.setData
+                                     (physicalServiceZPath, data, -1);
+                                logger.debug("[main]: zookeeper znode updated "
+                                             +"[physicalServiceZPath="
+                                             +physicalServiceZPath+"]");
+
+                            } catch(Throwable z) {
+                                logger.error
+                                    ("[main]: problem creaating/updating "
+                                     +"zookeeper znode", z);
+                                throw z;
                             }
                         }
                     }
                 }
             }
-System.out.println("\nXXXXX LOAD BALANCER ServiceImpl: new ServiceImpl() ....");
+            logger.debug("[main]: instantiating service [new ServiceImpl]");
             thisImpl = new ServiceImpl
                 ( argsList.toArray(new String[argsList.size()]),
                   new com.bigdata.service.jini.FakeLifeCycle() );

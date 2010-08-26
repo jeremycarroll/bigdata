@@ -29,11 +29,16 @@ package com.bigdata.jini.start;
 
 import java.rmi.RemoteException;
 
-import com.bigdata.service.IService;
+//BTM import com.bigdata.service.IService;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.RemoteDestroyAdmin;
 import com.bigdata.service.jini.TransactionServer;
+
+//BTM
+import com.bigdata.journal.TransactionService;
+import com.sun.jini.admin.DestroyAdmin;
+import net.jini.admin.Administrable;
 
 /**
  * Destroys a specific service - the {@link TransactionServer}. This is for use
@@ -60,17 +65,38 @@ public class DestroyTransactionService {
 
         try {
 
-            IService service = fed.getTransactionService();
+//BTM            IService service = fed.getTransactionService();
+TransactionService service = fed.getTransactionService();
 
             if (service == null) {
 
                 System.err.println("Service not found.");
 
             } else {
-
+if(service instanceof RemoteDestroyAdmin) {
                 ((RemoteDestroyAdmin) service).destroy();
+    System.err.println("destroyed transaction service [remote implementation]");
+} else if(service instanceof Administrable) {
+    try {
+        Object serviceAdmin  = ((Administrable)service).getAdmin();
+        if(serviceAdmin instanceof DestroyAdmin) {
+            try {
+                ((DestroyAdmin)serviceAdmin).destroy();
+                System.err.println("destroyed transaction service [smart proxy implementation]");
+            } catch(Throwable t) { 
+                System.err.println("ERROR: exception while destroying transaction service ["+t+"]");
+            }
+        } else {
+            System.err.println("FAILURE: transaction service admin not instance of DestroyAdmin");
+        }
+    } catch(Throwable t) { 
+        System.err.println("ERROR: exception from call to getAdmin while destroying transaction service ["+t+"]");
+    }
+} else {
+    System.err.println("FAILURE: transaction service not instance of Administrable");
+}
 
-                System.err.println("Service destroyed.");
+//BTM                System.err.println("Service destroyed.");
 
             }
 

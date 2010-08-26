@@ -1004,7 +1004,8 @@ public class WriteExecutorService extends ThreadPoolExecutor {
                      * The task threw some other kind of exception.
                      */
                     
-                    log.warn("Task failed: task=" + r);//, t);
+//BTM                    log.warn("Task failed: task=" + r);//, t);
+log.warn("Task failed: task=" + r, t);
 
                 }
 

@@ -96,4 +96,9 @@ public interface IServiceShutdown {
 
     }
 
+    enum ShutdownType {
+        GRACEFUL,
+        IMMEDIATE,
+        DESTROY_STATE
+    };
 }

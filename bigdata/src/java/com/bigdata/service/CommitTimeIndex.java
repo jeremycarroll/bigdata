@@ -89,7 +89,8 @@ public class CommitTimeIndex extends BTree {
 
     }
 
-    protected long decodeKey(final byte[] key) {
+//BTM    protected long decodeKey(final byte[] key) {
+public long decodeKey(final byte[] key) {
 
         return KeyBuilder.decodeLong(key, 0);
 

@@ -28,6 +28,7 @@ import static com.bigdata.transaction.Constants.*;
 
 import com.bigdata.journal.TransactionService;
 import com.bigdata.journal.ValidationError;
+import com.bigdata.service.Service;
 
 import net.jini.admin.Administrable;
 
@@ -39,8 +40,9 @@ import java.rmi.RemoteException;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.UUID;
 
-class ServiceProxy implements TransactionService, Administrable, Serializable {
-
+class ServiceProxy implements TransactionService, Service,
+                              Administrable, Serializable
+{
     private static final long serialVersionUID = 1L;
 
     final PrivateInterface innerProxy;

@@ -107,6 +107,8 @@ public interface IFederationDelegate<T> {
      *            The service {@link UUID}.
      */
     public void serviceJoin(IService service, UUID serviceUUID);
+//BTM
+public void serviceJoin(Service service, UUID serviceUUID);
     
     /**
      * Notice that the service is no longer available. This notice will be

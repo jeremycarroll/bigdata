@@ -30,6 +30,7 @@ import com.sun.jini.admin.DestroyAdmin;
 import net.jini.admin.Administrable;
 import net.jini.admin.JoinAdmin;
 
+import java.io.IOException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.UUID;
@@ -56,14 +57,20 @@ interface PrivateInterface extends Remote, Administrable,
              throws RemoteException;
 
     long prepared(long tx, UUID shardService) 
-         throws RemoteException, InterruptedException, BrokenBarrierException;
+         throws RemoteException, IOException,
+                InterruptedException, BrokenBarrierException;
 
     boolean committed(long tx, UUID shardService)
-         throws RemoteException, InterruptedException, BrokenBarrierException;
+         throws RemoteException, IOException,
+                InterruptedException, BrokenBarrierException;
 
     long nextTimestamp() throws RemoteException;
 
-    //Related to TestAdmin
+    //Related to ShutdownAdmin
+
+    void shutdown() throws RemoteException;
+
+    void shutdownNow() throws RemoteException;
 
     void kill(int status) throws RemoteException;
 }

@@ -44,7 +44,11 @@ public class MetadataIndexCache extends AbstractIndexCache<IMetadataIndex>{
                 name, timestamp);
         
         // No such index.
-        if (mdmd == null) return null;
+        if (mdmd == null) {
+//BTM
+log.warn("\nMetadataIndexCache.newView >>>> META_DATA INDEX META_DATA = NULL\n");
+            return null;
+        }
                 
         switch (fed.metadataIndexCachePolicy) {
 
@@ -102,18 +106,38 @@ public class MetadataIndexCache extends AbstractIndexCache<IMetadataIndex>{
     protected MetadataIndexMetadata getMetadataIndexMetadata(final String name,
             final long timestamp) {
 
-        final IMetadataService mds = fed.getMetadataService();
+//BTM        final IMetadataService mds = fed.getMetadataService();
+final ShardLocator mds = fed.getMetadataService();
+IDataService remoteShardMgr = null;
+ShardManagement shardMgr = null;
+if(mds instanceof IDataService) {
+log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds INSTANCE OF IDataService ["+mds+"]\n");
+    remoteShardMgr = (IDataService)mds;
+} else if(mds instanceof ShardManagement) {
+log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds IS INSTANCE OF ShardManagement ["+mds+"]\n");
+    shardMgr = (ShardManagement)mds;
+}else {
+log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds NOT instance of ShardManagement or IDataService ["+mds+"]\n");
+}
+log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: remoteShardMgr="+remoteShardMgr+", shardMgr="+shardMgr+"\n");
 
         if (mds == null)
             throw new NoSuchService(ERR_NO_METADATA_SERVICE);
 
-        final MetadataIndexMetadata mdmd;
+        MetadataIndexMetadata mdmd = null;
         try {
 
             // @todo test cache for this object as of that timestamp?
-            mdmd = (MetadataIndexMetadata) mds.getIndexMetadata(
+if(remoteShardMgr != null) {
+            mdmd = (MetadataIndexMetadata) remoteShardMgr.getIndexMetadata(
                             MetadataService.getMetadataIndexName(name),
                             timestamp);
+} else if(shardMgr != null) {
+log.warn("\nMetadataIndexCache.getMetadataIndexMetadata >>>> CALLING shardMgr.getIndexMetadata <<<<\n");
+            mdmd = (MetadataIndexMetadata) shardMgr.getIndexMetadata(
+                            MetadataService.getMetadataIndexName(name),
+                            timestamp);
+}
             
             assert mdmd != null;
 

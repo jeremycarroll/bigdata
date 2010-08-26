@@ -143,6 +143,9 @@ public class DefaultServiceFederationDelegate<T extends AbstractService>
     public void serviceJoin(IService service, UUID serviceUUID) {
 
     }
+//BTM - BEGIN
+    public void serviceJoin(Service service, UUID serviceUUID) { }
+//BTM - END
 
     /** NOP */
     public void serviceLeave(UUID serviceUUID) {

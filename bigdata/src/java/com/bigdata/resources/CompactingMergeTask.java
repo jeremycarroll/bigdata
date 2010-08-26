@@ -33,7 +33,11 @@ import com.bigdata.service.MetadataService;
 import com.bigdata.service.ndx.ClientIndexView;
 
 //BTM
+import com.bigdata.metadata.EmbeddedShardLocator;
+import com.bigdata.service.IDataService;
 import com.bigdata.service.LoadBalancer;
+import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardManagement;
 
 /**
  * Task builds an {@link IndexSegment} from the fused view of an index partition
@@ -749,13 +753,37 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
         final ResultBuffer resultBuffer;
         try {
             
-            resultBuffer = (ResultBuffer) resourceManager.getFederation()
-                    .getMetadataService().submit(
-                            TimestampUtility.asHistoricalRead(lastCommitTime),
-                            MetadataService
-                                    .getMetadataIndexName(scaleOutIndexName),
-                            op).get();
+//BTM            resultBuffer = (ResultBuffer) resourceManager.getFederation()
+//BTM                    .getMetadataService().submit(
+//BTM                            TimestampUtility.asHistoricalRead(lastCommitTime),
+//BTM                            MetadataService
+//BTM                                    .getMetadataIndexName(scaleOutIndexName),
+//BTM                            op).get();
             
+ShardLocator mds = (resourceManager.getFederation()).getMetadataService();
+if(mds == null) {
+    log.error("CompactingMergeTask.getRightSiblingLocator: null shard locator (metadata) service - could not locate rightSiblings [index="+scaleOutIndexName+"]");
+    return null;
+}
+if(mds instanceof IDataService) {
+    IDataService remoteShardMgr = (IDataService)mds;
+    resultBuffer = 
+        (ResultBuffer) remoteShardMgr.submit
+                           (TimestampUtility.asHistoricalRead(lastCommitTime),
+                            EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
+                            op).get();
+} else if(mds instanceof ShardManagement) {
+    ShardManagement shardMgr = (ShardManagement)mds;
+    resultBuffer = 
+        (ResultBuffer) shardMgr.submit
+                           (TimestampUtility.asHistoricalRead(lastCommitTime),
+                            EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
+                            op).get();
+} else {
+    log.error("CompactingMergeTask.getRightSiblingLocator: shard locator (metadata) service wrong type [type="+mds.getClass()+"] - could not locate rightSiblings [index="+scaleOutIndexName+"]");
+    return null;
+}
+
         } catch (Exception e) {
 
             log.error("Could not locate rightSiblings: index="

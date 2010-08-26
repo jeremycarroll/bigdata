@@ -26,9 +26,14 @@ package com.bigdata.service;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.ResultSet;
+import com.bigdata.btree.filter.IFilterConstructor;
+import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 
@@ -40,7 +45,7 @@ import com.bigdata.mdi.PartitionLocator;
  * in the named index. Partitions are automatically split when they
  * overflow (~200M) and joined when they underflow (~50M).
  */
-public interface ShardLocator extends Service {
+public interface ShardLocator {
         
     /**
      * Returns the next unique partition identifier to be assigned to the
@@ -182,7 +187,7 @@ public interface ShardLocator extends Service {
      *         <code>null</code>.
      */
     PartitionLocator get(String name, long timestamp, byte[] key)
-           throws InterruptedException, ExecutionException, IOException;
+           throws IOException, InterruptedException, ExecutionException;
 
     /**
      * Finds and returns the partition spanning the given <code>key</code>.
@@ -195,5 +200,5 @@ public interface ShardLocator extends Service {
      *         <code>null</code> if there are no partitions defined.
      */
     PartitionLocator find(String name, long timestamp, byte[] key)
-           throws InterruptedException, ExecutionException, IOException;
+           throws IOException, InterruptedException, ExecutionException;
 }
