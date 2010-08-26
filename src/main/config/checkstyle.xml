@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    This configuration file was written by the eclipse-cs plugin configuration editor
+-->
+<!--
+    Checkstyle-Configuration: Bigdata
+    Description: none
+-->
+<!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.2//EN" "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
+<module name="Checker">
+    <property name="severity" value="warning"/>
+    <module name="FileLength"/>
+    <module name="Header">
+        <property name="header" value="/***********************************************************************\n *\n Copyright (C) SYSTAP, LLC 2006-2007.  All rights reserved. \nThis program is free software; you can redistribute it and/or modify\nit under the terms of the GNU General Public License as published by\n\nthe Free Software Foundation; version 2 of the License.\n\nThis program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License\nalong with this program; if not, write to the Free Software\nFoundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA\n\n**********************************************************************/"/>
+        <property name="ignoreLines" value="3,5"/>
+    </module>
+    <module name="TreeWalker">
+        <module name="FileContentsHolder"/>
+        <module name="JavadocMethod">
+            <property name="scope" value="protected"/>
+            <property name="allowMissingParamTags" value="true"/>
+            <property name="allowMissingThrowsTags" value="true"/>
+            <property name="allowMissingReturnTag" value="true"/>
+            <property name="allowMissingPropertyJavadoc" value="true"/>
+        </module>
+        <module name="JavadocType">
+            <property name="scope" value="public"/>
+        </module>
+        <module name="JavadocVariable">
+            <property name="excludeScope" value="private"/>
+            <property name="scope" value="public"/>
+        </module>
+        <module name="JavadocStyle">
+            <property name="scope" value="public"/>
+            <property name="excludeScope" value="private"/>
+            <property name="checkEmptyJavadoc" value="true"/>
+            <property name="checkFirstSentence" value="false"/>
+        </module>
+        <module name="ConstantName">
+            <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|logger)$"/>
+        </module>
+        <module name="LocalFinalVariableName"/>
+        <module name="LocalVariableName"/>
+        <module name="MemberName"/>
+        <module name="MethodName"/>
+        <module name="PackageName">
+            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+        </module>
+        <module name="ParameterName"/>
+        <module name="StaticVariableName"/>
+        <module name="TypeName"/>
+        <module name="AvoidStarImport"/>
+        <module name="IllegalImport"/>
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+        <!--<module name="FileLength"/>-->
+        <module name="LineLength">
+            <property name="ignorePattern" value="^import *.*$"/>
+            <property name="max" value="150"/>
+        </module>
+        <module name="MethodLength">
+            <property name="max" value="250"/>
+            <property name="countEmpty" value="false"/>
+        </module>
+        <module name="ParameterNumber">
+            <property name="max" value="8"/>
+            <property name="tokens" value="METHOD_DEF"/>
+        </module>
+        <module name="EmptyForIteratorPad"/>
+        <module name="MethodParamPad"/>
+        <module name="WhitespaceAfter"/>
+        <module name="NoWhitespaceAfter">
+            <property name="tokens" value="BNOT,DEC,DOT,INC,LNOT,UNARY_MINUS,UNARY_PLUS"/>
+        </module>
+        <module name="NoWhitespaceBefore"/>
+        <module name="OperatorWrap">
+            <property name="tokens" value="BAND, BOR, BSR, BXOR, COLON, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, PLUS, SL, SR, STAR"/>
+        </module>
+        <module name="ParenPad"/>
+        <module name="TypecastParenPad">
+            <property name="tokens" value="RPAREN,TYPECAST"/>
+        </module>
+        <!--<module name="TabCharacter"/>-->
+        <module name="WhitespaceAround">
+            <property name="tokens" value="ASSIGN,BAND,BAND_ASSIGN,BOR,BOR_ASSIGN,BSR,BSR_ASSIGN,BXOR,BXOR_ASSIGN,COLON,DIV,DIV_ASSIGN,EQUAL,GE,GT,LAND,LE,LITERAL_ASSERT,LITERAL_CATCH,LITERAL_DO,LITERAL_ELSE,LITERAL_FINALLY,LITERAL_FOR,LITERAL_IF,LITERAL_RETURN,LITERAL_SYNCHRONIZED,LITERAL_TRY,LITERAL_WHILE,LOR,LT,MINUS,MINUS_ASSIGN,MOD,MOD_ASSIGN,NOT_EQUAL,PLUS,PLUS_ASSIGN,SL,SLIST,SL_ASSIGN,SR,SR_ASSIGN,STAR,STAR_ASSIGN,LITERAL_ASSERT,TYPE_EXTENSION_AND"/>
+        </module>
+        <module name="ModifierOrder"/>
+        <module name="RedundantModifier"/>
+        <module name="AvoidNestedBlocks">
+            <property name="allowInSwitchCase" value="true"/>
+        </module>
+        <module name="EmptyBlock">
+            <property name="option" value="text"/>
+            <property name="tokens" value="LITERAL_CATCH"/>
+        </module>
+        <module name="EmptyBlock">
+            <property name="tokens" value="LITERAL_DO, LITERAL_ELSE, LITERAL_FINALLY, LITERAL_IF, LITERAL_FOR, LITERAL_TRY, LITERAL_WHILE, INSTANCE_INIT, STATIC_INIT"/>
+        </module>
+        <module name="LeftCurly">
+            <property name="option" value="nl"/>
+        </module>
+        <module name="NeedBraces"/>
+        <module name="RightCurly">
+            <property name="option" value="alone"/>
+        </module>
+        <module name="DoubleCheckedLocking"/>
+        <module name="EmptyStatement"/>
+        <module name="EqualsHashCode"/>
+        <module name="HiddenField">
+            <property name="ignoreConstructorParameter" value="true"/>
+            <property name="ignoreSetter" value="true"/>
+            <property name="ignoreAbstractMethods" value="true"/>
+        </module>
+        <module name="IllegalInstantiation"/>
+        <module name="InnerAssignment"/>
+        <module name="MissingSwitchDefault"/>
+        <module name="RedundantThrows"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="FinalClass"/>
+        <module name="HideUtilityClassConstructor"/>
+        <module name="VisibilityModifier">
+            <property name="protectedAllowed" value="true"/>
+        </module>
+        <module name="ArrayTypeStyle"/>
+        <module name="TodoComment"/>
+        <module name="UpperEll"/>
+        <!--<module name="GenericIllegalRegexp">-->
+            <!--<property name="format" value="System\.out\.println"/>-->
+            <!--<property name="ignoreComments" value="true"/>-->
+            <!--<property name="message" value="Don't use System.out.println(), use logging instead."/>-->
+        <!--</module>-->
+        <!--<module name="GenericIllegalRegexp">-->
+            <!--<property name="format" value="System\.err\.println"/>-->
+            <!--<property name="ignoreComments" value="true"/>-->
+            <!--<property name="message" value="Don't use System.err.println(), use logging instead."/>-->
+        <!--</module>-->
+        <!--<module name="GenericIllegalRegexp">-->
+            <!--<property name="format" value="\.printStackTrace"/>-->
+            <!--<property name="ignoreComments" value="true"/>-->
+            <!--<property name="message" value="Don't use printStackTrace(), use logging instead."/>-->
+        <!--</module>-->
+        <module name="DeclarationOrder"/>
+        <module name="MultipleVariableDeclarations"/>
+        <module name="NestedIfDepth">
+            <property name="max" value="3"/>
+        </module>
+        <module name="NestedTryDepth">
+            <property name="max" value="3"/>
+        </module>
+        <module name="MutableException"/>
+        <module name="BooleanExpressionComplexity">
+            <property name="max" value="6"/>
+        </module>
+        <module name="JavaNCSS"/>
+        <module name="CyclomaticComplexity"/>
+        <module name="ClassFanOutComplexity">
+            <property name="max" value="26"/>
+        </module>
+        <module name="ParameterNumber">
+            <property name="max" value="10"/>
+        </module>
+        <module name="LineLength">
+            <property name="max" value="150"/>
+        </module>
+        <module name="MethodLength"/>
+        <module name="ParameterNumber"/>
+        <module name="FallThrough"/>
+        <module name="FinalLocalVariable">
+            <property name="severity" value="ignore"/>
+            <property name="tokens" value="PARAMETER_DEF"/>
+        </module>
+        <module name="IllegalCatch"/>
+        <module name="ModifiedControlVariable"/>
+        <module name="MultipleStringLiterals"/>
+        <module name="PackageDeclaration"/>
+        <module name="ParameterAssignment"/>
+        <module name="StringLiteralEquality"/>
+        <module name="InterfaceIsType"/>
+        <module name="ThrowsCount">
+            <property name="max" value="3"/>
+        </module>
+        <!--<module name="Header">-->
+            <!--<property name="header" value="/***********************************************************************\n *\n Copyright (C) SYSTAP, LLC 2006-2007.  All rights reserved. \nThis program is free software; you can redistribute it and/or modify\nit under the terms of the GNU General Public License as published by\n\nthe Free Software Foundation; version 2 of the License.\n\nThis program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License\nalong with this program; if not, write to the Free Software\nFoundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA\n\n**********************************************************************/"/>-->
+            <!--<property name="ignoreLines" value="3,5"/>-->
+        <!--</module>-->
+        <module name="RequireThis">
+            <property name="severity" value="ignore"/>
+        </module>
+        <module name="BooleanExpressionComplexity">
+            <property name="max" value="6"/>
+        </module>
+        <module name="ClassFanOutComplexity">
+            <property name="max" value="26"/>
+        </module>
+        <module name="CyclomaticComplexity"/>
+        <module name="BooleanExpressionComplexity">
+            <property name="max" value="5"/>
+        </module>
+        <module name="BooleanExpressionComplexity">
+            <metadata name="com.atlassw.tools.eclipse.checkstyle.comment" value="Identifies conditions that are overly complex"/>
+            <property name="max" value="6"/>
+        </module>
+    </module>
+    <module name="Translation">
+        <property name="severity" value="ignore"/>
+    </module>
+    <module name="SuppressionCommentFilter">
+        <property name="offCommentFormat" value="::CHECKSTYLE STOP System.out check"/>
+        <property name="onCommentFormat" value="::CHECKSTYLE RESUME System.out check"/>
+        <property name="checkFormat" value="GenericIllegalRegexp"/>
+    </module>
+</module>

@@ -569,8 +569,7 @@
             <version>3.1</version>
         </dependency>
 
-        <!--&lt;!&ndash;  JMX &ndash;&gt;-->
-        <!--<dependency> &lt;!&ndash; Pretty sure this isn't needed JDK1.5 + &ndash;&gt;-->
+        <!--&lt;!&ndash;  JMX &ndash;&gt;--> <!--<dependency> &lt;!&ndash; Pretty sure this isn't needed JDK1.5 + &ndash;&gt;-->
             <!--<groupId>com.sun.jmx</groupId>-->
             <!--<artifactId>jmxri</artifactId>-->
             <!--<version>1.2.1</version>-->
@@ -586,7 +585,23 @@
                 <artifactId>maven-surefire-report-plugin</artifactId>
                 <version>2.5</version>
             </plugin>
-        </plugins>
+            
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <configLocation>${basedir}/src/main/config/checkstyle.xml</configLocation>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.3</version>
+            </plugin>
+    </plugins>
+            
     </reporting>
 
     <repositories>
