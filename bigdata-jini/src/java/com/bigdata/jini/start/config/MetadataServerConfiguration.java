@@ -108,7 +108,7 @@ System.out.println("*** MetadataServerConfiguration.MetadataServiceStarter: cons
             if ( (MetadataServer.class.getName()).equals(className) ) {
 System.out.println("*** MetadataConfiguration.MetadataServiceStarter: getDataDir [MetadataServer.Options.DATA_DIR="+MetadataServer.Options.DATA_DIR+", serviceDir="+serviceDir.toString()+"] ***");
                 return new NV(MetadataServer.Options.DATA_DIR, serviceDir.toString());
-            } else if ( (com.bigdata.loadbalancer.ServiceImpl.class.getName()).equals(className) ) {
+            } else if ( (com.bigdata.metadata.ServiceImpl.class.getName()).equals(className) ) {
 System.out.println("*** MetadataConfiguration.MetadataServiceStarter: getDataDir [EmbeddedShardLocator.Options.DATA_DIR="+EmbeddedShardLocator.Options.DATA_DIR+", serviceDir="+serviceDir.toString()+"] ***");
                 return new NV(EmbeddedShardLocator.Options.DATA_DIR, serviceDir.toString());
             } else {
