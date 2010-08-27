@@ -5,6 +5,7 @@
   <includeBaseDirectory>true</includeBaseDirectory><!-- root directory in tarball will be artifact-version/  -->
   <formats>
     <format>dir</format>
+    <format>tar.gz</format>
   </formats>
   <fileSets>
     <fileSet>
