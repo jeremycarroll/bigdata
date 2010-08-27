@@ -93,7 +93,10 @@
         <installJar groupId="org.apache.river" artifactId="classserver" version="2.1" jar="${thirdparty.dir}/classserver.jar" />
         <installJar groupId="org.apache.river" artifactId="jsk-lib" version="2.1" jar="${thirdparty.dir}/jsk-lib.jar" />
         <installJar groupId="org.apache.river" artifactId="jsk-platform" version="2.1" jar="${thirdparty.dir}/jsk-platform.jar" />
+
         <installDlOnly groupId="org.apache.river" artifactId="jsk" version="2.1" dl-jar="${thirdparty.dir}/jsk-dl.jar" />
+        <installDlOnly groupId="org.apache.river" artifactId="sdm" version="2.1" dl-jar="${thirdparty.dir}/sdm-dl.jar" />
+        
         <installJarWithDl groupId="org.apache.river" artifactId="browser" version="2.1" jar="${thirdparty.dir}/browser.jar" dl-jar="${thirdparty.dir}/browser-dl.jar" />
         <installJarWithDl groupId="org.apache.river" artifactId="reggie" version="2.1" jar="${thirdparty.dir}/reggie.jar" dl-jar="${thirdparty.dir}/reggie-dl.jar" />
 
