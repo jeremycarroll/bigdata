@@ -93,6 +93,7 @@
         <installJar groupId="org.apache.river" artifactId="classserver" version="2.1" jar="${thirdparty.dir}/classserver.jar" />
         <installJar groupId="org.apache.river" artifactId="jsk-lib" version="2.1" jar="${thirdparty.dir}/jsk-lib.jar" />
         <installJar groupId="org.apache.river" artifactId="jsk-platform" version="2.1" jar="${thirdparty.dir}/jsk-platform.jar" />
+        <installJar groupId="org.apache.river" artifactId="jsk-resources" version="2.1" jar="${thirdparty.dir}/jsk-resources.jar" />
 
         <installDlOnly groupId="org.apache.river" artifactId="jsk" version="2.1" dl-jar="${thirdparty.dir}/jsk-dl.jar" />
         <installDlOnly groupId="org.apache.river" artifactId="sdm" version="2.1" dl-jar="${thirdparty.dir}/sdm-dl.jar" />
