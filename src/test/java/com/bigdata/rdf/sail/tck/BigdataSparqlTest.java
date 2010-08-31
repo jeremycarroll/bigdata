@@ -114,11 +114,11 @@ public class BigdataSparqlTest extends SPARQLQueryTest {
         
         TestSuite suite2 = new TestSuite(suite1.getName());
         
-        Enumeration<TestSuite> e = suite1.tests();
+        Enumeration e = suite1.tests();
         
         while (e.hasMoreElements()) {
             
-            TestSuite suite3 = e.nextElement();
+            TestSuite suite3 = (TestSuite)e.nextElement();
             
             if (suite3.getName().equals("dataset") == false) {
                 

@@ -14,8 +14,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <test.codebase.port>23333</test.codebase.port>
-        <test.dist.dir>${project.build.directory}/${project.artifactId}-${project.version}-deploy/${project.artifactId}-${project.version}/dist/bigdata</test.dist.dir>
-        <dep.libs.dir>${project.build.directory}/dependencies</dep.libs.dir>
 
         <!-- Non-public bigdata dependencies. Used for install and deploy phases. -->
         <thirdParty.groupId>com.bigdata.thirdparty</thirdParty.groupId>
@@ -92,6 +90,7 @@
                                 <include>**/LookupStarter*.class</include>
                                 <include>**/LogUtil.class</include>
                                 <include>**/NicUtil.class</include>
+                                <include>**/ConfigurationUtil.class</include>
                                 <include>**/log4j.properties</include>
                             </includes>
                             <archive>
@@ -166,7 +165,7 @@
                             <includeScope>runtime</includeScope>
                             <excludeClassifiers>dl</excludeClassifiers>
                             <stripVersion>true</stripVersion>
-                            <outputDirectory>${dep.libs.dir}/lib</outputDirectory>
+                            <outputDirectory>${project.build.directory}/dependencies/lib</outputDirectory>
                         </configuration>
                     </execution>
                     <execution>
@@ -179,7 +178,7 @@
                             <includeScope>provided</includeScope>
                             <includeClassifiers>dl</includeClassifiers>
                             <stripVersion>true</stripVersion>
-                            <outputDirectory>${dep.libs.dir}/lib-dl</outputDirectory>
+                            <outputDirectory>${project.build.directory}/dependencies/lib-dl</outputDirectory>
                         </configuration>
                     </execution>
                     <execution>
@@ -192,7 +191,7 @@
                             <excludeScope>runtime</excludeScope>
                             <excludeClassifiers>dl</excludeClassifiers><!-- TODO: figure out why this doesn't exclude the dl jars -->
                             <stripVersion>true</stripVersion>
-                            <outputDirectory>${dep.libs.dir}/lib-test</outputDirectory>
+                            <outputDirectory>${project.build.directory}/dependencies/lib-test</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>
@@ -635,6 +634,47 @@
 
 
     </repositories>
+
+    <profiles>
+        <profile>
+            <id>bigdata-clover</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.atlassian.maven.plugins</groupId>
+                        <artifactId>maven-clover2-plugin</artifactId>
+                        <version>3.0.1</version>                        
+                        <configuration>
+                            <jdk>1.5</jdk>
+                            <!--
+                                To use clover with bigdata, you should add the following to your maven settings file, .m2/settings.xml
+
+                                <profile>
+                                    <id>bigdata-clover</id>
+                                    <activation>
+                                      <activeByDefault>true</activeByDefault>
+                                    </activation>
+                                    <properties>
+                                      <maven.clover.licenseLocation>/your/path/to/clover.license</maven.clover.licenseLocation>
+                                    </properties>
+                                </profile>
+                                
+                            -->
+                            <excludes><!-- These are stuffed into the lookup starter jar, which uses a stripped classpath without clover. -->
+                                <exclude>**/LookupStarter*.java</exclude>
+                                <exclude>**/LogUtil.java</exclude>
+                                <exclude>**/NicUtil.java</exclude>
+                                <exclude>**/ConfigurationUtil.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>            
+        </profile>
+    </profiles>
 
 
 </project>
