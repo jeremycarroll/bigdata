@@ -12,30 +12,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <test.codebase.port>23333</test.codebase.port>
-
-        <!-- Non-public bigdata dependencies. Used for install and deploy phases. -->
-        <thirdParty.groupId>com.bigdata.thirdparty</thirdParty.groupId>
-        <!-- TODO: look at maven-bundle-plugin from felix to provide osgi support.  bndlib version 0.0.357 in central. -->
-        <cweb-extser.artifactId>cweb-extser</cweb-extser.artifactId>
-        <cweb-extser.version>0.1.0-b2-dev</cweb-extser.version>
-        <unimi-fastutil.artifactId>unimi-fastutil</unimi-fastutil.artifactId>
-        <unimi-fastutil.version>5.1.5</unimi-fastutil.version>
-        <lgpl-utils.artifactId>lgpl-utils</lgpl-utils.artifactId>
-        <lgpl-utils.version>1.0.6</lgpl-utils.version>
-        <ctc-utils.artifactId>ctc-utils</ctc-utils.artifactId>
-        <ctc-utils.version>5-4-2005</ctc-utils.version>
-        <dsi-utils.artifactId>dsi-utils</dsi-utils.artifactId>
-        <dsi-utils.version>1.0.6-020610</dsi-utils.version>
-        <colt.artifactId>colt</colt.artifactId>
-        <colt.version>1.2.0</colt.version>
-        <high-scale.artifactId>high-scale-lib</high-scale.artifactId>
-        <high-scale.version>1.1.2</high-scale.version>
-        <iris.artifactId>iris</iris.artifactId>
-        <iris.version>0.58</iris.version>
-        <nxparser.artifactId>nxparser</nxparser.artifactId>
-        <nxparser.version>6-22-2010</nxparser.version>
+        <thirdParty.groupId>com.bigdata.thirdparty</thirdParty.groupId><!-- group ID for non-public bigdata dependencies. -->
     </properties>
 
 
@@ -232,10 +209,13 @@
         <!-- ************************ Start of non-public dependencies ************************ -->
         <!-- ************************ Start of non-public dependencies ************************ -->
         <!-- ************************ Start of non-public dependencies ************************ -->
+
+        <!-- TODO: look at maven-bundle-plugin from felix to provide osgi support.  bndlib version 0.0.357 in central. -->
+        
         <dependency>
             <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>${cweb-extser.artifactId}</artifactId>
-            <version>[${cweb-extser.version}]</version>
+            <artifactId>cweb-extser</artifactId>
+            <version>0.1.0-b2-dev</version>
         </dependency>
         <dependency>
             <groupId>${thirdParty.groupId}</groupId>
@@ -251,38 +231,38 @@
 
         <dependency>
             <groupId>${thirdParty.groupId}</groupId> <!-- TODO: An older version (5.0.9) is available in central. -->
-            <artifactId>${unimi-fastutil.artifactId}</artifactId>
-            <version>[${unimi-fastutil.version}]</version>
+            <artifactId>unimi-fastutil</artifactId>
+            <version>5.1.5</version>
+        </dependency>        
+        <dependency>
+            <groupId>${thirdParty.groupId}</groupId>
+            <artifactId>lgpl-utils</artifactId>
+            <version>1.0.6</version>
         </dependency>
         <dependency>
             <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>${lgpl-utils.artifactId}</artifactId>
-            <version>[${lgpl-utils.version}]</version>
+            <artifactId>ctc-utils</artifactId>
+            <version>5-4-2005</version>
         </dependency>
         <dependency>
             <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>${ctc-utils.artifactId}</artifactId>
-            <version>[${ctc-utils.version}]</version>
+            <artifactId>dsi-utils</artifactId>
+            <version>1.0.6-020610</version>
+        </dependency>
+        <dependency>                           
+            <groupId>${thirdParty.groupId}</groupId>
+            <artifactId>high-scale-lib</artifactId>
+            <version>1.1.2</version>
         </dependency>
         <dependency>
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>${dsi-utils.artifactId}</artifactId>
-            <version>[${dsi-utils.version}]</version>
+            <groupId>${thirdParty.groupId}</groupId>                        
+            <artifactId>iris</artifactId>
+            <version>0.58</version>
         </dependency>
         <dependency>
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>${high-scale.artifactId}</artifactId>
-            <version>[${high-scale.version}]</version>
-        </dependency>
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>${iris.artifactId}</artifactId>
-            <version>[${iris.version}]</version>
-        </dependency>
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>${nxparser.artifactId}</artifactId>
-            <version>${nxparser.version}</version>
+            <groupId>${thirdParty.groupId}</groupId>                                    
+            <artifactId>nxparser</artifactId>
+            <version>6-22-2010</version>
         </dependency>
         
         <dependency>
@@ -295,28 +275,28 @@
         <dependency>
             <groupId>org.apache.river</groupId>
             <artifactId>tools</artifactId>
-            <version>[2.1]</version>
+            <version>2.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.river</groupId>
             <artifactId>start</artifactId>
-            <version>[2.1]</version>
+            <version>2.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.river</groupId>
             <artifactId>tools</artifactId>
-            <version>[2.1]</version>
+            <version>2.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.river</groupId>
             <artifactId>jsk-lib</artifactId>
-            <version>[2.1]</version>
+            <version>2.1</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.river</groupId>
             <artifactId>jsk-platform</artifactId>
-            <version>[2.1]</version>
+            <version>2.1</version>
         </dependency>
 
         <dependency>
@@ -581,13 +561,7 @@
             <groupId>commons-httpclient</groupId>
             <artifactId>commons-httpclient</artifactId>
             <version>3.1</version>
-        </dependency>
-
-        <!--&lt;!&ndash;  JMX &ndash;&gt;--> <!--<dependency> &lt;!&ndash; Pretty sure this isn't needed JDK1.5 + &ndash;&gt;-->
-            <!--<groupId>com.sun.jmx</groupId>-->
-            <!--<artifactId>jmxri</artifactId>-->
-            <!--<version>1.2.1</version>-->
-        <!--</dependency>-->
+        </dependency>                                        
         
     </dependencies>
 
