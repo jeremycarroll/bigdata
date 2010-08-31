@@ -48,7 +48,7 @@ import com.bigdata.counters.AbstractStatisticsCollector;
 public class Banner {
 
     private static boolean didBanner;
-
+    private static String banner;
     /**
      * Environment variables understood by the {@link Banner} class.
      * 
@@ -67,18 +67,24 @@ public class Banner {
          * properties.
          */
         String LOG4J_MBEANS_DISABLE = "com.bigdata.jmx.log4j.disable";
+        
+        /**
+         * This may be used to disable system errors about log4j
+         * configuration missing
+         */
+        String LOG4J_QUIET = "com.bigdata.log4j.quiet";
 
     }
     
     synchronized static public void banner() {
         
         if(!didBanner) {
-        
+           
             final boolean quiet = Boolean.getBoolean(Options.QUIET);
 
             if (!quiet) {
 
-                System.out.println(banner);
+                System.out.println(getBanner());
 
             }
          
@@ -130,7 +136,28 @@ public class Banner {
         }
         
     }
-
+    private static final String getBanner(){
+        if(banner==null){
+            banner=//
+                "\nBIGDATA(R)"+//
+                "\n"+//
+                "\n                   Flexible"+//
+                "\n                   Reliable"+//
+                "\n                  Affordable"+//
+                "\n      Web-Scale Computing for the Enterprise"+//
+                "\n"+//
+                "\nCopyright SYSTAP, LLC 2006-2010.  All rights reserved."+//
+                "\n"+//
+                "\n"+AbstractStatisticsCollector.fullyQualifiedHostName+//
+                "\n"+new Date()+//
+                "\n"+SystemUtil.operatingSystem() + "/" + SystemUtil.osVersion()
+                        + " " + SystemUtil.architecture() + //
+                "\n"+SystemUtil.cpuInfo() + " #CPU="+SystemUtil.numProcessors() +//
+                "\n"
+                ;
+        }
+        return banner;
+    }
     /**
      * Outputs the banner and exits.
      * 
@@ -139,26 +166,9 @@ public class Banner {
      */
     public static void main(final String[] args) {
         
-        System.out.println(banner);
+        System.out.println(getBanner());
 
     }
     
-    private static final String banner =//
-        "\nBIGDATA(R)"+//
-        "\n"+//
-        "\n                   Flexible"+//
-        "\n                   Reliable"+//
-        "\n                  Affordable"+//
-        "\n      Web-Scale Computing for the Enterprise"+//
-        "\n"+//
-        "\nCopyright SYSTAP, LLC 2006-2010.  All rights reserved."+//
-        "\n"+//
-        "\n"+AbstractStatisticsCollector.fullyQualifiedHostName+//
-        "\n"+new Date()+//
-        "\n"+SystemUtil.operatingSystem() + "/" + SystemUtil.osVersion()
-                + " " + SystemUtil.architecture() + //
-        "\n"+SystemUtil.cpuInfo() + " #CPU="+SystemUtil.numProcessors() +//
-        "\n"
-        ;
     
 }

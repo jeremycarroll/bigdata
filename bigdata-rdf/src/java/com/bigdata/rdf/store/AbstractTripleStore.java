@@ -104,6 +104,7 @@ import com.bigdata.rdf.rules.RDFJoinNexusFactory;
 import com.bigdata.rdf.rules.RuleContextEnum;
 import com.bigdata.rdf.spo.BulkCompleteConverter;
 import com.bigdata.rdf.spo.BulkFilterConverter;
+import com.bigdata.rdf.spo.DistinctSPOIterator;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.JustificationWriter;
@@ -894,6 +895,21 @@ abstract public class AbstractTripleStore extends
 
         String DEFAULT_EXTENSION_FACTORY_CLASS = DefaultExtensionFactory.class
                 .getName();
+
+        
+        
+        /**
+         * After this many entries in a DistinctSPOIterator,
+         * a {@link #btreeSet} is created which can spill
+         * out onto the disk.
+         */
+        String DISTINCT_ITERATOR_MAX_HASH_SET_CAPACITY = DistinctSPOIterator.class.getName()
+        + ".maxHashSetCapacity";
+
+        /**
+         * Default for {@link #DISTINCT_ITERATOR_MAX_HASH_SET_CAPACITY} 
+         */
+        String DEFAULT_DISTINCT_ITERATOR_MAX_HASH_SET_CAPACITY = "100000";
 
     }
 

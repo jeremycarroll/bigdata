@@ -32,6 +32,8 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.xml.DOMConfigurator;
 
+import com.bigdata.Banner;
+
 /**
  * Utility class that provides a set of static convenience methods related
  * to the initialization and configuration of the logging mechanism(s)
@@ -61,17 +63,19 @@ public class LogUtil {
             if (log4jDefaultConfig != null ) {
                 PropertyConfigurator.configureAndWatch(log4jDefaultConfig);
             } else {
-                System.out.println
-                        ("ERROR: could not initialize Log4J logging utility");
-                System.out.println
-                ("       set system property "
-                         +"'-Dlog4j.configuration="
-                         +"bigdata/src/resources/logging/log4j.properties"
-                         +"\n       and/or \n"
-                         +"      set system property "
-                         +"'-Dlog4j.primary.configuration="
-                         +"<installDir>/"
-                         +"bigdata/src/resources/logging/log4j.properties'");
+                if(!Boolean.getBoolean(Banner.Options.LOG4J_QUIET)){
+                    System.out.println
+                            ("ERROR: could not initialize Log4J logging utility");
+                    System.out.println
+                    ("       set system property "
+                             +"'-Dlog4j.configuration="
+                             +"bigdata/src/resources/logging/log4j.properties"
+                             +"\n       and/or \n"
+                             +"      set system property "
+                             +"'-Dlog4j.primary.configuration="
+                             +"<installDir>/"
+                             +"bigdata/src/resources/logging/log4j.properties'");
+                }
             }
         }
     }

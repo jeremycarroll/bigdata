@@ -455,6 +455,10 @@ public class SPOPredicate implements IPredicate<ISPO> {
         if(newConstraint == null)
             throw new IllegalArgumentException();
 
+        if(this.constraint!=null&&this.constraint==newConstraint){
+            return this;
+        }
+        
         final IElementFilter<ISPO> tmp = this.constraint == null ? newConstraint
                 : new WrappedSPOFilter(newConstraint, this.constraint);
 
@@ -478,7 +482,7 @@ public class SPOPredicate implements IPredicate<ISPO> {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    private static class WrappedSPOFilter extends SPOFilter {
+    protected static class WrappedSPOFilter extends SPOFilter {
 
         /**
          * 

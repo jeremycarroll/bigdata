@@ -50,7 +50,7 @@ import cutthecrap.utils.striterators.Filter;
 abstract public class TupleFilter<E> implements ITupleFilter<E> {
 
     protected static transient final Logger log = Logger.getLogger(TupleFilter.class);
-    
+    protected final transient boolean INFO=log.isInfoEnabled();
     /**
      * Optional state specified by the ctor.
      */
@@ -173,7 +173,7 @@ abstract public class TupleFilter<E> implements ITupleFilter<E> {
             // one step lookahead.
             nextValue = getNext();
 
-            if(log.isInfoEnabled()) {
+            if(INFO) {
                 
                 log.info("returning: "+returnValue);
                 
@@ -231,7 +231,7 @@ abstract public class TupleFilter<E> implements ITupleFilter<E> {
                 
                 final byte[] key = returnValue.getKey();
                 
-                if(log.isInfoEnabled()) {
+                if(INFO) {
                     
                     log.info("key=" + BytesUtil.toString(key));
                     
@@ -270,7 +270,7 @@ abstract public class TupleFilter<E> implements ITupleFilter<E> {
 
                 if (!isValid(next)) {
 
-                    if(log.isInfoEnabled()) {
+                    if(INFO) {
                         
                         log.info("rejected  : "+next);
                         
@@ -280,7 +280,7 @@ abstract public class TupleFilter<E> implements ITupleFilter<E> {
                     
                 }
                 
-                if(log.isInfoEnabled()) {
+                if(INFO) {
                     
                     log.info("will visit: "+next);
                     
@@ -290,7 +290,7 @@ abstract public class TupleFilter<E> implements ITupleFilter<E> {
                 
             }
 
-            if(log.isInfoEnabled()) {
+            if(INFO) {
                 
                 log.info("Source is exhausted.");
                 

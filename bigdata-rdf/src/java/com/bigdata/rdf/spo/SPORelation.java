@@ -128,6 +128,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
     protected static final transient Logger log = Logger
             .getLogger(SPORelation.class);
 
+    protected final transient boolean DEBUG = log.isDebugEnabled();
+    
     private final Set<String> indexNames;
 
     private final int keyArity;
@@ -217,6 +219,8 @@ public class SPORelation extends AbstractRelation<ISPO> {
         
     }
 
+    final protected int maxHashSetCapacity; 
+    
     public SPORelation(final IIndexManager indexManager,
             final String namespace, final Long timestamp,
             final Properties properties) {
@@ -332,6 +336,11 @@ public class SPORelation extends AbstractRelation<ISPO> {
 //            
 //        }
         
+        this.maxHashSetCapacity=Integer.parseInt(
+            getProperty(
+              AbstractTripleStore.Options.DISTINCT_ITERATOR_MAX_HASH_SET_CAPACITY, 
+              AbstractTripleStore.Options.DEFAULT_DISTINCT_ITERATOR_MAX_HASH_SET_CAPACITY
+            ));
     }
     
     /**
@@ -582,7 +591,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
         if (!src.hasNext())
             return new EmptyChunkedIterator<ISPO>(SPOKeyOrder.SPO);
 
-        return new DistinctSPOIterator(this, src);
+        return new DistinctSPOIterator(this, src,maxHashSetCapacity);
         
     }
 
@@ -1037,7 +1046,7 @@ public class SPORelation extends AbstractRelation<ISPO> {
         
         final SPOAccessPath accessPath = getAccessPath(keyOrder, predicate);
 
-        if (log.isDebugEnabled())
+        if (DEBUG)
             log.debug(accessPath.toString());
 
         //            System.err.println("new access path: pred="+predicate);
@@ -1866,6 +1875,12 @@ public class SPORelation extends AbstractRelation<ISPO> {
                         filter, sortTime,
                         insertTime, mutationCount, false/* reportMutation */));
 
+                tasks.add(new SPOIndexWriter(this, a, numStmts,
+                        true/* clone */, SPOKeyOrder.SCOP,
+                        SPOKeyOrder.SCOP.isPrimaryIndex(),
+                        filter, sortTime,
+                        insertTime, mutationCount, false/* reportMutation */));
+
             }
             
         }
@@ -2030,6 +2045,12 @@ public class SPORelation extends AbstractRelation<ISPO> {
                         SPOKeyOrder.SOPC, SPOKeyOrder.SOPC.isPrimaryIndex(),
                         true/* clone */, sortTime, writeTime,
                         mutationCount, false/* reportMutation */));
+                
+                tasks.add(new SPOIndexRemover(this, stmts, numStmts,
+                        SPOKeyOrder.SCOP, SPOKeyOrder.SCOP.isPrimaryIndex(),
+                        true/* clone */, sortTime, writeTime,
+                        mutationCount, false/* reportMutation */));
+
 
             }
 

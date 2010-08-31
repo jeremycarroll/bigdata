@@ -49,6 +49,8 @@ public class TermId<V extends BigdataValue/* URI,BNode,Literal,SID */>
 
     /** The term identifier. */
     private final long termId;
+    
+    private transient int  hashCode=0;
 
     /**
      * Constructor for a term identifier when you are decoding and already have
@@ -160,7 +162,10 @@ public class TermId<V extends BigdataValue/* URI,BNode,Literal,SID */>
      * @see Long#hashCode()
      */
     public int hashCode() {
-        return (int) (termId ^ (termId >>> 32));
+        if(hashCode==0){
+            hashCode=(int) (termId ^ (termId >>> 32));
+        }
+        return hashCode;
     }
     
     public int byteLength() {

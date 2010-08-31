@@ -99,14 +99,15 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
     public static final transient int _CSPO = 6;
     public static final transient int _PCSO = 7;
     public static final transient int _SOPC = 8;
+    public static final transient int _SCOP = 9;
 
     public static final transient int FIRST_TRIPLE_INDEX = _SPO;
     public static final transient int LAST_TRIPLE_INDEX = _POS;
 
     public static final transient int FIRST_QUAD_INDEX = _SPOC;
-    public static final transient int LAST_QUAD_INDEX = _SOPC;
+    public static final transient int LAST_QUAD_INDEX = _SCOP;
 
-    public static final transient int MAX_INDEX_COUNT = 9;
+    public static final transient int MAX_INDEX_COUNT = 10;
     
     /*
      * The three perfect natural orders for triples.
@@ -128,6 +129,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
     public static final transient SPOKeyOrder CSPO = new SPOKeyOrder(_CSPO);
     public static final transient SPOKeyOrder PCSO = new SPOKeyOrder(_PCSO);
     public static final transient SPOKeyOrder SOPC = new SPOKeyOrder(_SOPC);
+    public static final transient SPOKeyOrder SCOP = new SPOKeyOrder(_SCOP);
 
     /**
      * The name for each of the natural key orders.
@@ -143,7 +145,8 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
         "OCSP",//
         "CSPO",//
         "PCSO",//
-        "SOPC" //
+        "SOPC",//
+        "SCOP" //
     };
     
     static final transient SPOKeyOrder[] values = new SPOKeyOrder[] {
@@ -158,7 +161,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
         CSPO,
         PCSO,
         SOPC,
-        
+        SCOP,
     };
 
     static final transient GeneralComparator[] comparators = new GeneralComparator[] {
@@ -172,7 +175,8 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
             new GeneralComparator(_OCSP),//
             new GeneralComparator(_CSPO),//
             new GeneralComparator(_PCSO),//
-            new GeneralComparator(_SOPC) };
+            new GeneralComparator(_SOPC),//
+            new GeneralComparator(_SCOP) };
 
     /*
      * Constants corresponding to the columns of the SPO(C) relation.
@@ -197,6 +201,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
             new int[] { C, S, P, O }, // 
             new int[] { P, C, S, O }, // 
             new int[] { S, O, P, C }, // 
+            new int[] { S, C, O, P }, // 
     };
 
     /**
@@ -286,6 +291,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
         case _CSPO:
         case _PCSO:
         case _SOPC:
+        case _SCOP:
             return 4;
         default:
             throw new AssertionError();
@@ -345,6 +351,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
         case _CSPO:
         case _PCSO:
         case _SOPC:
+        case _SCOP:
             return comparators[index];
         default:
             throw new AssertionError();
@@ -633,6 +640,13 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
             c = _3;
             break;
 
+        case SPOKeyOrder._SCOP:
+            s = _0;
+            c = _1;
+            o = _2;
+            p = _3;
+            break;
+
         default:
 
             throw new UnsupportedOperationException();
@@ -823,7 +837,7 @@ public class SPOKeyOrder implements IKeyOrder<ISPO>, Serializable {
      * The quad store indices.
      */
     static private final transient SPOKeyOrder[] quadStoreIndices = { SPOC,
-            POCS, OCSP, CSPO, PCSO, SOPC };
+            POCS, OCSP, CSPO, PCSO, SOPC,SCOP };
 
     /**
      * Return an iterator which visits the triple store indices ({@link #SPO},

@@ -551,18 +551,16 @@ public class SPO implements ISPO {
 
         if (hashCode == 0) {
 
-            final int s = this.s.hashCode();
+            final int _s = this.s.hashCode();
             
-            final int p = this.p.hashCode();
+            final int _p = this.p.hashCode();
             
-            final int o = this.o.hashCode();
+            final int _o = this.o.hashCode();
             
             // Note: historical behavior was (s,p,o) based hash.
-            hashCode = 961 * ((int) (s ^ (s >>> 32))) + 31
-                    * ((int) (p ^ (p >>> 32))) + ((int) (o ^ (o >>> 32)));
-
+            hashCode = 961 * _s + 31 * _p + _o;
         }
-
+       
         return hashCode;
 
     }

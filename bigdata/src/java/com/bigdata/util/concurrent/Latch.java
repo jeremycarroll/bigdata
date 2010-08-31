@@ -56,8 +56,9 @@ import com.bigdata.util.InnerCause;
 public class Latch {
 
     protected transient static final Logger log = Logger.getLogger(Latch.class);
-    
-    private final AtomicLong counter = new AtomicLong();
+    protected transient final boolean DEBUG = log.isDebugEnabled();
+    protected transient final boolean INFO = log.isInfoEnabled();
+      private final AtomicLong counter = new AtomicLong();
     
     private final ReentrantLock lock;
     
@@ -138,7 +139,7 @@ public class Latch {
             if (c <= 0)
                 throw new IllegalStateException(toString());
 
-            if (log.isDebugEnabled())
+            if (DEBUG)
                 log.debug(toString());
 
             return c;
@@ -169,7 +170,7 @@ public class Latch {
 
             final long c = this.counter.addAndGet(delta);
 
-            if (log.isDebugEnabled())
+            if (DEBUG)
                 log.debug(toString());
 
             if (c == 0) {
@@ -219,7 +220,7 @@ public class Latch {
             
             final long c = this.counter.decrementAndGet();
 
-            if (log.isDebugEnabled())
+            if (DEBUG)
                 log.debug(toString());
 
             if (c == 0) {
@@ -264,7 +265,7 @@ public class Latch {
 ////        lock.lockInterruptibly();
 //        try {
 
-            if (log.isInfoEnabled())
+            if (INFO)
                 log.info("signalAll()");
 
             // release anyone awaiting our signal.

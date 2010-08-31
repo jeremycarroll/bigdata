@@ -157,7 +157,7 @@
 						<fileset dir="bigdata-sails/src/java" />
 				</jar>
 		<bnd 
-			   	  output="${build.dir}/bundles/com.bigata-${osgi.version}.jar"
+			   	  output="${build.dir}/bundles/com.bigata_${osgi.version}.jar"
 			      classpath="${build.dir}/classes" 
 			      eclipse="false" 
 			      failok="false" 

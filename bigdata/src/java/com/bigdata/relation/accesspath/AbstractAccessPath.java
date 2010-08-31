@@ -86,9 +86,9 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
     static final protected Logger log = Logger.getLogger(IAccessPath.class);
     
-//    final static protected boolean log.isInfoEnabled() = log.isInfoEnabled();
+    final protected boolean INFO = log.isInfoEnabled();
 //
-//    final static protected boolean log.isDebugEnabled() = log.isDebugEnabled();
+    final protected boolean DEBUG = log.isDebugEnabled();
 
     /** Access to the index, resource locator, executor service, etc. */
     protected final IIndexManager indexManager;
@@ -509,7 +509,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
         didInit = true;
         
-        if(log.isDebugEnabled()) {
+        if(DEBUG) {
             
             if (fromKey != null && toKey != null) {
                 
@@ -577,7 +577,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
             
         }
         
-        if(log.isDebugEnabled()) {
+        if(DEBUG) {
             
             log.debug(toString());
             
@@ -685,14 +685,14 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
              * The access path has already been proven to be empty.
              */
 
-            if (log.isDebugEnabled())
+            if (DEBUG)
                 log.debug("Proven empty by historical range count");
 
             return new EmptyChunkedIterator<R>(keyOrder);
             
         }
         
-        if (log.isDebugEnabled())
+        if (DEBUG)
             log.debug("offset=" + offset + ", limit=" + limit + ", capacity="
                     + capacity + ", accessPath=" + this);
         
@@ -703,7 +703,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         
         if(isFullyBoundForKey) {
 
-            if (log.isDebugEnabled())
+            if (DEBUG)
                 log.debug("Predicate is fully bound for the key.");
             
             /*
@@ -808,7 +808,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
             final long rangeCountRemaining = rangeCount(false/* exact */)
                     - offset;
 
-            if (log.isDebugEnabled())
+            if (DEBUG)
                 log.debug("offset=" + offset + ", limit=" + limit
                         + ", rangeCountRemaining=" + rangeCountRemaining
                         + ", fullyBufferedReadThreashold="
@@ -821,7 +821,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
                  * iterator would not visit anything.
                  */
 
-                if (log.isDebugEnabled())
+                if (DEBUG)
                     log.debug("No elements based on range count.");
                 
                 return new EmptyChunkedIterator<R>(keyOrder);
@@ -942,7 +942,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         assert limit < MAX_FULLY_BUFFERED_READ_LIMIT : "limit=" + limit
                 + ", max=" + MAX_FULLY_BUFFERED_READ_LIMIT;
         
-        if (log.isDebugEnabled()) {
+        if (DEBUG) {
 
             log.debug("offset=" + offset + ", limit=" + limit);
 
@@ -980,7 +980,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
         }
 
-        if(log.isDebugEnabled()) {
+        if(DEBUG) {
             
             log.debug("Fully buffered: read=" + nread + ", used=" + nused
                     + ", offset=" + offset + ", limit=" + limit);
@@ -1018,7 +1018,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
         if (src == null)
             throw new IllegalArgumentException();
         
-        if (log.isDebugEnabled())
+        if (DEBUG)
             log.debug("");
         
         /*
@@ -1055,7 +1055,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
 //        static protected final boolean log.isInfoEnabled() = log.isInfoEnabled(); 
 //        
-//        static protected final boolean log.isDebugEnabled() = log.isDebugEnabled(); 
+        static protected final boolean DEBUG = log.isDebugEnabled(); 
         
         private final AbstractAccessPath<R> accessPath;
 
@@ -1109,7 +1109,6 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
             long nchunks = 0;
             long nelements = 0;
-            
             try {
 
                 while (src.hasNext()) {
@@ -1119,7 +1118,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
                     nchunks++;
                     nelements+=chunk.length;
                     
-                    if(log.isDebugEnabled())
+                    if(DEBUG)
                         log.debug("#chunks=" + nchunks + ", chunkSize="
                             + chunk.length + ", nelements=" + nelements);
 
@@ -1211,7 +1210,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
             
         }
 
-        if (log.isDebugEnabled()) {
+        if (DEBUG) {
 
             log.debug("exact=" + exact + ", filter=" + (filter != null)
                     + ", n=" + n + " : " + toString());
@@ -1255,7 +1254,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
         assertInitialized();
 
-        if (log.isDebugEnabled()) {
+        if (DEBUG) {
 
             log.debug(this + " : capacity=" + capacity + ", flags=" + flags
                     + ", filter=" + filter);
@@ -1277,7 +1276,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
         assertInitialized();
 
-        if (log.isDebugEnabled()) {
+        if (DEBUG) {
 
             log.debug(this.toString());
             

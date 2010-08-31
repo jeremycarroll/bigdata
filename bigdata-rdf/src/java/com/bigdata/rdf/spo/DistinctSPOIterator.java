@@ -10,6 +10,7 @@ import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.store.IRawTripleStore;
+import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.striterator.ICloseableIterator;
 
 /**
@@ -21,7 +22,6 @@ import com.bigdata.striterator.ICloseableIterator;
  * @see SPORelation#distinctSPOIterator(ICloseableIterator)
  */
 public class DistinctSPOIterator implements ICloseableIterator<ISPO> {
-
     /**
      * The backing relation, which is only used to obtain the {@link BTree}
      * instance in {@link #overflowToBTree(Set)}.
@@ -35,13 +35,13 @@ public class DistinctSPOIterator implements ICloseableIterator<ISPO> {
 
     /**
      * Hash set is allocated when the first {@link ISPO} is visited and is used
-     * until the {@link #MAX_HASH_SET_CAPACITY} is reached, at which point the
+     * until the {@link #maxHashXSetCapacity} is reached, at which point the
      * {@link #btreeSet} is allocated.
      */
     private Set<ISPO> hashSet;
 
     /**
-     * B+Tree is used once the {@link #MAX_HASH_SET_CAPACITY} is reached. The
+     * B+Tree is used once the {@link #maxHashXSetCapacity} is reached. The
      * B+Tree is slowed than the {@link #hashSet}, but can spill onto the disk
      * and is appropriate for very large distinct sets.
      */
@@ -58,6 +58,8 @@ public class DistinctSPOIterator implements ICloseableIterator<ISPO> {
      * ahead.
      */
     private ISPO next = null;
+  
+    private ISPO first = null;
 
     /**
      * <code>true</code> iff the iterator has been proven to be exhausted.
@@ -83,13 +85,8 @@ public class DistinctSPOIterator implements ICloseableIterator<ISPO> {
     /**
      * After this many entries we create the {@link #btreeSet} which can spill
      * out onto the disk.
-     * 
-     * @todo configuration parameter (via the constructor). Low memory JVMs
-     *       might want to use a smaller threshold, but the hash set is much
-     *       faster (10x or better). Large memory JVMs might want to use an even
-     *       larger threshold.
      */
-    static final int MAX_HASH_SET_CAPACITY = 100000;
+     final int maxHashXSetCapacity;
 
     /**
      * 
@@ -97,7 +94,8 @@ public class DistinctSPOIterator implements ICloseableIterator<ISPO> {
      *            The source iterator.
      */
     public DistinctSPOIterator(final SPORelation spoRelation,
-            final ICloseableIterator<ISPO> src) {
+            final ICloseableIterator<ISPO> src,
+            final int maxHashSetCapacity) {
 
         if (spoRelation == null)
             throw new IllegalArgumentException();
@@ -109,6 +107,7 @@ public class DistinctSPOIterator implements ICloseableIterator<ISPO> {
 
         this.src = src;
 
+        this.maxHashXSetCapacity=maxHashSetCapacity;
     }
 
     public void close() {
@@ -160,24 +159,7 @@ public class DistinctSPOIterator implements ICloseableIterator<ISPO> {
         if (next != null)
             return true;
 
-        if (hashSet == null) {
-
-            /*
-             * Allocate hash set.
-             * 
-             * Note: using a linked hash set for faster iterator if we have
-             * to convert to a B+Tree.
-             * 
-             * Note: the initial capacity is the default since most access
-             * paths have low cardinality.
-             * 
-             * @todo if the caller knows the range count (upper bound) then
-             * we could plan the hash set capacity more accurately.
-             */
-
-            hashSet = new LinkedHashSet<ISPO>();
-
-        } else if (btreeSet == null && ndistinct >= MAX_HASH_SET_CAPACITY) {
+        if (btreeSet == null && ndistinct >= maxHashXSetCapacity) {
 
             /*
              * Open B+Tree. We will not put anything new into the hashSet,
@@ -228,13 +210,15 @@ public class DistinctSPOIterator implements ICloseableIterator<ISPO> {
             ISPO tmp = src.next(); nscanned++;
 
             // strip off the context (and statement type).
-            tmp = new SPO(tmp.s(), tmp.p(), tmp.o(), (IV) null/* c */);
+            //tmp = new SPO(tmp.s(), tmp.p(), tmp.o(), (IV) null/* c */);
 
             if (btreeSet == null) {
-
                 // Insert into the hash set.
-
-                if (!hashSet.add(tmp)) {
+                if (hashSet == null&&first!=null) {
+                    hashSet = new LinkedHashSet<ISPO>();
+                    hashSet.add(first);
+                } 
+                if (hashSet!=null&&!hashSet.add(tmp)) {
 
                     // duplicate, keep scanning.
                     continue;
@@ -268,7 +252,9 @@ public class DistinctSPOIterator implements ICloseableIterator<ISPO> {
 
             // found a new distinct spo.
             next = tmp;
-
+            if(first==null){
+                first=next;
+            }
             ndistinct++;
 
         } // while(...)
