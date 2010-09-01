@@ -109,12 +109,12 @@ import com.bigdata.zookeeper.ZooResourceLockService;
 
 //BTM
 import com.bigdata.service.LoadBalancer;
+import com.bigdata.service.Service;
 
 /**
  * Concrete implementation for Jini.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class JiniFederation<T> extends AbstractDistributedFederation<T> implements
         DiscoveryListener, ServiceDiscoveryListener {
@@ -1260,17 +1260,22 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
 
         if (serviceItem.service instanceof IService) {
 
-//            System.err.println("serviceAdded: "+serviceItem);
-            
             final UUID serviceUUID = JiniUtil
                     .serviceID2UUID(serviceItem.serviceID);
 
             serviceJoin((IService) serviceItem.service, serviceUUID);
 
+        } else if (serviceItem.service instanceof Service) {
+
+            final UUID serviceUUID = JiniUtil
+                    .serviceID2UUID(serviceItem.serviceID);
+
+            serviceJoin((Service) serviceItem.service, serviceUUID);
+
         } else {
             
-            log.warn("Not an " + IService.class);
-            
+            log.warn("Not an " + IService.class + " or an " + Service.class);
+           
         }
         
     }
@@ -1410,7 +1415,6 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
      * Glue object.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static private class TaskFuture<T> {
 
@@ -1436,7 +1440,6 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
      * Run as a scheduled task that monitors futures.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private static class MonitorFuturesTask implements Runnable {
 

@@ -19,7 +19,6 @@ import com.bigdata.util.httpd.AbstractHTTPD;
  * {@link AbstractClient#setDelegate(IFederationDelegate)}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class DefaultClientDelegate<T> implements IFederationDelegate<T> {
 
@@ -114,6 +113,11 @@ public class DefaultClientDelegate<T> implements IFederationDelegate<T> {
 
     /** NOP */
     public void serviceJoin(IService service, UUID serviceUUID) {
+
+    }
+
+    /** NOP */
+    public void serviceJoin(Service service, UUID serviceUUID) {
 
     }
 

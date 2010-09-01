@@ -79,13 +79,13 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.httpd.AbstractHTTPD;
 
 import com.bigdata.service.LoadBalancer;
+import com.bigdata.service.Service;
 
 /**
  * Base class for {@link ResourceManager} test suites that can use normal
  * startup and shutdown.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class AbstractResourceManagerTestCase extends
         AbstractResourceManagerBootstrapTestCase {
@@ -238,7 +238,6 @@ public class AbstractResourceManagerTestCase extends
      * trying to test.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected static class MockMetadataService implements IMetadataService {
 
@@ -410,7 +409,6 @@ public class AbstractResourceManagerTestCase extends
      * {@link ResourceManager} during the unit tests.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class MockFederation implements IBigdataFederation<MockMetadataService> {
 
@@ -609,6 +607,9 @@ public class AbstractResourceManagerTestCase extends
         }
 
         public void serviceJoin(IService service, UUID serviceUUID) {
+        }
+
+        public void serviceJoin(Service service, UUID serviceUUID) {
         }
 
         public void serviceLeave(UUID serviceUUID) {

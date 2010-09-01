@@ -63,7 +63,6 @@ import com.ibm.icu.impl.LinkedHashMap;
  * Unit tests for the {@link EventReceiver}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestEventReceiver extends TestCase2 {
 
@@ -85,7 +84,6 @@ public class TestEventReceiver extends TestCase2 {
      * {@link EventReceiver} on the {@link MockFederation}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static class MyEvent extends Event {
 
@@ -418,7 +416,6 @@ public class TestEventReceiver extends TestCase2 {
      * Generates events.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private static class EventFactory implements Callable<Void> {
         
@@ -484,7 +481,6 @@ public class TestEventReceiver extends TestCase2 {
      * the events are stored).
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static private class EventConsumer implements Callable<Void> {
        
@@ -525,7 +521,6 @@ public class TestEventReceiver extends TestCase2 {
      * Mock federation to support the unit tests in the outer class.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static class MockFederation implements IBigdataFederation<IEventReceivingService> {
 
@@ -706,7 +701,11 @@ public class TestEventReceiver extends TestCase2 {
         }
 
         public void serviceJoin(IService service, UUID serviceUUID) {
-            
+
+        }
+
+        public void serviceJoin(Service service, UUID serviceUUID) {
+
         }
 
         public void serviceLeave(UUID serviceUUID) {

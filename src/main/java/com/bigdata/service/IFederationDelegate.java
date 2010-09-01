@@ -39,7 +39,6 @@ import com.bigdata.util.httpd.AbstractHTTPD;
  * by the {@link AbstractFederation}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * @param <T>
  *            The generic type of the client or service.
  */
@@ -100,14 +99,26 @@ public interface IFederationDelegate<T> {
      * Notice that the service has been discovered. This notice will be
      * generated the first time the service is discovered by a given
      * {@link IBigdataClient}.
-     * 
+     *
      * @param service
      *            The service.
      * @param serviceUUID
      *            The service {@link UUID}.
      */
     public void serviceJoin(IService service, UUID serviceUUID);
-    
+
+    /**
+     * Notice that the service has been discovered. This notice will be
+     * generated the first time the service is discovered by a given
+     * {@link IBigdataClient}.
+     *
+     * @param service
+     *            The service.
+     * @param serviceUUID
+     *            The service {@link UUID}.
+     */
+    public void serviceJoin(Service service, UUID serviceUUID);
+
     /**
      * Notice that the service is no longer available. This notice will be
      * generated once for a given {@link IBigdataClient} when the service is no

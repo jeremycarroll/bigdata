@@ -53,7 +53,6 @@ import com.bigdata.util.httpd.AbstractHTTPD;
  * service interface reported to the load balancer service.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class DefaultServiceFederationDelegate<T extends AbstractService>
         implements IFederationDelegate<T> {
@@ -141,6 +140,11 @@ public class DefaultServiceFederationDelegate<T extends AbstractService>
     
     /** NOP */
     public void serviceJoin(IService service, UUID serviceUUID) {
+
+    }
+
+    /** NOP */
+    public void serviceJoin(Service service, UUID serviceUUID) {
 
     }
 

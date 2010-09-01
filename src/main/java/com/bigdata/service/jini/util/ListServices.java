@@ -59,7 +59,6 @@ import com.bigdata.service.jini.JiniFederation;
  * Utility will list the discovered services in federation to which it connects.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class ListServices {
     
@@ -155,7 +154,6 @@ public class ListServices {
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      */
     static class DiscoverAndListTask implements Callable<String> {
         
@@ -329,7 +327,12 @@ public class ListServices {
                     + "running.\n");
 
             sb.append("Discovered " + registrars.length
-                    + " jini service registrars.\n");
+                    + " jini service registrars. [ ");
+            for (ServiceRegistrar registrar : registrars) {
+                sb.append(registrar.getLocator().toString());
+                sb.append(' ');
+            }
+            sb.append("]\n");
 
             sb.append("Discovered " + a.length + " services\n");
 

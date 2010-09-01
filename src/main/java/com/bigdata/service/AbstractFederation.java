@@ -78,7 +78,6 @@ import com.bigdata.util.httpd.AbstractHTTPD;
  * Abstract base class for {@link IBigdataFederation} implementations.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * @param <T>
  *            The generic type of the client or service.
  * 
@@ -947,7 +946,24 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
     /**
      * Delegated. {@inheritDoc}
      */
-    public void serviceLeave(final UUID serviceUUID) {
+    public void serviceJoin(final Service service, final UUID serviceUUID) {
+
+        if (!isOpen()) return;
+
+        if (log.isInfoEnabled()) {
+
+            log.info("service=" + service + ", serviceUUID" + serviceUUID);
+
+        }
+
+        client.getDelegate().serviceJoin(service, serviceUUID);
+
+    }
+
+    /**
+     * Delegated. {@inheritDoc}
+     */
+   public void serviceLeave(final UUID serviceUUID) {
 
         if(!isOpen()) return;
         
@@ -1007,7 +1023,6 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      * before the service can be started.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class StartDeferredTasksTask implements Runnable {
 
@@ -1303,7 +1318,6 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      * load balancer service.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class ReportTask implements Runnable {
 
@@ -1504,7 +1518,6 @@ System.out.println(">>>>> AbstractFederation.reportPerformanceCounters: DONE CAL
      * Sends events to the load balancer service.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      * 
      * FIXME should discard events if too many build up on the client.
      */
