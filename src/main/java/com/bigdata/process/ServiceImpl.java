@@ -568,8 +568,7 @@ class ServiceImpl implements PrivateInterface,
         if(appHome != null) {
             rootPath = appHome;
         } else if(appDotHome != null) {
-            rootPath = appDotHome + File.separator 
-                               + "dist" + File.separator + "bigdata";
+            rootPath = appDotHome;
         }
         String relPath = "var" + File.separator + "config" 
                                + File.separator + "jini"

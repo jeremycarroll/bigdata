@@ -8,33 +8,53 @@
     <format>tar.gz</format>
   </formats>
   <fileSets>
-    <fileSet>
-      <includes>
-        <include>${project.basedir}/README*</include>
-        <include>${project.basedir}/LICENSE*</include>
-        <include>${project.basedir}/NOTICE*</include>
-        <include>${project.basedir}/LEGAL/**/*</include>
-      </includes>
-      <excludes>
-        <exclude>${project.outputDirectory}/**</exclude>
-      </excludes>
-    </fileSet>
+    <!-- LEGAL DOCUMENTATION -->
+    <!--<fileSet>-->
+      <!--<fileMode>0744</fileMode>-->
+      <!--<directoryMode>0755</directoryMode>-->
+      <!--<includes>-->
+        <!--<include>${project.basedir}/README*</include>-->
+        <!--<include>${project.basedir}/LICENSE*</include>-->
+        <!--<include>${project.basedir}/NOTICE*</include>-->
+        <!--<include>${project.basedir}/LEGAL/**/*</include>-->
+      <!--</includes>-->
+      <!--<excludes>-->
+        <!--<exclude>${project.outputDirectory}/**</exclude>-->
+      <!--</excludes>-->
+    <!--</fileSet>-->
 
     <fileSet>
       <directory>${project.basedir}/src/main/deploy/</directory>
-      <outputDirectory>dist/bigdata</outputDirectory>
+      <outputDirectory>/</outputDirectory>
+      <fileMode>0755</fileMode>
+      <directoryMode>0755</directoryMode>
+      <includes>
+          <include>bin/**/*</include>
+          <include>etc/**/*</include>
+          <include>legacy/bin/**/*</include>
+          <include>legacy/etc/**/*</include>
+          <include>legacy/scripts/**/*</include>
+      </includes>
+      <excludes>
+          <exclude>bin/config/**/*</exclude>
+      </excludes>
+    </fileSet>
+    
+
+    <fileSet>
+      <directory>${project.basedir}/src/main/deploy/</directory>
+      <outputDirectory>/</outputDirectory>
+      <fileMode>0744</fileMode>
+      <directoryMode>0755</directoryMode>
     </fileSet>
 
     <fileSet>
       <directory>${project.basedir}/src/test/deploy</directory>
-      <outputDirectory>dist/bigdata</outputDirectory>
+      <outputDirectory>/</outputDirectory>
+      <fileMode>0744</fileMode>
+      <directoryMode>0755</directoryMode>
     </fileSet>
-
-    <fileSet><!-- TODO: verify which items need to be in the jar, and which are accessed by file -->
-      <directory>${project.basedir}/src/main/resources/</directory>
-      <outputDirectory>dist/bigdata/conf</outputDirectory>            
-    </fileSet>
-
+    
 
     <!-- The following filesets are to get the staged dependency libraries from the build directory.  It would normally
          be preferable to do the entire thing in this file using dependencySets, but the dependencySet filtering lacked
@@ -43,17 +63,23 @@
     -->
     <fileSet> <!-- gets all runtime jars except the main bigdata artifact -->
         <directory>${project.build.directory}/dependencies/lib</directory>
-        <outputDirectory>dist/bigdata/lib</outputDirectory>
+        <outputDirectory>lib</outputDirectory>
+        <fileMode>0744</fileMode>
+        <directoryMode>0755</directoryMode>
     </fileSet>
 
     <fileSet>  <!-- gets the jini dl jars which are downloaded via RMI/JERI codebase, not the bootstrap classpath. -->
         <directory>${project.build.directory}/dependencies/lib-dl</directory>
-        <outputDirectory>dist/bigdata/lib-dl</outputDirectory>
+        <outputDirectory>lib-dl</outputDirectory>
+        <fileMode>0744</fileMode>
+        <directoryMode>0755</directoryMode>
     </fileSet>
 
     <fileSet> <!-- gets the test jars that were not already present in the runtime set. -->
         <directory>${project.build.directory}/dependencies/lib-test</directory>
-        <outputDirectory>dist/bigdata/testing/lib-test</outputDirectory>
+        <outputDirectory>testing/lib-test</outputDirectory>
+        <fileMode>0744</fileMode>
+        <directoryMode>0755</directoryMode>
         <excludes>
             <exclude>**/*dl.jar</exclude> <!-- TODO: couldn't get the dependency copy to exclude the jini dl jars, just runtime -->
         </excludes>
@@ -65,10 +91,12 @@
     <dependencySets>
         <dependencySet><!-- copies just the main bigdata artifact -->
             <scope>runtime</scope>
-            <outputDirectory>dist/bigdata/lib</outputDirectory>
+            <outputDirectory>lib</outputDirectory>
             <useProjectArtifact>true</useProjectArtifact>
             <useProjectAttachments>true</useProjectAttachments>
             <outputFileNameMapping>${artifact.artifactId}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
+            <fileMode>0744</fileMode>
+            <directoryMode>0755</directoryMode>
             <includes>
                 <include>${project.groupId}:${project.artifactId}:*:jar</include>
             </includes>
@@ -76,10 +104,12 @@
 
         <dependencySet><!-- copies just the jarred bigdata tests -->
             <scope>test</scope>
-            <outputDirectory>dist/bigdata/testing/lib-test</outputDirectory>
+            <outputDirectory>testing/lib-test</outputDirectory>
             <useProjectArtifact>true</useProjectArtifact>
             <useProjectAttachments>true</useProjectAttachments>
             <outputFileNameMapping>${artifact.artifactId}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
+            <fileMode>0744</fileMode>
+            <directoryMode>0755</directoryMode>
             <includes>
                 <include>${project.groupId}:${project.artifactId}:*:test-jar:*</include>
             </includes>

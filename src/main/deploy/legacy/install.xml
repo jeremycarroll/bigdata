@@ -1,7 +1,7 @@
 <project name="bigdata-install" default="ant-install" basedir=".">
 
     <!-- assumes that this script is being run from the uncorked deployment artifact, either in the build's target directory or on a test machine. -->
-    <property name="deploy.dir" location="${basedir}" />
+    <property name="deploy.dir" location="${basedir}/.." />
     <property name="app.home" location="${deploy.dir}" />
     <property name="deploy.lib" location="${deploy.dir}/lib" />
     <property name="deploy.lib.dl" location="${deploy.dir}/lib-dl" />
@@ -10,7 +10,7 @@
     <property name="java.net.preferIPv4Stack" value="true" />
     <property name="default.nic" value="eth0" />
 
-    <property file="${basedir}/install.properties" />
+    <property file="install.properties" />
 
     <target name="setup" >
         <exec executable="hostname" outputproperty="this.hostname" />
