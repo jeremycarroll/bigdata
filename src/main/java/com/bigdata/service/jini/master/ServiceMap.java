@@ -10,8 +10,6 @@ import net.jini.core.lookup.ServiceTemplate;
 
 import com.bigdata.jini.util.JiniUtil;
 import com.bigdata.service.IClientService;
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IRemoteExecutor;
 import com.bigdata.service.jini.JiniFederation;
 
 /**
@@ -40,12 +38,12 @@ public class ServiceMap implements Serializable {
     /**
      * The #of tasks to be mapped over the services.
      */
-    public final int ntasks;
+    private final int ntasks;
 
     /**
-     * The mapping of tasks onto the {@link IRemoteExecutor}s on which that
+     * The mapping of tasks onto the {@link IClientService}s on which that
      * task will execute. The index is the task#. The value is the
-     * {@link ServiceItem} for the {@link IRemoteExecutor} on which that
+     * {@link ServiceItem} for the {@link IClientService} on which that
      * client will execute.
      * <p>
      * This provides richer information than the {@link #serviceUUIDs}, but
@@ -59,11 +57,11 @@ public class ServiceMap implements Serializable {
     private transient ServiceItem[] serviceItems;
     
     /**
-     * The mapping of tasks onto the {@link IRemoteExecutor}s on which
+     * The mapping of tasks onto the {@link IClientService}s on which
      * that task will execute. The index is the task#. The value is the
-     * {@link IRemoteExecutor} {@link UUID service UUID}.
+     * {@link IClientService} {@link UUID service UUID}.
      */
-    public final UUID serviceUUIDs[];
+    private final UUID serviceUUIDs[];
 
     /**
      * 
@@ -87,7 +85,7 @@ public class ServiceMap implements Serializable {
      * Populates the elements of the {@link #serviceItems} array by
      * resolving the {@link #serviceUUIDs} to the corresponding
      * {@link ServiceItem}s. For each service, this tests the service cache
-     * for {@link IClientService}s and {@link IDataService}s and only then
+     * for {@link IClientService}s and only then
      * does a lookup with a timeout for the service.
      * 
      * @throws InterruptedException
@@ -112,28 +110,17 @@ public class ServiceMap implements Serializable {
 
             if (serviceItem == null) {
 
-                // test data service cache.
-                serviceItem = fed.getDataServicesClient().getServiceCache()
-                        .getServiceItemByID(serviceID);
-
+                // direct lookup.
+                serviceItem = fed.getServiceDiscoveryManager()
+                    .lookup(
+                            new ServiceTemplate(
+                                serviceID,
+                                new Class[] { IClientService.class }/* types */,
+                                null/* attr */),
+                            null/* filter */, 1000/* timeoutMillis */);
                 if (serviceItem == null) {
-
-                    // direct lookup.
-                    serviceItem = fed.getServiceDiscoveryManager()
-                            .lookup(
-                                    new ServiceTemplate(
-                                            serviceID,
-                                            new Class[] { IRemoteExecutor.class }/* types */,
-                                            null/* attr */),
-                                    null/* filter */, 1000/* timeoutMillis */);
-
-                    if (serviceItem == null) {
-
-                        throw new RuntimeException(
+                    throw new RuntimeException(
                                 "Could not discover service: " + serviceUUID);
-
-                    }
-
                 }
 
             }
@@ -188,22 +175,6 @@ public class ServiceMap implements Serializable {
     }
 
     /**
-     * Return the {@link UUID} of the service to which the Nth client was
-     * assigned.
-     * 
-     * @param clientNum
-     *            The client number in [0:N-1].
-     *            
-     * @return The {@link UUID} of the service on which that client should
-     *         execute.
-     */
-    public UUID getServiceUUID(final int clientNum) {
-        
-        return serviceUUIDs[clientNum];
-        
-    }
-
-    /**
      * Return the {@link ServiceItem} of the service to which the Nth client
      * was assigned.
      * 
@@ -213,10 +184,23 @@ public class ServiceMap implements Serializable {
      * @return The {@link ServiceItem} of the service on which that client
      *         should execute.
      */
-    public ServiceItem getServiceItem(final int clientNum) {
-        
-        return serviceItems[clientNum];
-        
+    public IClientService getService(final int clientNum) {
+        ServiceItem serviceItem = serviceItems[clientNum];
+        if (serviceItem == null) {
+            /*
+             * Note: The ServiceItem should have been resolved when we
+             * setup the JobState, even if the JobState was read from
+             * zookeeper.
+             */
+            throw new RuntimeException(
+                    "ServiceItem not resolved? client#=" + clientNum);
+        }
+        if (!(serviceItem.service instanceof IClientService)) {
+                throw new RuntimeException("Service does not implement "
+                            + IClientService.class + ", serviceItem="
+                            + serviceItem);
+        }
+        return (IClientService) serviceItems[clientNum].service;
     }
 
 }

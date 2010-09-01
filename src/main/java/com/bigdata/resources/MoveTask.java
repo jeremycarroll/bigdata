@@ -46,6 +46,7 @@ import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.ConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.NoSuchIndexException;
 import com.bigdata.journal.TimestampUtility;
@@ -56,10 +57,10 @@ import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.mdi.SegmentMetadata;
 import com.bigdata.service.DataService;
-import com.bigdata.service.DataServiceCallable;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.IDataService;
+import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.ResourceService;
@@ -196,7 +197,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
      * @param targetDataServiceUUID
      *            The UUID for the target data service.
      */
-    public MoveTask(//
+    MoveTask(//
             final ViewMetadata vmd,//
             final UUID targetDataServiceUUID//
             ) {
@@ -428,7 +429,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
      */
     protected static class AtomicUpdate extends AbstractAtomicUpdateTask<MoveResult> {
         
-        private final ResourceManager resourceManager;
+        private final ResourceManager rsrcManager;
         private final String sourceIndexName;
         private final BuildResult historicalWritesBuildResult;
         private final UUID targetDataServiceUUID;
@@ -475,7 +476,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
             if (parentEvent == null)
                 throw new IllegalArgumentException();
 
-            this.resourceManager = resourceManager;
+            this.rsrcManager = resourceManager;
             this.sourceIndexName = sourceIndexName;
             this.historicalWritesBuildResult = historicalWritesBuildResult;
             this.targetDataServiceUUID = targetDataServiceUUID;
@@ -525,7 +526,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                 // The current locator for the source index partition.
                 final PartitionLocator oldLocator = new PartitionLocator(//
                         pmd.getPartitionId(),//
-                        resourceManager.getDataServiceUUID(),//
+                        rsrcManager.getDataServiceUUID(),//
                         pmd.getLeftSeparatorKey(),//
                         pmd.getRightSeparatorKey()//
                 );
@@ -558,14 +559,14 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
 
                 final long sourceCommitTime = src.getLastCommitTime();
 
-                bufferedWritesBuildResult = resourceManager.buildIndexSegment(
+                bufferedWritesBuildResult = rsrcManager.buildIndexSegment(
                         sourceIndexName, src, false/* compactingMerge */,
                         sourceCommitTime, null/* fromKey */, null/* toKey */,
                         parentEvent);
 
                 {
 
-                    final IDataService targetDataService = resourceManager
+                    final IDataService targetDataService = rsrcManager
                             .getFederation().getDataService(
                                     targetDataServiceUUID);
 
@@ -592,13 +593,13 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                                     .submit(
                                             new ReceiveIndexPartitionTask(
                                                     indexMetadata,//
-                                                    resourceManager
+                                                    rsrcManager
                                                             .getDataServiceUUID(),//
                                                     targetIndexPartitionId,//
                                                     historicalWritesBuildResult.segmentMetadata,//
                                                     bufferedWritesBuildResult.segmentMetadata,//
                                                     thisInetAddr,
-                                                    resourceManager
+                                                    rsrcManager
                                                             .getResourceServicePort()//
                                             )).get();
 
@@ -646,7 +647,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                      * then clients will still be notified that the source index
                      * partition was moved. That is Ok since it WAS moved.
                      */
-                    resourceManager.setIndexPartitionGone(getOnlyResource(),
+                    rsrcManager.setIndexPartitionGone(getOnlyResource(),
                             StaleLocatorReason.Move);
 
                     /*
@@ -666,7 +667,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                     getJournal().dropIndex(getOnlyResource());
 
                     // notify successful index partition move.
-                    resourceManager.overflowCounters.indexPartitionMoveCounter.incrementAndGet();
+                    rsrcManager.overflowCounters.indexPartitionMoveCounter.incrementAndGet();
 
                 }
                 
@@ -685,7 +686,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                      * retentionSet so it will be subject to the release policy
                      * of the StoreManager.
                      */
-                    resourceManager
+                    rsrcManager
                             .retentionSetRemove(bufferedWritesBuildResult.segmentMetadata
                                     .getUUID());
 
@@ -693,7 +694,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                      * Delete the index segment containing the buffer writes
                      * since it no longer required by this data service.
                      */
-                    resourceManager
+                    rsrcManager
                             .deleteResource(
                                     bufferedWritesBuildResult.segmentMetadata
                                             .getUUID(), false/* isJournal */);
@@ -808,7 +809,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
             
             try {
                 
-                final PartitionLocator current = resourceManager
+                final PartitionLocator current = rsrcManager
                         .getFederation().getMetadataService().get(
                                 scaleOutIndexName, ITx.UNISOLATED,
                                 oldLocator.getLeftSeparatorKey());
@@ -823,7 +824,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                      */
                     try {
 
-                        resourceManager.getFederation().getMetadataService()
+                        rsrcManager.getFederation().getMetadataService()
                                 .moveIndexPartition(scaleOutIndexName,
                                         newLocator, oldLocator);
                         
@@ -902,7 +903,8 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      */
-    protected static class ReceiveIndexPartitionTask extends DataServiceCallable<Void> {
+    protected static class ReceiveIndexPartitionTask 
+            implements IDataServiceCallable<Void> {
 
         /**
          * 
@@ -973,7 +975,8 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
 //            
 //        }
 
-        public Void call() throws Exception {
+        public Void startDataTask(IIndexManager indexManager,
+                                  DataService dataService) throws Exception {
             
             /*
              * The name of the target index partition on the target data
@@ -988,11 +991,11 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
              * Run the inner task on the write service of the target data
              * service.
              */
-            final ResourceManager resourceManager = getDataService()
-                    .getResourceManager();
+            final ResourceManager resourceManager =
+                    dataService.getResourceManager();
             try {
 
-                getDataService().getConcurrencyManager().submit(
+                dataService.getConcurrencyManager().submit(
                         new InnerReceiveIndexPartitionTask(//
                                 resourceManager,//
                                 targetIndexName,//
@@ -1046,7 +1049,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
      */
     private static class InnerReceiveIndexPartitionTask extends AbstractTask<Void> {
         
-        final private ResourceManager resourceManager;
+        final private ResourceManager rsrcManager;
         final private String scaleOutIndexName;
         final private String sourceIndexName;
         final private String targetIndexName;
@@ -1111,7 +1114,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
             if (addr == null)
                 throw new IllegalArgumentException();
             
-            this.resourceManager = resourceManager;
+            this.rsrcManager = resourceManager;
             this.scaleOutIndexName = sourceIndexMetadata.getName();
             this.sourceIndexPartitionId = sourceIndexMetadata
                     .getPartitionMetadata().getPartitionId();
@@ -1181,10 +1184,10 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
 
                 if (targetHistorySegmentMetadata != null) {
                     try {
-                        resourceManager
+                        rsrcManager
                                 .retentionSetRemove(targetHistorySegmentMetadata
                                         .getUUID());
-                        resourceManager
+                        rsrcManager
                                 .deleteResource(targetHistorySegmentMetadata
                                         .getUUID(), false/* isJournal */);
                     } catch (Throwable t2) {
@@ -1194,10 +1197,10 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
 
                 if (targetBufferedWritesSegmentMetadata != null) {
                     try {
-                        resourceManager
+                        rsrcManager
                                 .retentionSetRemove(targetBufferedWritesSegmentMetadata
                                         .getUUID());
-                        resourceManager.deleteResource(
+                        rsrcManager.deleteResource(
                                 targetBufferedWritesSegmentMetadata.getUUID(),
                                 false/* isJournal */);
                     } catch (Throwable t2) {
@@ -1250,7 +1253,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                 final long begin = System.currentTimeMillis();
 
                 // name for the segFile on this data service.
-                final File file = resourceManager.getIndexSegmentFile(
+                final File file = rsrcManager.getIndexSegmentFile(
                         scaleOutIndexName, sourceIndexMetadata.getIndexUUID(),
                         targetIndexPartitionId);
 
@@ -1287,10 +1290,10 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                 }
 
                 // put on the retentionSet first!
-                resourceManager.retentionSetAdd(sourceSegmentMetadata.getUUID());
+                rsrcManager.retentionSetAdd(sourceSegmentMetadata.getUUID());
                 
                 // add the resource to those managed by this service.
-                resourceManager.addResource(sourceSegmentMetadata, file);
+                rsrcManager.addResource(sourceSegmentMetadata, file);
 
                 if (INFO) {
 
@@ -1368,7 +1371,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                             // Historical writes from the source DS.
                             historySegmentMetadata//
                         },
-                        IndexPartitionCause.move(resourceManager)
+                        IndexPartitionCause.move(rsrcManager)
 //                        // history line.
 //                        ,oldpmd.getHistory() + summary + " "
                 ));
@@ -1447,7 +1450,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                         + ", newLocator=" + moveResult.newLocator);
 
             // atomic update on the metadata server.
-            resourceManager.getFederation().getMetadataService()
+            rsrcManager.getFederation().getMetadataService()
                     .moveIndexPartition(scaleOutIndexName,
                             moveResult.oldLocator, moveResult.newLocator);
 

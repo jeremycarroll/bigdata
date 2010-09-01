@@ -27,30 +27,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.master;
 
-import java.util.concurrent.Callable;
+import com.bigdata.service.IClientServiceCallable;
+import com.bigdata.service.proxy.ClientFuture;
 import java.util.concurrent.Future;
-
-import com.bigdata.service.FederationCallable;
-import com.bigdata.service.jini.JiniFederation;
 
 /**
  * Abstract base class for {@link IAsynchronousClientTask}.
  * 
  * @param <U>
- *            The generic type of the {@link Callable}'s value.
+ *            The generic type of the {@link IClientServiceCallable}'s value.
  * @param <V>
  *            The generic type of the resource identifier.
  * @param <L>
  *            The generic type of the client locator.
  */
-public abstract class AbstractAsynchronousClientTask<U, V, L> extends
-        FederationCallable<U> implements IAsynchronousClientTask<U, V>
+public abstract class AbstractAsynchronousClientTask<U, V, L>
+        implements IAsynchronousClientTask<U, V>
 //        INotifyOutcome<V, L> 
 {
 
     private final INotifyOutcome<V, L> proxy;
 
-    private transient Future<U> future;
+    protected transient Future<U> future;
 
     /**
      * 
@@ -77,19 +75,18 @@ public abstract class AbstractAsynchronousClientTask<U, V, L> extends
     }
     
     synchronized public Future<U> getFuture() {
-        
+
         if (future == null)
             throw new IllegalStateException();
-        
-        return ((JiniFederation<?>) getFederation()).getProxy(future);
-        
+        assert future instanceof ClientFuture;
+        return future;
     }
 
     /**
      * Set the {@link Future}.
      * 
      * @param future
-     *            The future for this callable.
+     *            The future for this IClientServiceCallable.
      * 
      * @throws IllegalArgumentException
      *             if the <i>future</i> is <code>null</code>.

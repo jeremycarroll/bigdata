@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -48,11 +47,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.Journal.Options;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataClient;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IDataService;
+import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.service.jini.util.JiniServicesHelper;
 import com.bigdata.test.ExperimentDriver;
 import com.bigdata.test.ExperimentDriver.IComparisonTest;
@@ -496,7 +497,9 @@ public class PerformanceTest //extends ProxyTestCase<AbstractScaleOutFederation>
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    private static class WorkloadTask implements Callable<Object>, Serializable {
+    private static class WorkloadTask
+            implements IDataServiceCallable<Object>, Serializable
+    {
 
         /**
          * 
@@ -511,7 +514,8 @@ public class PerformanceTest //extends ProxyTestCase<AbstractScaleOutFederation>
             
         }
 
-        public Object call() throws Exception {
+        public Object startDataTask(IIndexManager indexManager,
+                                    DataService dataService) throws Exception {
 
 //            System.err.print("r"); // run.
             

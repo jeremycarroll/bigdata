@@ -36,7 +36,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -739,19 +741,19 @@ public class DataLoader {
             log.info("loading: " + resource);
 
         // try the classpath
-        InputStream rdfStream = getClass().getResourceAsStream(resource);
+        URL url = getClass().getResource(resource);
 
-        if (rdfStream == null) {
+        if (url == null) {
 
             // Searching for the resource from the root of the class returned
             // by getClass() (relative to the class' package) failed.
             // Next try searching for the desired resource from the root
             // of the jar; that is, search the jar file for an exact match
             // of the input string.
-            rdfStream = 
-               getClass().getClassLoader().getResourceAsStream(resource);
+            url =
+               getClass().getClassLoader().getResource(resource);
 
-            if (rdfStream == null) {
+            if (url == null) {
 
                 /*
                  * If we do not find as a Resource then try the file system.
@@ -761,8 +763,8 @@ public class DataLoader {
             
                 if(file.exists()) {
                 
-                    loadFiles(totals, 0/* depth */, file, baseURL,
-                        rdfFormat, filter, endOfBatch);
+                    loadFiles(totals, 0/* depth */, file.toURI().toURL(),
+                            baseURL, rdfFormat, filter, endOfBatch);
 
                     return;
                 
@@ -775,15 +777,16 @@ public class DataLoader {
          * Obtain a buffered reader on the input stream.
          */
         
-        if (rdfStream == null) {
+        if (url == null) {
 
             throw new IOException("Could not locate resource: " + resource);
             
         }
 
-        // @todo reuse the backing buffer to minimize heap churn. 
+        URLConnection connection = url.openConnection();
+        InputStream is = connection.getInputStream();
         final Reader reader = new BufferedReader(
-                new InputStreamReader(rdfStream)
+                new InputStreamReader(is)
 //               , 20*Bytes.kilobyte32 // use a large buffer (default is 8k)
                 );
 
@@ -798,9 +801,7 @@ public class DataLoader {
         } finally {
 
             reader.close();
-
-            rdfStream.close();
-
+            is.close();
         }
         
     }
@@ -826,73 +827,68 @@ public class DataLoader {
      * 
      * @throws IOException
      */
-    public LoadStats loadFiles(final File file, final String baseURI,
+    public LoadStats loadFiles(final URL url, final String baseURI,
             final RDFFormat rdfFormat, final FilenameFilter filter)
             throws IOException {
 
-        if (file == null)
+        if (url == null)
             throw new IllegalArgumentException();
         
         final LoadStats totals = new LoadStats();
 
-        loadFiles(totals, 0/* depth */, file, baseURI, rdfFormat, filter, true/* endOfBatch */
-        );
+        loadFiles(totals, 0/* depth */, url, baseURI,
+                rdfFormat, filter, true/* endOfBatch */);
 
         return totals;
 
     }
 
     protected void loadFiles(final LoadStats totals, final int depth,
-            final File file, final String baseURI, final RDFFormat rdfFormat,
+            final URL url, final String baseURI, final RDFFormat rdfFormat,
             final FilenameFilter filter, final boolean endOfBatch)
             throws IOException {
 
-        if (file.isDirectory()) {
+        // Legacy behavior - allow local files and directories for now,
+        // but data should only be loaded from outside the cluster, not
+        // from inside.
+        if (url.getProtocol().equals("file")) {
+            File file;
+            try {
+                file = new File(url.toURI());
+            } catch (URISyntaxException ex) {
+                throw new IOException("Unable to decode URL", ex);
+            }
+            if (file.isDirectory()) {
 
-            if (log.isInfoEnabled())
-                log.info("loading directory: " + file);
+                if (log.isInfoEnabled())
+                    log.info("loading directory: " + file);
 
-//            final LoadStats loadStats = new LoadStats();
-
-            final File[] files = (filter != null ? file.listFiles(filter)
+                final File[] files = (filter != null ? file.listFiles(filter)
                     : file.listFiles());
 
-            for (int i = 0; i < files.length; i++) {
+                for (int i = 0; i < files.length; i++) {
 
-                final File f = files[i];
+                    final File f = files[i];
 
-//                final RDFFormat fmt = RDFFormat.forFileName(f.toString(),
-//                        rdfFormat);
-
-                loadFiles(totals, depth + 1, f, baseURI, rdfFormat, filter,
+                    loadFiles(totals, depth + 1, f.toURI().toURL(), baseURI,
+                        rdfFormat, filter,
                         (depth == 0 && i < files.length ? false : endOfBatch));
-                
+
+                }
+
+                return;
+
             }
-            
-            return;
-            
-        }
-        
-        final String n = file.getName();
-        
-        RDFFormat fmt = RDFFormat.forFileName(n);
 
-        if (fmt == null && n.endsWith(".zip")) {
-            fmt = RDFFormat.forFileName(n.substring(0, n.length() - 4));
         }
 
-        if (fmt == null && n.endsWith(".gz")) {
-            fmt = RDFFormat.forFileName(n.substring(0, n.length() - 3));
-        }
-
-        if (fmt == null) // fallback
-            fmt = rdfFormat;
-
+        final String n = url.getPath();
         InputStream is = null;
 
         try {
 
-            is = new FileInputStream(file);
+            URLConnection connection = url.openConnection();
+            is = connection.getInputStream();
 
             if (n.endsWith(".gz")) {
 
@@ -916,23 +912,19 @@ public class DataLoader {
             try {
 
                 // baseURI for this file. @todo do we need to encode this URI?
-                final String s = baseURI != null ? baseURI : file.toURI()
+                final String s = baseURI != null ? baseURI : url.toURI()
                         .toString();
 
-                loadData3(totals, reader, s, fmt, endOfBatch);
+                loadData3(totals, reader, s, rdfFormat, endOfBatch);
                 
                 return;
 
-            } catch (Exception ex) {
-
-                throw new RuntimeException("While loading: " + file, ex);
-
             } finally {
-
                 reader.close();
-
             }
 
+        } catch (Exception ex) {
+            throw new RuntimeException("While loading: " + url, ex);
         } finally {
             
             if (is != null)
@@ -1359,7 +1351,8 @@ public class DataLoader {
 //                dataLoader.loadFiles(fileOrDir, null/* baseURI */,
 //                        rdfFormat, filter);
 
-                dataLoader.loadFiles(totals, 0/* depth */, fileOrDir, baseURI,
+                dataLoader.loadFiles(totals, 0/* depth */,
+                        fileOrDir.toURI().toURL(), baseURI,
                         rdfFormat, filter, true/* endOfBatch */
                 );
 

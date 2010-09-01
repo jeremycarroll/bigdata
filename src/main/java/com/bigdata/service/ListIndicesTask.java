@@ -11,6 +11,7 @@ import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.io.DataInputBuffer;
 import com.bigdata.journal.AbstractJournal;
+import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.Name2Addr;
 import com.bigdata.journal.Name2Addr.EntrySerializer;
 
@@ -30,7 +31,8 @@ import com.bigdata.journal.Name2Addr.EntrySerializer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class ListIndicesTask extends DataServiceCallable<String[]> {
+public class ListIndicesTask
+implements IDataServiceCallable<String[]> {
 
     /**
      * 
@@ -75,13 +77,14 @@ public class ListIndicesTask extends DataServiceCallable<String[]> {
 //
 //    }
 
-    public String[] call() throws Exception {
+    public String[] startDataTask(IIndexManager indexManager,
+                                  DataService dataService) throws Exception {
 
 //        if (dataService == null)
 //            throw new IllegalStateException("DataService not set.");
 
-        final AbstractJournal journal = getDataService().getResourceManager()
-                .getJournal(ts);
+        final AbstractJournal journal =
+                dataService.getResourceManager().getJournal(ts);
 
         // @todo possible problem if [ts] is a read-write tx.
         final IIndex name2Addr = journal.getName2Addr(ts);
@@ -159,7 +162,7 @@ fromKey=[65, 49, 79, 41, 47, 41, 79, 41, 7, 144, 81, 38, 124, 38, 122, 1, 16, 1,
         if (INFO)
             log.info("Will read " + n + " index names within namespace="
                     + namespace + " from "
-                    + getDataService().getClass().getSimpleName());
+                    + dataService.getClass().getSimpleName());
 
         final List<String> names = new ArrayList<String>(n);
 

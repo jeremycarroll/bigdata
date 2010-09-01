@@ -1387,6 +1387,9 @@ abstract public class AbstractTripleStore extends
                     if (lex != null)
                         lex.destroy();
                 }
+                // Remove the triple store from the global row store.
+                getIndexManager().getGlobalRowStore().delete(
+                            RelationSchema.INSTANCE, getNamespace());
 
                 lexiconRelation = null;
                 

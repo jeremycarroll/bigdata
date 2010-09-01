@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.rdf.load;
 
-import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -57,9 +56,11 @@ import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.master.AbstractAsynchronousClientTask;
 import com.bigdata.service.jini.master.ClientLocator;
+import com.bigdata.service.jini.master.FileServer;
 import com.bigdata.service.jini.master.INotifyOutcome;
 import com.bigdata.service.jini.master.MappedTaskMaster;
 import com.bigdata.service.jini.master.TaskMaster;
+import java.net.URL;
 
 /**
  * Distributed bulk loader for RDF data. Creates/(re-)opens the
@@ -84,7 +85,7 @@ V extends Serializable//
 >//
         extends MappedTaskMaster<S, T, L, U, V> {
 
-    final protected static Logger log = Logger
+    final private static Logger log = Logger
             .getLogger(MappedRDFDataLoadMaster.class);
 
     /**
@@ -263,7 +264,7 @@ V extends Serializable//
          */
         String RDF_FORMAT = "rdfFormat";
 
-        String DEFAULT_RDF_FORMAT = RDFFormat.RDFXML.toString();
+        String DEFAULT_RDF_FORMAT = RDFFormat.RDFXML.getName();
 
 //        /**
 //         * The maximum #of times an attempt will be made to load any given file.
@@ -297,7 +298,7 @@ V extends Serializable//
          * 
          * @see ConfigurationOptions#ONTOLOGY
          */
-        public final File ontology;
+        public final URL ontology;
 
         /**
          * Only files matched by the filter will be processed (optional, but
@@ -514,9 +515,9 @@ V extends Serializable//
             namespace = (String) config.getEntry(component,
                     ConfigurationOptions.NAMESPACE, String.class);
 
-            ontology = (File) config
+            ontology = (URL) config
                     .getEntry(component, ConfigurationOptions.ONTOLOGY,
-                            File.class, null/* defaultValue */);
+                            URL.class, null/* defaultValue */);
 
             ontologyFileFilter = (FilenameFilter) config.getEntry(component,
                     ConfigurationOptions.ONTOLOGY_FILE_FILTER,
@@ -583,7 +584,7 @@ V extends Serializable//
 
                 final String tmp = (String) config.getEntry(component,
                         ConfigurationOptions.RDF_FORMAT, String.class,
-                        ConfigurationOptions.DEFAULT_RDF_FORMAT.toString());
+                        ConfigurationOptions.DEFAULT_RDF_FORMAT);
 
                 if (tmp != null) {
 
@@ -639,13 +640,14 @@ V extends Serializable//
 
             // execute master wait for it to finish.
             task.execute();
-
+        } catch (Throwable e) {
+            e.printStackTrace();
         } finally {
-
+            FileServer.stopAll();
             fed.shutdown();
 
         }
-        
+
     }
     
     public MappedRDFDataLoadMaster(final JiniFederation fed)
@@ -658,6 +660,7 @@ V extends Serializable//
     /**
      * Extended to support optional load, closure, and reporting.
      */
+    @Override
     protected void runJob() throws Exception {
 
         final S jobState = getJobState();
@@ -851,6 +854,7 @@ V extends Serializable//
     /**
      * Extended to open/create the KB.
      */
+    @Override
     protected void beginJob(final S jobState) throws Exception {
 
         super.beginJob(jobState);
@@ -900,7 +904,7 @@ V extends Serializable//
                 loadOntology(tripleStore);
 
             } catch (Exception ex) {
-
+                tripleStore.destroy(); // Don't leave badly configured store.
                 throw new RuntimeException("Could not load: "
                         + jobState.ontology, ex);
 

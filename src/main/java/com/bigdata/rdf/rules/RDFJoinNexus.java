@@ -96,11 +96,9 @@ import com.bigdata.relation.rule.Var;
 import com.bigdata.relation.rule.eval.AbstractSolutionBuffer;
 import com.bigdata.relation.rule.eval.ActionEnum;
 import com.bigdata.relation.rule.eval.DefaultRangeCountFactory;
-import com.bigdata.relation.rule.eval.EmptyProgramTask;
 import com.bigdata.relation.rule.eval.IEvaluationPlanFactory;
 import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
-import com.bigdata.relation.rule.eval.IProgramTask;
 import com.bigdata.relation.rule.eval.IRangeCountFactory;
 import com.bigdata.relation.rule.eval.IRuleState;
 import com.bigdata.relation.rule.eval.IRuleStatisticsFactory;
@@ -117,6 +115,7 @@ import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.striterator.ChunkedArrayIterator;
 import com.bigdata.striterator.ChunkedConvertingIterator;
 import com.bigdata.striterator.DistinctFilter;
+import com.bigdata.striterator.EmptyChunkedIterator;
 import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 
@@ -163,7 +162,6 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  *       {@link IAsynchronousIterator} when wrapped for RMI.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class RDFJoinNexus implements IJoinNexus {
 
@@ -1324,10 +1322,10 @@ public class RDFJoinNexus implements IJoinNexus {
             final IBuffer<ISolution[]> targetBuffer, final int chunkCapacity) {
 
         // MAY be null.
-        final IElementFilter<ISolution> filter = getSolutionFilter();
+        final IElementFilter<ISolution> tmpFilter = getSolutionFilter();
         
         return new UnsynchronizedArrayBuffer<ISolution>(targetBuffer,
-                chunkCapacity, filter);
+                chunkCapacity, tmpFilter);
         
     }
     
@@ -1351,7 +1349,6 @@ public class RDFJoinNexus implements IJoinNexus {
      * {@link #flush() flushed}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      * @param <E>
      */
     public static class InsertSPOAndJustificationBuffer<E> extends AbstractSolutionBuffer<E> {
@@ -1562,6 +1559,22 @@ public class RDFJoinNexus implements IJoinNexus {
 
     }
 
+    // Code formerly from EmptyProgramTask.
+    private Object emptyProgram(ActionEnum action, IStep step) {
+        if (action == null)
+            throw new IllegalArgumentException();
+        if (step == null)
+            throw new IllegalArgumentException();
+        if (step.isRule() || ((IProgram)step).stepCount() != 0) {
+            throw new IllegalArgumentException();
+        }
+        if (action.isMutation()) {
+            return Long.valueOf(0L);
+        } else {
+            return new EmptyChunkedIterator<ISolution>(null/* keyOrder */);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public IChunkedOrderedIterator<ISolution> runQuery(final IStep step)
             throws Exception {
@@ -1576,8 +1589,8 @@ public class RDFJoinNexus implements IJoinNexus {
 
             log.warn("Empty program");
 
-            return (IChunkedOrderedIterator<ISolution>) new EmptyProgramTask(
-                    ActionEnum.Query, step).call();
+            return (IChunkedOrderedIterator<ISolution>)
+                    emptyProgram(ActionEnum.Query, step);
 
         }
 
@@ -1694,7 +1707,7 @@ public class RDFJoinNexus implements IJoinNexus {
 
             log.warn("Empty program");
 
-            return (Long) new EmptyProgramTask(action, step).call();
+            return (Long) emptyProgram(action, step);
 
         }
         
@@ -1738,12 +1751,12 @@ public class RDFJoinNexus implements IJoinNexus {
         if (step == null)
             throw new IllegalArgumentException();
 
-        final IIndexManager indexManager = getIndexManager();
+        final IIndexManager tmpIndexManager = getIndexManager();
 
-        if (indexManager instanceof IBigdataFederation<?>) {
+        if (tmpIndexManager instanceof IBigdataFederation<?>) {
 
             // distributed program execution.
-            return runDistributedProgram((IBigdataFederation<?>) indexManager,
+            return runDistributedProgram((IBigdataFederation<?>) tmpIndexManager,
                     action, step);
 
         } else {
@@ -1766,10 +1779,10 @@ public class RDFJoinNexus implements IJoinNexus {
             log.info("Running local program: action=" + action + ", program="
                     + step.getName());
 
-        final IProgramTask innerTask = new ProgramTask(action, step,
+        final ProgramTask innerTask = new ProgramTask(action, step,
                 getJoinNexusFactory(), getIndexManager());
 
-        return innerTask.call();
+        return innerTask.startDataTask(getIndexManager(), null);
 
     }
 
@@ -1787,10 +1800,10 @@ public class RDFJoinNexus implements IJoinNexus {
 
         }
 
-        final IProgramTask innerTask = new ProgramTask(action, step,
+        final ProgramTask innerTask = new ProgramTask(action, step,
                 getJoinNexusFactory(), getIndexManager());
 
-        return innerTask.call();
+        return innerTask.startDataTask(fed, null);
 
     }
 
@@ -1816,7 +1829,7 @@ public class RDFJoinNexus implements IJoinNexus {
 
         }
         
-        final IProgramTask innerTask = new ProgramTask(action, step,
+        final ProgramTask innerTask = new ProgramTask(action, step,
                 getJoinNexusFactory());
 
         return dataService.submit(innerTask).get();

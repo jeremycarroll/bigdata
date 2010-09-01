@@ -32,7 +32,6 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.server.ServerNotActiveException;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 import net.jini.config.Configuration;
@@ -44,9 +43,9 @@ import net.jini.lookup.entry.Name;
 import org.apache.log4j.MDC;
 
 import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.DataService.DataServiceFederationDelegate;
+import com.bigdata.service.IDataServiceCallable;
 import com.sun.jini.start.LifeCycle;
 import com.sun.jini.start.ServiceDescriptor;
 import com.sun.jini.start.ServiceStarter;
@@ -118,6 +117,7 @@ public class MetadataServer extends DataServer {
 
     }
 
+    @Override
     protected MetadataService newService(Properties properties) {
 
         properties = new Properties(properties);
@@ -293,7 +293,7 @@ public class MetadataServer extends DataServer {
          * Extends the base behavior to return an RMI compatible proxy.
          */
         @Override
-        public Future<? extends Object> submit(Callable<? extends Object> task) {
+        public <T> Future<T> submit(IDataServiceCallable<T> task) {
 
             return getFederation().getProxy(super.submit(task));
             

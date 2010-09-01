@@ -69,6 +69,7 @@ import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataClient;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IDataService;
+import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.IService;
 import com.bigdata.service.Session;
@@ -348,7 +349,7 @@ public class AbstractResourceManagerTestCase extends
 
         }
 
-       public Future<? extends Object> submit(Callable<? extends Object> proc) {
+       public <T> Future<T> submit(IDataServiceCallable<T> proc) {
 
             return null;
         }

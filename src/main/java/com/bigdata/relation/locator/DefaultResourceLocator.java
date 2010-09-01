@@ -239,7 +239,8 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
             final Properties properties = locateResource(namespace, timestamp,
                     foundOn);
             
-            if (properties == null) {
+            // Empty properties may refer to deleted resource.
+            if (properties == null || properties.isEmpty()) {
 
                 // Not found by this locator.
                 
@@ -426,7 +427,8 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
         final Properties properties = locateResourceOn(indexManager, namespace,
                 timestamp);
 
-        if (properties != null) {
+        // Empty properties may refer to deleted resource.
+        if (properties != null && !properties.isEmpty()) {
 
             if (INFO) {
 

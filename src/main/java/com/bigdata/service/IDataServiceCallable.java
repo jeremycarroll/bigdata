@@ -3,7 +3,10 @@ package com.bigdata.service;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.DropIndexTask;
+import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.RegisterIndexTask;
+import java.io.Serializable;
+import java.util.concurrent.Callable;
 
 /**
  * Interface for procedures that require access to the {@link IDataService} and
@@ -22,33 +25,16 @@ import com.bigdata.journal.RegisterIndexTask;
  * 
  * @see IFederationCallable
  */
-public interface IDataServiceCallable extends IFederationCallable {
+public interface IDataServiceCallable<T>
+        extends Serializable {
 
     /**
-     * Invoked before the task is executed to provide a reference to the
-     * {@link IDataService} on which it is executing. This method is also
-     * responsible for setting the {@link IBigdataFederation} reference using
-     * {@link IFederationCallable#setFederation(IBigdataFederation)}.
-     * 
-     * @param dataService
-     *            The data service.
-     * 
-     * @throws IllegalArgumentException
-     *             if the argument is <code>null</code>
-     * @throws IllegalStateException
-     *             if {@link #setDataService(DataService)} has already been
-     *             invoked and was set with a different value.
+     * Computes a result on a {@link IClientService}, or throws an
+     * exception if unable to do so.
+     *
+     * @return computed result
+     * @throws Exception if unable to compute a result
      */
-    void setDataService(DataService dataService);
-    
-    /**
-     * Return the {@link DataService}.
-     * 
-     * @return The data service and never <code>null</code>.
-     * 
-     * @throws IllegalStateException
-     *             if {@link #setDataService(DataService)} has not been invoked.
-     */
-    DataService getDataService();
-    
+    T startDataTask(IIndexManager indexManager, DataService dataService)
+            throws Exception;
 }

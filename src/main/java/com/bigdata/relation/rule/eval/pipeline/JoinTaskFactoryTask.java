@@ -18,14 +18,13 @@ import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.IVariable;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
-import com.bigdata.relation.rule.eval.IRuleState;
 import com.bigdata.resources.IndexManager;
 import com.bigdata.resources.StoreManager.ManagedJournal;
 import com.bigdata.service.AbstractDistributedFederation;
 import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.DataService;
-import com.bigdata.service.DataServiceCallable;
 import com.bigdata.service.IBigdataFederation;
+import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.service.Session;
 import com.bigdata.service.proxy.ClientAsynchronousIterator;
 import com.bigdata.sparse.SparseRowStore;
@@ -84,7 +83,7 @@ import com.bigdata.striterator.IKeyOrder;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
+public class JoinTaskFactoryTask implements IDataServiceCallable<Future> {
 
     /**
      * 
@@ -140,6 +139,7 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
      */
     private transient AbstractScaleOutFederation fed;
     
+    @Override
     public String toString() {
 
         return getClass().getSimpleName() + "{ orderIndex=" + orderIndex
@@ -220,12 +220,13 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
      * @return (A proxy for) the {@link Future} of the
      *         {@link DistributedJoinTask}.
      */
-    public Future call() throws Exception {
+    public Future startDataTask(IIndexManager indexManager,
+                                DataService dataService) {
         
 //        if (dataService == null)
 //            throw new IllegalStateException();
 
-        this.fed = (AbstractScaleOutFederation) getFederation();
+        this.fed = (AbstractScaleOutFederation) indexManager;
 
         /*
          * Start the iterator using our local thread pool in order to avoid
@@ -246,7 +247,7 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
         
         final Future<Void> joinTaskFuture;
 
-        final Session session = getDataService().getSession();
+        final Session session = dataService.getSession();
         
         /*
          * @todo this serializes all requests for a new join task on this data
@@ -280,13 +281,13 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
                      */
 
                     // new task.
-                    joinTask = newJoinTask();
+                    joinTask = newJoinTask(dataService);
 
                     // put into the session.
                     session.put(namespace, joinTask);
 
                     // submit task and note its future.
-                    joinTaskFuture = submit(joinTask);
+                    joinTaskFuture = submit(joinTask, fed);
 
                 }
 
@@ -297,13 +298,13 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
                  */
                 
                 // new task.
-                joinTask = newJoinTask();
+                joinTask = newJoinTask(dataService);
 
                 // put into the session.
                 session.put(namespace, joinTask);
 
                 // submit task and note its future.
-                joinTaskFuture = submit(joinTask);
+                joinTaskFuture = submit(joinTask, fed);
                 
             }
             
@@ -313,7 +314,7 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
         
     }
 
-    protected DistributedJoinTask newJoinTask() {
+    protected DistributedJoinTask newJoinTask(DataService dataService) {
 
         final DistributedJoinTask task;
         {
@@ -323,13 +324,13 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
              * IndexManager for the DataService, which is the class that knows
              * how to assemble the index partition view.
              */
-            final IIndexManager indexManager = new DelegateIndexManager(
-                    getDataService());
+            final IIndexManager indexManager =
+                    new DelegateIndexManager(dataService);
 
             task = new DistributedJoinTask(/*scaleOutIndexName,*/ rule,
                     joinNexusFactory.newInstance(indexManager), order,
                     orderIndex, partitionId, fed, masterProxy, masterUUID,
-                    sourceItrProxy, keyOrders, getDataService(), requiredVars);
+                    sourceItrProxy, keyOrders, dataService, requiredVars);
             
         }
 
@@ -337,15 +338,16 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
 
     }
    
-    protected Future<Void> submit(final DistributedJoinTask task) {
+    protected Future<Void> submit(final DistributedJoinTask task,
+                                  IBigdataFederation federation) {
 
         if (log.isDebugEnabled())
             log.debug("Submitting new JoinTask: orderIndex=" + orderIndex
                     + ", partitionId=" + partitionId + ", indexName="
                     + scaleOutIndexName);
 
-        Future<Void> joinTaskFuture = getFederation()
-                .getExecutorService().submit(task);
+        Future<Void> joinTaskFuture =
+                federation.getExecutorService().submit(task);
 
         if (fed.isDistributed()) {
 

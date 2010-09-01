@@ -60,9 +60,12 @@ import com.bigdata.service.Event;
 import com.bigdata.service.jini.DataServer;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
+import com.bigdata.service.jini.master.AbstractClientTask;
 import com.bigdata.service.jini.master.TaskMaster;
 import com.bigdata.service.ndx.IScaleOutClientIndex;
 import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
+import com.bigdata.zookeeper.ZLockImpl;
+import org.apache.log4j.Logger;
 
 /**
  * Utility class for benchmarking index operations on a federation. This test
@@ -169,6 +172,9 @@ import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
 public class ThroughputMaster
         extends
         TaskMaster<ThroughputMaster.JobState, ThroughputMaster.ClientTask, Void> {
+
+    final private static Logger log = Logger
+            .getLogger(ThroughputMaster.class);
 
     /**
      * {@link Configuration} options for the {@link ThroughputMaster}.
@@ -545,8 +551,8 @@ public class ThroughputMaster
      *       load of local data into the index) and when it writes on the
      *       scale-out index (simulates writes onto a distributed index).
      */
-    static class ClientTask extends
-            com.bigdata.service.jini.master.AbstractClientTask<JobState, Void, ClientState> {
+    public static class ClientTask
+            extends AbstractClientTask<JobState, Void, ClientState> {
 
         /**
          * 
@@ -579,8 +585,11 @@ public class ThroughputMaster
         }
 
         @Override
-        protected Void runWithZLock(final ClientState clientState) throws Exception,
-                KeeperException, InterruptedException {
+        protected Void runWithZLock(final ClientState clientState,
+                                    final JiniFederation jiniFederation,
+                                    final ZLockImpl zlock,
+                                    final String clientZPath)
+                throws Exception, KeeperException, InterruptedException {
             
             if (r == null) {
 
@@ -590,8 +599,8 @@ public class ThroughputMaster
             }
 
             // unisolated view of the scale-out index.
-            final IScaleOutClientIndex ndx = getFederation().getIndex(jobState.namespace,
-                    ITx.UNISOLATED);
+            final IScaleOutClientIndex ndx = 
+                    jiniFederation.getIndex(jobState.namespace, ITx.UNISOLATED);
 
             final IDuplicateRemover<Void> duplicateRemover;
             final IRunnableBuffer<KVO<Void>[]> insertBuffer;
@@ -686,7 +695,7 @@ public class ThroughputMaster
                 if (jobState.zookeeperUpdateInterval != 0
                         && (nops - lastNops) >= jobState.zookeeperUpdateInterval) {
 
-                    writeClientState(new ClientState(nops));
+                    writeClientState(new ClientState(nops), zlock, clientZPath);
 
                     lastNops = nops;
 
@@ -715,7 +724,7 @@ public class ThroughputMaster
              * can get them from there and then aggregate them across the
              * clients.
              */
-            System.err.println(getFederation().getIndexCounters(ndx.getName()));
+            System.err.println(jiniFederation.getIndexCounters(ndx.getName()));
             
             return null;
             
@@ -895,7 +904,7 @@ public class ThroughputMaster
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    static class ClientState implements Serializable {
+    public static class ClientState implements Serializable {
         
         /**
          * 

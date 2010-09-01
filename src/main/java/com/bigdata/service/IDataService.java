@@ -264,7 +264,7 @@ import com.bigdata.sparse.SparseRowStore;
  *       can have more flexibility since they are under less of a latency
  *       constraint.
  */
-public interface IDataService extends ITxCommitProtocol, IService, IRemoteExecutor {
+public interface IDataService extends ITxCommitProtocol, IService {
 
     /**
      * Register a named mutable index on the {@link DataService}.
@@ -456,7 +456,7 @@ public interface IDataService extends ITxCommitProtocol, IService, IRemoteExecut
      * 
      * @see IDataServiceCallable
      */
-    public Future<? extends Object> submit(Callable<? extends Object> proc)
+    public <T> Future<T> submit(IDataServiceCallable<T> proc)
             throws RemoteException;
 
     /**

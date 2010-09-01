@@ -35,7 +35,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.bigdata.relation.accesspath.BlockingBuffer;
-import com.bigdata.service.IRemoteExecutor;
+import com.bigdata.service.IClientService;
 import com.bigdata.service.jini.master.ClientLocator;
 import com.bigdata.service.jini.master.IAsynchronousClientTask;
 
@@ -303,7 +303,7 @@ L> //
      *       remote client task dies while invoking client#accept(chunk). The
      *       {@link AbstractPendingSetMasterTask} needs to start a new client
      *       task for the given {@link ClientLocator}, ideally on a different
-     *       {@link IRemoteExecutor} service. If there is no such available
+     *       {@link IClientService} service. If there is no such available
      *       service then it could multiplex multiple client#s onto the same
      *       client, essentially doubling the load for some client. Or we could
      *       hash partition based on the #of remaining clients, which would

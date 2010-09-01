@@ -90,17 +90,17 @@ import com.bigdata.util.concurrent.WriteTaskCounters;
  */
 public class ConcurrencyManager implements IConcurrencyManager {
 
-    final protected static Logger log = Logger.getLogger(ConcurrencyManager.class);
+    final private static Logger log = Logger.getLogger(ConcurrencyManager.class);
     
 //    /**
 //     * True iff the {@link #log} level is INFO or less.
 //     */
-//    final protected static boolean INFO = log.isInfoEnabled();
+//    final private static boolean INFO = log.isInfoEnabled();
 
     /**
      * True iff the {@link #log} level is DEBUG or less.
      */
-    final protected static boolean DEBUG = log.isDebugEnabled();
+    final private static boolean DEBUG = log.isDebugEnabled();
     
     /**
      * Options for the {@link ConcurrentManager}.
@@ -340,7 +340,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
      * Once the transaction has acquired those writable indices it then runs its
      * commit phrase as an unisolated operation on the {@link #writeService}.
      */
-    final protected ThreadPoolExecutor txWriteService;
+    final private ThreadPoolExecutor txWriteService;
 
     /**
      * Pool of threads for handling concurrent unisolated read operations on
@@ -358,7 +358,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
      * historical commit records (which may span more than one logical
      * journal) until the reader terminates.
      */
-    final protected ThreadPoolExecutor readService;
+    final private ThreadPoolExecutor readService;
 
     /**
      * Pool of threads for handling concurrent unisolated write operations on
@@ -371,6 +371,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
      * Serialization of access to unisolated named indices is acomplished by
      * gaining an exclusive lock on the unisolated named index.
      */
+    // protected for access by tests.
     final protected WriteExecutorService writeService;
 
     /**
@@ -400,7 +401,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
         
     }
     
-    protected void assertOpen() {
+    private void assertOpen() {
         
         if (!open)
             throw new IllegalStateException();
@@ -466,7 +467,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
          * Long.MAX_VALUE.
          */
 
-        final long shutdownTimeout = this.shutdownTimeout == 0L ? Long.MAX_VALUE
+        final long tmpShutdownTimeout = this.shutdownTimeout == 0L ? Long.MAX_VALUE
                 : this.shutdownTimeout;
         
         final TimeUnit unit = TimeUnit.MILLISECONDS;
@@ -486,7 +487,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
             
             final long elapsed = System.currentTimeMillis() - begin;
             
-            if(!txWriteService.awaitTermination(shutdownTimeout-elapsed, unit)) {
+            if(!txWriteService.awaitTermination(tmpShutdownTimeout-elapsed, unit)) {
                 
                 log.warn("Transaction service termination: timeout");
                 
@@ -505,7 +506,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
 
             final long elapsed = System.currentTimeMillis() - begin;
             
-            if(!readService.awaitTermination(shutdownTimeout-elapsed, unit)) {
+            if(!readService.awaitTermination(tmpShutdownTimeout-elapsed, unit)) {
                 
                 log.warn("Read service termination: timeout");
                 
@@ -521,7 +522,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
 
             final long elapsed = System.currentTimeMillis() - begin;
             
-            final long timeout = shutdownTimeout-elapsed;
+            final long timeout = tmpShutdownTimeout-elapsed;
 
             if (log.isInfoEnabled())
                 log.info("Awaiting write service termination: will wait "
@@ -921,13 +922,13 @@ public class ConcurrencyManager implements IConcurrencyManager {
     }
     
     /** Counters for {@link #writeService}. */
-    protected final WriteTaskCounters countersUN  = new WriteTaskCounters();
+    final WriteTaskCounters countersUN  = new WriteTaskCounters();
     
     /** Counters for the {@link #txWriteService}. */
-    protected final TaskCounters countersTX = new TaskCounters();
+    final TaskCounters countersTX = new TaskCounters();
     
     /** Counters for the {@link #readService}. */
-    protected final TaskCounters countersHR = new TaskCounters();
+    final TaskCounters countersHR = new TaskCounters();
 
     /**
      * Sampling instruments for the various queues giving us the moving average

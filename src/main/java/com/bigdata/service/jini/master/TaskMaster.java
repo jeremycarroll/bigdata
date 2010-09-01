@@ -64,13 +64,11 @@ import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IClientService;
+import com.bigdata.service.IClientServiceCallable;
 import com.bigdata.service.IDataService;
 import com.bigdata.service.IDataServiceCallable;
-import com.bigdata.service.IMetadataService;
-import com.bigdata.service.IRemoteExecutor;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.util.DumpFederation.ScheduledDumpTask;
-import com.bigdata.service.ndx.pipeline.KVOLatch;
 import com.bigdata.util.concurrent.ExecutionExceptions;
 import com.bigdata.zookeeper.ZLock;
 import com.bigdata.zookeeper.ZLockImpl;
@@ -98,10 +96,11 @@ import com.bigdata.zookeeper.ZooHelper;
  *       some of the rule step logic. That would be an interesting twist on a
  *       parallel datalog.
  */
-abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callable<U>, U>
+abstract public class TaskMaster<S extends TaskMaster.JobState,
+                                 T extends IClientServiceCallable<U>, U>
         implements Callable<Void> {
 
-    final protected static Logger log = Logger.getLogger(TaskMaster.class);
+    final private static Logger log = Logger.getLogger(TaskMaster.class);
 
     /**
      * {@link Configuration} options for the {@link TaskMaster} and derived
@@ -155,92 +154,16 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
 
         /**
          * The #of clients to start. The clients will be distributed across the
-         * discovered {@link IRemoteExecutor}s in the federation matching the
+         * discovered {@link IClientService}s in the federation matching the
          * {@link #CLIENTS_TEMPLATE}.
          */
         String NCLIENTS = "nclients";
 
         /**
-         * A {@link ServicesTemplate} describing the types of services, and the
-         * minimum #of services of each type, to which the clients will be
-         * submitted for execution.
-         * <p>
-         * These services MUST implement {@link IRemoteExecutor} since that is
-         * that API which will be used to submit the client tasks for execution.
-         * Normally, you will specify {@link IClientService} as the required
-         * interface. While it is also possible to run clients on an
-         * {@link IDataService} or even an {@link IMetadataService}, that is
-         * discouraged except when the tasks require local access to resources
-         * hosted by the service - for example, an administrative task requiring
-         * access to the index partitions locally on each {@link IDataService}.
-         * 
-         * @see #NCLIENTS
+         * An integer describing minimum #of client services to which
+         * the clients will be submitted for execution.
          */
-        String CLIENTS_TEMPLATE = "clientsTemplate";
-
-        /**
-         * The #of aggregators to start (default is ZERO(0)). The aggregators
-         * will be distributed across the discovered {@link IRemoteExecutor}s
-         * in the federation matching the {@link #AGGREGATORS_TEMPLATE}.
-         * 
-         * @see #AGGREGATORS_TEMPLATE
-         * 
-         * @deprecated This is a trial feature which is not fully implemented.
-         */
-        String NAGGREGATORS = "naggregators";
-
-        /**
-         * A {@link ServiceTemplate} describing the types of services, and the
-         * minimum #of services, on which aggregation for asynchronous index
-         * writes will be performed (default is <code>null</code>, which
-         * means that aggregators will not be discovered).
-         * <p>
-         * The aggregator plays a role similar to the "reduce" of a map/reduce
-         * architecture. However, unlike map/reduce, an aggregator does not
-         * fully buffer the output set of the clients. Instead, each aggregator
-         * combines asynchronous index partition writes from multiple clients,
-         * splits those writes based on the current index partitions, and
-         * buffers chunks destined for each index partition until either the
-         * chunk size or the chunk timeout has been satisfied, at which point
-         * the chunk is written onto the corresponding index partition.
-         * <p>
-         * An aggregation step is necessary when there are a large #of index
-         * partitions for some index. Without an aggregator, each client will
-         * attempt to fill a chunk destined for each index partition. As the #of
-         * index partitions increases, clients can run at 100% CPU utilization
-         * trying to fill those chunks. When this occurs, the client is at the
-         * single machine limit.
-         * <p>
-         * By introducing an aggregation step, the client writes on a buffer
-         * which is drained by a thread writing onto the specified
-         * aggregator(s). This allows many more clients to run when compared
-         * with the #of services buffering chunks and performing the index
-         * writes. By decomposing the production and buffering stages we are
-         * able to get around the single machine limit.
-         * <p>
-         * Aggregators are essentially specialized clients and may execute in
-         * any {@link IClientService} container. They may be restricted to
-         * execute on only those services having specific attributes using this
-         * template.
-         * 
-         * @see #NAGGREGATORS
-         * 
-         * @todo #of aggregators per index.
-         * 
-         * @todo Each aggregator can be its own service so each index could be
-         *       aggregated by a different aggregator on a different host.
-         *       <p>
-         *       Aggregator failure requires either restart of the job or
-         *       re-processing of all source "documents" whose write set has not
-         *       yet been made restart safe. In order to track that, we need to
-         *       use a proxy for a {@link KVOLatch} for scale-out index for each
-         *       document processed. When the write set for a scale-out index
-         *       for that document is complete, the latch is triggered and the
-         *       client is notified.
-         * 
-         * @deprecated This is a trial feature which is not fully implemented.
-         */
-        String AGGREGATORS_TEMPLATE = "aggregatorsTemplate";
+        String CLIENT_SERVICE_COUNT = "clientServiceCount";
 
         /**
          * An array of zero or more {@link ServicesTemplate} describing the
@@ -391,29 +314,12 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
         public final int nclients;
 
         /**
-         * The {@link ServicesTemplate} describing the types of services and the
-         * minimum #of services to which the clients will be distributed for
-         * remote execution.
+         * The minimum number of client services to which the clients will
+         * be distributed for remote execution.
          * 
          * @see ConfigurationOptions#CLIENTS_TEMPLATE
          */
-        public final ServicesTemplate clientsTemplate;
-
-        /**
-         * The #of aggregator tasks.
-         * 
-         * @see ConfigurationOptions#NAGGREGATORS
-         */
-        public final int naggregators;
-
-        /**
-         * The {@link ServicesTemplate} describing the types of services and the
-         * minimum #of services for aggregating asynchronous index writes
-         * performed by the clients.
-         * 
-         * @see ConfigurationOptions#AGGREGATORS_TEMPLATE
-         */
-        public final ServicesTemplate aggregatorsTemplate;
+        public final int clientServiceCount;
 
         /**
          * An array of zero or more {@link ServicesTemplate} describing the
@@ -466,6 +372,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
 
         }
 
+        @Override
         public String toString() {
 
             final StringBuilder sb = new StringBuilder();
@@ -484,14 +391,8 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
 
             sb.append(", " + ConfigurationOptions.NCLIENTS + "=" + nclients);
 
-//            sb.append(", " + ConfigurationOptions.NAGGREGATORS + "="
-//                    + naggregators);
-
-            sb.append(", " + ConfigurationOptions.CLIENTS_TEMPLATE + "="
-                    + clientsTemplate);
-
-//            sb.append(", " + ConfigurationOptions.AGGREGATORS_TEMPLATE + "="
-//                    + aggregatorsTemplate);
+            sb.append(", " + ConfigurationOptions.CLIENT_SERVICE_COUNT + "="
+                    + clientServiceCount);
 
             sb.append(", " + ConfigurationOptions.SERVICES_TEMPLATES + "="
                     + Arrays.toString(servicesTemplates));
@@ -546,17 +447,8 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
             nclients = (Integer) config.getEntry(component,
                     ConfigurationOptions.NCLIENTS, Integer.TYPE);
 
-            naggregators = (Integer) config
-                    .getEntry(component, ConfigurationOptions.NAGGREGATORS,
-                            Integer.TYPE, 0/* default */);
-
-            clientsTemplate = (ServicesTemplate) config.getEntry(component,
-                    ConfigurationOptions.CLIENTS_TEMPLATE,
-                    ServicesTemplate.class);
-
-            aggregatorsTemplate = (ServicesTemplate) config.getEntry(component,
-                    ConfigurationOptions.AGGREGATORS_TEMPLATE,
-                    ServicesTemplate.class, null/* default */);
+            clientServiceCount = (Integer) config.getEntry(component,
+                    ConfigurationOptions.CLIENT_SERVICE_COUNT, Integer.TYPE);
 
             servicesTemplates = (ServicesTemplate[]) config.getEntry(component,
                     ConfigurationOptions.SERVICES_TEMPLATES,
@@ -585,26 +477,13 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
              */
 
             clientServiceMap = new ServiceMap(nclients);
-
-            /*
-             * Aggregator/service maps.
-             */
-
-            aggregatorServiceMap = new ServiceMap(naggregators);
-
         }
 
         /**
-         * The mapping of clients onto the {@link IRemoteExecutor}s on which
+         * The mapping of clients onto the {@link IClientService}s on which
          * that client will execute.
          */
         final public ServiceMap clientServiceMap;
-
-        /**
-         * The mapping of aggregators onto the {@link IRemoteExecutor}s on
-         * which that aggregator will execute.
-         */
-        final public ServiceMap aggregatorServiceMap;
 
         /**
          * Return the zpath of the node for all jobs which are instances of the
@@ -715,6 +594,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
          */
         Runtime.getRuntime().addShutdownHook(new Thread() {
 
+            @Override
             public void run() {
 
                 future.cancel(true/* mayInterruptIfRunning */);
@@ -922,7 +802,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
      * returns a map containing their {@link Future}s. The kind of service on
      * which the clients are run is determined by
      * {@link JobState#clientsTemplate} but must implement
-     * {@link IRemoteExecutor}. Clients are assigned to the services using a
+     * {@link IClientService}. Clients are assigned to the services using a
      * stable ordered assignment {@link JobState#clientServiceUUIDs}. If there
      * are more clients than services, then some services will be tasked with
      * more than one client. If there is a problem submitting the clients then
@@ -931,7 +811,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
      * 
      * @throws IOException
      *             If there is an RMI problem submitting the clients to the
-     *             {@link IRemoteExecutor}s.
+     *             {@link IClientService}s.
      * @throws ConfigurationException
      * 
      * @see {@link JobState#futures}
@@ -950,36 +830,13 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
 
             for (int clientNum = 0; clientNum < jobState.nclients; clientNum++) {
 
-                final ServiceItem serviceItem = jobState.clientServiceMap
-                        .getServiceItem(clientNum);
+                final IClientService service = jobState.clientServiceMap
+                        .getService(clientNum);
 
-                if (serviceItem == null) {
-
-                    /*
-                     * Note: The ServiceItem should have been resolved when we
-                     * setup the JobState, even if the JobState was read from
-                     * zookeeper.
-                     */
-                    throw new RuntimeException(
-                            "ServiceItem not resolved? client#=" + clientNum);
-
-                }
-
-                if (!(serviceItem.service instanceof IRemoteExecutor)) {
-
-                    throw new RuntimeException("Service does not implement "
-                            + IRemoteExecutor.class + ", serviceItem="
-                            + serviceItem);
-
-                }
-
-                final IRemoteExecutor service = (IRemoteExecutor) serviceItem.service;
-
-                final Callable<U> clientTask = newClientTask(clientNum);
+                final IClientServiceCallable<U> clientTask = newClientTask(clientNum);
 
                 if (log.isInfoEnabled())
-                    log.info("Running client#=" + clientNum + " on "
-                            + serviceItem);
+                    log.info("Running client#=" + clientNum + " on " + service);
 
                 jobState.futures.put(clientNum, (Future<U>) service
                         .submit(clientTask));
@@ -1317,14 +1174,11 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
                     /*
                      * Assign clients to services.
                      */
-                    final DiscoveredServices discoveredServices = new DiscoverServicesWithPreconditionsTask()
-                            .call();
+                    final ServiceItem[] discoveredServices =
+                            new DiscoverServicesWithPreconditionsTask().call();
 
                     jobState.clientServiceMap
-                            .assignClientsToServices(discoveredServices.clientServiceItems);
-
-                    jobState.aggregatorServiceMap
-                            .assignClientsToServices(discoveredServices.aggregatorServiceItems);
+                            .assignClientsToServices(discoveredServices);
 
                     // write those assignments into zookeeper.
                     zookeeper.setData(jobZPath, SerializerUtil
@@ -1367,8 +1221,6 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
                         jobZPath, false, new Stat()));
 
                 jobState.clientServiceMap.resolveServiceUUIDs(fed);
-
-                jobState.aggregatorServiceMap.resolveServiceUUIDs(fed);
 
                 jobState.resumedJob = true;
 
@@ -1432,42 +1284,6 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
     }
     
     /**
-     * Class used to return the discovered services.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class DiscoveredServices {
-
-        /**
-         * The services on which the clients will be executed.
-         */
-        final public ServiceItem[] clientServiceItems;
-
-        /**
-         * The services on which the aggregators will be executed (and an empty
-         * array if no aggregator services were requested).
-         */
-        final public ServiceItem[] aggregatorServiceItems;
-
-        public DiscoveredServices(final ServiceItem[] clientServiceItems,
-                final ServiceItem[] aggregatorServiceItems) {
-
-            if (clientServiceItems == null)
-                throw new IllegalArgumentException();
-
-            if (aggregatorServiceItems == null)
-                throw new IllegalArgumentException();
-
-            this.clientServiceItems = clientServiceItems;
-
-            this.aggregatorServiceItems = aggregatorServiceItems;
-
-        }
-
-    }
-
-    /**
      * Class awaits discovery of all services required by the {@link JobState}
      * up to the {@link JobState#servicesDiscoveryTimeout} and returns the
      * {@link ServiceItem}s for the services on which the clients should be
@@ -1477,7 +1293,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
      * @version $Id$
      */
     private class DiscoverServicesWithPreconditionsTask implements
-            Callable<DiscoveredServices> {
+            Callable<ServiceItem[]> {
 
         public DiscoverServicesWithPreconditionsTask() {
 
@@ -1489,10 +1305,9 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
          * {@link JobState#clientsTemplate}.
          * 
          * @return An object reporting the discovered services which match the
-         *         {@link JobState#clientsTemplate} and the optional
-         *         {@link JobState#aggregatorsTemplate}.
+         *         {@link JobState#clientsTemplate}.
          */
-        public DiscoveredServices call() throws Exception {
+        public ServiceItem[] call() throws Exception {
 
             if (jobState == null)
                 throw new IllegalArgumentException();
@@ -1507,26 +1322,16 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
              * This is the task that will give us the services on which the
              * clients will execute.
              */
+            ServicesTemplate clientsTemplate = new ServicesTemplate(
+                jobState.clientServiceCount, // minMatches
+		new ServiceTemplate(null, //serviceID
+                    new Class[]{ com.bigdata.service.IClientService.class },
+		    null),
+                null);
             final Future<ServiceItem[]> discoverClientServicesFuture = fed
                     .getExecutorService().submit(
-                            new DiscoverServices(fed, jobState.clientsTemplate,
+                            new DiscoverServices(fed, clientsTemplate,
                                     jobState.servicesDiscoveryTimeout));
-
-            final Future<ServiceItem[]> discoverAggregatorServicesFuture;
-            if (jobState.aggregatorsTemplate != null) {
-                /*
-                 * This task will give us the services on which the
-                 * aggregator(s) will execute.
-                 */
-                discoverAggregatorServicesFuture = fed.getExecutorService()
-                        .submit(
-                                new DiscoverServices(fed,
-                                        jobState.aggregatorsTemplate,
-                                        jobState.servicesDiscoveryTimeout));
-            } else {
-                // aggregator is not used.
-                discoverAggregatorServicesFuture = null;
-            }
 
             /*
              * Additional tasks for the other services which must be discovered
@@ -1555,42 +1360,16 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
             final ServiceItem[] clientServiceItems = discoverClientServicesFuture
                     .get();
 
-            if (clientServiceItems.length < jobState.clientsTemplate.minMatches) {
+            if (clientServiceItems.length < jobState.clientServiceCount) {
 
                 final String msg = "Not enough services to run clients: found="
                         + clientServiceItems.length + ", required="
-                        + jobState.clientsTemplate.minMatches + ", template="
-                        + jobState.clientsTemplate;
+                        + jobState.clientServiceCount;
 
                 log.error(msg);
 
                 causes.add(new RuntimeException(msg));
 
-            }
-
-            final ServiceItem[] aggregatorServiceItems;
-            if (jobState.aggregatorsTemplate != null) {
-                /*
-                 * Get the future, which gives the services on which we will
-                 * execute the aggregators.
-                 */
-                aggregatorServiceItems = discoverAggregatorServicesFuture.get();
-                if (aggregatorServiceItems.length < jobState.aggregatorsTemplate.minMatches) {
-
-                    final String msg = "Not enough services to run aggregators: found="
-                            + aggregatorServiceItems.length
-                            + ", required="
-                            + jobState.aggregatorsTemplate.minMatches
-                            + ", template=" + jobState.aggregatorsTemplate;
-
-                    log.error(msg);
-
-                    causes.add(new RuntimeException(msg));
-
-                }
-            } else {
-                // No aggregators (empty array).
-                aggregatorServiceItems = new ServiceItem[0];
             }
 
             /*
@@ -1637,8 +1416,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState, T extends Callab
 
             }
 
-            return new DiscoveredServices(clientServiceItems,
-                    aggregatorServiceItems);
+            return clientServiceItems;
 
         }
 

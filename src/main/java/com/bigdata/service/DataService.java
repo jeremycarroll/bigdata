@@ -90,7 +90,6 @@ import com.bigdata.service.jini.DataServer;
  * appropriate concurrency controls as imposed by that method.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @see DataServer, which is used to start this service.
  * 
@@ -131,7 +130,6 @@ abstract public class DataService extends AbstractService
      * Options understood by the {@link DataService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static interface Options extends com.bigdata.journal.Options,
             com.bigdata.journal.ConcurrencyManager.Options,
@@ -148,7 +146,6 @@ abstract public class DataService extends AbstractService
      *       unisolated tasks at the present).
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected static class ReadBlockCounters {
         
@@ -325,7 +322,6 @@ abstract public class DataService extends AbstractService
      * on a {@link DataService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public class DataServiceTransactionManager extends
             AbstractLocalTransactionManager {
@@ -391,7 +387,6 @@ abstract public class DataService extends AbstractService
      * {@link AbstractClient} for those additional features to work.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static public class DataServiceFederationDelegate extends
             DefaultServiceFederationDelegate<DataService> {
@@ -732,7 +727,6 @@ abstract public class DataService extends AbstractService
      * uses.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static interface IDataServiceCounters extends
             ConcurrencyManager.IConcurrencyManagerCounters,
@@ -1020,7 +1014,6 @@ abstract public class DataService extends AbstractService
      * {@link IDataService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private static class DistributedCommitTask extends AbstractTask<Void> {
 
@@ -1379,7 +1372,6 @@ abstract public class DataService extends AbstractService
      * specified timestamp.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class GetIndexMetadataTask extends AbstractTask {
 
@@ -1431,18 +1423,6 @@ abstract public class DataService extends AbstractService
             final AbstractTask task = new IndexProcedureTask(
                     concurrencyManager, timestamp, name, proc);
             
-            if (task instanceof IFederationCallable) {
-
-                ((IFederationCallable) task).setFederation(getFederation());
-
-            }
-
-            if (task instanceof IDataServiceCallable) {
-
-                ((IDataServiceCallable) task).setDataService(this);
-
-            }
-            
             // submit the procedure and await its completion.
             return concurrencyManager.submit(task);
         
@@ -1467,7 +1447,7 @@ abstract public class DataService extends AbstractService
      *       for example, if they use {@link AbstractFederation#shutdownNow()}
      *       then the {@link DataService} itself would be shutdown.
      */
-    public Future<? extends Object> submit(final Callable<? extends Object> task) {
+    public <T> Future<T> submit(final IDataServiceCallable<T> task) {
 
         setupLoggingContext();
 
@@ -1476,26 +1456,9 @@ abstract public class DataService extends AbstractService
             if (task == null)
                 throw new IllegalArgumentException();
 
-            /*
-             * Submit to the ExecutorService for the DataService's federation
-             * object. This is used for tasks which are not associated with a
-             * timestamp and hence not linked to any specific view of the named
-             * indices.
-             */
-
-            if (task instanceof IFederationCallable) {
-
-                ((IFederationCallable) task).setFederation(getFederation());
-
-            }
-            if (task instanceof IDataServiceCallable) {
-
-                ((IDataServiceCallable) task).setDataService(this);
-
-            }
-
             // submit the task and return its Future.
-            return getFederation().getExecutorService().submit(task);
+            return getFederation().getExecutorService().submit(
+                    new DataTaskWrapper(getFederation(), this, task));
 
         } finally {
 
@@ -1505,6 +1468,22 @@ abstract public class DataService extends AbstractService
 
     }
     
+    private static class DataTaskWrapper<T> implements Callable<T> {
+        private IBigdataFederation federation;
+        private DataService dataService;
+        private IDataServiceCallable<T> task;
+        private DataTaskWrapper(IBigdataFederation federation,
+                                DataService dataService,
+                                IDataServiceCallable<T> task) {
+            this.federation = federation;
+            this.dataService = dataService;
+            this.task = task;
+        }
+        public T call() throws Exception {
+            return task.startDataTask(federation, dataService);
+        }
+    }
+
     /**
      * Encapsulate the {@link Future} within a proxy that may be marshalled by
      * RMI and sent to a remote client. The client will interact with the
@@ -1671,7 +1650,6 @@ abstract public class DataService extends AbstractService
      * Task for running a rangeIterator operation.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static protected class RangeIteratorTask extends AbstractTask {
 
@@ -1831,7 +1809,6 @@ abstract public class DataService extends AbstractService
      * the next group commit.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private class ForceOverflowTask implements Callable<Void> {
 

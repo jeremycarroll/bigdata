@@ -66,6 +66,7 @@ import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.config.Configuration;
 import com.bigdata.jini.lookup.entry.Hostname;
 import com.bigdata.journal.DumpJournal;
+import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.IResourceMetadata;
@@ -76,8 +77,8 @@ import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StoreManager;
 import com.bigdata.resources.StoreManager.ManagedJournal;
 import com.bigdata.service.DataService;
-import com.bigdata.service.DataServiceCallable;
 import com.bigdata.service.IDataService;
+import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.ListIndicesTask;
 import com.bigdata.service.MetadataService;
@@ -1534,8 +1535,9 @@ public class DumpFederation {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    static public class FetchIndexPartitionByteCountRecordTask extends
-            DataServiceCallable<IndexPartitionDetailRecord> {
+    static public class FetchIndexPartitionByteCountRecordTask
+            implements IDataServiceCallable<IndexPartitionDetailRecord>
+    {
 
         /**
          * 
@@ -1567,10 +1569,12 @@ public class DumpFederation {
             
         }
 
-        public IndexPartitionDetailRecord call() throws Exception {
+        public IndexPartitionDetailRecord startDataTask(
+                        IIndexManager indexManager, DataService dataService)
+                throws Exception {
 
-            final ResourceManager resourceManager = getDataService()
-                    .getResourceManager();
+            final ResourceManager resourceManager =
+                    dataService.getResourceManager();
 
             return new IndexPartitionDetailRecord(resourceManager, timestamp,
                     name);
