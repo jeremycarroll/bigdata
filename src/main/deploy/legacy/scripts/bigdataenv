@@ -79,25 +79,6 @@ export PATH=${JAVA_HOME}/bin:@BIN_DIR@:${PATH}
 export CLASSPATH="@CLASSPATH@"
 
 #
-# Java options used to start utility classes.  The utility classes
-# typically do not have large heap demands.  This does NOT include
-# the CLASSPATH so it is easier to extend the classpath for 3rd
-# party components.
-#
-# Note: The java options for the services are configured in the main
-# configuration file.
-#
-export JAVA_OPTS="-server -ea \
-    -showversion \
-    -Dcom.sun.jini.jeri.tcp.useNIO=@USE_NIO@ \
-    -Djava.security.policy=${BIGDATA_POLICY} \
-    -Dlog4j.configuration=${BIGDATA_LOG4J_CONFIG} \
-    -Djava.util.logging.config.file=${BIGDATA_LOGGING_CONFIG} \
-    -Dcom.bigdata.counters.linux.sysstat.path=${SYSSTAT_HOME} \
-    -DappHome=@APP_HOME@ \
-"
-
-#
 # Other things required by the 'bigdata' script.
 #
 # $lockFile - The bigdata subsystem lock file.
@@ -137,6 +118,25 @@ export BIGDATA_LOG4J_CONFIG="@LOG4J_CONFIG@"
 # The java.util.logging configuration file (jini uses java.util.logging).
 #
 export BIGDATA_LOGGING_CONFIG=@LOGGING_CONFIG@
+
+#
+# Java options used to start utility classes.  The utility classes
+# typically do not have large heap demands.  This does NOT include
+# the CLASSPATH so it is easier to extend the classpath for 3rd
+# party components.
+#
+# Note: The java options for the services are configured in the main
+# configuration file.
+#
+export JAVA_OPTS="-server -ea \
+    -Xmx512m \
+    -showversion \
+    -Dcom.sun.jini.jeri.tcp.useNIO=@USE_NIO@ \
+    -Djava.security.policy=${BIGDATA_POLICY} \
+    -Dlog4j.configuration=${BIGDATA_LOG4J_CONFIG} \
+    -Djava.util.logging.config.file=${BIGDATA_LOGGING_CONFIG} \
+    -Dcom.bigdata.counters.linux.sysstat.path=${SYSSTAT_HOME} \
+"
 
 #
 # Location of the various log files.

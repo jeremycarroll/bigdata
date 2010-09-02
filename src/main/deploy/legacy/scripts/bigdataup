@@ -58,18 +58,6 @@ if [ 0 != $? ]; then
 fi
 echo $"`date` : `hostname` : created lock file."
 
-# @todo note the pid and look for it before attempting to start the service.
-#
-# Note: Explicitly specify a small heap.
-if [ "@LOG4J_SOCKET_LOGGER_HOST@" == "`hostname`" ]; then
-	echo $"`date` : `hostname` : starting log4j server."
-	java -cp ${CLASSPATH} \
-		-Xmx400m \
-	    org.apache.log4j.net.SimpleSocketServer \
-    	@LOG4J_SOCKET_LOGGER_PORT@ \
-    	@LOG4J_SOCKET_LOGGER_CONFIG@&
-fi
-
 # Start the services manager on this host.
 #
 # Note: This explicitly specifies a small heap for the services manager since

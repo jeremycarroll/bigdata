@@ -97,10 +97,6 @@
             <replacefilter token="@BIGDATA_CONFIG@" value="${bigdata.config}" />
             <replacefilter token="@JINI_CONFIG@" value="${jini.config}" />
             <replacefilter token="@POLICY_FILE@" value="${policyFile}" />
-            <replacefilter token="@LOG4J_SOCKET_LOGGER_HOST@" value="${LOG4J_SOCKET_LOGGER_HOST}" />
-            <replacefilter token="@LOG4J_SOCKET_LOGGER_PORT@" value="${LOG4J_SOCKET_LOGGER_PORT}" />
-            <replacefilter token="@LOG4J_SOCKET_LOGGER_CONFIG@" value="${log4jServer.config}" />
-            <replacefilter token="@LOG4J_DATE_PATTERN@" value="${LOG4J_DATE_PATTERN}" />
             <replacefilter token="@LOG4J_CONFIG@" value="${log4j.config}" />
             <replacefilter token="@LOGGING_CONFIG@" value="${logging.config}" />
             <replacefilter token="@ERROR_LOG@" value="${errorLog}" />
@@ -121,7 +117,6 @@
             <replacefilter token="@FED@" value="${FED}" />
             <replacefilter token="@NAS@" value="${NAS}" />
             <replacefilter token="@LAS@" value="${LAS}" />
-            <replacefilter token="@LOG4J_SOCKET_LOGGER_HOST@" value="${LOG4J_SOCKET_LOGGER_HOST}" />
             <replacefilter token="@JAVA_HOME@" value="${JAVA_HOME}" />
             <replacefilter token="@JINI_CLASS_SERVER_PORT@" value="${JINI_CLASS_SERVER_PORT}" />
             <replacefilter token="@LOAD_BALANCER_PORT@" value="${LOAD_BALANCER_PORT}" />
@@ -137,10 +132,6 @@
             <replacefilter token="@BIGDATA_CONFIG@" value="${bigdata.config}" />
             <replacefilter token="@JINI_CONFIG@" value="${jini.config}" />
             <replacefilter token="@POLICY_FILE@" value="${policyFile}" />
-            <replacefilter token="@LOG4J_SOCKET_LOGGER_HOST@" value="${LOG4J_SOCKET_LOGGER_HOST}" />
-            <replacefilter token="@LOG4J_SOCKET_LOGGER_PORT@" value="${LOG4J_SOCKET_LOGGER_PORT}" />
-            <replacefilter token="@LOG4J_SOCKET_LOGGER_CONFIG@" value="${log4jServer.config}" />
-            <replacefilter token="@LOG4J_DATE_PATTERN@" value="${LOG4J_DATE_PATTERN}" />
             <replacefilter token="@LOG4J_CONFIG@" value="${log4j.config}" />
             <replacefilter token="@LOGGING_CONFIG@" value="${logging.config}" />
             <replacefilter token="@ERROR_LOG@" value="${errorLog}" />

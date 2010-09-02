@@ -14,10 +14,6 @@ logging.properties - A default Java logging configuration.  This may be used
 					 to control the log levels for jini/river, which uses
 					 java logging rather than log4j.
 
-log4jServer.properties - A default log4j configuration file if you decide to
-					     use the log4j SimpleSocketServer to aggregate log4j
-					     messages from the federation.
-					     
 policy.all - A default java permissions file.  This file grants ALL permissions.
 			 You may specify a more rigorous security policy.
 
