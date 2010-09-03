@@ -1,0 +1,307 @@
+<project name="bigdata-tests" default="junit" basedir=".">
+
+    <!-- assumes that this script is being run from the uncorked deployment artifact, either in the build's target directory or on a test machine. -->
+    <property name="deploy.dir" location="${basedir}/.." />
+    <property name="app.home" location="${deploy.dir}" />
+    <property name="deploy.conf.dir" location="${deploy.dir}/conf" />
+    <property name="deploy.lib" location="${deploy.dir}/lib" />
+    <property name="deploy.lib.test" location="${deploy.dir}/testing/lib-test" />
+    <property name="deploy.lib.dl" location="${deploy.dir}/lib-dl" />
+    <property name="test.codebase.dir" location="${deploy.lib.dl}" />
+    <property name="test.codebase.port" value="23333" />
+    <property name="java.security.policy" location="conf/policy.all" />
+    <property name="log4j.configuration" location="${deploy.dir}/var/config/logging/log4j.properties" />
+    <property name="java.net.preferIPv4Stack" value="true" />
+    <property name="default.nic" value="eth0" />
+    <property name="parent.artifactName" value="bigdata-core" />
+
+    <path  id="runtime.classpath">
+        <fileset  dir="${deploy.lib}">
+            <include name="**/*jar" />
+        </fileset>
+    </path>
+
+    <path id="junit.classpath">
+        <fileset  dir="${deploy.lib.test}">
+            <include name="**/*jar" />
+        </fileset>
+        <path refid="runtime.classpath" />
+    </path>
+
+
+    <target name="setup" >
+        <exec executable="hostname" outputproperty="this.hostname" />
+        <property name="test.codebase" value="http://${this.hostname}:${test.codebase.port}/jsk-dl.jar" />
+        <property name="federation.name" value="bigdata.test.group-${this.hostname}" />
+    </target>
+
+    <target name="junit" description="starts http class server, lookup service, runs junit tests, stops lookup service, stops http class server."
+        depends="setup"
+    >
+        <antcall target="startTestServices" />
+        <antcall target="run-junit" /><!-- Run the tests -->
+        <antcall target="stopTestServices" />
+        <!-- This message is noticed by the hudson build and is used to trigger
+           after various after actions. -->
+      <echo>JUNIT RUN COMPLETE</echo>
+    </target>
+
+    <target name="startTestServices">
+        <antcall target="startHttpd" />
+        <antcall target="startLookup" />
+    </target>
+
+    <target name="stopTestServices">
+        <antcall target="stopLookup" />
+        <antcall target="stopHttpd" />
+    </target>
+
+    <target name="startHttpd">
+      <echo>java -jar ${deploy.lib}/classserver.jar -verbose -stoppable -port ${test.codebase.port} -dir ${test.codebase.dir}
+</echo>
+      <java jar="${deploy.lib}/classserver.jar"
+            fork="true"
+            spawn="true">
+        <arg value="-verbose" />
+        <arg value="-stoppable" />
+        <arg line="-port ${test.codebase.port}" />
+        <arg line="-dir  '${test.codebase.dir}'" />
+      </java>
+    </target>
+
+    <target name="stopHttpd">
+      <echo>java -jar ${deploy.lib}/classserver.jar -port ${test.codebase.port} -dir ${test.codebase.dir} -stop
+</echo>
+      <java jar="${deploy.lib}/classserver.jar"
+            fork="true"
+            spawn="false"
+            failonerror="true">
+        <arg line="-port ${test.codebase.port}" />
+        <arg line="-dir  '${test.codebase.dir}'" />
+        <arg value="-stop" />
+      </java>
+    </target>
+
+    <target name="startLookup" depends="setup">
+      <echo>java -Dapp.home=${app.home} -Djini.lib=${deploy.lib} -Djini.lib.dl=${deploy.lib.dl} -Djava.security.policy=${java.security.policy} -Djava.security.debug=off -Djava.protocol.handler.pkgs=net.jini.url -Dlog4j.configuration=${log4j.configuration} -Dcodebase.port=${test.codebase.port} -Djava.net.preferIPv4Stack=${java.net.preferIPv4Stack} -Dfederation.name=${federation.name} -Ddefault.nic=${default.nic} -jar ${deploy.lib}/${parent.artifactName}-lookupstarter.jar
+</echo>
+      <echo>
+</echo>
+
+      <java jar="${deploy.lib}/${parent.artifactName}-lookupstarter.jar"
+            fork="true"
+            spawn="true">
+        <sysproperty key="app.home" value="${app.home}" />
+        <sysproperty key="jini.lib" value="${deploy.lib}" />
+        <sysproperty key="jini.lib.dl" value="${deploy.lib.dl}" />
+        <sysproperty key="java.security.policy" value="${java.security.policy}" />
+        <sysproperty key="java.security.debug" value="off" />
+        <sysproperty key="java.protocol.handler.pkgs" value="net.jini.url" />
+        <sysproperty key="log4j.configuration" value="${log4j.configuration}" />
+        <sysproperty key="codebase.port" value="${test.codebase.port}" />
+        <sysproperty key="java.net.preferIPv4Stack" value="${java.net.preferIPv4Stack}" />
+        <sysproperty key="federation.name" value="${federation.name}" />
+        <sysproperty key="default.nic" value="${default.nic}" />
+      </java>
+    </target>
+
+    <target name="stopLookup" depends="setup">
+      <echo>java -Dapp.home=${app.home} -Djini.lib=${deploy.lib} -Djini.lib.dl=${deploy.lib.dl} -Djava.security.policy=${java.security.policy} -Dlog4j.configuration=${log4j.configuration} -Djava.net.preferIPv4Stack=${java.net.preferIPv4Stack} -Dfederation.name=${federation.name} -Ddefault.nic=${default.nic} -jar ${bigdata-test.lib}/${parent.artifactName}-lookupstarter.jar -stop
+</echo>
+      <echo>
+</echo>
+      <java jar="${deploy.lib}/${parent.artifactName}-lookupstarter.jar"
+            fork="true"
+            spawn="false"
+            failonerror="true">
+        <sysproperty key="app.home" value="${app.home}" />
+        <sysproperty key="jini.lib" value="${deploy.lib}" />
+        <sysproperty key="jini.lib.dl" value="${deploy.lib.dl}" />
+        <sysproperty key="java.security.policy" value="${java.security.policy}" />
+        <sysproperty key="log4j.configuration" value="${log4j.configuration}" />
+        <sysproperty key="java.net.preferIPv4Stack" value="${java.net.preferIPv4Stack}" />
+        <sysproperty key="federation.name" value="${federation.name}" />
+        <sysproperty key="default.nic" value="${default.nic}" />
+        <arg value="-stop" />
+      </java>
+    </target>
+
+    <!-- runs all junit tests -->
+    <target name="run-junit" depends="setup">
+
+
+
+      <pathconvert  property = "junit.classpath.text" refid="junit.classpath" />
+
+      <echo>.    
+                classpath:    ${junit.classpath.text}
+                log4j.config: ${log4j.configuration}
+                log4j.abs:    ${bigdata.test.log4j.abs}
+                app.home:     ${app.home}
+                jini.lib:     ${deploy.lib}
+                jini.lib.dl:  ${deploy.lib.dl}
+                policy:       ${java.security.policy}
+                default.nic:  ${default.nic}
+                hostname:     ${this.hostname}
+                preferIPv4:   ${java.net.preferIPv4Stack}
+                federation:   ${federation.name}
+      </echo>
+
+      <property name="test.results.dir" location="${basedir}/test-results" />
+      <delete dir="${test.results.dir}" quiet="true" />
+      <mkdir dir="${test.results.dir}" />
+
+      <condition property="testClass" value="${testName}">
+        <isset property="testName" />
+      </condition>
+
+      <junit printsummary="on" haltonfailure="no" >
+        <formatter type="xml" />
+
+        <sysproperty key="java.security.policy" value="${java.security.policy}" />
+        <sysproperty key="java.net.preferIPv4Stack" value="{java.net.preferIPv4Stack}" />
+
+        <sysproperty key="log4j.configuration" value="${log4j.configuration}" />
+<!--
+        <sysproperty key="log4j.debug" value="true" />
+-->
+        <!-- There is at least one service that is started by the test  -->
+        <!-- infrastructure from within program control (zookeeper).    -->
+        <!-- Prior to starting that service, a number of values may be  -->
+        <!-- retrieved from a jini configuration file. To avoid         -->
+        <!-- hard-coding things like absolute paths and version         -->
+        <!-- information in those jini configuration files, the Java    -->
+        <!-- property substitution mechanism is employed to allow one   -->
+        <!-- to set the necessary values in a system property here, in  -->
+        <!-- one place, and then simply reference that system property  -->
+        <!-- in the appropriate places in each configuration file.      -->
+        <!--                                                            -->
+        <!-- For example, prior to starting the zookeeper component,    -->
+        <!-- the entry named 'log4j' is retrieved from a jini config    -->
+        <!-- and the system property '-Dlog4j.configuration' is set to  -->
+        <!-- the value that is retrieved. Because the ant-build/classes -->
+        <!-- directory is not included in the classpath used to start   -->
+        <!-- zookeeper, the relative path value in the                  -->
+        <!-- 'log4j.configuration' system property that is set in       -->
+        <!-- this file cannot be used in the zookeeper component of     -->
+        <!-- the jini config file; rather, the absolute path must be    -->
+        <!-- used. Because of this, the 'log4j.path' system property    -->
+        <!-- is set to the absolute path below; and will be substituted -->
+        <!-- when the 'log4j' entry is retrieved from the config file.  -->
+        <!--                                                            -->
+        <!-- To avoid having to specify a specific jar file versions    -->
+        <!-- for the classpath entry of such a config file, system      -->
+        <!-- properties referencing the absolute paths of the various   -->
+        <!-- versioned jar files referenced above are similarly set.    -->
+        <!-- In this way, when a new version of such a jar is deployed, -->
+        <!-- changing the appropriate property value above is all       -->
+        <!-- that should be required.                                   -->
+
+        <!-- This is a workaround for a JVM bug which can result in a   -->
+        <!-- lost wakeup.  This bug is fixed in JDK1.6.0_18.  However,  -->
+        <!-- JDK1.6.0_18 has other problems which result in segfaults.  -->
+        <!--                                                            -->
+        <!-- http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6822370 -->
+        <jvmarg value="-XX:+UseMembar" />
+        <jvmarg value="-Xmx4G" />
+
+        <classpath refid="junit.classpath" />
+
+        <sysproperty key="basedir" value="${basedir}" /> <!-- Tells the unit tests where the ant script is, so they can find resources. -->
+        <sysproperty key="app.home" value="${app.home}" /> <!-- This is the deployment directory, easily accessed by the DataFinder class. -->
+        <sysproperty key="log4j.path" value="${log4j.configuration}" />
+        <sysproperty key="default.nic" value="${default.nic}" />
+        <!-- Jini group name -->
+        <sysproperty key="federation.name" value="${federation.name}" />
+        <sysproperty key="java.class.path" value="${junit.classpath.text}" />
+
+
+        <sysproperty key="classserver.jar" value="${deploy.lib}/classserver.jar" />
+        <sysproperty key="colt.jar" value="${deploy.lib}/colt.jar" />
+        <sysproperty key="ctc_utils.jar" value="${deploy.lib}/ctc_utils.jar" />
+        <sysproperty key="cweb-commons.jar" value="${deploy.lib}/cweb-commons.jar" />
+        <sysproperty key="cweb-extser.jar" value="${deploy.lib}/cweb-extser.jar" />
+        <sysproperty key="highscalelib.jar" value="${deploy.lib}/highscalelib.jar" />
+        <sysproperty key="dsiutils.jar" value="${deploy.lib}/dsiutils.jar" />
+        <sysproperty key="lgplutils.jar" value="${deploy.lib}/lgplutils.jar" />
+        <sysproperty key="fastutil.jar" value="${deploy.lib}/fastutil.jar" />
+        <sysproperty key="icu4j.jar" value="${deploy.lib}/icu4j.jar" />
+        <sysproperty key="jsk-lib.jar" value="${deploy.lib}/jsk-lib.jar" />
+        <sysproperty key="jsk-platform.jar" value="${deploy.lib}/jsk-platform.jar" />
+        <sysproperty key="log4j.jar" value="${deploy.lib}/log4j.jar" />
+        <sysproperty key="iris.jar" value="${deploy.lib}/iris.jar" />
+        <sysproperty key="jgrapht.jar" value="${deploy.lib}/jgrapht.jar" />
+        <sysproperty key="openrdf-sesame.jar" value="${deploy.lib}/openrdf-sesame.jar" />
+        <sysproperty key="slf4j.jar" value="${deploy.lib}/slf4j.jar" />
+        <sysproperty key="nxparser.jar" value="${deploy.lib}/nxparser.jar" />
+        <sysproperty key="zookeeper.jar" value="${deploy.lib}/zookeeper.jar" />
+
+
+
+        <!-- Individual test suite to run when -DtestName is set -->
+        <!-- to the fully-qualified name of the test suite       -->
+        <!-- ant -DtestName=com.bigdata.cache.TestAll junit      -->
+
+        <sysproperty key="testClass" value="${testClass}" />
+        <test name="${testName}" todir="${test.results.dir}" if="testName" />
+
+        <!-- Test suites to run when -DtestName is not set -->
+
+        <test name="com.bigdata.boot.BootComponentTest" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.boot.launcher.ConfigReaderUnitTest" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.process.ProcessConfigXmlHandlerTest" todir="${test.results.dir}" unless="testName" />
+
+        <test name="com.bigdata.cache.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.io.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.net.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.config.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.util.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.util.concurrent.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.striterator.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.counters.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.rawstore.TestAll" todir="${test.results.dir}" unless="testName" />
+
+        <test name="com.bigdata.btree.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.concurrent.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.journal.TestAll" todir="${test.results.dir}" unless="testName" />
+
+        <test name="com.bigdata.resources.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.mdi.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.service.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.sparse.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.search.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.relation.TestAll" todir="${test.results.dir}" unless="testName" />
+
+        <!-- See https://sourceforge.net/apps/trac/bigdata/ticket/53 -->
+        <test name="com.bigdata.jini.TestAll" todir="${test.results.dir}" unless="testName" />
+
+        <test name="com.bigdata.rdf.TestAll" todir="${test.results.dir}" unless="testName" />
+        <test name="com.bigdata.rdf.sail.TestAll" todir="${test.results.dir}" unless="testName" />
+
+<!-- All tests.
+        <test name="com.bigdata.TestAll" todir="${test.results.dir}" unless="testName" />
+-->
+      </junit>
+
+      <!-- Clean out the SPARQL test suite unpacked by Sesame. -->
+      <antcall target="clean-sparql-test-suite" />
+
+      <!-- Generate an HTML report. -->
+      <junitreport todir="${test.results.dir}">
+        <fileset dir="${test.results.dir}">
+          <include name="TEST-*.xml" />
+        </fileset>
+        <report format="frames" todir="${test.results.dir}/report" />
+      </junitreport>
+
+    </target>
+
+<target name="clean-sparql-test-suite" description="delete the files unpacked by the Sesame SPARQL test suite.">
+    <echo>"clearing: ${java.io.tmpdir}/sparql-*"</echo>
+    <delete verbose="true">
+        <dirset dir="${java.io.tmpdir}" includes="sparql-*" />
+    </delete>
+</target>
+
+
+</project>

@@ -5,376 +5,73 @@
     <groupId>com.bigdata</groupId>
     <artifactId>bigdata</artifactId>
     <version>0.83.2-SNAPSHOT</version>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
 
-    <name>bigdata</name>
+    <name>Bigdata Root POM</name>
     <url>http://www.bigdata.com</url>
+    <description>
+        This pom is an aggregator so all bigdata sub-modules can easily be built together.  It is also acts as a parent,
+        so common configuration can shared and changed in one place, rather than duplicated in each sub-module.
+    </description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <thirdParty.groupId>com.bigdata.thirdparty</thirdParty.groupId><!-- group ID for non-public bigdata dependencies. -->
     </properties>
 
+    <modules>
+        <module>bigdata-core</module>
+    </modules>
 
     <build>
-        <plugins>
-            <!-- Use Java 1.5 keywords, target running on a 1.5 JVM -->
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.5</source>
-                    <target>1.5</target>
-                    <compilerArguments>
-                        <!--
-                             Apparently Javac may compile java source files inside jars put on the classpath.  Weird.
-                             Zookeeper 3.2.1 jar contained classes and sources, and under some circumstances,
-                             the java files were getting recompiled and put into the bigdata jar.  This setting
-                             forces javac to only look for source in the current maven source directory.
-                        -->
-                        <sourcepath>${project.build.sourceDirectory}</sourcepath>
-                    </compilerArguments>
-                </configuration>
-            </plugin>
+        <pluginManagement>
+            <plugins>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.3.1</version>
-                <executions>
-                    <execution>
-                        <!-- build the main bigdata jar. -->
-                        <id>jar-main-jar</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <!-- build a jar for all the test code, will be named ****-tests.jar -->
-                        <id>jar-test-jar</id>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <!-- build an executable jar for launching the bigdata / JINI lookup service, will be named ****-lookupstarter.jar -->
-                        <id>jar-lookupstarter-jar</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <classifier>lookupstarter</classifier>
-                            <includes>
-                                <include>**/LookupStarter*.class</include>
-                                <include>**/LogUtil.class</include>
-                                <include>**/NicUtil.class</include>
-                                <include>**/ConfigurationUtil.class</include>
-                                <include>**/log4j.properties</include>
-                            </includes>
-                            <archive>
-                                <manifest>
-                                    <addClasspath>false</addClasspath>
-                                    <mainClass>com.bigdata.service.jini.util.LookupStarter</mainClass>
-                                </manifest>
-                                <manifestEntries><!-- Not the normal way to do this, but cleaner than using maven classpath -->
-                                    <Class-Path>log4j.jar jsk-platform.jar jsk-lib.jar start.jar ${project.artifactId}.jar</Class-Path>
-                                </manifestEntries>
-                            </archive>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+                <plugin>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration><!-- Use Java 1.5 keywords, target running on a 1.5 JVM -->
+                        <source>1.5</source>
+                        <target>1.5</target>
+                        <encoding>${project.build.sourceEncoding}</encoding>
+                    </configuration>
+                </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.5</version>
-                <configuration>
-                    <!-- TODO: BLECH!  All the tests are excluded from the regular unit test phase.
-                         TODO: Need to split out the unit tests and the heavier integration tests, plus
-                         TODO: get all the unit tests passing so regressions can properly fail the build.
-                    -->
-                    <testFailureIgnore>true</testFailureIgnore>
-                    <includes/>
-                    <excludes>
-                        <exclude>**/*</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>2.3.1</version>
+                </plugin>
 
-            <plugin>
-                <!-- These are where the heavier tests can be run.  Right now failsafe looks for tests starting or ending
-                     with IT,  aka  FooIT.java or ITFoo.java, which don't exist yet, so nothing runs.
-                -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.5</version>
-                <executions>
-                    <execution>
-                        <id>integration-test</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>verify</id>
-                        <goals>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>2.5</version>
+                </plugin>
 
-            <plugin>
-                <!-- Workaround assembly issue for nicely organized libs in the deployment tarball.  For more info
-                     see src/main/assemblies/deploy.xml
-                -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.1</version>
-                <executions>
-                    <execution>
-                        <id>copy-runtime-jars</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeScope>runtime</includeScope>
-                            <excludeClassifiers>dl</excludeClassifiers>
-                            <stripVersion>true</stripVersion>
-                            <outputDirectory>${project.build.directory}/dependencies/lib</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-dl-jars</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeScope>provided</includeScope>
-                            <includeClassifiers>dl</includeClassifiers>
-                            <stripVersion>true</stripVersion>
-                            <outputDirectory>${project.build.directory}/dependencies/lib-dl</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-test-jars</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <excludeScope>runtime</excludeScope>
-                            <excludeClassifiers>dl</excludeClassifiers><!-- TODO: figure out why this doesn't exclude the dl jars -->
-                            <stripVersion>true</stripVersion>
-                            <outputDirectory>${project.build.directory}/dependencies/lib-test</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>2.5</version>
+                </plugin>
 
-            </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>2.1</version>
+                </plugin>
 
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>2.2-beta-5</version>
+                </plugin>
 
-            <plugin>
-                <!-- Builds the deployment tarball. -->
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.2-beta-5</version>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/main/assembly/deploy.xml</descriptor>
-                    </descriptors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-deployment</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-
-        </plugins>
+            </plugins>
+        </pluginManagement>
 
     </build>
 
-
-    <dependencies>
-
-       
-
-        <!-- ************************ Start of non-public dependencies ************************ -->
-        <!-- ************************ Start of non-public dependencies ************************ -->
-        <!-- ************************ Start of non-public dependencies ************************ -->
-
-        <!-- TODO: look at maven-bundle-plugin from felix to provide osgi support.  bndlib version 0.0.357 in central. -->
-        
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>cweb-extser</artifactId>
-            <version>0.1.0-b2-dev</version>
-        </dependency>
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>cweb-junit-ext</artifactId>
-            <version>1.1.0-b3-dev</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>cweb-commons</artifactId>
-            <version>1.1.0-b2-dev</version>
-        </dependency>
-
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId> <!-- TODO: An older version (5.0.9) is available in central. -->
-            <artifactId>unimi-fastutil</artifactId>
-            <version>5.1.5</version>
-        </dependency>        
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>lgpl-utils</artifactId>
-            <version>1.0.6</version>
-        </dependency>
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>ctc-utils</artifactId>
-            <version>5-4-2005</version>
-        </dependency>
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>dsi-utils</artifactId>
-            <version>1.0.6-020610</version>
-        </dependency>
-        <dependency>                           
-            <groupId>${thirdParty.groupId}</groupId>
-            <artifactId>high-scale-lib</artifactId>
-            <version>1.1.2</version>
-        </dependency>
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId>                        
-            <artifactId>iris</artifactId>
-            <version>0.58</version>
-        </dependency>
-        <dependency>
-            <groupId>${thirdParty.groupId}</groupId>                                    
-            <artifactId>nxparser</artifactId>
-            <version>6-22-2010</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>zookeeper</artifactId>
-            <version>[3.2.1,3.3)</version>  <!-- TODO: This artifact is older, but the new 3.3.1 artifact in central is incompatible -->
-        </dependency>
-
-        <!--  Apache River -->
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>tools</artifactId>
-            <version>2.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>start</artifactId>
-            <version>2.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>jsk-lib</artifactId>
-            <version>2.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>jsk-platform</artifactId>
-            <version>2.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>jsk-resources</artifactId>
-            <version>2.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>reggie</artifactId>
-            <version>2.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>classserver</artifactId>
-            <version>2.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>browser</artifactId>
-            <version>2.1</version>            
-        </dependency>
-
-        <!-- Note that these are dl jars, so they are provided and have a dl classifier. -->
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>browser</artifactId>
-            <version>2.1</version>
-            <scope>provided</scope>
-            <classifier>dl</classifier>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>jsk</artifactId>
-            <version>2.1</version>
-            <scope>provided</scope>
-            <classifier>dl</classifier>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>reggie</artifactId>
-            <version>2.1</version>
-            <scope>provided</scope>
-            <classifier>dl</classifier>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.river</groupId>
-            <artifactId>sdm</artifactId>
-            <version>2.1</version>
-            <scope>provided</scope>
-            <classifier>dl</classifier>
-        </dependency>
-        <!-- ************************ End of non-public dependencies ************************ -->
-        <!-- ************************ End of non-public dependencies ************************ -->
-        <!-- ************************ End of non-public dependencies ************************ -->
-
-        <!-- icu4j -->
-        <dependency>
-            <groupId>com.ibm.icu</groupId>
-            <artifactId>icu4j</artifactId>
-            <version>3.6.1</version>
-        </dependency>
-
-        <dependency> <!-- TODO: need to verify this public artifact is equivalent to private colt 1.2.0 jar, contents are different -->
-            <groupId>colt</groupId>
-            <artifactId>colt</artifactId>
-            <version>1.2.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jgrapht</groupId>
-            <artifactId>jgrapht-jdk1.5</artifactId>
-            <version>0.7.3</version><!-- TODO: verify this public dep is good, previous dependency on 0.7.1 -->
-        </dependency>
-
-
-        <dependency>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>3.8.1</version>
@@ -388,181 +85,13 @@
             <artifactId>slf4j-api</artifactId>
             <version>1.6.1</version>
         </dependency>
+        </dependencies>
+    </dependencyManagement>
 
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.6.1</version>
-            <scope>test</scope>
-        </dependency>
-
-
-        <!-- Log4J: not optional because source code has direct references -->
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.15</version>
-            <!-- These exclusions are to address the fact that 1.2.15 added new features that depends on Sun specific
-                 jars, but these jars cannot be made available due to Sun's click-through requirement on them.
-                 We aren't using the new features anyway, so they are safe to exclude.  log4j should have made these
-                 optional in their POM.
-            -->
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.mail</groupId>
-                    <artifactId>mail</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>javax.jms</groupId>
-                    <artifactId>jms</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.sun.jdmk</groupId>
-                    <artifactId>jmxtools</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.sun.jmx</groupId>
-                    <artifactId>jmxri</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!-- Sesame -->
-
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-sparql-testsuite</artifactId>
-            <version>2.3.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-store-testsuite</artifactId>
-            <version>2.3.0</version>
-            <scope>test</scope>
-        </dependency>
-
-
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-model</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-query</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-rio-api</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-queryalgebra-model</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-queryalgebra-evaluation</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-sail-api</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-queryparser-api</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-queryparser-sparql</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-repository-api</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-repository-sail</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-queryresultio-sparqlxml</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-rio-rdfxml</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-queryresultio-api</artifactId>
-            <version>2.3.0</version>
-        </dependency>
-
-        <!-- Aduna -->
-        <dependency>
-            <groupId>info.aduna.commons</groupId>
-            <artifactId>aduna-commons-xml</artifactId>
-            <version>2.5.0</version>
-        </dependency>
-        <dependency>
-            <groupId>info.aduna.commons</groupId>
-            <artifactId>aduna-commons-iteration</artifactId>
-            <version>2.6.0</version>
-        </dependency>
-        <dependency>
-            <groupId>info.aduna.commons</groupId>
-            <artifactId>aduna-commons-net</artifactId>
-            <version>2.5.0</version>
-        </dependency>
-        <dependency>
-            <groupId>info.aduna.commons</groupId>
-            <artifactId>aduna-commons-text</artifactId>
-            <version>2.5.0</version>
-        </dependency>
-
-        <!-- Lucene -->
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-analyzers</artifactId>
-            <version>3.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-core</artifactId>
-            <version>3.0.0</version>
-        </dependency>
-
-        <!-- Jetty -->
-        <dependency>
-            <groupId>org.mortbay.jetty</groupId> <!-- TODO: verify if this is the best way to pick up the javax.servlet dependency -->
-            <artifactId>servlet-api-2.5</artifactId>
-            <version>6.1.14</version>
-        </dependency>
-
-        <!-- HttpClient -->
-        <dependency>
-            <groupId>commons-httpclient</groupId>
-            <artifactId>commons-httpclient</artifactId>
-            <version>3.1</version>
-        </dependency>                                        
-        
-    </dependencies>
 
     <reporting>
-        <!-- generates junit results if site goal is run.  -->
         <plugins>
+            
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-report-plugin</artifactId>
@@ -583,12 +112,13 @@
                 <artifactId>findbugs-maven-plugin</artifactId>
                 <version>2.3</version>
             </plugin>
-    </plugins>
-            
+
+        </plugins>
     </reporting>
 
     <repositories>
-       
+
+        <!-- TODO: There may not be enough sub-modules that use Sesame/Aduna to warrant putting this here. -->  
         <repository>
                 <releases>
                         <enabled>true</enabled>
@@ -605,6 +135,7 @@
     </repositories>
 
     <profiles>
+        
         <profile>
             <id>bigdata-clover</id>
             <activation>
@@ -631,18 +162,13 @@
                                     </properties>
                                 </profile>
                                 
-                            -->
-                            <excludes><!-- These are stuffed into the lookup starter jar, which uses a stripped classpath without clover. -->
-                                <exclude>**/LookupStarter*.java</exclude>
-                                <exclude>**/LogUtil.java</exclude>
-                                <exclude>**/NicUtil.java</exclude>
-                                <exclude>**/ConfigurationUtil.java</exclude>
-                            </excludes>
+                            -->                            
                         </configuration>
                     </plugin>
                 </plugins>
             </build>            
         </profile>
+        
     </profiles>
 
 
