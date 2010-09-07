@@ -68,8 +68,7 @@
 #
 # Note: Convert DOS cr-lf to unix style in emacs: C-x RET f then unix 
 #
-# @todo rollover the stateLog file.  The log4j log files are rolled over by
-# the log4jServer.properties configuration.
+# @todo rollover the stateLog file. 
 #
 # @todo could use nc (netcat) to read the argument file a url and thus define
 # a 'url' as well the 'file' option for this script.
