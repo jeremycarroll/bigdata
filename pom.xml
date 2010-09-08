@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.bigdata</groupId>
@@ -28,7 +28,11 @@
 
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <configuration><!-- Use Java 1.5 keywords, target running on a 1.5 JVM -->
+                    <configuration>
+                        <!--
+                            Use Java 1.5 keywords, target running on a
+                            1.5 JVM
+                        -->
                         <source>1.5</source>
                         <target>1.5</target>
                         <encoding>${project.build.sourceEncoding}</encoding>
@@ -64,6 +68,13 @@
                     <version>2.2-beta-5</version>
                 </plugin>
 
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>1.4</version>
+                </plugin>
+
+
             </plugins>
         </pluginManagement>
 
@@ -72,32 +83,32 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.1</version>
-            <scope>test</scope>
-        </dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>3.8.1</version>
+                <scope>test</scope>
+            </dependency>
 
 
-        <!-- slf4j -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.6.1</version>
-        </dependency>
+            <!-- slf4j -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.6.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
 
     <reporting>
         <plugins>
-            
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-report-plugin</artifactId>
                 <version>2.5</version>
             </plugin>
-            
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -118,24 +129,27 @@
 
     <repositories>
 
-        <!-- TODO: There may not be enough sub-modules that use Sesame/Aduna to warrant putting this here. -->  
+        <!--
+            TODO: There may not be enough sub-modules that use
+            Sesame/Aduna to warrant putting this here.
+        -->
         <repository>
-                <releases>
-                        <enabled>true</enabled>
-                </releases>
-                <snapshots>
-                        <enabled>false</enabled>
-                </snapshots>
-                <id>aduna-opensource.releases</id>
-                <name>Aduna Open Source - Maven releases</name>
-                <url>http://repo.aduna-software.org/maven2/releases</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>aduna-opensource.releases</id>
+            <name>Aduna Open Source - Maven releases</name>
+            <url>http://repo.aduna-software.org/maven2/releases</url>
         </repository>
 
 
     </repositories>
 
     <profiles>
-        
+
         <profile>
             <id>bigdata-clover</id>
             <activation>
@@ -146,29 +160,25 @@
                     <plugin>
                         <groupId>com.atlassian.maven.plugins</groupId>
                         <artifactId>maven-clover2-plugin</artifactId>
-                        <version>3.0.1</version>                        
+                        <version>3.0.1</version>
                         <configuration>
                             <jdk>1.5</jdk>
                             <!--
-                                To use clover with bigdata, you should add the following to your maven settings file, .m2/settings.xml
-
-                                <profile>
-                                    <id>bigdata-clover</id>
-                                    <activation>
-                                      <activeByDefault>true</activeByDefault>
-                                    </activation>
-                                    <properties>
-                                      <maven.clover.licenseLocation>/your/path/to/clover.license</maven.clover.licenseLocation>
-                                    </properties>
-                                </profile>
-                                
-                            -->                            
+                                To use clover with bigdata, you should
+                                add the following to your maven settings
+                                file, .m2/settings.xml <profile>
+                                <id>bigdata-clover</id> <activation>
+                                <activeByDefault>true</activeByDefault>
+                                </activation> <properties>
+                                <maven.clover.licenseLocation>/your/path/to/clover.license</maven.clover.licenseLocation>
+                                </properties> </profile>
+                            -->
                         </configuration>
                     </plugin>
                 </plugins>
-            </build>            
+            </build>
         </profile>
-        
+
     </profiles>
 
 
