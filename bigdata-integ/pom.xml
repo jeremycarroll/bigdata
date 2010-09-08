@@ -13,15 +13,63 @@
     <artifactId>bigdata-integration-test</artifactId>
     <name>bigdata Integration Tests</name>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.deployDirectory>${project.build.directory}/deploy</project.build.deployDirectory>
+    </properties>
+
+
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>unpack</id>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.nokia.dataos.rds.bigdata</groupId>
+                                    <artifactId>bigdata-dist</artifactId>
+                                    <version>0.83.2-SNAPSHOT</version>
+                                    <type>tgz</type>
+                                    <outputDirectory>${project.build.deployDirectory}</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                            <overWriteReleases>true</overWriteReleases>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+
+                    <!--
+                        Make sure no tests are run as unit tests by
+                        surefire. We want everything to run via failsafe
+                    -->
+
+                    <excludes>
+                        <exclude>**/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>failsafe-maven-plugin</artifactId>
                 <version>2.4.3-alpha-1</version>
                 <configuration>
                     <includes>
-                        <include>**/*Test.java</include>
+                        <include>**/*.java</include>
                     </includes>
                 </configuration>
                 <executions>
@@ -33,6 +81,44 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>start-test-services</id>
+                        <phase>pre-integration-test</phase>
+                        <configuration>
+                            <tasks>
+                                <ant
+                                    antfile="${project.build.testOutputDirectory}/test.xml"
+                                    target="hello" />
+                            </tasks>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+
+                    <execution>
+                        <id>stop-test-services</id>
+                        <phase>post-integration-test</phase>
+                        <configuration>
+                            <tasks>
+                                <ant
+                                    antfile="${project.build.testOutputDirectory}/test.xml"
+                                    target="hello" />
+                            </tasks>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+
+            </plugin>
+
         </plugins>
     </build>
 
