@@ -1,0 +1,146 @@
+<HTML>
+<HEAD>
+<TITLE>Proxy test suites</TITLE>
+</HEAD>
+<BODY>
+<H1>Integration testing with proxy test suites.</H1>
+<P>This package provides support for suites of <EM>proxy</EM> tests that
+share a common test <EM>delegate</EM>. Normally the proxy tests and the
+delegate will implement a common interface. The implementation of the
+interface on the proxy test base class should route the behaviors to the
+delegate test. This mechanism can be used to run an entire test suite
+against a specific configuration for integration testing. Since the same
+delegate instance is used for all tests in the suite, you can do things
+such as establish a shared database connection that is used for the
+entire test suite, i.e., you can do <EM>integration testing</EM>.</P>
+<H2>Defining a configuration using getProperties()</H2>
+<P>The pattern that I have found to be most useful for integration
+testing of different configurations is to define a <CODE>public
+Properties getProperties()</CODE> method that is implemented by the <EM>delegate</EM>
+and accessed by various integration test set up and tear down methods
+implemented by the delegate. For example:</P>
+<PRE>
+	public Properties getProperties() {
+		if( m_properties == null ) {
+			/*
+			 * Read and cache System properties.
+			 */
+			m_properties = System.getProperties();
+		}
+		/*
+		 * Wrap up the cached properties so that they are not modifable by the
+		 * caller (no side effects between calls).
+		 */
+		return new Properties( m_properties );
+	}
+</PRE>
+<p>This approach reads properties from the environement, so you can
+define property values using JVM command line arguments <CODE>-Dname=value</CODE>.
+You can also extend the {@link junit.framework.TestCase2} class and use
+its <CODE>getProperties()</CODE> method, in which case properties are
+read from a hierarchy of sources, including a file with a <CODE>.properties</CODE>
+extension and the same base name as the delegate test class.</p>
+<H2>Sharing a connection</H2>
+<P>In order to setup variables, such as a JDBC connection, that are
+reused by each test in the suite, you need to declare those variables as
+fields on the <EM>delegate</EM> implementation class and wrap the test
+suite in a {@link junit.framework.TestDecorator} as follows.</P>
+<pre>
+    public static Test suite() {
+
+		/*
+		 * Create the delegate instance that will be reused by all proxy tests in
+		 * the test suite.  The variable is declared as 'final' so that we can
+		 * access it from the anonymous TestDecorator class, below.
+		 */
+		final DefaultTestCase delegate = new DefaultTestCase(); // !!!! THIS CLASS !!!!
+
+	    /*
+		 * Use a proxy test suite and specify the delegate.
+		 */
+
+		ProxyTestSuite suite = new ProxyTestSuite(delegate);
+	    
+	    /* 
+	     * Add some tests to the test suite.  The setDelegate() method will be
+	     * called on each test that implements IProxyTest and passed the value
+	     * provided to the ProxyTestSuite constructor above.
+	     */
+	    suite.addTestCase( MyTestCase1.class );
+
+		// ... more tests.
+		
+		/*
+		 * Wrap up in decorator that connects to the database before the test
+		 * suite is run and then disconnects from the database afterwards.
+		 */
+		return new TestDecorator(suite) {
+
+			private boolean disconnectAfter = false;
+			
+			public void basicRun(TestResult result) {
+				if (!delegate.isConnected()) {
+					delegate.connect();
+					disconnectAfter = true;
+				}
+				super.basicRun(result);
+				if (disconnectAfter) {
+					delegate.disconnect();
+				}
+			}
+			
+		};
+</pre>
+<P>While the life span of the <EM>delegate</EM> spans that of the test
+suite, the <CODE>setUp</CODE> and <CODE>tearDown</CODE> methods of the
+delegate are invoked before and after each test <EM>implemented by the
+delegate</EM>. Since the delegate does not generally implement tests
+directly, those set up and tear down methods can not be used to perform
+integration testing.</P>
+<H2>Running or debugging a single test</H2>
+<P>By its nature, a test that implements {@link IProxyTest} requires a <em>delegate</em>
+in order to run. This works fine when you are running an entire test
+suite defined by the delegate, but you have to take an extra step in
+order to be able to run or debug a single test. The following code gives
+an example of how you can deal with this problem. It defines a property
+<em>testClass</em> whose value is the name of the delegate class. If the
+delegate was not set (as will be the case if you try to run a single
+test directly), then this property must be specified as a JVM argument
+using <code>-DtestClass=....</code> and an instance of your delegate
+will be created and used to run the proxy test.</P>
+<P>If you test relies on a shared variable such as a JDBC connection,
+then you still have to provide for that. One way to handle this is to
+delegate the <code>setUp</code> and <code>tearDown</code> methods on the
+proxy test. The delegate implementation of those methods would then
+establish and close the Connection iff the Connection was not already
+established.</P>
+
+<pre>
+    public Test getDelegate() {
+
+		if (m_delegate == null) {
+
+			/*
+			 * This property gives the class name of the concrete instance of
+			 * testClass that we need to instantiate so that we can run or debug
+			 * a single test at a time.
+			 */
+			String testClass = getProperties().getProperty("testClass");
+			if (testClass == null) {
+
+				throw new IllegalStateException(
+						"testClass: property not defined, could not configure delegate.");
+
+			}
+			try {
+				Class cl = Class.forName(testClass);
+				m_delegate = (Test) cl.newInstance();
+			} catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
+
+		}
+    }
+</pre>
+</BODY>
+</HTML>

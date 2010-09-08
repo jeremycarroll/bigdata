@@ -69,7 +69,6 @@
         <installJar groupId="com.bigdata.thirdparty" artifactId="ctc-utils" version="5-4-2005" jar="${thirdparty.dir}/ctc_utils-5-4-2005.jar" />
         <installJar groupId="com.bigdata.thirdparty" artifactId="cweb-commons" version="1.1.0-b2-dev" jar="${thirdparty.dir}/cweb-commons-1.1-b2-dev.jar" />
         <installJar groupId="com.bigdata.thirdparty" artifactId="cweb-extser" version="0.1.0-b2-dev" jar="${thirdparty.dir}/cweb-extser-0.1-b2-dev.jar" />
-        <installJar groupId="com.bigdata.thirdparty" artifactId="cweb-junit-ext" version="1.1.0-b3-dev" jar="${thirdparty.dir}/cweb-junit-ext-1.1-b3-dev.jar" />
         <installJar groupId="com.bigdata.thirdparty" artifactId="dsi-utils" version="1.0.6-020610" jar="${thirdparty.dir}/dsi-utils-1.0.6-020610.jar" />
         <installJar groupId="com.bigdata.thirdparty" artifactId="unimi-fastutil" version="5.1.5" jar="${thirdparty.dir}/fastutil-5.1.5.jar" />
         <installJar groupId="com.bigdata.thirdparty" artifactId="high-scale-lib" version="1.1.2" jar="${thirdparty.dir}/high-scale-lib-v1.1.2.jar" />
