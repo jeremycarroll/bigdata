@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 
     <parent>
@@ -15,7 +14,40 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.deployDirectory>${project.build.directory}/deploy</project.build.deployDirectory>
+        <deploy.root.dir>${project.build.directory}/deploy</deploy.root.dir>
+        <bigdata.dependency>bigdata-core</bigdata.dependency>
+
+
+        <!--
+            This is kinda hokey, but not sure there's a better way to
+            construct the path to the root of the exploded tarball -->
+
+        <deploy.dir>${deploy.root.dir}/${bigdata.dependency}-${project.version}</deploy.dir>
+        <test.dir>${deploy.dir}/testing</test.dir>
+        <testScript>${test.dir}/test.xml</testScript>
+
+        <basedir>${test.dir}</basedir>
+        <app.home>${deploy.dir}</app.home>
+        <deploy.conf.dir>${test.dir}/conf</deploy.conf.dir>
+        <deploy.lib>${deploy.dir}/lib</deploy.lib>
+        <deploy.lib.test>${test.dir}/lib-test</deploy.lib.test>
+        <deploy.lib.dl>${deploy.dir}/lib-dl</deploy.lib.dl>
+        <test.codebase.dir>${deploy.lib.dl}</test.codebase.dir>
+        <test.codebase.port>23333</test.codebase.port>
+        <java.security.policy>${deploy.conf.dir}/policy.all</java.security.policy>
+        <log4j.configuration>${deploy.dir}/var/config/logging/log4j.properties</log4j.configuration>
+        <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
+        <default.nic>eth0</default.nic>
+        <parent.artifactName>bigdata-core</parent.artifactName>
+
+
+        <!--
+            In the ANT script, hostname is obtained by an exec of the
+            'hostname' command. Hard-coding to localhost for now.
+        -->
+        <hostname>blevine-desktop</hostname>
+        <test.codebase>http://${hostname}:${test.codebase.port}/jsk-dl.jar</test.codebase>
+        <federation.name>bigdata.test.group-${hostname}</federation.name>
     </properties>
 
 
@@ -33,15 +65,17 @@
                         <configuration>
                             <artifactItems>
                                 <artifactItem>
-                                    <groupId>com.nokia.dataos.rds.bigdata</groupId>
-                                    <artifactId>bigdata-dist</artifactId>
-                                    <version>0.83.2-SNAPSHOT</version>
-                                    <type>tgz</type>
-                                    <outputDirectory>${project.build.deployDirectory}</outputDirectory>
+                                    <groupId>com.bigdata</groupId>
+                                    <artifactId>bigdata-core</artifactId>
+                                    <classifier>deploy</classifier>
+                                    <type>tar.gz</type>
+                                    <outputDirectory>${deploy.directory}</outputDirectory>
                                 </artifactItem>
                             </artifactItems>
+                            <useSubdirPerArtifact>true</useSubdirPerArtifact>
+                            <!-- 
                             <overWriteSnapshots>true</overWriteSnapshots>
-                            <overWriteReleases>true</overWriteReleases>
+                            <overWriteReleases>true</overWriteReleases> -->
                         </configuration>
                     </execution>
                 </executions>
@@ -64,13 +98,55 @@
             </plugin>
 
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>failsafe-maven-plugin</artifactId>
-                <version>2.4.3-alpha-1</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <includes>
-                        <include>**/*.java</include>
+                        <include>**/Test*.java</include>
+                        <include>**/*Test.java</include>
                     </includes>
+                    <excludes>
+                        <exclude>**/TestBigdataClientRemote.java</exclude>
+                    </excludes>
+                    <systemPropertyVariables>
+                        <foo.bar.prop>hello</foo.bar.prop>
+                        <java.security.policy>${java.security.policy}</java.security.policy>
+                        <java.net.preferIPv4Stack>{java.net.preferIPv4Stack}"</java.net.preferIPv4Stack>
+                        <log4j.configuration>${log4j.configuration}</log4j.configuration>
+                        <!-- ><log4j.debug>true"</log4j.debug> -->
+
+                        <basedir>${basedir}</basedir> <!-- Tells the unit tests where the ant script is, so they can find resources. -->
+                        <app.home>${app.home}</app.home> <!-- This is the deployment directory, easily accessed by the DataFinder class. -->
+                        <log4j.path>${log4j.configuration}</log4j.path>
+                        <default.nic>${default.nic}</default.nic>
+                        
+                        <!-- Jini group name -->
+                        <federation.name>${federation.name}</federation.name>
+                        
+                        <!-- TODO !!!!!!
+                        <property key="java.class.path" value="${junit.classpath.text}" />
+                        -->
+
+                        <classserver.jar>${deploy.lib}/classserver.jar</classserver.jar>
+                        <colt.jar>${deploy.lib}/colt.jar</colt.jar>
+                        <ctc_utils.jar>${deploy.lib}/ctc_utils.jar</ctc_utils.jar>
+                        <cweb-commons.jar>${deploy.lib}/cweb-commons.jar</cweb-commons.jar>
+                        <cweb-extser.jar>${deploy.lib}/cweb-extser.jar</cweb-extser.jar>
+                        <highscalelib.jar>${deploy.lib}/highscalelib.jar</highscalelib.jar>
+                        <dsiutils.jar>${deploy.lib}/dsiutils.jar</dsiutils.jar>
+                        <lgplutils.jar>${deploy.lib}/lgplutils.jar</lgplutils.jar>
+                        <fastutil.jar>${deploy.lib}/fastutil.jar</fastutil.jar>
+                        <icu4j.jar>${deploy.lib}/icu4j.jar</icu4j.jar>
+                        <jsk-lib.jar>${deploy.lib}/jsk-lib.jar</jsk-lib.jar>
+                        <jsk-platform.jar>${deploy.lib}jsk-platform.jar</jsk-platform.jar>
+                        <log4j.jar>${deploy.lib}/log4j.jar</log4j.jar>
+                        <iris.jar>${deploy.lib}/iris.jar</iris.jar>
+                        <jgrapht.jar>${deploy.lib}/jgrapht.jar</jgrapht.jar>
+                        <openrdf-sesame.jar>${deploy.lib}/openrdf-sesame.jar</openrdf-sesame.jar>
+                        <slf4j.jar>${deploy.lib}/slf4j.jar</slf4j.jar>
+                        <nxparser.jar>${deploy.lib}/nxparser.jar</nxparser.jar>
+                        <zookeeper.jar>${deploy.lib}/zookeeper.jar</zookeeper.jar>
+                    </systemPropertyVariables>
                 </configuration>
                 <executions>
                     <execution>
@@ -91,9 +167,8 @@
                         <phase>pre-integration-test</phase>
                         <configuration>
                             <tasks>
-                                <ant
-                                    antfile="${project.build.testOutputDirectory}/test.xml"
-                                    target="hello" />
+                                <echo message="testscript = ${testScript}" />
+                                <ant antfile="${testScript}" target="startTestServices" useNativeBasedir="true" inheritAll="false"/>
                             </tasks>
                         </configuration>
                         <goals>
@@ -106,9 +181,8 @@
                         <phase>post-integration-test</phase>
                         <configuration>
                             <tasks>
-                                <ant
-                                    antfile="${project.build.testOutputDirectory}/test.xml"
-                                    target="hello" />
+                                <echo message="testscript = ${testScript}" />
+                                <ant antfile="${testScript}" target="stopTestServices" useNativeBasedir="true" inheritAll="false"/>
                             </tasks>
                         </configuration>
                         <goals>
@@ -127,13 +201,27 @@
             <groupId>com.bigdata</groupId>
             <artifactId>bigdata-core</artifactId>
             <version>${project.version}</version>
+            <classifier>deploy</classifier>
+            <type>tar.gz</type>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.bigdata</groupId>
+            <artifactId>bigdata-core</artifactId>
+            <version>${project.version}</version>
 
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.7</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.bigdata.thirdparty</groupId>
+            <artifactId>cweb-junit-ext</artifactId>
+            <version>1.1.0-b3-dev</version>
             <scope>test</scope>
         </dependency>
 
