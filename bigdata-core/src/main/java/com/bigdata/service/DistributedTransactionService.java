@@ -95,7 +95,7 @@ public abstract class DistributedTransactionService extends
 
         /**
          * The interval in milliseconds between writing a snapshot of the index
-         * of accessible commit points into the {@link #DATA_DIR} ({@value #DEFAULT_SHAPSHOT_INTERVAL}).
+         * of accessible commit points into the {@link #DATA_DIR} ({@value #DEFAULT_SNAPSHOT_INTERVAL}).
          * <p>
          * Two snapshots are retained of the commit time index so that those
          * historical commit times required for reading on committed states of
@@ -108,12 +108,14 @@ public abstract class DistributedTransactionService extends
          * This MAY be ZERO (0L) to disable snapshots - a feature that is used
          * by the {@link EmbeddedFederation} when run in a diskless mode.
          */
-        String SHAPSHOT_INTERVAL = DistributedTransactionService.class
+//BTM        String SHAPSHOT_INTERVAL = DistributedTransactionService.class
+String SNAPSHOT_INTERVAL = DistributedTransactionService.class
                 .getName()
                 + ".snapshotInterval";
 
         /** 5 minutes (in millseconds). */
-        String DEFAULT_SHAPSHOT_INTERVAL = ""
+//BTM        String DEFAULT_SHAPSHOT_INTERVAL = ""
+String DEFAULT_SNAPSHOT_INTERVAL = ""
                 + (5 * 60 * 1000); 
 
     }
@@ -168,7 +170,7 @@ public abstract class DistributedTransactionService extends
      * The interval in milliseconds between logging an image of the
      * {@link #commitTimeIndex}.
      * 
-     * @see Options#COMMIT_TIME_INDEX_SHAPSHOT_INTERVAL
+     * @see Options#COMMIT_TIME_INDEX_SNAPSHOT_INTERVAL
      */
     private final long snapshotInterval;
     
@@ -191,12 +193,16 @@ public abstract class DistributedTransactionService extends
         }
         
         snapshotInterval = LongValidator.GTE_ZERO.parse(
-                Options.SHAPSHOT_INTERVAL, properties.getProperty(
-                        Options.SHAPSHOT_INTERVAL,
-                        Options.DEFAULT_SHAPSHOT_INTERVAL));
+Options.SNAPSHOT_INTERVAL, properties.getProperty(
+Options.SNAPSHOT_INTERVAL,
+Options.DEFAULT_SNAPSHOT_INTERVAL));
+//BTM                Options.SHAPSHOT_INTERVAL, properties.getProperty(
+//BTM                        Options.SHAPSHOT_INTERVAL,
+//BTM                        Options.DEFAULT_SHAPSHOT_INTERVAL));
 
         if (log.isInfoEnabled())
-            log.info(Options.SHAPSHOT_INTERVAL + "=" + snapshotInterval);
+log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
+//BTM            log.info(Options.SHAPSHOT_INTERVAL + "=" + snapshotInterval);
 
         isTransient = snapshotInterval == 0;
 

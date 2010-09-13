@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -59,6 +60,10 @@ public abstract class DataFinder {
 
     public static URI bestURI(String path){
         return DEFAULT_SEARCH.getBestURI(path);
+    }
+
+    public static URL bestURL(String path) throws MalformedURLException {
+        return DEFAULT_SEARCH.getBestURI(path).toURL();
     }
 
     public static DataFinder defaultFinder(){

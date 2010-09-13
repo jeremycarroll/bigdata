@@ -218,6 +218,12 @@ class BigdataServiceBase:
             os.path.join(self.appHome, "lib", "start.jar"),
             os.path.join(self.appHome, "lib", "log4j.jar"),
             os.path.join(self.appHome, "lib", "bigdata-core.jar"),
+            os.path.join(self.appHome, "lib", "fastutil.jar"),
+            os.path.join(self.appHome, "lib", "dsiutils.jar"),
+            os.path.join(self.appHome, "lib", "cweb-extser.jar"),
+            os.path.join(self.appHome, "lib", "icu4j.jar"),
+            os.path.join(self.appHome, "lib", "ctc_utils.jar"),
+            os.path.join(self.appHome, "lib", "lgplutils.jar"),
             os.path.join(self.appHome, "lib", "zookeeper.jar"),
             os.path.join(self.appHome, "lib", "jsk-lib.jar") ]
 

@@ -2,6 +2,7 @@ package com.bigdata.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
@@ -32,7 +33,7 @@ import com.bigdata.journal.Name2Addr.EntrySerializer;
  * @version $Id$
  */
 public class ListIndicesTask
-implements IDataServiceCallable<String[]> {
+implements IDataServiceCallable<String[]>, Callable {
 
     /**
      * 
@@ -204,6 +205,11 @@ fromKey=[65, 49, 79, 41, 47, 41, 79, 41, 7, 144, 81, 38, 124, 38, 122, 1, 16, 1,
 
         return names.toArray(new String[] {});
 
+    }
+
+    //PROXY-EXEC-CONFLICT
+    public Object call() throws Exception {
+        throw new RuntimeException("Unexpected call to ListIndicesTask.call(), should use new IDataServiceCallable interface");
     }
 
 }

@@ -60,7 +60,7 @@ import com.bigdata.journal.DropIndexTask;
 import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.ILocalTransactionManager;
 import com.bigdata.journal.IResourceManager;
-import com.bigdata.journal.ITransactionService;
+//BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.IndexProcedureTask;
 import com.bigdata.journal.Name2Addr;
@@ -82,6 +82,9 @@ import com.bigdata.resources.IndexManager.IIndexManagerCounters;
 import com.bigdata.resources.ResourceManager.IResourceManagerCounters;
 import com.bigdata.resources.StoreManager.ManagedJournal;
 import com.bigdata.service.jini.DataServer;
+
+//BTM
+import com.bigdata.journal.TransactionService;
 
 /**
  * An implementation of a network-capable {@link IDataService}. The service is
@@ -326,7 +329,8 @@ abstract public class DataService extends AbstractService
     public class DataServiceTransactionManager extends
             AbstractLocalTransactionManager {
 
-        public ITransactionService getTransactionService() {
+//BTM        public ITransactionService getTransactionService() {
+public TransactionService getTransactionService() {
 
             return DataService.this.getFederation().getTransactionService();
 
@@ -358,6 +362,9 @@ abstract public class DataService extends AbstractService
 
         }
 
+System.err.println("\n---------- BEGIN DataService --------------");
+properties.list(System.err);
+System.err.println("---------- END DataService --------------\n");
         resourceManager = (ResourceManager) newResourceManager(properties);
        
         localTransactionManager = new DataServiceTransactionManager();
@@ -1074,7 +1081,8 @@ abstract public class DataService extends AbstractService
         @Override
         protected Void doTask() throws Exception {
 
-            final ITransactionService txService = resourceManager
+//BTM            final ITransactionService txService = resourceManager
+final TransactionService txService = resourceManager
                     .getLiveJournal().getLocalTransactionManager()
                     .getTransactionService();
 
@@ -1651,7 +1659,8 @@ abstract public class DataService extends AbstractService
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      */
-    static protected class RangeIteratorTask extends AbstractTask {
+//BTM    static protected class RangeIteratorTask extends AbstractTask {
+static public class RangeIteratorTask extends AbstractTask {
 
         private final byte[] fromKey;
         private final byte[] toKey;

@@ -1,11 +1,36 @@
+/**
+
+Copyright (C) SYSTAP, LLC 2006-2007.  All rights reserved.
+
+Contact:
+     SYSTAP, LLC
+     4501 Tower Road
+     Greensboro, NC 27410
+     licenses@bigdata.com
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
 package com.bigdata.loadbalancer;
 
 import static com.bigdata.loadbalancer.Constants.*;
 
-import com.bigdata.service.DataService;//BTM*** - replace with ShardService after DataService smart proxy conversion?
-import com.bigdata.service.DataService.IDataServiceCounters;//BTM*** - replace with EmbeddedDataService.IDataServiceCounters?
-import com.bigdata.service.IDataService;          //BTM*** - replace with ShardService after DataService smart proxy conversion?
-import com.bigdata.service.IMetadataService;      //BTM*** - replace with ShardLocatorService after smart proxy conversion?
+//BTM*** - replace with ShardService after DataService smart proxy conversion?
+//BTM*** - replace with EmbeddedShardService.IDataServiceCounters?
+//BTM*** - replace with ShardLocator after smart proxy conversion?
+import com.bigdata.service.DataService;
+import com.bigdata.service.DataService.IDataServiceCounters;
 
 import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
@@ -40,12 +65,16 @@ import com.bigdata.service.EventReceivingService;
 import com.bigdata.service.HostScore;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IClientService;
+import com.bigdata.service.IDataService;
 import com.bigdata.service.IEventReportingService;
+import com.bigdata.service.IMetadataService;
 import com.bigdata.service.IService;
 import com.bigdata.service.IServiceShutdown;
+import com.bigdata.service.IServiceShutdown.ShutdownType;
 import com.bigdata.service.LoadBalancer;
 import com.bigdata.service.Service;
 import com.bigdata.service.ServiceScore;
+import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardService;
 import com.bigdata.util.EntryUtil;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
@@ -80,6 +109,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -96,9 +126,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class EmbeddedLoadBalancer implements LoadBalancer,
+                                             Service,
                                              EventReceivingService,
-                                             IEventReportingService,
-                                             IServiceShutdown
+                                             IEventReportingService
 {
     public static Logger logger =
         LogUtil.getLog4jLogger((EmbeddedLoadBalancer.class).getName());
@@ -111,10 +141,18 @@ private CounterSet countersRoot;
 private CounterSet serviceRoot;
 private AbstractStatisticsCollector statisticsCollector;
 private Map<UUID, String> serviceNameMap = new ConcurrentHashMap<UUID, String>();
-private Map<UUID, DataService> embeddedDataServiceMap;
 private ServiceDiscoveryManager sdm;
-private LookupCache smartProxyCache;
+private Map<UUID, IDataService> embeddedDataServiceMap;
+
+private LookupCache remoteShardLocatorCache;
+private LookupCache shardLocatorCache;
+
+private LookupCache remoteShardCache;
+private LookupCache shardCache;
+
+//for populating the serviceName map when services join the federation
 private LookupCache remoteServiceCache;
+private LookupCache serviceCache;
 //BTM***
 
     final protected String ps = ICounterSet.pathSeparator;
@@ -430,11 +468,12 @@ private LookupCache remoteServiceCache;
      * @param properties
      *            See {@link Options}
      */
-    public EmbeddedLoadBalancer(final UUID               serviceUUID,
-                                final String             hostname,
+    public EmbeddedLoadBalancer(
+final UUID serviceUUID,
+final String hostname,
 final ServiceDiscoveryManager sdm,
-final String                  persistenceDir,
-final Map<UUID, DataService> embeddedDataServiceMap,//BTM*** remove when EmbeddedDataService converted to smart proxy?
+final Map<UUID, IDataService> embeddedDataServiceMap,//BTM  ShardService
+final String persistenceDir,
                                 final Properties         properties)
     {
         if (serviceUUID == null) {
@@ -447,9 +486,80 @@ final Map<UUID, DataService> embeddedDataServiceMap,//BTM*** remove when Embedde
         }   
         this.hostname = hostname;
 
+//BTM - BEGIN
 if (sdm != null) {
     this.sdm = sdm;
-}   
+
+    //for smart proxy implementation of shard locator service
+    Class[] shardLocatorType = new Class[] {ShardLocator.class};
+    ServiceTemplate shardLocatorTmpl = 
+                            new ServiceTemplate(null, shardLocatorType, null);
+    ServiceItemFilter shardLocatorFilter = null;
+
+    //for remote implementation of shard locator service
+    Class[] remoteShardLocatorType = new Class[] {IMetadataService.class};
+    ServiceTemplate remoteShardLocatorTmpl = 
+                    new ServiceTemplate(null, remoteShardLocatorType, null);
+    ServiceItemFilter remoteShardLocatorFilter = 
+                          new IMetadataServiceOnlyFilter();
+
+    //for smart proxy implementation of shard service
+    Class[] shardType = new Class[] {ShardService.class};
+    ServiceTemplate shardTmpl = 
+                            new ServiceTemplate(null, shardType, null);
+    ServiceItemFilter shardFilter = null;
+
+    //for remote implementation of shard service
+    Class[] remoteShardType = new Class[] {IDataService.class};
+    ServiceTemplate remoteShardTmpl = 
+                            new ServiceTemplate(null, remoteShardType, null);
+    ServiceItemFilter remoteShardFilter = new IDataServiceOnlyFilter();
+
+
+    //for smart proxy implementation of any services
+    Class[] serviceType = new Class[] {Service.class};
+    ServiceTemplate serviceTmpl = 
+                            new ServiceTemplate(null, serviceType, null);
+    ServiceItemFilter serviceFilter = null;
+
+    //for remote implementation of any services
+    Class[] remoteServiceType = new Class[] {IDataService.class};
+    ServiceTemplate remoteServiceTmpl = 
+                            new ServiceTemplate(null, remoteServiceType, null);
+    ServiceItemFilter remoteServiceFilter = null;
+
+    //create the caches
+    try {
+        //for shard locator services
+        this.shardLocatorCache = sdm.createLookupCache
+                                     ( shardLocatorTmpl,
+                                       shardLocatorFilter,
+                                       null );
+        this.remoteShardLocatorCache = sdm.createLookupCache
+                                     ( remoteShardLocatorTmpl,
+                                       remoteShardLocatorFilter,
+                                       null );
+
+        //for shard services
+        this.shardCache = sdm.createLookupCache(shardTmpl, shardFilter, null);
+        this.remoteShardCache = sdm.createLookupCache
+                                   (remoteShardTmpl, remoteShardFilter, null);
+
+        //for populating the serviceNameMap when services join/leave the fed
+        this.serviceCache = sdm.createLookupCache
+                                     ( serviceTmpl, 
+                                       serviceFilter,
+                                       new CacheListener(logger) );
+        this.remoteServiceCache = sdm.createLookupCache
+                                     ( remoteServiceTmpl, 
+                                       remoteServiceFilter,
+                                       new CacheListener(logger) );
+    } catch(RemoteException e) {
+        logger.warn(e.getMessage(), e);
+    }
+}
+//BTM - END
+
 
 //BTM***        if (federation == null) {
 //BTM***            throw new IllegalArgumentException("null federation");
@@ -552,8 +662,12 @@ if(persistenceDir != null) {
         }
 
 //BTM***        this.roundRobinServiceLoadHelper = new RoundRobinServiceLoadHelper();
-this.roundRobinServiceLoadHelper = new RoundRobinServiceLoadHelper(sdm, embeddedDataServiceMap);
-            
+this.roundRobinServiceLoadHelper = 
+    new RoundRobinServiceLoadHelper(this.shardLocatorCache,
+                                    this.remoteShardLocatorCache,
+                                    this.shardCache,
+                                    this.remoteShardCache,
+                                    embeddedDataServiceMap);
         final long delay = 
             Long.parseLong
                 (properties.getProperty(Options.UPDATE_DELAY,
@@ -633,30 +747,6 @@ this.roundRobinServiceLoadHelper = new RoundRobinServiceLoadHelper(sdm, embedded
                             eventBTree = EventBTree.create(eventStore));
         }
         eventReceiver = new EventReceiver(eventHistoryMillis, eventBTree);
-
-//BTM - BEGIN
-        if(sdm != null) {
-            Class[] smartProxyType = new Class[] {Service.class};
-            Class[] remoteType = new Class[] {IService.class};
-
-            ServiceTemplate smartProxyTmpl = 
-                            new ServiceTemplate(null, smartProxyType, null);
-            ServiceTemplate remoteTmpl = 
-                            new ServiceTemplate(null, remoteType, null);
-            try {
-                this.smartProxyCache = sdm.createLookupCache
-                                     ( smartProxyTmpl, 
-                                       new CacheFilter(),
-                                       new CacheListener(logger) );
-                this.remoteServiceCache = sdm.createLookupCache
-                                     ( remoteTmpl,
-                                       null,
-                                       new CacheListener(logger) );
-            } catch(RemoteException e) {
-                logger.warn(e.getMessage(), e);
-            }
-        }
-//BTM - END
     }
 
 //BTM
@@ -894,6 +984,7 @@ if (logger.isEnabledFor(org.apache.log4j.Level.DEBUG)) {
     }
     
     synchronized public void shutdown() {
+logger.warn("XXXXX LOAD BALANCER EmbeddedLoadBalancer.shutdown");
         if(!isOpen()) return;
         
         if (logger.isDebugEnabled()) {
@@ -926,6 +1017,7 @@ if (logger.isEnabledFor(org.apache.log4j.Level.DEBUG)) {
     }
 
     synchronized public void shutdownNow() {
+logger.warn("XXXXX LOAD BALANCER EmbeddedLoadBalancer.shutdownNow");
         if(!isOpen()) return;
 
         if (logger.isDebugEnabled()) {
@@ -941,6 +1033,35 @@ if (logger.isEnabledFor(org.apache.log4j.Level.DEBUG)) {
 
         if (logger.isInfoEnabled()) {
             logger.debug("shutdown complete [EmbeddedLoadBalancer]");
+        }
+    }
+
+    synchronized public void destroy() {
+logger.warn("XXXXX LOAD BALANCER EmbeddedLoadBalancer.destroy");
+        if (!isTransient) {
+            eventStore.destroy();
+
+            final File[] logFiles = 
+                logDir.listFiles(new FileFilter() {
+                    public boolean accept(File pathname) {
+                        return pathname.getName().startsWith("counters")
+                            && pathname.getName().endsWith(".xml");
+                    }
+
+                });
+
+            if (logFiles != null) {
+                for (File file : logFiles) {
+                    if (!file.delete()) {
+                        logger.warn("Could not delete: " + file);
+                    }
+                }
+            }
+            // delete the log directory (works iff it is empty).
+logger.warn("XXXXX LOAD BALANCER EmbeddedLoadBalancer.destroy >>> DELETING "+logDir);
+          logDir.delete();
+}else{
+logger.warn("XXXXX LOAD BALANCER EmbeddedLoadBalancer.destroy >>> TRANSIENT -- NOT DELETING");
         }
     }
 
@@ -1097,7 +1218,9 @@ System.err.println("\n*** ENTERED EmbeddedLoadBalancer.leave ***");
                 // root.deletePath(path);
             }
 //BTM***
-serviceNameMap.remove(serviceUUID);
+if( (serviceUUID != null) && (serviceNameMap != null) ) {
+    serviceNameMap.remove(serviceUUID);
+}
         } finally {
             lock.unlock();
         }
@@ -1155,33 +1278,6 @@ serviceNameMap.remove(serviceUUID);
             return uuids;
         } finally {
             clearLoggingContext();
-        }
-    }
-
-    synchronized public void destroy() {
-        if (!isTransient) {
-            eventStore.destroy();
-
-            final File[] logFiles = 
-                logDir.listFiles(new FileFilter() 
-                {
-                    public boolean accept(File pathname)
-                    {
-                        return pathname.getName().startsWith("counters")
-                            && pathname.getName().endsWith(".xml");
-                    }
-
-                });
-
-            if (logFiles != null) {
-                for (File file : logFiles) {
-                    if (!file.delete()) {
-                        logger.warn("Could not delete: " + file);
-                    }
-                }
-            }
-            // delete the log directory (works iff it is empty).
-            logDir.delete();
         }
     }
 
@@ -2432,92 +2528,160 @@ getServiceCounterSet();
     protected class RoundRobinServiceLoadHelper 
                         extends AbstractRoundRobinServiceLoadHelper
     {
-private LookupCache shardLocatorCache;
-private LookupCache shardCache;
-private Map<UUID, DataService> embeddedDataServiceMap;
-RoundRobinServiceLoadHelper(final ServiceDiscoveryManager sdm,
-                            final Map<UUID, DataService> embeddedDataServiceMap)//BTM*** - remove when DataService converted to smart proxy?
-{
-    this.embeddedDataServiceMap = embeddedDataServiceMap;//BTM*** - remove when DataService converted to smart proxy?
+//BTM - BEGIN
+        private LookupCache shardLocatorCache;
+        private LookupCache remoteShardLocatorCache;
+        private LookupCache shardCache;
+        private LookupCache remoteShardCache;
+        private Map<UUID, IDataService> embeddedDataServiceMap;
 
-    if(sdm != null) {
-        Class[] shardLocatorType = new Class[] {IMetadataService.class};//BTM*** - replace with MetadataService after smart proxy
-        ServiceTemplate shardLocatorTmpl = 
-                            new ServiceTemplate(null, shardLocatorType, null);
-        ServiceItemFilter shardLocatorFilter = new IMetadataServiceOnlyFilter();//BTM*** - set to null when DataService --> smart proxy
+        RoundRobinServiceLoadHelper
+                        (final LookupCache shardLocatorCache,
+                         final LookupCache remoteShardLocatorCache,
+                         final LookupCache shardCache,
+                         final LookupCache remoteShardCache,
+                         final Map<UUID, IDataService> embeddedDataServiceMap)
+        {
+            this.shardLocatorCache = shardLocatorCache;
+            this.remoteShardLocatorCache = remoteShardLocatorCache;
+            this.shardCache = shardCache;
+            this.remoteShardCache = remoteShardCache;
 
-        Class[] shardType = new Class[] {IDataService.class};//BTM*** - replace with DataService after smart proxy
-        ServiceTemplate shardTmpl = 
-                            new ServiceTemplate(null, shardType, null);
-        ServiceItemFilter shardFilter = new IDataServiceOnlyFilter();//BTM*** - set to null when DataService --> smart proxy
-
-        try {
-            shardLocatorCache = sdm.createLookupCache
-                                     ( shardLocatorTmpl,
-                                       shardLocatorFilter,
-                                       null );
-
-            shardCache = sdm.createLookupCache
-                                     ( shardTmpl, 
-                                       shardFilter,
-                                       null );
-        } catch(RemoteException e) {
-            logger.warn(e.getMessage(), e);
-        }
+            //BTM*** - remove when DataService converted to smart proxy?
+            this.embeddedDataServiceMap = embeddedDataServiceMap;
     }
-}
+//BTM - END
 
         protected UUID[] awaitServices(int minCount, long timeout)
                 throws InterruptedException, TimeoutException
         {
-//BTM***            return ((AbstractScaleOutFederation) EmbeddedLoadBalancer.this
-//BTM***                    .federation).awaitServices(minCount, timeout);
+//BTM - BEGIN ---------------------------------------------------------------
+//BTM            return ((AbstractScaleOutFederation) EmbeddedLoadBalancer.this
+//BTM                    .federation).awaitServices(minCount, timeout);
 
-if( (shardLocatorCache != null) && (shardLocatorCache != null) ) {
+            if(remoteShardLocatorCache != null) {//all caches not null
+                ServiceItem shardLocatorItem = 
+                                remoteShardLocatorCache.lookup(null);
+                if(shardLocatorItem == null) {
+                    shardLocatorItem = shardLocatorCache.lookup(null);
+                }
+                List<UUID> remoteShardIds = 
+                               remoteShardServiceIdsToUuidList
+                                   (remoteShardCache.lookup(null, minCount));
+                List<UUID> shardIds = shardServiceIdsToUuidList
+                                          (shardCache.lookup(null, minCount));
+                List<UUID> uuids = concatenate(remoteShardIds, shardIds);
+                if(uuids.size() >= minCount) {
+                    return getShardServiceUUIDs(uuids);
+                }
 
-    ServiceItem shardLocatorItem = shardLocatorCache.lookup(null);
-    ServiceItem[] shardItems = shardCache.lookup(null, minCount);
-    UUID[] uuids = new UUID[0];
-    if( shardLocatorItem != null && shardItems.length >= minCount) {
-        uuids = getShardServiceUUIDs(shardItems);
-        if(uuids.length >= minCount) return uuids;
-    }
+                //less than minCount, wait for late joiners
+                long nSecs = timeout/1000L;
+                for(long i=0L; i<nSecs; i++) {
+                    if(shardLocatorItem == null) {
+                        shardLocatorItem = 
+                            remoteShardLocatorCache.lookup(null);
+                        if(shardLocatorItem == null) {
+                            shardLocatorItem = shardLocatorCache.lookup(null);
+                        }
+                    }
+                    remoteShardIds = 
+                        remoteShardServiceIdsToUuidList
+                            (remoteShardCache.lookup(null, minCount));
+                    shardIds = shardServiceIdsToUuidList
+                                   (shardCache.lookup(null,minCount));
+                    uuids = concatenate(remoteShardIds, shardIds);
 
-    //wait for shard locator and shard services to arrive
-    long nSecs = timeout/1000L;
-    for(long i=0L; i<nSecs; i++) {
-        shardLocatorItem = shardLocatorCache.lookup(null);
-        shardItems = shardCache.lookup(null, minCount);
-        if( shardLocatorItem != null && shardItems.length >= minCount) {
-            uuids = getShardServiceUUIDs(shardItems);
-            if(uuids.length >= minCount) return uuids;
-        }
-        try {
-            Thread.sleep(1000L);
-        } catch (InterruptedException e) { }
-    }
-    throw new TimeoutException("elapsed="+timeout+" ms, shard locator "
-                               +"service discovered "
-                               +"["+(shardLocatorItem!=null)+"], "
-                               +"shard services ["+uuids.length
-                               +" discovered but "+minCount+" required");
-} else {
-    Set<UUID> uuidSet = embeddedDataServiceMap.keySet();
-    return uuidSet.toArray(new UUID[uuidSet.size()]);
-}
-        }
-
-        private UUID[] getShardServiceUUIDs(ServiceItem[] serviceItems) {
-            ArrayList<UUID> idList = new ArrayList<UUID>();
-            for(int i=0; i<serviceItems.length; i++) {
-                ServiceItem serviceItem = serviceItems[i];
-                if(serviceItem.service == null) continue;
-                try {
-                    idList.add( ((IDataService)serviceItem.service).getServiceUUID() );//BTM*** - change to ShardService when smart proxy
-                } catch(IOException e) { /* can remove try/catch when change to ShardService */ }
+                    if( shardLocatorItem != null && uuids.size() >= minCount) {
+                        return getShardServiceUUIDs(uuids);
+                    }
+                    try {
+                        Thread.sleep(1000L);//wait a second and try again
+                    } catch (InterruptedException e) { }
+                }
+                String shardLocatorDiscovered = 
+                           (shardLocatorItem == null ?
+                               "shard locator service NOT discovered" :
+                               "shard locator service discovered");
+                throw new TimeoutException("elapsed="+timeout+" ms, "
+                                           +shardLocatorDiscovered+", "
+                                           +"shard services ["+uuids.size()
+                                           +" discovered but "+minCount
+                                           +" required");
+            } else {
+                Set<UUID> uuidSet = embeddedDataServiceMap.keySet();
+                return uuidSet.toArray(new UUID[uuidSet.size()]);
             }
+        }
+
+        private List<UUID> remoteShardServiceIdsToUuidList
+                                                 (ServiceItem[] serviceItems)
+        {
+            List<UUID> idList = new ArrayList<UUID>();
+            for(int i=0; i<serviceItems.length; i++) {
+                ServiceItem item = serviceItems[i];
+                Object service = item.service;
+                if(service == null) continue;
+
+                // try to avoid remote calls by getting info from attrs
+                ServiceID serviceId = item.serviceID;
+                Entry[] attrs = item.attributeSets;
+                UUID serviceUUID = null;
+                ServiceUUID serviceUUIDAttr = 
+                        (ServiceUUID)(EntryUtil.getEntryByType
+                                                (attrs, ServiceUUID.class));
+                if(serviceUUIDAttr != null) {
+                    serviceUUID = serviceUUIDAttr.serviceUUID;
+                } else {
+                    try {
+                        serviceUUID = ((IService)service).getServiceUUID();
+                    } catch(IOException e) {
+                        if(logger.isDebugEnabled()) {
+                            logger.log(Level.DEBUG, "failed to retrieve "
+                                       +"serviceUUID [service="
+                                       +service.getClass()+", ID="
+                                       +serviceId+"]", e);
+                        }
+                    }
+                }
+                if(serviceUUID != null) idList.add(serviceUUID);
+            }
+            return idList;
+        }
+
+        private List<UUID> shardServiceIdsToUuidList
+                                                 (ServiceItem[] serviceItems)
+        {
+            List<UUID> idList = new ArrayList<UUID>();
+            for(int i=0; i<serviceItems.length; i++) {
+                ServiceItem item = serviceItems[i];
+                Object service = item.service;
+                if(service == null) continue;
+                idList.add( ((Service)service).getServiceUUID() );
+            }
+            return idList;
+        }
+
+        private List<UUID> concatenate(List<UUID> list0, List<UUID> list1) {
+            List<UUID> retList = new ArrayList<UUID>();
+            if(list0 != null) {
+                for(UUID id : list0) {
+                    retList.add(id);
+                }
+            }
+            if(list1 != null) {
+                for(UUID id : list1) {
+                    retList.add(id);
+                }
+            }
+            return retList;
+        }
+
+        private UUID[] getShardServiceUUIDs(List<UUID> idList) {
+            if(idList == null) return new UUID[0];
             return idList.toArray( new UUID[idList.size()] );
         }
+//BTM - END -----------------------------------------------------------------
     }
 
     private class IMetadataServiceOnlyFilter 
@@ -2903,8 +3067,12 @@ if( (shardLocatorCache != null) && (shardLocatorCache != null) ) {
 
             if(serviceUUID == null) return;
 
-            activeDataServices.remove(serviceUUID);
-            serviceNameMap.remove(serviceUUID);
+            if(activeDataServices != null) {
+                activeDataServices.remove(serviceUUID);
+            }
+            if(serviceNameMap != null) {
+                serviceNameMap.remove(serviceUUID);
+            }
         }
 
 	public void serviceChanged(ServiceDiscoveryEvent event) {

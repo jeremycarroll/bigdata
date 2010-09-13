@@ -178,7 +178,7 @@ abstract public class AbstractLocalTransactionManager implements
 	 * <p>
 	 * Note: delay*maxtries == 1000ms of trying before we give up, plus however
 	 * long we are willing to wait for service discovery if the problem is
-	 * locating the {@link ITransactionService}.
+	 * locating the transaction service.
 	 * <p>
 	 * If this is not enough, then consider adding an optional parameter giving
 	 * the time the caller will wait and letting the {@link StoreManager} wait
@@ -203,7 +203,8 @@ abstract public class AbstractLocalTransactionManager implements
 
             try {
 
-                final ITransactionService transactionService = getTransactionService();
+//BTM                final ITransactionService transactionService = getTransactionService();
+final TransactionService transactionService = getTransactionService();
 
                 if (transactionService == null) {
 
@@ -261,7 +262,8 @@ abstract public class AbstractLocalTransactionManager implements
 
             try {
 
-                final ITransactionService transactionService = getTransactionService();
+//BTM                final ITransactionService transactionService = getTransactionService();
+final TransactionService transactionService = getTransactionService();
 
                 if (transactionService == null) {
 

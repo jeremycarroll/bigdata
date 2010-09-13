@@ -61,7 +61,7 @@ abstract public class AbstractIndexCache<T extends IRangeQuery> {
     protected AbstractIndexCache(final int capacity, final long timeout) {
 
 //        indexCache = new WeakValueCache<NT, T>(new LRUCache<NT, T>(capacity));
-
+log.warn("\nAbstractIndexCache.constructor >>> CACHE: capacity="+capacity+", TIMEOUT="+timeout+", to nanos = "+TimeUnit.MILLISECONDS.toNanos(timeout)+"\n");
         indexCache = new ConcurrentWeakValueCacheWithTimeout<NT, T>(capacity,
                 TimeUnit.MILLISECONDS.toNanos(timeout));
 
@@ -112,6 +112,7 @@ abstract public class AbstractIndexCache<T extends IRangeQuery> {
             return ndx;
             
         }
+log.warn("\nAbstractIndexCache.constructor >>> 1. ndx == NULL\n");
 
         /*
          * Acquire a lock for the index name and timestamp. This allows
@@ -125,8 +126,10 @@ abstract public class AbstractIndexCache<T extends IRangeQuery> {
             ndx = indexCache.get(nt);
 
             if (ndx == null) {
+log.warn("\nAbstractIndexCache.constructor >>> 2. ndx == NULL\n");
 
                 if ((ndx = newView(name, timestamp)) == null) {
+log.warn("\nAbstractIndexCache.constructor >>> 3. newView -- indx == NULL\n");
 
                     if (INFO)
                         log.info("name=" + name + " @ "

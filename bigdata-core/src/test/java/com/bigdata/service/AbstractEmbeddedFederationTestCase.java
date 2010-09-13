@@ -78,9 +78,10 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
         super(arg0);
     }
 
-    protected IBigdataClient client;
-    protected IBigdataFederation fed;
-    protected IMetadataService metadataService;
+    protected IBigdataClient<?> client;
+    protected IBigdataFederation<?> fed;
+//BTM    protected IMetadataService metadataService;
+protected ShardLocator metadataService;
     protected IDataService dataService0;
     protected IDataService dataService1;
 
@@ -145,16 +146,27 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
         fed = client.connect();
 
         metadataService = fed.getMetadataService();
-        if (log.isInfoEnabled())
-            log.info("metadataService: " + metadataService.getServiceUUID());
+//BTM        if (log.isInfoEnabled())
+//BTM            log.info("metadataService: " + metadataService.getServiceUUID());
+UUID metadataServiceUUID = null;
+if(metadataService != null) {
+    if(metadataService instanceof IService) {
+        metadataServiceUUID = ((IService)metadataService).getServiceUUID();
+    } else if(metadataService instanceof Service) {
+        metadataServiceUUID = ((Service)metadataService).getServiceUUID();
+    }
+}
+if (log.isInfoEnabled()) {
+    log.info("metadataService: " + metadataServiceUUID);
+}
 
-        dataService0 = ((EmbeddedFederation) fed).getDataService(0);
+        dataService0 = ((EmbeddedFederation<?>) fed).getDataService(0);
         if (log.isInfoEnabled())
             log.info("dataService0   : " + dataService0.getServiceUUID());
 
-        if (((EmbeddedFederation) fed).getDataServiceCount() > 1) {
+        if (((EmbeddedFederation<?>) fed).getDataServiceCount() > 1) {
 
-            dataService1 = ((EmbeddedFederation) fed).getDataService(1);
+            dataService1 = ((EmbeddedFederation<?>) fed).getDataService(1);
             if (log.isInfoEnabled())
                 log.info("dataService1   : " + dataService1.getServiceUUID());
             
@@ -349,9 +361,10 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
              * FIXME You can change this constant if you are debugging so that
              * the test will not terminate too soon, but change it back so that
              * the test will terminate quickly when run automatically. The value
-             * should be [2000] ms.
+             * should be only a few seconds. 2000 ms is sometimes to little, so
+             * I have raised this value to 5000 ms.
              */
-            if (elapsed > 2000) {
+            if (elapsed > 5000) {
 
                 fail("No overflow after " + elapsed + "ms?");
 
@@ -392,7 +405,7 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
      */
     protected int getPartitionCount(final String name) {
         
-        final ITupleIterator itr = new RawDataServiceTupleIterator(
+        final ITupleIterator<?> itr = new RawDataServiceTupleIterator(
                 fed.getMetadataService(),//
                 MetadataService.getMetadataIndexName(name), //
                 ITx.READ_COMMITTED,//
@@ -410,7 +423,7 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
             
             n++;
          
-            final ITuple tuple = itr.next();
+            final ITuple<?> tuple = itr.next();
             
             if (log.isInfoEnabled())
                 log.info(SerializerUtil.deserialize(tuple.getValue()));

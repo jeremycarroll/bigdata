@@ -113,7 +113,7 @@ import org.openrdf.sail.SailConnectionListener;
 import org.openrdf.sail.SailException;
 
 import com.bigdata.journal.IIndexManager;
-import com.bigdata.journal.ITransactionService;
+//BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.TimestampUtility;
@@ -158,6 +158,9 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
 
 import cutthecrap.utils.striterators.Expander;
 import cutthecrap.utils.striterators.Striterator;
+
+//BTM
+import com.bigdata.journal.TransactionService;
 
 /**
  * <p>
@@ -618,7 +621,8 @@ public class BigdataSail extends SailBase implements Sail {
         
         final Journal journal = new Journal(properties);
         
-        final ITransactionService txService = 
+//BTM        final ITransactionService txService = 
+final TransactionService txService = 
             journal.getTransactionManager().getTransactionService();
         
         final String namespace = "kb";
@@ -1193,7 +1197,8 @@ public class BigdataSail extends SailBase implements Sail {
         final IIndexManager indexManager = database.getIndexManager();
 
         // @todo no way to get the txService here w/o a cast?
-        final ITransactionService txService = ((Journal) indexManager)
+//BTM        final ITransactionService txService = ((Journal) indexManager)
+final TransactionService txService = ((Journal) indexManager)
                 .getTransactionManager().getTransactionService();
         
         final String namespace = database.getNamespace();

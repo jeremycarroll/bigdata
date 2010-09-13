@@ -43,6 +43,10 @@ import com.bigdata.rawstore.IBlock;
 import com.bigdata.service.AbstractDistributedFederation;
 import com.bigdata.service.IDataService;
 
+//BTM
+import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardManagement;
+
 /**
  * Class supports range query across against an unpartitioned index on an
  * {@link IDataService} but DOES NOT handle index partition splits, moves or
@@ -86,7 +90,12 @@ public class RawDataServiceTupleIterator<E> extends AbstractChunkedTupleIterator
      *       service that maps logical data service UUIDs to physical data
      *       service UUIDs
      */
-    protected final IDataService dataService;
+//BTM    protected final IDataService dataService;
+//BTM
+protected IDataService dataService = null;
+protected ShardLocator metadataService = null;
+private IDataService remoteShardMgr = null;
+private ShardManagement shardMgr = null;
     
     /**
      * The name of the index partition on which the range query is being
@@ -182,6 +191,39 @@ public class RawDataServiceTupleIterator<E> extends AbstractChunkedTupleIterator
 
     }
 
+//BTM - BEGIN
+    public RawDataServiceTupleIterator(final ShardLocator metadataService,
+            final String name, final long timestamp,
+            final boolean readConsistent, final byte[] fromKey,
+            final byte[] toKey, final int capacity, final int flags,
+            final IFilterConstructor filter) {
+
+        super(fromKey, toKey, capacity, flags, filter);
+        
+        if (metadataService == null) {
+            throw new IllegalArgumentException("null shard locator");
+        }
+        if (name == null) {
+            throw new IllegalArgumentException("null name");
+        }
+        
+        if (capacity < 0) {
+            throw new IllegalArgumentException
+                          ("capacity < 0"+" ["+capacity+"]");
+        }
+
+        this.metadataService = metadataService;
+        this.name = name;
+        this.timestamp = timestamp;
+        this.readConsistent = readConsistent;
+if(this.metadataService instanceof IDataService) {
+    remoteShardMgr = (IDataService)(this.metadataService);
+} else if(this.metadataService instanceof ShardManagement) {
+    shardMgr = (ShardManagement)(this.metadataService);
+}
+    }
+//BTM - END
+
     /**
      * Atomic operation caches a chunk of results from an {@link IDataService}.
      * <P>
@@ -195,16 +237,38 @@ public class RawDataServiceTupleIterator<E> extends AbstractChunkedTupleIterator
             final byte[] fromKey, final byte[] toKey, final int capacity,
             final int flags, final IFilterConstructor filter) {
 
-        if (INFO)
+        if (INFO) {
+//BTM - BEGIN
+if(metadataService != null) {
+    log.info("name=" + name + ", fromKey="
+                    + BytesUtil.toString(fromKey) + ", toKey="
+                    + BytesUtil.toString(toKey) + ", shardLocator="
+                    + metadataService);
+} else {
             log.info("name=" + name + ", fromKey="
                     + BytesUtil.toString(fromKey) + ", toKey="
                     + BytesUtil.toString(toKey) + ", dataService="
                     + dataService);
+}
+//BTM - END
+        }
 
         try {
 
+//BTM - BEGIN
+if(metadataService != null) {
+    if(remoteShardMgr != null) {
+        return remoteShardMgr.rangeIterator(timestamp, name, fromKey, toKey, capacity, flags, filter);
+    } else if(shardMgr != null) {
+        return shardMgr.rangeIterator(timestamp, name, fromKey, toKey, capacity, flags, filter);
+    } else {
+        throw new RuntimeException("RawDataServiceTupleIterator.getResultSet: shard locator (metadata) service is not a shard manager [type="+metadataService.getClass()+"]");
+    }
+} else {
             return dataService.rangeIterator(timestamp, name, fromKey, toKey,
                     capacity, flags, filter);
+}
+//BTM - END
             
         } catch (Exception e) {
             

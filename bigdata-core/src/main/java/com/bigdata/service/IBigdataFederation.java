@@ -33,13 +33,16 @@ import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.IIndexManager;
-import com.bigdata.journal.ITransactionService;
+//BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.service.ndx.ClientIndexView;
 import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.sparse.GlobalRowStoreSchema;
 import com.bigdata.sparse.SparseRowStore;
+
+//BTM
+import com.bigdata.journal.TransactionService;
 
 /**
  * The client-facing interface to a bigdata federation. Note that each bigdata
@@ -72,12 +75,13 @@ public interface IBigdataFederation<T> extends IIndexManager, IFederationDelegat
     public String getHttpdURL();
     
     /**
-     * Return the {@link ITransactionService} (or a proxy for that service).
+     * Return the transaction service (or a proxy for that service).
      * 
      * @return The service -or- <code>null</code> if the service has not been
      *         discovered.
      */
-    public ITransactionService getTransactionService();
+//BTM    public ITransactionService getTransactionService();
+public TransactionService getTransactionService();
     
     /**
      * Return the load balancer service (or a proxy for that service).
@@ -91,7 +95,8 @@ public interface IBigdataFederation<T> extends IIndexManager, IFederationDelegat
      * 
      * @return The service -or- <code>null</code> if the service has not been discovered.
      */
-    public IMetadataService getMetadataService();
+//BTM    public IMetadataService getMetadataService();
+public ShardLocator getMetadataService();
     
     /**
      * A thread pool that may be used by clients to parallelize operations

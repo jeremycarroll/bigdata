@@ -374,7 +374,7 @@ System.out.println("*** serviceImpl (TestMove) >>> EmbeddedLoadBalancer [NON-rem
                  * Set flag to force overflow on group commit.
                  */
                 dataService0
-                        .forceOverflow(false/* immediate */, false/* compactingMerge */);
+                        .forceOverflow(false/* immediate */, true/* compactingMerge */);
 
                 // insert the data into the scale-out index.
                 fed.getIndex(name, ITx.UNISOLATED)
@@ -409,7 +409,7 @@ System.out.println("*** serviceImpl (TestMove) >>> EmbeddedLoadBalancer [NON-rem
             int ndataService0 = 0;// #of index partitions on data service 0.
             int ndataService1 = 0;// #of index partitions on data service 1.
             
-            final ITupleIterator itr = new RawDataServiceTupleIterator(
+            final ITupleIterator<?> itr = new RawDataServiceTupleIterator(
                     fed.getMetadataService(),//
                     MetadataService.getMetadataIndexName(name), //
                     ITx.READ_COMMITTED,//

@@ -69,8 +69,12 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
 
     protected final static Logger log = Logger
             .getLogger(JiniServicesHelper.class);
+//BTM
+private boolean serviceImplRemote;
 
-    public MetadataServer metadataServer0;
+//BTM    public MetadataServer metadataServer0;
+public MetadataServer mdsRemote0;
+public ShardLocatorTask mds0;
 
     public DataServer dataServer1;
 
@@ -79,9 +83,10 @@ public class JiniServicesHelper extends JiniCoreServicesHelper {
 //BTM    public LoadBalancerServer loadBalancerServer0;
 public LoadBalancerServer lbsRemote0;
 public LoadBalancerTask lbs0;
-private boolean serviceImplRemote;
 
-    public TransactionServer transactionServer0;
+//BTM    public TransactionServer transactionServer0;
+public TransactionServer txnServiceRemote0;
+public TransactionTask txnService0;
 
     public ClientServer clientServer0;
 
@@ -527,6 +532,7 @@ try {
             final File serviceDir = new File(fedServiceDir, "ds1");
 
             final File dataDir = new File(serviceDir, "data");
+System.err.println("\n---------- JiniServicesHelper (ds1): dataDir = "+dataDir+"\n");
 
             final String[] overrides = new String[] {
                     /*
@@ -567,6 +573,7 @@ try {
             final File serviceDir = new File(fedServiceDir, "ds0");
 
             final File dataDir = new File(serviceDir, "data");
+System.err.println("\n---------- JiniServicesHelper (ds0): dataDir = "+dataDir+"\n");
 
             final String[] overrides = new String[] {
                     /*
@@ -605,22 +612,29 @@ try {
         threadPool.execute(clientServer0 = new ClientServer(concat(
                 args, options), new FakeLifeCycle()));
 
-        threadPool.execute(transactionServer0 = new TransactionServer(concat(
-                args, options), new FakeLifeCycle()));
-
-        threadPool.execute(metadataServer0 = new MetadataServer(concat(args,
-                options), new FakeLifeCycle()));
-
+//BTM        threadPool.execute(transactionServer0 = new TransactionServer(concat(
+//BTM                args, options), new FakeLifeCycle()));
+//BTM
+//BTM        threadPool.execute(metadataServer0 = new MetadataServer(concat(args,
+//BTM                options), new FakeLifeCycle()));
+//BTM
 //BTM        threadPool.execute(loadBalancerServer0 = new LoadBalancerServer(concat(
 //BTM                args, options), new FakeLifeCycle()));
 //BTM
 //BTM -----------------------------------------------------------------------
 if(serviceImplRemote) {
-System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> LoadBalancerServer [purely remote]");
+System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> [purely remote]");
+
+        threadPool.execute(txnServiceRemote0 = new TransactionServer(concat(
+                args, options), new FakeLifeCycle()));
+
+        threadPool.execute(mdsRemote0 = new MetadataServer(concat(args,
+                options), new FakeLifeCycle()));
 
         threadPool.execute(lbsRemote0 = new LoadBalancerServer(concat(
                 args, options), new FakeLifeCycle()));
 } else {
+System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> [NON-remote]");
     java.util.ArrayList<String> optionsList = new java.util.ArrayList<String>();
     for(int i=0; i<options.length; i++) {
         optionsList.add(options[i]);
@@ -631,31 +645,43 @@ System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServices
                    +"\""+fedname+"\""
                    +"}";
     optionsList.add(joinGroupsOverrideStr);
-    String[] loadBalancerArgs = 
+    String[] serviceImplArgs = 
          concat(args, optionsList.toArray(new String[optionsList.size()]) );
 
-System.err.println("\n**** BTM - JiniServicesHelper ****");
-for(int i=0; i<loadBalancerArgs.length; i++) {
-    System.err.println("**** BTM - loadBalancerArgs["+i+"] = "+loadBalancerArgs[i]);
+for(int i=0; i<serviceImplArgs.length; i++) {
+    System.err.println("**** BTM - JiniServicesHelper >>> serviceImplArgs["+i+"] = "+serviceImplArgs[i]);
 }
-System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> LoadBalancerTask [NON-remote]");
 
-    lbs0 = new LoadBalancerTask(loadBalancerArgs);
+    txnService0 = new TransactionTask(serviceImplArgs);
+    threadPool.execute(txnService0);
+
+    mds0 = new ShardLocatorTask(serviceImplArgs);
+    threadPool.execute(mds0);
+
+    lbs0 = new LoadBalancerTask(serviceImplArgs);
     threadPool.execute(lbs0);
 }
 //BTM -----------------------------------------------------------------------
 
         // Wait until all the services are up.
         getServiceID(clientServer0);
-        getServiceID(transactionServer0);
-        getServiceID(metadataServer0);
+//BTM        getServiceID(transactionServer0);
+//BTM        getServiceID(metadataServer0);
         getServiceID(dataServer0);
         getServiceID(dataServer1);
 //BTM        getServiceID(loadBalancerServer0);
 //BTM
 //BTM -----------------------------------------------------------------------
+
+if(txnServiceRemote0 != null) getServiceID(txnServiceRemote0);
+if(txnService0 != null) getServiceID(com.bigdata.service.ShardLocator.class, sdm);
+
+if(mdsRemote0 != null) getServiceID(mdsRemote0);
+if(mds0 != null) getServiceID(com.bigdata.service.ShardLocator.class, sdm);
+
 if(lbsRemote0 != null) getServiceID(lbsRemote0);
 if(lbs0 != null) getServiceID(com.bigdata.service.LoadBalancer.class, sdm);
+
 if(sdm != null) sdm.terminate();
 if(ldm != null) ldm.terminate();
 //BTM -----------------------------------------------------------------------
@@ -696,13 +722,17 @@ if(ldm != null) ldm.terminate();
 
         }
 
-        if (metadataServer0 != null) {
-
-            metadataServer0.destroy();
-
-            metadataServer0 = null;
-
-        }
+//BTM        if (metadataServer0 != null) {
+//BTM
+//BTM            metadataServer0.destroy();
+//BTM
+//BTM            metadataServer0 = null;
+//BTM
+//BTM        }
+if (mdsRemote0 != null) {
+    mdsRemote0.destroy();
+    mdsRemote0 = null;
+}
 
         if (dataServer0 != null) {
 
@@ -719,6 +749,14 @@ if(ldm != null) ldm.terminate();
             dataServer1 = null;
 
         }
+
+//BTM - destroy the shard locator after the data services are destroyed; which will avoid InterruptedException from WORMStrategy.releaseCache
+//BTM - that seems to be thrown in the data service only if the shard locator is no longer available. Note that this issue 
+//BTM - does not appear to affect the remote implementation of the metadata service
+if (mds0 != null) {
+    mds0.destroy();
+    mds0 = null;
+}
 
         if (clientServer0 != null) {
 
@@ -744,13 +782,21 @@ if (lbs0 != null) {
     lbs0 = null;
 }
 
-        if (transactionServer0 != null) {
-
-            transactionServer0.destroy();
-
-            transactionServer0 = null;
-
-        }
+//BTM        if (transactionServer0 != null) {
+//BTM
+//BTM            transactionServer0.destroy();
+//BTM
+//BTM            transactionServer0 = null;
+//BTM
+//BTM        }
+if (txnServiceRemote0 != null) {
+    txnServiceRemote0.destroy();
+    txnServiceRemote0 = null;
+}
+if (txnService0 != null) {
+    txnService0.destroy();
+    txnService0 = null;
+}
 
         if (zookeeper != null && zooConfig != null) {
 
@@ -779,11 +825,32 @@ if (lbs0 != null) {
         }
 
         if (zooDataDir != null && zooDataDir.exists()) {
-
             /*
              * Wait a bit and then try and delete the zookeeper directory.
              */
             
+//BTM - BEGIN
+            // When using the smart proxy implementation of a given
+            // service, that service's ServiceImpl class is instantiated
+            // in a service-specific task (ex. ShardLocatorTask). When
+            // this method shuts down the service by calling destroy on
+            // the task (above), the task's destroy method ultimately
+            // calls Thread.currentThread().interrupt(); which allows
+            // the task to exit. Thus, for the smart proxy case, the
+            // interrupt status is set to true when this method reaches
+            // this point; which means that the call to Thread.sleep()
+            // below will encounter an InterruptedException, which
+            // causes a RuntimeException to be thrown. Although the
+            // original author's intent for throwing a RuntimeException
+            // under such circumstances is unclear (as is the need for
+            // a 250 millisecond wait before deleting the zookeeper
+            // directory), in order to maintain the original logic (at
+            // least for the time being), the interrupt status is set
+            // to false if it is determined to be currently set to true.
+if( (Thread.currentThread()).isInterrupted() ) {
+    Thread.interrupted();// clears the interrupt status
+}
+//BTM - END
             try {
                 Thread.sleep(250);
             } catch (InterruptedException e) {
@@ -791,7 +858,6 @@ if (lbs0 != null) {
             }
 
             recursiveDelete(zooDataDir);
-
         }
         
 //        // Stop the lookup service.
@@ -958,6 +1024,68 @@ if (lbs0 != null) {
                                        +"["+classType+"]");
         }
         return item.serviceID;
+    }
+
+    // Convenience class that allows one to instantiate and run the
+    // transaction service's ServiceImpl class as a task in a thread pool.
+    private class TransactionTask implements Runnable {
+        private String[] args;
+        private com.bigdata.transaction.ServiceImpl txnService;
+        TransactionTask(String[] args) {
+            this.args = args;
+        }
+        public void run() {
+            try {
+                this.txnService =
+                    new com.bigdata.transaction.ServiceImpl
+                                                 (args,new FakeLifeCycle());
+            } catch(Throwable t) {
+                t.printStackTrace();
+                return;
+            }
+            while( !(Thread.currentThread()).isInterrupted() ) {
+                try {
+                    Thread.sleep(Long.MAX_VALUE);
+                } catch (InterruptedException e) { /*exit while loop*/ }
+            }
+        }
+        public void destroy() {
+            try {
+                this.txnService.destroy();
+            } catch(Throwable t) { /* swallow */ }
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    // Convenience class that allows one to instantiate and run the
+    // shard locator's ServiceImpl class as a task in a thread pool.
+    private class ShardLocatorTask implements Runnable {
+        private String[] args;
+        private com.bigdata.metadata.ServiceImpl shardLocator;
+        ShardLocatorTask(String[] args) {
+            this.args = args;
+        }
+        public void run() {
+            try {
+                this.shardLocator =
+                    new com.bigdata.metadata.ServiceImpl
+                                                 (args,new FakeLifeCycle());
+            } catch(Throwable t) {
+                t.printStackTrace();
+                return;
+            }
+            while( !(Thread.currentThread()).isInterrupted() ) {
+                try {
+                    Thread.sleep(Long.MAX_VALUE);
+                } catch (InterruptedException e) { /*exit while loop*/ }
+            }
+        }
+        public void destroy() {
+            try {
+                this.shardLocator.destroy();
+            } catch(Throwable t) { /* swallow */ }
+            Thread.currentThread().interrupt();
+        }
     }
 
     // Convenience class that allows one to instantiate and run the

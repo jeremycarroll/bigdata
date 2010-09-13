@@ -81,12 +81,15 @@ import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
+//BTM import com.bigdata.service.IMetadataService;
 import com.bigdata.service.Split;
 import com.bigdata.service.IBigdataClient.Options;
 import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
 import com.bigdata.service.ndx.pipeline.IndexAsyncWriteStats;
 import com.bigdata.service.ndx.pipeline.IndexWriteTask;
+
+//BTM
+import com.bigdata.service.ShardLocator;
 
 /**
  * Abstract base class for the {@link IScaleOutClientIndex} implementation(s).
@@ -233,7 +236,8 @@ abstract public class AbstractScaleOutClientIndexView implements IScaleOutClient
      * Obtain the proxy for a metadata service. if this instance fails, then we
      * can always ask for a new instance for the same federation (failover).
      */
-    final protected IMetadataService getMetadataService() {
+//BTM    final protected IMetadataService getMetadataService() {
+final protected ShardLocator getMetadataService() {
         
         return fed.getMetadataService();
         

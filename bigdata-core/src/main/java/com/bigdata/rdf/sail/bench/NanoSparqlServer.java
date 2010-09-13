@@ -77,7 +77,7 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IJournal;
-import com.bigdata.journal.ITransactionService;
+//BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.TimestampUtility;
@@ -97,6 +97,9 @@ import com.bigdata.sparse.ITPS;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.httpd.AbstractHTTPD;
 import com.bigdata.util.httpd.NanoHTTPD;
+
+//BTM
+import com.bigdata.journal.TransactionService;
 
 /**
  * A flyweight SPARQL endpoint using HTTP.
@@ -1306,7 +1309,8 @@ public class NanoSparqlServer extends AbstractHTTPD {
 		Journal jnl = null;
 		JiniClient<?> jiniClient = null;
 		NanoSparqlServer server = null;
-		ITransactionService txs = null;
+//BTM		ITransactionService txs = null;
+TransactionService txs = null;
 		try {
 			/*
 			 * FIXME Modify to handle additional options, which get

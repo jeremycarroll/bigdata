@@ -37,6 +37,9 @@ import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.AbstractTransactionService;
 import com.bigdata.service.DataService;
 
+//BTM
+import com.bigdata.service.TxState;
+
 /**
  * Implementation for a standalone journal using single-phase commits.
  * 

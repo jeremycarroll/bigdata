@@ -95,6 +95,12 @@ public class MetadataServer extends DataServer {
 
         super(args, lifeCycle);
              
+System.err.println("\n>>>> MetadataServer -----------------------------------------");
+for(int i=0; i<args.length; i++) {
+    System.err.println(">>>> MetadataServer args["+i+"] = "+args[i]);
+}
+System.err.println(">>>> MetadataServer -----------------------------------------\n");
+
     }
 
     /**

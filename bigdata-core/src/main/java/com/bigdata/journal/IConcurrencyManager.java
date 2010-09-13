@@ -53,12 +53,7 @@ public interface IConcurrencyManager extends IServiceShutdown {
      * The client side of the transaction manager.
      */
     public ILocalTransactionManager getTransactionManager();
-    
-//    /**
-//     * The server side of the transaction manager.
-//     */
-//    public ITransactionManager getTransactionService();
-    
+        
     /**
      * The object used to manage local resources.
      */

@@ -10,7 +10,12 @@ import net.jini.core.lookup.ServiceTemplate;
 
 import com.bigdata.jini.util.JiniUtil;
 import com.bigdata.service.IClientService;
+import com.bigdata.service.IDataService;
 import com.bigdata.service.jini.JiniFederation;
+
+//BTM
+import net.jini.lookup.ServiceDiscoveryManager;
+import com.bigdata.service.ShardLocator;
 
 /**
  * An ordered mapping of indices in <code>[0:N-1]</code> onto the services on
@@ -96,6 +101,15 @@ public class ServiceMap implements Serializable {
     public void resolveServiceUUIDs(final JiniFederation fed)
             throws RemoteException, InterruptedException {
 
+//BTM
+//BTM - replace IRemoteExecutor with CallableExecutor & ShardService
+//BTM   when those services have been converted
+Class[] executorType = new Class[] { IClientService.class };
+Class[] shardType = new Class[] { IClientService.class };
+Class[] shardLocatorType = new Class[] { ShardLocator.class };
+ServiceDiscoveryManager sdm = fed.getServiceDiscoveryManager();
+long timeoutMillis = 1000L;
+
         for (int i = 0; i < ntasks; i++) {
 
             final UUID serviceUUID = serviceUUIDs[i];
@@ -108,23 +122,57 @@ public class ServiceMap implements Serializable {
             serviceItem = fed.getClientServicesClient().getServiceCache()
                     .getServiceItemByID(serviceID);
 
+//BTM            if (serviceItem == null) {
+//BTM
+//BTM                // test data service cache.
+//BTM                serviceItem = fed.getDataServicesClient().getServiceCache()
+//BTM                        .getServiceItemByID(serviceID);
+//BTM
+//BTM                if (serviceItem == null) {
+//BTM
+//BTM                    // direct lookup.
+//BTM                    serviceItem = fed.getServiceDiscoveryManager()
+//BTM                            .lookup(
+//BTM                                    new ServiceTemplate(
+//BTM                                            serviceID,
+//BTM                                            new Class[] { IRemoteExecutor.class }/* types */,
+//BTM                                            null/* attr */),
+//BTM                                    null/* filter */, 1000/* timeoutMillis */);
+//BTM
+//BTM                    if (serviceItem == null) {
+//BTM
+//BTM                        throw new RuntimeException(
+//BTM                                "Could not discover service: " + serviceUUID);
+//BTM
+//BTM                    }
+//BTM
+//BTM                }
+//BTM
+//BTM            }
+//BTM - BEGIN
+if (serviceItem == null) {//no callable executor service, try shard service
+
+    // test data service cache.
+    serviceItem = fed.getDataServicesClient().getServiceCache()
+                        .getServiceItemByID(serviceID);
+
+    if (serviceItem == null) {//no shard service, try shard locator service
+
+        // test shard locator service cache.
+        serviceItem = fed.getShardLocatorClient().getServiceCache()
+                        .getServiceItemByID(serviceID);
+
+        if (serviceItem == null) {//no callable executor service, no shard service, no shard locator service, try direct lookup
+            ServiceTemplate tmpl = new ServiceTemplate(serviceID, null, null); 
+            serviceItem = sdm.lookup(tmpl, null, timeoutMillis);
             if (serviceItem == null) {
-
-                // direct lookup.
-                serviceItem = fed.getServiceDiscoveryManager()
-                    .lookup(
-                            new ServiceTemplate(
-                                serviceID,
-                                new Class[] { IClientService.class }/* types */,
-                                null/* attr */),
-                            null/* filter */, 1000/* timeoutMillis */);
-                if (serviceItem == null) {
-                    throw new RuntimeException(
-                                "Could not discover service: " + serviceUUID);
-                }
-
+                throw new RuntimeException
+                    ("Could not discover service ["+serviceUUID+"]");
             }
-
+        }
+    }
+}
+//BTM - END
             if (serviceItems == null) {
 
                 /*
@@ -171,6 +219,22 @@ public class ServiceMap implements Serializable {
                     .serviceID2UUID(serviceItem.serviceID);
 
         }
+        
+    }
+
+    /**
+     * Return the {@link UUID} of the service to which the Nth client was
+     * assigned.
+     * 
+     * @param clientNum
+     *            The client number in [0:N-1].
+     *            
+     * @return The {@link UUID} of the service on which that client should
+     *         execute.
+     */
+    public UUID getServiceUUID(final int clientNum) {
+        
+        return serviceUUIDs[clientNum];
         
     }
 

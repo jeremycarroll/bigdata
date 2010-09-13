@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.bigdata.service.*;
 import net.jini.config.Configuration;
 import net.jini.core.discovery.LookupLocator;
 import net.jini.core.lookup.ServiceItem;
@@ -73,17 +74,11 @@ import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.jini.start.config.ZookeeperClientConfig;
 import com.bigdata.jini.util.JiniUtil;
 import com.bigdata.journal.IResourceLockService;
-import com.bigdata.journal.ITransactionService;
+//BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.accesspath.IAsynchronousIterator;
 import com.bigdata.relation.accesspath.IBuffer;
 import com.bigdata.relation.accesspath.IRunnableBuffer;
-import com.bigdata.service.AbstractDistributedFederation;
-import com.bigdata.service.AbstractFederation;
-import com.bigdata.service.IClientService;
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
-import com.bigdata.service.IService;
 import com.bigdata.service.jini.lookup.ClientServicesClient;
 import com.bigdata.service.jini.lookup.DataServiceFilter;
 import com.bigdata.service.jini.lookup.DataServicesClient;
@@ -108,8 +103,8 @@ import com.bigdata.zookeeper.ZooKeeperAccessor;
 import com.bigdata.zookeeper.ZooResourceLockService;
 
 //BTM
-import com.bigdata.service.LoadBalancer;
-import com.bigdata.service.Service;
+import com.bigdata.journal.TransactionService;
+import com.bigdata.service.jini.lookup.ShardLocatorClient;
 
 /**
  * Concrete implementation for Jini.
@@ -124,6 +119,8 @@ public class JiniFederation<T> extends AbstractDistributedFederation<T> implemen
     private ServiceDiscoveryManager serviceDiscoveryManager;
 
     private DataServicesClient dataServicesClient;
+    //BTM
+private ShardLocatorClient shardLocatorClient;
 
     private LoadBalancerClient loadBalancerClient;
 
@@ -267,7 +264,7 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
     
     /**
      * Cached lookup for discovered {@link IDataService}s and
-     * {@link IMetadataService}s. Will block on a cache miss and attempt to
+     * {@link ShardLocator}s. Will block on a cache miss and attempt to
      * discover an appropriate service instance.
      */
     public DataServicesClient getDataServicesClient() {
@@ -276,11 +273,16 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
         
     }
     
-    public ServicesManagerClient getServicesManagerClient() {
-        
-        return servicesManagerClient;
-        
-    }
+    //BTM - BEGIN
+    /**
+     * Cached lookup for discovered shard locators. Will block
+     * on a cache miss and attempt to discover an appropriate service
+     * instance.
+     */
+public ShardLocatorClient getShardLocatorClient() {
+    return shardLocatorClient;
+}
+//BTM - END
     
     /**
      * Cached lookup for discovered {@link IClientService}s. 
@@ -368,6 +370,9 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
 
             // Start discovery for data and metadata services.
             dataServicesClient = new DataServicesClient(this, cacheMissTimeout);
+
+            //BTM
+shardLocatorClient = new ShardLocatorClient(this, cacheMissTimeout);
 
             // Start discovery for the timestamp service.
             transactionServiceClient = new TransactionServiceClient(this,
@@ -584,7 +589,8 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
 
     }
 
-    public ITransactionService getTransactionService() {
+    //BTM    public ITransactionService getTransactionService() {
+    public TransactionService getTransactionService() {
 
         // Note: return null if service not available/discovered.
         if (transactionServiceClient == null)
@@ -600,13 +606,16 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
         
     }
     
-    public IMetadataService getMetadataService() {
+    public ShardLocator getMetadataService() {
 
         // Note: return null if service not available/discovered.
-        if (dataServicesClient == null)
-            return null;
-
-        return dataServicesClient.getMetadataService();
+//BTM
+//BTM        if (dataServicesClient == null)
+//BTM            return null;
+//BTM
+//BTM        return dataServicesClient.getMetadataService();
+if (shardLocatorClient == null) return null;
+return shardLocatorClient.getMetadataService();
 
     }
 
@@ -740,6 +749,13 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
             
         }
 
+//BTM - BEGIN
+if (shardLocatorClient != null) {
+    shardLocatorClient.terminate();
+    shardLocatorClient = null;
+}
+//BTM - END
+
         if (servicesManagerClient != null) {
 
             servicesManagerClient.terminate();
@@ -802,7 +818,7 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
      * <p>
      * The shutdown protocol is as follows:
      * <ol>
-     * <li>{@link ITransactionService} (blocks until shutdown).</li>
+     * <li>{@link TransactionService} (blocks until shutdown).</li>
      * <li>{@link IDataService}s (blocks until all are shutdown).</li>
      * <li>{@link IMetadataService}</li>
      * <li>load balancer service</li>
@@ -835,8 +851,9 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
                 DataServiceFilter.INSTANCE, immediateShutdown);
 
         // metadata service.
-        dataServicesClient.shutdownDiscoveredServices(getExecutorService(),
-                MetadataServiceFilter.INSTANCE, immediateShutdown);
+//BTM        dataServicesClient.shutdownDiscoveredServices(getExecutorService(),
+//BTM                MetadataServiceFilter.INSTANCE, immediateShutdown);
+shardLocatorClient.shutdownDiscoveredServices(getExecutorService(), null/* filter */, immediateShutdown);
 
         // load balancer
         loadBalancerClient.shutdownDiscoveredServices(getExecutorService(),
@@ -872,8 +889,9 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
                     DataServiceFilter.INSTANCE);
 
             // metadata service.
-            dataServicesClient.destroyDiscoveredServices(getExecutorService(),
-                    MetadataServiceFilter.INSTANCE);
+//BTM            dataServicesClient.destroyDiscoveredServices(getExecutorService(),
+//BTM                    MetadataServiceFilter.INSTANCE);
+shardLocatorClient.destroyDiscoveredServices(getExecutorService(), null/* filter */);
 
             // load balancer
             loadBalancerClient.destroyDiscoveredServices(getExecutorService(),
@@ -927,8 +945,8 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
     }
 
     public long getLastCommitTime() {
-
-        final ITransactionService transactionService = getTransactionService();
+//BTM        final ITransactionService transactionService = getTransactionService();
+        final TransactionService transactionService = getTransactionService();
 
         if (transactionService != null) {
 
@@ -1258,25 +1276,33 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
         
         final ServiceItem serviceItem = e.getPostEventServiceItem();
 
-        if (serviceItem.service instanceof IService) {
+//BTM        if (serviceItem.service instanceof IService) {
+//BTM
+//BTM//            System.err.println("serviceAdded: "+serviceItem);
+//BTM            
+//BTM            final UUID serviceUUID = JiniUtil
+//BTM                    .serviceID2UUID(serviceItem.serviceID);
+//BTM
+//BTM            serviceJoin((IService) serviceItem.service, serviceUUID);
+//BTM
+//BTM        } else {
+//BTM            
+//BTM            log.warn("Not an " + IService.class);
+//BTM            
+//BTM        }
 
-            final UUID serviceUUID = JiniUtil
-                    .serviceID2UUID(serviceItem.serviceID);
-
-            serviceJoin((IService) serviceItem.service, serviceUUID);
-
-        } else if (serviceItem.service instanceof Service) {
-
-            final UUID serviceUUID = JiniUtil
-                    .serviceID2UUID(serviceItem.serviceID);
-
-            serviceJoin((Service) serviceItem.service, serviceUUID);
-
+//BTM - BEGIN 
+        if ( (serviceItem.service instanceof Service) || serviceItem.service instanceof IService) {            
+            final UUID serviceUUID = JiniUtil.serviceID2UUID(serviceItem.serviceID);
+            if ( serviceItem.service instanceof IService ) {
+                serviceJoin((IService) serviceItem.service, serviceUUID);
+            } else {
+                serviceJoin((Service) serviceItem.service, serviceUUID);
+            }
         } else {
-            
-            log.warn("Not an " + IService.class + " or an " + Service.class);
-           
+            log.warn("discovered service not instance of IService or Service ["+(serviceItem.service).getClass()+"]");
         }
+//BTM - END
         
     }
 

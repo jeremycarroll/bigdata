@@ -61,13 +61,17 @@ import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.EventType;
 import com.bigdata.service.IDataService;
-import com.bigdata.service.MetadataService;
+//BTM import com.bigdata.service.MetadataService;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.LatchedExecutor;
 
 //BTM
+import com.bigdata.metadata.EmbeddedShardLocator;
+import com.bigdata.service.IDataService;
 import com.bigdata.service.LoadBalancer;
+import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardManagement;
 
 /**
  * This class examines the named indices defined on the journal identified by
@@ -116,7 +120,7 @@ import com.bigdata.service.LoadBalancer;
  * When each task is finished, it submits and awaits the completion of an
  * {@link AbstractAtomicUpdateTask}. The atomic update tasks use
  * {@link ITx#UNISOLATED} operations on the live journal to make atomic updates
- * to the index partition definitions and to the {@link MetadataService} and/or
+ * to the index partition definitions and to the shard locator service and/or
  * a remote data service where necessary.</dd>
  * </dl>
  * <p>
@@ -634,7 +638,7 @@ public class AsynchronousOverflowTask implements Callable<Object> {
 
                     if (vmd.mergePriority > 0 || forceCompactingMerges) {
 
-			if(forceCompactingMerges && vmd.getAction().equals(OverflowActionEnum.Copy)) {
+                        if(forceCompactingMerges && OverflowActionEnum.Copy.equals(vmd.getAction())) {
 
 			    vmd.clearCopyAction();
 
@@ -1190,13 +1194,38 @@ public class AsynchronousOverflowTask implements Callable<Object> {
                                 keys, null/*vals*/);
                 final ResultBuffer resultBuffer;
                 try {
-                    resultBuffer = (ResultBuffer) resourceManager
-                            .getFederation().getMetadataService()
-                            .submit(
-                                    TimestampUtility.asHistoricalRead(lastCommitTime),
-                                    MetadataService
-                                            .getMetadataIndexName(scaleOutIndexName),
-                                    op).get();
+//BTM                    resultBuffer = (ResultBuffer) resourceManager
+//BTM                            .getFederation().getMetadataService()
+//BTM                            .submit(
+//BTM                                    TimestampUtility.asHistoricalRead(lastCommitTime),
+//BTM                                    MetadataService
+//BTM                                            .getMetadataIndexName(scaleOutIndexName),
+//BTM                                    op).get();
+
+ShardLocator mds = (resourceManager.getFederation()).getMetadataService();
+if(mds == null) {
+    log.error("AsynchronousOverflowTask.chooseJoins: null shard locator (metadata) service - could not locate rightSiblings [index="+scaleOutIndexName+"]");
+    continue;
+}
+if(mds instanceof IDataService) {
+    IDataService remoteShardMgr = (IDataService)mds;
+    resultBuffer = 
+        (ResultBuffer) remoteShardMgr.submit
+                           (TimestampUtility.asHistoricalRead(lastCommitTime),
+                            EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
+                            op).get();
+} else if(mds instanceof ShardManagement) {
+    ShardManagement shardMgr = (ShardManagement)mds;
+    resultBuffer = 
+        (ResultBuffer) shardMgr.submit
+                           (TimestampUtility.asHistoricalRead(lastCommitTime),
+                            EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
+                            op).get();
+} else {
+    log.error("AsynchronousOverflowTask.chooseJoins: shard locator (metadata) service wrong type [type="+mds.getClass()+"] - could not locate rightSiblings [index="+scaleOutIndexName+"]");
+    continue;
+}
+
                 } catch (Exception e) {
                     
                     log.error("Could not locate rightSiblings: index="

@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service;
 
+//BTM
+import static com.bigdata.service.TxState.*;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
@@ -166,23 +169,23 @@ abstract public class AbstractTransactionService extends AbstractService
     /**
      * If the transaction is read-only and a write operation was requested.
      */
-    protected static final transient String ERR_READ_ONLY = "Read-only";
+//BTM    protected static final transient String ERR_READ_ONLY = "Read-only";
     
     /**
      * If the transaction is not known to this service.
      */
-    protected static final transient String ERR_NO_SUCH = "Unknown transaction";
+//BTM    protected static final transient String ERR_NO_SUCH = "Unknown transaction";
     
     /**
      * If a transaction is no longer active.
      */
-    protected static final transient String ERR_NOT_ACTIVE = "Not active";
+//BTM    protected static final transient String ERR_NOT_ACTIVE = "Not active";
 
     /**
      * If the transaction service is not in a run state which permits the
      * requested operation.
      */
-    protected static final transient String ERR_SERVICE_NOT_AVAIL = "Service not available";
+//BTM    protected static final transient String ERR_SERVICE_NOT_AVAIL = "Service not available";
 
     /**
      * The run state for the transaction service.
@@ -1818,24 +1821,24 @@ abstract public class AbstractTransactionService extends AbstractService
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    protected class TxState {
-
+//BTM    protected class TxState {
+//BTM
         /**
          * The transaction identifier.
          */
-        public final long tx;
-        
+//BTM        public final long tx;
+//BTM        
         /**
          * <code>true</code> iff the transaction is read-only.
          */
-        public final boolean readOnly;
-
+//BTM        public final boolean readOnly;
+//BTM
         /**
          * The run state of the transaction (only accessible while you are
          * holding the {@link #lock}.
          */
-        private RunState runState = RunState.Active;
-        
+//BTM        private RunState runState = RunState.Active;
+//BTM        
         /**
          * Change the {@link RunState}.
          * 
@@ -1849,31 +1852,31 @@ abstract public class AbstractTransactionService extends AbstractService
          * 
          * @see RunState#isTransitionAllowed(RunState)
          */
-        public void setRunState(final RunState newval) {
-
-            if (!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            if (newval == null)
-                throw new IllegalArgumentException();
-            
-            if (!runState.isTransitionAllowed(newval)) {
-
-                throw new IllegalStateException("runState=" + runState
-                        + ", newValue=" + newval);
-
-            }
-
-            this.runState = newval;
-            
-        }
-        
+//BTM        public void setRunState(final RunState newval) {
+//BTM
+//BTM            if (!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            if (newval == null)
+//BTM                throw new IllegalArgumentException();
+//BTM            
+//BTM            if (!runState.isTransitionAllowed(newval)) {
+//BTM
+//BTM                throw new IllegalStateException("runState=" + runState
+//BTM                        + ", newValue=" + newval);
+//BTM
+//BTM            }
+//BTM
+//BTM            this.runState = newval;
+//BTM            
+//BTM        }
+//BTM        
         /**
          * The commit time assigned to a distributed read-write transaction
          * during the commit protocol and otherwise ZERO (0L).
          */
-        private long commitTime = 0L;
-        
+//BTM        private long commitTime = 0L;
+//BTM        
         /**
          * The commit time assigned to a distributed read-write transaction
          * during the commit protocol.
@@ -1883,54 +1886,54 @@ abstract public class AbstractTransactionService extends AbstractService
          * @throws IllegalStateException
          *             if the commit time has not been assigned.
          */
-        public long getCommitTime() {
-            
-            if (!lock.isHeldByCurrentThread()) {
-
-                throw new IllegalMonitorStateException();
-                
-            }
-            
-            if (commitTime == 0L) {
-
-                throw new IllegalStateException();
-                
-            }
-            
-            return commitTime;
-            
-        }
-
+//BTM        public long getCommitTime() {
+//BTM            
+//BTM            if (!lock.isHeldByCurrentThread()) {
+//BTM
+//BTM                throw new IllegalMonitorStateException();
+//BTM                
+//BTM            }
+//BTM            
+//BTM            if (commitTime == 0L) {
+//BTM
+//BTM                throw new IllegalStateException();
+//BTM                
+//BTM            }
+//BTM            
+//BTM            return commitTime;
+//BTM            
+//BTM        }
+//BTM
         /**
          * Sets the assigned commit time.
          * 
          * @param commitTime
          *            The assigned commit time.
          */
-        protected void setCommitTime(final long commitTime) {
-
-            if (!lock.isHeldByCurrentThread()) {
-
-                throw new IllegalMonitorStateException();
-                
-            }
-            
-            if (commitTime == 0L) {
-                
-                throw new IllegalArgumentException();
-                
-            }
-
-            if (this.commitTime != 0L) {
-                
-                throw new IllegalStateException();
-                
-            }
-            
-            this.commitTime = commitTime;
-
-        }
-        
+//BTM        protected void setCommitTime(final long commitTime) {
+//BTM
+//BTM            if (!lock.isHeldByCurrentThread()) {
+//BTM
+//BTM                throw new IllegalMonitorStateException();
+//BTM                
+//BTM            }
+//BTM            
+//BTM            if (commitTime == 0L) {
+//BTM                
+//BTM                throw new IllegalArgumentException();
+//BTM                
+//BTM            }
+//BTM
+//BTM            if (this.commitTime != 0L) {
+//BTM                
+//BTM                throw new IllegalStateException();
+//BTM                
+//BTM            }
+//BTM            
+//BTM            this.commitTime = commitTime;
+//BTM
+//BTM        }
+//BTM        
         /**
          * The set of {@link DataService}s on which a read-write transaction
          * has been started and <code>null</code> if this is not a read-write
@@ -1938,8 +1941,8 @@ abstract public class AbstractTransactionService extends AbstractService
          * <p>
          * Note: We only track this information for a distributed database.
          */
-        private final Set<UUID/* dataService */> dataServices;
-
+//BTM        private final Set<UUID/* dataService */> dataServices;
+//BTM
         /**
          * The set of named resources that the transaction has declared across
          * all {@link IDataService}s on which it has written and
@@ -1947,23 +1950,23 @@ abstract public class AbstractTransactionService extends AbstractService
          * <p>
          * Note: We only track this information for a distributed database.
          */
-        private final Set<String/* name */> resources;
-
+//BTM        private final Set<String/* name */> resources;
+//BTM
         /**
          * Return the resources declared by the transaction.
          */
-        public String[] getResources() {
-
-            if (!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            if (resources == null)
-                return EMPTY;
-
-            return resources.toArray(new String[] {});
-            
-        }
-        
+//BTM        public String[] getResources() {
+//BTM
+//BTM            if (!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            if (resources == null)
+//BTM                return EMPTY;
+//BTM
+//BTM            return resources.toArray(new String[] {});
+//BTM            
+//BTM        }
+//BTM        
         /**
          * Return <code>true</code> iff the dataService identified by the
          * {@link UUID} is one on which this transaction has been started.
@@ -1975,21 +1978,21 @@ abstract public class AbstractTransactionService extends AbstractService
          *         that {@link IDataService}. <code>false</code> for
          *         read-only transactions.
          */
-        public boolean isStartedOn(final UUID dataServiceUUID) {
-            
-            if(!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            if (dataServiceUUID == null)
-                throw new IllegalArgumentException();
-            
-            if (dataServices == null)
-                return false;
-
-            return dataServices.contains(dataServiceUUID);
-            
-        }
-        
+//BTM        public boolean isStartedOn(final UUID dataServiceUUID) {
+//BTM            
+//BTM            if(!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            if (dataServiceUUID == null)
+//BTM                throw new IllegalArgumentException();
+//BTM            
+//BTM            if (dataServices == null)
+//BTM                return false;
+//BTM
+//BTM            return dataServices.contains(dataServiceUUID);
+//BTM            
+//BTM        }
+//BTM        
         /**
          * The set of {@link DataService}s on which the transaction has
          * written.
@@ -1997,18 +2000,18 @@ abstract public class AbstractTransactionService extends AbstractService
          * @throws IllegalStateException
          *             if not a read-write transaction.
          */
-        protected UUID[] getDataServiceUUIDs() {
-
-            if(!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-            
-            if (dataServices == null)
-                throw new IllegalStateException();
-            
-            return dataServices.toArray(new UUID[] {});
-            
-        }
-
+//BTM        protected UUID[] getDataServiceUUIDs() {
+//BTM
+//BTM            if(!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM            
+//BTM            if (dataServices == null)
+//BTM                throw new IllegalStateException();
+//BTM            
+//BTM            return dataServices.toArray(new UUID[] {});
+//BTM            
+//BTM        }
+//BTM
         /**
          * A per-transaction lock used to serialize operations on a given
          * transaction. You need to hold this lock for most of the operations on
@@ -2019,52 +2022,52 @@ abstract public class AbstractTransactionService extends AbstractService
          * this {@link #lock}. This is a lock ordering problem and can result in
          * a deadlock.
          */
-        final protected ReentrantLock lock = new ReentrantLock();
-        
-        protected TxState(final long tx) {
-            
-            if (tx == ITx.UNISOLATED)
-                throw new IllegalArgumentException();
-
-            if (tx == ITx.READ_COMMITTED)
-                throw new IllegalArgumentException();
-            
-            this.tx = tx;
-            
-            this.readOnly = TimestampUtility.isReadOnly(tx);
-                       
-            // pre-compute the hash code for the transaction.
-            this.hashCode = Long.valueOf(tx).hashCode();
-
-            this.dataServices = readOnly ? null : new LinkedHashSet<UUID>();
-
-            this.resources = readOnly ? null : new LinkedHashSet<String>();
-            
-        }
-
+//BTM        final protected ReentrantLock lock = new ReentrantLock();
+//BTM        
+//BTM        protected TxState(final long tx) {
+//BTM            
+//BTM            if (tx == ITx.UNISOLATED)
+//BTM                throw new IllegalArgumentException();
+//BTM
+//BTM            if (tx == ITx.READ_COMMITTED)
+//BTM                throw new IllegalArgumentException();
+//BTM            
+//BTM            this.tx = tx;
+//BTM            
+//BTM            this.readOnly = TimestampUtility.isReadOnly(tx);
+//BTM                       
+//BTM            // pre-compute the hash code for the transaction.
+//BTM            this.hashCode = Long.valueOf(tx).hashCode();
+//BTM
+//BTM            this.dataServices = readOnly ? null : new LinkedHashSet<UUID>();
+//BTM
+//BTM            this.resources = readOnly ? null : new LinkedHashSet<String>();
+//BTM            
+//BTM        }
+//BTM
         /**
          * The hash code is based on the {@link #getStartTimestamp()}.
          */
-        final public int hashCode() {
-            
-            return hashCode;
-
-        }
-
-        private final int hashCode;
-
+//BTM        final public int hashCode() {
+//BTM            
+//BTM            return hashCode;
+//BTM
+//BTM        }
+//BTM
+//BTM        private final int hashCode;
+//BTM
         /**
          * True iff they are the same object or have the same start timestamp.
          * 
          * @param o
          *            Another transaction object.
          */
-        final public boolean equals(ITx o) {
-
-            return this == o || tx == o.getStartTimestamp();
-
-        }
-
+//BTM        final public boolean equals(ITx o) {
+//BTM
+//BTM            return this == o || tx == o.getStartTimestamp();
+//BTM
+//BTM        }
+//BTM
         /**
          * Declares resources on a data service instance on which the
          * transaction will write.
@@ -2081,35 +2084,35 @@ abstract public class AbstractTransactionService extends AbstractService
          * @throws IllegalStateException
          *             if the transaction is not active.
          */
-        final public void declareResources(final UUID dataService,
-                final String[] resource) {
-
-            if (dataService == null)
-                throw new IllegalArgumentException();
-            
-            if (resource == null)
-                throw new IllegalArgumentException();
-            
-            if (!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            if (readOnly)
-                throw new IllegalStateException(ERR_READ_ONLY);
-
-            if (!isActive())
-                throw new IllegalStateException(ERR_NOT_ACTIVE);
-
-            dataServices.add(dataService);
-            
-            // Note: sufficient to prevent deadlocks when there are shared indices.
-            resources.addAll(Arrays.asList(resource));
-            
-            if (log.isInfoEnabled())
-                log.info("dataService=" + dataService + ", resource="
-                        + Arrays.toString(resource));
-
-        }
-
+//BTM        final public void declareResources(final UUID dataService,
+//BTM                final String[] resource) {
+//BTM
+//BTM            if (dataService == null)
+//BTM                throw new IllegalArgumentException();
+//BTM            
+//BTM            if (resource == null)
+//BTM                throw new IllegalArgumentException();
+//BTM            
+//BTM            if (!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            if (readOnly)
+//BTM                throw new IllegalStateException(ERR_READ_ONLY);
+//BTM
+//BTM            if (!isActive())
+//BTM                throw new IllegalStateException(ERR_NOT_ACTIVE);
+//BTM
+//BTM            dataServices.add(dataService);
+//BTM            
+//BTM            // Note: sufficient to prevent deadlocks when there are shared indices.
+//BTM            resources.addAll(Arrays.asList(resource));
+//BTM            
+//BTM            if (log.isInfoEnabled())
+//BTM                log.info("dataService=" + dataService + ", resource="
+//BTM                        + Arrays.toString(resource));
+//BTM
+//BTM        }
+//BTM
 //        /**
 //         * Return <code>true</code> if the transaction is read-only or if a
 //         * read-write transaction has not been started on any
@@ -2129,7 +2132,7 @@ abstract public class AbstractTransactionService extends AbstractService
 //            return readOnly || dataServices.isEmpty();
 //
 //        }
-
+//BTM
         /**
          * Return the #of {@link IDataService}s on which a read-write
          * transaction has executed an operation.
@@ -2141,101 +2144,101 @@ abstract public class AbstractTransactionService extends AbstractService
          * @throws IllegalMonitorStateException
          *             if the caller does not hold the lock.
          */
-        final public int getDataServiceCount() {
-            
-            if(!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            if(readOnly)
-                throw new IllegalStateException(ERR_READ_ONLY);
-            
-            return dataServices.size();
-
-        }
-        
+//BTM        final public int getDataServiceCount() {
+//BTM            
+//BTM            if(!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            if(readOnly)
+//BTM                throw new IllegalStateException(ERR_READ_ONLY);
+//BTM            
+//BTM            return dataServices.size();
+//BTM
+//BTM        }
+//BTM        
         /**
          * Return <code>true</code> iff a read-write transaction has started on
          * more than one {@link IDataService}.
          */
-        final boolean isDistributedTx() {
-
-            if(!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            return !readOnly && dataServices.size() > 1;
-
-        }
-
+//BTM        final boolean isDistributedTx() {
+//BTM
+//BTM            if(!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            return !readOnly && dataServices.size() > 1;
+//BTM
+//BTM        }
+//BTM
         /**
          * Returns a string representation of the transaction state.
          */
-        final public String toString() {
-
+//BTM        final public String toString() {
+//BTM
             /*
              * Note: info reported here MUST be safe and MUST NOT require a
              * lock!
              */
-            
+//BTM            
 //            return Long.toString(tx);
-            
-            return "GlobalTxState{tx=" + tx + ",readOnly=" + readOnly
-                    + ",runState=" + runState + "}";
-
-        }
-
-        final public boolean isReadOnly() {
-
-            return readOnly;
-
-        }
-
-        final public boolean isActive() {
-
-            if(!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            return runState == RunState.Active;
-
-        }
-
-        final public boolean isPrepared() {
-
-            if(!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            return runState == RunState.Prepared;
-
-        }
-
-        final public boolean isComplete() {
-
-            if(!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            return runState == RunState.Committed
-                    || runState == RunState.Aborted;
-
-        }
-
-        final public boolean isCommitted() {
-
-            if(!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            return runState == RunState.Committed;
-
-        }
-
-        final public boolean isAborted() {
-
-            if(!lock.isHeldByCurrentThread())
-                throw new IllegalMonitorStateException();
-
-            return runState == RunState.Aborted;
-
-        }
-
-    }
+//BTM            
+//BTM            return "GlobalTxState{tx=" + tx + ",readOnly=" + readOnly
+//BTM                    + ",runState=" + runState + "}";
+//BTM
+//BTM        }
+//BTM
+//BTM        final public boolean isReadOnly() {
+//BTM
+//BTM            return readOnly;
+//BTM
+//BTM        }
+//BTM
+//BTM        final public boolean isActive() {
+//BTM
+//BTM            if(!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            return runState == RunState.Active;
+//BTM
+//BTM        }
+//BTM
+//BTM        final public boolean isPrepared() {
+//BTM
+//BTM            if(!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            return runState == RunState.Prepared;
+//BTM
+//BTM        }
+//BTM
+//BTM        final public boolean isComplete() {
+//BTM
+//BTM            if(!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            return runState == RunState.Committed
+//BTM                    || runState == RunState.Aborted;
+//BTM
+//BTM        }
+//BTM
+//BTM        final public boolean isCommitted() {
+//BTM
+//BTM            if(!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            return runState == RunState.Committed;
+//BTM
+//BTM        }
+//BTM
+//BTM        final public boolean isAborted() {
+//BTM
+//BTM            if(!lock.isHeldByCurrentThread())
+//BTM                throw new IllegalMonitorStateException();
+//BTM
+//BTM            return runState == RunState.Aborted;
+//BTM
+//BTM        }
+//BTM
+//BTM    }
 
     /**
      * Verifies that {@link #nextTimestamp()} will not report a time before
@@ -2298,7 +2301,7 @@ abstract public class AbstractTransactionService extends AbstractService
         
     }
     
-    private static transient final String[] EMPTY = new String[0];
+//BTM    private static transient final String[] EMPTY = new String[0];
 
     /**
      * Return the {@link CounterSet}.

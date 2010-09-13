@@ -51,10 +51,13 @@ import com.bigdata.service.jini.TransactionServer;
  */
 public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
 
+    protected boolean serviceImplRemote;
+
     /**
      * 
      */
     public TestServiceConfigurationMonitoring() {
+        this.serviceImplRemote = false;
     }
 
     /**
@@ -62,6 +65,20 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
      */
     public TestServiceConfigurationMonitoring(String arg0) {
         super(arg0);
+        this.serviceImplRemote = false;
+    }
+
+    public TestServiceConfigurationMonitoring
+               (boolean serviceImplRemote)
+    {
+        this.serviceImplRemote = serviceImplRemote;
+    }
+
+    public TestServiceConfigurationMonitoring
+               (String arg0, boolean serviceImplRemote)
+    {
+        super(arg0);
+        this.serviceImplRemote = serviceImplRemote;
     }
 
     /**
@@ -121,10 +138,19 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
          * Note: This should trigger the watcher. In turn, then watcher should
          * create an instance of the service on our behalf.
          */
-        log.info("Creating zpath: " + serviceConfigurationZPath);
-        zookeeper.create(serviceConfigurationZPath, SerializerUtil
-                .serialize(new TransactionServerConfiguration(config)), acl,
+        log.info("Creating zpath [serviceImplRemote="+serviceImplRemote+"]: "
+                 +serviceConfigurationZPath);
+
+        if(serviceImplRemote) {
+            zookeeper.create(serviceConfigurationZPath, SerializerUtil
+                .serialize(new TransactionServerConfiguration(TransactionServer.class, config)), acl,
                 CreateMode.PERSISTENT);
+        } else {
+            zookeeper.create(serviceConfigurationZPath, SerializerUtil
+                .serialize(new TransactionServerConfiguration(com.bigdata.transaction.ServiceImpl.class, config)), acl,
+                CreateMode.PERSISTENT);
+        }
+
         log.info("Created zpath: " + serviceConfigurationZPath);
 
         /*

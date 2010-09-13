@@ -81,7 +81,7 @@ import com.bigdata.journal.ILocalTransactionManager;
 import com.bigdata.journal.IResourceLockService;
 import com.bigdata.journal.IResourceManager;
 import com.bigdata.journal.IRootBlockView;
-import com.bigdata.journal.ITransactionService;
+//BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Name2Addr;
 import com.bigdata.journal.TemporaryStore;
@@ -108,6 +108,8 @@ import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 
 import static java.util.concurrent.TimeUnit.*;
+//BTM
+import com.bigdata.journal.TransactionService;
 
 /**
  * Class encapsulates logic for managing the store files (journals and index
@@ -726,8 +728,9 @@ abstract public class StoreManager extends ResourceEvents implements
      */
     protected void assertNotOpen() {
 
-        if (isOpen())
+        if (isOpen()) {
             throw new IllegalStateException();
+        }
 
     }
 
@@ -1179,7 +1182,6 @@ abstract public class StoreManager extends ResourceEvents implements
             // Note: dataDir is _canonical_
             final File dataDir;
             try {
-
                 final String val = properties.getProperty(Options.DATA_DIR);
 
                 if (val == null) {
@@ -1444,13 +1446,35 @@ abstract public class StoreManager extends ResourceEvents implements
 					 */
 					throw new UnsupportedOperationException();
 				}
-				while (true) {
-					if (fed.getTransactionService() != null) {
-						break;
-					}
-                    SECONDS.sleep(1);
-					log.warn("Waiting for transaction service discovery");
-				}
+//BTM				while (true) {
+//BTM					if (fed.getTransactionService() != null) {
+//BTM						break;
+//BTM					}
+//BTM					log.warn("Waiting for transaction service discovery");
+//BTM				}
+//BTM - BEGIN
+//while (true) {
+boolean discoveredTxnSrvc = false;
+for(int i=0;i<60;i++) {
+    if (fed.getTransactionService() != null) {
+        discoveredTxnSrvc = true;
+        break;
+    }
+    try { Thread.sleep(1000L); } catch(InterruptedException ie) { }
+    log.warn("Waiting for transaction service discovery");
+}
+if(discoveredTxnSrvc) {
+    log.warn("\n>>>> discovered transaction service ---- YES\n");
+} else {
+    log.warn("\n>>>> discovered transaction service ---- NO\n");
+    StackTraceElement[] e = (Thread.currentThread()).getStackTrace();
+    StringBuffer buf = new StringBuffer("    "+(e[0]).toString()+"\n");
+    for(int i=1;i<e.length;i++) {
+        buf.append("    "+(e[i]).toString()+"\n");
+    }
+    String stackTrace = buf.toString();
+    log.warn("\n"+stackTrace+"\n");
+}
 			} catch (UnsupportedOperationException ex) {
 				log.warn("Federation not available - running in test case?");
 			}
@@ -1929,6 +1953,7 @@ abstract public class StoreManager extends ResourceEvents implements
          * Note: clear before we clear [starting] or the
          * StoreManager#isRunning() could report true.
          */
+
         this.open.set(false);
 
         startupService.shutdownNow();
@@ -3028,7 +3053,7 @@ abstract public class StoreManager extends ResourceEvents implements
     }
 
     /**
-     * Report the next timestamp assigned by the {@link ITransactionService}.
+     * Report the next timestamp assigned by the transaction service.
      */
     protected long nextTimestamp() {
 
@@ -3196,6 +3221,8 @@ abstract public class StoreManager extends ResourceEvents implements
          * [lastOverflowTime] here to have the same semantics.
          */
         final long lastCommitTime = getLiveJournal().getRootBlockView().getLastCommitTime(); 
+//BTM
+log.warn("\n*** StoreManager.purgeOldResources: lastCommitTime="+lastCommitTime+"\n");
 
         if (lastCommitTime == 0L) {
             
@@ -3229,12 +3256,15 @@ abstract public class StoreManager extends ResourceEvents implements
 
             try {
 
-                final ITransactionService txService = fed
+//BTM                final ITransactionService txService = fed
+final TransactionService txService = fed
                         .getTransactionService();
 
                 if (txService != null) {
 
                     this.releaseTime = txService.getReleaseTime();
+//BTM
+log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseTime+"\n");
 
                 } else {
 

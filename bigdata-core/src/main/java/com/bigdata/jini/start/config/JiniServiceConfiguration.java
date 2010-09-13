@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
@@ -132,8 +131,6 @@ abstract public class JiniServiceConfiguration extends
     public final Properties properties;
     public final String[] jiniOptions;
     
-    private final String serviceIpAddr;
-    
     protected void toString(StringBuilder sb) {
 
         super.toString(sb);
@@ -180,12 +177,6 @@ System.out.println("*** JiniServiceConfiguration: constructor");
             log.warn("groups = NO_GROUPS");
         } else {
             log.warn("groups = " + Arrays.toString(this.groups));
-        }
-
-        try {
-            this.serviceIpAddr = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
-        } catch(IOException e) {
-            throw new ConfigurationException(e.getMessage(), e);
         }
     }
 
@@ -262,6 +253,9 @@ System.out.println("*** JiniServiceConfiguration: constructor");
                     "net.jini.jeri.tcp.TcpServerEndpoint",
 
                     "net.jini.discovery.LookupDiscovery",
+//BTM
+"net.jini.discovery.LookupDiscoveryManager",
+
                     "net.jini.core.discovery.LookupLocator",
                     "net.jini.core.entry.Entry",
                     "net.jini.lookup.entry.Name",
@@ -434,7 +428,6 @@ System.out.println("*** JiniServiceConfiguration: constructor");
                 
             }
             out.write("}\n");
-
             out.write("\n\n" + className + " {\n");
             writeServiceDescription(out);
             out.write("}\n");
@@ -483,6 +476,9 @@ System.out.println("*** JiniServiceConfiguration: constructor");
 
             final ServiceDir serviceDir = new ServiceDir(this.serviceDir);
 
+            String serviceIpAddr = NicUtil.getIpAddress ( "default.nic", "default", false ) ;
+            if ( null == serviceIpAddr )
+                throw new IOException ( "Can't get a host ip address" ) ;
             final Hostname hostName = new Hostname(serviceIpAddr);
 
             final ServiceUUID serviceUUID = new ServiceUUID(this.serviceUUID);
@@ -831,6 +827,7 @@ System.out.println("*** JiniServiceConfiguration: constructor");
 
                 final ServiceID serviceID = JiniUtil
                         .uuid2ServiceID(serviceUUID);
+System.out.println("\n**** JiniServiceConfiguration.awaitServiceDiscoveryOrDeath: serviceID = "+serviceID);
 
                 final ServiceItem[] items = serviceDiscoveryManager.lookup(
                         new ServiceTemplate(//

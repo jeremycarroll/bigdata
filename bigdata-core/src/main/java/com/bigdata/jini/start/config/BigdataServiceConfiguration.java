@@ -81,6 +81,14 @@ System.out.println("*** BigdataServiceConfiguration: constructor");
         boolean classCastOk = false;
         if( AbstractServer.class.isAssignableFrom(cls) ) {
             classCastOk = true;
+        } else if( com.bigdata.service.jini.MetadataServer.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
+        } else if( com.bigdata.metadata.ServiceImpl.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
+        } else if( com.bigdata.service.jini.TransactionServer.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
+        } else if( com.bigdata.transaction.ServiceImpl.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
         } else if( com.bigdata.service.jini.LoadBalancerServer.class.isAssignableFrom(cls) ) {
             classCastOk = true;
         } else if( com.bigdata.loadbalancer.ServiceImpl.class.isAssignableFrom(cls) ) {

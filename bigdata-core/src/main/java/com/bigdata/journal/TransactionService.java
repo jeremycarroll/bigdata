@@ -114,7 +114,7 @@ import java.util.concurrent.BrokenBarrierException;
  * services as read-locks are managed solely through the advancement of the
  * release time by the transaction manager.
  */
-public interface TransactionService extends Service {
+public interface TransactionService {
 
     /**
      * Creates a new transaction.

@@ -88,7 +88,7 @@ import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
+//BTM import com.bigdata.service.IMetadataService;
 import com.bigdata.service.Split;
 import com.bigdata.service.IBigdataClient.Options;
 import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
@@ -98,6 +98,9 @@ import com.bigdata.striterator.ICloseableIterator;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.ExecutionHelper;
 import com.bigdata.util.concurrent.MappedTaskExecutor;
+
+//BTM
+import com.bigdata.service.ShardLocator;
 
 /**
  * <p>
@@ -274,7 +277,8 @@ public class ClientIndexView implements IScaleOutClientIndex {
      * Obtain the proxy for a metadata service. if this instance fails, then we
      * can always ask for a new instance for the same federation (failover).
      */
-    final protected IMetadataService getMetadataService() {
+//BTM    final protected IMetadataService getMetadataService() {
+final protected ShardLocator getMetadataService() {
         
         return fed.getMetadataService();
         
@@ -1901,10 +1905,10 @@ public class ClientIndexView implements IScaleOutClientIndex {
 //     *       span the key and many, many different keys could fit into that same
 //     *       index partition. The only effective cache technique may be an LRU
 //     *       that scans ~10 caches locators to see if any of them is a match
-//     *       before reaching out to the remote {@link IMetadataService}. Or
+//     *       before reaching out to the remote shard locator service. Or
 //     *       perhaps the locators can be cached in a local BTree and a miss
 //     *       there would result in a read through to the remote
-//     *       {@link IMetadataService} but then we have the problem of figuring
+//     *       shard locator service but then we have the problem of figuring
 //     *       out when to release locators if the client is long-lived.
 //     */
 //    public LinkedList<Split> splitKeys(final long ts, final int fromIndex,

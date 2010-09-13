@@ -27,6 +27,9 @@ package com.bigdata.util;
 
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.LogUtil;
+import com.bigdata.service.proxy.ClientFuture;
+import com.bigdata.service.proxy.RemoteFuture;
+import com.bigdata.service.proxy.RemoteFutureImpl;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -42,13 +45,23 @@ import net.jini.discovery.DiscoveryGroupManagement;
 import net.jini.discovery.DiscoveryLocatorManagement;
 import net.jini.discovery.LookupDiscoveryManager;
 import net.jini.export.Exporter;
+import net.jini.jeri.BasicILFactory;
+import net.jini.jeri.BasicJeriExporter;
+import net.jini.jeri.InvocationLayerFactory;
+import net.jini.jeri.ServerEndpoint;
+import net.jini.jeri.tcp.TcpServerEndpoint;
+
 import net.jini.lookup.JoinManager;
 import net.jini.lookup.ServiceDiscoveryEvent;
 import net.jini.lookup.ServiceDiscoveryManager;
 
 import java.io.IOException;
+import java.rmi.server.ExportException;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
 /**
  * Miscellaneous, convenient utility methods.
@@ -96,7 +109,7 @@ public class Util {
                               JoinManager             joinManager,
                               DiscoveryManagement     discoveryManager)
     {
-        cleanupOnExit(innerProxy, serverExporter, joinManager,
+        cleanupOnExit(innerProxy, serverExporter, null, joinManager,
                       null, discoveryManager);
 
     }
@@ -105,22 +118,53 @@ public class Util {
                              (ServiceDiscoveryManager serviceDiscoveryManager,
                               DiscoveryManagement     discoveryManager)
     {
-        cleanupOnExit(null, null, null,
+        cleanupOnExit(null, null, null, null,
                       serviceDiscoveryManager, discoveryManager);
     }
 
 
     public static void cleanupOnExit
-                             (Object                  innerProxy,
-                              Exporter                serverExporter,
-                              JoinManager             joinManager,
-                              ServiceDiscoveryManager serviceDiscoveryManager,
-                              DiscoveryManagement     discoveryManager)
+                      (Object                  innerProxy,
+                       Exporter                serverExporter,
+                       JoinManager             joinManager,
+                       ServiceDiscoveryManager serviceDiscoveryManager,
+                       DiscoveryManagement     discoveryManager)
+    {
+        cleanupOnExit(innerProxy, serverExporter, null, joinManager,
+                      serviceDiscoveryManager, discoveryManager);
+    }
+
+    public static void cleanupOnExit
+                      (Object                  innerProxy,
+                       Exporter                serverExporter,
+                       Set<Exporter>           futureExporters,
+                       JoinManager             joinManager,
+                       ServiceDiscoveryManager serviceDiscoveryManager,
+                       DiscoveryManagement     discoveryManager)
     {
         if(innerProxy != null)  {
             try {
                 if(serverExporter != null) serverExporter.unexport(true);
             } catch(Throwable t) { }
+        }
+
+        if(futureExporters != null) {
+            for(Exporter exporter : futureExporters) {
+                if(exporter != null) {
+                    try {
+                        exporter.unexport(true);
+                        exporter = null;
+                    } catch(Throwable t) { }
+                }
+            }
+            synchronized(futureExporters) {
+                for(Iterator<Exporter> itr = futureExporters.iterator();
+                        itr.hasNext(); )
+                {
+                    itr.next();
+                    itr.remove();
+                }
+            }
         }
 
         if(joinManager != null)  {
@@ -398,6 +442,60 @@ public class Util {
                                                       IOException
     {
         return getDiscoveryManager(config, componentName, "discoveryManager");
+    }
+
+    public static Exporter getExporter(Configuration config,
+                                       String componentName,
+                                       String entryName,
+                                       boolean defaultEnableDgc,
+                                       boolean defaultKeepAlive)
+                               throws ConfigurationException
+    {
+        if(config == null) {
+            throw new NullPointerException("null config");
+        }
+        if(componentName == null) {
+            throw new NullPointerException("null componentName");
+        }
+        if(entryName == null) {
+            throw new NullPointerException("null entryName");
+        }
+        Exporter exporter = null;
+        ServerEndpoint endpoint = TcpServerEndpoint.getInstance(0);
+        InvocationLayerFactory ilFactory = new BasicILFactory();
+        Exporter defaultExporter =
+                 new BasicJeriExporter
+                     (endpoint, ilFactory, defaultEnableDgc, defaultKeepAlive);
+        exporter = 
+            (Exporter)config.getEntry
+                (componentName, entryName, Exporter.class, defaultExporter);
+        if(exporter == null) {
+            throw new ConfigurationException("null exporter");
+        }
+        return exporter;
+    }
+
+   public static <E> Future<E> wrapFuture(Exporter exporter,
+                                          Future<E> future) 
+                               throws ExportException
+   {
+        if(exporter == null) {
+            throw new NullPointerException("null exporter");
+        }
+        if(future == null) {
+            throw new NullPointerException("null future");
+        }
+
+        // 1. Wrap the given future in a remote (proxyable) object
+        // 2. Export the remote object to produce a dynamic proxy (stub)
+        // 3. Return the proxied future (the stub) wrapped in a Serializable
+        //    wrapper class implementing the Future interface.
+
+        final RemoteFuture<E> impl = new RemoteFutureImpl<E>(future);
+
+        final RemoteFuture<E> stub = (RemoteFuture<E>)exporter.export(impl);
+
+        return new ClientFuture<E>(stub);
     }
 
     public static class WaitOnInterruptThread extends InterruptedStatusThread {

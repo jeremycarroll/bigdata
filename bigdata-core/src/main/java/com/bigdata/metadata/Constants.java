@@ -37,4 +37,8 @@ public interface Constants {
     /* Name of this component; used in config entry retrieval and the logger.*/
     String COMPONENT_NAME = ((Constants.class).getPackage()).getName();
     String F_SEP          = System.getProperty("file.separator");
+
+    int  LOWER_BOUND_THREAD_POOL_SIZE = 1;
+    int  UPPER_BOUND_THREAD_POOL_SIZE = 100;
+    int  DEFAULT_THREAD_POOL_SIZE     = 30;
 }

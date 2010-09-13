@@ -37,6 +37,9 @@ import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.MetadataServer;
 import com.bigdata.util.NV;
 
+//BTM
+import com.bigdata.metadata.EmbeddedShardLocator;
+
 /**
  * Configuration for the {@link MetadataServer}.
  * 
@@ -54,17 +57,27 @@ public class MetadataServerConfiguration extends
     /**
      * @param config
      */
-    public MetadataServerConfiguration(Configuration config)
-            throws ConfigurationException {
-
-        super(MetadataServer.class, config);
-
+//BTM - BEGIN
+//BTM    public MetadataServerConfiguration(Configuration config)
+//BTM            throws ConfigurationException {
+//BTM
+//BTM        super(MetadataServer.class, config);
+//BTM
+//BTM    }
+    public MetadataServerConfiguration(Class         classType,
+                                       Configuration config)
+               throws ConfigurationException
+    {
+        super(classType, config);
+System.out.println("*** MetadataServerConfiguration: constructor ***");
     }
+//BTM - END
 
     public MetadataServiceStarter newServiceStarter(JiniFederation fed,
             IServiceListener listener, String zpath, Entry[] attributes)
             throws Exception {
 
+System.out.println("*** MetadataServerConfiguration ---> newServiceStarter ***");
         return new MetadataServiceStarter(fed, listener, zpath, attributes);
 
     }
@@ -81,14 +94,27 @@ public class MetadataServerConfiguration extends
                 IServiceListener listener, String zpath, Entry[] attributes) {
 
             super(fed, listener, zpath, attributes);
+System.out.println("*** MetadataServerConfiguration.MetadataServiceStarter: constructor ***");
 
         }
 
         @Override
         protected NV getDataDir() {
             
-            return new NV(MetadataServer.Options.DATA_DIR, serviceDir
-                    .toString());
+//BTM            return new NV(MetadataServer.Options.DATA_DIR, serviceDir
+//BTM                    .toString());
+//BTM - BEGIN
+            // className field defined/set in ServiceConfiguration parent
+            if ( (MetadataServer.class.getName()).equals(className) ) {
+System.out.println("*** MetadataConfiguration.MetadataServiceStarter: getDataDir [MetadataServer.Options.DATA_DIR="+MetadataServer.Options.DATA_DIR+", serviceDir="+serviceDir.toString()+"] ***");
+                return new NV(MetadataServer.Options.DATA_DIR, serviceDir.toString());
+            } else if ( (com.bigdata.loadbalancer.ServiceImpl.class.getName()).equals(className) ) {
+System.out.println("*** MetadataConfiguration.MetadataServiceStarter: getDataDir [EmbeddedShardLocator.Options.DATA_DIR="+EmbeddedShardLocator.Options.DATA_DIR+", serviceDir="+serviceDir.toString()+"] ***");
+                return new NV(EmbeddedShardLocator.Options.DATA_DIR, serviceDir.toString());
+            } else {
+                return null;
+            }
+//BTM - END
             
         }
         

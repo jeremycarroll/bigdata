@@ -32,21 +32,21 @@ import com.bigdata.service.IServiceShutdown;
 
 /**
  * Interface for managing local transaction state (the client side of the
- * {@link ITransactionService}).
+ * transaction service).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  * 
  * @todo we don't really need an interface for this as there is only one impl.
  */
-public interface ILocalTransactionManager extends
-        /* ITransactionManager, */IServiceShutdown {
+public interface ILocalTransactionManager extends IServiceShutdown {
 
     /**
      * The server side of the transaction manager (possibly remote, in which
      * case this may require the service to be discovered).
      */
-    public ITransactionService getTransactionService();
+//BTM    public ITransactionService getTransactionService();
+public TransactionService getTransactionService();
     
     /**
      * Return the local state for a transaction.
@@ -61,13 +61,13 @@ public interface ILocalTransactionManager extends
     public ITx getTx(final long tx);
     
     /**
-     * Return the next timestamp from the {@link ITransactionService}.
+     * Return the next timestamp from the transaction service.
      * <p>
      * Note: This method is "robust" and will "retry"
-     * {@link ITransactionService#nextTimestamp()} several times before giving
+     * {@link TransactionService#nextTimestamp()} several times before giving
      * up.
      * 
-     * @return The next timestamp assigned by the {@link ITransactionService}.
+     * @return The next timestamp assigned by the transaction service.
      * 
      * @throws RuntimeException
      *             if the service can not be resolved or the timestamp can not
@@ -86,7 +86,7 @@ public interface ILocalTransactionManager extends
      * @param commitTime
      *            The commit time.
      * 
-     * @see ITransactionService#notifyCommit(long)
+     * @see TransactionService#notifyCommit(long)
      */
     public void notifyCommit(long commitTime);
 

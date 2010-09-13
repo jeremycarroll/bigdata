@@ -188,6 +188,17 @@ public class LoadBalancerServer extends AbstractServer {
             }
             
         }
+//BTM - BEGIN
+        public void serviceJoin(com.bigdata.service.Service service, UUID serviceUUID) {
+            final Class serviceIface = service.getServiceIface();
+            final String hostname = service.getHostname();
+            if (log.isInfoEnabled())
+                log.info("serviceJoin: serviceUUID=" + serviceUUID
+                         + ", serviceIface=" + serviceIface + ", hostname="
+                         + hostname);
+//BTM            this.service.join(serviceUUID, serviceIface, hostname);
+        }
+//BTM - END
 
         /**
          * Notifies the {@link LoadBalancerService}.

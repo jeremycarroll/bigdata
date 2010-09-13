@@ -435,7 +435,7 @@ class ServiceImpl implements PrivateInterface,
         private long EXECUTOR_TERMINATION_TIMEOUT = 1L*60L*1000L;
 
         public ShutdownThread() {
-            super("Build Server Request Service Shutdown thread");
+            super("process manager shutdown thread");
             setDaemon(false);
         }
 

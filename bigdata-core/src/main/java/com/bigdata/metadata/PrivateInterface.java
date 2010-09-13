@@ -25,16 +25,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.metadata;
 
 import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.ResultSet;
+import com.bigdata.btree.filter.IFilterConstructor;
+import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.mdi.PartitionLocator;
 
 import com.sun.jini.admin.DestroyAdmin;
 import net.jini.admin.Administrable;
 import net.jini.admin.JoinAdmin;
 
+import java.io.IOException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 interface PrivateInterface extends Remote, Administrable,
                                    DestroyAdmin, JoinAdmin
@@ -42,38 +48,73 @@ interface PrivateInterface extends Remote, Administrable,
     //Related to ShardLocator (metadata)
 
     int nextPartitionId(String name)
-            throws RemoteException, InterruptedException, ExecutionException;
+            throws RemoteException, IOException,
+                   InterruptedException, ExecutionException;
 
     void splitIndexPartition(String             name,
                              PartitionLocator   oldLocator,
                              PartitionLocator[] newLocators)
-             throws RemoteException, InterruptedException, ExecutionException;
+             throws RemoteException, IOException,
+                    InterruptedException, ExecutionException;
 
     void joinIndexPartition(String             name,
                             PartitionLocator[] oldLocators,
                             PartitionLocator   newLocator)
-             throws RemoteException, InterruptedException, ExecutionException;
+             throws RemoteException, IOException,
+                    InterruptedException, ExecutionException;
 
     void moveIndexPartition(String           name,
                             PartitionLocator oldLocator,
                             PartitionLocator newLocator)
-             throws RemoteException, InterruptedException, ExecutionException;
+             throws RemoteException, IOException,
+                    InterruptedException, ExecutionException;
 
     UUID registerScaleOutIndex(IndexMetadata metadata,
                                byte[][]      separatorKeys,
                                UUID[]        dataServices)
-             throws RemoteException, InterruptedException, ExecutionException;
+             throws RemoteException, IOException,
+                    InterruptedException, ExecutionException;
 
     void dropScaleOutIndex(String name)
-             throws RemoteException, InterruptedException, ExecutionException;
+             throws RemoteException, IOException,
+                    InterruptedException, ExecutionException;
 
     PartitionLocator get(String name, long timestamp, byte[] key)
-           throws InterruptedException, ExecutionException, RemoteException;
+           throws RemoteException, IOException,
+                  InterruptedException, ExecutionException;
 
     PartitionLocator find(String name, long timestamp, byte[] key)
-           throws InterruptedException, ExecutionException, RemoteException;
+           throws RemoteException, IOException,
+                  InterruptedException, ExecutionException;
 
-    //Related to TestAdmin
+    IndexMetadata getIndexMetadata(String name, long timestamp)
+            throws RemoteException, IOException,
+                   InterruptedException, ExecutionException;
+
+    public ResultSet rangeIterator(long tx,
+                                   String name,
+                                   byte[] fromKey,
+                                   byte[] toKey,
+                                   int capacity,
+                                   int flags,
+                                   IFilterConstructor filter)
+           throws RemoteException, IOException,
+                  InterruptedException, ExecutionException;
+
+    Future<? extends Object> submit(Callable<? extends Object> proc)
+                                 throws RemoteException;
+
+    Future submit(long tx, String name, IIndexProcedure proc)
+               throws RemoteException;
+
+    boolean purgeOldResources(long timeout, boolean truncateJournal)
+                throws RemoteException, InterruptedException;
+
+    //Related to ShutdownAdmin
+
+    void shutdown() throws RemoteException;
+
+    void shutdownNow() throws RemoteException;
 
     void kill(int status) throws RemoteException;
 }
