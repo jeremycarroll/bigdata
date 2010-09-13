@@ -31,6 +31,12 @@ import java.io.Serializable;
 import java.util.Random;
 import java.util.UUID;
 
+import junit.framework.Assert;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
@@ -65,27 +71,18 @@ public class TestBigdataClient extends AbstractServerTestCase {
         this.serviceImplRemote = false;
     }
 
-    public TestBigdataClient(String name) {
-        super(name);
-        this.serviceImplRemote = false;
-    }
-
     public TestBigdataClient(boolean serviceImplRemote) {
         this.serviceImplRemote = serviceImplRemote;
     }
 
-    public TestBigdataClient(String name, boolean serviceImplRemote) {
-        super(name);
-        this.serviceImplRemote = serviceImplRemote;
-    }
 
     /**
      * Starts a {@link DataServer} ({@link #dataServer1}) and then a
      * {@link MetadataServer} ({@link #metadataServer0}). Each runs in its own
      * thread.
      */
+    @Before
     public void setUp() throws Exception {
-        super.setUp();
         helper = new JiniServicesHelper(serviceImplRemote);
         helper.start();       
     }
@@ -95,12 +92,11 @@ public class TestBigdataClient extends AbstractServerTestCase {
     /**
      * Destroy the test services.
      */
+    @After
     public void tearDown() throws Exception {
         if (helper != null) {
             helper.destroy();           
         }
-
-        super.tearDown();
     }
 
     /**
@@ -109,6 +105,7 @@ public class TestBigdataClient extends AbstractServerTestCase {
      * 
      * @throws Exception
      */
+    @Test
     public void test_registerIndex1() throws Exception {
         final IBigdataFederation<?> fed = helper.client.connect();
         final String name = "testIndex";
@@ -118,8 +115,7 @@ public class TestBigdataClient extends AbstractServerTestCase {
         fed.registerIndex(metadata);
         final IIndex ndx = fed.getIndex(name, ITx.UNISOLATED);
 
-        assertEquals("indexUUID", metadata.getIndexUUID(), ndx
-                .getIndexMetadata().getIndexUUID());
+        Assert.assertEquals("indexUUID", metadata.getIndexUUID(), ndx.getIndexMetadata().getIndexUUID());
 
         doBasicIndexTests(ndx);        
     }
@@ -130,6 +126,7 @@ public class TestBigdataClient extends AbstractServerTestCase {
      * 
      * @throws Exception
      */
+    @Test
     public void test_registerIndex2() throws Exception {
         final IBigdataFederation<?> fed = helper.client.connect();      
         final String name = "testIndex";       
@@ -151,16 +148,13 @@ public class TestBigdataClient extends AbstractServerTestCase {
 
         final IIndex ndx = fed.getIndex(name, ITx.UNISOLATED);
 
-        assertEquals("indexUUID", indexUUID, ndx.getIndexMetadata()
-                .getIndexUUID());
+        Assert.assertEquals("indexUUID", indexUUID, ndx.getIndexMetadata().getIndexUUID());
 
         // verify partition 0 on dataService0
-        assertNotNull(helper.getDataService0().getIndexMetadata(
-                DataService.getIndexPartitionName(name, 0), ITx.UNISOLATED));
+        Assert.assertNotNull(helper.getDataService0().getIndexMetadata(DataService.getIndexPartitionName(name, 0), ITx.UNISOLATED));
 
         // verify partition 1 on dataService1
-        assertNotNull(helper.getDataService1().getIndexMetadata(
-                DataService.getIndexPartitionName(name, 1), ITx.UNISOLATED));
+        Assert.assertNotNull(helper.getDataService1().getIndexMetadata(DataService.getIndexPartitionName(name, 1), ITx.UNISOLATED));
 
         doBasicIndexTests(ndx);
     }
@@ -192,7 +186,7 @@ public class TestBigdataClient extends AbstractServerTestCase {
         ndx.submit(0/* fromIndex */, limit/* toIndex */, keys, vals, BatchInsertConstructor.RETURN_NO_VALUES, null);
 
         // verify #of index entries.
-        assertEquals(limit, ndx.rangeCount(null, null));
+        Assert.assertEquals(limit, ndx.rangeCount(null, null));
 
         // verify data.
         {
@@ -203,12 +197,12 @@ public class TestBigdataClient extends AbstractServerTestCase {
             while (itr.hasNext()) {
                 final ITuple<?> tuple = itr.next();
 
-                assertEquals(keys[i], tuple.getKey());
-                assertEquals(vals[i], tuple.getValue());
+                Assert.assertEquals(keys[i], tuple.getKey());
+                Assert.assertEquals(vals[i], tuple.getValue());
                 i++;
             }
 
-            assertEquals(limit, i);
+            Assert.assertEquals(limit, i);
         }
     }   
 }

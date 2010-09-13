@@ -33,8 +33,4 @@ public class TestBigdataClientRemote extends TestBigdataClient {
     public TestBigdataClientRemote() {
         super(true);
     }
-
-    public TestBigdataClientRemote(String name) {
-        super(name, true);
-    }
 }
