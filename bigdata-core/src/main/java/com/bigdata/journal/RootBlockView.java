@@ -30,6 +30,7 @@ package com.bigdata.journal;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import com.bigdata.io.ChecksumUtility;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.IndexMetadata;
@@ -38,7 +39,6 @@ import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.WormAddressManager;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.rwstore.RWStore;
-import com.bigdata.util.ChecksumUtility;
 
 /**
  * A view onto a root block of the {@link Journal}.

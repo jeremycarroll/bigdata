@@ -41,6 +41,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
+import com.bigdata.io.ChecksumUtility;
 import org.apache.log4j.Logger;
 
 import com.bigdata.BigdataStatics;
@@ -70,7 +71,6 @@ import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.rawstore.WormAddressManager;
 import com.bigdata.relation.locator.IResourceLocator;
 import com.bigdata.resources.ResourceManager;
-import com.bigdata.util.ChecksumUtility;
 
 /**
  * <p>

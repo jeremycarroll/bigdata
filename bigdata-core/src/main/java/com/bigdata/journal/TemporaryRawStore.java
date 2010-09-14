@@ -44,7 +44,7 @@ import com.bigdata.rawstore.AbstractRawWormStore;
 import com.bigdata.rawstore.IMRMW;
 import com.bigdata.rawstore.WormAddressManager;
 import com.bigdata.relation.locator.ILocatableResource;
-import com.bigdata.util.ChecksumUtility;
+import com.bigdata.io.ChecksumUtility;
 
 /**
  * A non-restart-safe store for temporary data that buffers data in memory until

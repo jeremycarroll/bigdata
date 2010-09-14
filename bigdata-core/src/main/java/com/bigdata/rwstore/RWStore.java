@@ -45,7 +45,7 @@ import org.apache.log4j.Logger;
 import com.bigdata.journal.FileMetadata;
 import com.bigdata.journal.IRootBlockView;
 import com.bigdata.journal.RWStrategy.FileMetadataView;
-import com.bigdata.util.ChecksumUtility;
+import com.bigdata.io.ChecksumUtility;
 
 /**
  * Storage class

@@ -31,6 +31,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.UUID;
 
+import com.bigdata.io.ChecksumUtility;
 import org.apache.log4j.Logger;
 
 import com.bigdata.io.DirectBufferPool;
@@ -38,7 +39,6 @@ import com.bigdata.io.FileChannelUtility;
 import com.bigdata.io.IReopenChannel;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.WormAddressManager;
-import com.bigdata.util.ChecksumUtility;
 
 /**
  * Helper object used when opening or creating journal file in any of the

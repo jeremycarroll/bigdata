@@ -27,9 +27,8 @@ package com.bigdata.rwstore;
 import java.util.*;
 import java.io.*;
 
+import com.bigdata.io.ChecksumUtility;
 import org.apache.log4j.Logger;
-
-import com.bigdata.util.ChecksumUtility;
 
 /**
  * FixedAllocator

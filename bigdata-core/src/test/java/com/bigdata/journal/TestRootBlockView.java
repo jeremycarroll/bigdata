@@ -31,11 +31,11 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.UUID;
 
+import com.bigdata.io.ChecksumUtility;
 import junit.framework.TestCase2;
 
 import com.bigdata.rawstore.TestWormAddressManager;
 import com.bigdata.rawstore.WormAddressManager;
-import com.bigdata.util.ChecksumUtility;
 import com.bigdata.util.MillisecondTimestampFactory;
 
 /**

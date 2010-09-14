@@ -30,10 +30,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
 import java.util.UUID;
 
+import com.bigdata.io.ChecksumUtility;
 import org.apache.log4j.Logger;
 
 import com.bigdata.counters.CounterSet;
@@ -41,7 +41,6 @@ import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.AbstractRawStore;
 import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rwstore.RWStore;
-import com.bigdata.util.ChecksumUtility;
 
 /**
  * The hook that accesses the RWStore to provide read/write services as opposed

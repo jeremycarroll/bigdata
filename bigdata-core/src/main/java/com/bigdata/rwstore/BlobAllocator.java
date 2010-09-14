@@ -5,9 +5,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 
-import com.bigdata.util.ChecksumUtility;
+import com.bigdata.io.ChecksumUtility;
 
 /**
  * BlobAllocator

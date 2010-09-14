@@ -37,7 +37,7 @@ import com.bigdata.journal.Journal;
 import com.bigdata.journal.RootBlockException;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IAddressManager;
-import com.bigdata.util.ChecksumUtility;
+import com.bigdata.io.ChecksumUtility;
 
 /**
  * The checkpoint record for an {@link IndexSegment}.
