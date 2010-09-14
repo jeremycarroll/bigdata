@@ -45,7 +45,7 @@
             In the ANT script, hostname is obtained by an exec of the
             'hostname' command. Hard-coding for now.
         -->
-        <hostname>blevine-laptop</hostname>
+        <hostname>blevine-desktop</hostname>
         <test.codebase>http://${hostname}:${test.codebase.port}/jsk-dl.jar</test.codebase> <!-- Not used??? -->
         <federation.name>bigdata.test.group-${hostname}</federation.name>
     </properties>
@@ -206,7 +206,6 @@
             <groupId>com.bigdata</groupId>
             <artifactId>bigdata-core</artifactId>
             <version>${project.version}</version>
-
         </dependency>
         <dependency>
             <groupId>junit</groupId>
