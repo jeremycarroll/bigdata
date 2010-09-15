@@ -34,10 +34,11 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.util.concurrent.DaemonThreadFactory;
 
 /**
  * Command manages the execution and termination of a native process and an
@@ -55,9 +56,19 @@ public class ActiveProcess {
      * by the {@link #process}.
      */
     protected final ExecutorService readService = Executors
-            .newSingleThreadExecutor(new DaemonThreadFactory(getClass()
-                    .getName()
-                    + ".readService"));
+            .newSingleThreadExecutor(
+                //Don't use com.bigdata.util.concurrent.DaemonThreadFactory here, trying to break a package loop.  -gossard
+                new ThreadFactory() {
+                    String prefix = getClass().getName()+ ".readService";
+                    AtomicInteger count = new AtomicInteger(0);
+                    public Thread newThread(Runnable r) {
+                        Thread t = Executors.defaultThreadFactory().newThread(r);
+                        t.setName( prefix + count.incrementAndGet() );
+                        t.setDaemon(true);
+                        return t;
+                    }
+                }
+            );
     
     protected Process process = null;
 

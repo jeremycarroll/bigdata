@@ -20,25 +20,24 @@ import com.bigdata.util.concurrent.IQueueCounters.IWriteServiceExecutorCounters;
  * including the moving average of its queue length, queuing times, etc.
  * 
  * @todo refactor to layer {@link QueueSizeMovingAverageTask} then
- *       {@link ThreadPoolExecutorBaseStatisticsTask}, then this class, then a
- *       derived class for the {@link WriteServiceExecutor}.
+ *       {@link ThreadPoolExecutorBaseStatisticsTask}, then this class, then sub-classes.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class ThreadPoolExecutorStatisticsTask implements Runnable {
+public class ThreadPoolExecutorStatisticsTask<EXEC extends ThreadPoolExecutor,COUNTERS extends TaskCounters> implements Runnable {
 
     protected static final Logger log = Logger.getLogger(ThreadPoolExecutorStatisticsTask.class);
     
     /**
      * The label for the executor service (used in log messages).
      */
-    private final String serviceName;
+    protected final String serviceName;
     
     /**
      * The executor service that is being monitored.
      */
-    private final ThreadPoolExecutor service;
+    protected final EXEC service;
 
 //    /**
 //     * The time when we started to collect data about the {@link #service} (set by the ctor).
@@ -48,26 +47,25 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
     /**
      * The weight used to compute the moving average.
      */
-    private final double w;
+    protected final double w;
 
     /**
      * #of samples taken so far.
      */
-    private long nsamples = 0;
+    protected long nsamples = 0;
     
     /*
      * There are several different moving averages which are computed.
      */
     
 //    private double averageQueueSize   = 0d;
-    private double averageActiveCount = 0d;
-    private double averageQueueLength = 0d;
-    private double averageActiveCountWithLocksHeld = 0d;
+    protected double averageActiveCount = 0d;
+    protected double averageQueueLength = 0d;
     
     /**
      * Data collected about {@link AbstractTask}s run on a service (optional).
      */
-    private final TaskCounters taskCounters;
+    protected final COUNTERS taskCounters;
     
     /*
      * These are moving averages based on the optional TaskCounters.
@@ -80,40 +78,29 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
      */
 
     /** time waiting on the queue until the task begins to execute. */
-    private double averageQueueWaitingTime = 0d;
-    /** time waiting for resource locks. */
-    private double averageLockWaitingTime = 0d;
-    /** time doing work (does not include time to acquire resources locks or commit time). */
-    private double averageServiceTime = 0d;
-    /** time checkpointing indices (included in the {@link #averageServiceTime}). */
-    private double averageCheckpointTime = 0d;
-    /** total time from submit to completion. */
-    private double averageQueuingTime = 0d;
+    protected double averageQueueWaitingTime = 0d;
 
-    private double averageCommitWaitingTime = 0d;
-    private double averageCommitServiceTime = 0d;
-    private double averageCommitGroupSize = 0d;
-    private double averageByteCountPerCommit = 0d;
-    
+    /** time doing work (does not include time to acquire resources locks or commit time). */
+    protected double averageServiceTime = 0d;
+    /** time checkpointing indices (included in the {@link #averageServiceTime}). */
+    protected double averageCheckpointTime = 0d;
+
+    /** total time from submit to completion. */
+    protected double averageQueuingTime = 0d;
+
     /*
      * private variables used to compute the delta in various counters since
      * they were last sampled.
      */
-    private long queueWaitingTime = 0L;
-    private long lockWaitingTime = 0L;
-    private long serviceTime = 0L;
-    private long checkpointTime = 0L; // Note: checkpointTime is included in the serviceTime.
-    private long queuingTime = 0L;
+    protected long queueWaitingTime = 0L;
+    protected long serviceTime = 0L;
+    protected long checkpointTime = 0L; // Note: checkpointTime is included in the serviceTime.
+    protected long queuingTime = 0L;
 
-    private long commitWaitingTime = 0L;
-    private long commitServiceTime = 0L;
-    
-    private double averageReadyCount;
-    
     /**
      * Scaling factor converts nanoseconds to milliseconds.
      */
-    static final double scalingFactor = 1d / TimeUnit.NANOSECONDS.convert(1,
+    static final protected double scalingFactor = 1d / TimeUnit.NANOSECONDS.convert(1,
             TimeUnit.MILLISECONDS);
     
     /**
@@ -150,7 +137,7 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
      * @param service
      *            The service to be monitored.
      */
-    public ThreadPoolExecutorStatisticsTask(String serviceName, ThreadPoolExecutor service) {
+    public ThreadPoolExecutorStatisticsTask(String serviceName, EXEC service) {
 
         this(serviceName, service, null/* taskCounters */, DEFAULT_WEIGHT);
 
@@ -168,8 +155,8 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
      *            The per-task counters used to compute the latency data for
      *            tasks run on that service.
      */
-    public ThreadPoolExecutorStatisticsTask(String serviceName, ThreadPoolExecutor service,
-            TaskCounters taskCounters) {
+    public ThreadPoolExecutorStatisticsTask(String serviceName, EXEC service,
+            COUNTERS taskCounters) {
 
         this(serviceName, service, taskCounters, DEFAULT_WEIGHT);
 
@@ -189,8 +176,8 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
      *            The weight to be used by
      *            {@link #getMovingAverage(double, double, double)}
      */
-    public ThreadPoolExecutorStatisticsTask(String serviceName, ThreadPoolExecutor service,
-            TaskCounters taskCounters, double w) {
+    public ThreadPoolExecutorStatisticsTask(String serviceName, EXEC service,
+            COUNTERS taskCounters, double w) {
     
         if (serviceName == null)
             throw new IllegalArgumentException();
@@ -240,7 +227,7 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
     /**
      * The moving average of the queue size.
      */
-    private final MovingAverageTask queueSizeTask = new MovingAverageTask(
+    protected final MovingAverageTask queueSizeTask = new MovingAverageTask(
             "queueSize", new Callable<Integer>() {
                 public Integer call() {
                     return service.getQueue().size();
@@ -252,7 +239,7 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
      * 
      * @see TaskCounters#interArrivalNanoTime
      */
-    private DeltaMovingAverageTask interArrivalNanoTimeTask = new DeltaMovingAverageTask(
+    protected DeltaMovingAverageTask interArrivalNanoTimeTask = new DeltaMovingAverageTask(
             "interArrivalTime", new Callable<Long>() {
                 public Long call() {
                     return taskCounters.interArrivalNanoTime.get();
@@ -264,7 +251,7 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
      * 
      * @see TaskCounters#serviceNanoTime
      */
-    private DeltaMovingAverageTask serviceNanoTimeTask = new DeltaMovingAverageTask(
+    protected DeltaMovingAverageTask serviceNanoTimeTask = new DeltaMovingAverageTask(
             "serviceNanoTime", new Callable<Long>() {
                 public Long call() {
                     return taskCounters.serviceNanoTime.get();
@@ -282,251 +269,7 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
 
         try {
 
-            {
-
-                queueSizeTask.run();
-                
-                // queueSize := #of tasks in the queue.
-                final int queueSize = service.getQueue().size();
-
-                // activeCount := #of tasks assigned a worker thread
-                final int activeCount = service.getActiveCount();
-
-////                 This is just the tasks that are currently waiting to run (not
-////                 assigned to any thread).
-//                averageQueueSize = getMovingAverage(averageQueueSize,
-//                        queueSize, w);
-
-                // This is just the tasks that are currently running (assigned
-                // to a worker thread).
-                averageActiveCount = getMovingAverage(averageActiveCount,
-                        activeCount, w);
-
-                /*
-                 * Note: this is the primary average of interest - it includes
-                 * both the tasks waiting to be run and those that are currently
-                 * running in the definition of the "queue length".
-                 */
-                averageQueueLength = getMovingAverage(averageQueueLength,
-                        (activeCount + queueSize), w);
-
-            }
-
-            if (service instanceof WriteExecutorService) {
-
-                /*
-                 * Note: For the WriteExecutorService we compute a variant of
-                 * [activeCount] the which only counts tasks that are currently
-                 * holding their exclusive resource lock(s). This is the real
-                 * concurrency of the write service since tasks without locks
-                 * are waiting on other tasks so that they can obtain their
-                 * lock(s) and "run".
-                 */
-                
-                final int activeCountWithLocksHeld = ((WriteExecutorService) service)
-                        .getActiveTaskCountWithLocksHeld();
-
-                averageActiveCountWithLocksHeld = getMovingAverage(
-                        averageActiveCountWithLocksHeld, activeCountWithLocksHeld, w);
-
-            }
-
-            if (taskCounters != null) {
-                
-                /*
-                 * Compute some latency data that relies on the task counters.
-                 */
-
-                // #of tasks that have been submitted so far.
-                final long taskCount = taskCounters.taskCompleteCount.get();
-
-                if (taskCount > 0) {
-
-                    /*
-                     * Time waiting on the queue to begin execution.
-                     */
-                    {
-
-                        final long newValue = taskCounters.queueWaitingNanoTime.get();
-
-                        final long delta = newValue - queueWaitingTime;
-
-                        assert delta >= 0 : "" + delta;
-
-                        queueWaitingTime = newValue;
-
-                        averageQueueWaitingTime = getMovingAverage(
-                                averageQueueWaitingTime,
-                                (delta * scalingFactor / taskCounters.taskCompleteCount.get()),
-                                w);
-
-                    }
-
-                    /*
-                     * Time waiting on resource lock(s).
-                     */
-                    if(service instanceof WriteExecutorService) {
-                        
-                        final long newValue = ((WriteTaskCounters) taskCounters).lockWaitingNanoTime
-                                .get();
-
-                        final long delta = newValue - lockWaitingTime;
-
-                        assert delta >= 0 : "" + delta;
-
-                        lockWaitingTime = newValue;
-
-                        averageLockWaitingTime = getMovingAverage(
-                                averageLockWaitingTime,
-                                (delta * scalingFactor / taskCounters.taskCompleteCount.get()),
-                                w);
-
-                    }
-                    
-                    /*
-                     * Time that the task is being serviced (after its obtained
-                     * any locks).
-                     */
-                    {
-
-                        final long newValue = taskCounters.serviceNanoTime.get();
-
-                        final long delta = newValue - serviceTime;
-
-                        assert delta >= 0 : "" + delta;
-
-                        serviceTime = newValue;
-
-                        averageServiceTime = getMovingAverage(
-                                averageServiceTime,
-                                (delta * scalingFactor / taskCounters.taskCompleteCount.get()),
-                                w);
-
-                    }
-
-                    /*
-                     * The moving average of the change in the cumulative
-                     * inter-arrival time.
-                     */
-                    interArrivalNanoTimeTask.run();
-
-                    /*
-                     * The moving average of the change in the total task
-                     * service time.
-                     */
-                    serviceNanoTimeTask.run();
-                    
-                    /*
-                     * Time that the task is busy checkpoint its indices (this
-                     * is already reported as part of the service time but which
-                     * is broken out here as a detail).
-                     */
-                    {
-
-                        final long newValue = taskCounters.checkpointNanoTime.get();
-
-                        final long delta = newValue - checkpointTime;
-
-                        assert delta >= 0 : "" + delta;
-
-                        checkpointTime = newValue;
-
-                        averageCheckpointTime = getMovingAverage(
-                                averageCheckpointTime,
-                                (delta * scalingFactor / taskCounters.taskCompleteCount.get()),
-                                w);
-
-                    }
-
-                    /*
-                     * Queuing time (elapsed time from submit until completion).
-                     */
-                    {
-
-                        final long newValue = taskCounters.queuingNanoTime.get();
-
-                        final long delta = newValue - queuingTime;
-
-                        assert delta >= 0 : "" + delta;
-
-                        queuingTime = newValue;
-
-                        averageQueuingTime = getMovingAverage(
-                                averageQueuingTime,
-                                (delta * scalingFactor / taskCounters.taskCompleteCount.get()),
-                                w);
-
-                    }
-
-                }
-
-                if (service instanceof WriteExecutorService) {
-
-                    final WriteExecutorService tmp = (WriteExecutorService) service;
-
-                    final WriteTaskCounters writeTaskCounters = (WriteTaskCounters) taskCounters;
-                    
-                    final long groupCommitCount = tmp.getGroupCommitCount();
-
-                    if (groupCommitCount > 0) {
-
-                        // Time waiting for the commit.
-                        {
-
-                            final long newValue = writeTaskCounters.commitWaitingNanoTime
-                                    .get();
-
-                            final long delta = newValue - commitWaitingTime;
-
-                            assert delta >= 0 : "" + delta;
-
-                            commitWaitingTime = newValue;
-
-                            averageCommitWaitingTime = getMovingAverage(
-                                    averageCommitWaitingTime,
-                                    (delta * scalingFactor / groupCommitCount),
-                                    w);
-
-                        }
-
-                        // Time servicing the commit.
-                        {
-
-                            final long newValue = writeTaskCounters.commitServiceNanoTime
-                                    .get();
-
-                            final long delta = newValue - commitServiceTime;
-
-                            assert delta >= 0 : "" + delta;
-
-                            commitServiceTime = newValue;
-
-                            averageCommitServiceTime = getMovingAverage(
-                                    averageCommitServiceTime,
-                                    (delta * scalingFactor / groupCommitCount),
-                                    w);
-
-                        }
-
-                    }
-
-                    // moving average of the size nready. 
-                    averageReadyCount = getMovingAverage(
-                            averageReadyCount, tmp.getReadyCount(), w);
-
-                    // moving average of the size of the commit groups. 
-                    averageCommitGroupSize = getMovingAverage(
-                            averageCommitGroupSize, tmp.getCommitGroupSize(), w);
-
-                    // moving average of the #of bytes written since the
-                    // previous commit.
-                    averageByteCountPerCommit = getMovingAverage(
-                            averageByteCountPerCommit, tmp
-                                    .getByteCountPerCommit(), w);
-
-                } // end (if service instanceof WriteExecutorService )
-
-            }
+            calculateAll();
             
             nsamples++;
 
@@ -539,24 +282,200 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
     }
 
     /**
-     * Adds counters for all innate variables defined for a
-     * {@link ThreadPoolExecutor} and for each of the variables computed by this
-     * class. Note that some variables (e.g., the lock waiting time) are only
-     * available when the <i>service</i> specified to the ctor is a
-     * {@link WriteExecutorService}.
+     *
+     * Calculates all averages and updates the task counters if provided.
+     * Currently this method calculates the basic executor queue info, and if task counters are present,
+     * will also calculate queue wait time and checkpoint times.  All of these calculations are done in seperate methods
+     * so that subclasses can override them if needed.
+     *
+     */
+    protected void calculateAll() {
+        calculateBasicQueueInfo();
+        calculateTaskCountersIfPresent();
+    }
+
+    /**
+     * Calculates average queue wait and checkpoint times if a task counter was provided.  Sub-classes may override this
+     * method to introduce additional task counter calculations.
+     */
+    protected void calculateTaskCountersIfPresent() {
+        if (taskCounters != null) {
+
+            /*
+             * Compute some latency data that relies on the task counters.
+             */
+
+            // #of tasks that have been submitted so far.
+            final long taskCount = taskCounters.taskCompleteCount.get();
+
+            if (taskCount > 0) {
+
+                calculateAverageQueueWait();
+
+                calculateAverageCheckpointTime();
+
+            }
+
+        }
+    }
+
+    protected void calculateAverageCheckpointTime() {
+        /*
+    * Time that the task is being serviced (after its obtained
+    * any locks).
+    */
+        {
+
+            final long newValue = taskCounters.serviceNanoTime.get();
+
+            final long delta = newValue - serviceTime;
+
+            assert delta >= 0 : "" + delta;
+
+            serviceTime = newValue;
+
+            averageServiceTime = getMovingAverage(
+                    averageServiceTime,
+                    (delta * scalingFactor / taskCounters.taskCompleteCount.get()),
+                    w);
+
+        }
+
+        /*
+    * The moving average of the change in the cumulative
+    * inter-arrival time.
+    */
+        interArrivalNanoTimeTask.run();
+
+        /*
+    * The moving average of the change in the total task
+    * service time.
+    */
+        serviceNanoTimeTask.run();
+
+        /*
+    * Time that the task is busy checkpoint its indices (this
+    * is already reported as part of the service time but which
+    * is broken out here as a detail).
+    */
+        {
+
+            final long newValue = taskCounters.checkpointNanoTime.get();
+
+            final long delta = newValue - checkpointTime;
+
+            assert delta >= 0 : "" + delta;
+
+            checkpointTime = newValue;
+
+            averageCheckpointTime = getMovingAverage(
+                    averageCheckpointTime,
+                    (delta * scalingFactor / taskCounters.taskCompleteCount.get()),
+                    w);
+
+        }
+
+        /*
+    * Queuing time (elapsed time from submit until completion).
+    */
+        {
+
+            final long newValue = taskCounters.queuingNanoTime.get();
+
+            final long delta = newValue - queuingTime;
+
+            assert delta >= 0 : "" + delta;
+
+            queuingTime = newValue;
+
+            averageQueuingTime = getMovingAverage(
+                    averageQueuingTime,
+                    (delta * scalingFactor / taskCounters.taskCompleteCount.get()),
+                    w);
+
+        }
+    }
+
+
+
+    protected void calculateAverageQueueWait() {
+        /*
+    * Time waiting on the queue to begin execution.
+    */
+        {
+
+            final long newValue = taskCounters.queueWaitingNanoTime.get();
+
+            final long delta = newValue - queueWaitingTime;
+
+            assert delta >= 0 : "" + delta;
+
+            queueWaitingTime = newValue;
+
+            averageQueueWaitingTime = getMovingAverage(
+                    averageQueueWaitingTime,
+                    (delta * scalingFactor / taskCounters.taskCompleteCount.get()),
+                    w);
+
+        }
+    }
+
+    protected void calculateBasicQueueInfo() {
+        queueSizeTask.run();
+
+        // queueSize := #of tasks in the queue.
+        final int queueSize = service.getQueue().size();
+
+        // activeCount := #of tasks assigned a worker thread
+        final int activeCount = service.getActiveCount();
+
+////                 This is just the tasks that are currently waiting to run (not
+////                 assigned to any thread).
+//                averageQueueSize = getMovingAverage(averageQueueSize,
+//                        queueSize, w);
+
+        // This is just the tasks that are currently running (assigned
+        // to a worker thread).
+        averageActiveCount = getMovingAverage(averageActiveCount,
+                activeCount, w);
+
+        /*
+    * Note: this is the primary average of interest - it includes
+    * both the tasks waiting to be run and those that are currently
+    * running in the definition of the "queue length".
+    */
+        averageQueueLength = getMovingAverage(averageQueueLength,
+                (activeCount + queueSize), w);
+    }
+
+    /**
+     * Convenience call to generate a counter set.  Currently creates a new CounterSet and calls fillCounterSet
+     * to populate the data.
      * 
-     * @param counterSet
-     *            The counters will be added to this {@link CounterSet}.
-     * 
-     * @return The caller's <i>counterSet</i>
+     * @return A newly created and filled <i>counterSet</i>
      */
     public CounterSet getCounters() {
 
         final CounterSet counterSet = new CounterSet();
-        
+        fillCounterSet(counterSet);
+
+
+        return counterSet;
+
+}
+
+    /**
+     * Adds counters for all innate variables defined for a
+     * {@link ThreadPoolExecutor} and for each of the variables computed by this
+     * class. Sub-classes can override this method to fill in additional counters in the provided counter set.
+     *
+     * @param counterSet the set that will have the counters added to it.
+     *
+     */
+    protected void fillCounterSet(CounterSet counterSet) {
         /*
-         * Defined for ThreadPoolExecutor.
-         */
+        * Defined for ThreadPoolExecutor.
+        */
 
 //        Note: reported as moving average instead.
 //        counterSet.addCounter("#active",
@@ -565,7 +484,7 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
 //                        setValue(service.getActiveCount());
 //                    }
 //                });
-//        
+//
 //      Note: reported as moving average instead.
 //        counterSet.addCounter("#queued",
 //                new Instrument<Integer>() {
@@ -783,7 +702,7 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
                                 setValue(1d / t);
                         }
                     });
-            
+
             counterSet
                     .addCounter(
                             IThreadPoolExecutorTaskCounters.AverageQueueWaitingTime,
@@ -813,163 +732,7 @@ public class ThreadPoolExecutorStatisticsTask implements Runnable {
                     });
 
         }
+    }
 
-        /*
-         * These data are available only for the write service.
-         */
-        if (service instanceof WriteExecutorService) {
-
-            final WriteExecutorService writeService = (WriteExecutorService) service;
-
-            /*
-             * Simple counters.
-             */
-
-            counterSet.addCounter(IWriteServiceExecutorCounters.CommitCount,
-                    new Instrument<Long>() {
-                        public void sample() {
-                            setValue(writeService.getGroupCommitCount());
-                        }
-                    });
-
-            counterSet.addCounter(IWriteServiceExecutorCounters.AbortCount,
-                    new Instrument<Long>() {
-                        public void sample() {
-                            setValue(writeService.getAbortCount());
-                        }
-                    });
-
-            counterSet.addCounter(IWriteServiceExecutorCounters.OverflowCount,
-                    new Instrument<Long>() {
-                        public void sample() {
-                            setValue(writeService.getOverflowCount());
-                        }
-                    });
-
-            counterSet.addCounter(IWriteServiceExecutorCounters.RejectedExecutionCount,
-                    new Instrument<Long>() {
-                        public void sample() {
-                            setValue(writeService
-                                    .getRejectedExecutionCount());
-                        }
-                    });
-
-            /*
-             * Maximum observed values.
-             */
-
-            counterSet.addCounter(IWriteServiceExecutorCounters.MaxCommitWaitingTime,
-                    new Instrument<Long>() {
-                        public void sample() {
-                            setValue(writeService.getMaxCommitWaitingTime());
-                        }
-                    });
-
-            counterSet.addCounter(IWriteServiceExecutorCounters.MaxCommitServiceTime,
-                    new Instrument<Long>() {
-                        public void sample() {
-                            setValue(writeService.getMaxCommitServiceTime());
-                        }
-                    });
-
-            counterSet.addCounter(IWriteServiceExecutorCounters.MaxCommitGroupSize,
-                    new Instrument<Long>() {
-                        public void sample() {
-                            setValue((long) writeService
-                                    .getMaxCommitGroupSize());
-                        }
-                    });
-
-            counterSet.addCounter(IWriteServiceExecutorCounters.MaxRunning,
-                    new Instrument<Long>() {
-                        public void sample() {
-                            setValue(writeService.getMaxRunning());
-                        }
-                    });
-
-            /*
-             * Moving averages available only for the write executor
-             * service.
-             */
-
-            counterSet
-                    .addCounter(
-                            IWriteServiceExecutorCounters.AverageActiveCountWithLocksHeld,
-                            new Instrument<Double>() {
-                                @Override
-                                protected void sample() {
-                                    setValue(averageActiveCountWithLocksHeld);
-                                }
-                            });
-
-            counterSet.addCounter(
-                    IWriteServiceExecutorCounters.AverageReadyCount,
-                    new Instrument<Double>() {
-                        @Override
-                        protected void sample() {
-                            setValue(averageReadyCount);
-                        }
-                    });
-
-            counterSet.addCounter(
-                    IWriteServiceExecutorCounters.AverageCommitGroupSize,
-                    new Instrument<Double>() {
-                        @Override
-                        protected void sample() {
-                            setValue(averageCommitGroupSize);
-                        }
-                    });
-
-            counterSet.addCounter(
-                    IWriteServiceExecutorCounters.AverageLockWaitingTime,
-                    new Instrument<Double>() {
-                        @Override
-                        protected void sample() {
-                            setValue(averageLockWaitingTime);
-                        }
-                    });
-
-            counterSet.addCounter(
-                    IWriteServiceExecutorCounters.AverageCheckpointTime,
-                    new Instrument<Double>() {
-                        @Override
-                        protected void sample() {
-                            setValue(averageCheckpointTime);
-                        }
-                    });
-
-            counterSet.addCounter(
-                    IWriteServiceExecutorCounters.AverageCommitWaitingTime,
-                    new Instrument<Double>() {
-                        @Override
-                        protected void sample() {
-                            setValue(averageCommitWaitingTime);
-                        }
-                    });
-
-            counterSet.addCounter(
-                    IWriteServiceExecutorCounters.AverageCommitServiceTime,
-                    new Instrument<Double>() {
-                        @Override
-                        protected void sample() {
-                            setValue(averageCommitServiceTime);
-                        }
-                    });
-
-            counterSet
-                    .addCounter(
-                            IWriteServiceExecutorCounters.AverageByteCountPerCommit,
-                            new Instrument<Double>() {
-                                @Override
-                                protected void sample() {
-                                    setValue(averageByteCountPerCommit);
-                                }
-                            });
-
-        }
-
-        return counterSet;
-
-}
 
 }

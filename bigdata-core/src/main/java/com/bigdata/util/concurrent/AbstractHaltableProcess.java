@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import com.bigdata.relation.accesspath.BufferClosedException;
 import com.bigdata.util.InnerCause;
 
 /**
@@ -101,35 +100,13 @@ public abstract class AbstractHaltableProcess {
 
         halt = true;
 
-        final boolean isFirstCause = firstCause.compareAndSet(
-                null/* expect */, cause);
+        firstCause.compareAndSet( null/* expect */, cause);
 
         if (log.isEnabledFor(Level.WARN))
 
             try {
 
-                if (!InnerCause.isInnerCause(cause, InterruptedException.class)
-                        && !InnerCause.isInnerCause(cause,
-                                CancellationException.class)
-                        && !InnerCause.isInnerCause(cause,
-                                ClosedByInterruptException.class)
-                        && !InnerCause.isInnerCause(cause,
-                                RejectedExecutionException.class)
-                        && !InnerCause.isInnerCause(cause,
-                                BufferClosedException.class)) {
-
-                    /*
-                     * This logs all unexpected causes, not just the first one
-                     * to be reported for this join task.
-                     * 
-                     * Note: The master will log the firstCause that it receives
-                     * as an error.
-                     */
-
-                    log.warn(this + " : isFirstCause=" + isFirstCause + " : "
-                            + cause, cause);
-
-                }
+                logInnerCause(cause);
 
             } catch (Throwable ex) {
 
@@ -139,6 +116,29 @@ public abstract class AbstractHaltableProcess {
 
         return cause;
 
+    }
+
+    protected <T extends Throwable> void logInnerCause(T cause) {
+        if (!InnerCause.isInnerCause(cause, InterruptedException.class)
+                && !InnerCause.isInnerCause(cause,
+                        CancellationException.class)
+                && !InnerCause.isInnerCause(cause,
+                        ClosedByInterruptException.class)
+                && !InnerCause.isInnerCause(cause,
+                        RejectedExecutionException.class) ) 
+        {
+            /*
+             * This logs all unexpected causes, not just the first one
+             * to be reported for this join task.
+             *
+             * Note: The master will log the firstCause that it receives
+             * as an error.
+             */
+
+            log.warn(this + " : isFirstCause=" + (firstCause.get() == cause) + " : "
+                    + cause, cause);
+
+        }
     }
 
 }

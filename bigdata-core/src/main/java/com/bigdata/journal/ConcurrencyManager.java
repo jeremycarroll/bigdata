@@ -879,7 +879,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
             final long delay = 1000; // delay in ms.
             final TimeUnit unit = TimeUnit.MILLISECONDS;
             
-            writeServiceQueueStatisticsTask = new ThreadPoolExecutorStatisticsTask("writeService",
+            writeServiceQueueStatisticsTask = new WriteExecutorServiceStatisticsTask("writeService",
                     writeService, countersUN, w);
 
             txWriteServiceQueueStatisticsTask = new ThreadPoolExecutorStatisticsTask("txWriteService",
@@ -934,7 +934,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
      * Sampling instruments for the various queues giving us the moving average
      * of the queue length.
      */
-    private final ThreadPoolExecutorStatisticsTask writeServiceQueueStatisticsTask;
+    private final WriteExecutorServiceStatisticsTask writeServiceQueueStatisticsTask;
     private final ThreadPoolExecutorStatisticsTask txWriteServiceQueueStatisticsTask;
     private final ThreadPoolExecutorStatisticsTask readServiceQueueStatisticsTask;
     
@@ -1066,7 +1066,7 @@ public class ConcurrencyManager implements IConcurrencyManager {
      * (exceptions may be thrown if the task fails or the commit fails). The
      * purpose of group commits is to provide higher throughput for writes on
      * the store by only syncing the data to disk periodically rather than after
-     * every write. Group commits are scheduled by the {@link #commitService}.
+     * every write. Group commits are scheduled by the commitService.
      * The trigger conditions for group commits may be configured using
      * {@link ConcurrencyManager.Options}. If you are using the store in a
      * single threaded context then you may set

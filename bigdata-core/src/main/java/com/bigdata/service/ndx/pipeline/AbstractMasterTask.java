@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.bigdata.util.InnerCause;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.keys.KVO;
@@ -1220,6 +1221,13 @@ L>//
 
         }
 
+    }
+
+    @Override
+    protected <T extends Throwable> void logInnerCause(T cause) {
+        //avoid logging warnings on BufferClosedException.  Not done in AbstractHaltableProcess to avoid introducing a package cycle.  -gossard  
+        if (!InnerCause.isInnerCause(cause, BufferClosedException.class))
+            super.logInnerCause(cause);
     }
 
     /**
