@@ -38,7 +38,7 @@ import org.apache.log4j.Logger;
 
 import com.bigdata.btree.AbstractBTree;
 import com.bigdata.btree.BTree;
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
@@ -48,7 +48,6 @@ import com.bigdata.relation.IDatabase;
 import com.bigdata.relation.IRelation;
 import com.bigdata.relation.RelationSchema;
 import com.bigdata.sparse.GlobalRowStoreHelper;
-import com.bigdata.sparse.GlobalRowStoreSchema;
 import com.bigdata.sparse.ITPS;
 import com.bigdata.sparse.ITPV;
 import com.bigdata.sparse.Schema;

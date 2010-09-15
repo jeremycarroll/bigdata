@@ -38,8 +38,6 @@ import java.nio.ByteBuffer;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.BytesUtil;
-
 /**
  * A view on a mutable byte[] that may be extended.
  * <p>

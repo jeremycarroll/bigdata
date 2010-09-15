@@ -29,7 +29,7 @@ import java.util.NoSuchElementException;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.DelegateTuple;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;

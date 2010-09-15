@@ -21,7 +21,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-package com.bigdata.btree;
+package com.bigdata.io;
 
 import it.unimi.dsi.fastutil.bytes.custom.CustomByteArrayFrontCodedList;
 import it.unimi.dsi.io.InputBitStream;
@@ -52,7 +52,7 @@ import com.bigdata.rawstore.Bytes;
  * property, e.g.,
  * 
  * <pre>
- * java -Dcom.bigdata.btree.BytesUtil.jni=true ...
+ * java -Dcom.bigdata.io.BytesUtil.jni=true ...
  * </pre>
  * 
  * See BytesUtil.c in this package for instructions on compiling the JNI
@@ -99,7 +99,7 @@ public class BytesUtil {
 
         final boolean jni;
 
-        String val = System.getProperty("com.bigdata.btree.BytesUtil.jni");
+        String val = System.getProperty("com.bigdata.io.BytesUtil.jni");
 
         if (val != null) {
 
@@ -127,11 +127,11 @@ public class BytesUtil {
      * Attempt to load the JNI library.
      * <p>
      * Note: this is done automatically if the optional boolean system property
-     * <code>com.bigdata.btree.BytesUtil.jni=true</code> is specified, e.g.,
+     * <code>com.bigdata.io.BytesUtil.jni=true</code> is specified, e.g.,
      * using
      * 
      * <pre>
-     *    java -Dcom.bigdata.btree.BytesUtil.jni=true ...
+     *    java -Dcom.bigdata.io.BytesUtil.jni=true ...
      * </pre>
      * 
      * @return True iff the JNI library was successfully linked.
@@ -750,7 +750,7 @@ public class BytesUtil {
      * <pre>
      *   cd bigdata
      *   set PATH=%PATH%;lib
-     *   java -cp bin com.bigdata.btree.BytesUtil
+     *   java -cp bin com.bigdata.io.BytesUtil
      * </pre>
      * 
      * <p>
@@ -758,7 +758,7 @@ public class BytesUtil {
      * library location
      * 
      * <pre>
-     *    java -Djava.library.path=lib com.bigdata.btree.BytesUtil
+     *    java -Djava.library.path=lib com.bigdata.io.BytesUtil
      * </pre>
      * 
      * @param args

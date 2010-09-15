@@ -35,7 +35,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Random;
 
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.rawstore.Bytes;
 
 import junit.framework.TestCase;

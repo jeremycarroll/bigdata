@@ -34,7 +34,7 @@ import java.util.concurrent.ExecutionException;
 
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.BytesUtil.UnsignedByteArrayComparator;
+import com.bigdata.io.BytesUtil.UnsignedByteArrayComparator;
 import com.bigdata.btree.keys.KeyBuilder;
 
 /**

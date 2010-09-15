@@ -40,6 +40,7 @@ import java.util.SortedMap;
 import com.bigdata.btree.filter.FilterConstructor;
 import com.bigdata.btree.filter.TupleFilter;
 import com.bigdata.btree.keys.KeyBuilder;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.journal.ConcurrencyManager;
 
 /**

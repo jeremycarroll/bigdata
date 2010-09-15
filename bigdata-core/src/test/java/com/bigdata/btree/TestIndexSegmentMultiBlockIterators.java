@@ -32,6 +32,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import com.bigdata.btree.IndexSegmentBuilder.BuildEnum;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.io.DirectBufferPool;
 
 /**

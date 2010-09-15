@@ -30,6 +30,7 @@ import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.WeakHashMap;
 
+import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Level;
 
 import com.bigdata.btree.data.DefaultLeafCoder;

@@ -41,6 +41,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.FutureTask;
 
+import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 

@@ -25,8 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Jan 16, 2007
  */
 
-package com.bigdata.btree;
+package com.bigdata.io;
 
+import com.bigdata.io.BytesUtil;
 import junit.framework.TestCase2;
 
 import com.bigdata.btree.keys.IKeyBuilder;

@@ -30,7 +30,7 @@ package com.bigdata.btree.view;
 
 import java.util.NoSuchElementException;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;

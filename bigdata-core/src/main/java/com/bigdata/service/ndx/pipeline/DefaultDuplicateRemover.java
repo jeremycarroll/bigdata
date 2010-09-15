@@ -1,8 +1,7 @@
 package com.bigdata.service.ndx.pipeline;
 
-import org.apache.log4j.Logger;
+import com.bigdata.io.BytesUtil;
 
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.keys.KVO;
 
 /**

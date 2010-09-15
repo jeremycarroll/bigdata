@@ -34,6 +34,7 @@ import java.util.UUID;
 
 import com.bigdata.LRUNexus;
 import com.bigdata.btree.keys.TestKeyBuilder;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.Options;
 import com.bigdata.rawstore.IRawStore;

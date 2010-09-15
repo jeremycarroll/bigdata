@@ -34,7 +34,7 @@ import java.io.ObjectOutput;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.ISimpleSplitHandler;
 import com.bigdata.btree.IndexSegment;
 

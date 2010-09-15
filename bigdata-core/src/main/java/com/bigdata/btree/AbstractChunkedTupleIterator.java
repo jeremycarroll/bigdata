@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.filter.IFilterConstructor;

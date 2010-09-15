@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ISimpleSplitHandler;
 import com.bigdata.btree.ITuple;

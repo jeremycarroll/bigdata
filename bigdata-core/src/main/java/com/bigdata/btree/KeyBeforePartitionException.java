@@ -30,6 +30,7 @@ package com.bigdata.btree;
 
 import java.io.File;
 
+import com.bigdata.io.BytesUtil;
 import com.bigdata.mdi.LocalPartitionMetadata;
 
 /**

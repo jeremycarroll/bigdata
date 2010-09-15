@@ -316,7 +316,7 @@ public interface IRangeQuery {
      * @see SuccessorUtil, which may be used to compute the successor of a value
      *      before encoding it as a component of a key.
      * 
-     * @see BytesUtil#successor(byte[]), which may be used to compute the
+     * @see com.bigdata.io.BytesUtil#successor(byte[]), which may be used to compute the
      *      successor of an encoded key.
      * 
      * @see EntryFilter, which may be used to filter the entries visited by the
@@ -361,7 +361,7 @@ public interface IRangeQuery {
      * @see SuccessorUtil, which may be used to compute the successor of a value
      *      before encoding it as a component of a key.
      * 
-     * @see BytesUtil#successor(byte[]), which may be used to compute the
+     * @see com.bigdata.io.BytesUtil#successor(byte[]), which may be used to compute the
      *      successor of an encoded key.
      * 
      * @see IFilterConstructor, which may be used to construct an iterator stack

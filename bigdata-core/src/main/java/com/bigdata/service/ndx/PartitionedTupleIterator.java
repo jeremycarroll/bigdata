@@ -27,9 +27,9 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.DelegateTuple;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;

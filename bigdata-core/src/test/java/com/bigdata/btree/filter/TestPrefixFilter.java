@@ -31,13 +31,13 @@ package com.bigdata.btree.filter;
 import java.util.Properties;
 import java.util.UUID;
 
+import com.bigdata.io.BytesUtil;
 import junit.framework.TestCase2;
 
 import org.apache.log4j.Level;
 
 import com.bigdata.btree.AbstractTupleCursorTestCase;
 import com.bigdata.btree.BTree;
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.DefaultTupleSerializer;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
@@ -109,7 +109,7 @@ public class TestPrefixFilter extends TestCase2 {
         final byte[] b = prefixKeyBuilder.reset().append(key).getKey();
 
         if (log.isInfoEnabled())
-            log.info("key=" + key + ", byte[]="+BytesUtil.toString(b));
+            log.info("key=" + key + ", byte[]="+ BytesUtil.toString(b));
         
         return b;
         

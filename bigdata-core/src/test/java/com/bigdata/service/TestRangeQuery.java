@@ -30,7 +30,7 @@ package com.bigdata.service;
 import java.io.IOException;
 import java.util.UUID;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;

@@ -30,6 +30,7 @@ package com.bigdata.btree;
 
 import java.util.NoSuchElementException;
 
+import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.Leaf.ILeafListener;

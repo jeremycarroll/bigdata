@@ -31,9 +31,9 @@ package com.bigdata.service.ndx;
 import java.util.Arrays;
 import java.util.LinkedList;
 
+import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.keys.KVO;
 import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;

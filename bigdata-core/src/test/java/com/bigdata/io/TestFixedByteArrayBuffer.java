@@ -32,7 +32,6 @@ import java.util.Random;
 
 import junit.framework.TestCase2;
 
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.rawstore.Bytes;
 
 /**

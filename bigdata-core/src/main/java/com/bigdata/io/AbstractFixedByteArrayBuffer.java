@@ -35,8 +35,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
-import com.bigdata.btree.BytesUtil;
-
 /**
  * Efficient absolute get/put operations on a slice of a byte[]. This class is
  * not thread-safe under mutation because the operations are not atomic.

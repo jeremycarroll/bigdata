@@ -28,8 +28,6 @@
 
 package com.bigdata.io;
 
-import com.bigdata.btree.BytesUtil;
-
 /**
  * Efficient absolute get/put operations on a slice of a byte[]. This class is
  * not thread-safe under mutation because the operations are not atomic.

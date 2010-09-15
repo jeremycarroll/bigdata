@@ -39,12 +39,12 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
 
+import com.bigdata.io.BytesUtil;
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase2;
 
 import com.bigdata.btree.AbstractBTreeTestCase;
 import com.bigdata.btree.BTree;
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.FixedLengthPrefixSplits;
 import com.bigdata.btree.ILocalBTreeView;
 import com.bigdata.btree.ISimpleSplitHandler;

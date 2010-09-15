@@ -29,7 +29,7 @@ package com.bigdata.btree.raba;
 
 import junit.framework.TestCase2;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 
 /**
  * Unit tests for {@link IKeyBuffer#search(byte[] searchKey)}.
@@ -46,7 +46,7 @@ import com.bigdata.btree.BytesUtil;
  *       bytes are being compared.
  * 
  * @todo do tests with JNI code linked in. note that we only use
- *       {@link BytesUtil#compareBytesWithLenAndOffset(int, int, byte[], int, int, byte[])} for
+ *       {@link com.bigdata.io.BytesUtil#compareBytesWithLenAndOffset(int, int, byte[], int, int, byte[])} for
  *       searching on the key buffers since that allows non-zero offsets into
  *       the search key.
  * 

@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.raba.codec;
 
+import com.bigdata.io.*;
 import it.unimi.dsi.compression.CanonicalFast64CodeWordDecoder;
 import it.unimi.dsi.compression.HuffmanCodec;
 
@@ -43,17 +44,13 @@ import junit.framework.TestCase;
 import junit.framework.TestCase2;
 
 import com.bigdata.btree.AbstractBTreeTestCase;
-import com.bigdata.btree.BytesUtil;
-import com.bigdata.btree.BytesUtil.UnsignedByteArrayComparator;
+import com.bigdata.io.BytesUtil;
+import com.bigdata.io.BytesUtil.UnsignedByteArrayComparator;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.ReadOnlyKeysRaba;
 import com.bigdata.btree.raba.ReadOnlyValuesRaba;
-import com.bigdata.io.AbstractFixedByteArrayBuffer;
-import com.bigdata.io.DataOutputBuffer;
-import com.bigdata.io.FixedByteArrayBuffer;
-import com.bigdata.io.SerializerUtil;
 
 /**
  * Abstract test suite for {@link IRabaCoder} implementations.

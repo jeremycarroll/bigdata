@@ -34,7 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
@@ -60,12 +60,10 @@ import com.bigdata.jini.lookup.entry.Hostname;
 import com.bigdata.jini.lookup.entry.ServiceUUID;
 import com.bigdata.jini.start.IServicesManagerService;
 import com.bigdata.journal.AbstractLocalTransactionManager;
-import com.bigdata.journal.ConcurrencyManager;
 import com.bigdata.journal.IndexProcedureTask;
 import com.bigdata.journal.ITransactionService;//remote impl
 import com.bigdata.journal.TransactionService;//smart proxy impl
 import com.bigdata.journal.Tx;
-import com.bigdata.resources.ResourceManager;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IClientService;
 import com.bigdata.service.IDataService;
@@ -73,8 +71,6 @@ import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.service.ILoadBalancerService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.IService;
-import com.bigdata.service.IServiceShutdown;
-import com.bigdata.service.IServiceShutdown.ShutdownType;
 import com.bigdata.service.LoadBalancer;
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardManagement;
@@ -88,7 +84,6 @@ import com.bigdata.util.config.LogUtil;
 import com.bigdata.service.DataService;
 import com.bigdata.service.DataService.GetIndexMetadataTask;//EmbeddedShard???
 import com.bigdata.service.DataService.RangeIteratorTask;//EmbeddedShard???
-import com.bigdata.service.IDataService;
 
 import net.jini.core.entry.Entry;
 import net.jini.core.lookup.ServiceID;
@@ -107,10 +102,7 @@ import org.apache.log4j.MDC;
 
 import java.io.File;
 import java.rmi.RemoteException;
-import java.util.Enumeration;
 import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

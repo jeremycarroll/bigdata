@@ -30,10 +30,9 @@ package com.bigdata.search;
 
 import java.util.Properties;
 
+import com.bigdata.io.BytesUtil;
 import junit.framework.TestCase2;
 
-import com.bigdata.btree.BytesUtil;
-import com.bigdata.btree.ITupleSerializer;
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.search.FullTextIndex.Options;

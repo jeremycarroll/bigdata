@@ -27,7 +27,7 @@ package com.bigdata.sparse;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
 

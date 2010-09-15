@@ -34,7 +34,6 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.UUID;
 
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.keys.KeyBuilder.Options;
 
 /**
@@ -129,7 +128,7 @@ public interface IKeyBuilder extends ISortKeyBuilder<Object> {
      * 
      * @return A new array containing the key.
      * 
-     * @see BytesUtil#compareBytes(byte[], byte[])
+     * @see com.bigdata.io.BytesUtil#compareBytes(byte[], byte[])
      */
     public byte[] getKey();
 

@@ -31,8 +31,9 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+
+import com.bigdata.io.BytesUtil;
 import junit.framework.TestCase2;
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;

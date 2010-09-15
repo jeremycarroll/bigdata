@@ -30,10 +30,10 @@ package com.bigdata.sparse;
 
 import java.util.NoSuchElementException;
 
+import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.AbstractTuple;
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;

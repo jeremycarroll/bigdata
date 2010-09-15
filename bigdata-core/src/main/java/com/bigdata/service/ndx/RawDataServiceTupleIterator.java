@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import com.bigdata.btree.AbstractChunkedTupleIterator;
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.ResultSet;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.proc.BatchRemove.BatchRemoveConstructor;

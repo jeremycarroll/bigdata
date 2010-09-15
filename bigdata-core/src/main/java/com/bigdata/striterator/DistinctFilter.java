@@ -33,7 +33,7 @@ import java.util.Arrays;
 import java.util.UUID;
 
 import com.bigdata.btree.BTree;
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.NOPTupleSerializer;
 import com.bigdata.btree.keys.ASCIIKeyBuilderFactory;

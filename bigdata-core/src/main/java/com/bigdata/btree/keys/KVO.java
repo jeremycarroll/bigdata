@@ -30,7 +30,7 @@ package com.bigdata.btree.keys;
 
 import java.util.Arrays;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.service.ndx.pipeline.KVOC;
 
 /**

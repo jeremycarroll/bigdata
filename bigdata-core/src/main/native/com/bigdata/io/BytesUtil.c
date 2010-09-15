@@ -32,9 +32,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Compile the Java class and then generate the C header file from that class.
  * From the bigdata directory, do:
 
-javac src/java/com/bigdata/btree/BytesUtil.java
+javac src/java/com/bigdata/io/BytesUtil.java
 
-javah -classpath src/java com.bigdata.btree.BytesUtil
+javah -classpath src/java com.bigdata.io.BytesUtil
 
  * This places the .class file in the source directory and the .h files in the
  * bigdata directory.
@@ -53,12 +53,12 @@ gcc -fPIC -g -I$JAVA_HOME/include -I$JAVA_HOME/include/linux -c BytesUtil.c
 
 gcc -shared -W1,-soname,libBytesUtil.so -olibBytesUtil.so BytesUtil.o -lc
 
-java -classpath src/java com.bigdata.btree.BytesUtil
+java -classpath src/java com.bigdata.io.BytesUtil
 
  * On Win32, the following command builds a dynamic link library (DLL)
  * using the Microsoft Visual C++ compiler:
 
-cl -I. "-I%JAVA_HOME%\include" "-I%JAVA_HOME%\include\win32" -LD src/java/com/bigdata/btree/BytesUtil.c -FeBytesUtil.dll
+cl -I. "-I%JAVA_HOME%\include" "-I%JAVA_HOME%\include\win32" -LD src/java/com/bigdata/io/BytesUtil.c -FeBytesUtil.dll
 
 other things tried, some of which may work or have useful optimizations:
 

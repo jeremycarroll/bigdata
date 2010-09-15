@@ -39,9 +39,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+
+import com.bigdata.io.BytesUtil;
 import junit.framework.TestCase2;
-import com.bigdata.btree.BytesUtil;
-import com.bigdata.btree.BytesUtil.UnsignedByteArrayComparator;
+import com.bigdata.io.BytesUtil.UnsignedByteArrayComparator;
 
 /**
  * Test suite for high level operations that build variable length _unsigned_

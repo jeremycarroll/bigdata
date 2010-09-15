@@ -2,7 +2,7 @@ package com.bigdata.rdf.load;
 
 import java.util.UUID;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.service.IBigdataFederation;

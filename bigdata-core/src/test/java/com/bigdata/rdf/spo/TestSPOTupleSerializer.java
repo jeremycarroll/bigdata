@@ -49,7 +49,7 @@ package com.bigdata.rdf.spo;
 
 import junit.framework.TestCase2;
 import com.bigdata.btree.AbstractTuple;
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITupleSerializer;
 import com.bigdata.rdf.internal.TermId;

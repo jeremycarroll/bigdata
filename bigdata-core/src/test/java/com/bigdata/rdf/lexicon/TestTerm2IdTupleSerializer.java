@@ -29,6 +29,7 @@ package com.bigdata.rdf.lexicon;
 
 import java.util.Locale;
 
+import com.bigdata.io.BytesUtil;
 import junit.framework.TestCase2;
 
 import org.openrdf.model.URI;
@@ -36,7 +37,6 @@ import org.openrdf.model.Value;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.model.vocabulary.XMLSchema;
 
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
 
 /**
@@ -81,7 +81,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         byte[] k3 = fixture.uri2key(uri3);
 
         System.err.println("k1("+uri1+") = "+BytesUtil.toString(k1));
-        System.err.println("k2("+uri2+") = "+BytesUtil.toString(k2));
+        System.err.println("k2("+uri2+") = "+ BytesUtil.toString(k2));
         System.err.println("k3("+uri3+") = "+BytesUtil.toString(k3));
         
         // subdirectory sorts after root directory.

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
 
+import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.IndexSegment.IndexSegmentTupleCursor;
@@ -538,7 +539,7 @@ public class IndexSegmentMultiBlockIterator<E> implements ITupleIterator<E> {
         return super.toString() + //
                 "{file=" + store.getFile() + //
                 ",checkpoint="+store.getCheckpoint()+//
-                ",fromKey="+BytesUtil.toString(fromKey)+//
+                ",fromKey="+ BytesUtil.toString(fromKey)+//
                 ",toKey="+BytesUtil.toString(toKey)+//
                 ",firstLeafAddr=" + store.toString(firstLeafAddr) + //
                 ",lastLeafAddr=" + store.toString(lastLeafAddr) + //

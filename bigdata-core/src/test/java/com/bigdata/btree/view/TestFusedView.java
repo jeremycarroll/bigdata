@@ -36,7 +36,7 @@ import com.bigdata.btree.AbstractBTreeTestCase;
 import com.bigdata.btree.AbstractTupleCursorTestCase;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.BloomFilterFactory;
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.Checkpoint;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;

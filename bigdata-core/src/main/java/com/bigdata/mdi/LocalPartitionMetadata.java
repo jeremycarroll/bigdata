@@ -31,11 +31,11 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.UUID;
 
+import com.bigdata.io.BytesUtil;
 import org.CognitiveWeb.extser.LongPacker;
 import org.CognitiveWeb.extser.ShortPacker;
 
 import com.bigdata.btree.BTree;
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.IndexSegment;
 import com.bigdata.btree.IndexSegmentStore;

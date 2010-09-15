@@ -2,9 +2,9 @@ package com.bigdata.btree.filter;
 
 import java.util.Iterator;
 
+import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleCursor;

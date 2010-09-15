@@ -32,13 +32,9 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Properties;
 
+import com.bigdata.io.BytesUtil;
 import junit.framework.TestCase2;
 
-import com.bigdata.btree.BytesUtil;
-import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
-import com.bigdata.btree.keys.IKeyBuilder;
-import com.bigdata.btree.keys.KeyBuilder;
-import com.bigdata.btree.keys.StrengthEnum;
 import com.bigdata.btree.keys.KeyBuilder.Options;
 
 /**
@@ -108,7 +104,7 @@ abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
         byte[] key2 = keyBuilder.reset().append("ABC").getKey();
         byte[] key3 = keyBuilder.reset().append("Abc").getKey();
 
-        System.err.println("abc: "+BytesUtil.toString(key1));
+        System.err.println("abc: "+ BytesUtil.toString(key1));
         System.err.println("ABC: "+BytesUtil.toString(key2));
         System.err.println("Abc: "+BytesUtil.toString(key3));
 

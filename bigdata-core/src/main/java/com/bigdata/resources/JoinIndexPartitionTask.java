@@ -31,7 +31,7 @@ package com.bigdata.resources;
 import java.util.Arrays;
 
 import com.bigdata.btree.BTree;
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.AbstractTask;

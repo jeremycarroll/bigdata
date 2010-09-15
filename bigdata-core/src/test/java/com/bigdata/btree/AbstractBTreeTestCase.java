@@ -37,6 +37,7 @@ import java.util.Random;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import com.bigdata.io.BytesUtil;
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase2;
 

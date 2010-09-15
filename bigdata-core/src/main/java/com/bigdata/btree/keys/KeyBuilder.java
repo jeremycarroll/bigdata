@@ -35,7 +35,6 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.UUID;
 import org.apache.log4j.Logger;
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleSerializer;
 
@@ -53,7 +52,7 @@ import com.bigdata.btree.ITupleSerializer;
  * @see SuccessorUtil Compute the successor of a value before encoding it as a
  *      component of a key.
  * 
- * @see BytesUtil#successor(byte[]) Compute the successor of an encoded key.
+ * @see com.bigdata.io.BytesUtil#successor(byte[]) Compute the successor of an encoded key.
  * 
  * @todo introduce a mark and restore feature for generating multiple keys that
  *       share some leading prefix. in general, this is as easy as resetting the

@@ -41,11 +41,6 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.journal.AbstractJournal;
-import com.bigdata.journal.FileMetadata;
-import com.bigdata.journal.Options;
-import com.bigdata.resources.StoreManager;
-
 /**
  * Utility methods for managing exlusive {@link FileLock}s and advisory locks
  * depending on what is supported by the platform, file access mode, and volume
@@ -97,14 +92,11 @@ public class FileLockUtility {
      * @throws IOException
      *             If the file could not be opened or someone already holds a
      *             lock for that file.
-     * 
-     * @see FileMetadata#acquireAdvisoryLock(File)
-     * 
-     * @see Options#FILE_LOCK_ENABLED
+     *
      * 
      * @todo we really don't need locks for temporary files.
      * 
-     * @todo handle lock files during {@link StoreManager} startup.
+     * @todo handle lock files during StoreManager startup.
      * 
      * @todo if you use a {@link FileLock} to open a file then you are
      *       protected.
@@ -123,9 +115,9 @@ public class FileLockUtility {
         if(readOnly) return raf;
     
         // Note: a System property.
-        final boolean fileLockEnabled = Boolean.parseBoolean(System
-                .getProperty(Options.FILE_LOCK_ENABLED,
-                        Options.DEFAULT_FILE_LOCK_ENABLED));
+        // configuration previously read from System property com.bigdata.journal.Options.Options.FILE_LOCK_ENABLED.
+        // Apparently this class should be deprecated, and the system property is never set, returning default.
+        final boolean fileLockEnabled = true;
     
         if (useFileLock && fileLockEnabled) {//bufferMode != BufferMode.Mapped) {
     
@@ -304,13 +296,13 @@ public class FileLockUtility {
      * Note: If a {@link Thread} is interrupted during an NIO operation then the
      * {@link FileChannel} will be closed asynchronously. While this correctly
      * releases a {@link FileLock} it does NOT cause our advisory lock file to
-     * be deleted. During a normal shutdown of an {@link AbstractJournal}, the
+     * be deleted. During a normal shutdown of an AbstractJournal, the
      * advisory lock file is deleted by
      * {@link #closeFile(File, RandomAccessFile)}. However, following an
      * abnormal shutdown the advisory lock file MAY still exist and (assuming
      * that {@link FileLock} is not working since we created an advisory lock in
      * the first place) it MUST be removed by hand before the
-     * {@link AbstractJournal} can be reopened.
+     * AbstractJournal can be reopened.
      * 
      * @param file
      *            The given file.

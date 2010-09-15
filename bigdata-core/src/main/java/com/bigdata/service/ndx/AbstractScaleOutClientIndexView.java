@@ -37,11 +37,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.AsynchronousIndexWriteConfiguration;
-import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.ICounter;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITupleCursor;

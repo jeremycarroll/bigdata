@@ -51,8 +51,9 @@ public class TestHistoryInstrument extends TestCase2 {
      * overwritten (even if the sample in danger of being overwritten is a
      * <code>null</code>. If we accept a truely random starting time then it
      * is harder to setup the unit tests to test overflow handling.
+     *
      */
-    final long t0 = new Random().nextInt(100)*1000L*60*60;
+    final long t0 = (new Random().nextInt(100) +1)*1000L*60*60;//between 1*3600000 and 100*3600000.  add() fails on 0.
     
     /**
      * 

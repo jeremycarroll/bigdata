@@ -32,7 +32,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import com.bigdata.btree.BytesUtil;
+import com.bigdata.io.BytesUtil;
 
 /**
  * Random B+Tree keys generator. The keys are variable length unsigned byte[]s
