@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.util;
 
 
+import com.bigdata.io.TestChecksumUtility;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -70,10 +71,7 @@ public class TestAll extends TestCase {
         
         // test of the hybrid timestamp factory.
         // Note: class is not debugged and is marked as deprecated, test is commented out.
-//        suite.addTestSuite( TestHybridTimestampFactory.class );
-        
-        // test checksum computations (used by serialization).
-        suite.addTestSuite( TestChecksumUtility.class );
+//        suite.addTestSuite( TestHybridTimestampFactory.class );               
 
         suite.addTestSuite(TestByteBufferBitVector.class);
 

@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-package com.bigdata.util;
+package com.bigdata.jini;
 
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.LogUtil;
@@ -65,7 +65,10 @@ import java.util.concurrent.Future;
 
 /**
  * Miscellaneous, convenient utility methods.
+ *
  */
+
+//TODO:  Not the best home for this class, but having it in 'com.bigdata.util' caused circular package dependencies that were giving me issues.  -gossard
 public class Util {
 
     public static <T extends Comparable<T>> T max(final T... elements){

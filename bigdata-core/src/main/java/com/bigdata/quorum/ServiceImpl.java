@@ -29,9 +29,9 @@ import static com.bigdata.quorum.Constants.*;
 
 import com.bigdata.attr.QuorumPeerAttr;
 import com.bigdata.attr.ServiceInfo;
+import com.bigdata.jini.Util;
 import com.bigdata.service.QuorumPeerService;
 import com.bigdata.service.QuorumPeerService.QuorumPeerData;
-import com.bigdata.util.Util;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.LogUtil;
 import com.bigdata.util.config.NicUtil;
@@ -45,9 +45,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerMain;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import com.sun.jini.config.Config;
 import com.sun.jini.start.LifeCycle;
-import com.sun.jini.thread.InterruptedStatusThread;
 import com.sun.jini.thread.ReadyState;
 
 import net.jini.config.Configuration;
@@ -57,7 +55,6 @@ import net.jini.config.NoSuchEntryException;
 
 import net.jini.core.entry.Entry;
 import net.jini.core.discovery.LookupLocator;
-import net.jini.core.lease.Lease;
 import net.jini.core.lookup.ServiceID;
 import net.jini.core.lookup.ServiceItem;
 import net.jini.core.lookup.ServiceTemplate;
@@ -65,7 +62,6 @@ import net.jini.core.lookup.ServiceTemplate;
 import net.jini.discovery.DiscoveryManagement;
 import net.jini.discovery.DiscoveryGroupManagement;
 import net.jini.discovery.DiscoveryLocatorManagement;
-import net.jini.discovery.LookupDiscoveryManager;
 
 import net.jini.export.Exporter;
 import net.jini.jeri.BasicILFactory;
@@ -88,18 +84,12 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.PrintWriter;
-import java.io.Serializable;
 import java.net.InetAddress;
-import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.rmi.RemoteException;
-import java.rmi.server.ExportException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;

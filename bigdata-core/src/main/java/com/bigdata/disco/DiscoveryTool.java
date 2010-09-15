@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.disco;
 
-import com.bigdata.util.Util;
+import com.bigdata.jini.Util;
 
 import com.sun.jini.config.Config;
 import net.jini.config.Configuration;
@@ -34,7 +34,6 @@ import net.jini.core.constraint.MethodConstraints;
 import net.jini.core.discovery.LookupLocator;
 import net.jini.core.entry.Entry;
 import net.jini.core.lookup.ServiceItem;
-import net.jini.core.lookup.ServiceTemplate;
 import net.jini.discovery.ConstrainableLookupLocator;
 import net.jini.discovery.DiscoveryManagement;
 import net.jini.discovery.DiscoveryGroupManagement;

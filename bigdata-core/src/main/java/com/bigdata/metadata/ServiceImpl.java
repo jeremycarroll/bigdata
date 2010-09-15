@@ -32,12 +32,12 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.ResultSet;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.proc.IIndexProcedure;
+import com.bigdata.jini.Util;
 import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.jini.util.ConfigMath;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.IServiceShutdown.ShutdownType;
 import com.bigdata.util.BootStateUtil;
-import com.bigdata.util.Util;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.LogUtil;
 import com.bigdata.util.config.NicUtil;
@@ -45,7 +45,6 @@ import com.bigdata.util.config.NicUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 
 import com.sun.jini.config.Config;
@@ -55,19 +54,14 @@ import com.sun.jini.thread.ReadyState;
 import net.jini.config.Configuration;
 import net.jini.config.ConfigurationProvider;
 import net.jini.config.ConfigurationException;
-import net.jini.config.NoSuchEntryException;
 
 import net.jini.core.entry.Entry;
 import net.jini.core.discovery.LookupLocator;
-import net.jini.core.lease.Lease;
 import net.jini.core.lookup.ServiceID;
-import net.jini.core.lookup.ServiceItem;
-import net.jini.core.lookup.ServiceTemplate;
 
 import net.jini.discovery.DiscoveryManagement;
 import net.jini.discovery.DiscoveryGroupManagement;
 import net.jini.discovery.DiscoveryLocatorManagement;
-import net.jini.discovery.LookupDiscoveryManager;
 
 import net.jini.export.Exporter;
 import net.jini.lookup.JoinManager;
@@ -590,7 +584,7 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
         String[] groups = ((DiscoveryGroupManagement)ldm).getGroups();
         LookupLocator[] locs = ((DiscoveryLocatorManagement)ldm).getLocators();
         logger.log(Level.INFO, killStr+" [groups="
-                   +Util.writeGroupArrayToString(groupsToJoin)
+                   + Util.writeGroupArrayToString(groupsToJoin)
                    +", locators="
                    +Util.writeArrayElementsToString(locatorsToJoin)+"]");
 
