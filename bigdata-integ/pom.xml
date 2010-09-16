@@ -117,8 +117,8 @@
                         <log4j.path>${log4j.configuration}</log4j.path>
                         <default.nic>${default.nic}</default.nic>
                         
-                        <!-- Jini group name -->
-                        <federation.name>${federation.name}</federation.name>
+                        <!-- Jini group name
+                        <federation.name>${federation.name}</federation.name> -->
                         
                         <!-- TODO !!!!!!
                         <property key="java.class.path" value="${junit.classpath.text}" />
