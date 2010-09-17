@@ -32,7 +32,7 @@
     <target name="setup" >
         <exec executable="hostname" outputproperty="this.hostname" />
         <property name="test.codebase" value="http://${this.hostname}:${test.codebase.port}/jsk-dl.jar" />
-        <property name="federation.name" value="bigdata.test.group-${this.hostname}" />
+        <!-- <property name="federation.name" value="bigdata.test.group-${this.hostname}" /> -->
     </target>
 
     <target name="junit" description="starts http class server, lookup service, runs junit tests, stops lookup service, stops http class server."
@@ -100,7 +100,9 @@
         <sysproperty key="log4j.configuration" value="${log4j.configuration}" />
         <sysproperty key="codebase.port" value="${test.codebase.port}" />
         <sysproperty key="java.net.preferIPv4Stack" value="${java.net.preferIPv4Stack}" />
+        <!-- 
         <sysproperty key="federation.name" value="${federation.name}" />
+        -->
         <sysproperty key="default.nic" value="${default.nic}" />
       </java>
     </target>
@@ -120,7 +122,9 @@
         <sysproperty key="java.security.policy" value="${java.security.policy}" />
         <sysproperty key="log4j.configuration" value="${log4j.configuration}" />
         <sysproperty key="java.net.preferIPv4Stack" value="${java.net.preferIPv4Stack}" />
+      	<!--
         <sysproperty key="federation.name" value="${federation.name}" />
+        -->
         <sysproperty key="default.nic" value="${default.nic}" />
         <arg value="-stop" />
       </java>

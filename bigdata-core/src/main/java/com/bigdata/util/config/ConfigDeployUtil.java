@@ -55,6 +55,9 @@ public class ConfigDeployUtil {
     private static final String MIN = ".min";
     private static final String DESCRIPTION = ".description";
     private static final String TYPE = ".type";
+    
+    private static final String FALLBACK_FEDNAME_FORMAT = "bigdata.test.group-%s";
+    private static final String TEMPLATE_TOKEN_PATTERN = "@.*@";
 
     public static String getString(String parameter) 
                              throws ConfigurationException
@@ -156,11 +159,48 @@ public class ConfigDeployUtil {
      */
     public static String[] getGroupsToDiscover() throws ConfigurationException
     {
-        String fedNameStr = System.getProperty("federation.name");
-        if(fedNameStr == null) {
-            fedNameStr = getString("federation.name");
-        }
+        String fedNameStr = getFederationName();
         return fedNameStr.split(",");
+    }
+    
+    /**
+     * Retrieve the federation name (also used as Jini group name) via this pecking pecking order:
+     * <ol>
+     * <li>From the Java system property: <code>federation.name</code></li>
+     * <li>From the deployment properties file. Note that a value from the deployment
+     *     properties file that has not gone through token replacement is considered
+     *     invalid. In this case, the next value in the pecking order is used.</li>
+     * <li>Using the fallback convention: <code>bigdata.test.group-&lt;ipaddress&gt;</code></li>
+     * </ol>
+     * 
+     * @return String the federation name
+     * 
+     * @throws ConfigurationException
+     */
+    public static String getFederationName() throws ConfigurationException
+    {
+        // If we have a system property override, use that.
+        String fedName = System.getProperty("federation.name");
+        
+        // If not, look in the deploy properties
+        if(fedName == null) {
+            fedName = getString("federation.name");
+        }
+        
+        // If not set in the deploy properties, then use the fallback name of 
+        // "bigdata.test.group-<ipaddress>". This is primarily to support test 
+        // environments and we should never get this far in production.
+        if (fedName == null || fedName.length() == 0) {
+            try {
+                String ipAddress = NicUtil.getIpAddress("default.nic", "default", true);
+                fedName = String.format(FALLBACK_FEDNAME_FORMAT, ipAddress);
+            }
+            catch (Exception e) {
+                throw new ConfigurationException("Error retrieving IP address while constructing fallback federation name.", e);
+            }
+        } 
+        
+        return fedName;
     }
 
     /**

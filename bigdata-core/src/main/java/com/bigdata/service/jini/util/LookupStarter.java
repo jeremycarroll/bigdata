@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.util;
 
+import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.ConfigurationUtil;
 import com.bigdata.util.config.LogUtil;
 import com.bigdata.util.config.NicUtil;
@@ -75,10 +76,10 @@ public class LookupStarter extends Thread {
     private static String defaultGroup = null;
     static {
 	try {
-            thisHost = NicUtil.getIpAddress("default.nic", "default", true);
-            defaultGroup = 
-                System.getProperty("federation.name",
-                                   "bigdata.test.group-"+thisHost);
+            thisHost = NicUtil.getIpAddress("default.nic", "default", false);
+            //defaultGroup = System.getProperty("federation.name","bigdata.test.group-"+thisHost);
+            defaultGroup = ConfigDeployUtil.getFederationName();
+	    
 	} catch (Throwable t) { /* swallow */ }
     }
     private static String defaultCodebasePort = "23333";
