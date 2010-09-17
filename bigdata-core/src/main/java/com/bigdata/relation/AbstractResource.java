@@ -734,9 +734,7 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
      * Resolve the property value using the {@link IIndexManager}, the
      * namespace of the resource, and the {@link Properties} instance to be
      * tested as hidden parameters.
-     * 
-     * @param globalName
-     *            The global property name.
+     *
      * @param defaultValue
      *            The default.
      * 
@@ -747,7 +745,7 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
     protected String getProperty(final String localName,
             final String defaultValue) {
 
-        return Configuration.getProperty(indexManager, properties, namespace,
+        return Configuration.getProperty(properties, namespace,
                 localName, defaultValue);
 
     }
@@ -764,7 +762,7 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
     protected <T> T getProperty(final String name, final String defaultValue,
             final IValidator<T> validator) {
 
-        return Configuration.getProperty(indexManager, properties, namespace,
+        return Configuration.getProperty(properties, namespace,
                 name, defaultValue, validator);
 
     }

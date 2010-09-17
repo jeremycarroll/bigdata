@@ -223,7 +223,7 @@ public class RDFJoinNexus implements IJoinNexus {
     public String getProperty(final String name, final String defaultValue) {
 
         // @todo pass namespace in with the RDFJoinNexusFactory?
-        return Configuration.getProperty(indexManager,
+        return Configuration.getProperty(
                 joinNexusFactory.properties, null/* namespace */, name,
                 defaultValue);
 
@@ -233,7 +233,7 @@ public class RDFJoinNexus implements IJoinNexus {
             final IValidator<T> validator) {
 
         // @todo pass namespace in with the RDFJoinNexusFactory?
-        return Configuration.getProperty(indexManager,
+        return Configuration.getProperty(
                 joinNexusFactory.properties, null/* namespace */, name,
                 defaultValue, validator);
 

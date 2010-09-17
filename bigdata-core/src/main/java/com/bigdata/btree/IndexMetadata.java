@@ -3053,20 +3053,20 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
     }
     
     /**
-     * @see Configuration#getProperty(IIndexManager, Properties, String, String,
+     * @see Configuration#getProperty(Properties, String, String,
      *      String)
      */
     protected String getProperty(final IIndexManager indexManager,
             final Properties properties, final String namespace,
             final String globalName, final String defaultValue) {
 
-        return Configuration.getProperty(indexManager, properties, namespace,
+        return Configuration.getProperty(properties, namespace,
                 globalName, defaultValue);
 
     }
 
     /**
-     * @see Configuration#getProperty(IIndexManager, Properties, String, String,
+     * @see Configuration#getProperty(Properties, String, String,
      *      String, IValidator)
      */
     protected <E> E getProperty(final IIndexManager indexManager,
@@ -3074,7 +3074,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
             final String globalName, final String defaultValue,
             IValidator<E> validator) {
 
-        return Configuration.getProperty(indexManager, properties, namespace,
+        return Configuration.getProperty(properties, namespace,
                 globalName, defaultValue, validator);
 
     }

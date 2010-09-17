@@ -564,13 +564,13 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
     /**
      * Resolves the property value (static variant for ctor initialization).
      * 
-     * @see Configuration#getProperty(IIndexManager, Properties, String, String,
+     * @see Configuration#getProperty(Properties, String, String,
      *      String)
      */
     static protected String getProperty(final Properties properties,
             final String name, final String defaultValue) {
 
-        return Configuration.getProperty(null/* indexManager */, properties,
+        return Configuration.getProperty(properties,
                 ""/* no namespace */, name, defaultValue);
 
     }
@@ -578,12 +578,12 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
     /**
      * Resolves the property value.
      * 
-     * @see Configuration#getProperty(IIndexManager, Properties, String, String,
+     * @see Configuration#getProperty(Properties, String, String,
      *      String)
      */
     protected String getProperty(final String name, final String defaultValue) {
 
-        return Configuration.getProperty(this, properties,
+        return Configuration.getProperty(properties,
                 ""/* no namespace */, name, defaultValue);
 
     }
@@ -597,7 +597,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
     protected <E> E getProperty(final String name, final String defaultValue,
             IValidator<E> validator) {
 
-        return Configuration.getProperty(this, properties,
+        return Configuration.getProperty(properties,
                 ""/* no namespace */, name, defaultValue, validator);
 
     }

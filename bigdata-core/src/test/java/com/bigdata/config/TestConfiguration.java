@@ -32,11 +32,6 @@ import java.util.Properties;
 
 import junit.framework.TestCase;
 
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.journal.IIndexManager;
-import com.bigdata.rdf.lexicon.LexiconKeyOrder;
-import com.bigdata.rdf.lexicon.LexiconRelation;
-
 /**
  * Unit tests for {@link Configuration}.
  * 
@@ -44,6 +39,12 @@ import com.bigdata.rdf.lexicon.LexiconRelation;
  * @version $Id$
  */
 public class TestConfiguration extends TestCase {
+    //These constants happen line up with constants further up the bigdata tree, but the Configuration class really doesn't care.  -gossard
+    private static final String NAME_LEXICON_RELATION = "lex";
+    private static final String TERM_2_ID = "TERM2ID";
+    private static final String ID_2_TERM = "ID2TERM";
+    private static final String SCATTER_SPLIT_DATA_SERVICE_COUNT = "com.bigdata.btree.ScatterSplitConfiguration.dataServiceCount";
+    private static final String SCATTER_SPLIT_ENABLED = "com.bigdata.btree.ScatterSplitConfiguration.enabled";
 
     public TestConfiguration() {
 
@@ -63,8 +64,6 @@ public class TestConfiguration extends TestCase {
      */
     public void testGlobalOverride() {
 
-        final IIndexManager indexManager = null;
-
         final Properties properties = new Properties();
 
         final String namespace = "foo.bar";
@@ -76,12 +75,12 @@ public class TestConfiguration extends TestCase {
         
         final String globalOverride = "boo";
         
-        assertEquals(defaultValue, Configuration.getProperty(indexManager,
+        assertEquals(defaultValue, Configuration.getProperty(
                 properties, namespace, globalName, defaultValue));
         
         properties.setProperty(globalName, globalOverride);
         
-        assertEquals(globalOverride, Configuration.getProperty(indexManager,
+        assertEquals(globalOverride, Configuration.getProperty(
                 properties, namespace, globalName, defaultValue));
 
     }
@@ -92,8 +91,6 @@ public class TestConfiguration extends TestCase {
      */
     public void test_exactNamespaceOverride() {
 
-        final IIndexManager indexManager = null;
-
         final Properties properties = new Properties();
 
         final String namespace = "foo.baz";
@@ -108,7 +105,7 @@ public class TestConfiguration extends TestCase {
         
         final String overrideValue = "boo";
         
-        assertEquals(defaultValue, Configuration.getProperty(indexManager,
+        assertEquals(defaultValue, Configuration.getProperty(
                 properties, namespace, globalName, defaultValue));
         
         final String overrideName = Configuration.getOverrideProperty(
@@ -116,7 +113,7 @@ public class TestConfiguration extends TestCase {
 
         properties.setProperty(overrideName, overrideValue);
 
-        assertEquals(overrideValue, Configuration.getProperty(indexManager,
+        assertEquals(overrideValue, Configuration.getProperty(
                 properties, namespace, globalName, defaultValue));
         
     }
@@ -126,8 +123,6 @@ public class TestConfiguration extends TestCase {
      * the namespace ("foo" vs "foo.baz").
      */
     public void test_prefixNamespaceOverride() {
-        
-        final IIndexManager indexManager = null;
 
         final Properties properties = new Properties();
 
@@ -146,12 +141,12 @@ public class TestConfiguration extends TestCase {
         
         final String overrideValue = "boo";
 
-        assertEquals(defaultValue, Configuration.getProperty(indexManager,
+        assertEquals(defaultValue, Configuration.getProperty(
                 properties, namespace, globalName, defaultValue));
 
         properties.setProperty(overrideName, overrideValue);
 
-        assertEquals(overrideValue, Configuration.getProperty(indexManager,
+        assertEquals(overrideValue, Configuration.getProperty(
                 properties, namespace, globalName, defaultValue));
         
     }
@@ -161,11 +156,11 @@ public class TestConfiguration extends TestCase {
         final String namespace = "U8000";
         final String namespace2 = "U100";
 
-        final String propertyName = IndexMetadata.Options.SCATTER_SPLIT_ENABLED;
+        final String propertyName = SCATTER_SPLIT_ENABLED;
 
         final String overrideName = Configuration.getOverrideProperty(namespace
-                + "." + LexiconRelation.NAME_LEXICON_RELATION + "."
-                + LexiconKeyOrder.TERM2ID, propertyName);
+                + "." + NAME_LEXICON_RELATION + "."
+                + TERM_2_ID, propertyName);
 
         System.err.println(overrideName);
 
@@ -176,31 +171,29 @@ public class TestConfiguration extends TestCase {
         // override this property.
         p.setProperty(overrideName, "false");
 
-        final IIndexManager indexManager = null;
-
         /*
          * Verify override used for U8000.lex.TERM2ID (this is the specific case
          * for the override).
          */
-        assertEquals("false", Configuration.getProperty(indexManager, p,
-                namespace + "." + LexiconRelation.NAME_LEXICON_RELATION + "."
-                        + LexiconKeyOrder.TERM2ID, propertyName, defaultValue));
+        assertEquals("false", Configuration.getProperty( p,
+                namespace + "." + NAME_LEXICON_RELATION + "."
+                        + TERM_2_ID, propertyName, defaultValue));
 
         /*
          * Verify override ignored for U8000.lex.ID2TERM (another index in the
          * same relation).
          */
-        assertEquals(defaultValue, Configuration.getProperty(indexManager, p,
-                namespace + "." + LexiconRelation.NAME_LEXICON_RELATION + "."
-                        + LexiconKeyOrder.ID2TERM, propertyName, defaultValue));
+        assertEquals(defaultValue, Configuration.getProperty(p,
+                namespace + "." + NAME_LEXICON_RELATION + "."
+                        + ID_2_TERM, propertyName, defaultValue));
 
         /*
          * Verify override ignored for U100.lex.TERM2ID (an index in a different
          * relation).
          */
-        assertEquals(defaultValue, Configuration.getProperty(indexManager, p,
-                namespace2 + "." + LexiconRelation.NAME_LEXICON_RELATION + "."
-                        + LexiconKeyOrder.TERM2ID, propertyName, defaultValue));
+        assertEquals(defaultValue, Configuration.getProperty(p,
+                namespace2 + "." + NAME_LEXICON_RELATION + "."
+                        + TERM_2_ID, propertyName, defaultValue));
 
     }
 
@@ -210,12 +203,12 @@ public class TestConfiguration extends TestCase {
         final String namespace1 = "U100";
         final String namespace2 = "U50";
 
-        final String propertyName = IndexMetadata.Options.SCATTER_SPLIT_DATA_SERVICE_COUNT;
+        final String propertyName = SCATTER_SPLIT_DATA_SERVICE_COUNT;
 
         // override of a specific index in a specific relation.
         final String overrideName = Configuration.getOverrideProperty(namespace
-                + "." + LexiconRelation.NAME_LEXICON_RELATION + "."
-                + LexiconKeyOrder.TERM2ID, propertyName);
+                + "." + NAME_LEXICON_RELATION + "."
+                + TERM_2_ID, propertyName);
 
         // override of all indices in a different relation.
         final String overrideName2 = Configuration.getOverrideProperty(
@@ -243,41 +236,39 @@ public class TestConfiguration extends TestCase {
         // a different override for a different relation.
         p.setProperty(overrideName2, otherOverride);
 
-        final IIndexManager indexManager = null;
-
         /*
          * Verify override used for U8000.lex.TERM2ID (this is the specific case
          * for the override).
          */
-        assertEquals("2", Configuration.getProperty(indexManager, p,
-                namespace + "." + LexiconRelation.NAME_LEXICON_RELATION + "."
-                        + LexiconKeyOrder.TERM2ID, propertyName, defaultValue));
+        assertEquals("2", Configuration.getProperty(p,
+                namespace + "." + NAME_LEXICON_RELATION + "."
+                        + TERM_2_ID, propertyName, defaultValue));
 
         /*
          * Verify global override used for a different index in the same
          * relation.
          */
-        assertEquals(globalOverride, Configuration.getProperty(indexManager, p,
-                namespace + "." + LexiconRelation.NAME_LEXICON_RELATION + "."
-                        + LexiconKeyOrder.ID2TERM, propertyName, defaultValue));
+        assertEquals(globalOverride, Configuration.getProperty(p,
+                namespace + "." + NAME_LEXICON_RELATION + "."
+                        + ID_2_TERM, propertyName, defaultValue));
 
         /*
          * Verify global override used for an index in another relation.
          */
-        assertEquals(globalOverride, Configuration.getProperty(indexManager, p,
-                namespace1 + "." + LexiconRelation.NAME_LEXICON_RELATION + "."
-                        + LexiconKeyOrder.TERM2ID, propertyName, defaultValue));
+        assertEquals(globalOverride, Configuration.getProperty(p,
+                namespace1 + "." + NAME_LEXICON_RELATION + "."
+                        + TERM_2_ID, propertyName, defaultValue));
 
         /*
          * Verify other override used for all indices in the namespace2
          * relation.
          */
-        assertEquals(otherOverride, Configuration.getProperty(indexManager, p,
-                namespace2 + "." + LexiconRelation.NAME_LEXICON_RELATION + "."
-                        + LexiconKeyOrder.TERM2ID, propertyName, defaultValue));
-        assertEquals(otherOverride, Configuration.getProperty(indexManager, p,
-                namespace2 + "." + LexiconRelation.NAME_LEXICON_RELATION + "."
-                        + LexiconKeyOrder.ID2TERM, propertyName, defaultValue));
+        assertEquals(otherOverride, Configuration.getProperty(p,
+                namespace2 + "." + NAME_LEXICON_RELATION + "."
+                        + TERM_2_ID, propertyName, defaultValue));
+        assertEquals(otherOverride, Configuration.getProperty(p,
+                namespace2 + "." + NAME_LEXICON_RELATION + "."
+                        + ID_2_TERM, propertyName, defaultValue));
 
     }
 

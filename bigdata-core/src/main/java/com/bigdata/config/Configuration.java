@@ -28,19 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.config;
 
-import java.io.IOException;
 import java.util.Properties;
-import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.journal.IIndexManager;
-import com.bigdata.relation.RelationSchema;
-import com.bigdata.service.DataService;
-import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
 import com.bigdata.util.NV;
 
 /**
@@ -64,7 +55,7 @@ import com.bigdata.util.NV;
  *       <p>
  *       This presumes a fixed syntactic relation between a resource/index and
  *       its container rather than the explicit relation defined by
- *       {@link RelationSchema#CONTAINER}.
+ *       {@link com.bigdata.relation.RelationSchema#CONTAINER}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -99,8 +90,8 @@ public class Configuration {
      * 
      * <li>The default value may be globally overridden using the property name.
      * For example, you can override the default branching factor for all
-     * {@link BTree}s by specifying a value for
-     * {@link IndexMetadata.Options#BTREE_BRANCHING_FACTOR}. In general, the
+     * {@link com.bigdata.btree.BTree}s by specifying a value for
+     * {@link com.bigdata.btree.IndexMetadata.Options#BTREE_BRANCHING_FACTOR}. In general, the
      * name of the property is declared by an interface along with its default
      * value. </li>
      * 
@@ -112,7 +103,7 @@ public class Configuration {
      * <code>com.bigdata.namespace.foo.myIndex.com.bigdata.btree.BTree.branchingFactor</code> ({@value #NAMESPACE}
      * is the {@link #NAMESPACE} prefix for overrides, <code>foo.myIndex</code>
      * is the name of the index, and
-     * {@value IndexMetadata.Options#BTREE_BRANCHING_FACTOR} is the name of the
+     * com.bigdata.btree.IndexMetadata.Options#BTREE_BRANCHING_FACTOR is the name of the
      * property that will be overridden for that index). Alternatively you can
      * override the branching factor for all indices in the "foo" relation by
      * specifying a value for the property name
@@ -123,8 +114,6 @@ public class Configuration {
      * 
      * </ol>
      * 
-     * @param indexManagerIsIgnored
-     *            The value specified to the ctor (optional).
      * @param properties
      *            The properties object against which the value of the property
      *            will be resolved.
@@ -141,11 +130,11 @@ public class Configuration {
      * 
      * @todo test when namespace is empty (journal uses that) and possibly null.
      */
-    public static String getProperty(final IIndexManager indexManagerIsIgnored,
+    public static String getProperty(
             final Properties properties, final String namespace,
             final String propertyName, final String defaultValue) {
     
-        final NV nv = getProperty2(indexManagerIsIgnored, properties, namespace,
+        final NV nv = getProperty2(properties, namespace,
                 propertyName, defaultValue);
         
         if(nv == null) return null;
@@ -158,15 +147,13 @@ public class Configuration {
      * Variant returns both the name under which the value was discovered and
      * the value.
      * 
-     * @param indexManagerIsIgnored
      * @param properties
      * @param namespace
      * @param globalName
      * @param defaultValue
      * @return
      */
-    public static NV getProperty2(final IIndexManager indexManagerIsIgnored,
-            final Properties properties, final String namespace,
+    public static NV getProperty2(final Properties properties, final String namespace,
             final String globalName, final String defaultValue) {
 
         // indexManager MAY be null.
@@ -263,7 +250,6 @@ public class Configuration {
      * Variant converts to the specified generic type and validates the value.
      * 
      * @param <E>
-     * @param indexManager
      * @param properties
      * @param namespace
      * @param globalName
@@ -273,7 +259,7 @@ public class Configuration {
      * @return The validated value -or- <code>null</code> if there was no
      *         default.
      */
-    public static <E> E getProperty(final IIndexManager indexManager,
+    public static <E> E getProperty(
             final Properties properties, final String namespace,
             final String globalName, final String defaultValue,
             final IValidator<E> validator)
@@ -282,7 +268,7 @@ public class Configuration {
         if (validator == null)
             throw new IllegalArgumentException();
         
-        final NV nv = getProperty2(indexManager, properties, namespace,
+        final NV nv = getProperty2(properties, namespace,
                 globalName, defaultValue);
 
         if (nv == null)
@@ -315,83 +301,6 @@ public class Configuration {
 //        return localName;
 //            
 //    }
-    
-    /**
-     * Resolve the value to a {@link DataService} {@link UUID}.
-     * 
-     * @param indexManager
-     *            The index manager (optional).
-     * @param val
-     *            The value is either a {@link UUID} or a service name.
-     * 
-     * @return The {@link UUID} of the identified service -or- <code>null</code>
-     *         if no service is identified for that value or if the
-     *         <i>indexManager</i> is either not given or not an
-     *         {@link IBigdataFederation}.
-     * 
-     * @throws IllegalArgumentException
-     *             if the <i>val</i> is <code>null</code>.
-     */
-    static protected UUID resolveDataService(final IIndexManager indexManager,
-            final String val) {
-
-        if (indexManager == null)
-            return null;
-
-        if (val == null)
-            throw new IllegalArgumentException();
-
-        if (!(indexManager instanceof IBigdataFederation))
-            return null;
-        
-        final IBigdataFederation fed = ((IBigdataFederation) indexManager);
-
-        /*
-         * Value is a UUID?
-         */
-        try {
-
-            // valid UUID?
-            return UUID.fromString(val);
-
-        } catch (IllegalArgumentException ex) {
-
-            // Ignore.
-
-        }
-
-        /*
-         * Value is the name of a data service?
-         */
-        {
-         
-            final IDataService dataService = fed.getDataServiceByName(val);
-
-            if (dataService != null) {
-
-                try {
-
-                    return dataService.getServiceUUID();
-                    
-                } catch (IOException ex) {
-                    
-                    throw new RuntimeException(ex);
-                    
-                }
-                
-            }
-
-            // fall through.
-            
-        }
-        
-        // can't interpret the value.
-        
-        log.warn("Could not resolve: "+val);
-        
-        return null;
-
-    }
 
     /**
      * Return the name that can be used to override the specified property for
