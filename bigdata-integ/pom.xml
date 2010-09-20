@@ -104,7 +104,12 @@
                     <includes>
                         <include>**/Test*.java</include>
                         <include>**/*Test.java</include>
+                        <include>**/*TestRemote.java</include>
+                        <include>**/Test*Remote.java</include>
                     </includes>
+                    <excludes>
+                        <exclude>**/*Suite.java</exclude>
+                    </excludes>
 
                     <systemPropertyVariables>
                         <java.security.policy>${java.security.policy}</java.security.policy>
