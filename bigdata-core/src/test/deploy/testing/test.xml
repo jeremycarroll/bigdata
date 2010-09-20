@@ -216,9 +216,11 @@
         <sysproperty key="log4j.path" value="${log4j.configuration}" />
         <sysproperty key="default.nic" value="${default.nic}" />
         <!-- Jini group name -->
+		<!--
         <sysproperty key="federation.name" value="${federation.name}" />
-        <sysproperty key="java.class.path" value="${junit.classpath.text}" />
+        -->
 
+        <sysproperty key="java.class.path" value="${junit.classpath.text}" />
 
         <sysproperty key="classserver.jar" value="${deploy.lib}/classserver.jar" />
         <sysproperty key="colt.jar" value="${deploy.lib}/colt.jar" />
