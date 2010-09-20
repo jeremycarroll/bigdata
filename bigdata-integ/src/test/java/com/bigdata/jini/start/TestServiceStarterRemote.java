@@ -31,6 +31,6 @@ package com.bigdata.jini.start;
  */
 public class TestServiceStarterRemote extends TestServiceStarter {
     public TestServiceStarterRemote() {
-        super(true);        
+        super(true, "TestServiceStarterRemote");        
     }
 }
