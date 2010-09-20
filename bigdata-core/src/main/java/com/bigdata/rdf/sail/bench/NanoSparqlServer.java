@@ -72,7 +72,6 @@ import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.sail.SailException;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.IIndexManager;
@@ -668,19 +667,6 @@ public class NanoSparqlServer extends AbstractHTTPD {
 
             sb.append("nextOffset\t= " + jnl.getRootBlockView().getNextOffset()
                     + "\n");
-
-			if (LRUNexus.INSTANCE != null) {
-
-				sb.append(LRUNexus.Options.CLASS + "="
-						+ LRUNexus.INSTANCE.toString().getClass() + "\n");
-
-				sb.append(LRUNexus.INSTANCE.toString() + "\n");
-
-			} else {
-				
-				sb.append("LRUNexus is disabled.");
-				
-			}
 
 			// show the disk access details.
 			sb.append(jnl.getBufferStrategy().getCounters().toString()+"\n\n");

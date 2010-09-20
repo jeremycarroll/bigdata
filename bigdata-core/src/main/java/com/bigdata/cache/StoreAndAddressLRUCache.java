@@ -37,7 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.bigdata.BigdataStatics;
-import com.bigdata.LRUNexus.CacheSettings;
+import com.bigdata.cache.LRUNexus.CacheSettings;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;

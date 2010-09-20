@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.btree.BTree.Counter;
 import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
@@ -226,8 +225,6 @@ public class WORMStrategy extends AbstractBufferStrategy implements
      * the reference MAY be <code>null</code>, in which case there is no write
      * cache. {@link #closeForWrites()} will atomically clear this field, at
      * which point readers will no longer be able to acquire the write cache.
-     * This should not be a performance hit since those records will generally
-     * be in the {@link LRUNexus} in any case.
      * 
      * FIXME Replace with the {@link WriteCacheService}
      */
@@ -1966,8 +1963,9 @@ public class WORMStrategy extends AbstractBufferStrategy implements
 
     /**
      * Extended to discard the write cache (we will depend on the
-     * {@link LRUNexus} to buffer recent writes on the journal since we can't
+     * LRUNexus to buffer recent writes on the journal since we can't
      * read through the write cache after this).
+     * TODO: Verify this is still reasonable considering the LRUNexus has been disabled, then later removed.  -gossard
      * <p>
      * Note: The file is NOT closed and re-opened in a read-only mode in order
      * to avoid causing difficulties for concurrent readers.

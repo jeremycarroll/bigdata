@@ -29,7 +29,6 @@ package com.bigdata.rawstore;
 
 import java.nio.ByteBuffer;
 
-import com.bigdata.LRUNexus;
 
 /**
  * Abstract base class for {@link IRawStore} implementations. This class uses a
@@ -48,11 +47,6 @@ abstract public class AbstractRawStore implements IRawStore {
      * Return the delegate object that provides the {@link IAddressManager}
      * implementation for this {@link IRawStore}.
      * <p>
-     * Note: {@link LRUNexus} depends on the delegation model to retain
-     * references to the {@link IAddressManager} without causing the
-     * {@link IRawStore} to be retained. It uses the {@link IAddressManager} to
-     * decode the address in order to track the bytesOnDisk for the buffered
-     * records.
      */
     abstract public IAddressManager getAddressManager();
    

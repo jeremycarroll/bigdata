@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Sep 8, 2009
  */
 
-package com.bigdata;
+package com.bigdata.cache;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
@@ -33,28 +33,13 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 
+import com.bigdata.BigdataStatics;
 import org.apache.log4j.Logger;
 
 import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.btree.IndexSegmentBuilder;
-import com.bigdata.cache.BCHMGlobalLRU;
-import com.bigdata.cache.BCHMGlobalLRU2;
-import com.bigdata.cache.HardReferenceGlobalLRU;
-import com.bigdata.cache.HardReferenceGlobalLRURecycler;
-import com.bigdata.cache.HardReferenceGlobalLRURecyclerExplicitDeleteRequired;
-import com.bigdata.cache.IGlobalLRU;
-import com.bigdata.cache.WeakReferenceGlobalLRU;
 import com.bigdata.cache.IGlobalLRU.ILRUCache;
-import com.bigdata.journal.AbstractJournal;
-import com.bigdata.journal.IBufferStrategy;
-import com.bigdata.journal.TemporaryRawStore;
-import com.bigdata.rawstore.AbstractRawStore;
 import com.bigdata.rawstore.Bytes;
-import com.bigdata.rawstore.IAddressManager;
-import com.bigdata.rawstore.IRawStore;
-import com.bigdata.rawstore.WormAddressManager;
 
 /**
  * Static singleton factory used to configure the record level cache behavior
@@ -75,8 +60,8 @@ import com.bigdata.rawstore.WormAddressManager;
  *          There are two quick fixes: (1) Disable the Global LRU; and (2)
  *          discard the cache if there is an abort on a store. The latter is
  *          pretty easy since we only have one store with abort semantics, which
- *          is the {@link AbstractJournal}, so that is how this is being handled
- *          right now by {@link AbstractJournal#abort()}.
+ *          is the {@link com.bigdata.journal.AbstractJournal}, so that is how this is being handled
+ *          right now by {@link com.bigdata.journal.AbstractJournal#abort()}.
  *          <p>
  *          An optimization would essentially isolate the writes on the cache
  *          per BTree or between commits. At the commit point, the written
@@ -326,14 +311,14 @@ public class LRUNexus {
         String DEFAULT_ACCESS_POLICY = AccessPolicyEnum.LRU.toString();
 
         /**
-         * The minimum #of per-{@link IRawStore} cache instances that will be
+         * The minimum #of per-{@link com.bigdata.rawstore.IRawStore} cache instances that will be
          * retained by hard references when using an {@link IGlobalLRU} based on
          * a weak value hash map such as {@link WeakReferenceGlobalLRU}. This
          * controls the size of a hard reference ring buffer backing a weak
          * value hash map. The actual number of cache instances will be less if
          * fewer stores have been opened or if open stores have been
-         * {@link IRawStore#deleteResources() destroyed}. More cache instances
-         * will exist if there are hard references to more {@link IRawStore}
+         * {@link com.bigdata.rawstore.IRawStore#deleteResources() destroyed}. More cache instances
+         * will exist if there are hard references to more {@link com.bigdata.rawstore.IRawStore}
          * instances.
          */
         String MIN_CACHE_SET_SIZE = LRUNexus.class.getName()+".minCacheSetSize";
@@ -341,7 +326,7 @@ public class LRUNexus {
         String DEFAULT_MIN_CACHE_SET_SIZE = "5";
 
         /**
-         * When <code>true</code>, the {@link IndexSegmentBuilder} will
+         * When <code>true</code>, the {@link com.bigdata.btree.IndexSegmentBuilder} will
          * pre-populate the {@link IGlobalLRU} cache with the nodes and leaves
          * of the new index segment during the build or merge operation (default
          * {@value #DEFAULT_INDEX_SEGMENT_BUILD_POPULATES_CACHE}).
@@ -458,7 +443,7 @@ public class LRUNexus {
 
         /**
          * The initial capacity for the backing {@link ILRUCache} hash map for
-         * each {@link IRawStore}.
+         * each {@link com.bigdata.rawstore.IRawStore}.
          * 
          * @see Options#INITIAL_CAPACITY
          */
@@ -841,110 +826,6 @@ public class LRUNexus {
             
         }
 
-    }
-
-    /**
-     * Return <code>true</code> if the {@link IndexSegmentBuilder} will populate
-     * the {@link IGlobalLRU} with records for the new {@link IndexSegment}
-     * during the build.
-     * 
-     * @see Options#INDEX_SEGMENT_BUILD_POPULATES_CACHE
-     */
-    public static final boolean getIndexSegmentBuildPopulatesCache() {
-
-        return settings != null && settings.indexSegmentBuildPopulatesCache;
-
-    }
-    
-    /**
-     * Factory returns the {@link ILRUCache} for the store iff the
-     * {@link LRUNexus} is enabled.
-     * 
-     * @param store
-     *            The store.
-     * 
-     * @return The cache for that store if the {@link LRUNexus} is enabled and
-     *         otherwise <code>null</code>.
-     * 
-     * @throws IllegalArgumentException
-     *             if the store is <code>null</code>.
-     */
-    public static ILRUCache<Long, Object> getCache(final IRawStore store) {
-
-        if (store == null)
-            throw new IllegalArgumentException();
-
-        if (INSTANCE == null)
-            return null;
-
-        final IAddressManager am;
-
-        if (store instanceof AbstractJournal) {
-
-            /*
-             * This avoids hard reference to the journal (it winds up using a
-             * clone of the address manager instead).
-             */
-            
-            am = ((IBufferStrategy) ((AbstractJournal) store)
-                    .getBufferStrategy()).getAddressManager();
-
-        } else if (store instanceof TemporaryRawStore) {
-
-            /*
-             * This avoids using a hard reference to the temporary store (it
-             * basically clones the address manager instead).
-             */
-            
-            am = new WormAddressManager(((TemporaryRawStore) store)
-                    .getOffsetBits());
-
-        } else if (store instanceof AbstractRawStore) {
-
-            /*
-             * Note: this covers the IndexSegmentStore.
-             */
-            am = ((AbstractRawStore) store).getAddressManager();
-
-        } else {
-
-            // @todo which cases come though here? SimpleMemoryStore,
-            // SimpleFileStore,
-            am = null;
-
-        }
-
-        if (am instanceof IRawStore) {
-
-            /*
-             * This would cause the IRawStore to be retained by a hard
-             * reference!
-             */
-
-            throw new AssertionError(am.getClass().getName() + " implements "
-                    + IRawStore.class.getName());
-
-        }
-
-        return INSTANCE.getCache(store.getUUID(), am);
-        
-    }
-
-    /**
-     * Command line utility may be used to confirm the environment settings.
-     * 
-     * @param args
-     *            Ignored. All parameters are specified either in the
-     *            environment or using JVM
-     *            <code>-Dcom.bigdata.LRUNexus.foo=bar</code> arguments on the
-     *            command line.
-     *            
-     * @throws ClassNotFoundException 
-     */
-    public static void main(String[] args) throws ClassNotFoundException {
-
-        System.out.println(new CacheSettings(System.getProperties()).toString());
-        
     }
     
 }

@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.UUID;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.io.BytesUtil;
 import com.bigdata.journal.BufferMode;
@@ -244,18 +243,6 @@ public class TestIndexSegmentWithBloomFilter extends AbstractBTreeTestCase {
                 true/* compactingMerge */, bufferNodes);
 
         final IndexSegmentCheckpoint checkpoint = builder2.call();
-        
-        if (LRUNexus.INSTANCE != null) {
-
-            /*
-             * Clear the records for the index segment from the cache so we will
-             * read directly from the file. This is necessary to ensure that the
-             * data on the file is good rather than just the data in the cache.
-             */
-            
-            LRUNexus.INSTANCE.deleteCache(checkpoint.segmentUUID);
-
-        }
 
 //        IndexSegmentBuilder builder2 = new IndexSegmentBuilder(outFile2,
 //                tmpDir, btree, m, 1/64.);

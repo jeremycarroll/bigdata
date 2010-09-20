@@ -42,8 +42,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.log4j.Logger;
 
 import com.bigdata.BigdataStatics;
-import com.bigdata.LRUNexus.AccessPolicyEnum;
-import com.bigdata.LRUNexus.CacheSettings;
+import com.bigdata.cache.LRUNexus.AccessPolicyEnum;
+import com.bigdata.cache.LRUNexus.CacheSettings;
 import com.bigdata.counters.CAT;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;

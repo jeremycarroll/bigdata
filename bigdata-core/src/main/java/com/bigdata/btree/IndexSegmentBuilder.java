@@ -45,7 +45,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.bigdata.io.*;
 import org.apache.log4j.Logger;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.btree.data.IAbstractNodeData;
 import com.bigdata.btree.data.ILeafData;
 import com.bigdata.btree.data.INodeData;
@@ -315,24 +314,6 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
      * The unique identifier for the generated {@link IndexSegment} resource.
      */
     final public UUID segmentUUID;
-
-    /**
-     * The cache for the generated {@link IndexSegmentStore}. When non-
-     * <code>null</code> the generated {@link INodeData} objects will be placed
-     * into the cache, which is backed by a shared LRU. This helps to reduce
-     * latency when an index partition built or merge operation finishes and the
-     * index partition view is updated since the data will already be present in
-     * the cache. Generating the index segment will drive evictions from the
-     * shared LRU, but those will be the least recently used records and the new
-     * {@link IndexSegmentStore} is often hot as soon as it is generated.
-     * <p>
-     * Note: If the build fails, then the cache will be cleared.
-     * 
-     * @todo The {@link IndexMetadata} and the {@link BloomFilter} should be in
-     *       the {@link #storeCache} as well. Make sure that we do this for read
-     *       and write for both the {@link BTree} and the {@link IndexSegment}.
-     */
-    final private ILRUCache<Long, Object> storeCache;
 
     /**
      * Used to serialize the nodes and leaves of the output tree.
@@ -1275,24 +1256,6 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
         this.addressManager = new WormAddressManager(offsetBits);
 
         /*
-         * The INodeData cache for the generated index segment store.
-         * 
-         * @todo LIRS: The index segment builder should perhaps only drive into
-         * the shared LRU those records which were already hot. Figuring this
-         * out will break encapsulation. Since the branching factor is not the
-         * same, and since the source is a view, "hot" has to be interpreted in
-         * terms of key ranges which are hot. As a workaround in a memory
-         * limited system you can configure the LRUNexus so that the build will
-         * not drive the records into the cache. [LIRS would partly address this
-         * by not evicting records from the cache which are hot.]
-         */
-        storeCache = (LRUNexus.INSTANCE != null && LRUNexus
-                .getIndexSegmentBuildPopulatesCache()) //
-                ? LRUNexus.INSTANCE.getCache(segmentUUID, addressManager)//
-                : null//
-                ;
-
-        /*
          * Create the index plan and do misc setup.
          */
         {
@@ -1859,17 +1822,6 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
 
         }
 
-        if (storeCache != null) {
-
-            /*
-             * Clear the cache since the index segment store was not generated
-             * successfully and the cache records will never be read.
-             */
-            
-            storeCache.clear();
-
-        }
-
     }
 
     /**
@@ -2322,17 +2274,6 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
                 
                 // the encoded address of the leaf that we just wrote out.
                 addrPriorLeaf = encodeLeafAddr(bufLastLeafAddr);
-
-                if (storeCache != null) {
-
-                    /*
-                     * Insert the coded, patched record for the prior leaf into
-                     * cache.
-                     */
-
-                    storeCache.putIfAbsent(addrPriorLeaf, lastLeafData);
-                    
-                }
                 
             }
             
@@ -2402,17 +2343,6 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
             // write the last leaf onto the store.
 //            leafBuffer.update(bufLastLeafAddr, 0/*offset*/, bufLastLeaf);
             writeLeafForReal(bufLastLeafAddr, bufLastLeaf);
-            
-            if (storeCache != null) {
-
-                /*
-                 * Insert the coded, patched record for the prior leaf into
-                 * cache.
-                 */
-
-                storeCache.putIfAbsent(addrLastLeaf, lastLeafData);
-
-            }
 
         }
 
@@ -2656,17 +2586,6 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
                 .encodeOffset(offset));
         
         node.addr = addr;
-        
-        if (storeCache != null) {
-
-            /*
-             * Insert the coded record into cache as [addr2 : nodeData], where
-             * nodeData is encodeLive() wrapped version of the slice.
-             */
-            
-            storeCache.putIfAbsent(addr, codedNodeData);
-            
-        }
         
         return addr;
         
@@ -3017,16 +2936,6 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
             // Address of the region containing the bloom filter (one record).
             addrBloom = addressManager.toAddr(bloomBytes.length,
                     IndexSegmentRegion.BASE.encodeOffset(offset));
-                         
-            if (storeCache != null) {
-
-                /*
-                 * Insert the record into the cache.
-                 */
-                
-                storeCache.putIfAbsent(addrBloom, bloomFilter);
-                
-            }
             
         }
         
@@ -3053,16 +2962,6 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
             // Address of the region containing the metadata record (one record)
             addrMetadata = addressManager.toAddr(metadataBytes.length,
                     IndexSegmentRegion.BASE.encodeOffset(offset));
-            
-            if (storeCache != null) {
-
-                /*
-                 * Insert the record into the cache.
-                 */
-                
-                storeCache.putIfAbsent(addrMetadata, metadata);
-                
-            }
 
         }
         
@@ -4162,22 +4061,6 @@ public class IndexSegmentBuilder implements Callable<IndexSegmentCheckpoint> {
                      * Verify the generated index segment against the source
                      * B+Tree.
                      */
-
-                    if (LRUNexus.INSTANCE != null) {
-
-                        /*
-                         * Clear the records for the index segment from the
-                         * cache so we will read directly from the file. This is
-                         * necessary to ensure that the data on the file is good
-                         * rather than just the data in the cache.
-                         */
-                        
-                        System.out.println("Flushing index segment cache: "
-                                + builder.outFile);
-                        
-                        LRUNexus.INSTANCE.deleteCache(checkpoint.segmentUUID);
-
-                    }
                     
                     final IndexSegmentStore segStore = new IndexSegmentStore(
                             outFile);

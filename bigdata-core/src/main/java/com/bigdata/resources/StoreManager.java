@@ -53,7 +53,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.bfs.BigdataFileSystem;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.Checkpoint;
@@ -4144,16 +4143,6 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
 
             }
 
-        }
-
-        /*
-         * Clear record for that store from the LRUNexus and remove the entry
-         * for the store itself from the LRUNexus.
-         */
-        if (LRUNexus.INSTANCE != null) {
-
-            LRUNexus.INSTANCE.deleteCache(uuid);
-            
         }
         
         /*
