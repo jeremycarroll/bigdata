@@ -154,7 +154,7 @@ public class TestServiceConfiguration {
             String groupsOpt = "com.bigdata.transaction.groupsToJoin="
                                +"new String[]"
                                +openBracket
-                               +quote+ /*System.getProperty("federation.name","testFed")*/ ConfigDeployUtil.getFederationName() +quote
+                               +quote+ConfigDeployUtil.getFederationName()+quote
                                +comma
                                +quote+System.getProperty("bigdata.zrootname","testZroot")+quote
                                +closeBracket;
