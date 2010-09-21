@@ -38,8 +38,7 @@ import net.jini.config.ConfigurationProvider;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
-import org.junit.Rule;
-import org.junit.rules.TestName;
+
 
 import com.bigdata.jini.start.config.ZookeeperClientConfig;
 import com.bigdata.jini.start.process.ProcessHelper;

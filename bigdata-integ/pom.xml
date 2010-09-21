@@ -108,7 +108,11 @@
                         <include>**/Test*Remote.java</include>
                     </includes>
                     <excludes>
+                        <!-- Don't include suites as part of the normal test run -->
                         <exclude>**/*Suite.java</exclude>
+                        
+                        <!-- Don't include anonymous inner classes that happen to match the test pattern -->
+                        <exclude>**/*$*.java</exclude>
                     </excludes>
 
                     <systemPropertyVariables>
