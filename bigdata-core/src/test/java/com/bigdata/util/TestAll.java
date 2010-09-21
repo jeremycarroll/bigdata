@@ -76,7 +76,7 @@ public class TestAll extends TestCase {
         suite.addTestSuite(TestByteBufferBitVector.class);
 
         suite.addTestSuite( TestCSVReader.class );
-
+        suite.addTestSuite( TestBootStateUtil.class );
         return suite;
         
     }

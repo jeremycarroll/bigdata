@@ -45,7 +45,6 @@ import org.apache.log4j.Logger;
 import com.sun.jini.config.Config;
 import net.jini.config.Configuration;
 import net.jini.config.ConfigurationException;
-import net.jini.config.NoSuchEntryException;
 import net.jini.core.lookup.ServiceID;
 
 /**
@@ -80,7 +79,7 @@ public class BootStateUtil {
     private File      persistenceDir = null;
     private UUID      proxyId = null;
     private ServiceID serviceId = null;
-    private String    stateKey = null;
+    private String    stateKey = null;  //TODO -- not used?
 
     public BootStateUtil(final Configuration config,
                          final String        componentName,
@@ -128,22 +127,6 @@ public class BootStateUtil {
         recoverBootState(defaultServiceId);
     }
 
-
-    public BootStateUtil(File      persistenceDir, 
-                         Class     entityImplType,
-                         ServiceID defaultServiceId)
-                             throws IOException, ClassNotFoundException
-    {
-        if(entityImplType == null) {
-            throw new NullPointerException("entityImplType null");
-        }
-        this.entityImplType = entityImplType;
-        this.logger = Logger.getLogger(this.getClass());
-        this.persistenceDir = persistenceDir;
-
-        recoverBootState(defaultServiceId);
-    }
-
     /**
      * Returns the entity's unique <i>proxy id</i> that is generated/recoverd
      * as part of the boot state maintained by this class.
@@ -160,44 +143,6 @@ public class BootStateUtil {
     public ServiceID getServiceId() {
         return serviceId;
     }
-
-    /**
-     * Returns the <code>String</code> representing the path of the 
-     * directory in which the entity's <i>boot state</i> is located.
-     * If the value returned is <code>null</code>, then the entity
-     * was configured to run in <i>transient</i> mode.
-     */
-    public String getPersistenceDirectory() {
-        return (persistenceDir != null) ? persistenceDir.toString() : null;
-    }
-
-    /** 
-     * Returns the <code>true</code> if the entity was configured to
-     * run in <i>persistent</i> mode; <code>false</code> otherwise.
-     */
-    public boolean isPersistent() {
-        return (persistenceDir != null);
-    }
-
-    /** 
-     * If the entity is currently configured to run in <i>persistent</i>
-     * mode, returns the name-based key under which an entity's (non-boot)
-     * state was persisted during previous runs of the entity. If the
-     * entity is currently configured to run in <i>transient</i> mode,
-     * a non-<code>null</code>, randomly-generated key value is returned.
-     */
-    public String getStateKey() {
-        return stateKey;
-    }
-
-    /** 
-     * Returns the <code>Class</code> type of the entity whose boot state
-     * is associated with the current instance of this utility.
-     */
-    public Class getType() {
-        return entityImplType;
-    }
-
 
     /* Performs the actual retrieval of the entity's boot state. This
      * method is called only once, in this utility's constructor.
@@ -338,6 +283,7 @@ public class BootStateUtil {
         /** 
          * @see java.io.ObjectInputStream#resolveClass
          */
+        @Override        
         protected Class<?> resolveClass(ObjectStreamClass desc)
                              throws IOException, ClassNotFoundException
         {
@@ -354,7 +300,7 @@ public class BootStateUtil {
      * An interface is specified here to support evolution of new
      * versions of BootState.
      */
-    interface BootState {
+    private interface BootState {
         Class  getType();
         UUID   getProxyId();
         String getKey();
