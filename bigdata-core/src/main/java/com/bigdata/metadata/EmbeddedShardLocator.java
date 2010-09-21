@@ -34,6 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
@@ -152,7 +153,7 @@ public static interface Options extends
                   com.bigdata.journal.Options,
                   com.bigdata.journal.ConcurrencyManager.Options,
                   com.bigdata.resources.ResourceManager.Options,
-                  com.bigdata.counters.AbstractStatisticsCollector.Options,
+                  AbstractStatisticsCollector.Options,
                   com.bigdata.service.IBigdataClient.Options
 {
 //BTM - BEGIN - added options

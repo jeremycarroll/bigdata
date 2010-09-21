@@ -26,26 +26,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Mar 13, 2008
  */
 
-package com.bigdata.counters;
+package com.bigdata.counters.httpd;
 
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+import com.bigdata.counters.*;
 import org.apache.log4j.Logger;
 import org.apache.system.SystemUtil;
 
-import com.bigdata.counters.httpd.CounterSetHTTPD;
 import com.bigdata.counters.linux.StatisticsCollectorForLinux;
 import com.bigdata.counters.win.StatisticsCollectorForWindows;
-import com.bigdata.io.DirectBufferPool;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
@@ -53,8 +51,8 @@ import com.bigdata.util.httpd.AbstractHTTPD;
 
 /**
  * Base class for collecting data on a host. The data are described by a
- * hierarchical collection of {@link ICounterSet}s and {@link ICounter}s. A
- * {@link IRequiredHostCounters minimum set of counters} is defined which SHOULD
+ * hierarchical collection of {@link com.bigdata.counters.ICounterSet}s and {@link com.bigdata.counters.ICounter}s. A
+ * {@link com.bigdata.counters.IRequiredHostCounters minimum set of counters} is defined which SHOULD
  * be available for decision-making. Implementations are free to report any
  * additional data which they can make available. Reporting is assumed to be
  * periodic, e.g., every 60 seconds or so. The purpose of these data is to
@@ -169,7 +167,7 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
 //    }
     
     /**
-     * {@link CounterSet} hierarchy.
+     * {@link com.bigdata.counters.CounterSet} hierarchy.
      */
     private CounterSet countersRoot;
 
@@ -177,7 +175,7 @@ abstract public class AbstractStatisticsCollector implements IStatisticsCollecto
      * Return the counter hierarchy. The returned hierarchy only includes those
      * counters whose values are available from the JVM. This collection is
      * normally augmented with platform specific performance counters collected
-     * using an {@link AbstractProcessCollector}.
+     * using an {@link com.bigdata.counters.AbstractProcessCollector}.
      * <p>
      * Note: Subclasses MUST extend this method to initialize their own
      * counters.

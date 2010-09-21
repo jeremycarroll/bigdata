@@ -40,7 +40,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.bigdata.btree.BTree.Counter;
-import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
@@ -85,7 +84,7 @@ import com.bigdata.rawstore.IRawStore;
  * </pre>
  * 
  * @todo report whether or not the on-disk write cache is enabled for each
- *       platform in {@link AbstractStatisticsCollector}. offer guidence on how
+ *       platform in {@link com.bigdata.counters.httpd.AbstractStatisticsCollector}. offer guidence on how
  *       to disable that write cache.
  * 
  * @todo The flush of the write cache could be made asynchronous if we had two

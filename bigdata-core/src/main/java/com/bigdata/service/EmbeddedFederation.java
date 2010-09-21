@@ -36,10 +36,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
-import com.bigdata.counters.AbstractStatisticsCollector;
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.IResourceLockService;
-import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ResourceLockService;
 import com.bigdata.journal.WriteExecutorService;
 import com.bigdata.service.EmbeddedClient.Options;

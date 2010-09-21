@@ -78,8 +78,8 @@ abstract public class AbstractProcessCollector implements IStatisticsCollector {
     
     /**
      * Creates the {@link ActiveProcess} and the
-     * {@link ActiveProcess#start(com.bigdata.counters.AbstractStatisticsCollector.AbstractProcessReader)}s
-     * it passing in the value returned by the {@link #getProcessReader()}
+     * {@link ActiveProcess#start}s
+     * it, passing in the value returned by the {@link #getProcessReader()}
      */
     public void start() {
 

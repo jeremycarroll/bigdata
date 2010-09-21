@@ -2,7 +2,7 @@ package com.bigdata.counters.linux;
 
 import java.util.UUID;
 
-import com.bigdata.counters.AbstractStatisticsCollector;
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.PIDUtil;
 

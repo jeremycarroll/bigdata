@@ -34,9 +34,8 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Map;
 
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import org.apache.log4j.Logger;
-
-import com.bigdata.counters.AbstractStatisticsCollector;
 
 /**
  * Some utility methods related to integration with <code>sysstat</code>.

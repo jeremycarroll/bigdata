@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.bigdata.BigdataStatics;
 import com.bigdata.btree.BTree.Counter;
-import com.bigdata.counters.AbstractStatisticsCollector;
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;

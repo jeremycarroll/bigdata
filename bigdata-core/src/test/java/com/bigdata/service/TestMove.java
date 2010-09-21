@@ -42,7 +42,7 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.KV;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.btree.proc.BatchInsert.BatchInsertConstructor;
-import com.bigdata.counters.AbstractStatisticsCollector;
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.ITx;

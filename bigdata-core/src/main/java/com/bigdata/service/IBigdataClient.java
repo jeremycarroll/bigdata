@@ -32,7 +32,6 @@ import java.util.Properties;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.cache.HardReferenceQueue;
-import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.journal.ITx;
 import com.bigdata.relation.accesspath.IAccessPath;
@@ -427,7 +426,7 @@ public interface IBigdataClient<T> {
          * operating system (default
          * {@value #DEFAULT_COLLECT_PLATFORM_STATISTICS}).
          * 
-         * @see AbstractStatisticsCollector#newInstance(Properties)
+         * @see com.bigdata.counters.httpd.AbstractStatisticsCollector#newInstance(Properties)
          */
         String COLLECT_PLATFORM_STATISTICS = IBigdataClient.class.getName()
                 + ".collectPlatformStatistics";

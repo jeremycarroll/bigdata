@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import org.apache.log4j.Logger;
 
 import com.bigdata.Banner;
@@ -52,7 +53,6 @@ import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.io.ByteBufferInputStream;
-import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.AbstractLocalTransactionManager;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.ConcurrencyManager;
@@ -137,7 +137,7 @@ abstract public class DataService extends AbstractService
     public static interface Options extends com.bigdata.journal.Options,
             com.bigdata.journal.ConcurrencyManager.Options,
             com.bigdata.resources.ResourceManager.Options,
-            com.bigdata.counters.AbstractStatisticsCollector.Options,
+            AbstractStatisticsCollector.Options,
             com.bigdata.service.IBigdataClient.Options
             // @todo local tx manager options?
             {

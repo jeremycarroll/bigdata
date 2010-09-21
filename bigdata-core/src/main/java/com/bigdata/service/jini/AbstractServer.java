@@ -48,6 +48,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import net.jini.admin.JoinAdmin;
 import net.jini.config.Configuration;
 import net.jini.config.ConfigurationException;
@@ -79,7 +80,6 @@ import org.apache.zookeeper.KeeperException.SessionExpiredException;
 import org.apache.zookeeper.data.ACL;
 
 import com.bigdata.Banner;
-import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.PIDUtil;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.jini.lookup.entry.Hostname;

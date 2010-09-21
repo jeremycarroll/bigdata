@@ -30,11 +30,11 @@ package com.bigdata.service;
 
 import java.util.UUID;
 
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
 import com.bigdata.Banner;
-import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 
 /**
