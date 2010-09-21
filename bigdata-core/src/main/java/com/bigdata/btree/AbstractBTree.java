@@ -47,7 +47,6 @@ import org.apache.log4j.Logger;
 
 import com.bigdata.Banner;
 import com.bigdata.BigdataStatics;
-import com.bigdata.LRUNexus;
 import com.bigdata.btree.AbstractBTreeTupleCursor.MutableBTreeTupleCursor;
 import com.bigdata.btree.AbstractBTreeTupleCursor.ReadOnlyBTreeTupleCursor;
 import com.bigdata.btree.IndexMetadata.Options;
@@ -242,12 +241,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * The persistence store -or- <code>null</code> iff the B+Tree is transient.
      */
     final protected IRawStore store;
-
-    /**
-     * Optional cache for {@link INodeData} and {@link ILeafData} instances and
-     * always <code>null</code> if the B+Tree is transient.
-     */
-    protected final ILRUCache<Long, Object> storeCache;
 
     /**
      * The branching factor for the btree.
@@ -645,12 +638,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * held). This means that lookup in a map is not required for top-down
      * navigation.
      * <p>
-     * The {@link LRUNexus} provides an {@link INodeData} / {@link ILeafData}
-     * data record cache based on a hash map with lookup by the address of the
-     * node or leaf. This is tested when the child {@link WeakReference} was
-     * never set or has been cleared. This cache is also used by the
-     * {@link IndexSegment} for the linked-leaf traversal pattern, which does
-     * not use top-down navigation.
      * 
      * @todo consider a policy that dynamically adjusts the queue capacities
      *       based on the height of the btree in order to maintain a cache that
@@ -952,10 +939,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
              * the child nodes and the parents are connected using hard links
              * rather than weak references.
              */
-
-            this.storeCache = null;
-            
-//            this.globalLRU = null;
             
 //            this.readRetentionQueue = null;
             
@@ -972,16 +955,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
              * support concurrent read operations. The INodeData or ILeafData
              * will be wrapped as a Node or Leaf by the owning B+Tree instance.
              */
-
-            /*
-             * FIXME if the LRUNexus is disabled, then use a
-             * ConcurrentWeakValueCacheWithTimeout to buffer the leaves of an
-             * IndexSegment. Essentially, a custom cache. Otherwise we lose some
-             * of the performance of the leaf iterator for the index segment
-             * since leaves are not recoverable by random access without a
-             * cache.
-             */
-            this.storeCache = LRUNexus.getCache(store);
             
 //            this.readRetentionQueue = newReadRetentionQueue();
         
@@ -3317,9 +3290,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * evicted node or leaf is dirty, then a data record will be coded for the
      * evicted node or leaf and written onto the backing store. A subsequent
      * attempt to modify the node or leaf will force copy-on-write for that node
-     * or leaf. Regardless of whether or not the node or leaf is dirty, it is
-     * touched on the {@link LRUNexus#getGlobalLRU()} when it is evicted from
-     * the write retention queue.
+     * or leaf.
      * </p>
      * <p>
      * For the mutable B+Tree we also track the #of references to the node/leaf
@@ -3762,36 +3733,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
             // parent.dirtyChildren.remove(node);
 
         }
-
-        if (storeCache != null) {
-
-            /*
-             * Put the data record (the delegate) into the cache, touching it on
-             * the backing LRU.
-             * 
-             * Note: This provides an unfair retention for recently written
-             * nodes or leaves equal to that of recently read nodes or leaves. I
-             * do not know what to do about that. However, the total size across
-             * all per-store caches is (SHOULD BE) MUCH larger than the write
-             * retention queue so that bias may not matter that much.
-             */
-            if (null != storeCache.putIfAbsent(addr, node.getDelegate())) {
-
-                /*
-                 * Note: For a WORM store, the address is always new so there
-                 * will not be an entry in the cache for that address.
-                 * 
-                 * Note: For a RW store, the addresses can be reused and the
-                 * delete of the old address MUST have cleared the entry for
-                 * that address from the store's cache.
-                 */
-                
-                throw new AssertionError("addr already in cache: " + addr
-                        + " for " + store.getFile());
-                
-            }
-            
-        }
         
         return addr;
 
@@ -3819,40 +3760,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
         if (addr == IRawStore.NULL)
             throw new IllegalArgumentException();
         
-        final Long addr2 = Long.valueOf(addr); 
-
-        if (storeCache != null) {
-
-            // test cache : will touch global LRU iff found.
-            final IAbstractNodeData data = (IAbstractNodeData) storeCache
-                    .get(addr);
-
-            if (data != null) {
-
-                // Node and Leaf MUST NOT make it into the global LRU or store
-                // cache!
-                assert !(data instanceof AbstractNode<?>);
-                
-                final AbstractNode<?> node;
-                
-                if (data.isLeaf()) {
-
-                    node = nodeSer.nodeFactory.allocLeaf(this, addr,
-                            (ILeafData) data);
-
-                } else {
-
-                    node = nodeSer.nodeFactory.allocNode(this, addr,
-                            (INodeData) data);
-
-                }
-
-                // cache hit.
-                return node;
-                
-            }
-            
-        }
+        final Long addr2 = Long.valueOf(addr);
         
         final ByteBuffer tmp;
         {
@@ -3906,21 +3814,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 
                 }
 
-            }
-
-            if (storeCache != null) {
-             
-                // update cache : will touch global LRU iff cache is modified.
-                final IAbstractNodeData data2 = (IAbstractNodeData) storeCache
-                        .putIfAbsent(addr2, data);
-
-                if (data2 != null) {
-
-                    // concurrent insert, use winner's value.
-                    data = data2;
-
-                } 
-                
             }
 
             // wrap as Node or Leaf.

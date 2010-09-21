@@ -42,6 +42,8 @@ import net.jini.lookup.ServiceDiscoveryManager;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.bigdata.io.SerializerUtil;
@@ -67,8 +69,11 @@ import com.bigdata.zookeeper.ZooHelper;
  * @version $Id$
  */
 public class TestServiceStarter extends AbstractFedZooTestCase {
+    
+    private final static String TEST_NAME = "TestServiceStarter";
 
     protected boolean serviceImplRemote;
+    protected String testName = TEST_NAME;
 
     /**
      * 
@@ -78,8 +83,20 @@ public class TestServiceStarter extends AbstractFedZooTestCase {
     }
 
 
-    protected TestServiceStarter(boolean serviceImplRemote) {
+    protected TestServiceStarter(boolean serviceImplRemote, String testName) {
         this.serviceImplRemote = serviceImplRemote;
+        this.testName = testName;
+    }
+
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp(testName);
+    }
+    
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown(testName);
     }
 
     /**

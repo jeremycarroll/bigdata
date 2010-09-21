@@ -89,8 +89,7 @@ public class TestJiniCoreServicesProcessHelper {
     @Before
     public void setUp() throws Exception {
         final String[] args;
-        
-        System.out.println("BJL BJL BJL: configFile = " + configFile);
+
         {
             final String home = System.getenv("JINI_HOME");
 
@@ -132,7 +131,6 @@ public class TestJiniCoreServicesProcessHelper {
      */
     @Test
     public void test_findStartKill() throws Exception {
-        System.out.println("BJl BJL BJL config = " + config);
         final JiniCoreServicesConfiguration serviceConfig = new JiniCoreServicesConfiguration(config);       
         final JiniClientConfig clientConfig = new JiniClientConfig(null, config);
         

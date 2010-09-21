@@ -39,8 +39,8 @@ import org.infinispan.util.concurrent.BufferedConcurrentHashMap.Eviction;
 import org.infinispan.util.concurrent.BufferedConcurrentHashMap.EvictionListener;
 
 import com.bigdata.BigdataStatics;
-import com.bigdata.LRUNexus.AccessPolicyEnum;
-import com.bigdata.LRUNexus.CacheSettings;
+import com.bigdata.cache.LRUNexus.AccessPolicyEnum;
+import com.bigdata.cache.LRUNexus.CacheSettings;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;

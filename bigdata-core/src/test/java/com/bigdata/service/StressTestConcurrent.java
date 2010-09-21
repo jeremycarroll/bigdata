@@ -51,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import org.apache.log4j.Level;
 
 import com.bigdata.btree.BTree;
@@ -61,7 +62,6 @@ import com.bigdata.btree.keys.ASCIIKeyBuilderFactory;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.proc.BatchInsert.BatchInsertConstructor;
 import com.bigdata.btree.proc.BatchRemove.BatchRemoveConstructor;
-import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.journal.BasicExperimentConditions;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.DiskOnlyStrategy;

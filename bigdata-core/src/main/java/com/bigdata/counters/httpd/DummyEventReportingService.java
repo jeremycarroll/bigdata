@@ -8,7 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventReceiver;
 import com.bigdata.service.IEventReportingService;

@@ -58,8 +58,9 @@ import com.bigdata.test.util.Assert;
 public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
 
 
-    private final static String testName = "TestServiceConfigurationMonitoring";
+    private final static String TEST_NAME = "TestServiceConfigurationMonitoring";
     protected boolean serviceImplRemote;
+    protected String testName = TEST_NAME;
 
     /**
      * 
@@ -68,8 +69,9 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
         this.serviceImplRemote = false;
     }
 
-    protected TestServiceConfigurationMonitoring (boolean serviceImplRemote) {
+    protected TestServiceConfigurationMonitoring (boolean serviceImplRemote, String testName) {
         this.serviceImplRemote = serviceImplRemote;
+        this.testName = testName;
     }
     
     @Before

@@ -33,6 +33,6 @@ public class TestServiceConfigurationMonitoringRemote
                  extends TestServiceConfigurationMonitoring
 {
     public TestServiceConfigurationMonitoringRemote() {
-        super(true);
+        super(true, "TestServiceConfigurationMonitoringRemote");
     }
 }

@@ -32,7 +32,6 @@ import java.nio.ByteBuffer;
 import java.util.Properties;
 import java.util.Random;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.rawstore.IRawStore;
 
 /**
@@ -411,8 +410,7 @@ abstract public class AbstractRestartSafeTestCase extends AbstractBufferStrategy
 
     /**
      * Unit tests writes some data, commits, and closes the journal against
-     * future writes. The {@link LRUNexus} is then cleared and we verify that we
-     * can still read data back from the store. Finally, we close and then
+     * future writes. Finally, we close and then
      * reopen the store in a read-only mode and verify that we can still read on
      * the store.
      * <p>
@@ -450,13 +448,6 @@ abstract public class AbstractRestartSafeTestCase extends AbstractBufferStrategy
 
             // close against further writes.
             store.closeForWrites(lastCommitTime/* closeTime */);
-
-            if (LRUNexus.INSTANCE != null) {
-
-                // discard the record level cache so we will read through.
-                LRUNexus.INSTANCE.deleteCache(store.getUUID());
-
-            }
 
             // Verify read back.
             for (int i = 0; i < nrecs; i++) {

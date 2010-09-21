@@ -43,7 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.counters.AbstractStatisticsCollector;
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.journal.ITransactionService;
 
 /**

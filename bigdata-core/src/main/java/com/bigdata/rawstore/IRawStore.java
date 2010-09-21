@@ -31,7 +31,6 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.btree.BTree;
 import com.bigdata.cache.IGlobalLRU;
 import com.bigdata.counters.CounterSet;
@@ -241,7 +240,7 @@ public interface IRawStore extends IAddressManager {
 
     /**
      * Return the {@link UUID} which identifies this {@link IRawStore}. This
-     * supports both {@link #getResourceMetadata()} and the {@link LRUNexus}.
+     * supports {@link #getResourceMetadata()}
      */
     public UUID getUUID();
 

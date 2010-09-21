@@ -42,6 +42,7 @@ import com.bigdata.jini.start.config.IServiceConstraint;
 import com.bigdata.jini.start.config.ServiceConfiguration;
 import com.bigdata.jini.start.config.TransactionServerConfiguration;
 import com.bigdata.service.jini.TransactionServer;
+import com.bigdata.util.config.ConfigDeployUtil;
 
 /**
  * Some unit tests for {@link ServiceConfiguration} and friends focused on
@@ -166,7 +167,7 @@ public class TestServiceConfiguration extends TestCase2 {
             String groupsOpt = "com.bigdata.transaction.groupsToJoin="
                                +"new String[]"
                                +openBracket
-                               +quote+ System.getProperty("federation.name","testFed")+quote
+                               +quote+ConfigDeployUtil.getFederationName()+quote
                                +comma
                                +quote+System.getProperty("bigdata.zrootname","testZroot")+quote
                                +closeBracket;

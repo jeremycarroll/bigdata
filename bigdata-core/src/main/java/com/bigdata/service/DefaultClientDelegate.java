@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.counters.AbstractStatisticsCollector;
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.httpd.CounterSetHTTPD;
 import com.bigdata.util.httpd.AbstractHTTPD;

@@ -46,6 +46,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import org.apache.log4j.Logger;
 
 import com.bigdata.bfs.BigdataFileSystem;
@@ -53,7 +54,6 @@ import com.bigdata.bfs.GlobalFileSystemHelper;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.cache.ConcurrentWeakValueCacheWithTimeout;
-import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounter;
 import com.bigdata.counters.ICounterSet;

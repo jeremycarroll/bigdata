@@ -32,7 +32,6 @@ import java.util.Iterator;
 
 import org.apache.log4j.Level;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.btree.IndexSegment.ImmutableLeafCursor;
 import com.bigdata.btree.IndexSegment.ImmutableNodeFactory.ImmutableLeaf;
 import com.bigdata.io.DirectBufferPool;
@@ -192,9 +191,6 @@ public class AbstractIndexSegmentTestCase extends AbstractBTreeTestCase {
 
         final ImmutableLeafCursor itr = seg.newLeafCursor(SeekEnum.First);
         
-        if(LRUNexus.INSTANCE!=null)
-        assertTrue(firstLeaf.getDelegate()==itr.leaf().getDelegate()); // Note: test depends on cache!
-        
         ImmutableLeaf priorLeaf = itr.leaf();
         
         int n = 1;
@@ -244,9 +240,6 @@ public class AbstractIndexSegmentTestCase extends AbstractBTreeTestCase {
         assertEquals("nextAddr", 0L, lastLeaf.getNextAddr());
 
         final ImmutableLeafCursor itr = seg.newLeafCursor(SeekEnum.Last);
-
-        if(LRUNexus.INSTANCE!=null)
-        assertTrue(lastLeaf.getDelegate() == itr.leaf().getDelegate()); // Note: test depends on cache!
 
         ImmutableLeaf nextLeaf = itr.leaf();
 

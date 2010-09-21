@@ -29,7 +29,7 @@ package com.bigdata.cache;
 
 import java.util.UUID;
 
-import com.bigdata.LRUNexus.AccessPolicyEnum;
+import com.bigdata.cache.LRUNexus.AccessPolicyEnum;
 import com.bigdata.cache.BCHMGlobalLRU2.DLNLirs;
 import com.bigdata.cache.BCHMGlobalLRU2.LIRSAccessPolicy;
 import com.bigdata.cache.BCHMGlobalLRU2.LRUCacheImpl;

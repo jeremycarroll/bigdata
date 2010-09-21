@@ -31,7 +31,6 @@ import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.btree.AbstractBTree;
 import com.bigdata.btree.ITupleCursor;
 import com.bigdata.btree.ITupleIterator;
@@ -202,7 +201,6 @@ public interface IGlobalLRU<K,V> {
      * 
      * @see AbstractBTree#readNodeOrLeaf(long)
      * @see IndexSegmentStore#reopen()
-     * @see LRUNexus#getCache(IRawStore)
      */
     public ILRUCache<K, V> getCache(final UUID storeUUID, IAddressManager am);
 

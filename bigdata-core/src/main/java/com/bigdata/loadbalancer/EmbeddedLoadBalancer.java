@@ -29,10 +29,9 @@ import static com.bigdata.loadbalancer.Constants.*;
 //BTM*** - replace with ShardService after DataService smart proxy conversion?
 //BTM*** - replace with EmbeddedShardService.IDataServiceCounters?
 //BTM*** - replace with ShardLocator after smart proxy conversion?
-import com.bigdata.service.DataService;
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.service.DataService.IDataServiceCounters;
 
-import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.DefaultInstrumentFactory;
 import com.bigdata.counters.History;
@@ -55,7 +54,6 @@ import com.bigdata.resources.ResourceManager.IResourceManagerCounters;
 import com.bigdata.resources.StoreManager.IStoreManagerCounters;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.AbstractRoundRobinServiceLoadHelper;
-import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.AbstractServiceLoadHelperWithScores;
 import com.bigdata.service.AbstractServiceLoadHelperWithoutScores;
 import com.bigdata.service.Event;
@@ -63,14 +61,11 @@ import com.bigdata.service.EventReceiver;
 import com.bigdata.service.EventReceiver.EventBTree;
 import com.bigdata.service.EventReceivingService;
 import com.bigdata.service.HostScore;
-import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IClientService;
 import com.bigdata.service.IDataService;
 import com.bigdata.service.IEventReportingService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.IService;
-import com.bigdata.service.IServiceShutdown;
-import com.bigdata.service.IServiceShutdown.ShutdownType;
 import com.bigdata.service.LoadBalancer;
 import com.bigdata.service.Service;
 import com.bigdata.service.ServiceScore;
@@ -107,7 +102,6 @@ import java.rmi.RemoteException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;

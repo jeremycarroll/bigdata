@@ -48,7 +48,6 @@ import org.openrdf.model.Statement;
 import org.openrdf.model.Value;
 import org.openrdf.rio.RDFHandler;
 import org.openrdf.rio.helpers.RDFHandlerBase;
-import com.bigdata.LRUNexus;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
@@ -121,11 +120,6 @@ abstract public class AbstractTestCase
         if (log.isInfoEnabled())
         log.info("\n\n================:BEGIN:" + testCase.getName()
                 + ":BEGIN:====================");
-
-        if (LRUNexus.INSTANCE != null) {
-            // flush everything before/after a unit test.
-            LRUNexus.INSTANCE.discardAllCaches();
-        }
         
     }
 
@@ -133,11 +127,6 @@ abstract public class AbstractTestCase
      * Invoked from {@link TestCase#tearDown()} for each test in the suite.
      */
     protected void tearDown(final ProxyTestCase testCase) throws Exception {
-
-        if (LRUNexus.INSTANCE != null) {
-            // flush everything before/after a unit test.
-            LRUNexus.INSTANCE.discardAllCaches();
-        }
         
         final long elapsed = System.currentTimeMillis() - begin;
         

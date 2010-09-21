@@ -31,11 +31,11 @@ package com.bigdata;
 import java.lang.reflect.Method;
 import java.util.Date;
 
+import com.bigdata.util.config.ConfigDeployUtil;
+import com.bigdata.util.config.NicUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.system.SystemUtil;
-
-import com.bigdata.counters.AbstractStatisticsCollector;
 
 /**
  * Class has a static method which writes a copyright banner on stdout once per
@@ -48,6 +48,17 @@ import com.bigdata.counters.AbstractStatisticsCollector;
 public class Banner {
 
     private static boolean didBanner;
+    private static final String HOSTNAME;
+    static {
+        String val;
+        try {
+            val = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
+        } catch(Throwable t) {//for now, maintain same failure logic as used previously
+            t.printStackTrace();
+            val = NicUtil.getIpAddressByLocalHost();
+        }
+        HOSTNAME = val;
+    }
 
     /**
      * Environment variables understood by the {@link Banner} class.
@@ -153,7 +164,7 @@ public class Banner {
         "\n"+//
         "\nCopyright SYSTAP, LLC 2006-2010.  All rights reserved."+//
         "\n"+//
-        "\n"+AbstractStatisticsCollector.fullyQualifiedHostName+//
+        "\n"+HOSTNAME+//
         "\n"+new Date()+//
         "\n"+SystemUtil.operatingSystem() + "/" + SystemUtil.osVersion()
                 + " " + SystemUtil.architecture() + //

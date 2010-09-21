@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.UUID;
 
-import com.bigdata.LRUNexus;
 import com.bigdata.bfs.BigdataFileSystem;
 import com.bigdata.bfs.BigdataFileSystem.Options;
 import com.bigdata.btree.AbstractBTreeTestCase;
@@ -127,11 +126,6 @@ protected ShardLocator metadataService;
     public void setUp() throws Exception {
       
         super.setUp();
-        
-        if (LRUNexus.INSTANCE != null) {
-            // flush everything before/after a unit test.
-            LRUNexus.INSTANCE.discardAllCaches();
-        }
 
         dataDir = new File( getName() );
         
@@ -188,15 +182,6 @@ if (log.isInfoEnabled()) {
 
             recursiveDelete( dataDir );
             
-        }
-        
-        if (LRUNexus.INSTANCE != null) {
-            // flush everything before/after a unit test.
-            try {
-                LRUNexus.INSTANCE.discardAllCaches();
-            } catch (Throwable t) {
-                log.error(t, t);
-            }
         }
 
         super.tearDown();

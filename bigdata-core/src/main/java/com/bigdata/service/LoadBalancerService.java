@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.counters.AbstractStatisticsCollector;
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.DefaultInstrumentFactory;
 import com.bigdata.counters.History;

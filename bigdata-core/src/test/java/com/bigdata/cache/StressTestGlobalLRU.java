@@ -48,9 +48,8 @@ import junit.framework.TestCase;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.LRUNexus;
-import com.bigdata.LRUNexus.AccessPolicyEnum;
-import com.bigdata.LRUNexus.CacheSettings;
+import com.bigdata.cache.LRUNexus.AccessPolicyEnum;
+import com.bigdata.cache.LRUNexus.CacheSettings;
 import com.bigdata.concurrent.TestLockManager;
 import com.bigdata.io.FixedByteArrayBuffer;
 import com.bigdata.io.IDataRecordAccess;

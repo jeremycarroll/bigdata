@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.bigdata</groupId>
@@ -28,10 +27,8 @@
                 <configuration>
                     <compilerArguments>
                         <!--
-                             Apparently Javac may compile java source files inside jars put on the classpath.  Weird.
-                             Zookeeper 3.2.1 jar contained classes and sources, and under some circumstances,
-                             the java files were getting recompiled and put into the bigdata jar.  This setting
-                             forces javac to only look for source in the current maven source directory.
+                            Apparently Javac may compile java source files inside jars put on the classpath. Weird. Zookeeper 3.2.1 jar contained classes and sources, and under some circumstances, the
+                            java files were getting recompiled and put into the bigdata jar. This setting forces javac to only look for source in the current maven source directory.
                         -->
                         <sourcepath>${project.build.sourceDirectory}</sourcepath>
                     </compilerArguments>
@@ -89,12 +86,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!-- TODO: BLECH!  All the tests are excluded from the regular unit test phase.
-                         TODO: Need to split out the unit tests and the heavier integration tests, plus
-                         TODO: get all the unit tests passing so regressions can properly fail the build.
+                    <!--
+                        TODO: BLECH! All the tests are excluded from the regular unit test phase. TODO: Need to split out the unit tests and the heavier integration tests, plus TODO: get all the unit
+                        tests passing so regressions can properly fail the build.
                     -->
                     <testFailureIgnore>true</testFailureIgnore>
-                    <includes/>
+                    <includes />
                     <excludes>
                         <exclude>**/*</exclude>
                     </excludes>
@@ -102,8 +99,8 @@
             </plugin>
 
             <plugin>
-                <!-- These are where the heavier tests can be run.  Right now failsafe looks for tests starting or ending
-                     with IT,  aka  FooIT.java or ITFoo.java, which don't exist yet, so nothing runs.
+                <!--
+                    These are where the heavier tests can be run. Right now failsafe looks for tests starting or ending with IT, aka FooIT.java or ITFoo.java, which don't exist yet, so nothing runs.
                 -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -201,14 +198,14 @@
 
     <dependencies>
 
-       
+
 
         <!-- ************************ Start of non-public dependencies ************************ -->
         <!-- ************************ Start of non-public dependencies ************************ -->
         <!-- ************************ Start of non-public dependencies ************************ -->
 
         <!-- TODO: look at maven-bundle-plugin from felix to provide osgi support.  bndlib version 0.0.357 in central. -->
-        
+
         <dependency>
             <groupId>${thirdParty.groupId}</groupId>
             <artifactId>cweb-extser</artifactId>
@@ -230,7 +227,7 @@
             <groupId>${thirdParty.groupId}</groupId> <!-- TODO: An older version (5.0.9) is available in central. -->
             <artifactId>unimi-fastutil</artifactId>
             <version>5.1.5</version>
-        </dependency>        
+        </dependency>
         <dependency>
             <groupId>${thirdParty.groupId}</groupId>
             <artifactId>lgpl-utils</artifactId>
@@ -246,22 +243,22 @@
             <artifactId>dsi-utils</artifactId>
             <version>1.0.6-020610</version>
         </dependency>
-        <dependency>                           
+        <dependency>
             <groupId>${thirdParty.groupId}</groupId>
             <artifactId>high-scale-lib</artifactId>
             <version>1.1.2</version>
         </dependency>
         <dependency>
-            <groupId>${thirdParty.groupId}</groupId>                        
+            <groupId>${thirdParty.groupId}</groupId>
             <artifactId>iris</artifactId>
             <version>0.58</version>
         </dependency>
         <dependency>
-            <groupId>${thirdParty.groupId}</groupId>                                    
+            <groupId>${thirdParty.groupId}</groupId>
             <artifactId>nxparser</artifactId>
             <version>6-22-2010</version>
         </dependency>
-        
+
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>zookeeper</artifactId>
@@ -312,7 +309,7 @@
         <dependency>
             <groupId>org.apache.river</groupId>
             <artifactId>browser</artifactId>
-            <version>2.1</version>            
+            <version>2.1</version>
         </dependency>
 
         <!-- Note that these are dl jars, so they are provided and have a dl classifier. -->
@@ -397,10 +394,9 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.15</version>
-            <!-- These exclusions are to address the fact that 1.2.15 added new features that depends on Sun specific
-                 jars, but these jars cannot be made available due to Sun's click-through requirement on them.
-                 We aren't using the new features anyway, so they are safe to exclude.  log4j should have made these
-                 optional in their POM.
+            <!--
+                These exclusions are to address the fact that 1.2.15 added new features that depends on Sun specific jars, but these jars cannot be made available due to Sun's click-through
+                requirement on them. We aren't using the new features anyway, so they are safe to exclude. log4j should have made these optional in their POM.
             -->
             <exclusions>
                 <exclusion>
@@ -551,9 +547,36 @@
             <groupId>commons-httpclient</groupId>
             <artifactId>commons-httpclient</artifactId>
             <version>3.1</version>
-        </dependency>                                        
-        
+        </dependency>
+
     </dependencies>
+
+    <reporting>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <version>2.5</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <configLocation>${basedir}/src/main/config/checkstyle.xml</configLocation>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.3</version>
+            </plugin>
+
+        </plugins>
+    </reporting>
 
     <profiles>
         <profile>
@@ -579,7 +602,7 @@
                         </configuration>
                     </plugin>
                 </plugins>
-            </build>            
+            </build>
         </profile>
     </profiles>
 

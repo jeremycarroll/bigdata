@@ -1,6 +1,6 @@
 package com.bigdata.counters.win;
 
-import com.bigdata.counters.AbstractStatisticsCollector;
+import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 
 /**
