@@ -400,61 +400,6 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IMRMW {
         
     }
 
-    /**
-     * Note: Temporary stores do not have persistent resource descriptions.
-     */
-    final public IResourceMetadata getResourceMetadata() {
-        
-        final File file = buf.getFile();
-        
-        final String fileStr = file == null ? "" : file.toString();
-        
-        return new ResourceMetadata(this, fileStr);
-        
-    }
-
-    /**
-     * Static class since must be {@link Serializable}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    static final class ResourceMetadata extends AbstractResourceMetadata {
-
-        /**
-         * De-serializator ctor.
-         */
-        public ResourceMetadata() {
-            
-        }
-
-        public ResourceMetadata(final TemporaryRawStore store,
-                final String fileStr) {
-
-            super(fileStr, // store.buf.getExtent()
-                    store.uuid,//
-                    store.createTime, //
-                    0L// commitTime
-            );
-
-        }
-
-        private static final long serialVersionUID = 1L;
-
-        public boolean isJournal() {
-            
-            return false;
-            
-        }
-
-        public boolean isIndexSegment() {
-
-            return false;
-            
-        }
-
-    }
-
     final public DiskOnlyStrategy getBufferStrategy() {
 
         return buf;

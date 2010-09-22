@@ -36,7 +36,6 @@ import com.bigdata.cache.IGlobalLRU;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.io.IByteArrayBuffer;
 import com.bigdata.journal.AbstractJournal;
-import com.bigdata.mdi.IResourceMetadata;
 
 /**
  * <p>
@@ -242,12 +241,7 @@ public interface IRawStore extends IAddressManager {
      * Return the {@link UUID} which identifies this {@link IRawStore}. This
      * supports {@link #getResourceMetadata()}
      */
-    public UUID getUUID();
-
-    /**
-     * A description of this store in support of the scale-out architecture.
-     */
-    public IResourceMetadata getResourceMetadata();
+    public UUID getUUID();    
     
     /**
      * True iff backed by stable storage.

@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.btree;
 
+import com.bigdata.mdi.IResourceMetadata;
+
 /**
  * Stress tests for basic tree operations (insert, lookup, and remove) without
  * causing node or leaf evictions (IO is disabled).
@@ -196,6 +198,20 @@ public class TestBTree extends AbstractBTreeTestCase {
 
         }
         
+    }
+
+    public void test_verify_getResourceMetadata(){
+        //transient requirements on getResourceMetadata() are verified in TestTrasientBTree.
+        
+        BTree tree = getBTree(3);//branching doesn't matter.
+        assertNotNull("didn't expect btree.store to be null in this test, transient tests are in TestTransientBTree",tree.store);
+
+        IResourceMetadata[] metaList = tree.getResourceMetadata();
+
+        assertNotNull("cannot return null",metaList);
+        assertEquals("must return only one item", 1, metaList.length);
+        assertNotNull("item cannot be null",metaList[0]);
+        assertEquals("item uuid should match store uuid ",tree.getStore().getUUID(),metaList[0].getUUID());
     }
 
 //    /**

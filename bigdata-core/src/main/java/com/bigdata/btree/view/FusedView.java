@@ -399,7 +399,11 @@ public class FusedView implements IIndex, ILocalBTreeView {//, IValueAge {
         for(AbstractBTree t : sources) {
 //        for (int i = 0; i < srcs.length; i++) {
 
-            resources[i++] = t.getStore().getResourceMetadata();
+            IResourceMetadata[] metaAboutBTree = t.getResourceMetadata();
+            if (metaAboutBTree.length == 1)
+                resources[i++]  = metaAboutBTree[0];
+            else
+                throw new RuntimeException("BTree had wrong number of metadata items, should have been caught in unit tests.");
 
         }
 

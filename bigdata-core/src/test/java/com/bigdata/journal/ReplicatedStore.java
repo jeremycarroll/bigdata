@@ -576,11 +576,7 @@ public class ReplicatedStore implements IRawStore {
 
     public UUID getUUID() {
         return localStore.getUUID();
-    }
-
-    public IResourceMetadata getResourceMetadata() {
-        return localStore.getResourceMetadata();
-    }
+    }    
     
 //    public void packAddr(DataOutput out, long addr) throws IOException {
 //        localStore.packAddr(out, addr);

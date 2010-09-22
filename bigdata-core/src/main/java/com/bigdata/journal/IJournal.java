@@ -26,6 +26,7 @@ package com.bigdata.journal;
 import java.util.Properties;
 
 import com.bigdata.btree.keys.IKeyBuilderFactory;
+import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.IMRMW;
 
 /**
@@ -55,5 +56,9 @@ public interface IJournal extends IMRMW, IAtomicStore, IBTreeManager {
      * Immediate shutdown.
      */
     public void shutdownNow();
-    
+
+    /**
+     * A description of this store in support of the scale-out architecture.
+     */
+    public IResourceMetadata getResourceMetadata();
 }
