@@ -27,10 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.jini.start;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.bigdata.service.jini.TransactionServer;
-import com.bigdata.test.util.Assert;
+
 
 
 /**

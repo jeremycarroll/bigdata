@@ -36,7 +36,9 @@ import net.jini.config.ConfigurationException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
+
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,7 +48,7 @@ import com.bigdata.io.SerializerUtil;
 import com.bigdata.jini.start.config.ServiceConfiguration;
 import com.bigdata.jini.start.config.TransactionServerConfiguration;
 import com.bigdata.service.jini.TransactionServer;
-import com.bigdata.test.util.Assert;
+
 
 /**
  * Test suite for monitoring state changes for a {@link ServiceConfiguration}

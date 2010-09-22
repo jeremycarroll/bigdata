@@ -32,6 +32,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,7 +47,6 @@ import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IDataService;
 import com.bigdata.service.jini.util.JiniServicesHelper;
-import com.bigdata.test.util.Assert;
 import com.bigdata.test.util.Util;
 
 /**
@@ -198,8 +198,8 @@ public class TestBigdataClient extends AbstractServerTestCase {
 
             while (itr.hasNext()) {
                 final ITuple<?> tuple = itr.next();
-                Assert.assertEquals(keys[i], tuple.getKey());
-                Assert.assertEquals(vals[i], tuple.getValue());
+                Assert.assertArrayEquals(keys[i], tuple.getKey());
+                Assert.assertArrayEquals(vals[i], tuple.getValue());
                 i++;
             }
 

@@ -42,7 +42,9 @@ import net.jini.lookup.ServiceDiscoveryManager;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,7 +59,6 @@ import com.bigdata.service.IService;
 import com.bigdata.service.Service;
 import com.bigdata.service.jini.RemoteDestroyAdmin;
 import com.bigdata.service.jini.TransactionServer;
-import com.bigdata.test.util.Assert;
 import com.bigdata.zookeeper.ZNodeDeletedWatcher;
 import com.bigdata.zookeeper.ZooHelper;
 

@@ -39,6 +39,8 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 
+import org.junit.Assert;
+
 
 import com.bigdata.jini.start.config.ZookeeperClientConfig;
 import com.bigdata.jini.start.process.ProcessHelper;
@@ -46,7 +48,7 @@ import com.bigdata.jini.start.process.ZookeeperProcessHelper;
 import com.bigdata.resources.ResourceFileFilter;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
-import com.bigdata.test.util.Assert;
+
 
 /**
  * Abstract base class for unit tests requiring a running zookeeper and a
