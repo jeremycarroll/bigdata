@@ -1,6 +1,4 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
-
     <parent>
         <groupId>com.bigdata</groupId>
         <artifactId>bigdata</artifactId>
@@ -14,40 +12,33 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <deploy.root.dir>${project.build.directory}/deploy</deploy.root.dir>
-        <bigdata.dependency>bigdata-core</bigdata.dependency>
+        <integ.deploy.root.dir>${project.build.directory}/deploy</integ.deploy.root.dir>
+        <integ.bigdata.dependency>bigdata-core</integ.bigdata.dependency>
 
 
         <!--
             This is kinda hokey, but not sure there's a better way to
             construct the path to the root of the exploded tarball -->
-
-        <deploy.dir>${deploy.root.dir}/${bigdata.dependency}-${project.version}</deploy.dir>
-        <test.dir>${deploy.dir}/testing</test.dir>
-        <testScript>${test.dir}/test.xml</testScript>
-
-        <basedir>${test.dir}</basedir>
-        <app.home>${deploy.dir}</app.home>
-        <deploy.conf.dir>${test.dir}/conf</deploy.conf.dir>
-        <deploy.lib>${deploy.dir}/lib</deploy.lib>
-        <deploy.lib.test>${test.dir}/lib-test</deploy.lib.test>
-        <deploy.lib.dl>${deploy.dir}/lib-dl</deploy.lib.dl>
-        <test.codebase.dir>${deploy.lib.dl}</test.codebase.dir>
-        <test.codebase.port>23333</test.codebase.port>
-        <java.security.policy>${deploy.conf.dir}/policy.all</java.security.policy>
-        <log4j.configuration>${deploy.dir}/var/config/logging/log4j.properties</log4j.configuration>
-        <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
-        <default.nic>eth0</default.nic>
-        <parent.artifactName>bigdata-core</parent.artifactName>
-
-
-        <!--
-            In the ANT script, hostname is obtained by an exec of the
-            'hostname' command. Hard-coding for now.
-        -->
-        <hostname>blevine-desktop</hostname>
-        <test.codebase>http://${hostname}:${test.codebase.port}/jsk-dl.jar</test.codebase> <!-- Not used??? -->
-        <federation.name>bigdata.test.group-${hostname}</federation.name>
+        <integ.deploy.dir>${integ.deploy.root.dir}/${integ.bigdata.dependency}-${project.version}</integ.deploy.dir>
+        
+        <integ.test.dir>${integ.deploy.dir}/testing</integ.test.dir>
+        <integ.testScript>${integ.test.dir}/test.xml</integ.testScript>
+        <integ.basedir>${integ.test.dir}</integ.basedir>
+        <integ.app.home>${integ.deploy.dir}</integ.app.home>
+        <integ.deploy.conf.dir>${integ.test.dir}/conf</integ.deploy.conf.dir>
+        <integ.deploy.lib>${integ.deploy.dir}/lib</integ.deploy.lib>
+        <integ.deploy.lib.test>${integ.test.dir}/lib-test</integ.deploy.lib.test>
+        <integ.deploy.lib.dl>${integ.deploy.dir}/lib-dl</integ.deploy.lib.dl>
+        <integ.test.codebase.dir>${integ.deploy.lib.dl}</integ.test.codebase.dir>
+        <integ.test.codebase.port>23333</integ.test.codebase.port>
+        <integ.java.security.policy>${integ.deploy.conf.dir}/policy.all</integ.java.security.policy>
+        <integ.log4j.configuration>${integ.deploy.dir}/var/config/logging/log4j.properties</integ.log4j.configuration>
+        <integ.java.net.preferIPv4Stack>true</integ.java.net.preferIPv4Stack>
+        <integ.default.nic>eth0</integ.default.nic>
+        <integ.parent.artifactName>bigdata-core</integ.parent.artifactName>
+        
+        <!--  Set to empty string to indicate "unset." Application code will set a reasonable default -->
+        <integ.federation.name></integ.federation.name>
     </properties>
 
 
@@ -69,7 +60,7 @@
                                     <artifactId>bigdata-core</artifactId>
                                     <classifier>deploy</classifier>
                                     <type>tar.gz</type>
-                                    <outputDirectory>${deploy.root.dir}</outputDirectory>
+                                    <outputDirectory>${integ.deploy.root.dir}</outputDirectory>
                                 </artifactItem>
                             </artifactItems>
                             <useSubdirPerArtifact>true</useSubdirPerArtifact>
@@ -116,42 +107,34 @@
                     </excludes>
 
                     <systemPropertyVariables>
-                        <java.security.policy>${java.security.policy}</java.security.policy>
-                        <java.net.preferIPv4Stack>{java.net.preferIPv4Stack}"</java.net.preferIPv4Stack>
-                        <log4j.configuration>${log4j.configuration}</log4j.configuration>
-                        <!-- ><log4j.debug>true"</log4j.debug> -->
+                        <java.security.policy>${integ.java.security.policy}</java.security.policy>
+                        <java.net.preferIPv4Stack>{integ.java.net.preferIPv4Stack}"</java.net.preferIPv4Stack>
+                        <log4j.configuration>${integ.log4j.configuration}</log4j.configuration>
 
-                        <basedir>${basedir}</basedir> <!-- Tells the unit tests where the ant script is, so they can find resources. -->
-                        <app.home>${app.home}</app.home> <!-- This is the deployment directory, easily accessed by the DataFinder class. -->
-                        <log4j.path>${log4j.configuration}</log4j.path>
-                        <default.nic>${default.nic}</default.nic>
-                        
-                        <!-- Jini group name
-                        <federation.name>${federation.name}</federation.name> -->
-                        
-                        <!-- TODO !!!!!!
-                        <property key="java.class.path" value="${junit.classpath.text}" />
-                        -->
-
-                        <classserver.jar>${deploy.lib}/classserver.jar</classserver.jar>
-                        <colt.jar>${deploy.lib}/colt.jar</colt.jar>
-                        <ctc_utils.jar>${deploy.lib}/ctc_utils.jar</ctc_utils.jar>
-                        <cweb-commons.jar>${deploy.lib}/cweb-commons.jar</cweb-commons.jar>
-                        <cweb-extser.jar>${deploy.lib}/cweb-extser.jar</cweb-extser.jar>
-                        <highscalelib.jar>${deploy.lib}/highscalelib.jar</highscalelib.jar>
-                        <dsiutils.jar>${deploy.lib}/dsiutils.jar</dsiutils.jar>
-                        <lgplutils.jar>${deploy.lib}/lgplutils.jar</lgplutils.jar>
-                        <fastutil.jar>${deploy.lib}/fastutil.jar</fastutil.jar>
-                        <icu4j.jar>${deploy.lib}/icu4j.jar</icu4j.jar>
-                        <jsk-lib.jar>${deploy.lib}/jsk-lib.jar</jsk-lib.jar>
-                        <jsk-platform.jar>${deploy.lib}jsk-platform.jar</jsk-platform.jar>
-                        <log4j.jar>${deploy.lib}/log4j.jar</log4j.jar>
-                        <iris.jar>${deploy.lib}/iris.jar</iris.jar>
-                        <jgrapht.jar>${deploy.lib}/jgrapht.jar</jgrapht.jar>
-                        <openrdf-sesame.jar>${deploy.lib}/openrdf-sesame.jar</openrdf-sesame.jar>
-                        <slf4j.jar>${deploy.lib}/slf4j.jar</slf4j.jar>
-                        <nxparser.jar>${deploy.lib}/nxparser.jar</nxparser.jar>
-                        <zookeeper.jar>${deploy.lib}/zookeeper.jar</zookeeper.jar>
+                        <basedir>${integ.basedir}</basedir> <!-- Tells the unit tests where the ant script is, so they can find resources. -->
+                        <app.home>${integ.app.home}</app.home> <!-- This is the deployment directory, easily accessed by the DataFinder class. -->
+                        <log4j.path>${integ.log4j.configuration}</log4j.path>
+                        <default.nic>${integ.default.nic}</default.nic>
+                        <federation.name>${integ.federation.name}</federation.name>
+                        <classserver.jar>${integ.deploy.lib}/classserver.jar</classserver.jar>
+                        <colt.jar>${integ.deploy.lib}/colt.jar</colt.jar>
+                        <ctc_utils.jar>${integ.deploy.lib}/ctc_utils.jar</ctc_utils.jar>
+                        <cweb-commons.jar>${integ.deploy.lib}/cweb-commons.jar</cweb-commons.jar>
+                        <cweb-extser.jar>${integ.deploy.lib}/cweb-extser.jar</cweb-extser.jar>
+                        <highscalelib.jar>${integ.deploy.lib}/highscalelib.jar</highscalelib.jar>
+                        <dsiutils.jar>${integ.deploy.lib}/dsiutils.jar</dsiutils.jar>
+                        <lgplutils.jar>${integ.deploy.lib}/lgplutils.jar</lgplutils.jar>
+                        <fastutil.jar>${integ.deploy.lib}/fastutil.jar</fastutil.jar>
+                        <icu4j.jar>${integ.deploy.lib}/icu4j.jar</icu4j.jar>
+                        <jsk-lib.jar>${integ.deploy.lib}/jsk-lib.jar</jsk-lib.jar>
+                        <jsk-platform.jar>${integ.deploy.lib}jsk-platform.jar</jsk-platform.jar>
+                        <log4j.jar>${integ.deploy.lib}/log4j.jar</log4j.jar>
+                        <iris.jar>${integ.deploy.lib}/iris.jar</iris.jar>
+                        <jgrapht.jar>${integ.deploy.lib}/jgrapht.jar</jgrapht.jar>
+                        <openrdf-sesame.jar>${integ.deploy.lib}/openrdf-sesame.jar</openrdf-sesame.jar>
+                        <slf4j.jar>${integ.deploy.lib}/slf4j.jar</slf4j.jar>
+                        <nxparser.jar>${integ.deploy.lib}/nxparser.jar</nxparser.jar>
+                        <zookeeper.jar>${integ.deploy.lib}/zookeeper.jar</zookeeper.jar>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
@@ -173,8 +156,7 @@
                         <phase>pre-integration-test</phase>
                         <configuration>
                             <tasks>
-                                <echo message="testscript = ${testScript}" />
-                                <ant antfile="${testScript}" target="startTestServices" useNativeBasedir="true" inheritAll="false"/>
+                                <ant antfile="${project.build.testOutputDirectory}/services.xml" target="start" useNativeBasedir="true" inheritAll="true"/> 
                             </tasks>
                         </configuration>
                         <goals>
@@ -188,7 +170,7 @@
                         <configuration>
                             <tasks>
                                 <echo message="testscript = ${testScript}" />
-                                <ant antfile="${testScript}" target="stopTestServices" useNativeBasedir="true" inheritAll="false"/>
+                                <ant antfile="${project.build.testOutputDirectory}/services.xml" target="stop" useNativeBasedir="true" inheritAll="true"/> 
                             </tasks>
                         </configuration>
                         <goals>
