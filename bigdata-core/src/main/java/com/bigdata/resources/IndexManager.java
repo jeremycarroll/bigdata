@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
+import com.bigdata.journal.*;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.AbstractBTree;
@@ -66,24 +67,12 @@ import com.bigdata.concurrent.NamedLock;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
 import com.bigdata.io.DataInputBuffer;
-import com.bigdata.journal.AbstractJournal;
-import com.bigdata.journal.AbstractTask;
-import com.bigdata.journal.ConcurrencyManager;
-import com.bigdata.journal.ICommitRecord;
-import com.bigdata.journal.IJournal;
-import com.bigdata.journal.ITx;
-import com.bigdata.journal.Journal;
-import com.bigdata.journal.Name2Addr;
-import com.bigdata.journal.NoSuchIndexException;
-import com.bigdata.journal.TimestampUtility;
-import com.bigdata.journal.Tx;
 import com.bigdata.journal.Name2Addr.Entry;
 import com.bigdata.journal.Name2Addr.EntrySerializer;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.SegmentMetadata;
 import com.bigdata.rawstore.Bytes;
-import com.bigdata.rawstore.IRawStore;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventType;
 import com.bigdata.service.IBigdataClient;
@@ -134,11 +123,11 @@ abstract public class IndexManager extends StoreManager {
          * Note: The {@link IIndex}s managed by this class are a
          * {@link FusedView} of {@link AbstractBTree}s. Each
          * {@link AbstractBTree} has a hard reference to the backing
-         * {@link IRawStore} and will keep the {@link IRawStore} from being
+         * {@link com.bigdata.journal.IStoreFile} and will keep the {@link IStoreFile} from being
          * finalized as long as a hard reference exists to the
-         * {@link AbstractBTree} (the reverse is not true - an {@link IRawStore}
+         * {@link AbstractBTree} (the reverse is not true - an {@link IStoreFile}
          * reference does NOT hold a hard reference to {@link AbstractBTree}s
-         * on that {@link IRawStore}).
+         * on that {@link IStoreFile}).
          * <p>
          * Note: The retention of the {@link BTree}s on the live
          * {@link ManagedJournal}s is governed by
@@ -923,7 +912,7 @@ abstract public class IndexManager extends StoreManager {
      *       {@link StoreManager#openStores}.
      */
     public AbstractBTree getIndexOnStore(final String name,
-            final long timestamp, final IRawStore store) {
+            final long timestamp, final IStoreFile store) {
 
         if (name == null)
             throw new IllegalArgumentException();
@@ -1232,7 +1221,7 @@ abstract public class IndexManager extends StoreManager {
 
                 final IResourceMetadata resource = a[i];
 
-                final IRawStore store;
+                final IStoreFile store;
                 try {
                     
                     store = openStore(resource.getUUID());
@@ -2021,7 +2010,7 @@ abstract public class IndexManager extends StoreManager {
     /**
      * Canonical per-index partition {@link BTreeCounters}. These counters are
      * set on each {@link AbstractBTree} that is materialized by
-     * {@link #getIndexOnStore(String, long, IRawStore)}. The same
+     * {@link #getIndexOnStore(String, long, IStoreFile)}. The same
      * {@link BTreeCounters} object is used for the unisolated, read-committed,
      * read-historical and isolated views of the index partition and for each
      * source in the view regardless of whether the source is a mutable

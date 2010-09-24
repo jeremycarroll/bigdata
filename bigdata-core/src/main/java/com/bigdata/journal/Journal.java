@@ -49,7 +49,6 @@ import com.bigdata.cache.HardReferenceQueue;
 import com.bigdata.config.IntegerValidator;
 import com.bigdata.config.LongValidator;
 import com.bigdata.counters.CounterSet;
-import com.bigdata.rawstore.IRawStore;
 import com.bigdata.relation.locator.DefaultResourceLocator;
 import com.bigdata.relation.locator.ILocatableResource;
 import com.bigdata.relation.locator.IResourceLocator;
@@ -292,7 +291,7 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
      * Note: This will only succeed if the <i>uuid</i> identifies <i>this</i>
      * journal.
      */
-    public IRawStore openStore(final UUID uuid) {
+    public IStoreFile openStore(final UUID uuid) {
     
         if(uuid == getRootBlockView().getUUID()) {
             

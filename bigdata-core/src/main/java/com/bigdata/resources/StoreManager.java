@@ -44,13 +44,13 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.bigdata.journal.*;
 import org.apache.log4j.Logger;
 
 import com.bigdata.bfs.BigdataFileSystem;
@@ -67,25 +67,7 @@ import com.bigdata.cache.HardReferenceQueue;
 import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.concurrent.NamedLock;
 import com.bigdata.io.SerializerUtil;
-import com.bigdata.journal.AbstractJournal;
-import com.bigdata.journal.AbstractLocalTransactionManager;
-import com.bigdata.journal.BufferMode;
-import com.bigdata.journal.CommitRecordIndex;
-import com.bigdata.journal.ConcurrencyManager;
-import com.bigdata.journal.DiskOnlyStrategy;
-import com.bigdata.journal.IBufferStrategy;
-import com.bigdata.journal.ICommitRecord;
-import com.bigdata.journal.IConcurrencyManager;
-import com.bigdata.journal.ILocalTransactionManager;
-import com.bigdata.journal.IResourceLockService;
-import com.bigdata.journal.IResourceManager;
-import com.bigdata.journal.IRootBlockView;
 //BTM import com.bigdata.journal.ITransactionService;
-import com.bigdata.journal.ITx;
-import com.bigdata.journal.Name2Addr;
-import com.bigdata.journal.TemporaryStore;
-import com.bigdata.journal.WORMStrategy;
-import com.bigdata.journal.WriteExecutorService;
 import com.bigdata.journal.WORMStrategy.StoreCounters;
 import com.bigdata.mdi.IPartitionMetadata;
 import com.bigdata.mdi.IResourceMetadata;
@@ -94,7 +76,6 @@ import com.bigdata.mdi.JournalMetadata;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.SegmentMetadata;
 import com.bigdata.rawstore.Bytes;
-import com.bigdata.rawstore.IRawStore;
 import com.bigdata.relation.locator.DefaultResourceLocator;
 import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
@@ -108,7 +89,7 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
 
 import static java.util.concurrent.TimeUnit.*;
 //BTM
-import com.bigdata.journal.TransactionService;
+
 
 /**
  * Class encapsulates logic for managing the store files (journals and index
@@ -178,7 +159,7 @@ abstract public class StoreManager extends ResourceEvents implements
         String DATA_DIR = StoreManager.class.getName()+".dataDir";
 
         /**
-         * The capacity of the LRU cache of open {@link IRawStore}s. The
+         * The capacity of the LRU cache of open {@link IStoreFile}s. The
          * capacity of this cache indirectly controls how many stores will be
          * held open. The main reason for keeping an store open is to reuse its
          * buffers if another request arrives "soon" which would read on that
@@ -213,7 +194,7 @@ abstract public class StoreManager extends ResourceEvents implements
          * The time in milliseconds before an entry in the store cache will be
          * cleared from the backing {@link HardReferenceQueue} (default
          * {@value #DEFAULT_STORE_CACHE_TIMEOUT}). This property controls how
-         * long the store cache will retain an {@link IRawStore} which has not
+         * long the store cache will retain an {@link IStoreFile} which has not
          * been recently used. This is in contrast to the cache capacity.
          */
         String STORE_CACHE_TIMEOUT = StoreManager.class.getName()
@@ -574,8 +555,8 @@ abstract public class StoreManager extends ResourceEvents implements
      * @see Options#STORE_CACHE_CAPACITY
      * @see Options#STORE_CACHE_TIMEOUT
      */
-//    final protected WeakValueCache<UUID, IRawStore> storeCache;
-    final protected ConcurrentWeakValueCacheWithTimeout<UUID, IRawStore> storeCache;
+//    final protected WeakValueCache<UUID, IStoreFile> storeCache;
+    final protected ConcurrentWeakValueCacheWithTimeout<UUID, IStoreFile> storeCache;
 
     /**
      * Provides locks on a per-{resourceUUID} basis for higher concurrency.
@@ -583,11 +564,11 @@ abstract public class StoreManager extends ResourceEvents implements
     private final transient NamedLock<UUID> namedLock = new NamedLock<UUID>();
     
     /**
-     * The #of entries in the hard reference cache for {@link IRawStore}s,
+     * The #of entries in the hard reference cache for {@link IStoreFile}s,
      * including both {@link ManagedJournal}s and IndexSegment}s. There MAY be
-     * more {@link IRawStore}s open than are reported by this method if there
-     * are hard references held by the application to those {@link IRawStore}s.
-     * {@link IRawStore}s that are not fixed by a hard reference will be
+     * more {@link IStoreFile}s open than are reported by this method if there
+     * are hard references held by the application to those {@link IStoreFile}s.
+     * {@link IStoreFile}s that are not fixed by a hard reference will be
      * quickly finalized by the JVM.
      */
     public int getStoreCacheSize() {
@@ -1123,12 +1104,12 @@ abstract public class StoreManager extends ResourceEvents implements
                 throw new RuntimeException(Options.STORE_CACHE_TIMEOUT
                         + " must be non-negative");
             
-            storeCache = new ConcurrentWeakValueCacheWithTimeout<UUID, IRawStore>(
+            storeCache = new ConcurrentWeakValueCacheWithTimeout<UUID, IStoreFile>(
                     storeCacheCapacity, MILLISECONDS
                             .toNanos(storeCacheTimeout));
             
-//            storeCache = new WeakValueCache<UUID, IRawStore>(
-//                    new LRUCache<UUID, IRawStore>(storeCacheCapacity));
+//            storeCache = new WeakValueCache<UUID, IStoreFile>(
+//                    new LRUCache<UUID, IStoreFile>(storeCacheCapacity));
 
         }
         
@@ -2036,7 +2017,7 @@ if(discoveredTxnSrvc) {
      * that we can find the relevant journal quickly for a given timestamp.
      * <p>
      * Note: This requires that we open each resource in order to extract its
-     * {@link IResourceMetadata} description. We only open the {@link IRawStore}
+     * {@link IResourceMetadata} description. We only open the {@link IStoreFile}
      * for the resource, not its indices. The stores are closed again
      * immediately.
      * 
@@ -2249,15 +2230,15 @@ if(discoveredTxnSrvc) {
      */
     private void closeStores() {
 
-//        final Iterator<IRawStore> itr = storeCache.iterator();
+//        final Iterator<IStoreFile> itr = storeCache.iterator();
 
-        final Iterator<WeakReference<IRawStore>> itr = storeCache.iterator();
+        final Iterator<WeakReference<IStoreFile>> itr = storeCache.iterator();
         
         while (itr.hasNext()) {
 
-//            final IRawStore store = itr.next();
+//            final IStoreFile store = itr.next();
             
-            final IRawStore store = itr.next().get();
+            final IStoreFile store = itr.next().get();
 
             if (store == null) {
                 // weak reference has been cleared.
@@ -2804,12 +2785,12 @@ if(discoveredTxnSrvc) {
     }
 
     /**
-     * Opens an {@link IRawStore}.
+     * Opens an {@link IStoreFile}.
      * 
      * @param uuid
      *            The UUID identifying that store file.
      * 
-     * @return The open {@link IRawStore}.
+     * @return The open {@link IStoreFile}.
      * 
      * @throws IllegalStateException
      *             if the {@link StoreManager} is not open.
@@ -2830,7 +2811,7 @@ if(discoveredTxnSrvc) {
      *       something goes wrong (except that I was planning to drop the file
      *       name from that interface).
      */
-    public IRawStore openStore(final UUID uuid) {
+    public IStoreFile openStore(final UUID uuid) {
 
         assertRunning();
 
@@ -2854,7 +2835,7 @@ if(discoveredTxnSrvc) {
              * Check to see if the given resource is already open.
              */
 
-            IRawStore store;
+            IStoreFile store;
 //            synchronized(storeCache) {
                 
                 store = storeCache.get(uuid);
@@ -3311,9 +3292,9 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
 //        if(false) {// @todo remove code.
 //            int nstores = 0, nindices = 0;
 //            {
-//                Iterator<WeakReference<IRawStore>> itr = storeCache.iterator();
+//                Iterator<WeakReference<IStoreFile>> itr = storeCache.iterator();
 //                while (itr.hasNext()) {
-//                    IRawStore store = itr.next().get();
+//                    IStoreFile store = itr.next().get();
 //                    if (store != null) {
 //                        log.warn("Store: " + store);
 //                        nstores++;
@@ -3837,7 +3818,7 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
          */
         {
 
-            final IRawStore store = storeCache.remove(uuid);
+            final IStoreFile store = storeCache.remove(uuid);
 
             if (store != null) {
                 
@@ -4094,7 +4075,7 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
          */
         {
 
-            final IRawStore store = storeCache.remove(uuid);
+            final IStoreFile store = storeCache.remove(uuid);
 
             if (store != null) {
                 

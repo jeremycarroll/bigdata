@@ -1335,7 +1335,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      */
     abstract public IRawStore getStore();
 
-    final public IResourceMetadata[] getResourceMetadata() {
+    public IResourceMetadata[] getResourceMetadata() {
         
         if (store == null) {
 
@@ -1351,14 +1351,12 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
                     
             };
 
+        } else {
+            //This is a default metadata, appropriate for rawstores.
+            return new IResourceMetadata[] {
+                    new SimpleResourceMetadata(store.getUUID())
+            };
         }
-
-        return new IResourceMetadata[] {
-          
-                new SimpleResourceMetadata(store.getUUID())
-                
-        };
-        
     }
 
     /**

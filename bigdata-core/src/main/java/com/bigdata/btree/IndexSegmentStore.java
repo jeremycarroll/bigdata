@@ -37,10 +37,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.bigdata.journal.IStoreFile;
 import org.apache.log4j.Logger;
 
 import com.bigdata.cache.IGlobalLRU;
-import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
@@ -67,7 +67,7 @@ import com.bigdata.service.ResourceService;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class IndexSegmentStore extends AbstractRawStore {
+public class IndexSegmentStore extends AbstractRawStore implements IStoreFile {
 
     /**
      * Logger.
