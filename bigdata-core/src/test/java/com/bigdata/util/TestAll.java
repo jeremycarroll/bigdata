@@ -73,8 +73,6 @@ public class TestAll extends TestCase {
         // Note: class is not debugged and is marked as deprecated, test is commented out.
 //        suite.addTestSuite( TestHybridTimestampFactory.class );               
 
-        suite.addTestSuite(TestByteBufferBitVector.class);
-
         suite.addTestSuite( TestCSVReader.class );
         suite.addTestSuite( TestBootStateUtil.class );
         return suite;
