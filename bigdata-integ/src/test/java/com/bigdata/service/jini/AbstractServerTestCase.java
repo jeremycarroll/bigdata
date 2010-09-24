@@ -36,6 +36,8 @@ import net.jini.core.lookup.ServiceID;
 import net.jini.core.lookup.ServiceRegistrar;
 import net.jini.core.lookup.ServiceTemplate;
 
+import org.junit.Assert;
+
 import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.LocalPartitionMetadata;
@@ -43,7 +45,6 @@ import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IDataService;
 import com.bigdata.service.MetadataService;
-import com.bigdata.test.util.Assert;
 import com.sun.jini.tool.ClassServer;
 import com.bigdata.util.config.NicUtil;
 

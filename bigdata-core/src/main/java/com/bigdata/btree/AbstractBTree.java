@@ -52,7 +52,6 @@ import com.bigdata.btree.AbstractBTreeTupleCursor.ReadOnlyBTreeTupleCursor;
 import com.bigdata.btree.IndexMetadata.Options;
 import com.bigdata.btree.IndexSegment.IndexSegmentTupleCursor;
 import com.bigdata.btree.data.IAbstractNodeData;
-import com.bigdata.btree.data.ILeafData;
 import com.bigdata.btree.data.INodeData;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.filter.Reverserator;
@@ -68,7 +67,6 @@ import com.bigdata.cache.HardReferenceQueue;
 import com.bigdata.cache.HardReferenceQueueWithBatchingUpdates;
 import com.bigdata.cache.IHardReferenceQueue;
 import com.bigdata.cache.RingBuffer;
-import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
 import com.bigdata.counters.Instrument;
@@ -1337,7 +1335,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      */
     abstract public IRawStore getStore();
 
-    final public IResourceMetadata[] getResourceMetadata() {
+    public IResourceMetadata[] getResourceMetadata() {
         
         if (store == null) {
 
@@ -1353,14 +1351,12 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
                     
             };
 
+        } else {
+            //This is a default metadata, appropriate for rawstores.
+            return new IResourceMetadata[] {
+                    new SimpleResourceMetadata(store.getUUID())
+            };
         }
-
-        return new IResourceMetadata[] {
-          
-                store.getResourceMetadata()
-                
-        };
-        
     }
 
     /**

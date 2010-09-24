@@ -36,6 +36,7 @@ import java.util.UUID;
 
 import com.bigdata.btree.AbstractBTree.HardReference;
 import com.bigdata.btree.keys.TestKeyBuilder;
+import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 
@@ -443,7 +444,7 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
          * Loop until GC activity has caused references to be cleared.
          */
         final int limit = 100;
-        for (int x = 0; x < limit; x++) {
+        for (int x = 0; x < limit; x++) {           
 
             System.gc();
 
@@ -471,6 +472,17 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
         
         fail("Did not clear references after : " + limit + " passes");
         
+    }
+
+    public void test_verify_getResourceMetadata(){
+        //non-transient requirements on getResourceMetadata() are verified in TestBTree.
+        BTree tree = BTree.createTransient(new IndexMetadata(UUID.randomUUID()));
+
+        IResourceMetadata[] metaList = tree.getResourceMetadata();
+
+        assertNotNull("cannot return null",metaList);
+        assertEquals("must return only one item", 1, metaList.length);
+        assertNotNull("item cannot be null",metaList[0]);
     }
 
 }

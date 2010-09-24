@@ -40,7 +40,6 @@ import com.bigdata.btree.IndexSegment;
 import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.btree.view.FusedView;
 import com.bigdata.counters.CounterSet;
-import com.bigdata.rawstore.IRawStore;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.resources.StaleLocatorReason;
@@ -99,17 +98,17 @@ public interface IResourceManager extends IServiceShutdown {
     public AbstractJournal getJournal(long timestamp);
     
     /**
-     * Opens an {@link IRawStore}.
+     * Opens an {@link IStoreFile}.
      * 
      * @param uuid
      *            The UUID identifying that store file.
      * 
-     * @return The open {@link IRawStore}.
+     * @return The open {@link IStoreFile}.
      * 
      * @throws RuntimeException
      *             if something goes wrong.
      */
-    public IRawStore openStore(UUID uuid);
+    public IStoreFile openStore(UUID uuid);
     
     /**
      * Return the ordered {@link AbstractBTree} sources for an index or a view

@@ -585,18 +585,6 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
     }
 
     /**
-     * Not supported - this is available on the {@link AbstractJournal}.
-     * 
-     * @throws UnsupportedOperationException
-     *             always
-     */
-    public IResourceMetadata getResourceMetadata() {
-        
-        throw new UnsupportedOperationException();
-        
-    }
-
-    /**
      * Sets the <code>readOnly</code> flag.
      * <p>
      * Note: This method SHOULD be extended to release write caches, etc.

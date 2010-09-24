@@ -71,21 +71,18 @@ public class LookupStarter extends Thread {
     private String jiniLib = System.getProperty("jini.lib");
     private String jiniLibDl = System.getProperty("jini.lib.dl");
     private String localPolicy = System.getProperty("java.security.policy");
-
+    private static String group = null;
     private static String thisHost = null;
-    private static String defaultGroup = null;
+
     static {
 	try {
             thisHost = NicUtil.getIpAddress("default.nic", "default", false);
-            //defaultGroup = System.getProperty("federation.name","bigdata.test.group-"+thisHost);
-            defaultGroup = ConfigDeployUtil.getFederationName();
-	    
+            group = ConfigDeployUtil.getFederationName();
 	} catch (Throwable t) { /* swallow */ }
     }
+    
     private static String defaultCodebasePort = "23333";
 
-    private static String group = 
-        System.getProperty("federation.name", defaultGroup);
     private static String codebasePortStr = 
         System.getProperty("codebase.port", defaultCodebasePort);
     private static int codebasePort = Integer.parseInt(codebasePortStr);

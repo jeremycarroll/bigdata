@@ -190,6 +190,11 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
 
     }
 
+    public final IResourceMetadata[] getResourceMetadata() {
+        //override to make final so sub-classes cannot modify behavior.
+        return super.getResourceMetadata();
+    }
+
     /**
      * Returns an {@link ICounter}. The {@link ICounter} is mutable iff the
      * {@link BTree} is mutable. All {@link ICounter}s returned by this method

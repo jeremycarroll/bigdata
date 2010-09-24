@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import com.bigdata.journal.AbstractJournal;
+import com.bigdata.journal.IJournal;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.service.AbstractTransactionService;
 
@@ -262,7 +263,7 @@ public class TestReleaseResources extends AbstractResourceManagerTestCase {
                 
                 final Set<UUID> actual = resourceManager.getResourcesForTimestamp(commitTime);
                 
-                assertSameResources(new IRawStore[] { j0, j1 }, actual);
+                assertSameResources(new IJournal[] { j0, j1 }, actual);
             
             }
 
@@ -278,7 +279,7 @@ public class TestReleaseResources extends AbstractResourceManagerTestCase {
                 final Set<UUID> actual = resourceManager
                         .getResourcesForTimestamp(commitTime);
                 
-                assertSameResources(new IRawStore[] { j1 }, actual);
+                assertSameResources(new IJournal[] { j1 }, actual);
                 
             }
             
@@ -434,7 +435,7 @@ public class TestReleaseResources extends AbstractResourceManagerTestCase {
             
             System.err.println("resources="+actualResourceUUIDs);
             
-            assertSameResources(new IRawStore[] { j1 }, //
+            assertSameResources(new IJournal[] { j1 }, //
                     actualResourceUUIDs);
             
         }
@@ -554,7 +555,7 @@ public class TestReleaseResources extends AbstractResourceManagerTestCase {
              * Verify that the resources required for [A] after overflow are
              * exactly [j1].
              */
-            assertSameResources(new IRawStore[] { j1 }, //
+            assertSameResources(new IJournal[] { j1 }, //
                     resourceManager.getResourcesForTimestamp(j1.getRootBlockView()
                             .getFirstCommitTime()));
             

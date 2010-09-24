@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,7 +51,7 @@ import com.bigdata.jini.start.process.JiniCoreServicesProcessHelper;
 import com.bigdata.jini.util.ConfigMath;
 import com.bigdata.service.jini.JiniClientConfig;
 import com.bigdata.service.jini.util.JiniServicesHelper;
-import com.bigdata.test.util.Assert;
+
 
 /**
  * Test suite for the {@link JiniCoreServicesProcessHelper}

@@ -34,6 +34,7 @@ import com.bigdata.btree.raba.ReadOnlyKeysRaba;
 import com.bigdata.btree.raba.ReadOnlyValuesRaba;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
 import com.bigdata.io.FixedByteArrayBuffer;
+import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.EventType;
@@ -674,6 +675,13 @@ public class IndexSegment extends AbstractBTree {
             
         }
         
+    }
+
+    public final IResourceMetadata[] getResourceMetadata() {
+        //Overrides the default returned metadata, providing IndexSegmentStore specific metadata.  
+        return new IResourceMetadata[] {
+                fileStore.getResourceMetadata()
+        };
     }
 
     /*

@@ -479,10 +479,6 @@ public class RWStrategy extends AbstractRawStore implements IBufferStrategy {
 		
 		return m_fileMetadata.raf;		
 	}
-	public IResourceMetadata getResourceMetadata() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	public UUID getUUID() {
 		return m_fileMetadata.rootBlock.getUUID();

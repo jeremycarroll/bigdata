@@ -49,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.bigdata.io.BytesUtil;
+import com.bigdata.journal.IStoreFile;
 import net.jini.config.ConfigurationException;
 import net.jini.core.entry.Entry;
 import net.jini.core.lookup.ServiceItem;
@@ -72,7 +73,6 @@ import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.rawstore.IRawStore;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StoreManager;
 import com.bigdata.resources.StoreManager.ManagedJournal;
@@ -1379,7 +1379,7 @@ if(mds instanceof IDataService) {
                  * expensive IO.
                  */
                 
-                final IRawStore store = resourceManager.getJournal(timestamp);
+                final IStoreFile store = resourceManager.getJournal(timestamp);
 
                 if (store == null) {
 
@@ -1441,7 +1441,7 @@ if(mds instanceof IDataService) {
                      * IndexSegmentStore, but not of the IndexSegment on that
                      * store!
                      */
-                    final IRawStore store = resourceManager.openStore(x
+                    final IStoreFile store = resourceManager.openStore(x
                             .getUUID());
 
                     if (store == null) {

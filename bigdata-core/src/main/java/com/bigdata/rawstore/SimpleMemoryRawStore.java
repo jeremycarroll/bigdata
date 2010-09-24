@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rawstore;
 
 import java.io.File;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,8 +36,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 import com.bigdata.counters.CounterSet;
-import com.bigdata.journal.TemporaryRawStore;
-import com.bigdata.mdi.IResourceMetadata;
 
 /**
  * A purely transient append-only implementation useful when data need to be
@@ -48,7 +45,7 @@ import com.bigdata.mdi.IResourceMetadata;
  * implementation does not contain things like {@link ExecutorService}s that
  * would hang around unless explicitly shutdown.
  * 
- * @see {@link TemporaryRawStore}, which provides a more scalable solution for
+ * @see {@link com.bigdata.journal.TemporaryRawStore TemporaryRawStore}, which provides a more scalable solution for
  *      temporary data.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
@@ -147,90 +144,7 @@ public class SimpleMemoryRawStore extends AbstractRawWormStore {
         return uuid;
         
     }
-    
-    public IResourceMetadata getResourceMetadata() {
 
-        return new ResourceMetadata(uuid);
-        
-    }
-
-    /**
-     * Static class since must be {@link Serializable}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    private static class ResourceMetadata implements IResourceMetadata {
-        
-        /**
-         * 
-         */
-        private static final long serialVersionUID = -8333003625527191826L;
-
-        private final UUID uuid;
-        
-        public ResourceMetadata(UUID uuid) {
-            
-            this.uuid = uuid;
-            
-        }
-        
-        public boolean equals(IResourceMetadata o) {
-
-            return this == o;
-
-        }
-
-        public long getCreateTime() {
-
-            // does not support commit
-            return 0L;
-
-        }
-
-        public long getCommitTime() {
-
-            // does not support commit
-            return 0L;
-
-        }
-
-        public String getFile() {
-
-            // no backing file.
-            return null;
-
-        }
-
-        public UUID getUUID() {
-
-            return uuid;
-
-        }
-
-        public boolean isIndexSegment() {
-
-            // not index segment.
-            return false;
-
-        }
-
-        public boolean isJournal() {
-
-            // not journal.
-            return false;
-
-        }
-
-//        public long size() {
-//
-//            // #of bytes not available.
-//            return 0L;
-//
-//        }
-
-    }
-    
     /**
      * This always returns <code>null</code>.
      */

@@ -126,9 +126,11 @@ public class BuildResult extends AbstractResult implements Params {
         this.sources = new IResourceMetadata[sourceCount];
 
         for (int i = 0; i < sourceCount; i++) {
-
-            this.sources[i] = sources[i].getStore().getResourceMetadata();
-
+            IResourceMetadata[] metaAboutBTree = sources[i].getResourceMetadata();
+            if (metaAboutBTree.length == 1)
+                this.sources[i] = metaAboutBTree[0];
+            else
+                throw new RuntimeException("BTree had wrong number of metadata items, should have been caught in unit tests.");
         }
 
         this.segmentMetadata = segmentMetadata;

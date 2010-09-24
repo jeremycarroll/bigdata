@@ -48,13 +48,8 @@ import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.counters.CounterSet;
-import com.bigdata.journal.AbstractLocalTransactionManager;
-import com.bigdata.journal.BufferMode;
-import com.bigdata.journal.ConcurrencyManager;
-import com.bigdata.journal.IResourceLockService;
+import com.bigdata.journal.*;
 //BTM import com.bigdata.journal.ITransactionService;
-import com.bigdata.journal.RegisterIndexTask;
-import com.bigdata.journal.TemporaryStore;
 import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.IndexPartitionCause;
@@ -79,7 +74,6 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.httpd.AbstractHTTPD;
 
 //BTM
-import com.bigdata.journal.TransactionService;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.LoadBalancer;
 import com.bigdata.service.Service;
@@ -692,7 +686,7 @@ public TransactionService getTransactionService() {
      * @param expected
      * @param actual
      */
-    protected void assertSameResources(IRawStore[] expected, Set<UUID> actual) {
+    protected void assertSameResources(IJournal[] expected, Set<UUID> actual) {
         
         if(log.isInfoEnabled()) {
             

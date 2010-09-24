@@ -65,7 +65,9 @@ public class TestAll_IndexSegment extends TestCase {
          * 
          * See DumpIndexSegment.
          */
-        
+
+        //basic unit tests for IndexSegment.
+        suite.addTestSuite(TestIndexSegment.class);
         // test static methods for the index builder.
         suite.addTestSuite(TestIndexSegmentPlan.class);
         // test encoding and decoding of child node/leaf addresses.
