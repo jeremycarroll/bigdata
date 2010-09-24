@@ -26,8 +26,10 @@
     </target>
             
     <target name="dumpProps">
-        <echo message="Application properties:\n" />
+        <echo message="Application properties:" />
+        <echo message="-----------------------" />
         <echoproperties prefix="integ." />
+        <echo message="-----------------------" />
     </target>
 
     <target name="start">

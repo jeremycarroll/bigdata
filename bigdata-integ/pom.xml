@@ -9,6 +9,11 @@
     <groupId>com.bigdata</groupId>
     <artifactId>bigdata-integration-test</artifactId>
     <name>bigdata Integration Tests</name>
+    
+    <!-- 
+        Note: Most properties include the "integ." prefix so that they
+              can displayed easily using the ANT <echoproperties> task in the services.xml script
+     -->
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -22,7 +27,7 @@
         <integ.deploy.dir>${integ.deploy.root.dir}/${integ.bigdata.dependency}-${project.version}</integ.deploy.dir>
         
         <integ.test.dir>${integ.deploy.dir}/testing</integ.test.dir>
-        <integ.testScript>${integ.test.dir}/test.xml</integ.testScript>
+        <integ.testScript>${project.build.testOutputDirectory}/services.xml</integ.testScript>
         <integ.basedir>${integ.test.dir}</integ.basedir>
         <integ.app.home>${integ.deploy.dir}</integ.app.home>
         <integ.deploy.conf.dir>${integ.test.dir}/conf</integ.deploy.conf.dir>
@@ -50,6 +55,11 @@
                 <executions>
                     <execution>
                         <id>unpack</id>
+                        
+                        <!-- Bound to the package phase so that we untar the tarball just
+                             before the pre-integration-test phase -->
+                        <phase>package</phase>
+                        
                         <goals>
                             <goal>unpack</goal>
                         </goals>
@@ -156,7 +166,7 @@
                         <phase>pre-integration-test</phase>
                         <configuration>
                             <tasks>
-                                <ant antfile="${project.build.testOutputDirectory}/services.xml" target="start" useNativeBasedir="true" inheritAll="true"/> 
+                                <ant antfile="${integ.testScript}" target="start" useNativeBasedir="true" inheritAll="true"/> 
                             </tasks>
                         </configuration>
                         <goals>
@@ -169,8 +179,7 @@
                         <phase>post-integration-test</phase>
                         <configuration>
                             <tasks>
-                                <echo message="testscript = ${testScript}" />
-                                <ant antfile="${project.build.testOutputDirectory}/services.xml" target="stop" useNativeBasedir="true" inheritAll="true"/> 
+                                <ant antfile="${integ.testScript}" target="stop" useNativeBasedir="true" inheritAll="true"/> 
                             </tasks>
                         </configuration>
                         <goals>
