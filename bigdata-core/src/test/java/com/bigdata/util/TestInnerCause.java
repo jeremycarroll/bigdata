@@ -58,6 +58,11 @@ public class TestInnerCause extends TestCase {
         
     }
     
+    protected boolean isInnerCause(Throwable t, Class<? extends Throwable> cls) {
+        
+        return InnerCause.isInnerCause(t, cls);
+        
+    }    
     public void test_getInnerCause_correctRejection() {
 
         try {
@@ -91,7 +96,7 @@ public class TestInnerCause extends TestCase {
         Throwable t = new RuntimeException();
          
         assertTrue(t == getInnerCause(t, RuntimeException.class));
-            
+        assertTrue(isInnerCause(t, RuntimeException.class));           
     }
 
     /**
@@ -103,7 +108,8 @@ public class TestInnerCause extends TestCase {
         Throwable t = new IOException();
          
         assertTrue(t == getInnerCause(t, Exception.class));
-        
+        assertTrue(isInnerCause(t, Exception.class));           
+      
     }
 
     /**
@@ -114,7 +120,8 @@ public class TestInnerCause extends TestCase {
         Throwable t = new Exception();
          
         assertNull(getInnerCause(t, IOException.class));
-        
+        assertFalse(isInnerCause(t, IOException.class));           
+
     }
     
     /**
@@ -126,7 +133,8 @@ public class TestInnerCause extends TestCase {
         Throwable t = new Throwable();
          
         assertNull(getInnerCause(t, Exception.class));
-        
+        assertFalse(isInnerCause(t, Exception.class));           
+
     }
 
     /**
@@ -139,6 +147,7 @@ public class TestInnerCause extends TestCase {
         Throwable t = new Throwable(cause);
 
         assertTrue(cause == getInnerCause(t, Exception.class));
+        assertTrue(isInnerCause(t, Exception.class));           
 
     }
 
@@ -152,6 +161,7 @@ public class TestInnerCause extends TestCase {
         Throwable t = new Throwable(cause);
 
         assertTrue(cause == getInnerCause(t, Exception.class));
+        assertTrue(isInnerCause(t, Exception.class));           
 
     }
 
@@ -165,7 +175,8 @@ public class TestInnerCause extends TestCase {
         Throwable t = new RuntimeException(cause);
          
         assertNull( getInnerCause(t, IOException.class));
-        
+        assertFalse(isInnerCause(t, IOException.class));           
+
     }
     
     /**
@@ -179,7 +190,7 @@ public class TestInnerCause extends TestCase {
         Throwable t = new Exception(cause);
 
         assertNull( getInnerCause(t, IOException.class) );
-
+        assertFalse(isInnerCause(t, IOException.class));           
     }
     
 }

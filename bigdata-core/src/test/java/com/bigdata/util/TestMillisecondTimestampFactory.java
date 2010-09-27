@@ -165,4 +165,24 @@ public class TestMillisecondTimestampFactory extends TestCase {
         
     }
     
+    public void test_nextMillis_wrap() {
+        final long startMillis = Long.MAX_VALUE;
+        MillisecondTimestampFactory.setLowerBound(startMillis);
+        try {
+        	long timestamp = MillisecondTimestampFactory.nextMillis();
+        	fail("Successfully called nextMillis() with wrap aorund.");
+        } catch (IllegalStateException e) {
+        	//ignore -- expected
+        }
+    }
+    
+    public void test_setLowerBound() {
+        final long startMillis = Long.MAX_VALUE;
+        //Synch to ensure atomic calling sequence
+        synchronized(MillisecondTimestampFactory.class) {
+	        MillisecondTimestampFactory.setLowerBound(startMillis);
+	        //Setting lower bound clears auot-inc mode
+	        assertFalse(MillisecondTimestampFactory.isAutoIncMode());
+        }
+    }
 }

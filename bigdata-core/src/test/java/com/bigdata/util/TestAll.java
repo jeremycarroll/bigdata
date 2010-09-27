@@ -65,17 +65,12 @@ public class TestAll extends TestCase {
 
         // test of the millisecond resolution timestamp factory.
         suite.addTestSuite( TestMillisecondTimestampFactory.class );
-        
-        // test of the nanosecond resolution timestamp factory.
-        suite.addTestSuite( TestNanosecondTimestampFactory.class );
-        
-        // test of the hybrid timestamp factory.
-        // Note: class is not debugged and is marked as deprecated, test is commented out.
-//        suite.addTestSuite( TestHybridTimestampFactory.class );               
-
+                
         suite.addTestSuite( TestCSVReader.class );
         suite.addTestSuite( TestBootStateUtil.class );
         suite.addTestSuite( TestEntryUtil.class );
+        suite.addTestSuite( TestFormat.class );
+        suite.addTestSuite( TestHTMLUtility.class );
         return suite;
         
     }
