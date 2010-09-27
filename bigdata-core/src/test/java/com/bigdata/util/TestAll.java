@@ -75,6 +75,7 @@ public class TestAll extends TestCase {
 
         suite.addTestSuite( TestCSVReader.class );
         suite.addTestSuite( TestBootStateUtil.class );
+        suite.addTestSuite( TestEntryUtil.class );
         return suite;
         
     }
