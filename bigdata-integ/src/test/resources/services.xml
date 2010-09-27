@@ -1,30 +1,10 @@
 <project name="bigdata-integration-lookup-starter" default="help" basedir=".">
-<!--
-    <property name="integ.deploy.dir" location="${basedir}/.." />
-    <property name="integ.app.home" location="${deploy.dir}" />
-    <property name="integ.deploy.conf.dir" location="${deploy.dir}/conf" />
-    <property name="integ.deploy.lib" location="${deploy.dir}/lib" />
-    <property name="integ.deploy.lib.test" location="${deploy.dir}/testing/lib-test" />
-    <property name="integ.deploy.lib.dl" location="${deploy.dir}/lib-dl" />
-    <property name="integ.test.codebase.dir" location="${deploy.lib.dl}" />
-    <property name="integ.test.codebase.port" value="23333" />
-    <property name="integ.java.security.policy" location="conf/policy.all" />
-    <property name="integ.log4j.configuration" location="${deploy.dir}/var/config/logging/log4j.properties" />
-    <property name="integ.java.net.preferIPv4Stack" value="true" />
-    <property name="integ.default.nic" value="eth0" />
-    <property name="integ.parent.artifactName" value="bigdata-core" />
--->
-        
-    <!-- Set to the empty string to indicate "unset". Application code will determine correct
-    	 default value.
-    <property name="integ.federation.name" value="" />
- -->
-        
+
     <target name="help">
         <echo level="error" message="This script must be run with either the 'start' or 'stop' targets" />
-            <antcall target="dumpProps" />
+        <antcall target="dumpProps" />
     </target>
-            
+
     <target name="dumpProps">
         <echo message="Application properties:" />
         <echo message="-----------------------" />
@@ -44,6 +24,7 @@
         <antcall target="dumpProps" />
         <antcall target="stopLookup" />
         <antcall target="stopHttpd" />
+        <antcall target="kill-leftover-processes" />
     </target>
 
     <target name="startHttpd">
@@ -95,6 +76,16 @@
             <sysproperty key="default.nic" value="${integ.default.nic}" />
             <arg value="-stop" />
         </java>
+    </target>
+
+    <!-- Some tests currently leave processes (e.g. QuorumPeerMain) hanging around after
+         the tests have completed.  This task kills those processes (Unix-only). -->
+
+    <target name="kill-leftover-processes">
+        <echo message="Killing leftover processes" />
+        <chmod file="${basedir}/kill_leftover_processes.sh" perm="777" verbose="true" />
+        <exec spawn="false" resolveexecutable="true" executable="kill_leftover_processes.sh">   
+        </exec>
     </target>
 
     <target name="clean-sparql-test-suite" description="delete the files unpacked by the Sesame SPARQL test suite.">
