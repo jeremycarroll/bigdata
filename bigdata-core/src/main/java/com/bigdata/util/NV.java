@@ -5,6 +5,8 @@ import java.io.Serializable;
 /**
  * A name-value pair.
  * 
+ * Note: this class has a natural ordering that is inconsistent with equals.
+ * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
@@ -56,15 +58,19 @@ public class NV implements Serializable, Comparable<NV> {
         
     }
     
-    public int hashCode() {
-        
-        return name.hashCode();
-        
+    @Override
+    public int hashCode() {        
+        return name.hashCode();        
     }
     
-    public boolean equals(NV o) {
-    
-        return name.equals(o.name) && value.equals(o.value);
+    @Override
+    public boolean equals(Object o) {
+    	if (!(o instanceof NV)) {
+    		return false;
+    	}
+        NV nv = (NV)o;
+        
+        return name.equals(nv.name) && value.equals(nv.value);
         
     }
 
@@ -79,34 +85,34 @@ public class NV implements Serializable, Comparable<NV> {
         
     }
     
-    /**
-     * Combines the two arrays, appending the contents of the 2nd array to the
-     * contents of the first array.
-     * 
-     * @param a
-     * @param b
-     * @return
-     */
-    public static NV[] concat(final NV[] a, final NV[] b) {
-
-        if (a == null && b == null)
-            return a;
-
-        if (a == null)
-            return b;
-
-        if (b == null)
-            return a;
-
-        final NV[] c = (NV[]) java.lang.reflect.Array.newInstance(a.getClass()
-                .getComponentType(), a.length + b.length);
-
-        System.arraycopy(a, 0, c, 0, a.length);
-
-        System.arraycopy(b, 0, c, a.length, b.length);
-
-        return c;
-
-    }
+//    /**
+//     * Combines the two arrays, appending the contents of the 2nd array to the
+//     * contents of the first array.
+//     * 
+//     * @param a
+//     * @param b
+//     * @return
+//     */
+//    public static NV[] concat(final NV[] a, final NV[] b) {
+//
+//        if (a == null && b == null)
+//            return a;
+//
+//        if (a == null)
+//            return b;
+//
+//        if (b == null)
+//            return a;
+//
+//        final NV[] c = (NV[]) java.lang.reflect.Array.newInstance(a.getClass()
+//                .getComponentType(), a.length + b.length);
+//
+//        System.arraycopy(a, 0, c, 0, a.length);
+//
+//        System.arraycopy(b, 0, c, a.length, b.length);
+//
+//        return c;
+//
+//    }
 
 }

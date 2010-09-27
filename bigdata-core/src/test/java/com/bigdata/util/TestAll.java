@@ -71,6 +71,8 @@ public class TestAll extends TestCase {
         suite.addTestSuite( TestEntryUtil.class );
         suite.addTestSuite( TestFormat.class );
         suite.addTestSuite( TestHTMLUtility.class );
+        suite.addTestSuite( TestNT.class );
+        suite.addTestSuite( TestNV.class );
         return suite;
         
     }

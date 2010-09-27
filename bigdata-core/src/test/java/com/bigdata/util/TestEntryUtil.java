@@ -13,7 +13,6 @@ import net.jini.lookup.entry.Address;
 import net.jini.lookup.entry.Comment;
 import net.jini.lookup.entry.Location;
 import net.jini.lookup.entry.Name;
-import net.jini.lookup.entry.ServiceType;
 import junit.framework.TestCase;
 
 public class TestEntryUtil extends TestCase {
@@ -225,66 +224,6 @@ public class TestEntryUtil extends TestCase {
 	    assertNotEquivalentSets(entries2, entries1);
 	}
 	
-	public static class MyServiceType extends ServiceType	{
-		private static final long serialVersionUID = 1L;
-		//Only public, non-transient/final/static are used for Entry objs
-		public String name = null; 
-		public String desc = null;
-
-		public MyServiceType() {} //default cons per spec
-
-		public MyServiceType(String name, String desc) {
-			super();
-			this.name = name;
-			this.desc = desc;
-		}
-		
-		@Override
-		public String getDisplayName() {
-			return name;
-		}
-		
-		@Override
-		public String getShortDescription() {
-			return desc;
-		}		
-	}
-	
-	public void testCompareEntrySets_equiv_serviceType() {
-		Entry[] entries1 = new Entry[] {new MyServiceType("A", "B")};
-		Entry[] entries2 = new Entry[] {new MyServiceType("A", "B")};
-	    assertEquivalentSets(entries1, entries2);
-	    assertEquivalentSets(entries2, entries1);
-	}
-	
-	public void testCompareEntrySets_unequiv_serviceType() {
-		Entry[] entries1 = new Entry[] {new MyServiceType("A", "B")};
-		Entry[] entries2 = new Entry[] {new MyServiceType("A", "C")};
-	    assertNotEquivalentSets(entries1, entries2);
-	    assertNotEquivalentSets(entries2, entries1);
-	}
-	
-	public void testCompareEntrySets_unequiv_serviceType2() {
-		Entry[] entries1 = new Entry[] {new MyServiceType("A", "B")};
-		Entry[] entries2 = new Entry[] {new MyServiceType("D", "B")};
-	    assertNotEquivalentSets(entries1, entries2);
-	    assertNotEquivalentSets(entries2, entries1);
-	}
-
-	public void testCompareEntrySets_unequiv_serviceType_null1() {
-		Entry[] entries1 = new Entry[] {new MyServiceType("A", "B")};
-		Entry[] entries2 = new Entry[] {new MyServiceType(null, "B")};
-	    assertNotEquivalentSets(entries1, entries2);
-	    assertNotEquivalentSets(entries2, entries1);
-	}
-	
-	public void testCompareEntrySets_unequiv_serviceType_null2() {
-		Entry[] entries1 = new Entry[] {new MyServiceType("A", "B")};
-		Entry[] entries2 = new Entry[] {new MyServiceType("A", null)};
-	    assertNotEquivalentSets(entries1, entries2);
-	    assertNotEquivalentSets(entries2, entries1);
-	}
-
 	private static class MyEntryWithUnusableFields extends AbstractEntry {
 		private static final long serialVersionUID = 1L; // final, static, excluded
 		public final String finalString = "finalString"; // final, excluded

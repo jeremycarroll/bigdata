@@ -60,21 +60,17 @@ public class NT implements Serializable {
 
     }
 
+    @Override
     public int hashCode() {
 
         return hashCode;
 
     }
 
+    @Override
     public boolean equals(Object o) {
 
-        return equals((NT) o);
-
-    }
-
-    public boolean equals(NT o) {
-
-        if (o == null) {
+        if (!(o instanceof NT)) {
 
             /*
              * Note: This handles a case where the other instance was a key in a
@@ -85,14 +81,15 @@ public class NT implements Serializable {
             return false;
             
         }
+        NT nt = (NT)o;
         
-        if (this == o)
+        if (this == nt)
             return true;
 
-        if (!this.name.equals(o.name))
+        if (!this.name.equals(nt.name))
             return false;
 
-        if (this.timestamp != o.timestamp)
+        if (this.timestamp != nt.timestamp)
             return false;
 
         return true;
