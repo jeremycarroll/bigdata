@@ -277,9 +277,6 @@
         <test name="com.bigdata.search.TestAll" todir="${test.results.dir}" unless="testName" />
         <test name="com.bigdata.relation.TestAll" todir="${test.results.dir}" unless="testName" />
 
-        <!-- See https://sourceforge.net/apps/trac/bigdata/ticket/53 -->
-        <test name="com.bigdata.jini.TestAll" todir="${test.results.dir}" unless="testName" />
-
         <test name="com.bigdata.rdf.TestAll" todir="${test.results.dir}" unless="testName" />
         <test name="com.bigdata.rdf.sail.TestAll" todir="${test.results.dir}" unless="testName" />
 
