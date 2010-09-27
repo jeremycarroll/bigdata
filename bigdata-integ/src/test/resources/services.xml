@@ -14,6 +14,10 @@
 
     <target name="start">
         <echo message="Starting support services..." />
+        
+        <!-- Probably overkill, but here just in case the previous run
+             failed to kill the leftover processes for some reason -->
+        <antcall target="kill-leftover-processes" />
         <antcall target="dumpProps" />
         <antcall target="startHttpd" />
         <antcall target="startLookup" />
