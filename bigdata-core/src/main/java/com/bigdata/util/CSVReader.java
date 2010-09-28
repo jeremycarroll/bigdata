@@ -291,7 +291,7 @@ public class CSVReader implements Iterator<Map<String, Object>> {
      * The header definitions (initially null).
      * 
      * @see #readHeaders()
-     * @see #setHeaders(String[])
+     * @see #setHeaders(Header[])
      */
     protected Header[] headers;
 

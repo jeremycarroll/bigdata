@@ -84,9 +84,6 @@ public class NT implements Serializable {
         }
         NT nt = (NT)o;
         
-        if (this == nt)
-            return true;
-
         if (!this.name.equals(nt.name))
             return false;
 

@@ -185,4 +185,14 @@ public class TestMillisecondTimestampFactory extends TestCase {
 	        assertFalse(MillisecondTimestampFactory.isAutoIncMode());
         }
     }
+    
+    /**
+     * Reset "global" time back to normal after each run. Because 
+     *  MillisecondTimestampFactory is static, changes made in these
+     *  tests will affect other tests in the same JVM. Therefore, need to
+     *  reset value back to current time after each run.
+     */
+    protected void tearDown() throws Exception {
+    	MillisecondTimestampFactory.setLowerBound(System.currentTimeMillis());
+	}
 }
