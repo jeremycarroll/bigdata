@@ -3,6 +3,7 @@
         <groupId>com.bigdata</groupId>
         <artifactId>bigdata</artifactId>
         <version>0.83.2-SNAPSHOT</version>
+        <relativePath>../</relativePath>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
