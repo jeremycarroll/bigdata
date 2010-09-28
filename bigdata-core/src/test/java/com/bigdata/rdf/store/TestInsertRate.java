@@ -35,6 +35,11 @@ import org.openrdf.model.ValueFactory;
 
 import com.bigdata.io.BytesUtil.UnsignedByteArrayComparator;
 import com.bigdata.rdf.rio.StatementBuffer;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * A test for measuring the possible insert rate for a triple store based on a
@@ -73,20 +78,20 @@ import com.bigdata.rdf.rio.StatementBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestInsertRate extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestInsertRate() {
+    public TestInsertRate(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestInsertRate(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Large scale insert test.
@@ -115,7 +120,7 @@ public class TestInsertRate extends AbstractTripleStoreTestCase {
 //      int nliteral = 0;
       int litsize = 300;
     
-        TestInsertRate test = new TestInsertRate("TestInsertRate");
+        TestInsertRate test = new TestInsertRate(null);
         test.setUp();
         test.doTest( nclass, nproperty, nliteral, litsize );
         test.tearDown();
@@ -389,7 +394,7 @@ public class TestInsertRate extends AbstractTripleStoreTestCase {
         Writer w = getWriter( ".out" );
 
         w.write // description of test.
-            ( "Test: "+getName()+
+            ( "Test: "+this.getClass().getName()+
               ", #class="+nclass+
               ", #property="+nproperty+
               ", #literal="+nliteral+
@@ -408,7 +413,7 @@ public class TestInsertRate extends AbstractTripleStoreTestCase {
         w.flush();
 
         log.info
-            ( "\nTest: "+getName()+
+            ( "\nTest: "+this.getClass().getName()+
               ", #class="+nclass+
               ", #property="+nproperty+
               ", #literal="+nliteral+
@@ -589,7 +594,7 @@ public class TestInsertRate extends AbstractTripleStoreTestCase {
 
         return new BufferedWriter
             ( new FileWriter
-              ( getName()+ext
+              ( this.getClass().getName()+ext
             )
               );
 
@@ -600,6 +605,7 @@ public class TestInsertRate extends AbstractTripleStoreTestCase {
          *       concurrent writers, and concurrent writes with concurrent
          *       query.
          */
+        @Test
         public void test_tiny() throws IOException {
 
             // tiny
@@ -612,6 +618,7 @@ public class TestInsertRate extends AbstractTripleStoreTestCase {
 
         }
 
+        @Test
         public void test_small() throws IOException {
 
             int nclass = 30;

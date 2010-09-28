@@ -33,6 +33,7 @@ import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.cache.HardReferenceQueue;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for {@link BTree#touch(AbstractNode)}. None of these tests cause
@@ -52,19 +53,13 @@ public class TestTouch extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestTouch(String name) {
-        super(name);
-    }
-
-    /**
      * Test verifies that the reference counter is incremented when a node is
      * appended to the hard reference queue (the scan of the tail of the queue
      * is disabled for this test). Finally, verify that we can force the node to
      * be evicted from the queue but that its non-zero reference counter means
      * that it is not made persistent when it is evicted.
      */
+    @Test
     public void test_touch01() {
 
         /*
@@ -171,6 +166,7 @@ public class TestTouch extends AbstractBTreeTestCase {
      * {@link BTree#touch(AbstractNode)} if a node is already on the hard
      * reference queue.
      */
+    @Test
     public void test_touch02() {
 
         /*
@@ -277,6 +273,7 @@ public class TestTouch extends AbstractBTreeTestCase {
      * FIXME This test needs to use a tree with nodes and leaves or fake another
      * root leaf since the minimum cache size is (2)
      */
+    @Test
     public void test_touch03() {
 
         /*

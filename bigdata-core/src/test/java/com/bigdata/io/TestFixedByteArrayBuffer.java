@@ -29,10 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.io;
 
 import java.util.Random;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link FixedByteArrayBuffer}.
@@ -40,19 +39,12 @@ import com.bigdata.rawstore.Bytes;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestFixedByteArrayBuffer extends TestCase2 {
+public class TestFixedByteArrayBuffer extends Assert {
 
     /**
      * 
      */
     public TestFixedByteArrayBuffer() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestFixedByteArrayBuffer(String arg0) {
-        super(arg0);
     }
 
     /*
@@ -62,6 +54,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
     /**
      * ctor tests.
      */
+    @Test
     public void test_ctor() {
 
         {
@@ -92,6 +85,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
     /**
      * correct rejection tests.
      */
+    @Test
     public void test_ctor_correctRejection() {
 
         try {
@@ -128,6 +122,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
      * buffer extension tests.
      */
 
+    @Test
     public void test_rangeCheck() {
 
         final FixedByteArrayBuffer buf = new FixedByteArrayBuffer(new byte[10],
@@ -191,6 +186,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
     final int LIMIT = 1000;
 
+    @Test
     public void test_get_correctRejection() {
 
         final int size = 20;
@@ -222,6 +218,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
     /**
      * Test of the simple forms of the bulk get/put methods.
      */
+    @Test
     public void test_getPutByteArray() {
         
         final int size = 200;
@@ -262,6 +259,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
      * Test of the bulk get/put byte[] methods which accept a slice into the
      * caller's array.
      */
+    @Test
     public void test_getPutByteArrayWithOffsetAndLength() {
         
         final int size = 200;
@@ -307,6 +305,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
     }
 
+    @Test
     public void test_getByte_putByte() {
         
         final IDataRecord buf = new FixedByteArrayBuffer(
@@ -336,6 +335,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
     }
     
+    @Test
     public void test_getShort_putShort() {
         
         final IDataRecord buf = new FixedByteArrayBuffer(
@@ -361,6 +361,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
     }
     
+    @Test
     public void test_getInt_putInt() {
 
         final IDataRecord buf = new FixedByteArrayBuffer(
@@ -386,6 +387,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
     }
 
+    @Test
     public void test_getFloat_putFloat() {
 
         final IDataRecord buf = new FixedByteArrayBuffer(
@@ -393,7 +395,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
         final int pos = Bytes.SIZEOF_FLOAT;
 
-        assertEquals(0f, buf.getFloat(pos));
+        assertEquals(0f, buf.getFloat(pos), 0f);
 
         for (int i = 0; i < LIMIT; i++) {
 
@@ -401,15 +403,16 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
             buf.putFloat(pos, expected);
 
-            assertEquals(expected, buf.getFloat(pos));
+            assertEquals(expected, buf.getFloat(pos), 0f);
         }
 
-        assertEquals(0f, buf.getFloat(pos - Bytes.SIZEOF_FLOAT));
+        assertEquals(0f, buf.getFloat(pos - Bytes.SIZEOF_FLOAT), 0f);
 
-        assertEquals(0f, buf.getFloat(pos + Bytes.SIZEOF_FLOAT));
+        assertEquals(0f, buf.getFloat(pos + Bytes.SIZEOF_FLOAT), 0f);
 
     }
     
+    @Test
     public void test_getLong_putLong() {
         
         final IDataRecord buf = new FixedByteArrayBuffer(
@@ -435,6 +438,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
     }
 
+    @Test
     public void test_getDouble_putDouble() {
 
         final IDataRecord buf = new FixedByteArrayBuffer(
@@ -442,7 +446,7 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
         final int pos = Bytes.SIZEOF_DOUBLE;
 
-        assertEquals(0d, buf.getDouble(pos));
+        assertEquals(0d, buf.getDouble(pos), 0d);
 
         for (int i = 0; i < LIMIT; i++) {
 
@@ -450,12 +454,12 @@ public class TestFixedByteArrayBuffer extends TestCase2 {
 
             buf.putDouble(pos, expected);
 
-            assertEquals(expected, buf.getDouble(pos));
+            assertEquals(expected, buf.getDouble(pos), 0d);
         }
 
-        assertEquals(0d, buf.getDouble(pos - Bytes.SIZEOF_DOUBLE));
+        assertEquals(0d, buf.getDouble(pos - Bytes.SIZEOF_DOUBLE), 0d);
 
-        assertEquals(0d, buf.getDouble(pos + Bytes.SIZEOF_DOUBLE));
+        assertEquals(0d, buf.getDouble(pos + Bytes.SIZEOF_DOUBLE), 0d);
 
     }
 

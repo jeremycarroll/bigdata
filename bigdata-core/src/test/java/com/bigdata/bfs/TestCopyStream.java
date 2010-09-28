@@ -31,8 +31,7 @@ package com.bigdata.bfs;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Random;
-
-import com.bigdata.bfs.FileVersionOutputStream;
+import org.junit.Test;
 
 
 /**
@@ -56,15 +55,10 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
     public TestCopyStream() {
     }
 
-    public TestCopyStream(String name) {
-        
-        super(name);
-        
-    }
-
     /**
      * Copies a short stream onto a file version and reads it back.
      */
+    @Test
     public void test_copyStream_smallStream() throws IOException {
         
         final String id = "test";
@@ -81,7 +75,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
 
         final byte[] actual = read(repo.inputStream(id, version));
 
-        assertEquals("data", expected, actual);
+        assertArrayEquals("data", expected, actual);
 
     }
 
@@ -90,6 +84,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_copyStream_emptyBlock() throws IOException {
         
         final String id = "test";
@@ -106,7 +101,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
         assertSameIterator("block identifiers", new Long[] { 0L }, repo.blocks(
                 id, version));
 
-        assertEquals("data", expected, read(repo.inputStream(id, version)));
+        assertArrayEquals("data", expected, read(repo.inputStream(id, version)));
 
     }
 
@@ -116,17 +111,18 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_copyStream_nearlyFullBlock() throws IOException {
         
         final String id = "test";
         
         final int version = 0;
         
-        Random r = new Random();
+        Random r2 = new Random();
         
         final byte[] expected = new byte[BLOCK_SIZE - 1];
         
-        r.nextBytes(expected);
+        r2.nextBytes(expected);
         
         assertEquals("nbytes", expected.length, repo.copyStream(id, version,
                 new ByteArrayInputStream(expected)));
@@ -136,7 +132,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
         assertSameIterator("block identifiers", new Long[] { 0L }, repo.blocks(
                 id, version));
 
-        assertEquals("data", expected, read(repo.inputStream(id, version)));
+        assertArrayEquals("data", expected, read(repo.inputStream(id, version)));
 
     }
     
@@ -145,17 +141,18 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_copyStream_fullBlock() throws IOException {
         
         final String id = "test";
         
         final int version = 0;
         
-        Random r = new Random();
+        Random r2 = new Random();
         
         final byte[] expected = new byte[BLOCK_SIZE];
         
-        r.nextBytes(expected);
+        r2.nextBytes(expected);
         
         assertEquals("nbytes", expected.length, repo.copyStream(id, version,
                 new ByteArrayInputStream(expected)));
@@ -165,7 +162,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
         assertSameIterator("block identifiers", new Long[] { 0L }, repo.blocks(
                 id, version));
 
-        assertEquals("data", expected, read(repo.inputStream(id, version)));
+        assertArrayEquals("data", expected, read(repo.inputStream(id, version)));
 
     }
 
@@ -175,17 +172,18 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_copyStream_fullBlockPlusOne() throws IOException {
         
         final String id = "test";
         
         final int version = 0;
         
-        Random r = new Random();
+        Random r2 = new Random();
         
         final byte[] expected = new byte[BLOCK_SIZE + 1];
         
-        r.nextBytes(expected);
+        r2.nextBytes(expected);
         
         assertEquals("nbytes", expected.length, repo.copyStream(id, version,
                 new ByteArrayInputStream(expected)));
@@ -195,7 +193,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
         assertSameIterator("block identifiers", new Long[] { 0L, 1L }, repo
                 .blocks(id, version));
 
-        assertEquals("data", expected, read(repo.inputStream(id, version)));
+        assertArrayEquals("data", expected, read(repo.inputStream(id, version)));
 
     }
 
@@ -205,11 +203,12 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_copyStream_smallRandomStreams() throws IOException {
         
         final int LIMIT = 20;
         
-        final Random r = new Random();
+        final Random r2 = new Random();
 
         int nzero = 0;
         int nfull = 0;
@@ -219,7 +218,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
             /*
              * Note: {id + version} are always unique for this test.
              */
-            final String id = "test#" + r.nextInt(1000);
+            final String id = "test#" + r2.nextInt(1000);
 
             final int version = i;
 
@@ -231,16 +230,16 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
              */
             final int len;
             {
-                final int x = r.nextInt(100);
+                final int x = r2.nextInt(100);
                 if (x < 10) {
                     // short block length.
-                    len = r.nextInt(5);
+                    len = r2.nextInt(5);
                 } else if (x >= 90) {
                     // long block length (up to block_size).
-                    len = r.nextInt(5) + BLOCK_SIZE - 4;
+                    len = r2.nextInt(5) + BLOCK_SIZE - 4;
                 } else {
                     // uniform random distribution.
-                    len = r.nextInt(BLOCK_SIZE + 1);
+                    len = r2.nextInt(BLOCK_SIZE + 1);
                 }
             }
             
@@ -250,7 +249,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
             final byte[] expected = new byte[len];
             
             // random data.
-            r.nextBytes(expected);
+            r2.nextBytes(expected);
 
             assertEquals("nbytes", expected.length, repo.copyStream(id,
                     version, new ByteArrayInputStream(expected)));
@@ -260,7 +259,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
             assertSameIterator("block identifiers", new Long[] { 0L }, repo
                     .blocks(id, version));
 
-            assertEquals("data", expected, read(repo.inputStream(id, version)));
+            assertArrayEquals("data", expected, read(repo.inputStream(id, version)));
 
         }
         
@@ -275,20 +274,21 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_copyStream_largeStream() throws IOException {
         
         final String id = "test";
         
         final int version = 0;
         
-        Random r = new Random();
+        Random r2 = new Random();
         
         final int N = 10;
         
         final byte[] expected = new byte[N * BLOCK_SIZE
-                + r.nextInt(BLOCK_SIZE - 1) + 1];
+                + r2.nextInt(BLOCK_SIZE - 1) + 1];
         
-        r.nextBytes(expected);
+        r2.nextBytes(expected);
         
         assertEquals("nbytes", expected.length, repo.copyStream(id, version,
                 new ByteArrayInputStream(expected)));
@@ -310,7 +310,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
 
         }
 
-        assertEquals("data", expected, read(repo.inputStream(id, version)));
+        assertArrayEquals("data", expected, read(repo.inputStream(id, version)));
     }
     
     /**
@@ -318,11 +318,12 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_copyStream_largeRandomStreams() throws IOException {
 
         final int LIMIT = 5;
         
-        final Random r = new Random();
+        final Random r2 = new Random();
 
 //        int nzero = 0;
 //        int nfull = 0;
@@ -332,7 +333,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
             /*
              * Note: {id + version} are always unique for this test.
              */
-            final String id = "test#" + r.nextInt(1000);
+            final String id = "test#" + r2.nextInt(1000);
 
             final int version = i;
 
@@ -342,19 +343,19 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
              * Note: the distribution is adjusted to make near zero and near
              * block_size operations at least 10% of all operations.
              */
-            final int n = r.nextInt(10); // #of full blocks [0:N-1].
+            final int n = r2.nextInt(10); // #of full blocks [0:N-1].
             final int len;
             {
-                final int x = r.nextInt(BLOCK_SIZE); // #of bytes in last block.
+                final int x = r2.nextInt(BLOCK_SIZE); // #of bytes in last block.
                 if (x < 10) {
                     // short block length.
-                    len = n * BLOCK_SIZE + r.nextInt(5);
+                    len = n * BLOCK_SIZE + r2.nextInt(5);
                 } else if (x >= 90) {
                     // long block length (up to block_size - 1).
-                    len = n * BLOCK_SIZE + r.nextInt(5) + BLOCK_SIZE - 5;
+                    len = n * BLOCK_SIZE + r2.nextInt(5) + BLOCK_SIZE - 5;
                 } else {
                     // uniform random distribution.
-                    len = n * BLOCK_SIZE + r.nextInt(BLOCK_SIZE + 1);
+                    len = n * BLOCK_SIZE + r2.nextInt(BLOCK_SIZE + 1);
                 }
             }
             final int nblocks = (len + BLOCK_SIZE) / BLOCK_SIZE;
@@ -369,7 +370,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
             final byte[] expected = new byte[len];
             
             // random data.
-            r.nextBytes(expected);
+            r2.nextBytes(expected);
 
             assertEquals("nbytes", expected.length, repo.copyStream(id,
                     version, new ByteArrayInputStream(expected)));
@@ -378,7 +379,7 @@ public class TestCopyStream extends AbstractRepositoryTestCase {
 
             final byte[] actual = read(repo.inputStream(id, version));
 
-            assertEquals("data", expected, actual);
+            assertArrayEquals("data", expected, actual);
 
 //            log.warn("There were " + nzero + " zero length blocks and " + nfull
 //                    + " full length blocks out of " + LIMIT + " trials");

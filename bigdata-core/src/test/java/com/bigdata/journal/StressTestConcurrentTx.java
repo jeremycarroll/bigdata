@@ -53,6 +53,10 @@ import com.bigdata.test.ExperimentDriver.IComparisonTest;
 import com.bigdata.test.ExperimentDriver.Result;
 import com.bigdata.util.NV;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Stress tests for concurrent transaction processing.
@@ -94,19 +98,19 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  *       index that result in write-write conflicts.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class StressTestConcurrentTx extends ProxyTestCase implements IComparisonTest {
 
-    public StressTestConcurrentTx() {
+    public StressTestConcurrentTx(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    public StressTestConcurrentTx(String name) {
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
-        super(name);
-        
-    }
-    
     Journal journal;
 
     public void setUpComparisonTest(Properties properties) throws Exception {
@@ -128,15 +132,16 @@ public class StressTestConcurrentTx extends ProxyTestCase implements IComparison
     /**
      * A stress test with a small pool of concurrent clients.
      */
+    @Test
     public void test_concurrentClients() throws InterruptedException {
 
         final Properties properties = getProperties();
 
-        final Journal journal = new Journal(properties);
+        final Journal tmpJournal = new Journal(properties);
 
         try {
 
-            if (false && journal.getBufferStrategy() instanceof MappedBufferStrategy) {
+            if (false && tmpJournal.getBufferStrategy() instanceof MappedBufferStrategy) {
 
                 /*
                  * @todo the mapped buffer strategy has become cpu bound w/o
@@ -149,7 +154,7 @@ public class StressTestConcurrentTx extends ProxyTestCase implements IComparison
             }
 
             doConcurrentClientTest(//
-                    journal, //
+                    tmpJournal, //
                     10,// timeout
                     20,// nclients
                     1000, // ntrials
@@ -160,7 +165,7 @@ public class StressTestConcurrentTx extends ProxyTestCase implements IComparison
 
         } finally {
 
-            journal.destroy();
+            tmpJournal.destroy();
 
         }
     }
@@ -362,7 +367,7 @@ public class StressTestConcurrentTx extends ProxyTestCase implements IComparison
         ret.put("bytesWritten", ""+bytesWritten);
         ret.put("bytesWritten/sec", ""+(int)(bytesWritten*1000d/elapsed));
         
-        System.err.println(ret.toString(true/*newline*/));
+//         System.err.println(ret.toString(true/*newline*/));
 
         // Note: This is done by the caller using journal#destroy().
 //        journal.deleteResources();
@@ -405,6 +410,7 @@ public class StressTestConcurrentTx extends ProxyTestCase implements IComparison
             
         }
         
+        @Override
         public String toString() {
             
             return super.toString()+"#"+trial;
@@ -542,7 +548,8 @@ public class StressTestConcurrentTx extends ProxyTestCase implements IComparison
 
         properties.setProperty(TestOptions.ABORT_RATE,".05");
 
-        IComparisonTest test = new StressTestConcurrentTx();
+        IComparisonTest test =
+            new StressTestConcurrentTx(new TestDirectJournal());
         
         test.setUpComparisonTest(properties);
         
@@ -733,7 +740,7 @@ public class StressTestConcurrentTx extends ProxyTestCase implements IComparison
             Experiment exp = new Experiment(className,defaultProperties,conditions);
 
             // copy the output into a file and then you can run it later.
-            System.err.println(exp.toXML());
+//             System.err.println(exp.toXML());
 
         }
         

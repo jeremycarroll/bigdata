@@ -40,6 +40,7 @@ import com.bigdata.io.SerializerUtil;
 
 import cutthecrap.utils.striterators.Resolver;
 import cutthecrap.utils.striterators.Striterator;
+import org.junit.Test;
 
 /**
  * Test insert, lookup, and value scan for leaves.
@@ -56,21 +57,13 @@ public class TestInsertLookupRemoveKeysInRootLeaf extends AbstractBTreeTestCase 
     }
 
     /**
-     * @param name
-     */
-    public TestInsertLookupRemoveKeysInRootLeaf(String name) {
-
-        super(name);
-        
-    }
-
-    /**
      * Test ability to insert entries into a leaf. Random (legal) external keys
      * are inserted into a leaf until the leaf would overflow. The random keys
      * are then sorted and compared with the actual keys in the leaf. If the
      * keys were inserted correctly into the leaf then the two arrays of keys
      * will have the same values in the same order.
      */
+    @Test
     public void test_insertKeyIntoLeaf01() {
 
         final int branchingFactor = 20;
@@ -108,8 +101,8 @@ public class TestInsertLookupRemoveKeysInRootLeaf extends AbstractBTreeTestCase 
             // save the key.
             expectedKeys[ nkeys ] = key;
             
-            System.err.println("Will insert: key=" + BytesUtil.toString(key)
-                    + " at index=" + index + " : nkeys=" + nkeys);
+//             System.err.println("Will insert: key=" + BytesUtil.toString(key)
+//                     + " at index=" + index + " : nkeys=" + nkeys);
 
             // insert an entry under that key.
             btree.insert(key, new SimpleEntry() );
@@ -124,7 +117,7 @@ public class TestInsertLookupRemoveKeysInRootLeaf extends AbstractBTreeTestCase 
         Arrays.sort(expectedKeys,
                 BytesUtil.UnsignedByteArrayComparator.INSTANCE);
         
-        assertTrue(root.dump(Level.DEBUG,System.err));
+        assertTrue(root.dump(Level.DEBUG, getNullPrintStream()));
         
         // verify that the leaf has the same keys in the same order.
         assertKeys( expectedKeys, root);
@@ -140,6 +133,7 @@ public class TestInsertLookupRemoveKeysInRootLeaf extends AbstractBTreeTestCase 
      * previous test that inserts keys into the leaf using a slightly higher
      * level API).
      */
+    @Test
     public void test_insertKeyIntoLeaf02() {
 
         final int branchingFactor = 20;
@@ -189,7 +183,7 @@ public class TestInsertLookupRemoveKeysInRootLeaf extends AbstractBTreeTestCase 
         Arrays.sort(expectedKeys,
                 BytesUtil.UnsignedByteArrayComparator.INSTANCE);
         
-        assertTrue(root.dump(Level.DEBUG,System.err));
+        assertTrue(root.dump(Level.DEBUG,getNullPrintStream()));
 
         // verify that the leaf has the same keys in the same order.
         assertKeys( expectedKeys, root );
@@ -207,6 +201,7 @@ public class TestInsertLookupRemoveKeysInRootLeaf extends AbstractBTreeTestCase 
      * @see Leaf#lookup(byte[], Tuple)
      * @see Leaf#entryIterator()
      */
+    @Test
     public void test_insertKeyIntoLeaf03() {
 
         final int branchingFactor = 20;
@@ -280,7 +275,7 @@ public class TestInsertLookupRemoveKeysInRootLeaf extends AbstractBTreeTestCase 
             
         }
 
-        assertTrue(root.dump(Level.DEBUG,System.err));
+        assertTrue(root.dump(Level.DEBUG,getNullPrintStream()));
 
         // verify that the leaf has the same keys in the same order.
         assertKeys(expectedKeys, root);
@@ -296,6 +291,7 @@ public class TestInsertLookupRemoveKeysInRootLeaf extends AbstractBTreeTestCase 
     /**
      * Test insert, lookup and remove of keys in the root leaf.
      */
+    @Test
     public void test_insertLookupRemoveFromLeaf01() {
 
         final int m = 4;
@@ -361,6 +357,7 @@ public class TestInsertLookupRemoveKeysInRootLeaf extends AbstractBTreeTestCase 
     /**
      * Test insert and removal of keys in the root leaf.
      */
+    @Test
     public void test_insertLookupRemoveFromLeaf02() {
 
         final int m = 4;

@@ -30,10 +30,6 @@ package com.bigdata.journal;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
-
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
 import com.bigdata.io.DirectBufferPool;
 import com.bigdata.rawstore.IRawStore;
 
@@ -49,51 +45,7 @@ public class TestDiskJournal extends AbstractJournalTestCase {
         super();
     }
 
-    public TestDiskJournal(String name) {
-        super(name);
-    }
-
-    public static Test suite() {
-
-        final TestDiskJournal delegate = new TestDiskJournal(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Disk Journal Test Suite");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-        
-        // tests defined by this class.
-        suite.addTestSuite(TestDiskJournal.class);
-
-        // test suite for the IRawStore api.
-        suite.addTestSuite(TestRawStore.class);
-
-        // test suite for handling asynchronous close of the file channel.
-        suite.addTestSuite(TestInterrupts.class);
-
-        // test suite for MROW correctness.
-        suite.addTestSuite(TestMROW.class);
-
-        // test suite for MRMW correctness.
-        suite.addTestSuite(TestMRMW.class);
-
-        /*
-         * Pickup the basic journal test suite. This is a proxied test suite, so
-         * all the tests will run with the configuration specified in this test
-         * class and its optional .properties file.
-         */
-        suite.addTest(TestJournalBasics.suite());
-        
-        return suite;
-
-    }
-
+    @Override
     public Properties getProperties() {
 
         final Properties properties = super.getProperties();
@@ -158,7 +110,7 @@ public class TestDiskJournal extends AbstractJournalTestCase {
      */
     public void test_create_emptyFile() throws IOException {
         
-        final File file = File.createTempFile(getName(), Options.JNL);
+        final File file = File.createTempFile(this.getClass().getName(), Options.JNL);
 
         final Properties properties = new Properties();
 
@@ -195,10 +147,6 @@ public class TestDiskJournal extends AbstractJournalTestCase {
             super();
         }
 
-        public TestRawStore(String name) {
-            super(name);
-        }
-
         protected BufferMode getBufferMode() {
             
             return BufferMode.Disk;
@@ -217,10 +165,6 @@ public class TestDiskJournal extends AbstractJournalTestCase {
         
         public TestInterrupts() {
             super();
-        }
-
-        public TestInterrupts(String name) {
-            super(name);
         }
 
         protected IRawStore getStore() {
@@ -255,10 +199,6 @@ public class TestDiskJournal extends AbstractJournalTestCase {
             super();
         }
 
-        public TestMROW(String name) {
-            super(name);
-        }
-        
         protected IRawStore getStore() {
 
             final Properties properties = getProperties();
@@ -289,10 +229,6 @@ public class TestDiskJournal extends AbstractJournalTestCase {
         
         public TestMRMW() {
             super();
-        }
-
-        public TestMRMW(String name) {
-            super(name);
         }
 
         protected IRawStore getStore() {

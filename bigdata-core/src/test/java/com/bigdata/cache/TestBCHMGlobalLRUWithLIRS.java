@@ -29,12 +29,12 @@ package com.bigdata.cache;
 
 import com.bigdata.cache.LRUNexus.AccessPolicyEnum;
 import com.bigdata.rawstore.Bytes;
+import org.junit.Before;
 
 /**
  * Some unit tests for the {@link BCHMGlobalLRU} using its LIRS access policy.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @see TestBCHMGlobalLRU
  */
@@ -47,16 +47,9 @@ public class TestBCHMGlobalLRUWithLIRS extends
     public TestBCHMGlobalLRUWithLIRS() {
     }
 
-    /**
-     * @param name
-     */
-    public TestBCHMGlobalLRUWithLIRS(String name) {
-        super(name);
-    }
 
-    protected void setUp() throws Exception {
-
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
 
         final long maximumBytesInMemory = 10 * Bytes.kilobyte;
 

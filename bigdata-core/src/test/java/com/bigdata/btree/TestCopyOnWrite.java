@@ -30,6 +30,7 @@ package com.bigdata.btree;
 import org.apache.log4j.Level;
 
 import com.bigdata.btree.keys.TestKeyBuilder;
+import org.junit.Test;
 
 /**
  * Test suite for copy-on-write semantics. Among other things the tests in this
@@ -49,13 +50,6 @@ public class TestCopyOnWrite extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestCopyOnWrite(String name) {
-        super(name);
-    }
-   
-    /**
      * Test copy-on-write for a tree of height 1 (two levels). This test works
      * by explicitly writing out either the root node or a leaf and verifying
      * that the persistent and dirty state of each node or leaf. Note that this
@@ -64,6 +58,7 @@ public class TestCopyOnWrite extends AbstractBTreeTestCase {
      * mutable using copy-on-write, we wind up with a new reference for that
      * node or leaf and update the variables in the test appropriately.
      */
+    @Test
     public void test_dirtyChildIterator02() {
 
         BTree btree = getBTree(3);
@@ -220,6 +215,7 @@ public class TestCopyOnWrite extends AbstractBTreeTestCase {
      * cloned by copy-on-write are distinct objects from their immutable
      * predecessors.
      */
+    @Test
     public void test_dirtyPostOrderIterator02() {
 
         BTree btree = getBTree(3);

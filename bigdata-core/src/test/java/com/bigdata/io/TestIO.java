@@ -35,8 +35,7 @@ import java.nio.channels.FileChannel;
 import java.text.NumberFormat;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.TestCase;
+import org.junit.Assert;
 
 /**
  * Low level IO performance tests in support of bigdata design options.
@@ -86,20 +85,12 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestIO extends TestCase {
+public class TestIO extends Assert {
 
     /**
      * 
      */
     public TestIO() {
-        this(null);
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestIO(String arg0) {
-        super(arg0);
         /*
          * Set up formatting for integers. 
          */

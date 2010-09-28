@@ -34,14 +34,14 @@ import java.io.ObjectOutput;
 import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.UUID;
-
-import junit.framework.TestCase;
-
 import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
 import com.bigdata.btree.keys.IKeyBuilderFactory;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Test suite for {@link BigdataMap}.
@@ -61,7 +61,7 @@ import com.bigdata.rawstore.SimpleMemoryRawStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestBigdataMap extends TestCase {
+public class TestBigdataMap extends Assert {
 
     /**
      * 
@@ -70,19 +70,13 @@ public class TestBigdataMap extends TestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestBigdataMap(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * The test fixture - this is backed by a temporary store in order to
      * make the unit test cleanup simple.
      */
     BigdataMap<String, String> map;
     
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
     
         final IndexMetadata indexMetadata = new IndexMetadata(UUID.randomUUID());
 
@@ -102,6 +96,7 @@ public class TestBigdataMap extends TestCase {
     /**
      * Basic tests of isEmpty(), size(), containsKey(), put(), and remove().
      */
+    @Test
     public void testMap() {
 
         assertTrue(map.isEmpty());
@@ -187,12 +182,14 @@ public class TestBigdataMap extends TestCase {
          * Note: The key is materialized from the value since the encoding to
          * the unsigned byte[] is not reversable.
          */
+        @Override
         public String deserializeKey(ITuple tuple) {
 
             return (String) SerializerUtil.deserialize(tuple.getValue());
 
         }
 
+        @Override
         public byte[] serializeKey(Object key) {
             
             return getKeyBuilder().reset().append((String) key).getKey();
@@ -205,6 +202,7 @@ public class TestBigdataMap extends TestCase {
             
         }
 
+        @Override
         public String deserialize(ITuple tuple) {
 
             return (String) SerializerUtil.deserialize(tuple.getValue());
@@ -221,6 +219,7 @@ public class TestBigdataMap extends TestCase {
          */
         private final static transient byte VERSION = VERSION0;
 
+        @Override
         public void readExternal(final ObjectInput in) throws IOException,
                 ClassNotFoundException {
 
@@ -238,6 +237,7 @@ public class TestBigdataMap extends TestCase {
 
         }
 
+        @Override
         public void writeExternal(final ObjectOutput out) throws IOException {
 
             super.writeExternal(out);

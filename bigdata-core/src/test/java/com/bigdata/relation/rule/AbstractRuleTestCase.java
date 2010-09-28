@@ -27,30 +27,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.relation.rule;
 
-import junit.framework.TestCase2;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.spo.SPOPredicate;
+import com.bigdata.test.Assert;
 
 /**
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class AbstractRuleTestCase extends TestCase2 {
+abstract public class AbstractRuleTestCase extends Assert {
     
     /**
      * 
      */
     public AbstractRuleTestCase() {
-    }
-
-    /**
-     * @param name
-     */
-    public AbstractRuleTestCase(String name) {
-        super(name);
     }
 
     protected final static Constant<IV> rdfsSubClassOf = new Constant<IV>(

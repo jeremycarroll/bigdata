@@ -29,27 +29,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.util;
 
 import java.io.IOException;
-
-import junit.framework.TestCase;
+import org.junit.Assert;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestInnerCause extends TestCase {
+public class TestInnerCause extends Assert {
 
     /**
      * 
      */
     public TestInnerCause() {
         super();
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestInnerCause(String arg0) {
-        super(arg0);
     }
 
     protected Throwable getInnerCause(Throwable t, Class<? extends Throwable> cls) {

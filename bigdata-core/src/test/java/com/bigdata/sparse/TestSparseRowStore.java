@@ -42,11 +42,17 @@ import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
+import com.bigdata.journal.AbstractIndexManagerTestCase;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.ProxyTestCase;
 import com.bigdata.sparse.TPS.TPV;
 import com.bigdata.util.CSVReader;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link SparseRowStore}.
@@ -84,13 +90,14 @@ import com.bigdata.util.CSVReader;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
         IRowStoreConstants {
 
     protected IIndex getIndex(final IIndexManager store) {
 
         // name by the unit test.
-        final String name = getName();
+        final String name = this.getClass().getName();
         
         final long timestamp = ITx.UNISOLATED;
         
@@ -125,20 +132,14 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
     /**
      * 
      */
-    public TestSparseRowStore() {
-    
-        super();
-        
+    public TestSparseRowStore(AbstractIndexManagerTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestSparseRowStore(String name) {
-        
-        super(name);
-        
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup2();
+    };
 
     /**
      * Test using a utility class to load CSV data into a {@link SparseRowStore}.
@@ -153,6 +154,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
      * 
      * @throws IOException
      */
+    @Test
     public void test_loadCSV() throws IOException {
 
         final IIndexManager store = getStore();
@@ -176,7 +178,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
         
         final InputStream is = getTestInputStream(resourceName);
 
-        final CSVReader r = new CSVReader(is,charSet);
+        final CSVReader r2 = new CSVReader(is,charSet);
         
         /*
          * The ground truth data read from the test resource.
@@ -189,9 +191,9 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
          */
         try {
             
-            r.readHeaders();
+            r2.readHeaders();
             
-            while(r.hasNext()) {
+            while(r2.hasNext()) {
 
                 /*
                  * Use a timestamp factory to give each record a unique
@@ -200,7 +202,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
 //                long timestamp = TimestampFactory.nextNanoTime();
                 
                 // read a row of data.
-                Map<String,Object> row = r.next();
+                Map<String,Object> row = r2.next();
 
                 // remember for validation below.
                 rows.add(row);
@@ -325,6 +327,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
     /**
      * Test that a read for a row that does not exist returns <code>null</code>.
      */
+    @Test
     public void test_read_noSuchRow() {
 
         final IIndexManager store = getStore();
@@ -353,6 +356,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
      * Test of correct rejection of illegal parameters for logical row read
      * operations.
      */
+    @Test
     public void test_read_correctRejection() {
        
         final Schema schema = new Schema("Employee", "Id", KeyType.Long);
@@ -486,6 +490,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
     /**
      * Simple test of write and read back of logical rows.
      */
+    @Test
     public void test_readWrite() {
 
         final Schema schema = new Schema("Employee", "Id", KeyType.Long);
@@ -637,6 +642,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
      * @todo test with client assigned timestamp, server assigned timestamp, and
      *       globally assigned timestamp.
      */
+    @Test
     public void test_timestampSemantics() {
 
         final Schema schema = new Schema("Employee", "Id", KeyType.Long);
@@ -771,6 +777,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
     /**
      * Test of {@link IPrecondition} handling for atomic writes.
      */
+    @Test
     public void test_writeWithPrecondition() {
 
         final IIndexManager store = getStore();
@@ -880,6 +887,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
      * 
      * @todo rework this test once auto-inc is allowed for the primary key.
      */
+    @Test
     public void test_autoInc() {
 
         final IIndexManager store = getStore();
@@ -1095,6 +1103,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
      *       index partitions. Do this for reverse traversal of logical rows
      *       also.
      */
+    @Test
     public void test_rowScan() {
 
         final IIndexManager store = getStore();
@@ -1176,6 +1185,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
      * FIXME test with fromTime/toTime limits, including only the current row,
      * when there are other data that should not be read.
      */
+    @Test
     public void test_rowScan_withKeyRange() {
 
         final IIndexManager store = getStore();
@@ -1260,6 +1270,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
      * capacity to 1 when there are in fact two logical rows. This variant uses
      * a primary key with a fixed length data type (long).
      */
+    @Test
     public void test_rowScan_continuationQuery_fixedLengthPrimaryKey() {
 
         final IIndexManager store = getStore();
@@ -1379,6 +1390,7 @@ public class TestSparseRowStore extends ProxyTestCase<IIndexManager> implements
      * capacity to 1 when there are in fact two logical rows. This variant uses
      * a primary key with a variable length data type (long).
      */
+    @Test
     public void test_rowScan_continuationQuery_variableLengthPrimaryKey() {
 
         final IIndexManager store = getStore();

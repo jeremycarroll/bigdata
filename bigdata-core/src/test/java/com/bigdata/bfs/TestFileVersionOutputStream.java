@@ -29,9 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.bfs;
 
 import java.io.IOException;
-
-import com.bigdata.bfs.BigdataFileSystem;
-import com.bigdata.bfs.FileVersionOutputStream;
+import org.junit.Test;
 
 
 /**
@@ -52,17 +50,11 @@ public class TestFileVersionOutputStream extends AbstractRepositoryTestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestFileVersionOutputStream(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * A test of the flush semantics (writes a partial block, but never an empty
      * block) and of the counters exposed by the {@link FileVersionOutputStream}.
      * @throws IOException 
      */
+    @Test
     public void test_flushAndCounters() throws IOException {
         
         final String id = "test";
@@ -124,7 +116,7 @@ public class TestFileVersionOutputStream extends AbstractRepositoryTestCase {
         assertSameIterator("block identifiers", new Long[] {0L}, repo.blocks(id,
                 version));
 
-        assertEquals("inputStream", new byte[] { 1, 2, 3, 4, 5, 6 }, read(repo
+        assertArrayEquals("inputStream", new byte[] { 1, 2, 3, 4, 5, 6 }, read(repo
                 .inputStream(id, version)));
         
         // write another byte[].
@@ -137,7 +129,7 @@ public class TestFileVersionOutputStream extends AbstractRepositoryTestCase {
         assertEquals("blockCount",1L,repo.getBlockCount(id, version));
 
         // read back is unchanged since buffer was not flushed.
-        assertEquals("inputStream", new byte[] { 1, 2, 3, 4, 5, 6 }, read(repo
+        assertArrayEquals("inputStream", new byte[] { 1, 2, 3, 4, 5, 6 }, read(repo
                 .inputStream(id, version)));
 
         // flush - writes 2nd block with 3 bytes.
@@ -152,7 +144,7 @@ public class TestFileVersionOutputStream extends AbstractRepositoryTestCase {
         assertSameIterator("block identifiers", new Long[] { 0L, 1L }, repo.blocks(
                 id, version));
 
-        assertEquals("inputStream", new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, read(repo
+        assertArrayEquals("inputStream", new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, read(repo
                 .inputStream(id, version)));
 
     }

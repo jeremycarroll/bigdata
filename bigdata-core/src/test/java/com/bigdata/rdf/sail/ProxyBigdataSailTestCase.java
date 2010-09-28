@@ -34,8 +34,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Properties;
 
-import junit.extensions.proxy.IProxyTest;
-import junit.framework.Test;
+import org.junit.After;
+import org.junit.Before;
 
 import org.openrdf.model.Resource;
 import org.openrdf.query.Binding;
@@ -64,26 +64,47 @@ import org.openrdf.query.algebra.evaluation.QueryBindingSet;
  * @see AbstractBigdataTestCase
  */
 public abstract class ProxyBigdataSailTestCase
-    extends AbstractBigdataSailTestCase
-    implements IProxyTest
-{
+    extends AbstractBigdataSailTestCase {
 
     public ProxyBigdataSailTestCase() {}
-    public ProxyBigdataSailTestCase(String name){super(name);}
     
+    public static Collection<Object[]> getDelegateGroup3() {
+        Object[][] list = new Object[][] {
+            { new com.bigdata.rdf.sail.TestBigdataSailWithQuadsAndPipelineJoins() },
+            { new com.bigdata.rdf.sail.TestBigdataSailWithoutSids() },
+            { new com.bigdata.rdf.sail.TestBigdataSailWithSids() },
+            { new com.bigdata.rdf.sail.TestBigdataSailWithSidsWithoutInlining() },
+            { new com.bigdata.rdf.sail.TestBigdataSailWithQuadsAndPipelineJoinsWithoutInlining() } };
+        return java.util.Arrays.asList(list);
+    };
+    
+    public static Collection<Object[]> getDelegateGroup5() {
+        Object[][] list = new Object[][] {
+            { new com.bigdata.rdf.sail.TestBigdataSailWithSids() },
+            { new com.bigdata.rdf.sail.TestBigdataSailWithSidsWithoutInlining() } };
+        return java.util.Arrays.asList(list);
+    };
+
+    public static Collection<Object[]> getDelegateGroup7() {
+        Object[][] list = new Object[][] {
+            { new com.bigdata.rdf.sail.TestBigdataSailWithQuadsAndPipelineJoins() },
+            { new com.bigdata.rdf.sail.TestBigdataSailWithQuadsAndPipelineJoinsWithoutInlining() } };
+        return java.util.Arrays.asList(list);
+    };
+
     //************************************************************
     //************************ IProxyTest ************************
     //************************************************************
 
-    private Test m_delegate = null;
+    private Object m_delegate = null;
 
-    public void setDelegate(Test delegate) {
+    public void setDelegate(Object delegate) {
 
         m_delegate = delegate;
 
     }
 
-    public Test getDelegate() throws IllegalStateException {
+    public Object getDelegate() throws IllegalStateException {
 
         return m_delegate;
 
@@ -120,7 +141,7 @@ public abstract class ProxyBigdataSailTestCase
             }
             try {
                 Class cl = Class.forName(testClass);
-                m_delegate = (Test) cl.newInstance();
+                m_delegate = cl.newInstance();
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
@@ -155,17 +176,20 @@ public abstract class ProxyBigdataSailTestCase
      * an entire suite of tests.)
      */
     
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         getOurDelegate().setUp(this);
     }
 
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         getOurDelegate().tearDown(this);
     }
 
     /**
      * The properties as configured by the delegate.
      */
+    @Override
     public Properties getProperties() {
         return getOurDelegate().getProperties();
     }

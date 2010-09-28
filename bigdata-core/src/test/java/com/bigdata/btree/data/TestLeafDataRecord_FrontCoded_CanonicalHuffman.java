@@ -29,6 +29,7 @@ package com.bigdata.btree.data;
 
 import com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder;
 import com.bigdata.btree.raba.codec.FrontCodedRabaCoder;
+import org.junit.Before;
 
 /**
  * Test suite for the B+Tree {@link ILeafData} records (accessing coded data in
@@ -45,17 +46,9 @@ public class TestLeafDataRecord_FrontCoded_CanonicalHuffman extends AbstractLeaf
     public TestLeafDataRecord_FrontCoded_CanonicalHuffman() {
     }
 
-    /**
-     * @param name
-     */
-    public TestLeafDataRecord_FrontCoded_CanonicalHuffman(String name) {
-        super(name);
-    }
-
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         
-        super.setUp();
-
         coder = new DefaultLeafCoder(//
                 new FrontCodedRabaCoder(8/* ratio */),// keys
                 CanonicalHuffmanRabaCoder.INSTANCE // vals

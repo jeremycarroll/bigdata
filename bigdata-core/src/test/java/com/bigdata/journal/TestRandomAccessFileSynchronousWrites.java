@@ -35,11 +35,9 @@ import java.nio.channels.FileChannel;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
-
 import com.bigdata.rawstore.Bytes;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for conformance with synchronous IO write requests made on a
@@ -69,7 +67,7 @@ import com.bigdata.rawstore.Bytes;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestRandomAccessFileSynchronousWrites extends TestCase {
+public class TestRandomAccessFileSynchronousWrites extends Assert {
 
     protected static final Logger log = Logger
             .getLogger(TestRandomAccessFileSynchronousWrites.class);
@@ -78,16 +76,11 @@ public class TestRandomAccessFileSynchronousWrites extends TestCase {
         
     }
 
-    public TestRandomAccessFileSynchronousWrites(String name) {
-        
-        super(name);
-        
-    }
-
     /**
      * Test verifies whether or not the platform appears to perform synchronous
      * IOs when creating a {@link RandomAccessFile} with mode <code>rws</code>.
      */
+    @Test
     public void test_syncWrites_rds() throws IOException {
 
         // Performance comparison when NOT requesting synchronous IO.
@@ -103,6 +96,7 @@ public class TestRandomAccessFileSynchronousWrites extends TestCase {
      * Test verifies whether or not the platform appears to perform synchronous
      * IOs when creating a {@link RandomAccessFile} with mode <code>rws</code>.
      */
+    @Test
     public void test_syncWrites_rdd() throws IOException {
 
         // Performance comparison when NOT requesting synchronous IO.
@@ -129,7 +123,7 @@ public class TestRandomAccessFileSynchronousWrites extends TestCase {
      *             unless the write IOPs are significantly lower for the
      *             <i>syncio</i> condition.
      */
-    protected void assertWriteCacheDisabled(final Stats baseline,
+    private void assertWriteCacheDisabled(final Stats baseline,
             final Stats syncio) {
 
         final double ratio = Math
@@ -190,7 +184,7 @@ public class TestRandomAccessFileSynchronousWrites extends TestCase {
      * 
      * @return The {@link Stats} for that mode.
      */
-    protected Stats doSyncWriteTest(final String mode) throws IOException {
+    private Stats doSyncWriteTest(final String mode) throws IOException {
 
         final Random r = new Random();
 
@@ -209,7 +203,7 @@ public class TestRandomAccessFileSynchronousWrites extends TestCase {
         r.nextBytes(record);
 
         // create a temp file.
-        final File file = File.createTempFile(getName(), ".tmp");
+        final File file = File.createTempFile(getClass().getName(), ".tmp");
 
         try {
 
@@ -281,6 +275,7 @@ public class TestRandomAccessFileSynchronousWrites extends TestCase {
 
         }
 
+        @Override
         public String toString() {
 
             return "elapsed=" + elapsed + "ms, mode=" + mode

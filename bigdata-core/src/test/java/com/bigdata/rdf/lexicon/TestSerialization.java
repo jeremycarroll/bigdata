@@ -30,9 +30,6 @@ package com.bigdata.rdf.lexicon;
 import java.io.Externalizable;
 import java.util.Locale;
 import java.util.Properties;
-
-import junit.framework.TestCase2;
-
 import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
@@ -46,6 +43,8 @@ import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.keys.StrengthEnum;
 import com.bigdata.rdf.model.BigdataValueSerializer;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test of the {@link BigdataValueSerializer}.
@@ -53,19 +52,12 @@ import com.bigdata.rdf.model.BigdataValueSerializer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestSerialization extends TestCase2 {
+public class TestSerialization extends Assert {
 
     /**
      * 
      */
     public TestSerialization() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestSerialization(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -113,6 +105,7 @@ public class TestSerialization extends TestCase2 {
     /**
      * Test round trip of some URIs.
      */
+    @Test
     public void test_URIs() {
 
         final URI a = new URIImpl("http://www.bigdata.com");
@@ -125,6 +118,7 @@ public class TestSerialization extends TestCase2 {
     /**
      * Test round trip of some plain literals.
      */
+    @Test
     public void test_plainLiterals() {
 
         final Literal a = new LiteralImpl("bigdata");
@@ -137,6 +131,7 @@ public class TestSerialization extends TestCase2 {
     /**
      * Test round trip of some language code literals.
      */
+    @Test
     public void test_langCodeLiterals() {
 
         final Literal a = new LiteralImpl("bigdata","en");
@@ -149,6 +144,7 @@ public class TestSerialization extends TestCase2 {
     /**
      * Test round trip of some datatype literals.
      */
+    @Test
     public void test_dataTypeLiterals() {
 
         final Literal a = new LiteralImpl("bigdata", XMLSchema.INT);
@@ -190,6 +186,7 @@ public class TestSerialization extends TestCase2 {
      * ERROR: com.bigdata.rdf.lexicon.Id2TermWriteProc.apply(Id2TermWriteProc.java:206): oldval=[0, 2, 0, 15, 127, 66, 114, 105, 97, 110, 32, 77, 99, 67, 97, 114, 116, 104, 121]
      * </pre>
      */
+    @Test
     public void test_consistencyIssue() {
 
         final BigdataValueSerializer<Value> fixture = new BigdataValueSerializer<Value>(

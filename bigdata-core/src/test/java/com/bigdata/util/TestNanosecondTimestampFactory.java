@@ -27,7 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.util;
 
-import junit.framework.TestCase;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link NanosecondTimestampFactory}.
@@ -35,15 +36,9 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestNanosecondTimestampFactory extends TestCase {
+public class TestNanosecondTimestampFactory extends Assert {
 
     public TestNanosecondTimestampFactory() {
-        
-    }
-
-    public TestNanosecondTimestampFactory(String arg0) {
-
-        super(arg0);
         
     }
 
@@ -54,6 +49,7 @@ public class TestNanosecondTimestampFactory extends TestCase {
      * Note: This test is NOT designed to pass/fail but simply to test determine
      * a characteristic of the platform on which it is executing.
      */
+    @Test
     public void test_nextNanoTime() {
 
         final int limit = 1000000;
@@ -96,6 +92,7 @@ public class TestNanosecondTimestampFactory extends TestCase {
      * Test verifies that nano times are always distinct from the last generated
      * nanos time (as assigned by {@link NanosecondTimestampFactory#nextNanoTime()}.
      */
+    @Test
     public void test_nextNanoTime2() {
 
         final int limit = 1000000;

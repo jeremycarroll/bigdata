@@ -29,6 +29,7 @@ package com.bigdata.btree.data;
 
 import com.bigdata.btree.raba.ReadOnlyKeysRaba;
 import com.bigdata.io.DataOutputBuffer;
+import org.junit.Test;
 
 /**
  * Test suite for the B+Tree {@link INodeData} records (accessing coded data in
@@ -46,13 +47,6 @@ abstract public class AbstractNodeDataRecordTestCase extends
     public AbstractNodeDataRecordTestCase() {
     }
 
-    /**
-     * @param name
-     */
-    public AbstractNodeDataRecordTestCase(String name) {
-        super(name);
-    }
-
     @Override
     protected boolean mayGenerateLeaves() {
         return false;
@@ -67,6 +61,7 @@ abstract public class AbstractNodeDataRecordTestCase extends
      * Unit test for an empty node (this is not a legal instance since only the
      * root leaf may ever be empty).
      */
+    @Test
     public void test_emptyNode() {
 
         final int m = 3;
@@ -92,6 +87,7 @@ abstract public class AbstractNodeDataRecordTestCase extends
      * Empty node with version timestamps (this is not a legal instance since
      * only the root leaf may ever be empty).
      */
+    @Test
     public void test_emptyNodeVersionTimestamps() {
 
         final int m = 3;
@@ -117,6 +113,7 @@ abstract public class AbstractNodeDataRecordTestCase extends
      * This the minimum legal node for a branching factor of 3. It has one key
      * and two children.
      */
+    @Test
     public void test_tupleCount1() {
         
         final int m = 3;
@@ -150,6 +147,7 @@ abstract public class AbstractNodeDataRecordTestCase extends
      * This the minimum legal node for a branching factor of 3. It has one key
      * and two children.
      */
+    @Test
     public void test_tupleCount1WithVersionTimestamps() {
         
         final int m = 3;

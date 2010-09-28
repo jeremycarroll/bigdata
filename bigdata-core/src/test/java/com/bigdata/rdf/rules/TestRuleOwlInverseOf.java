@@ -33,9 +33,16 @@ import org.openrdf.model.vocabulary.OWL;
 
 import com.bigdata.rdf.rio.IStatementBuffer;
 import com.bigdata.rdf.rio.StatementBuffer;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.Vocabulary;
 import com.bigdata.relation.rule.Rule;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for owl:inverseOf processing.
@@ -49,23 +56,21 @@ import com.bigdata.relation.rule.Rule;
  * @see RuleOwlInverseOf2
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRuleOwlInverseOf extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestRuleOwlInverseOf() {
-        super();
+    public TestRuleOwlInverseOf(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRuleOwlInverseOf(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Test where the data satisifies the rule exactly once.
@@ -75,6 +80,7 @@ public class TestRuleOwlInverseOf extends AbstractRuleTestCase {
      * </pre>
      * @throws Exception 
      */
+    @Test
     public void test_owlInverseOf1() throws Exception {
 
         AbstractTripleStore store = getStore();
@@ -132,6 +138,7 @@ public class TestRuleOwlInverseOf extends AbstractRuleTestCase {
      * </pre>
      * @throws Exception 
      */
+    @Test
     public void test_owlInverseOf2() throws Exception {
 
         AbstractTripleStore store = getStore();

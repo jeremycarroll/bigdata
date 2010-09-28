@@ -33,6 +33,7 @@ import java.util.Properties;
 import java.util.Random;
 
 import com.bigdata.rawstore.IRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for restart-safe (data survives commit and reopen of the store).
@@ -52,10 +53,6 @@ import com.bigdata.rawstore.IRawStore;
 abstract public class AbstractRestartSafeTestCase extends AbstractBufferStrategyTestCase {
 
     public AbstractRestartSafeTestCase() {
-    }
-
-    public AbstractRestartSafeTestCase(String name) {
-        super(name);
     }
 
 //    /**
@@ -129,6 +126,7 @@ abstract public class AbstractRestartSafeTestCase extends AbstractBufferStrategy
      * Writes a record, verifies the write but does NOT commit the store. Closes
      * and reopens the store and finally verifies the write was lost.
      */
+    @Test
     public void test_restartSafe_oneWriteNoCommit() {
         
         IAtomicStore store = (IAtomicStore)getStore();
@@ -201,6 +199,7 @@ abstract public class AbstractRestartSafeTestCase extends AbstractBufferStrategy
      * Writes a record, verifies the write then commits the store. Closes and
      * reopens the store and finally verifies the write on the reopened store.
      */
+    @Test
     public void test_restartSafe_oneWrite() {
         
         IAtomicStore store = (IAtomicStore)getStore();
@@ -265,6 +264,7 @@ abstract public class AbstractRestartSafeTestCase extends AbstractBufferStrategy
      * it is written.  The test then performs a random order read and verifies
      * that each of the records can be read correctly.
      */
+    @Test
     public void test_restartSafe_multipleWrites() {
 
         IAtomicStore store = (IAtomicStore)getStore();
@@ -360,6 +360,7 @@ abstract public class AbstractRestartSafeTestCase extends AbstractBufferStrategy
     /**
      * Test of abort semantics.
      */
+    @Test
     public void test_abort() {
 
         class AbortException extends RuntimeException {
@@ -424,6 +425,7 @@ abstract public class AbstractRestartSafeTestCase extends AbstractBufferStrategy
      * @todo test also with a concurrent reader since concurrent close of the
      *       write cache could be a problem.
      */
+    @Test
     public void test_closeForWrites() {
         
         Journal store = (Journal) getStore();

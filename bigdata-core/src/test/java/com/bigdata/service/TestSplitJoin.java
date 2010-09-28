@@ -49,13 +49,13 @@ import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.ndx.ClientIndexView;
+import org.junit.Test;
 
 /**
  * Test suite verifies that inserts eventually split an index and that deletes
  * eventually cause the index partitions to be joined.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
 
@@ -64,10 +64,6 @@ public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
      */
     public TestSplitJoin() {
         super();
-    }
-
-    public TestSplitJoin(String name) {
-        super(name);
     }
 
     /**
@@ -136,6 +132,7 @@ public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
      * @throws ExecutionException
      * @throws InterruptedException
      */
+    @Test
     public void test_splitJoin() throws IOException, InterruptedException,
             ExecutionException {
         

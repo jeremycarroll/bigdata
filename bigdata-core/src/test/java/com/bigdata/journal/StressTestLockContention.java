@@ -36,6 +36,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Lock contention results when unisolated writers seek conflicting locks. In
@@ -50,21 +54,20 @@ import java.util.concurrent.TimeUnit;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class StressTestLockContention extends ProxyTestCase {
 
     /**
      * 
      */
-    public StressTestLockContention() {
-        super();
+    public StressTestLockContention(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public StressTestLockContention(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
     /**
      * Test that no tasks are failed when a large set of <strong>writer</strong>
@@ -84,6 +87,7 @@ public class StressTestLockContention extends ProxyTestCase {
      *       disabled (and it does not work with cached thread pools) then you
      *       may see a {@link RejectedExecutionException} from this test.
      */
+    @Test
     public void test_lockContention() throws InterruptedException {
 
         final int ntasks = 500;
@@ -206,9 +210,9 @@ public class StressTestLockContention extends ProxyTestCase {
             
         }
         
-        System.err.println("#tasks=" + ntasks + " : ncancelled=" + ncancelled
-                + ", ncomplete=" + ncomplete + ", ninterrupt=" + ninterrupt
-                + ", nretry=" + nretry + ", nerror=" + nerror);
+//         System.err.println("#tasks=" + ntasks + " : ncancelled=" + ncancelled
+//                 + ", ncomplete=" + ncomplete + ", ninterrupt=" + ninterrupt
+//                 + ", nretry=" + nretry + ", nerror=" + nerror);
         
         /*
          * No errors are allowed, but some tasks may never start due to the high

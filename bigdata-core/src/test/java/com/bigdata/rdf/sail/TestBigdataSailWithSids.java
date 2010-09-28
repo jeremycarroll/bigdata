@@ -27,10 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.sail;
 
 import java.util.Properties;
-
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
 import com.bigdata.rdf.sail.BigdataSail.Options;
 
 /**
@@ -47,46 +43,6 @@ public class TestBigdataSailWithSids extends AbstractBigdataSailTestCase {
     public TestBigdataSailWithSids() {
     }
 
-    public TestBigdataSailWithSids(String name) {
-        super(name);
-    }
-    
-    public static Test suite() {
-        
-        final TestBigdataSailWithSids delegate = new TestBigdataSailWithSids(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate, "SAIL with Triples (with SIDs)");
-
-        // test pruning of variables not required for downstream processing.
-        suite.addTestSuite(TestPruneBindingSets.class);
-
-        // test of the search magic predicate
-        suite.addTestSuite(TestSearchQuery.class);
-        
-        // high-level query tests.
-        suite.addTestSuite(TestQuery.class);
-
-        // test of high-level query on a graph with statements about statements.
-        suite.addTestSuite(TestProvenanceQuery.class);
-
-        suite.addTestSuite(TestBigdataSailEvaluationStrategyImpl.class);
-        
-        suite.addTestSuite(TestReadWriteTransactions.class);
-        
-        suite.addTestSuite(TestOrderBy.class);
-        
-        suite.addTestSuite(TestUnions.class);
-        
-        suite.addTestSuite(TestDescribe.class);
-        
-        return suite;
-        
-    }
-    
     @Override
     protected BigdataSail getSail(Properties properties) {
         
@@ -94,6 +50,7 @@ public class TestBigdataSailWithSids extends AbstractBigdataSailTestCase {
         
     }
 
+    @Override
     public Properties getProperties() {
 
         final Properties properties = new Properties(super.getProperties());

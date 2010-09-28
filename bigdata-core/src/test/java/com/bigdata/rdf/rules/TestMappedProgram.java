@@ -47,9 +47,16 @@ Modifications:
 
 package com.bigdata.rdf.rules;
 
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.Vocabulary;
 import com.bigdata.relation.rule.IRule;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * {@link MappedProgram} is used to produce the full closure and fast closure
@@ -60,22 +67,21 @@ import com.bigdata.relation.rule.IRule;
  * inspecting the {@link #log}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestMappedProgram extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestMappedProgram() {
+    public TestMappedProgram(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestMappedProgram(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     final private String database = "database";
 
@@ -84,6 +90,7 @@ public class TestMappedProgram extends AbstractRuleTestCase {
     /**
      * 
      */
+    @Test
     public void testMappedRuleWithOneTail() {
 
         final AbstractTripleStore store = getStore();
@@ -97,7 +104,8 @@ public class TestMappedProgram extends AbstractRuleTestCase {
             final boolean closure = false; // actual value should not matter,
 
             // will map the rule across the database and the focusStore.
-            final MappedProgram program = new MappedProgram(getName(),
+            final MappedProgram program = new MappedProgram(
+                    this.getClass().getName(),
                     focusStore, parallel, closure);
 
             final IRule rule = new RuleOwlEquivalentProperty(database, vocab);
@@ -116,6 +124,7 @@ public class TestMappedProgram extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void testMappedRuleWithTwoTails() {
 
         final AbstractTripleStore store = getStore();
@@ -129,7 +138,8 @@ public class TestMappedProgram extends AbstractRuleTestCase {
             final boolean closure = false; // actual value should not matter,
 
             // will map the rule across the database and the focusStore.
-            final MappedProgram program = new MappedProgram(getName(),
+            final MappedProgram program = new MappedProgram(
+                    this.getClass().getName(),
                     focusStore, parallel, closure);
 
             final IRule rule = new RuleRdfs09(database,vocab);
@@ -151,6 +161,7 @@ public class TestMappedProgram extends AbstractRuleTestCase {
     /**
      * 
      */
+    @Test
     public void testClosureOfMappedRuleWithOneTail() {
 
         final AbstractTripleStore store = getStore();
@@ -164,7 +175,8 @@ public class TestMappedProgram extends AbstractRuleTestCase {
             final boolean closure = false; // actual value should not matter,
 
             // will map the rule across the database and the focusStore.
-            final MappedProgram program = new MappedProgram(getName(),
+            final MappedProgram program = new MappedProgram(
+                    this.getClass().getName(),
                     focusStore, parallel, closure);
 
             final IRule rule = new RuleOwlEquivalentProperty(database, vocab);
@@ -183,6 +195,7 @@ public class TestMappedProgram extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void testClosureOfMappedRuleWithTwoTails() {
 
         final AbstractTripleStore store = getStore();
@@ -196,7 +209,8 @@ public class TestMappedProgram extends AbstractRuleTestCase {
             final boolean closure = false; // actual value should not matter,
 
             // will map the rule across the database and the focusStore.
-            final MappedProgram program = new MappedProgram(getName(),
+            final MappedProgram program = new MappedProgram(
+                    this.getClass().getName(),
                     focusStore, parallel, closure);
 
             final IRule rule = new RuleRdfs09(database,vocab);

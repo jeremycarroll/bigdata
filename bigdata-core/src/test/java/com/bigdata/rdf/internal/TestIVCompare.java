@@ -27,27 +27,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.internal;
 
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
 
 /**
  * Test suite for {@link IV#compareTo(Object)}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class TestIVCompare extends TestCase2 {
+public class TestIVCompare extends Assert {
 
     /**
      * 
      */
     public TestIVCompare() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestIVCompare(String name) {
-        super(name);
     }
 
     public void test_compareTo() {

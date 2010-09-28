@@ -27,13 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.util;
 
+import com.bigdata.test.Assert;
 import it.unimi.dsi.bits.BitVector;
-
 import java.nio.ByteBuffer;
-
-import com.bigdata.util.ByteBufferBitVector;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Test suite for {@link ByteBufferBitVector}.
@@ -41,7 +38,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestByteBufferBitVector extends TestCase2 {
+public class TestByteBufferBitVector extends Assert {
 
     /**
      * 
@@ -49,14 +46,8 @@ public class TestByteBufferBitVector extends TestCase2 {
     public TestByteBufferBitVector() {
     }
 
-    /**
-     * @param name
-     */
-    public TestByteBufferBitVector(String name) {
-        super(name);
-    }
-
     /** Correct rejection test for ctor1. */
+    @Test
     public void test_ctor1_correct_rejection() {
 
         try {
@@ -69,6 +60,7 @@ public class TestByteBufferBitVector extends TestCase2 {
         
     } 
     
+    @Test
     public void test_ctor1() {
 
         final byte[] d = new byte[1];
@@ -118,6 +110,7 @@ public class TestByteBufferBitVector extends TestCase2 {
      * 
      * @todo this tests with an even byte offset. Try w/ only a few bits offset.
      */
+    @Test
     public void test_ctor2() {
 
         final byte[] d = new byte[3];
@@ -164,6 +157,7 @@ public class TestByteBufferBitVector extends TestCase2 {
     /**
      * Verify set/clear of each bit in the first byte.
      */
+    @Test
     public void test_getBoolean() {
 
         final byte[] d = new byte[1];

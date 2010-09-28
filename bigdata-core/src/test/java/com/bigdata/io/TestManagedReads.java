@@ -10,8 +10,6 @@ import java.util.Comparator;
 import java.util.Random;
 import java.util.SortedMap;
 
-import junit.framework.TestCase;
-
 /**
  * Investigates the benefits (if any) of managed concurrent reads with the aim of developing
  * metrics on which to base a ConcurrentReadManager for use by the Disk based strategies.
@@ -21,18 +19,11 @@ import junit.framework.TestCase;
  * @author mgc
  *
  */
-public class TestManagedReads extends TestCase {
+public class TestManagedReads {
 
     public TestManagedReads() {
     }
 
-    /**
-     * @param name
-     */
-    public TestManagedReads(String name) {
-        super(name);
-    }
-    
     RandomAccessFile m_raf = null;
     byte[] m_data = null;
     static class Record implements Comparable<Record> {

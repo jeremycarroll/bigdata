@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutionException;
 
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.mdi.MetadataIndex;
+import org.junit.Test;
 
 /**
  * Some unit tests for the {@link MetadataIndex} as accessed via the
@@ -53,13 +54,6 @@ public class TestMetadataIndex extends
     }
 
     /**
-     * @param arg0
-     */
-    public TestMetadataIndex(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Verify that the first index partition is assigned partitionId zero (0)
      * and that subsequent calls to
      * {@link IMetadataService#nextPartitionId(String)} return strictly
@@ -69,6 +63,7 @@ public class TestMetadataIndex extends
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_nextPartitionId() throws IOException, InterruptedException, ExecutionException {
         
         final String name = "test";

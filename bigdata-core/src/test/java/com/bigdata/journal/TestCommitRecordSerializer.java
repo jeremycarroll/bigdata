@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.journal;
 
 import java.nio.ByteBuffer;
+import org.junit.Test;
 
 /**
  * Test suite for {@link CommitRecordSerializer}.
@@ -43,13 +44,7 @@ public class TestCommitRecordSerializer extends AbstractCommitRecordTestCase {
     public TestCommitRecordSerializer() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestCommitRecordSerializer(String arg0) {
-        super(arg0);
-    }
-    
+    @Test
     public void test_stress() {
 
         final int ntrials = 1000;

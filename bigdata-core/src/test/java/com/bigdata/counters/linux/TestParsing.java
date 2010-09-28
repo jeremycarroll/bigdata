@@ -28,39 +28,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.counters.linux;
 
+import com.bigdata.test.Assert;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.regex.Pattern;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestParsing extends TestCase2 {
+public class TestParsing extends Assert {
 
     public TestParsing() {
         super();
     }
 
-    public TestParsing(String name) {
-        super(name);
-    }
-    
     /**
      * Test for {@link SysstatUtil#splitDataLine(String)}.
      */
+    @Test
     public void test_splitDataLine01(){
 
         final String header = "06:35:15 AM       PID   %user %system    %CPU   CPU  Command";
         
         final String[] fields = SysstatUtil.splitDataLine(header);
 
-        System.err.println(Arrays.toString(fields));
+//         System.err.println(Arrays.toString(fields));
         
         assertEquals(new String[] { "06:35:15 AM", "PID", "%user", "%system",
                 "%CPU", "CPU", "Command" }, fields);
@@ -70,13 +66,14 @@ public class TestParsing extends TestCase2 {
     /**
      * Test for {@link SysstatUtil#splitDataLine(String)}.
      */
+    @Test
     public void test_splitDataLine02(){
 
         final String data   = "06:35:15 AM       501    0.00    0.01    0.00     1  kjournald";
         
         final String[] fields = SysstatUtil.splitDataLine(data);
 
-        System.err.println(Arrays.toString(fields));
+//         System.err.println(Arrays.toString(fields));
         
         assertEquals(new String[] {"06:35:15 AM", "501", "0.00", "0.01", "0.00", "1", "kjournald"}, fields);
         
@@ -88,17 +85,19 @@ public class TestParsing extends TestCase2 {
      * @todo test only writes on the console - you need to verify the outcome by
      *       hand.
      */
+    @Test
     public void test_pidStat_data_parse() {
 
         DateFormat f = SysstatUtil.newDateFormat();
 
-        System.err.println("Format: " + f.format(new Date()));
+//         System.err.println("Format: " + f.format(new Date()));
 
         try {
+            Date f1 = f.parse("06:35:15 AM");
+//             System.err.println("Parsed: " + f1);
 
-            System.err.println("Parsed: " + f.parse("06:35:15 AM"));
-
-            System.err.println("Parsed: " + f.parse("02:08:24 PM"));
+            Date f2 = f.parse("02:08:24 PM");
+//             System.err.println("Parsed: " + f2);
 
         } catch (ParseException e) {
 
@@ -111,6 +110,7 @@ public class TestParsing extends TestCase2 {
     /**
      * Test based on some sample data.
      */
+    @Test
     public void test_vmstat_header_and_data_parse() {
        
         final Pattern pattern = VMStatCollector.pattern;
@@ -127,7 +127,7 @@ public class TestParsing extends TestCase2 {
 
             for (int i = 0; i < fields.length; i++) {
 
-                System.err.println("fields[" + i + "]=[" + fields[i] + "]");
+//                 System.err.println("fields[" + i + "]=[" + fields[i] + "]");
                 
             }
             
@@ -191,12 +191,12 @@ public class TestParsing extends TestCase2 {
             throw new IllegalArgumentException();
 
         if (field >= fields.length)
-            throw new AssertionFailedError("There are only " + fields.length
+            throw new AssertionError("There are only " + fields.length
                     + " fields, but field=" + field + "\n" + header);
 
         if (!expected.equals(fields[field])) {
 
-            throw new AssertionFailedError("Expected field=" + field
+            throw new AssertionError("Expected field=" + field
                     + " to be [" + expected + "], actual=" + fields[field]
                     + "\n" + header);
 

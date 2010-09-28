@@ -29,11 +29,7 @@ package com.bigdata.journal;
 
 import java.io.IOException;
 import java.util.Properties;
-
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
-import com.bigdata.rawstore.IRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for {@link BufferMode#Direct} journals.
@@ -48,51 +44,7 @@ public class TestDirectJournal extends AbstractJournalTestCase {
         super();
     }
 
-    public TestDirectJournal(String name) {
-        super(name);
-    }
-
-    public static Test suite() {
-
-        final TestDirectJournal delegate = new TestDirectJournal(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Direct Journal Test Suite");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-        
-        // tests defined by this class.
-        suite.addTestSuite(TestDirectJournal.class);
-
-        // test suite for the IRawStore api.
-        suite.addTestSuite( TestRawStore.class );
-        
-        // test suite for handling asynchronous close of the file channel.
-        suite.addTestSuite( TestInterrupts.class );
-
-        // test suite for MROW correctness.
-        suite.addTestSuite( TestMROW.class );
-
-        // test suite for MRMW correctness.
-        suite.addTestSuite( TestMRMW.class );
-
-        /*
-         * Pickup the basic journal test suite. This is a proxied test suite, so
-         * all the tests will run with the configuration specified in this test
-         * class and its optional .properties file.
-         */
-        suite.addTest(TestJournalBasics.suite());
-
-        return suite;
-
-    }
-
+    @Override
     public Properties getProperties() {
 
         Properties properties = super.getProperties();
@@ -113,6 +65,7 @@ public class TestDirectJournal extends AbstractJournalTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_create_direct01() throws IOException {
 
         final Properties properties = getProperties();
@@ -137,129 +90,6 @@ public class TestDirectJournal extends AbstractJournalTestCase {
 
         journal.destroy();
 
-    }
-
-    /**
-     * Test suite integration for {@link AbstractRestartSafeTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestRawStore extends AbstractRestartSafeTestCase {
-        
-        public TestRawStore() {
-            super();
-        }
-
-        public TestRawStore(String name) {
-            super(name);
-        }
-
-        protected BufferMode getBufferMode() {
-            
-            return BufferMode.Direct;
-            
-        }
-        
-    }
-    
-    /**
-     * Test suite integration for {@link AbstractInterruptsTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestInterrupts extends AbstractInterruptsTestCase {
-        
-        public TestInterrupts() {
-            super();
-        }
-
-        public TestInterrupts(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-
-            Properties properties = getProperties();
-            
-            properties.setProperty(Options.DELETE_ON_EXIT,"true");
-
-            properties.setProperty(Options.CREATE_TEMP_FILE,"true");
-
-            properties.setProperty(Options.BUFFER_MODE, BufferMode.Direct
-                    .toString());
-            
-            return new Journal(properties).getBufferStrategy();
-            
-        }
-
-    }
-    
-    /**
-     * Test suite integration for {@link AbstractMROWTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestMROW extends AbstractMROWTestCase {
-        
-        public TestMROW() {
-            super();
-        }
-
-        public TestMROW(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-
-            Properties properties = getProperties();
-            
-            properties.setProperty(Options.DELETE_ON_EXIT,"true");
-
-            properties.setProperty(Options.CREATE_TEMP_FILE,"true");
-
-            properties.setProperty(Options.BUFFER_MODE, BufferMode.Direct
-                    .toString());
-            
-            return new Journal(properties).getBufferStrategy();
-            
-        }
-
-    }
-    
-    /**
-     * Test suite integration for {@link AbstractMRMWTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestMRMW extends AbstractMRMWTestCase {
-        
-        public TestMRMW() {
-            super();
-        }
-
-        public TestMRMW(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-
-            Properties properties = getProperties();
-            
-            properties.setProperty(Options.DELETE_ON_EXIT,"true");
-
-            properties.setProperty(Options.CREATE_TEMP_FILE,"true");
-
-            properties.setProperty(Options.BUFFER_MODE, BufferMode.Direct
-                    .toString());
-            
-            return new Journal(properties).getBufferStrategy();
-            
-        }
-        
     }
     
 }

@@ -43,13 +43,6 @@ public class TestRecordCompressor_BestSpeed extends AbstractRecordCompressorTest
     public TestRecordCompressor_BestSpeed() {
     }
 
-    /**
-     * @param name
-     */
-    public TestRecordCompressor_BestSpeed(String name) {
-        super(name);
-    }
-
     public IRecordCompressor getInstance() {
 
         return new RecordCompressor(Deflater.BEST_SPEED);

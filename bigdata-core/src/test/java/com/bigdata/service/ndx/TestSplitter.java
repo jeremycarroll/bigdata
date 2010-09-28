@@ -29,17 +29,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.service.ndx;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.UUID;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.service.Split;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link ISplitter}.
@@ -50,7 +48,7 @@ import com.bigdata.service.Split;
  * @todo review the costs of the validation logic used by
  *       {@link AbstractSplitter}.
  */
-public class TestSplitter extends TestCase2 {
+public class TestSplitter extends Assert {
 
     /**
      * 
@@ -59,15 +57,9 @@ public class TestSplitter extends TestCase2 {
     }
 
     /**
-     * @param name
-     */
-    public TestSplitter(String name) {
-        super(name);
-    }
-
-    /**
      * API error checking for args.
      */
+    @Test
     public void test_splitter_correctRejection() {
 
         final ISplitter splitter = new AbstractSplitter() {
@@ -189,6 +181,7 @@ public class TestSplitter extends TestCase2 {
      * @todo unit test when the MDI does not have any entries (this is an error
      *       which is checked by {@link MetadataIndex#find(byte[])}).
      */
+    @Test
     public void test_splitter_correctSplits_01() {
 
         // use one data service (one UUID).
@@ -236,6 +229,7 @@ public class TestSplitter extends TestCase2 {
     /**
      * Test with more than one key in the same index partition.
      */
+    @Test
     public void test_splitter_correctSplits_02() {
 
         // use one data service (one UUID).
@@ -286,6 +280,7 @@ public class TestSplitter extends TestCase2 {
      * between the index partitions is also used as the key that goes into the
      * 2nd index partition so this tests right on the fence post.
      */
+    @Test
     public void test_splitter_correctSplits_03() {
 
         // use one data service (one UUID).
@@ -365,6 +360,7 @@ public class TestSplitter extends TestCase2 {
      *       bound and one where it is null (done). This means that we have to
      *       test with more than one index partition.
      */
+    @Test
     public void test_splitter_keysOutOfOrder() {
 
         // use one data service (one UUID).
@@ -422,6 +418,7 @@ public class TestSplitter extends TestCase2 {
      * 
      * @todo write test.
      */
+    @Test
     public void test_splitter_duplicateKeys() {
 
 //        fail("write tests");
@@ -448,10 +445,10 @@ public class TestSplitter extends TestCase2 {
             assertEquals(eSplit.pmd.getPartitionId(), aSplit.pmd
                     .getPartitionId());
 
-            assertEquals(eSplit.pmd.getLeftSeparatorKey(), aSplit.pmd
+            assertArrayEquals(eSplit.pmd.getLeftSeparatorKey(), aSplit.pmd
                     .getLeftSeparatorKey());
 
-            assertEquals(eSplit.pmd.getRightSeparatorKey(), aSplit.pmd
+            assertArrayEquals(eSplit.pmd.getRightSeparatorKey(), aSplit.pmd
                     .getRightSeparatorKey());
             
             assertEquals(eSplit.fromIndex, aSplit.fromIndex);

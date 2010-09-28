@@ -41,6 +41,7 @@ import com.bigdata.io.BytesUtil;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.rawstore.IBlock;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for {@link AbstractChunkedTupleIterator} and its concrete
@@ -88,15 +89,9 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestChunkedIterators(String name) {
-        super(name);
-    }
-
-    /**
      * Test correct traversal when all the data fits into a single chunk.
      */
+    @Test
     public void test_oneChunk() {
 
         IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
@@ -159,9 +154,9 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
 
             ITuple tuple = itr.next();
 
-            assertEquals(keys[i],tuple.getKey());
+            assertArrayEquals(keys[i],tuple.getKey());
 
-            assertEquals(vals[i],tuple.getValue());
+            assertArrayEquals(vals[i],tuple.getValue());
 
             // @todo allowed iff the metadata was requested and available.
             
@@ -191,6 +186,7 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
     /**
      * Test where the iterator has to fetch a second {@link ResultSet}.
      */
+    @Test
     public void test_twoChunks() {
 
         IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
@@ -253,9 +249,9 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
 
             ITuple tuple = itr.next();
 
-            assertEquals(keys[i],tuple.getKey());
+            assertArrayEquals(keys[i],tuple.getKey());
 
-            assertEquals(vals[i],tuple.getValue());
+            assertArrayEquals(vals[i],tuple.getValue());
 
             // @todo allowed iff the metadata was requested and available.
             
@@ -290,9 +286,9 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
 
             ITuple tuple = itr.next();
 
-            assertEquals(keys[i+capacity],tuple.getKey());
+            assertArrayEquals(keys[i+capacity],tuple.getKey());
 
-            assertEquals(vals[i+capacity],tuple.getValue());
+            assertArrayEquals(vals[i+capacity],tuple.getValue());
 
             // @todo allowed iff the metadata was requested and available.
             
@@ -326,6 +322,7 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
      * is performed on the unisolated index. The state of the index is verified
      * afterwards.
      */
+    @Test
     public void test_removeAll_limit1() {
         
         IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
@@ -393,9 +390,9 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
 
                 byte[] val = tuple.getValue();
 
-                assertEquals(keys[i], key);
+                assertArrayEquals(keys[i], key);
 
-                assertEquals(vals[i], val);
+                assertArrayEquals(vals[i], val);
 
                 nremaining++;
 
@@ -411,6 +408,7 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
      * Test of {@link IRangeQuery#REMOVEALL} using a filter. Only the even keys
      * are deleted. The state of the index is verified afterwards.
      */
+    @Test
     public void test_removeAll() {
         
         IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
@@ -488,9 +486,9 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
 
                 final byte[] val = tuple.getValue();
 
-                assertEquals(keys[i], key);
+                assertArrayEquals(keys[i], key);
 
-                assertEquals(vals[i], val);
+                assertArrayEquals(vals[i], val);
 
                 ndeleted++;
 
@@ -528,9 +526,9 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
 
                 final byte[] val = tuple.getValue();
 
-                assertEquals(keys[i], key);
+                assertArrayEquals(keys[i], key);
 
-                assertEquals(vals[i], val);
+                assertArrayEquals(vals[i], val);
 
                 nremaining++;
 
@@ -546,6 +544,7 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
      * verifies that the tuples within the index partitions are also visited in
      * reverse order when more than one chunk must be fetched.
      */
+    @Test
     public void test_reverseScan() {
         
         final String name = "testIndex";
@@ -583,43 +582,43 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 8 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 8 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 8 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 8 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 7 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 7 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 7 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 7 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 6 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 6 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 6 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 6 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 5 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 5 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 5 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 5 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 4 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 4 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 4 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 4 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 3 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 3 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 3 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 3 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 2 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 2 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 2 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 2 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 1 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 1 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 1 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 1 }, tuple.getValue());
             
         }
 
@@ -629,6 +628,7 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
      * Unit test for (de-)serialization of {@link ResultSet}s used by the
      * chunked iterators.
      */
+    @Test
     public void test_chunkedIteratorResultSets() {
 
         doChunkedIteratorResultSetTest(1000/* N */, true/* deleteMarkers */,
@@ -944,13 +944,13 @@ public class TestChunkedIterators extends AbstractBTreeTestCase {
 
             if ((te.flags() & IRangeQuery.KEYS) != 0) {
 
-                assertEquals("key[]", te.getKey(), ta.getKey());
+                assertArrayEquals("key[]", te.getKey(), ta.getKey());
 
             }
 
             if ((te.flags() & IRangeQuery.VALS) != 0) {
 
-                assertEquals("value[]", te.getValue(), ta.getValue());
+                assertArrayEquals("value[]", te.getValue(), ta.getValue());
 
             }
 

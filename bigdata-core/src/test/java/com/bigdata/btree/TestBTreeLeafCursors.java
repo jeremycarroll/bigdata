@@ -29,12 +29,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree;
 
 import java.util.UUID;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.BTree.Stack;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link BTree}'s {@link ILeafCursor} implementation. The
@@ -53,7 +52,7 @@ import com.bigdata.rawstore.SimpleMemoryRawStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestBTreeLeafCursors extends TestCase2 {
+public class TestBTreeLeafCursors extends Assert {
 
     /**
      * 
@@ -61,18 +60,12 @@ public class TestBTreeLeafCursors extends TestCase2 {
     public TestBTreeLeafCursors() {
     }
 
-    /**
-     * @param name
-     */
-    public TestBTreeLeafCursors(String name) {
-        super(name);
-    }
-
     final BTree btree = getProblem1();
 
     /**
      * Unit tests for the node stack impl.
      */
+    @Test
     public void test_stack() {
 
         Stack s = new Stack(10);
@@ -120,104 +113,108 @@ public class TestBTreeLeafCursors extends TestCase2 {
         
     }
     
+    @Test
     public void test_firstLast() {
         
         ILeafCursor<Leaf> cursor = btree.newLeafCursor(SeekEnum.First);
 
         // verify first leaf since that is where we positioned the cursor.
-        assertEquals(TestKeyBuilder.asSortKey(1), cursor.leaf().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(1), cursor.leaf().getKeys().get(0));
 
         // first().
-        assertEquals(TestKeyBuilder.asSortKey(1), cursor.first().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(1), cursor.first().getKeys().get(0));
 
         // last().
-        assertEquals(TestKeyBuilder.asSortKey(9), cursor.last().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(9), cursor.last().getKeys().get(0));
         
     }
     
+    @Test
     public void test_seek() {
 
         ILeafCursor<Leaf> cursor = btree.newLeafCursor(TestKeyBuilder.asSortKey(5));
 
         // verify initial seek.
-        assertEquals(TestKeyBuilder.asSortKey(5), cursor.leaf().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(5), cursor.leaf().getKeys().get(0));
 
         // verify seek to each key found in the B+Tree.
-        assertEquals(TestKeyBuilder.asSortKey(1), cursor.seek(
+        assertArrayEquals(TestKeyBuilder.asSortKey(1), cursor.seek(
                 TestKeyBuilder.asSortKey(1)).getKeys().get(0));
 
-        assertEquals(TestKeyBuilder.asSortKey(1), cursor.seek(
+        assertArrayEquals(TestKeyBuilder.asSortKey(1), cursor.seek(
                 TestKeyBuilder.asSortKey(2)).getKeys().get(0));
 
-        assertEquals(TestKeyBuilder.asSortKey(3), cursor.seek(
+        assertArrayEquals(TestKeyBuilder.asSortKey(3), cursor.seek(
                 TestKeyBuilder.asSortKey(3)).getKeys().get(0));
 
-        assertEquals(TestKeyBuilder.asSortKey(3), cursor.seek(
+        assertArrayEquals(TestKeyBuilder.asSortKey(3), cursor.seek(
                 TestKeyBuilder.asSortKey(4)).getKeys().get(0));
 
-        assertEquals(TestKeyBuilder.asSortKey(5), cursor.seek(
+        assertArrayEquals(TestKeyBuilder.asSortKey(5), cursor.seek(
                 TestKeyBuilder.asSortKey(5)).getKeys().get(0));
 
-        assertEquals(TestKeyBuilder.asSortKey(5), cursor.seek(
+        assertArrayEquals(TestKeyBuilder.asSortKey(5), cursor.seek(
                 TestKeyBuilder.asSortKey(6)).getKeys().get(0));
 
-        assertEquals(TestKeyBuilder.asSortKey(7), cursor.seek(
+        assertArrayEquals(TestKeyBuilder.asSortKey(7), cursor.seek(
                 TestKeyBuilder.asSortKey(7)).getKeys().get(0));
 
-        assertEquals(TestKeyBuilder.asSortKey(7), cursor.seek(
+        assertArrayEquals(TestKeyBuilder.asSortKey(7), cursor.seek(
                 TestKeyBuilder.asSortKey(8)).getKeys().get(0));
 
-        assertEquals(TestKeyBuilder.asSortKey(9), cursor.seek(
+        assertArrayEquals(TestKeyBuilder.asSortKey(9), cursor.seek(
                 TestKeyBuilder.asSortKey(9)).getKeys().get(0));
 
-        assertEquals(TestKeyBuilder.asSortKey(9), cursor.seek(
+        assertArrayEquals(TestKeyBuilder.asSortKey(9), cursor.seek(
                 TestKeyBuilder.asSortKey(10)).getKeys().get(0));
 
         // verify seek to key that would be in the last leaf but is not actually in the B+Tree.
-        assertEquals(TestKeyBuilder.asSortKey(9),cursor.seek(TestKeyBuilder.asSortKey(12)).getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(9),cursor.seek(TestKeyBuilder.asSortKey(12)).getKeys().get(0));
 
     }
 
     // FIXME explictly verify the stack!
+    @Test
     public void test_forwardScan() {
         
         ILeafCursor<Leaf> cursor = btree.newLeafCursor(SeekEnum.First);
 
         // verify first leaf since that is where we positioned the cursor.
-        assertEquals(TestKeyBuilder.asSortKey(1), cursor.leaf().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(1), cursor.leaf().getKeys().get(0));
         
         // next().
-        assertEquals(TestKeyBuilder.asSortKey(3), cursor.next().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(3), cursor.next().getKeys().get(0));
 
         // next().
-        assertEquals(TestKeyBuilder.asSortKey(5), cursor.next().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(5), cursor.next().getKeys().get(0));
         
         // next().
-        assertEquals(TestKeyBuilder.asSortKey(7), cursor.next().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(7), cursor.next().getKeys().get(0));
 
         // next().
-        assertEquals(TestKeyBuilder.asSortKey(9), cursor.next().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(9), cursor.next().getKeys().get(0));
         
     }
 
+    @Test
     public void test_reverseScan() {
         
         ILeafCursor<Leaf> cursor = btree.newLeafCursor(SeekEnum.Last);
 
         // verify last leaf since that is where we positioned the cursor.
-        assertEquals(TestKeyBuilder.asSortKey(9), cursor.leaf().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(9), cursor.leaf().getKeys().get(0));
         
         // next().
-        assertEquals(TestKeyBuilder.asSortKey(7), cursor.prior().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(7), cursor.prior().getKeys().get(0));
 
         // next().
-        assertEquals(TestKeyBuilder.asSortKey(5), cursor.prior().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(5), cursor.prior().getKeys().get(0));
         
         // next().
-        assertEquals(TestKeyBuilder.asSortKey(3), cursor.prior().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(3), cursor.prior().getKeys().get(0));
 
         // next().
-        assertEquals(TestKeyBuilder.asSortKey(1), cursor.prior().getKeys().get(0));
+        assertArrayEquals(TestKeyBuilder.asSortKey(1), cursor.prior().getKeys().get(0));
         
     }
     

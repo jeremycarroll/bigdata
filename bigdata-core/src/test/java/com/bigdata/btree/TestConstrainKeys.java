@@ -28,11 +28,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree;
 
-import com.bigdata.io.BytesUtil;
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.proc.AbstractKeyRangeIndexProcedure;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.mdi.ISeparatorKeys;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test imposing constraint on a fromKey or toKey based on an index partition's
@@ -41,7 +41,7 @@ import com.bigdata.mdi.ISeparatorKeys;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestConstrainKeys extends TestCase2 {
+public class TestConstrainKeys extends Assert {
 
     /**
      * 
@@ -49,20 +49,14 @@ public class TestConstrainKeys extends TestCase2 {
     public TestConstrainKeys() {
     }
 
-    /**
-     * @param name
-     */
-    public TestConstrainKeys(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_constrain_fromKey() {
 
         /*
          * The intersection of a null fromKey with any index partition is the
          * leftSeparator of that index partition.
          */
-        assertEquals(new byte[] { 1 },// expected
+        assertArrayEquals(new byte[] { 1 },// expected
                 AbstractKeyRangeIndexProcedure.constrainFromKey(//
                         null,// key
                         new MockLocator(//
@@ -75,14 +69,14 @@ public class TestConstrainKeys extends TestCase2 {
          * the greater of the fromKey and the leftSeparator of that index
          * partition.
          */
-        assertEquals(new byte[] { 3 },// expected
+        assertArrayEquals(new byte[] { 3 },// expected
                 AbstractKeyRangeIndexProcedure.constrainFromKey(//
                         new byte[] { 1 },// key
                         new MockLocator(//
                                 new byte[] { 3 }, // fromKey
                                 null// toKey
                         )));
-        assertEquals(new byte[] { 5 },// expected
+        assertArrayEquals(new byte[] { 5 },// expected
                 AbstractKeyRangeIndexProcedure.constrainFromKey(//
                         new byte[] { 5 },// key
                         new MockLocator(//
@@ -92,20 +86,21 @@ public class TestConstrainKeys extends TestCase2 {
 
     }
 
+    @Test
     public void test_constrain_toKey() {
 
         /*
          * The intersection of a null toKey with any index partition is the
          * rightSeparator of that index partition (which may itself be null).
          */
-        assertEquals(new byte[] { 2 },// expected
+        assertArrayEquals(new byte[] { 2 },// expected
                 AbstractKeyRangeIndexProcedure.constrainToKey(//
                         null,// key
                         new MockLocator(//
                                 new byte[] { 1 }, // fromKey
                                 new byte[] { 2 }// toKey
                         )));
-        assertEquals(null,// expected
+        assertArrayEquals(null,// expected
                 AbstractKeyRangeIndexProcedure.constrainToKey(//
                         null,// key
                         new MockLocator(//
@@ -117,7 +112,7 @@ public class TestConstrainKeys extends TestCase2 {
          * The intersection of a non-null toKey with any index partition whose
          * exclusive upper bound is null (no upper bound) is that toKey.
          */
-        assertEquals(new byte[] { 5 },// expected
+        assertArrayEquals(new byte[] { 5 },// expected
                 AbstractKeyRangeIndexProcedure.constrainToKey(//
                         new byte[] { 5 },// key
                         new MockLocator(//
@@ -130,14 +125,14 @@ public class TestConstrainKeys extends TestCase2 {
          * exclusive upper bound is defined is the lesser of the toKey and the
          * leftSeparator of that index partition.
          */
-        assertEquals(new byte[] { 7 },// expected
+        assertArrayEquals(new byte[] { 7 },// expected
                 AbstractKeyRangeIndexProcedure.constrainToKey(//
                         new byte[] { 7 },// key
                         new MockLocator(//
                                 new byte[] { 3 }, // fromKey
                                 new byte[] { 12 }// toKey
                         )));
-        assertEquals(new byte[] { 12 },// expected
+        assertArrayEquals(new byte[] { 12 },// expected
                 AbstractKeyRangeIndexProcedure.constrainToKey(//
                         new byte[] { 20 },// key
                         new MockLocator(//

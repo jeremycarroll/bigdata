@@ -35,8 +35,10 @@ import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rules.RuleContextEnum;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.accesspath.IElementFilter;
 import com.bigdata.relation.rule.ArrayBindingSet;
@@ -61,6 +63,11 @@ import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.relation.rule.eval.RuleState;
 import com.bigdata.striterator.ChunkedArrayIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test ability to insert, update, or remove elements from a relation and the
@@ -71,22 +78,20 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestSPORelation extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestSPORelation() {
+    public TestSPORelation(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestSPORelation(String name) {
-        
-        super(name);
-        
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * This method was introduced to make the assigned identifiers conform with
@@ -180,6 +185,7 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
      * 
      * @todo There are some variable combinations that are not being tested.
      */
+    @Test
     public void test_ruleState() {
 
         final AbstractTripleStore store = getStore();
@@ -292,6 +298,7 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
      * Finally, the test simulates how an {@link ISolution} would be computed
      * based on incremental binding of variables.
      */
+    @Test
     public void test_insertQuery() {
 
         final Properties properties = super.getProperties();
@@ -433,7 +440,7 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
                 log.info("updated plan=" + plan);
 
                 // (u rdf:subClassOf x)
-                assertEquals("order", new int[] { 0, 1 }, plan.getOrder());
+                assertArrayEquals("order", new int[] { 0, 1 }, plan.getOrder());
 
             }
 
@@ -502,6 +509,7 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
      * 
      * @todo test rule that deletes the computed solutions.
      */
+    @Test
     public void test_runRule() throws Exception {
 
         final IElementFilter filter = null;

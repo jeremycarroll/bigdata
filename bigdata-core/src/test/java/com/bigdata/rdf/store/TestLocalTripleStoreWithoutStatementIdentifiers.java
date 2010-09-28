@@ -29,10 +29,6 @@ package com.bigdata.rdf.store;
 
 import java.io.File;
 import java.util.Properties;
-
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
 import com.bigdata.btree.BTree;
 import com.bigdata.journal.Options;
 
@@ -52,49 +48,7 @@ public class TestLocalTripleStoreWithoutStatementIdentifiers extends AbstractTes
     public TestLocalTripleStoreWithoutStatementIdentifiers() {
     }
 
-    public TestLocalTripleStoreWithoutStatementIdentifiers(String name) {
-        super(name);
-    }
-    
-    public static Test suite() {
-
-        final TestLocalTripleStoreWithoutStatementIdentifiers delegate = new TestLocalTripleStoreWithoutStatementIdentifiers(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Local Triple Store Without Statement Identifiers");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-
-        // ...
-        
-        /*
-         * Proxied test suite for use only with the LocalTripleStore.
-         */
-
-        suite.addTestSuite(TestLocalTripleStoreTransactionSemantics.class);
-
-        /*
-         * Pickup the basic triple store test suite. This is a proxied test
-         * suite, so all the tests will run with the configuration specified in
-         * this test class and its optional .properties file.
-         */
-
-        // basic test suite.
-        suite.addTest(TestTripleStoreBasics.suite());
-        
-        // rules, inference, and truth maintenance test suite.
-        suite.addTest( com.bigdata.rdf.rules.TestAll.suite() );
-
-        return suite;
-        
-    }
-
+    @Override
     public Properties getProperties() {
         
         final Properties properties = super.getProperties();

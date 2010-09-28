@@ -28,41 +28,44 @@ import com.bigdata.rdf.axioms.RdfsAxioms;
 import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.rio.StatementBuffer;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.TripleStoreUtility;
 import com.bigdata.rdf.store.DataLoader;
 import com.bigdata.rdf.store.TempTripleStore;
 import com.bigdata.rdf.store.DataLoader.ClosureEnum;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.Vocabulary;
 import com.bigdata.relation.rule.Program;
 import com.bigdata.relation.rule.eval.ActionEnum;
 import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Unit tests for database at once closure, fix point of a rule set (does not
  * test truth maintenance under assertion and retraction or the justifications).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestDatabaseAtOnceClosure() {
-
+    public TestDatabaseAtOnceClosure(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestDatabaseAtOnceClosure(String name) {
-
-        super(name);
-
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Overrides some properties.
@@ -127,6 +130,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
      * small.rdf
      */
     
+    @Test
     public void test_fixedPoint_Small_Full_NestedSubqueryJoins()
             throws Exception {
 
@@ -146,6 +150,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_Small_Full_PipelineJoins() throws Exception {
 
         final Properties properties = getProperties(FullClosure.class, false/* nestedSubquery */);
@@ -164,6 +169,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_Small_Fast_NestedSubqueryJoins()
             throws Exception {
 
@@ -183,6 +189,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_Small_Fast_PipelineJoins() throws Exception {
 
         final Properties properties = getProperties(FastClosure.class, false/* nestedSubquery */);
@@ -205,6 +212,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
      * sample data.rdf
      */
     
+    @Test
     public void test_fixedPoint_SampleData_Full_NestedSubqueryJoins()
             throws Exception {
 
@@ -223,6 +231,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
         }
 
     }
+    @Test
     public void test_fixedPoint_SampleData_Full_PipelineJoins()
             throws Exception {
 
@@ -242,6 +251,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_SampleData_Fast_NestedSubqueryJoins()
             throws Exception {
 
@@ -261,6 +271,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_SampleData_Fast_PipelineJoins()
             throws Exception {
 
@@ -284,6 +295,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
      * small owlSameAs.rdf
      */
     
+    @Test
     public void test_fixedPoint_TestOwlSameAs_Full_NestedSubqueryJoins()
             throws Exception {
 
@@ -303,6 +315,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_TestOwlSameAs_Full_PipelineJoins()
             throws Exception {
 
@@ -322,6 +335,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_TestOwlSameAs_Fast_NestedSubqueryJoins()
             throws Exception {
 
@@ -341,6 +355,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_TestOwlSameAs_Fast_Pipeline() throws Exception {
 
         final Properties properties = getProperties(FastClosure.class, false/* nestedSubquery */);
@@ -366,6 +381,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
      * and have never identified any problems.
      */
 
+    @Test
     public void test_fixedPoint_LUBM_U1_As_Full_NestedSubquery()
             throws Exception {
 
@@ -393,6 +409,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_LUBM_U1_As_Full_PipelineJoins()
             throws Exception {
 
@@ -420,6 +437,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_LUBM_U1_As_Fast_NestedSubquery() throws Exception {
 
         final String[] resources = readFiles(new File( DataFinder.bestPath("testing/data/lehigh/U1" ) ),
@@ -445,6 +463,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     }
 
+    @Test
     public void test_fixedPoint_LUBM_U1_As_Fast_PipelineJoins() throws Exception {
 
         final String[] resources = readFiles(new File( DataFinder.bestPath("testing/data/lehigh/U1" ) ),
@@ -831,6 +850,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
      * 
      * @throws Exception 
      */
+    @Test
     public void test_simpleFixPoint() throws Exception {
         
         final Properties properties = getProperties();

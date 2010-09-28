@@ -34,12 +34,14 @@ import java.util.UUID;
 import com.bigdata.btree.IndexSegmentBuilder.BuildEnum;
 import com.bigdata.io.BytesUtil;
 import com.bigdata.io.DirectBufferPool;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Test suite for {@link IndexSegmentMultiBlockIterator}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestIndexSegmentMultiBlockIterators extends
         AbstractIndexSegmentTestCase {
@@ -50,25 +52,17 @@ public class TestIndexSegmentMultiBlockIterators extends
     public TestIndexSegmentMultiBlockIterators() {
     }
 
-    /**
-     * @param name
-     */
-    public TestIndexSegmentMultiBlockIterators(String name) {
-        super(name);
-    }
-
     protected File outFile;
 
 //    File tmpDir;
 
     static final boolean bufferNodes = true;
 
-    @Override
+//    @Override
+    @Before
     public void setUp() throws Exception {
 
-        super.setUp();
-        
-        outFile = new File(getName() + ".seg");
+        outFile = new File(this.getClass().getName() + ".seg");
 
         if (outFile.exists() && !outFile.delete()) {
 
@@ -80,7 +74,8 @@ public class TestIndexSegmentMultiBlockIterators extends
 
     }
 
-    @Override
+//    @Override
+    @After
     public void tearDown() throws Exception {
 
         if (outFile != null && outFile.exists() && !outFile.delete()) {
@@ -89,10 +84,9 @@ public class TestIndexSegmentMultiBlockIterators extends
 
         }
 
-        super.tearDown();
-        
     }
 
+    @Test
     public void test_ctor() throws Exception {
 
         final BTree btree = BTree.createTransient(new IndexMetadata(UUID
@@ -103,7 +97,7 @@ public class TestIndexSegmentMultiBlockIterators extends
 //        }
 
         final IndexSegmentBuilder builder = TestIndexSegmentBuilderWithLargeTrees
-                .doBuildIndexSegment(getName(), btree, 32/* m */,
+                .doBuildIndexSegment(this.getClass().getName(), btree, 32/* m */,
                         BuildEnum.TwoPass, bufferNodes);
 
         final IndexSegment seg = new IndexSegmentStore(builder.outFile)
@@ -178,6 +172,7 @@ public class TestIndexSegmentMultiBlockIterators extends
      * Test build around an {@link IndexSegment} having a branching factor of
      * THREE (3) and three leaves, which are fully populated.
      */
+    @Test
     public void test_simple() throws Exception {
         
         final BTree btree = BTree.createTransient(new IndexMetadata(UUID
@@ -188,7 +183,7 @@ public class TestIndexSegmentMultiBlockIterators extends
         }
 
         final IndexSegmentBuilder builder = TestIndexSegmentBuilderWithLargeTrees
-                .doBuildIndexSegment(getName(), btree, 3/* m */,
+                .doBuildIndexSegment(this.getClass().getName(), btree, 3/* m */,
                         BuildEnum.TwoPass, bufferNodes);
 
         // System.err.println("plan: "+builder.plan);
@@ -289,13 +284,14 @@ public class TestIndexSegmentMultiBlockIterators extends
      * 
      * @throws Exception 
      */
+    @Test
     public void test_emptyIndexSegment() throws Exception {
 
         final BTree btree = BTree.createTransient(new IndexMetadata(UUID
                 .randomUUID()));
 
         final IndexSegmentBuilder builder = TestIndexSegmentBuilderWithLargeTrees
-                .doBuildIndexSegment(getName(), btree, 32/* m */,
+                .doBuildIndexSegment(this.getClass().getName(), btree, 32/* m */,
                         BuildEnum.TwoPass, bufferNodes);
 
         final IndexSegment seg = new IndexSegmentStore(builder.outFile)
@@ -324,6 +320,7 @@ public class TestIndexSegmentMultiBlockIterators extends
      * Test build around an {@link IndexSegment} having a default branching
      * factor and a bunch of leaves totally more than 1M in size on the disk.
      */
+    @Test
     public void test_moderate() throws Exception {
         
         final BTree btree = BTree.createTransient(new IndexMetadata(UUID
@@ -340,7 +337,7 @@ public class TestIndexSegmentMultiBlockIterators extends
         }
 
         final IndexSegmentBuilder builder = TestIndexSegmentBuilderWithLargeTrees
-                .doBuildIndexSegment(getName(), btree, 32/* m */,
+                .doBuildIndexSegment(this.getClass().getName(), btree, 32/* m */,
                         BuildEnum.TwoPass, bufferNodes);
 
         final IndexSegment seg = new IndexSegmentStore(builder.outFile)

@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.io.compression;
 
+import com.bigdata.test.Assert;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -39,8 +40,7 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Explores the built-in huffman coding support in the Deflate library.
@@ -106,19 +106,12 @@ import junit.framework.TestCase2;
  * 
  * @see http://www.isi.edu/in-notes/rfc1951.txt (RFC)
  */
-public class TestHuffmanEncoder extends TestCase2 {
+public class TestHuffmanEncoder extends Assert {
 
     /**
      * 
      */
     public TestHuffmanEncoder() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestHuffmanEncoder(String arg0) {
-        super(arg0);
     }
 
     static NumberFormat fpf;
@@ -139,15 +132,12 @@ public class TestHuffmanEncoder extends TestCase2 {
      * 
      * @throws IOException
      */
+    @Test
     public void test_huffman() throws IOException {
         
         final String msg = "this is an example of huffman encoding this is an example of huffman encoding";
 
         final byte[] uncompressed = msg.getBytes("UTF-8");
-        
-        System.err.println("uncompressed(" + uncompressed.length + "): "
-                + Arrays.toString(uncompressed));
-        
         final byte[] compressed, decompressed;
         
         {
@@ -168,14 +158,7 @@ public class TestHuffmanEncoder extends TestCase2 {
             dos.close();
             
             compressed = baos.toByteArray();
-                        
-            System.err.println("  compressed(" + compressed.length + "): "
-                    + Arrays.toString(compressed));
-
             final float ratio = (float) compressed.length / uncompressed.length;
-
-            System.err.println("ratio=" + fpf.format(ratio));
-
         }
         
         {
@@ -204,7 +187,7 @@ public class TestHuffmanEncoder extends TestCase2 {
             
         }
         
-        assertEquals("did not decompress correctly", uncompressed, decompressed);
+        assertArrayEquals("did not decompress correctly", uncompressed, decompressed);
         
     }
 
@@ -213,6 +196,7 @@ public class TestHuffmanEncoder extends TestCase2 {
      * encode and decode byte[]s.  While instances of these classes are reused,
      * concurrency is not tested (reuse is serialized).
      */
+    @Test
     public void test_huffman_reuse() throws IOException {
 
         final String messages[] = { "this is an example of huffman encoding",
@@ -227,22 +211,11 @@ public class TestHuffmanEncoder extends TestCase2 {
         for (int i = 0; i < messages.length; i++) {
 
             final byte[] uncompressed = messages[i].getBytes("UTF-8");
-
-            System.err.println("uncompressed(" + uncompressed.length + "): "
-                    + Arrays.toString(uncompressed));
-
             final byte[] compressed = c.compress(uncompressed);
-
-            System.err.println("  compressed(" + compressed.length + "): "
-                    + Arrays.toString(compressed));
-
             final float ratio = (float) compressed.length / uncompressed.length;
-
-            System.err.println("ratio=" + fpf.format(ratio));
-
             final byte[] decompressed = d.decompress(compressed);
 
-            assertEquals("did not decompress correctly", uncompressed,
+            assertArrayEquals("did not decompress correctly", uncompressed,
                     decompressed);
 
         }

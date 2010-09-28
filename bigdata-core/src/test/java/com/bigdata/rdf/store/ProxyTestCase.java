@@ -27,11 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.store;
 
+import java.util.Collection;
 import java.util.Properties;
-
-import junit.extensions.proxy.IProxyTest;
-import junit.framework.Test;
-
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * <p>
@@ -54,25 +53,41 @@ import junit.framework.Test;
 
 public abstract class ProxyTestCase
     extends AbstractTestCase
-    implements IProxyTest
+//    implements IProxyTest
 {
 
     public ProxyTestCase() {}
-    public ProxyTestCase(String name){super(name);}
     
+    public static Collection<Object[]> getDelegateGroup4() {
+        Object[][] list = new Object[][] {
+            { new com.bigdata.rdf.store.TestLocalTripleStoreWithoutInlining() },
+            { new com.bigdata.rdf.store.TestTempTripleStore() },
+            { new com.bigdata.rdf.store.TestLocalTripleStoreWithoutStatementIdentifiers() },
+            { new com.bigdata.rdf.store.TestLocalTripleStore() } };
+        return java.util.Arrays.asList(list);
+    };
+
+    public static Collection<Object[]> getDelegateGroup6() {
+        Object[][] list = new Object[][] {
+            { new com.bigdata.rdf.store.TestLocalTripleStoreWithoutInlining() },
+            { new com.bigdata.rdf.store.TestLocalTripleStoreWithoutStatementIdentifiers() },
+            { new com.bigdata.rdf.store.TestLocalTripleStore() } };
+        return java.util.Arrays.asList(list);
+    };
+
     //************************************************************
     //************************ IProxyTest ************************
     //************************************************************
 
-    private Test m_delegate = null;
+    private Object m_delegate = null;
 
-    public void setDelegate(Test delegate) {
+    public void setDelegate(Object delegate) {
 
         m_delegate = delegate;
 
     }
 
-    public Test getDelegate() throws IllegalStateException {
+    public Object getDelegate() throws IllegalStateException {
 
         return m_delegate;
 
@@ -110,7 +125,7 @@ public abstract class ProxyTestCase
             }
             try {
                 Class cl = Class.forName(testClass);
-                m_delegate = (Test) cl.newInstance();
+                m_delegate = cl.newInstance();
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
@@ -145,10 +160,12 @@ public abstract class ProxyTestCase
      * an entire suite of tests.)
      */
     
+    @Before
     public void setUp() throws Exception {
         getOurDelegate().setUp(this);
     }
 
+    @After
     public void tearDown() throws Exception {
         getOurDelegate().tearDown(this);
     }
@@ -156,6 +173,7 @@ public abstract class ProxyTestCase
     /**
      * The properties as configured by the delegate.
      */
+    @Override
     public Properties getProperties() {
         return getOurDelegate().getProperties();
     }

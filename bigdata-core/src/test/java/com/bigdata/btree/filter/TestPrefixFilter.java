@@ -30,10 +30,6 @@ package com.bigdata.btree.filter;
 
 import java.util.Properties;
 import java.util.UUID;
-
-import com.bigdata.io.BytesUtil;
-import junit.framework.TestCase2;
-
 import org.apache.log4j.Level;
 
 import com.bigdata.btree.AbstractTupleCursorTestCase;
@@ -48,7 +44,10 @@ import com.bigdata.btree.TestTuple;
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.keys.StrengthEnum;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link PrefixFilter}.
@@ -56,19 +55,12 @@ import com.bigdata.rawstore.SimpleMemoryRawStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestPrefixFilter extends TestCase2 {
+public class TestPrefixFilter extends Assert {
 
     /**
      * 
      */
     public TestPrefixFilter() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestPrefixFilter(String name) {
-        super(name);
     }
 
     /**
@@ -118,6 +110,7 @@ public class TestPrefixFilter extends TestCase2 {
     /**
      * Unit tests with a single prefix.
      */
+    @Test
     public void test_onePrefix() {
 
         final BTree btree;
@@ -281,6 +274,7 @@ public class TestPrefixFilter extends TestCase2 {
     /**
      * Unit tests with multiple prefixes.
      */
+    @Test
     public void test_multiPrefix() {
 
         final BTree btree;

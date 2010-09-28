@@ -29,12 +29,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.striterator;
 
 import java.util.Arrays;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.striterator.ChunkedFilter;
 import com.bigdata.striterator.ChunkedStriterator;
 import com.bigdata.striterator.IChunkedIterator;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link ChunkedFilter}.
@@ -42,7 +41,7 @@ import com.bigdata.striterator.IChunkedIterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestChunkedFilter extends TestCase2 {
+public class TestChunkedFilter extends Assert {
 
     /**
      * 
@@ -51,16 +50,10 @@ public class TestChunkedFilter extends TestCase2 {
     }
 
     /**
-     * @param arg0
-     */
-    public TestChunkedFilter(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Unit test for chunk-at-a-time rewrite (multiplies the values in the chunk
      * by two).
      */
+    @Test
     public void test_filter() {
         
         IChunkedIterator<Long> itr = new ChunkedStriterator(Arrays.asList(
@@ -83,6 +76,7 @@ public class TestChunkedFilter extends TestCase2 {
      * Unit test for correct rendering of a partial chunk when an element has
      * already been drawn from the iterator.
      */
+    @Test
     public void test_filter2() {
 
         IChunkedIterator<Long> itr = new ChunkedStriterator(Arrays.asList(

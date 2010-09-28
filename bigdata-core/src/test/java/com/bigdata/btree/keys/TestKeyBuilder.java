@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.keys;
 
+import com.bigdata.io.BytesUtil;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -39,10 +40,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-
-import com.bigdata.io.BytesUtil;
-import junit.framework.TestCase2;
 import com.bigdata.io.BytesUtil.UnsignedByteArrayComparator;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for high level operations that build variable length _unsigned_
@@ -54,7 +54,7 @@ import com.bigdata.io.BytesUtil.UnsignedByteArrayComparator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestKeyBuilder extends TestCase2 {
+public class TestKeyBuilder extends Assert {
 
     /**
      * Used to unbox an application key (convert it to an unsigned byte[]).
@@ -68,15 +68,9 @@ public class TestKeyBuilder extends TestCase2 {
     }
 
     /**
-     * @param name
-     */
-    public TestKeyBuilder(String name) {
-        super(name);
-    }
-
-    /**
      * ctor tests, including correct rejection.
      */
+    @Test
     public void test_ctor() {
 
         {
@@ -119,7 +113,7 @@ public class TestKeyBuilder extends TestCase2 {
                 new KeyBuilder(-1);
                 fail("Expecting: "+IllegalArgumentException.class);
             } catch(IllegalArgumentException ex) {
-                System.err.println("Ignoring expected exception: "+ex);
+//                 System.err.println("Ignoring expected exception: "+ex);
             }
         }
 
@@ -128,7 +122,7 @@ public class TestKeyBuilder extends TestCase2 {
                 new KeyBuilder(20,null);
                 fail("Expecting: "+IllegalArgumentException.class);
             } catch(IllegalArgumentException ex) {
-                System.err.println("Ignoring expected exception: "+ex);
+//                 System.err.println("Ignoring expected exception: "+ex);
             }
         }
         
@@ -137,12 +131,13 @@ public class TestKeyBuilder extends TestCase2 {
                 new KeyBuilder(20,new byte[3]);
                 fail("Expecting: "+IllegalArgumentException.class);
             } catch(IllegalArgumentException ex) {
-                System.err.println("Ignoring expected exception: "+ex);
+//                 System.err.println("Ignoring expected exception: "+ex);
             }
         }
         
     }
     
+    @Test
     public void test_keyBuilder_ensureCapacity() {
         
         final int initialCapacity = 1;
@@ -160,7 +155,7 @@ public class TestKeyBuilder extends TestCase2 {
             keyBuilder.ensureCapacity(-1);
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
         assertTrue(originalBuffer==keyBuilder.buf); // same buffer.
         
@@ -172,6 +167,7 @@ public class TestKeyBuilder extends TestCase2 {
         assertTrue(originalBuffer==keyBuilder.buf); // same buffer.
     }
     
+    @Test
     public void test_keyBuilder_ensureCapacity02() {
         
         final int initialCapacity = 1;
@@ -195,6 +191,7 @@ public class TestKeyBuilder extends TestCase2 {
     /**
      * verify that existing data is preserved if the capacity is extended.
      */
+    @Test
     public void test_keyBuilder_ensureCapacity03() {
 
         Random r = new Random();
@@ -222,6 +219,7 @@ public class TestKeyBuilder extends TestCase2 {
         
     }
 
+    @Test
     public void test_keyBuilder_ensureFree() {
         
         final int initialCapacity = 1;
@@ -244,6 +242,7 @@ public class TestKeyBuilder extends TestCase2 {
      * Tests ability to append to the buffer, including with overflow of the
      * buffer capacity.
      */
+    @Test
     public void test_keyBuilder_append_bytes() {
         
         // setup buffer with some data and two(2) free bytes.
@@ -257,7 +256,7 @@ public class TestKeyBuilder extends TestCase2 {
         byte[] tmp = new byte[]{4,5,6,7,8,9};
         keyBuilder.append(2,2,tmp);
         assertEquals(7,keyBuilder.len);
-        assertEquals(new byte[]{1,2,3,4,5,6,7}, keyBuilder.buf);
+        assertArrayEquals(new byte[]{1,2,3,4,5,6,7}, keyBuilder.buf);
         assertEquals(0,BytesUtil.compareBytes(new byte[]{1,2,3,4,5,6,7}, keyBuilder.buf));
         
         // overflow capacity (new capacity is not known in advance).
@@ -281,6 +280,7 @@ public class TestKeyBuilder extends TestCase2 {
     /**
      * Test ability to extract and return a key.
      */
+    @Test
     public void test_keyBuilder_getKey() {
         
         IKeyBuilder keyBuilder = new KeyBuilder(5,new byte[]{1,2,3,4,5,6,7,8,9,10});
@@ -288,13 +288,14 @@ public class TestKeyBuilder extends TestCase2 {
         byte[] key = keyBuilder.getKey();
         
         assertEquals(5,key.length);
-        assertEquals(new byte[]{1,2,3,4,5},key);
+        assertArrayEquals(new byte[]{1,2,3,4,5},key);
         
     }
     
     /**
      * Verify returns zero length byte[] when the key has zero bytes.
      */
+    @Test
     public void test_keyBuilder_getKey_len0() {
 
         IKeyBuilder keyBuilder = new KeyBuilder();
@@ -309,6 +310,7 @@ public class TestKeyBuilder extends TestCase2 {
      * Test ability to reset the key buffer (simply zeros the #of valid bytes
      * in the buffer without touching the buffer itself).
      */
+    @Test
     public void test_keyBuilder_reset() {
 
         byte[] expected = new byte[10];
@@ -338,6 +340,7 @@ public class TestKeyBuilder extends TestCase2 {
      * (signed) becomes 0x80 (unsigned) while -1 (signed) is becomes to 0x79
      * (0x79 LT 0x80).
      */
+    @Test
     public void test_keyBuilder_byte_key() {
         
         IKeyBuilder keyBuilder = new KeyBuilder();
@@ -360,11 +363,11 @@ public class TestKeyBuilder extends TestCase2 {
         assertEquals(1,kp1.length);
         assertEquals(1,kmax.length);
         
-        System.err.println("kmin("+bmin+")="+BytesUtil.toString(kmin));
-        System.err.println("km1("+bm1+")="+BytesUtil.toString(km1));
-        System.err.println("k0("+b0+")="+BytesUtil.toString(k0));
-        System.err.println("kp1("+bp1+")="+BytesUtil.toString(kp1));
-        System.err.println("kmax("+bmax+")="+BytesUtil.toString(kmax));
+//         System.err.println("kmin("+bmin+")="+BytesUtil.toString(kmin));
+//         System.err.println("km1("+bm1+")="+BytesUtil.toString(km1));
+//         System.err.println("k0("+b0+")="+BytesUtil.toString(k0));
+//         System.err.println("kp1("+bp1+")="+BytesUtil.toString(kp1));
+//         System.err.println("kmax("+bmax+")="+BytesUtil.toString(kmax));
         
         assertTrue("kmin<km1",BytesUtil.compareBytes(kmin, km1)<0);
         assertTrue("km1<k0",BytesUtil.compareBytes(km1, k0)<0);
@@ -382,6 +385,7 @@ public class TestKeyBuilder extends TestCase2 {
 
     }
     
+    @Test
     public void test_keyBuilder_short_key() {
         
         final IKeyBuilder keyBuilder = new KeyBuilder();
@@ -404,11 +408,11 @@ public class TestKeyBuilder extends TestCase2 {
         assertEquals(2,kp1.length);
         assertEquals(2,kmax.length);
 
-        System.err.println("kmin(" + smin + ")=" + BytesUtil.toString(kmin));
-        System.err.println("km1(" + sm1 + ")=" + BytesUtil.toString(km1));
-        System.err.println("k0(" + s0 + ")=" + BytesUtil.toString(k0));
-        System.err.println("kp1(" + sp1 + ")=" + BytesUtil.toString(kp1));
-        System.err.println("kmax(" + smax + ")=" + BytesUtil.toString(kmax));
+//         System.err.println("kmin(" + smin + ")=" + BytesUtil.toString(kmin));
+//         System.err.println("km1(" + sm1 + ")=" + BytesUtil.toString(km1));
+//         System.err.println("k0(" + s0 + ")=" + BytesUtil.toString(k0));
+//         System.err.println("kp1(" + sp1 + ")=" + BytesUtil.toString(kp1));
+//         System.err.println("kmax(" + smax + ")=" + BytesUtil.toString(kmax));
 
         assertTrue("kmin<km1", BytesUtil.compareBytes(kmin, km1) < 0);
         assertTrue("km1<k0", BytesUtil.compareBytes(km1, k0) < 0);
@@ -432,6 +436,7 @@ public class TestKeyBuilder extends TestCase2 {
 
     }
     
+    @Test
     public void test_keyBuilder_int_key() {
         
         IKeyBuilder keyBuilder = new KeyBuilder();
@@ -454,11 +459,11 @@ public class TestKeyBuilder extends TestCase2 {
         assertEquals(4,kp1.length);
         assertEquals(4,kmax.length);
 
-        System.err.println("kmin("+imin+")="+BytesUtil.toString(kmin));
-        System.err.println("km1("+im1+")="+BytesUtil.toString(km1));
-        System.err.println("k0("+i0+")="+BytesUtil.toString(k0));
-        System.err.println("kp1("+ip1+")="+BytesUtil.toString(kp1));
-        System.err.println("kmax("+imax+")="+BytesUtil.toString(kmax));
+//         System.err.println("kmin("+imin+")="+BytesUtil.toString(kmin));
+//         System.err.println("km1("+im1+")="+BytesUtil.toString(km1));
+//         System.err.println("k0("+i0+")="+BytesUtil.toString(k0));
+//         System.err.println("kp1("+ip1+")="+BytesUtil.toString(kp1));
+//         System.err.println("kmax("+imax+")="+BytesUtil.toString(kmax));
         
         assertTrue("kmin<km1",BytesUtil.compareBytes(kmin, km1)<0);
         assertTrue("km1<k0",BytesUtil.compareBytes(km1, k0)<0);
@@ -478,6 +483,7 @@ public class TestKeyBuilder extends TestCase2 {
 
     }
 
+    @Test
     public void test_keyBuilder_long_key() {
         
         IKeyBuilder keyBuilder = new KeyBuilder();
@@ -500,11 +506,11 @@ public class TestKeyBuilder extends TestCase2 {
         assertEquals(8,kp1.length);
         assertEquals(8,kmax.length);
 
-        System.err.println("kmin("+lmin+")="+BytesUtil.toString(kmin));
-        System.err.println("km1("+lm1+")="+BytesUtil.toString(km1));
-        System.err.println("k0("+l0+")="+BytesUtil.toString(k0));
-        System.err.println("kp1("+lp1+")="+BytesUtil.toString(kp1));
-        System.err.println("kmax("+lmax+")="+BytesUtil.toString(kmax));
+//         System.err.println("kmin("+lmin+")="+BytesUtil.toString(kmin));
+//         System.err.println("km1("+lm1+")="+BytesUtil.toString(km1));
+//         System.err.println("k0("+l0+")="+BytesUtil.toString(k0));
+//         System.err.println("kp1("+lp1+")="+BytesUtil.toString(kp1));
+//         System.err.println("kmax("+lmax+")="+BytesUtil.toString(kmax));
         
         assertTrue("kmin<km1",BytesUtil.compareBytes(kmin, km1)<0);
         assertTrue("km1<k0",BytesUtil.compareBytes(km1, k0)<0);
@@ -526,6 +532,7 @@ public class TestKeyBuilder extends TestCase2 {
     }
 
 
+    @Test
     public void test_keyBuilder_float_key() throws NoSuccessorException {
         
         IKeyBuilder keyBuilder = new KeyBuilder();
@@ -548,14 +555,14 @@ public class TestKeyBuilder extends TestCase2 {
         assertEquals(4,kp1.length);
         assertEquals(4,kmax.length);
 
-        System.err.println("kmin("+SuccessorUtil.FNEG_MAX+")="+BytesUtil.toString(kmin));
-        System.err.println("kn1("+SuccessorUtil.FNEG_ONE+")="+BytesUtil.toString(kn1));
-        System.err.println("kneg("+SuccessorUtil.FNEG_MIN+")="+BytesUtil.toString(kneg));
-        System.err.println("km0("+SuccessorUtil.FNEG_ZERO+")="+BytesUtil.toString(km0));
-        System.err.println("kp0("+SuccessorUtil.FPOS_ZERO+")="+BytesUtil.toString(kp0));
-        System.err.println("kpos("+SuccessorUtil.FPOS_MIN+")="+BytesUtil.toString(kpos));
-        System.err.println("kp1("+SuccessorUtil.FPOS_ONE+")"+BytesUtil.toString(kp1));
-        System.err.println("kmax("+SuccessorUtil.FPOS_MAX+")="+BytesUtil.toString(kmax));
+//         System.err.println("kmin("+SuccessorUtil.FNEG_MAX+")="+BytesUtil.toString(kmin));
+//         System.err.println("kn1("+SuccessorUtil.FNEG_ONE+")="+BytesUtil.toString(kn1));
+//         System.err.println("kneg("+SuccessorUtil.FNEG_MIN+")="+BytesUtil.toString(kneg));
+//         System.err.println("km0("+SuccessorUtil.FNEG_ZERO+")="+BytesUtil.toString(km0));
+//         System.err.println("kp0("+SuccessorUtil.FPOS_ZERO+")="+BytesUtil.toString(kp0));
+//         System.err.println("kpos("+SuccessorUtil.FPOS_MIN+")="+BytesUtil.toString(kpos));
+//         System.err.println("kp1("+SuccessorUtil.FPOS_ONE+")"+BytesUtil.toString(kp1));
+//         System.err.println("kmax("+SuccessorUtil.FPOS_MAX+")="+BytesUtil.toString(kmax));
         
         assertTrue("kmin<kn1",BytesUtil.compareBytes(kmin, kn1)<0);
         assertTrue("kn1<kneg",BytesUtil.compareBytes(kn1, kneg)<0);
@@ -570,17 +577,18 @@ public class TestKeyBuilder extends TestCase2 {
          * 
          * @todo test decoding at offsets != 0.
          */
-        assertEquals("kmin",SuccessorUtil.FNEG_MAX,KeyBuilder.decodeFloat(kmin, 0));
-        assertEquals("kn1",SuccessorUtil.FNEG_ONE,KeyBuilder.decodeFloat(kn1, 0));
-        assertEquals("kneg",SuccessorUtil.FNEG_MIN,KeyBuilder.decodeFloat(kneg, 0));
-        assertEquals("km0",SuccessorUtil.FNEG_ZERO,KeyBuilder.decodeFloat(km0, 0));
-        assertEquals("kp0",SuccessorUtil.FPOS_ZERO,KeyBuilder.decodeFloat(kp0, 0));
-        assertEquals("kpos",SuccessorUtil.FPOS_MIN,KeyBuilder.decodeFloat(kpos, 0));
-        assertEquals("kp1",SuccessorUtil.FPOS_ONE,KeyBuilder.decodeFloat(kp1, 0));
-        assertEquals("kmax",SuccessorUtil.FPOS_MAX,KeyBuilder.decodeFloat(kmax, 0));
+        assertEquals("kmin",SuccessorUtil.FNEG_MAX,KeyBuilder.decodeFloat(kmin, 0), 0d);
+        assertEquals("kn1",SuccessorUtil.FNEG_ONE,KeyBuilder.decodeFloat(kn1, 0), 0d);
+        assertEquals("kneg",SuccessorUtil.FNEG_MIN,KeyBuilder.decodeFloat(kneg, 0), 0d);
+        assertEquals("km0",SuccessorUtil.FNEG_ZERO,KeyBuilder.decodeFloat(km0, 0), 0d);
+        assertEquals("kp0",SuccessorUtil.FPOS_ZERO,KeyBuilder.decodeFloat(kp0, 0), 0d);
+        assertEquals("kpos",SuccessorUtil.FPOS_MIN,KeyBuilder.decodeFloat(kpos, 0), 0d);
+        assertEquals("kp1",SuccessorUtil.FPOS_ONE,KeyBuilder.decodeFloat(kp1, 0), 0d);
+        assertEquals("kmax",SuccessorUtil.FPOS_MAX,KeyBuilder.decodeFloat(kmax, 0), 0d);
         
     }
 
+    @Test
     public void test_keyBuilder_double_key() throws NoSuccessorException {
         
         IKeyBuilder keyBuilder = new KeyBuilder();
@@ -603,14 +611,14 @@ public class TestKeyBuilder extends TestCase2 {
         assertEquals(8,kp1.length);
         assertEquals(8,kmax.length);
 
-        System.err.println("kmin("+SuccessorUtil.DNEG_MAX+")="+BytesUtil.toString(kmin));
-        System.err.println("kn1("+SuccessorUtil.DNEG_ONE+")="+BytesUtil.toString(kn1));
-        System.err.println("kneg("+SuccessorUtil.DNEG_MIN+")="+BytesUtil.toString(kneg));
-        System.err.println("km0("+SuccessorUtil.DNEG_ZERO+")="+BytesUtil.toString(km0));
-        System.err.println("kp0("+SuccessorUtil.DPOS_ZERO+")="+BytesUtil.toString(kp0));
-        System.err.println("kpos("+SuccessorUtil.DPOS_MIN+")="+BytesUtil.toString(kpos));
-        System.err.println("kp1("+SuccessorUtil.DPOS_ONE+")"+BytesUtil.toString(kp1));
-        System.err.println("kmax("+SuccessorUtil.DPOS_MAX+")="+BytesUtil.toString(kmax));
+//         System.err.println("kmin("+SuccessorUtil.DNEG_MAX+")="+BytesUtil.toString(kmin));
+//         System.err.println("kn1("+SuccessorUtil.DNEG_ONE+")="+BytesUtil.toString(kn1));
+//         System.err.println("kneg("+SuccessorUtil.DNEG_MIN+")="+BytesUtil.toString(kneg));
+//         System.err.println("km0("+SuccessorUtil.DNEG_ZERO+")="+BytesUtil.toString(km0));
+//         System.err.println("kp0("+SuccessorUtil.DPOS_ZERO+")="+BytesUtil.toString(kp0));
+//         System.err.println("kpos("+SuccessorUtil.DPOS_MIN+")="+BytesUtil.toString(kpos));
+//         System.err.println("kp1("+SuccessorUtil.DPOS_ONE+")"+BytesUtil.toString(kp1));
+//         System.err.println("kmax("+SuccessorUtil.DPOS_MAX+")="+BytesUtil.toString(kmax));
         
         assertTrue("kmin<kn1",BytesUtil.compareBytes(kmin, kn1)<0);
         assertTrue("kn1<kneg",BytesUtil.compareBytes(kn1, kneg)<0);
@@ -625,14 +633,14 @@ public class TestKeyBuilder extends TestCase2 {
          * 
          * @todo test decoding at offsets != 0.
          */
-        assertEquals("kmin",SuccessorUtil.DNEG_MAX,KeyBuilder.decodeDouble(kmin, 0));
-        assertEquals("kn1",SuccessorUtil.DNEG_ONE,KeyBuilder.decodeDouble(kn1, 0));
-        assertEquals("kneg",SuccessorUtil.DNEG_MIN,KeyBuilder.decodeDouble(kneg, 0));
-        assertEquals("km0",SuccessorUtil.DNEG_ZERO,KeyBuilder.decodeDouble(km0, 0));
-        assertEquals("kp0",SuccessorUtil.DPOS_ZERO,KeyBuilder.decodeDouble(kp0, 0));
-        assertEquals("kpos",SuccessorUtil.DPOS_MIN,KeyBuilder.decodeDouble(kpos, 0));
-        assertEquals("kp1",SuccessorUtil.DPOS_ONE,KeyBuilder.decodeDouble(kp1, 0));
-        assertEquals("kmax",SuccessorUtil.DPOS_MAX,KeyBuilder.decodeDouble(kmax, 0));
+        assertEquals("kmin",SuccessorUtil.DNEG_MAX,KeyBuilder.decodeDouble(kmin, 0), 0d);
+        assertEquals("kn1",SuccessorUtil.DNEG_ONE,KeyBuilder.decodeDouble(kn1, 0), 0d);
+        assertEquals("kneg",SuccessorUtil.DNEG_MIN,KeyBuilder.decodeDouble(kneg, 0), 0d);
+        assertEquals("km0",SuccessorUtil.DNEG_ZERO,KeyBuilder.decodeDouble(km0, 0), 0d);
+        assertEquals("kp0",SuccessorUtil.DPOS_ZERO,KeyBuilder.decodeDouble(kp0, 0), 0d);
+        assertEquals("kpos",SuccessorUtil.DPOS_MIN,KeyBuilder.decodeDouble(kpos, 0), 0d);
+        assertEquals("kp1",SuccessorUtil.DPOS_ONE,KeyBuilder.decodeDouble(kp1, 0), 0d);
+        assertEquals("kmax",SuccessorUtil.DPOS_MAX,KeyBuilder.decodeDouble(kmax, 0), 0d);
 
     }
 
@@ -641,6 +649,7 @@ public class TestKeyBuilder extends TestCase2 {
      * natural order of the encoded {@link UUID}s respects the order imposed
      * by {@link UUID#compareTo(UUID)}.
      */
+    @Test
     public void test_keyBuilder_UUID() {
 
         final IKeyBuilder keyBuilder = new KeyBuilder();
@@ -696,6 +705,7 @@ public class TestKeyBuilder extends TestCase2 {
      * @todo test ability to decode an ASCII field in a non-terminal position of
      *       a multi-field key.
      */
+    @Test
     public void test_keyBuilder_ascii() {
         
         IKeyBuilder keyBuilder = new KeyBuilder();
@@ -704,9 +714,9 @@ public class TestKeyBuilder extends TestCase2 {
         byte[] key2 = keyBuilder.reset().appendASCII("ABC").getKey();
         byte[] key3 = keyBuilder.reset().appendASCII("Abc").getKey();
 
-        System.err.println("abc: "+BytesUtil.toString(key1));
-        System.err.println("ABC: "+BytesUtil.toString(key2));
-        System.err.println("Abc: "+BytesUtil.toString(key3));
+//         System.err.println("abc: "+BytesUtil.toString(key1));
+//         System.err.println("ABC: "+BytesUtil.toString(key2));
+//         System.err.println("Abc: "+BytesUtil.toString(key3));
         
         // unlike a unicode encoding, this produces one byte per character.
         assertEquals(3,key1.length);
@@ -733,6 +743,7 @@ public class TestKeyBuilder extends TestCase2 {
      * the pad byte causes a prefix such as "bro" to sort before a term which
      * extends that prefix, such as "brown".
      */
+    @Test
     public void test_keyBuilder_ascii_order() {        
 
         KeyBuilder keyBuilder = (KeyBuilder) KeyBuilder.newInstance();
@@ -774,6 +785,7 @@ public class TestKeyBuilder extends TestCase2 {
      *  
      * </pre>
      */
+    @Test
     public void test_keyBuilder_multiField_ascii_long() {
 
         final KeyBuilder keyBuilder = (KeyBuilder) KeyBuilder.newInstance();
@@ -1139,6 +1151,7 @@ public class TestKeyBuilder extends TestCase2 {
      * Verify that we can convert float keys to unsigned byte[]s while
      * preserving the value space order.
      */
+    @Test
     public void test_float_order() {
 
         Random r = new Random();
@@ -1210,7 +1223,7 @@ public class TestKeyBuilder extends TestCase2 {
          * matter.
          */
 
-        System.err.println("Populating map");
+//         System.err.println("Populating map");
         
         TreeMap<byte[],Float> map = new TreeMap<byte[],Float>(BytesUtil.UnsignedByteArrayComparator.INSTANCE);
 
@@ -1246,7 +1259,7 @@ public class TestKeyBuilder extends TestCase2 {
          * maintained by the keys is correct for the values.
          */
         
-        System.err.println("Testing map order");
+//         System.err.println("Testing map order");
         
         Iterator<Map.Entry<byte[],Float>> itr = map.entrySet().iterator();
         
@@ -1281,6 +1294,7 @@ public class TestKeyBuilder extends TestCase2 {
      * Verify that we can convert double keys to unsigned byte[]s while
      * preserving the value space order.
      */
+    @Test
     public void test_double_order() {
 
         Random r = new Random();
@@ -1350,7 +1364,7 @@ public class TestKeyBuilder extends TestCase2 {
          * matter.
          */
 
-        System.err.println("Populating map");
+//         System.err.println("Populating map");
         
         TreeMap<byte[],Double> map = new TreeMap<byte[],Double>(BytesUtil.UnsignedByteArrayComparator.INSTANCE);
 
@@ -1386,7 +1400,7 @@ public class TestKeyBuilder extends TestCase2 {
          * maintained by the keys is correct for the values.
          */
         
-        System.err.println("Testing map order");
+//         System.err.println("Testing map order");
         
         Iterator<Map.Entry<byte[],Double>> itr = map.entrySet().iterator();
         
@@ -1430,6 +1444,7 @@ public class TestKeyBuilder extends TestCase2 {
      *       generate the prefix for the terms index. if the order is wrong then
      *       that prefix could be unsigned.
      */
+    @Test
     public void test_encodeDecodeByte() {
         
         for (int b = Byte.MIN_VALUE; b < Byte.MAX_VALUE; b++) {
@@ -1507,6 +1522,7 @@ public class TestKeyBuilder extends TestCase2 {
      * Note: The code below does not work correctly yet.
      */
     
+    @Test
     public void test_BigInteger_ctor() {
         
         Random r = new Random();
@@ -1749,6 +1765,7 @@ public class TestKeyBuilder extends TestCase2 {
 
     }
 
+    @Test
     public void test_BigInteger_383() {
 
         final BigInteger v1 = BigInteger.valueOf(383);
@@ -1757,6 +1774,7 @@ public class TestKeyBuilder extends TestCase2 {
 
     }
     
+    @Test
     public void test_BigDecimal_383() {
 
         final BigDecimal v1 = new BigDecimal("383.00000000000001");
@@ -1765,6 +1783,7 @@ public class TestKeyBuilder extends TestCase2 {
 
     }
     
+    @Test
     public void test_BigInteger_m1() {
         
         final BigInteger v = BigInteger.valueOf(-1);
@@ -1773,6 +1792,7 @@ public class TestKeyBuilder extends TestCase2 {
 
     }
     
+    @Test
     public void test_BigDecimal_m1() {
         
         final BigDecimal v = BigDecimal.valueOf(-1.00000000001);
@@ -1781,6 +1801,7 @@ public class TestKeyBuilder extends TestCase2 {
 
     }
     
+    @Test
     public void test_BigDecimal_zeros() {
         
         final BigDecimal z1 = new BigDecimal("0.0");
@@ -1822,6 +1843,7 @@ public class TestKeyBuilder extends TestCase2 {
     /**
      * Unit tests for encoding {@link BigInteger} keys.
      */
+    @Test
     public void test_bigIntegerKey() {
 
         doEncodeDecodeTest(BigInteger.valueOf(0));
@@ -1885,6 +1907,7 @@ public class TestKeyBuilder extends TestCase2 {
     /**
      * Unit tests for encoding {@link BigDecimal} keys.
      */
+    @Test
     public void test_bigDecimalKey() {
 
         doEncodeDecodeTest(BigDecimal.valueOf(0));
@@ -1948,6 +1971,7 @@ public class TestKeyBuilder extends TestCase2 {
     /**
      * Stress test with random <code>long</code> values.
      */
+    @Test
     public void test_BigInteger_stress_long_values() {
         
         final Random r = new Random();
@@ -2009,6 +2033,7 @@ public class TestKeyBuilder extends TestCase2 {
     /**
      * Stress test with random <code>double</code> values.
      */
+    @Test
     public void test_BigDecimal_stress_double_values() {
         
         final Random r = new Random();
@@ -2071,6 +2096,7 @@ public class TestKeyBuilder extends TestCase2 {
      * Test with positive and negative {@link BigInteger}s having a common
      * prefix with varying digits after the prefix.
      */
+    @Test
     public void test_BigInteger_sortOrder() {
         
         final BigInteger p1 = new BigInteger("15");
@@ -2093,6 +2119,7 @@ public class TestKeyBuilder extends TestCase2 {
      * Test with positive and negative {@link BigDecimal}s having varying
      * digits after the decimals. 
      */
+    @Test
     public void test_BigDecimal_negativeSortOrder() {
         
         final BigDecimal p1 = new BigDecimal("1.5");
@@ -2115,6 +2142,7 @@ public class TestKeyBuilder extends TestCase2 {
      * Test with positive and negative {@link BigDecimal}s with large
      * exponents 
      */
+    @Test
     public void test_BigDecimal_largeExponents() {
         
         final BigDecimal p1 = new BigDecimal("12000000000000000000000000");
@@ -2152,6 +2180,7 @@ public class TestKeyBuilder extends TestCase2 {
      * Stress test with random byte[]s from which we then construct
      * {@link BigInteger}s.
      */
+    @Test
     public void test_BigInteger_stress_byteArray_values() {
         
         final Random r = new Random();
@@ -2504,6 +2533,7 @@ public class TestKeyBuilder extends TestCase2 {
     /**
      * Test encode/decode for various values of zero.
      */
+    @Test
     public void test_BigDecimal0() {
 
         final BigDecimal[] a = new BigDecimal[] {
@@ -2527,19 +2557,19 @@ public class TestKeyBuilder extends TestCase2 {
                 // @todo Test with cases where scale is negative (large powers of 10).
                 };
 
-        for (BigDecimal i : a) {
-            i = i.stripTrailingZeros();
-            System.err.println("i="
-                    + i
-                    + "\t(scale="
-                    + i.scale()
-                    + ",prec="
-                    + i.precision()
-                    + ") : "
-                    + dumpBigDecimal(i)
-//                    i.scaleByPowerOfTen(i.scale()- i.precision()))
-                            );
-        }
+//         for (BigDecimal i : a) {
+//             i = i.stripTrailingZeros();
+//             System.err.println("i="
+//                     + i
+//                     + "\t(scale="
+//                     + i.scale()
+//                     + ",prec="
+//                     + i.precision()
+//                     + ") : "
+//                     + dumpBigDecimal(i)
+// //                    i.scaleByPowerOfTen(i.scale()- i.precision()))
+//                             );
+//         }
 
         for (BigDecimal i : a) {
             doEncodeDecodeTest(i);

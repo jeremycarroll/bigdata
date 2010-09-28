@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutionException;
 import com.bigdata.btree.BTree;
 import com.bigdata.rawstore.AbstractRawStoreTestCase;
 import com.bigdata.rawstore.IRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for correct handling of {@link ClosedByInterruptException}s. When
@@ -66,18 +67,12 @@ abstract public class AbstractInterruptsTestCase extends AbstractRawStoreTestCas
     }
 
     /**
-     * @param name
-     */
-    public AbstractInterruptsTestCase(String name) {
-        super(name);
-    }
-
-    /**
      * Runs {@link #doChannelOpenAfterInterrupt()} N times.
      * 
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_channelOpenAfterInterrupt()
             throws InterruptedException, ExecutionException {
         
@@ -175,7 +170,7 @@ abstract public class AbstractInterruptsTestCase extends AbstractRawStoreTestCas
                 
                 assertTrue(isInnerCause(ex, ClosedByInterruptException.class)
                         || isInnerCause(ex, InterruptedException.class));
-                
+
             }
 
             // Wait until the write service either commits or aborts.
@@ -296,6 +291,7 @@ abstract public class AbstractInterruptsTestCase extends AbstractRawStoreTestCas
      * <p>
      * Note: This test is only for {@link IDiskBasedStrategy} implementations.
      */
+    @Test
     public void test_reopenAfterInterrupt() {
         
         final IRawStore store = getStore();
@@ -337,12 +333,12 @@ abstract public class AbstractInterruptsTestCase extends AbstractRawStoreTestCas
                         // clear the interrupt.
                         assertTrue(Thread.interrupted());
                     }
-                    
+
                     if (isInnerCause(t, InterruptedException.class)) {
                         // Interrupt while acquiring a lock.
                         expectedException = true;
                     }
-                    
+
                     if (!expectedException) {
                         fail("Expecting: inner cause"
                                 + ClosedByInterruptException.class.getName()
@@ -390,6 +386,7 @@ abstract public class AbstractInterruptsTestCase extends AbstractRawStoreTestCas
      * writes in a reliable way, and furthermore will invalidate the store after
      * an interrupt.
      */
+    @Test
     public void test_reopenAfterInterrupt_checkWriteBuffer() {
         
         final IRawStore store = getStore();

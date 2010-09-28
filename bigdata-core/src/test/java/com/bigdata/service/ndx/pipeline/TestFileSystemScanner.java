@@ -37,18 +37,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import com.bigdata.DataFinder;
-import junit.framework.TestCase2;
-
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.jini.master.AbstractResourceScanner;
 import com.bigdata.service.jini.master.FileSystemScanner;
+import com.bigdata.test.Assert;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class TestFileSystemScanner extends TestCase2 {
+public class TestFileSystemScanner extends Assert {
 
     /**
      * 
@@ -56,10 +55,7 @@ public class TestFileSystemScanner extends TestCase2 {
     public TestFileSystemScanner() {
     }
 
-    public TestFileSystemScanner(String a) {
-        super(a);
-    }
-    
+    @Test
     public void test_runScanner() throws Exception {
         
         final BlockingBuffer<File[]> buffer = new BlockingBuffer<File[]>();

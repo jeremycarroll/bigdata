@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.raba.codec;
 
+import org.junit.Before;
+
 
 /**
  * Test suite for the {@link FrontCodedRabaCoder}.
@@ -42,16 +44,8 @@ public class TestFrontCodedRabaCoderRatio2 extends AbstractFrontCodedRabaCoderTe
     public TestFrontCodedRabaCoderRatio2() {
     }
 
-    /**
-     * @param name
-     */
-    public TestFrontCodedRabaCoderRatio2(String name) {
-        super(name);
-    }
-
-    protected void setUp() throws Exception {
-        
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
         
         rabaCoder = new FrontCodedRabaCoder(2/* ratio */);
         

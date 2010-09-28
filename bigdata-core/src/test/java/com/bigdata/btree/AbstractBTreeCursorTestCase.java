@@ -31,6 +31,7 @@ package com.bigdata.btree;
 import java.util.UUID;
 
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Abstract base class for some unit tests that can only be run against a
@@ -47,17 +48,12 @@ abstract public class AbstractBTreeCursorTestCase extends AbstractTupleCursorTes
     public AbstractBTreeCursorTestCase() {
     }
     
-    public AbstractBTreeCursorTestCase(String name) {
-        
-        super(name);
-        
-    }
-    
     /**
      * Return <code>true</code> if the B+Tree under test is read-only.
      */
     abstract protected boolean isReadOnly();
 
+    @Test
     public void test_emptyIndex() {
 
         BTree btree = BTree.create(new SimpleMemoryRawStore(), new IndexMetadata(UUID.randomUUID()));
@@ -74,6 +70,7 @@ abstract public class AbstractBTreeCursorTestCase extends AbstractTupleCursorTes
         
     }
 
+    @Test
     public void test_oneTuple() {
 
         BTree btree = getOneTupleBTree();
@@ -90,6 +87,7 @@ abstract public class AbstractBTreeCursorTestCase extends AbstractTupleCursorTes
 
     }
 
+    @Test
     public void test_baseCase() {
         
         BTree btree = getBaseCaseBTree();
@@ -106,6 +104,7 @@ abstract public class AbstractBTreeCursorTestCase extends AbstractTupleCursorTes
         
     }
     
+    @Test
     public void test_reverseTraversal() {
         
         BTree btree = getReverseTraversalBTree();
@@ -126,6 +125,7 @@ abstract public class AbstractBTreeCursorTestCase extends AbstractTupleCursorTes
      * Unit test verifies that a fromKey and toKey which are out of order will
      * be rejected.
      */
+    @Test
     public void test_keyRange_correctRejection() {
 
         BTree btree = BTree.create(new SimpleMemoryRawStore(),

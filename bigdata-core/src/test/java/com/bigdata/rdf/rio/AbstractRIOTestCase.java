@@ -42,11 +42,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import junit.framework.AssertionFailedError;
-
 import org.openrdf.rio.RDFFormat;
-
 import com.bigdata.rdf.load.IStatementBufferFactory;
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -64,13 +60,6 @@ abstract public class AbstractRIOTestCase extends AbstractTripleStoreTestCase {
      * 
      */
     public AbstractRIOTestCase() {
-    }
-
-    /**
-     * @param name
-     */
-    public AbstractRIOTestCase(String name) {
-        super(name);
     }
 
     /**
@@ -209,8 +198,8 @@ abstract public class AbstractRIOTestCase extends AbstractTripleStoreTestCase {
         if (!file.exists()) {
 
 //            throw new RuntimeException("No such resource/file: " + resource);
-            throw new AssertionFailedError("Resource not found: " + file
-                    + ", test skipped: " + getName());
+            throw new AssertionError("Resource not found: " + file
+                    + ", test skipped: " + this.getClass().getName());
             
         }
         
@@ -654,7 +643,7 @@ abstract public class AbstractRIOTestCase extends AbstractTripleStoreTestCase {
                 log.info("Verifying all statements found using reparse: file="
                         + resource);
 
-                final String baseURI; ;
+                final String baseURI;
                 if (getClass().getResource(resource) != null) {
                     
                     baseURI = getClass().getResource(resource).toURI()

@@ -54,6 +54,10 @@ import com.bigdata.test.ExperimentDriver;
 import com.bigdata.test.ExperimentDriver.IComparisonTest;
 import com.bigdata.test.ExperimentDriver.Result;
 import com.bigdata.util.NV;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Stress test of the group commit mechanism. This class may be used to tune the
@@ -85,21 +89,20 @@ import com.bigdata.util.NV;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class StressTestGroupCommit extends ProxyTestCase implements IComparisonTest {
 
     /**
      * 
      */
-    public StressTestGroupCommit() {
-        super();
+    public StressTestGroupCommit(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public StressTestGroupCommit(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
     /**
      * Measures the maximum rate at which a single thread can register named
@@ -113,6 +116,7 @@ public class StressTestGroupCommit extends ProxyTestCase implements IComparisonT
      * <p>
      * Note: This is for data collection - it is not really a unit test.
      */
+    @Test
     public void test_singleThreadIndexCreationRate() {
         
         final Properties properties = getProperties();
@@ -155,9 +159,9 @@ public class StressTestGroupCommit extends ProxyTestCase implements IComparisonT
         
         final long elapsed2 = now - begin;
         
-        System.err.println("#tasks=" + ntasks + ", elapsed=" + elapsed1
-                + ", #indices created per second="
-                + (int)(1000d * ntasks / elapsed1) + ", commit=" + elapsed2 + "ms");
+//         System.err.println("#tasks=" + ntasks + ", elapsed=" + elapsed1
+//                 + ", #indices created per second="
+//                 + (int)(1000d * ntasks / elapsed1) + ", commit=" + elapsed2 + "ms");
         
         } finally {
 
@@ -177,6 +181,7 @@ public class StressTestGroupCommit extends ProxyTestCase implements IComparisonT
      * 
      * @throws InterruptedException
      */
+    @Test
     public void test_twothreadIndexCreationRate() throws InterruptedException {
 
         final Properties properties = getProperties();
@@ -198,6 +203,7 @@ public class StressTestGroupCommit extends ProxyTestCase implements IComparisonT
         
         Thread t1 = new Thread() {
 
+            @Override
             public void run() {
                 
                 for (int i = 0; i < ntasks/2; i++) {
@@ -229,6 +235,7 @@ public class StressTestGroupCommit extends ProxyTestCase implements IComparisonT
 
         Thread t2 = new Thread() {
             
+            @Override
             public void run() {
                 for (int i = ntasks/2; i < ntasks; i++) {
 
@@ -283,9 +290,9 @@ public class StressTestGroupCommit extends ProxyTestCase implements IComparisonT
         
         final long elapsed2 = now - begin;
         
-        System.err.println("#tasks=" + ntasks + ", elapsed=" + elapsed1
-                + ", #indices created per second="
-                + (int)(1000d * ntasks / elapsed1) + ", commit=" + elapsed2 + "ms");
+//         System.err.println("#tasks=" + ntasks + ", elapsed=" + elapsed1
+//                 + ", #indices created per second="
+//                 + (int)(1000d * ntasks / elapsed1) + ", commit=" + elapsed2 + "ms");
         
         } finally {
         
@@ -300,6 +307,7 @@ public class StressTestGroupCommit extends ProxyTestCase implements IComparisonT
      *  
      * @throws Exception 
      */
+    @Test
     public void test_groupCommit() throws Exception {
 
         final int writeServiceCorePoolSize = 100;
@@ -517,7 +525,7 @@ public class StressTestGroupCommit extends ProxyTestCase implements IComparisonT
         result.put("maxCommitLatency", ""+journal.getConcurrencyManager().writeService.getMaxCommitServiceTime());
         result.put("poolSize",""+journal.getConcurrencyManager().writeService.getPoolSize());
         
-        System.err.println(result.toString(true/*newline*/));
+//         System.err.println(result.toString(true/*newline*/));
 
         return result;
 
@@ -581,7 +589,8 @@ public class StressTestGroupCommit extends ProxyTestCase implements IComparisonT
         
 //        properties.setProperty(Options.FORCE_ON_COMMIT,ForceEnum.No.toString());
 
-        IComparisonTest test = new StressTestGroupCommit();
+        IComparisonTest test =
+            new StressTestGroupCommit(new TestDirectJournal());
         
         test.setUpComparisonTest(properties);
         
@@ -706,7 +715,7 @@ public class StressTestGroupCommit extends ProxyTestCase implements IComparisonT
             Experiment exp = new Experiment(className,defaultProperties,conditions);
 
             // copy the output into a file and then you can run it later.
-            System.err.println(exp.toXML());
+//             System.err.println(exp.toXML());
 
         }
         

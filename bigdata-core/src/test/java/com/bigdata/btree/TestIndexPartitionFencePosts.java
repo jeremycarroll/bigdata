@@ -52,13 +52,6 @@ public class TestIndexPartitionFencePosts extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestIndexPartitionFencePosts(String name) {
-        super(name);
-    }
-
-    /**
      * Tests basics with an index partition.
      * 
      * @throws Exception
@@ -88,7 +81,7 @@ public class TestIndexPartitionFencePosts extends AbstractBTreeTestCase {
         assertFalse(ndx.contains(new byte[]{1}));
      
         // the key is not in the index.
-        assertEquals(null, ndx.lookup(new byte[]{1}));
+        assertArrayEquals(null, ndx.lookup(new byte[]{1}));
         
         // insert a key-value pair.
         assertNull(ndx.insert(new byte[]{1}, new byte[]{1}));
@@ -97,7 +90,7 @@ public class TestIndexPartitionFencePosts extends AbstractBTreeTestCase {
         assertTrue(ndx.contains(new byte[]{1}));
 
         // verify correct value in the index.
-        assertEquals(new byte[]{1}, ndx.lookup(new byte[]{1}));
+        assertArrayEquals(new byte[]{1}, ndx.lookup(new byte[]{1}));
 
         // verify some range counts.
         assertEquals(0, ndx.rangeCount(new byte[] {}, new byte[] { 1 }));
@@ -118,13 +111,13 @@ public class TestIndexPartitionFencePosts extends AbstractBTreeTestCase {
         assertSameIterator(new byte[][]{new byte[]{1}}, ndx.rangeIterator(null, null));
         
         // remove the index entry.
-        assertEquals(new byte[] { 1 }, ndx.remove(new byte[] { 1 }));
+        assertArrayEquals(new byte[] { 1 }, ndx.remove(new byte[] { 1 }));
 
         // the index is empty.
         assertFalse(ndx.contains(new byte[] { 1 }));
 
         // the key is not in the index.
-        assertEquals(null, ndx.lookup(new byte[] { 1 }));
+        assertArrayEquals(null, ndx.lookup(new byte[] { 1 }));
         
         /*
          * verify some range counts.

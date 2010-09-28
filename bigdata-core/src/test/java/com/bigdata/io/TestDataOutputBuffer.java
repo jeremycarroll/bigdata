@@ -28,8 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.io;
 
 import java.io.IOException;
-
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link DataOutputBuffer}.
@@ -37,7 +37,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestDataOutputBuffer extends TestCase2
+public class TestDataOutputBuffer extends Assert
 {
 
     /**
@@ -47,15 +47,9 @@ public class TestDataOutputBuffer extends TestCase2
     }
 
     /**
-     * @param arg0
-     */
-    public TestDataOutputBuffer(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * ctor tests, including correct rejection.
      */
+    @Test
     public void test_ctor() {
 
         {
@@ -95,20 +89,21 @@ public class TestDataOutputBuffer extends TestCase2
     /**
      * correct rejection tests.
      */
+    @Test
     public void test_ctor_correctRejection() {
 
         try {
             new DataOutputBuffer(-1);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
         try {
             new DataOutputBuffer(20, new byte[10]);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
     }
@@ -121,6 +116,7 @@ public class TestDataOutputBuffer extends TestCase2
      * Tests ability to append to the buffer, including with overflow of the
      * buffer capacity.
      */
+    @Test
     public void test_append_bytes() throws IOException {
 
         // setup buffer with some data and two(2) free bytes.
@@ -135,7 +131,7 @@ public class TestDataOutputBuffer extends TestCase2
         byte[] tmp = new byte[] { 4, 5, 6, 7, 8, 9 };
         DataOutputBuffer.write(tmp, 2, 2);
         assertEquals(7, DataOutputBuffer.pos);
-        assertEquals(new byte[] { 1, 2, 3, 4, 5, 6, 7 }, DataOutputBuffer.array());
+        assertArrayEquals(new byte[] { 1, 2, 3, 4, 5, 6, 7 }, DataOutputBuffer.array());
         assertEquals(0, BytesUtil.compareBytes(
                 new byte[] { 1, 2, 3, 4, 5, 6, 7 }, DataOutputBuffer.array()));
 
@@ -162,6 +158,7 @@ public class TestDataOutputBuffer extends TestCase2
     /**
      * Test ability to extract and return a key.
      */
+    @Test
     public void test_getKey() {
 
         DataOutputBuffer DataOutputBuffer = new DataOutputBuffer(5, new byte[] {
@@ -170,13 +167,14 @@ public class TestDataOutputBuffer extends TestCase2
         byte[] key = DataOutputBuffer.toByteArray();
 
         assertEquals(5, key.length);
-        assertEquals(new byte[] { 1, 2, 3, 4, 5 }, key);
+        assertArrayEquals(new byte[] { 1, 2, 3, 4, 5 }, key);
 
     }
 
     /**
      * Verify returns zero length byte[] when the key has zero bytes.
      */
+    @Test
     public void test_getKey_len0() {
 
         DataOutputBuffer DataOutputBuffer = new DataOutputBuffer();
@@ -191,6 +189,7 @@ public class TestDataOutputBuffer extends TestCase2
      * Test ability to reset the key buffer (simply zeros the #of valid bytes in
      * the buffer without touching the buffer itself).
      */
+    @Test
     public void test_reset() {
 
         final byte[] expected = new byte[10];

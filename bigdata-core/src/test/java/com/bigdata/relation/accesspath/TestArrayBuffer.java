@@ -27,8 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 package com.bigdata.relation.accesspath;
-
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link AbstractArrayBuffer}.
@@ -36,7 +36,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestArrayBuffer extends TestCase2 {
+public class TestArrayBuffer extends Assert {
 
     /**
      * 
@@ -45,15 +45,9 @@ public class TestArrayBuffer extends TestCase2 {
     }
 
     /**
-     * @param arg0
-     */
-    public TestArrayBuffer(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * @todo place holder for unit tests.
      */
+    @Test
     public void test_something() {
         
     }

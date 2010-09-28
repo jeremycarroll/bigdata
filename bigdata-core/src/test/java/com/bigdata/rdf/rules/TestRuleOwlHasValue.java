@@ -31,9 +31,16 @@ import org.openrdf.model.vocabulary.RDF;
 
 import com.bigdata.rdf.rio.IStatementBuffer;
 import com.bigdata.rdf.rio.StatementBuffer;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.Vocabulary;
 import com.bigdata.relation.rule.Rule;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for owl:hasValue processing.
@@ -46,21 +53,20 @@ import com.bigdata.relation.rule.Rule;
  * 
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  */
+@RunWith(Parameterized.class)
 public class TestRuleOwlHasValue extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestRuleOwlHasValue() {
-        super();
+    public TestRuleOwlHasValue(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRuleOwlHasValue(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Test where the data satisifies the rule exactly once.
@@ -70,6 +76,7 @@ public class TestRuleOwlHasValue extends AbstractRuleTestCase {
      * </pre>
      * @throws Exception 
      */
+    @Test
     public void test_OwlHasValue() throws Exception {
 
         AbstractTripleStore store = getStore();

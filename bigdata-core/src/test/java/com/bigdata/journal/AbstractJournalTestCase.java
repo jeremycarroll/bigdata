@@ -29,8 +29,7 @@ package com.bigdata.journal;
 
 import java.io.File;
 import java.util.Properties;
-
-import junit.framework.TestCase;
+import org.junit.After;
 
 /**
  * <p>
@@ -48,8 +47,7 @@ import junit.framework.TestCase;
  * </p>
  */
 abstract public class AbstractJournalTestCase
-    extends AbstractIndexManagerTestCase<Journal>
-{
+    extends AbstractIndexManagerTestCase<Journal> {
 
     //
     // Constructors.
@@ -57,8 +55,6 @@ abstract public class AbstractJournalTestCase
 
     public AbstractJournalTestCase() {}
     
-    public AbstractJournalTestCase(String name) {super(name);}
-
     //************************************************************
     //************************************************************
     //************************************************************
@@ -66,6 +62,7 @@ abstract public class AbstractJournalTestCase
     /**
      * Invoked from {@link TestCase#setUp()} for each test in the suite.
      */
+    @Override
     public void setUp(ProxyTestCase testCase) throws Exception {
 
         super.setUp(testCase);
@@ -79,6 +76,7 @@ abstract public class AbstractJournalTestCase
     /**
      * Invoked from {@link TestCase#tearDown()} for each test in the suite.
      */
+    @Override
     public void tearDown(ProxyTestCase testCase) throws Exception {
 
         super.tearDown(testCase);
@@ -87,6 +85,8 @@ abstract public class AbstractJournalTestCase
         
     }
     
+    @After
+    @Override
     public void tearDown() throws Exception {
         
         super.tearDown();
@@ -159,6 +159,7 @@ abstract public class AbstractJournalTestCase
      * 
      * @return A new properties object.
      */
+    @Override
     public Properties getProperties() {
         
         if( m_properties == null ) {

@@ -35,13 +35,20 @@ import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rio.StatementBuffer;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.store.TestTripleStore;
 import com.bigdata.relation.accesspath.AbstractAccessPath;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.Var;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link SPOAccessPath}.
@@ -57,26 +64,26 @@ import com.bigdata.relation.rule.Var;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestSPOAccessPath extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestSPOAccessPath() {
-        super();
+    public TestSPOAccessPath(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestSPOAccessPath(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * There are 8 distinct triple pattern bindings for a triple store that
      * select among 3 distinct access paths.
      */
+    @Test
     public void test_getAccessPath() {
        
         final AbstractTripleStore store = getStore();
@@ -176,6 +183,7 @@ public class TestSPOAccessPath extends AbstractTripleStoreTestCase {
      * Note: This test applies to the triple store, provenance, and quad store
      * modes.
      */
+    @Test
     public void test_sameVariableConstraint_triples() {
 
         final AbstractTripleStore store = getStore();
@@ -269,6 +277,7 @@ public class TestSPOAccessPath extends AbstractTripleStoreTestCase {
      * shared a variable with c would result in an empty access path in the
      * data.
      */
+    @Test
     public void test_sameVariableConstraint_quads() {
 
         final AbstractTripleStore store = getStore();
@@ -374,6 +383,7 @@ public class TestSPOAccessPath extends AbstractTripleStoreTestCase {
      *       buffered. verify stable result sets by using a slice to page
      *       through the results.
      */
+    @Test
     public void test_slice() {
         
 //        fail("write tests");

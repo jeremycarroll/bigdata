@@ -55,6 +55,7 @@ import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.resources.StoreManager.ManagedJournal;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
+import org.junit.Test;
 
 /**
  * Basic test of building an index segment from an index partition on overflow.
@@ -70,13 +71,6 @@ public class TestBuildTask2 extends AbstractResourceManagerTestCase {
     public TestBuildTask2() {
         super();
 
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestBuildTask2(String arg0) {
-        super(arg0);
     }
 
     /*
@@ -168,6 +162,7 @@ public class TestBuildTask2 extends AbstractResourceManagerTestCase {
      *       segments in the view builds up to more than just one, perhaps until
      *       there is enough data on hand to require a split.
      */
+    @Test
     public void test_builds() throws InterruptedException, ExecutionException {
 
         final Random r = new Random();

@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.io.compression;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites into increasing dependency order.
@@ -33,41 +33,13 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
-
-    /**
-     * 
-     */
-    public TestAll() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite() {
-
-        final TestSuite suite = new TestSuite(TestAll.class.getPackage()
-                .getName());
-
-        suite.addTestSuite(TestNOPRecordCompressor.class);
-
+@RunWith(Suite.class)
+@SuiteClasses( {
+        TestNOPRecordCompressor.class,
         // tests some assumptions for Deflate and Inflate.
-        suite.addTestSuite(TestHuffmanEncoder.class);
-
-        suite.addTestSuite(TestRecordCompressor_BestSpeed.class);
-
-        suite.addTestSuite(TestRecordCompressor_BestCompression.class);
-        
-        return suite;
-        
-    }
-    
+        TestHuffmanEncoder.class,
+        TestRecordCompressor_BestSpeed.class,
+        TestRecordCompressor_BestCompression.class
+    } )
+public class TestAll {
 }

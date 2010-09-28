@@ -41,17 +41,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.TestCase;
-
 import org.apache.log4j.Logger;
-
 import com.bigdata.service.DataService;
 import com.bigdata.test.ExperimentDriver;
 import com.bigdata.test.ExperimentDriver.IComparisonTest;
 import com.bigdata.test.ExperimentDriver.Result;
 import com.bigdata.util.NV;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Suite of stress tests of the concurrency control mechanisms (without the
@@ -83,7 +81,7 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestLockManager extends TestCase implements IComparisonTest {
+public class TestLockManager extends Assert implements IComparisonTest {
 
     public static final Logger log = Logger.getLogger(TestLockManager.class);
 
@@ -92,10 +90,6 @@ public class TestLockManager extends TestCase implements IComparisonTest {
      */
     public TestLockManager() {
         super();
-    }
-
-    public TestLockManager(String name) {
-        super(name);
     }
 
     /**
@@ -506,6 +500,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
         
     }
 
+    @Test
     public void test_noResourcesDoesNotWait() throws Exception {
         
         Properties properties = new Properties();
@@ -532,6 +527,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
      * Test where each operation locks only a single resource (low concurrency
      * condition w/ 5 threads).
      */
+    @Test
     public void test_singleResourceLocking_lowConcurrency5() throws Exception {
 
         Properties properties = new Properties();
@@ -551,6 +547,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
     /**
      * Test where each operation locks only a single resource (default concurrency).
      */
+    @Test
     public void test_singleResourceLocking_defaultConcurrency20() throws Exception {
 
         Properties properties = new Properties();
@@ -570,6 +567,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
     /**
      * Test where each operation locks only a single resource (high concurrency).
      */
+    @Test
     public void test_singleResourceLocking_highConcurrency100() throws Exception {
 
         Properties properties = new Properties();
@@ -590,6 +588,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
      * Test where each operation locks only a single resource and there is only one
      * resource to be locked so that all operations MUST be serialized.
      */
+    @Test
     public void test_singleResourceLocking_serialized_lowConcurrency2() throws Exception {
 
         Properties properties = new Properties();
@@ -610,6 +609,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
      * Test where each operation locks only a single resource and there is only
      * one resource to be locked so that all operations MUST be serialized.
      */
+    @Test
     public void test_singleResourceLocking_serialized_lowConcurrency5() throws Exception {
 
         Properties properties = new Properties();
@@ -633,6 +633,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
      * one resource to be locked so that all operations MUST be serialized and
      * where 10% of all tasks die a horrid death.
      */
+    @Test
     public void test_singleResourceLocking_serialized_lowConcurrency5_withTaskDeath() throws Exception {
 
         Properties properties = new Properties();
@@ -656,6 +657,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
      * Test where each operation locks only a single resource and there is only
      * one resource to be locked so that all operations MUST be serialized.
      */
+    @Test
     public void test_singleResourceLocking_serialized_highConcurrency() throws Exception {
 
         Properties properties = new Properties();
@@ -680,6 +682,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
      * a non-zero lock timeout. This test stresses the logic in lock() that is
      * responsible for backing out a lock request on timeout.
      */
+    @Test
     public void test_singleResourceLocking_serialized_highConcurrency_lockTimeout() throws Exception {
 
         Properties properties = new Properties();
@@ -710,6 +713,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
      * 
      * @throws Exception
      */
+    @Test
     public void test_multipleResourceLocking_resources3_locktries_3() throws Exception {
 
         Properties properties = new Properties();
@@ -738,6 +742,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
      * 
      * @throws Exception
      */
+    @Test
     public void test_multipleResourceLocking_resources10_locktries10_predeclareLocks() throws Exception {
 
         Properties properties = new Properties();
@@ -769,6 +774,7 @@ public class TestLockManager extends TestCase implements IComparisonTest {
      * 
      * @throws Exception
      */
+    @Test
     public void test_multipleResourceLocking_resources10_locktries10() throws Exception {
 
         Properties properties = new Properties();

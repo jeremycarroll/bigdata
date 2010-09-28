@@ -43,6 +43,8 @@ import com.bigdata.rdf.rules.InferenceEngine.Options;
 import com.bigdata.rdf.store.DataLoader;
 import com.bigdata.rdf.store.DataLoader.ClosureEnum;
 import com.bigdata.rdf.store.DataLoader.CommitEnum;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * FIXME refactor to use the ExperimentDriver.  This let me collect better
@@ -103,20 +105,11 @@ public class TaskATest
         _sources = null;
     }
 
-    /** ctor used by junit. */
-    public TaskATest(String name) {
-        
-        super(name);
-        
-        _sources = null;
-        
-    }
-    
     /** ctor used to run a particular datasource. */
     public TaskATest( String name, String sources, File outDir )
     {
         
-        super( name );
+        super();
         
         if( name == null || sources  == null ) {
             
@@ -159,6 +152,8 @@ public class TaskATest
         
     }
 
+    @Before
+    @Override
     public void setUp() throws Exception
     {
         
@@ -166,6 +161,8 @@ public class TaskATest
         
     }
     
+    @After
+    @Override
     public void tearDown() throws Exception {
         
 //        // Before shutdown.

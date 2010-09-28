@@ -40,6 +40,7 @@ import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.ndx.ClientIndexView;
+import org.junit.Test;
 
 /**
  * Simple test verifies that a scale-out index is preserved across both
@@ -55,10 +56,6 @@ public class TestOverflow extends AbstractEmbeddedFederationTestCase {
      */
     public TestOverflow() {
         super();
-    }
-
-    public TestOverflow(String name) {
-        super(name);
     }
 
     /**
@@ -84,6 +81,7 @@ public class TestOverflow extends AbstractEmbeddedFederationTestCase {
      * @throws ExecutionException
      * @throws InterruptedException
      */
+    @Test
     public void test_register1ThenOverflow() throws IOException,
             InterruptedException, ExecutionException {
 

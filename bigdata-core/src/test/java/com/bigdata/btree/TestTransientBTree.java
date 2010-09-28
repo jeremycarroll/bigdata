@@ -39,6 +39,7 @@ import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Unit tests for transient {@link BTree}s (no backing store).
@@ -52,14 +53,11 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
         super();
     }
     
-    public TestTransientBTree(String name) {
-        super(name);
-    }
-
     /**
      * Test the ability to create a transient {@link BTree} (one not backed by a
      * persistence store).
      */
+    @Test
     public void test_createTransient() {
         
         final BTree btree = BTree.createTransient(new IndexMetadata(UUID
@@ -87,6 +85,7 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
      * Verifies that closing a transient {@link BTree} is allowed and that
      * all data is discarded.
      */
+    @Test
     public void test_close() {
         
         final BTree btree = BTree.createTransient(new IndexMetadata(UUID
@@ -113,6 +112,7 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
      * from an attempt to persist their state on the (non-existent) backing
      * store.
      */
+    @Test
     public void test_eviction() {
 
         final IndexMetadata md = new IndexMetadata(UUID.randomUUID());
@@ -180,6 +180,7 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
      * collector. If it fails, try increasing some of the constants in the test
      * and see if that will provoke a GC that will clear the references.
      */
+    @Test
     public void test_delete() {
     
         final IndexMetadata md = new IndexMetadata(UUID.randomUUID());
@@ -327,6 +328,7 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
      * Tests various methods that deal with persistence and makes sure that we
      * have reasonable error messages.
      */
+    @Test
     public void test_niceErrors() {
 
         final BTree btree = BTree.createTransient(new IndexMetadata(UUID
@@ -359,6 +361,7 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
      * @todo since the code is identical other than allocating the {@link BTree}
      *       , factor out a doDeleteTest(BTree) method.
      */
+    @Test
     public void test_deletePersistent() {
         
         final IndexMetadata md = new IndexMetadata(UUID.randomUUID());
@@ -474,6 +477,7 @@ public class TestTransientBTree extends AbstractBTreeTestCase {
         
     }
 
+    @Test
     public void test_verify_getResourceMetadata(){
         //non-transient requirements on getResourceMetadata() are verified in TestBTree.
         BTree tree = BTree.createTransient(new IndexMetadata(UUID.randomUUID()));

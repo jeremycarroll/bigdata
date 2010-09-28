@@ -34,9 +34,6 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase2;
 import net.jini.core.discovery.LookupLocator;
 import net.jini.core.lookup.ServiceID;
 import net.jini.core.lookup.ServiceRegistrar;
@@ -50,8 +47,11 @@ import com.bigdata.service.DataService;
 import com.bigdata.service.IDataService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.jini.AbstractServer;
+import com.bigdata.test.Assert;
 import com.bigdata.util.config.NicUtil;
 import com.sun.jini.tool.ClassServer;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * Abstract base class for tests of remote services.
@@ -101,7 +101,7 @@ import com.sun.jini.tool.ClassServer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public abstract class AbstractServerTestCase extends TestCase2 {
+public abstract class AbstractServerTestCase extends Assert {
 
     /**
      * Equal to {@link ITx#UNISOLATED}.
@@ -112,13 +112,6 @@ public abstract class AbstractServerTestCase extends TestCase2 {
      * 
      */
     public AbstractServerTestCase() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public AbstractServerTestCase(String arg0) {
-        super(arg0);
     }
 
 //    /**
@@ -274,9 +267,10 @@ public abstract class AbstractServerTestCase extends TestCase2 {
 
     }
     
+    @Before
     public void setUp() throws Exception {
 
-        log.info(getName());
+        log.info(this.getClass().getName());
         
         startClassServer();
         
@@ -285,6 +279,7 @@ public abstract class AbstractServerTestCase extends TestCase2 {
     /**
      * Stops the {@link ClassServer}.
      */
+    @After
     public void tearDown() throws Exception {
         
         if(classServer!=null) {
@@ -293,9 +288,7 @@ public abstract class AbstractServerTestCase extends TestCase2 {
             
         }
         
-        super.tearDown();
-
-        log.info(getName());
+        log.info(this.getClass().getName());
         
     }
     
@@ -310,7 +303,8 @@ public abstract class AbstractServerTestCase extends TestCase2 {
      * @exception InterruptedException
      *                if the thread is interrupted while it is waiting to retry.
      */
-    static public ServiceID getServiceID(AbstractServer server) throws AssertionFailedError, InterruptedException {
+    static public ServiceID getServiceID(AbstractServer server)
+            throws InterruptedException {
 
         ServiceID serviceID = null;
 
@@ -470,11 +464,11 @@ public abstract class AbstractServerTestCase extends TestCase2 {
 
         assertEquals("partitionId",expected.getPartitionId(), actual.getPartitionId());
 
-        assertEquals("leftSeparatorKey", expected.getLeftSeparatorKey(),
+        assertArrayEquals("leftSeparatorKey", expected.getLeftSeparatorKey(),
                 ((LocalPartitionMetadata) actual)
                         .getLeftSeparatorKey());
 
-        assertEquals("rightSeparatorKey", expected.getRightSeparatorKey(),
+        assertArrayEquals("rightSeparatorKey", expected.getRightSeparatorKey(),
                 ((LocalPartitionMetadata) actual)
                         .getRightSeparatorKey());
 

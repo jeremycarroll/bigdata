@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.btree.raba.codec;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites into increasing dependency order.
@@ -33,53 +33,34 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+       // no data (discards any values).
+       TestEmptyRabaCoder.class,
+
+       // no compression.
+       TestSimpleRabaCoder.class,
+
+       // front-compression for ordered unsigned byte[]s.
+       TestFrontCodedRabaCoderRatio2.class,
+       TestFrontCodedRabaCoderRatio8.class,
+       TestFrontCodedRabaCoderRatio32.class,
+
+       // canonical huffman coding.
+       TestCanonicalHuffmanRabaCoder.class,
+
+       /*
+        * Tests of conditional raba coders (one coder is used when there are LT
+        * N entries, otherwise the other coder is used).
+        */
+       TestConditionalRabaCoder_keys_simple_frontCoded.class,
+       TestConditionalRabaCoder_values_simple_canonical.class
+       } )
+public class TestAll {
 
     /**
      * 
      */
     public TestAll() {
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
-
-        final TestSuite suite = new TestSuite("B+Tree key and value codecs");
-
-        // no data (discards any values).
-        suite.addTestSuite(TestEmptyRabaCoder.class);
-        
-        // no compression.
-        suite.addTestSuite(TestSimpleRabaCoder.class);
-        
-        // front-compression for ordered unsigned byte[]s.
-        suite.addTestSuite(TestFrontCodedRabaCoderRatio2.class);
-        suite.addTestSuite(TestFrontCodedRabaCoderRatio8.class);
-        suite.addTestSuite(TestFrontCodedRabaCoderRatio32.class);
-
-        // canonical huffman coding.
-        suite.addTestSuite(TestCanonicalHuffmanRabaCoder.class);
-
-        /*
-         * Tests of conditional raba coders (one coder is used when there are LT
-         * N entries, otherwise the other coder is used).
-         */
-        suite.addTestSuite(TestConditionalRabaCoder_keys_simple_frontCoded.class);
-        suite.addTestSuite(TestConditionalRabaCoder_values_simple_canonical.class);
-        
-        return suite;
-        
-    }
-    
 }

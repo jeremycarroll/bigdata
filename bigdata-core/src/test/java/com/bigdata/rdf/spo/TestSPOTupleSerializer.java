@@ -47,7 +47,6 @@ Modifications:
 
 package com.bigdata.rdf.spo;
 
-import junit.framework.TestCase2;
 import com.bigdata.btree.AbstractTuple;
 import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IRangeQuery;
@@ -55,6 +54,8 @@ import com.bigdata.btree.ITupleSerializer;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.model.StatementEnum;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link SPOTupleSerializer}.
@@ -64,7 +65,7 @@ import com.bigdata.rdf.model.StatementEnum;
  * 
  * @see TestSPO#test_valueEncodingRoundTrip()
  */
-public class TestSPOTupleSerializer extends TestCase2 {
+public class TestSPOTupleSerializer extends Assert {
 
     private TermId _1 = tid(1), _2 = tid(2), _3 = tid(3), _4 = tid(4);
     
@@ -78,13 +79,7 @@ public class TestSPOTupleSerializer extends TestCase2 {
     public TestSPOTupleSerializer() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestSPOTupleSerializer(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void test_statementOrder() {
 
         SPOTupleSerializer fixture = new SPOTupleSerializer(SPOKeyOrder.SPO);
@@ -102,6 +97,7 @@ public class TestSPOTupleSerializer extends TestCase2 {
 
     }
 
+    @Test
     public void test_encodeDecodeTriple() {
 
         doEncodeDecodeTest(new SPO(_1, _2, _3, StatementEnum.Axiom),
@@ -115,6 +111,7 @@ public class TestSPOTupleSerializer extends TestCase2 {
 
     }
     
+    @Test
     public void test_encodeDecodeTripleWithSID() {
 
         /*
@@ -156,6 +153,7 @@ public class TestSPOTupleSerializer extends TestCase2 {
 
     }
 
+    @Test
     public void test_encodeDecodeQuad() {
 
         for (int i = SPOKeyOrder.FIRST_QUAD_INDEX; i <= SPOKeyOrder.LAST_QUAD_INDEX; i++) {

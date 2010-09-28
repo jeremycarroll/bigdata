@@ -12,8 +12,10 @@ import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.BigdataURIImpl;
 import com.bigdata.rdf.rules.RuleContextEnum;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.NoVocabulary;
 import com.bigdata.relation.rule.Binding;
 import com.bigdata.relation.rule.Constant;
@@ -30,23 +32,25 @@ import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class TestSPOStarJoin extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestSPOStarJoin() {
+    public TestSPOStarJoin(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestSPOStarJoin(String name) {
-        
-        super(name);
-        
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     @Override
     public Properties getProperties() {
@@ -66,6 +70,7 @@ public class TestSPOStarJoin extends AbstractTripleStoreTestCase {
         
     }
     
+    @Test
     public void testStarJoin1() throws Exception {
         
         final AbstractTripleStore store = getStore(getProperties());
@@ -199,6 +204,7 @@ public class TestSPOStarJoin extends AbstractTripleStoreTestCase {
         
     }
 
+    @Test
     public void testStarJoin2() throws Exception {
         
         final AbstractTripleStore store = getStore(getProperties());

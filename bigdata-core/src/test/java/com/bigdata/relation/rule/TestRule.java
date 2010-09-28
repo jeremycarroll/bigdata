@@ -32,6 +32,7 @@ import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import org.junit.Test;
 
 /**
  * Test suite for basic {@link Rule} mechanisms.
@@ -48,18 +49,12 @@ public class TestRule extends AbstractRuleTestCase {
         super();
     }
 
-    /**
-     * @param name
-     */
-    public TestRule(String name) {
-        super(name);
-    }
-    
     private final String relation = "test";
 
     /**
      * Verify constructor of a simple rule.
      */
+    @Test
     public void test_ctor() {
 
         final Var<IV> u = Var.var("u");
@@ -114,6 +109,7 @@ public class TestRule extends AbstractRuleTestCase {
         
     }
     
+    @Test
     public void test_ctor_noHead() {
 
         final Var<IV> u = Var.var("u");
@@ -147,6 +143,7 @@ public class TestRule extends AbstractRuleTestCase {
     /**
      * Test for computing the intersection of the variables in two predicates.
      */
+    @Test
     public void test_getSharedVars() {
 
         final IPredicate p1 = new P(relation,//
@@ -167,6 +164,7 @@ public class TestRule extends AbstractRuleTestCase {
      * Test the ability to compute the variables shared between two {@link Pred}s
      * in a {@link Rule}.
      */
+    @Test
     public void test_getSharedVarsInTail() {
 
         final IRule r = new TestRuleRdfs9(relation);
@@ -184,6 +182,7 @@ public class TestRule extends AbstractRuleTestCase {
     /**
      * Verify variable binding stuff for a rule.
      */
+    @Test
     public void test_ruleBindings() {
 
         final Var<IV> u = Var.var("u");
@@ -218,6 +217,7 @@ public class TestRule extends AbstractRuleTestCase {
      * Verify that constraint violations are being tested (specific
      * {@link IConstraint}s are tested elsewhere).
      */
+    @Test
     public void test_constraints() {
 
         /*
@@ -317,6 +317,7 @@ public class TestRule extends AbstractRuleTestCase {
      * 
      * @todo test adding constraints.
      */
+    @Test
     public void test_specializeRule() {
 
         // (?u,rdfs:subClassOf,?x), (?v,rdf:type,?u) -> (?v,rdf:type,?x)

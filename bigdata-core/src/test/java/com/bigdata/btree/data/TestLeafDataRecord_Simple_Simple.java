@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree.data;
 
 import com.bigdata.btree.raba.codec.SimpleRabaCoder;
+import org.junit.Before;
 
 /**
  * Test with simple coding for keys and values (no compression).
@@ -43,17 +44,9 @@ public class TestLeafDataRecord_Simple_Simple extends AbstractLeafDataRecordTest
     public TestLeafDataRecord_Simple_Simple() {
     }
 
-    /**
-     * @param name
-     */
-    public TestLeafDataRecord_Simple_Simple(String name) {
-        super(name);
-    }
-    
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         
-        super.setUp();
-
         coder = new DefaultLeafCoder(//
                 SimpleRabaCoder.INSTANCE,// keys
                 SimpleRabaCoder.INSTANCE // vals

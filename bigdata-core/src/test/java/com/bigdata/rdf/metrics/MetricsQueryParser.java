@@ -34,7 +34,6 @@ import java.util.Properties;
  * together with an textual representation of the query itself.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class MetricsQueryParser {
 

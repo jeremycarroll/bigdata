@@ -30,7 +30,8 @@ package com.bigdata.config;
 
 import java.util.Properties;
 
-import junit.framework.TestCase;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link Configuration}.
@@ -38,7 +39,7 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestConfiguration extends TestCase {
+public class TestConfiguration extends Assert {
     //These constants happen line up with constants further up the bigdata tree, but the Configuration class really doesn't care.  -gossard
     private static final String NAME_LEXICON_RELATION = "lex";
     private static final String TERM_2_ID = "TERM2ID";
@@ -52,16 +53,11 @@ public class TestConfiguration extends TestCase {
         
     }
     
-    public TestConfiguration(String name) {
-        
-        super(name);
-        
-    }
-
     /**
      * Unit test for the override of the default by specifying a global value
      * for a property.
      */
+    @Test
     public void testGlobalOverride() {
 
         final Properties properties = new Properties();
@@ -89,6 +85,7 @@ public class TestConfiguration extends TestCase {
      * Unit test for override of a property value specified for the exact
      * namespace (rather than some namespace prefix).
      */
+    @Test
     public void test_exactNamespaceOverride() {
 
         final Properties properties = new Properties();
@@ -122,6 +119,7 @@ public class TestConfiguration extends TestCase {
      * Unit test where the property override is applied at the parent level in
      * the namespace ("foo" vs "foo.baz").
      */
+    @Test
     public void test_prefixNamespaceOverride() {
 
         final Properties properties = new Properties();
@@ -151,6 +149,7 @@ public class TestConfiguration extends TestCase {
         
     }
     
+    @Test
     public void test_getOverrideProperty() {
         
         final String namespace = "U8000";
@@ -162,7 +161,7 @@ public class TestConfiguration extends TestCase {
                 + "." + NAME_LEXICON_RELATION + "."
                 + TERM_2_ID, propertyName);
 
-        System.err.println(overrideName);
+//         System.err.println(overrideName);
 
         final String defaultValue = "true";
         
@@ -197,6 +196,7 @@ public class TestConfiguration extends TestCase {
 
     }
 
+    @Test
     public void test_getOverrideProperty2() {
         
         final String namespace = "U8000";
@@ -214,8 +214,8 @@ public class TestConfiguration extends TestCase {
         final String overrideName2 = Configuration.getOverrideProperty(
                 namespace2, propertyName);
 
-        System.err.println(overrideName);
-        System.err.println(overrideName2);
+//         System.err.println(overrideName);
+//         System.err.println(overrideName2);
 
         Properties p = new Properties();
 

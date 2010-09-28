@@ -28,15 +28,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.relation.accesspath;
 
-import junit.framework.TestCase2;
-
 import com.bigdata.striterator.IChunkedIterator;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestUnsynchronizedUnboundedChunkBuffer extends TestCase2 {
+public class TestUnsynchronizedUnboundedChunkBuffer extends Assert {
 
     /**
      * 
@@ -46,16 +46,9 @@ public class TestUnsynchronizedUnboundedChunkBuffer extends TestCase2 {
     }
 
     /**
-     * @param arg0
-     */
-    public TestUnsynchronizedUnboundedChunkBuffer(String arg0) {
-        super(arg0);
-
-    }
-
-    /**
      * Test empty iterator.
      */
+    @Test
     public void test_emptyIterator() {
         
         final UnsynchronizedUnboundedChunkBuffer<String> buffer = new UnsynchronizedUnboundedChunkBuffer<String>(
@@ -70,6 +63,7 @@ public class TestUnsynchronizedUnboundedChunkBuffer extends TestCase2 {
      * Verify that elements are flushed when an iterator is requested so
      * that they will be visited by the iterator.
      */
+    @Test
     public void test_bufferFlushedByIterator() {
         
         final UnsynchronizedUnboundedChunkBuffer<String> buffer = new UnsynchronizedUnboundedChunkBuffer<String>(
@@ -84,6 +78,7 @@ public class TestUnsynchronizedUnboundedChunkBuffer extends TestCase2 {
     /**
      * Verify that the iterator has snapshot semantics.
      */
+    @Test
     public void test_snapshotIterator() {
         
         final UnsynchronizedUnboundedChunkBuffer<String> buffer = new UnsynchronizedUnboundedChunkBuffer<String>(
@@ -104,6 +99,7 @@ public class TestUnsynchronizedUnboundedChunkBuffer extends TestCase2 {
     /**
      * Verify iterator visits chunks as placed onto the queue.
      */
+    @Test
     public void test_chunkedIterator() {
         
         final UnsynchronizedUnboundedChunkBuffer<String> buffer = new UnsynchronizedUnboundedChunkBuffer<String>(
@@ -127,6 +123,7 @@ public class TestUnsynchronizedUnboundedChunkBuffer extends TestCase2 {
      * taken from the first visited chunk's class).
      */
     @SuppressWarnings("unchecked")
+        @Test
     public void test_chunkClass() {
 
         final UnsynchronizedUnboundedChunkBuffer buffer = new UnsynchronizedUnboundedChunkBuffer(
@@ -162,7 +159,7 @@ public class TestUnsynchronizedUnboundedChunkBuffer extends TestCase2 {
             
             final E[] actual = itr.nextChunk();
 
-            assertSameArray(chunk, actual);
+            assertArrayEquals(chunk, actual);
             
         }
         

@@ -33,6 +33,7 @@ import java.util.UUID;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Unit tests for a {@link BTree} with its bloom filter enabled. This class is
@@ -51,13 +52,6 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
      * 
      */
     public TestBTreeWithBloomFilter() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestBTreeWithBloomFilter(String name) {
-        super(name);
     }
 
     /**
@@ -87,6 +81,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
 
     }
 
+    @Test
     public void test_create() {
         
         {
@@ -122,6 +117,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
      * @todo there should be another test that looks at the semantics when
      *       delete markers are also enabled.
      */
+    @Test
     public void test_add_contains() {
 
         final BTree btree = getBTree(4/* branchingFactor */, true/* bloomFilter */);
@@ -136,7 +132,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
         assertNotNull(btree.getBloomFilter());
 
         // show the filter state.
-        System.err.println(btree.getBloomFilter().toString());
+//         System.err.println(btree.getBloomFilter().toString());
         
         final byte[] k0 = new byte[]{0};
         final byte[] k1 = new byte[]{1};
@@ -152,29 +148,29 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
         assertTrue(btree.contains(k0));
 
         // verify at BTree API (lookup)
-        assertEquals(null,btree.lookup(k1));
-        assertEquals(k0,btree.lookup(k0));
+        assertArrayEquals(null,btree.lookup(k1));
+        assertArrayEquals(k0,btree.lookup(k0));
 
         // verify at bloom filter API.
         assertFalse(btree.getBloomFilter().contains(k1));
         assertTrue(btree.getBloomFilter().contains(k0));
 
         // show the filter state.
-        System.err.println(btree.getBloomFilter().toString());
+//         System.err.println(btree.getBloomFilter().toString());
 
         // remove the index entry.
-        assertEquals(k0,btree.remove(k0));
+        assertArrayEquals(k0,btree.remove(k0));
 
         // show the filter state.
-        System.err.println(btree.getBloomFilter().toString());
+//         System.err.println(btree.getBloomFilter().toString());
 
         // verify at BTree API (contains)
         assertFalse(btree.contains(k1));
         assertFalse(btree.contains(k0));
 
         // verify at BTree API (lookup)
-        assertEquals(null,btree.lookup(k1));
-        assertEquals(null,btree.lookup(k0));
+        assertArrayEquals(null,btree.lookup(k1));
+        assertArrayEquals(null,btree.lookup(k0));
 
         // verify at bloom filter API.
         assertFalse(btree.getBloomFilter().contains(k1));
@@ -265,6 +261,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
      * @see AbstractBTree#bloomFilter
      * @see AbstractBTree#usesBloomFilter
      */
+    @Test
     public void test_persistence() {
 
         final IRawStore store = new SimpleMemoryRawStore();
@@ -285,7 +282,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
         btree.getRoot();
 
         // show the filter state.
-        System.err.println(btree.getBloomFilter().toString());
+//         System.err.println(btree.getBloomFilter().toString());
 
         final byte[] k0 = new byte[]{0};
         final byte[] k1 = new byte[]{1};
@@ -298,15 +295,15 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
         assertTrue(btree.contains(k0));
 
         // verify at BTree API (lookup)
-        assertEquals(null,btree.lookup(k1));
-        assertEquals(k0,btree.lookup(k0));
+        assertArrayEquals(null,btree.lookup(k1));
+        assertArrayEquals(k0,btree.lookup(k0));
 
         // verify at bloom filter API.
         assertFalse(btree.getBloomFilter().contains(k1));
         assertTrue(btree.getBloomFilter().contains(k0));
 
         // show the filter state.
-        System.err.println("before checkpoint: "+btree.getBloomFilter());
+//         System.err.println("before checkpoint: "+btree.getBloomFilter());
 
         // write a checkpoint (should force the bloom filter to the store).
         final long addrCheckpoint = btree.writeCheckpoint();
@@ -320,7 +317,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
             // load the checkpoint record.
             final Checkpoint checkpoint = Checkpoint.load(store, addrCheckpoint);
             
-            System.err.println(checkpoint.toString());
+//             System.err.println(checkpoint.toString());
             
             // assert bloom filter address is defined.
             assertNotSame(0L, checkpoint.getBloomFilterAddr());
@@ -329,7 +326,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
             final BloomFilter bloomFilter = (BloomFilter) SerializerUtil
                     .deserialize(store.read(checkpoint.getBloomFilterAddr()));
             
-            System.err.println("as read from store: "+bloomFilter);
+//             System.err.println("as read from store: "+bloomFilter);
 
             /*
              * Verify that we read in a bloom filter instance that has the same
@@ -340,7 +337,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
             assertTrue(bloomFilter.contains(k0));
             
             // show the filter state.
-            System.err.println(btree.getBloomFilter().toString());
+//             System.err.println(btree.getBloomFilter().toString());
 
         }
         
@@ -361,7 +358,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
             assertNotNull(btree.getBloomFilter());
 
             // show the filter state.
-            System.err.println(btree.getBloomFilter().toString());
+//             System.err.println(btree.getBloomFilter().toString());
 
             /*
              * Verify that the auto-magical reappearance of the bloom filter
@@ -374,8 +371,8 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
             assertTrue(btree.contains(k0));
 
             // verify at BTree API (lookup)
-            assertEquals(null, btree.lookup(k1));
-            assertEquals(k0, btree.lookup(k0));
+            assertArrayEquals(null, btree.lookup(k1));
+            assertArrayEquals(k0, btree.lookup(k0));
 
             // verify at bloom filter API.
             assertFalse(btree.getBloomFilter().contains(k1));
@@ -389,6 +386,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
      * Simple test that the bloom filter is discarded if the btree is closed
      * without writing a checkpoint.
      */
+    @Test
     public void test_persistence_bloomFilterDiscarded() {
 
         final IRawStore store = new SimpleMemoryRawStore();
@@ -419,8 +417,8 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
         assertTrue(btree.contains(k0));
 
         // verify at BTree API (lookup)
-        assertEquals(null,btree.lookup(k1));
-        assertEquals(k0,btree.lookup(k0));
+        assertArrayEquals(null,btree.lookup(k1));
+        assertArrayEquals(k0,btree.lookup(k0));
 
         // verify at bloom filter API.
         assertFalse(btree.getBloomFilter().contains(k1));
@@ -443,6 +441,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
     /**
      * Verifies that {@link BTree#removeAll()} resets the bloom filter.
      */
+    @Test
     public void test_removeAll() {
        
         final IRawStore store = new SimpleMemoryRawStore();
@@ -490,6 +489,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
      * a 0L as the address of the bloom filter and that on reload the btree does
      * not have a bloomfilter
      */
+    @Test
     public void test_disable() {
 
         final IRawStore store = new SimpleMemoryRawStore();
@@ -557,6 +557,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
      * calculated #of index entries at which the bloom filter performance will
      * have degraded to below the desired maximum error rate).
      */
+    @Test
     public void test_autoDisable() {
         
         final IRawStore store = new SimpleMemoryRawStore();
@@ -578,7 +579,7 @@ public class TestBTreeWithBloomFilter extends AbstractBTreeTestCase {
             
             maxN = factory.maxN;
             
-            System.err.println("factory="+factory);
+//             System.err.println("factory="+factory);
             
             btree = BTree.create(store, metadata);
             

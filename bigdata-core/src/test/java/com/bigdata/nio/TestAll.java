@@ -26,9 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.nio;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates tests in dependency order.
@@ -37,21 +37,11 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
 
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        TestPageServer.class
+        } )
+public class TestAll {
 
     public TestAll() {}
-    
-    public TestAll(String name) {super(name);}
-    
-    public static Test suite()
-    {
-
-        TestSuite suite = new TestSuite(TestAll.class.getName());
-
-        suite.addTestSuite( TestPageServer.class );
-
-        return suite;
-        
-    }
-    
 }

@@ -59,13 +59,6 @@ public class TestQueryHints extends QuadsTestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestQueryHints(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Tests adding query hints in SPARQL.
      * 
      * @throws Exception 

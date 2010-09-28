@@ -29,12 +29,8 @@ package com.bigdata.journal;
 
 import java.io.IOException;
 import java.util.Properties;
+import org.junit.Test;
 
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
-import com.bigdata.rawstore.AbstractRawStoreTestCase;
-import com.bigdata.rawstore.IRawStore;
 
 /**
  * Test suite for {@link BufferMode#Transient} journals.
@@ -47,51 +43,6 @@ public class TestTransientJournal extends AbstractJournalTestCase {
 
     public TestTransientJournal() {
         super();
-    }
-
-    public TestTransientJournal(String name) {
-        super(name);
-    }
-
-    public static Test suite() {
-
-        final TestTransientJournal delegate = new TestTransientJournal(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Transient Journal Test Suite");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-        
-        // tests defined by this class.
-        suite.addTestSuite(TestTransientJournal.class);
-
-        // test suite for the IRawStore api.
-        suite.addTestSuite( TestRawStore.class );
-
-        // Note: test suite not used since there is no file channel to be closed by interrupts.
-//        suite.addTestSuite( TestInterrupts.class );
-
-        // test suite for MROW correctness.
-        suite.addTestSuite( TestMROW.class );
-
-        // test suite for MRMW correctness.
-        suite.addTestSuite( TestMRMW.class );
-
-        /*
-         * Pickup the basic journal test suite. This is a proxied test suite, so
-         * all the tests will run with the configuration specified in this test
-         * class and its optional .properties file.
-         */
-        suite.addTest(TestJournalBasics.suite());
-
-        return suite;
-
     }
 
     public Properties getProperties() {
@@ -110,6 +61,7 @@ public class TestTransientJournal extends AbstractJournalTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_create_transient01() throws IOException {
 
         final Properties properties = getProperties();
@@ -128,109 +80,6 @@ public class TestTransientJournal extends AbstractJournalTestCase {
                 .getBufferMode());
         assertEquals("userExtent", bufferStrategy.getExtent(), bufferStrategy
                 .getUserExtent());
-        
-    }
-            
-    /**
-     * Test suite integration for {@link AbstractRawStoreTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     * 
-     * @todo While the transient store uses root blocks there is no means
-     *       currently defined to re-open a journal based on a transient store
-     *       and hence it is not possible to extend
-     *       {@link AbstractRestartSafeTestCase}.
-     */
-    public static class TestRawStore extends AbstractBufferStrategyTestCase {
-        
-        public TestRawStore() {
-            super();
-        }
-
-        public TestRawStore(String name) {
-            super(name);
-        }
-
-        protected BufferMode getBufferMode() {
-            
-            return BufferMode.Transient;
-            
-        }
-
-//        public Properties getProperties() {
-//
-//            Properties properties = super.getProperties();
-//
-//            properties.setProperty(Options.BUFFER_MODE, BufferMode.Transient.toString());
-//
-//            return properties;
-//
-//        }
-//
-//        protected IRawStore getStore() {
-//            
-//            return new Journal(getProperties());
-//            
-//        }
-
-    }
-
-    /**
-     * Test suite integration for {@link AbstractMROWTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestMROW extends AbstractMROWTestCase {
-        
-        public TestMROW() {
-            super();
-        }
-
-        public TestMROW(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-
-            Properties properties = getProperties();
-            
-            properties.setProperty(Options.BUFFER_MODE, BufferMode.Transient
-                    .toString());
-            
-            return new Journal(properties).getBufferStrategy();
-            
-        }
-        
-    }
-
-    /**
-     * Test suite integration for {@link AbstractMRMWTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestMRMW extends AbstractMRMWTestCase {
-        
-        public TestMRMW() {
-            super();
-        }
-
-        public TestMRMW(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-
-            Properties properties = getProperties();
-            
-            properties.setProperty(Options.BUFFER_MODE, BufferMode.Transient
-                    .toString());
-            
-            return new Journal(properties).getBufferStrategy();
-            
-        }
         
     }
 

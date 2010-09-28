@@ -34,9 +34,9 @@ import com.bigdata.service.TestEmbeddedClientRemote;
 import com.bigdata.service.TestRangeQuery;
 import com.bigdata.service.TestRangeQueryRemote;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites in increasing dependency order.
@@ -44,50 +44,31 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        // test splitting client requests against index partition locators.
+        TestSplitter.class,
+
+        // client basics, including static partitioning of indices.
+        TestEmbeddedClient.class,
+        TestEmbeddedClientRemote.class,
+
+        // test basic index operations.
+        TestBasicIndexStuff.class,
+        TestBasicIndexStuffRemote.class,
+
+        // test range iterators (within and across index partitions).
+        TestRangeQuery.class,
+        TestRangeQueryRemote.class,
+
+        // unit tests for the streaming index write API.
+        com.bigdata.service.ndx.pipeline.TestAll.class
+        } )
+public class TestAll {
 
     /**
      * 
      */
     public TestAll() {
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
-
-        final TestSuite suite = new TestSuite("scale-out indices");
-
-        // test splitting client requests against index partition locators.
-        suite.addTestSuite(TestSplitter.class);
-
-        // client basics, including static partitioning of indices.
-        suite.addTestSuite(TestEmbeddedClient.class);
-        suite.addTestSuite(TestEmbeddedClientRemote.class);
-
-        // test basic index operations.
-        suite.addTestSuite(TestBasicIndexStuff.class);
-        suite.addTestSuite(TestBasicIndexStuffRemote.class);
-
-        // test range iterators (within and across index partitions).
-        suite.addTestSuite(TestRangeQuery.class);
-        suite.addTestSuite(TestRangeQueryRemote.class);
-
-        // unit tests for the streaming index write API.
-        suite.addTest(com.bigdata.service.ndx.pipeline.TestAll.suite());
-
-        return suite;
-
-    }
-
 }

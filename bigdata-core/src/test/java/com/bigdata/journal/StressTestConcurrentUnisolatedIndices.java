@@ -52,6 +52,10 @@ import com.bigdata.test.ExperimentDriver;
 import com.bigdata.test.ExperimentDriver.IComparisonTest;
 import com.bigdata.test.ExperimentDriver.Result;
 import com.bigdata.util.NV;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Stress tests for concurrent processing of operations on named unisolated indices.
@@ -59,16 +63,17 @@ import com.bigdata.util.NV;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class StressTestConcurrentUnisolatedIndices extends ProxyTestCase implements IComparisonTest {
 
-    public StressTestConcurrentUnisolatedIndices() {
+    public StressTestConcurrentUnisolatedIndices(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    public StressTestConcurrentUnisolatedIndices(String name) {
-
-        super(name);
-        
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
     Journal journal;
 
@@ -97,11 +102,12 @@ public class StressTestConcurrentUnisolatedIndices extends ProxyTestCase impleme
     /**
      * A stress test with a small pool of concurrent clients.
      */
+    @Test
     public void test_concurrentClients() throws InterruptedException {
 
         final Properties properties = getProperties();
         
-        final Journal journal = new Journal(properties);
+        final Journal tmpJournal = new Journal(properties);
 
         try {
         
@@ -117,7 +123,7 @@ public class StressTestConcurrentUnisolatedIndices extends ProxyTestCase impleme
 //            
 //        }
 
-        doConcurrentClientTest(journal,//
+        doConcurrentClientTest(tmpJournal,//
                 10,// timeout
                 20,// nresources
                 1, // minLocks
@@ -130,7 +136,7 @@ public class StressTestConcurrentUnisolatedIndices extends ProxyTestCase impleme
         
         } finally {
             
-            journal.destroy();
+            tmpJournal.destroy();
             
         }
         
@@ -218,7 +224,7 @@ public class StressTestConcurrentUnisolatedIndices extends ProxyTestCase impleme
             
         }
         
-        System.err.println("Created indices: "+Arrays.toString(resources));
+//         System.err.println("Created indices: "+Arrays.toString(resources));
 
         /*
          * Setup the tasks that we will submit.
@@ -255,7 +261,7 @@ public class StressTestConcurrentUnisolatedIndices extends ProxyTestCase impleme
          * Run all tasks and wait for up to the timeout for them to complete.
          */
 
-        System.err.println("Submitting "+tasks.size()+" tasks");
+//         System.err.println("Submitting "+tasks.size()+" tasks");
         
         final long begin = System.currentTimeMillis();
 
@@ -352,7 +358,7 @@ public class StressTestConcurrentUnisolatedIndices extends ProxyTestCase impleme
         ret.put("maxLatencyUntilCommit", ""+journal.getConcurrencyManager().writeService.getMaxCommitWaitingTime());
         ret.put("maxCommitLatency", ""+journal.getConcurrencyManager().writeService.getMaxCommitServiceTime());
 
-        System.err.println(ret.toString(true/*newline*/));
+//         System.err.println(ret.toString(true/*newline*/));
         
         journal.deleteResources();
 
@@ -391,6 +397,7 @@ public class StressTestConcurrentUnisolatedIndices extends ProxyTestCase impleme
             
         }
 
+        @Override
         protected String getTaskName() {
             
             return super.getTaskName()+"#"+trial;
@@ -549,7 +556,8 @@ public class StressTestConcurrentUnisolatedIndices extends ProxyTestCase impleme
 
         properties.setProperty(TestOptions.FAILURE_RATE,"0.00");
 
-        IComparisonTest test = new StressTestConcurrentUnisolatedIndices();
+        IComparisonTest test = new StressTestConcurrentUnisolatedIndices(
+                new TestDirectJournal());
         
         test.setUpComparisonTest(properties);
         
@@ -762,7 +770,7 @@ public class StressTestConcurrentUnisolatedIndices extends ProxyTestCase impleme
             Experiment exp = new Experiment(className,defaultProperties,conditions);
 
             // copy the output into a file and then you can run it later.
-            System.err.println(exp.toXML());
+//             System.err.println(exp.toXML());
 
         }
         

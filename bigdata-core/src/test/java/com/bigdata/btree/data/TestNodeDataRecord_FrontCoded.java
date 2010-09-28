@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree.data;
 
 import com.bigdata.btree.raba.codec.FrontCodedRabaCoder;
+import org.junit.Before;
 
 /**
  * Test suite using the {@link FrontCodedRabaCoder} to provide key compression.
@@ -43,13 +44,6 @@ public class TestNodeDataRecord_FrontCoded extends AbstractNodeDataRecordTestCas
     public TestNodeDataRecord_FrontCoded() {
     }
 
-    /**
-     * @param name
-     */
-    public TestNodeDataRecord_FrontCoded(String name) {
-        super(name);
-    }
-
     @Override
     protected boolean mayGenerateLeaves() {
         return false;
@@ -60,10 +54,9 @@ public class TestNodeDataRecord_FrontCoded extends AbstractNodeDataRecordTestCas
         return true;
     }
 
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         
-        super.setUp();
-
         coder = new DefaultNodeCoder(new FrontCodedRabaCoder(8/*ratio*/));
 
     }

@@ -28,7 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.relation.rule;
 
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link Slice}.
@@ -36,7 +37,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestSlice extends TestCase2 {
+public class TestSlice extends Assert {
 
     /**
      * 
@@ -45,17 +46,11 @@ public class TestSlice extends TestCase2 {
     }
 
     /**
-     * @param arg0
-     */
-    public TestSlice(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Tests some fence posts for the {@link Slice} ctor, verifies the
      * computation of {@link ISlice#getLast()}, and the reporting of the
      * properties specified to the ctor.
      */
+    @Test
     public void test_slice_ctor() {
         
         {
@@ -107,6 +102,7 @@ public class TestSlice extends TestCase2 {
         
     }
     
+    @Test
     public void test_slice_ctor_correctRejection() {
 
         try {

@@ -50,8 +50,10 @@ import com.bigdata.rdf.rules.DoNotAddFilter;
 import com.bigdata.rdf.rules.RuleContextEnum;
 import com.bigdata.rdf.rules.RuleRdfs11;
 import com.bigdata.rdf.spo.SPOPredicate;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IRule;
@@ -67,6 +69,11 @@ import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for IRIS-based truth maintenance on delete.
@@ -100,6 +107,7 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestIRIS extends AbstractInferenceEngineTestCase {
 
     final IBasicFactory BASIC = BasicFactory.getInstance();
@@ -119,16 +127,14 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
     /**
      * 
      */
-    public TestIRIS() {
-        super();
+    public TestIRIS(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestIRIS(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * We are trying to eliminate the use of justification chains inside the
@@ -145,6 +151,7 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
      * FIXME what do we do about the IConstraints on bigdata rules?  do they
      * get promoted to full-fledged IRIS rules in the IRIS program?
      */
+    @Test
     public void testMagicSets() {
         
         Properties properties = getProperties();

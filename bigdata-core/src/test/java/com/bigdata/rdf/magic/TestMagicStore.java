@@ -41,13 +41,19 @@ import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.rules.AbstractInferenceEngineTestCase;
 import com.bigdata.rdf.rules.RuleRdfs11;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.relation.rule.Var;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for IRIS-based truth maintenance on delete.
@@ -79,8 +85,8 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * 
  * 
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestMagicStore extends AbstractInferenceEngineTestCase {
 
     final IBasicFactory BASIC = BasicFactory.getInstance();
@@ -100,17 +106,16 @@ public class TestMagicStore extends AbstractInferenceEngineTestCase {
     /**
      * 
      */
-    public TestMagicStore() {
-        super();
+    public TestMagicStore(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestMagicStore(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
+    @Test
     public void testMagicStore() {
         
         final Properties properties = getProperties();
@@ -173,6 +178,7 @@ public class TestMagicStore extends AbstractInferenceEngineTestCase {
         
     }
     
+    @Test
     public void testQuadStore() {
         
         final Properties properties = getProperties();

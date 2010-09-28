@@ -56,32 +56,39 @@ import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.rio.IStatementBuffer;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestDistinctTermScan extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestDistinctTermScan() {
+    public TestDistinctTermScan(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestDistinctTermScan(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * FIXME The distinct term scan has been moved into
      * {@link AbstractRuleDistinctTermScan} and needs to be evaluated in that
      * context.
      */
+    @Test
     public void test_getDistinctTermIdentifiers() {
 
         final Properties properties = super.getProperties();

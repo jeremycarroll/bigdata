@@ -45,7 +45,11 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.Tuple;
 import com.bigdata.btree.isolation.IsolatedFusedView;
 import com.bigdata.util.InnerCause;
-import com.bigdata.util.InnerCause;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for fully-isolated read-write transactions.
@@ -59,16 +63,17 @@ import com.bigdata.util.InnerCause;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestTx extends ProxyTestCase<Journal> {
     
-    public TestTx() {
+    public TestTx(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    public TestTx(String name) {
-        
-        super(name);
-        
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
 //    /**
 //     * Writes some interesting constants on {@link System#err}.
@@ -91,6 +96,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * Note: The transaction will be unable to isolate an index if the index has
      * not been registered already by an unisolated operation.
      */
+    @Test
     public void test_noIndicesRegistered() {
 
         final Journal journal = getStore();
@@ -121,6 +127,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * transaction in which it is registered has already committed before the tx
      * starts.
      */
+    @Test
     public void test_indexNotVisibleUnlessCommitted() {
        
         final Journal journal = getStore();
@@ -176,6 +183,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * since the write set is in the isolated index -- you lose it and it is
      * gone.
      */
+    @Test
     public void test_sameIndexObject() {
 
         final Journal journal = getStore();
@@ -230,6 +238,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * index and read the written value. Write a value on the unisolated index
      * and verify that it is not visible within the transaction.
      */
+    @Test
     public void test_readIsolation() {
         
         final Journal journal = getStore();
@@ -278,7 +287,7 @@ public class TestTx extends ProxyTestCase<Journal> {
 
                 assertTrue(index.contains(k1));
 
-                assertEquals(v1, (byte[]) index.lookup(k1));
+                assertArrayEquals(v1, (byte[]) index.lookup(k1));
 
             }
 
@@ -347,6 +356,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * attempts to write a value under the same key then a write-write conflict
      * is reported and validation fails.
      */
+    @Test
     public void test_writeIsolation() {
 
         final Journal journal = getStore();
@@ -500,7 +510,7 @@ public class TestTx extends ProxyTestCase<Journal> {
 
                 } catch (ValidationError ex) {
 
-                    System.err.println("Ignoring expected exception: " + ex);
+//                     System.err.println("Ignoring expected exception: " + ex);
 
                 }
 
@@ -526,6 +536,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * transactions prepare and commit. The end state is that (id0,v1) is
      * visible in the database after the commit.
      */
+    @Test
     public void test_delete001() {
 
         final Journal journal = getStore();
@@ -570,7 +581,7 @@ public class TestTx extends ProxyTestCase<Journal> {
 
             journal.getIndex(name, tx0).insert(id0, v0);
 
-            assertEquals(v0, journal.getIndex(name, tx0).lookup(id0));
+            assertArrayEquals(v0, journal.getIndex(name, tx0).lookup(id0));
 
             /*
              * Verify that the version does NOT show up in a concurrent
@@ -579,7 +590,7 @@ public class TestTx extends ProxyTestCase<Journal> {
             assertFalse(journal.getIndex(name, tx1).contains(id0));
 
             // delete the version.
-            assertEquals(v0, journal.getIndex(name, tx0).remove(id0));
+            assertArrayEquals(v0, journal.getIndex(name, tx0).remove(id0));
 
             // no longer visible in that transaction.
             assertFalse(journal.getIndex(name, tx0).contains(id0));
@@ -633,6 +644,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * prepare and commit. The end state is that no entry for id0 is visible in
      * the database after the commit.
      */
+    @Test
     public void test_delete002() {
 
         final Journal journal = getStore();
@@ -675,7 +687,7 @@ public class TestTx extends ProxyTestCase<Journal> {
             final byte[] id0 = new byte[] { 1 };
             final byte[] v0 = getRandomData().array();
             journal.getIndex(name, tx0).insert(id0, v0);
-            assertEquals(v0, journal.getIndex(name, tx0).lookup(id0));
+            assertArrayEquals(v0, journal.getIndex(name, tx0).lookup(id0));
 
             /*
              * Verify that the version does NOT show up in a concurrent
@@ -684,7 +696,7 @@ public class TestTx extends ProxyTestCase<Journal> {
             assertFalse(journal.getIndex(name, tx1).contains(id0));
 
             // delete the version.
-            assertEquals(v0, (byte[]) journal.getIndex(name, tx0).remove(id0));
+            assertArrayEquals(v0, (byte[]) journal.getIndex(name, tx0).remove(id0));
 
             // no longer visible in that transaction.
             assertFalse(journal.getIndex(name, tx0).contains(id0));
@@ -709,7 +721,7 @@ public class TestTx extends ProxyTestCase<Journal> {
             /*
              * Delete v1.
              */
-            assertEquals(v1, (byte[]) journal.getIndex(name, tx0).remove(id0));
+            assertArrayEquals(v1, (byte[]) journal.getIndex(name, tx0).remove(id0));
 
             // Still not visible in concurrent transaction.
             assertFalse(journal.getIndex(name, tx1).contains(id0));
@@ -760,6 +772,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * into the global scope and the end state is that the write (id0,v1) from
      * tx1 is visible in the database after the commit.
      */
+    @Test
     public void test_delete003() {
 
         final Journal journal = getStore();
@@ -803,7 +816,7 @@ public class TestTx extends ProxyTestCase<Journal> {
             final byte[] id0 = new byte[] { 1 };
             final byte[] v0 = getRandomData().array();
             journal.getIndex(name, tx0).insert(id0, v0);
-            assertEquals(v0, journal.getIndex(name, tx0).lookup(id0));
+            assertArrayEquals(v0, journal.getIndex(name, tx0).lookup(id0));
 
             /*
              * Verify that the version does NOT show up in a concurrent
@@ -812,7 +825,7 @@ public class TestTx extends ProxyTestCase<Journal> {
             assertFalse(journal.getIndex(name, tx1).contains(id0));
 
             // delete the version.
-            assertEquals(v0, (byte[]) journal.getIndex(name, tx0).remove(id0));
+            assertArrayEquals(v0, (byte[]) journal.getIndex(name, tx0).remove(id0));
 
             // no longer visible in that transaction.
             assertFalse(journal.getIndex(name, tx0).contains(id0));
@@ -847,7 +860,7 @@ public class TestTx extends ProxyTestCase<Journal> {
 
             // (id0,v1) is now visible in global scope.
             assertTrue(journal.getIndex(name).contains(id0));
-            assertEquals(v1, (byte[]) journal.getIndex(name).lookup(id0));
+            assertArrayEquals(v1, (byte[]) journal.getIndex(name).lookup(id0));
 
         } finally {
 
@@ -869,6 +882,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * which begins after tx1 commits - the change will be visible in this
      * transaction.
      */
+    @Test
     public void test_commit_noConflict01() {
 
         final Journal journal = getStore();
@@ -886,7 +900,7 @@ public class TestTx extends ProxyTestCase<Journal> {
                 journal.registerIndex(md);
 
                 commitTime0 = journal.commit();
-                System.err.println("commitTime0: " + journal.getCommitRecord());
+//                 System.err.println("commitTime0: " + journal.getCommitRecord());
 
                 assertNotSame(0L, commitTime0);
                 assertEquals("commitCounter", 1L, journal.getCommitRecord()
@@ -906,10 +920,10 @@ public class TestTx extends ProxyTestCase<Journal> {
             // new transaction - commit will not be visible in this scope.
             final long tx2 = journal.newTx(ITx.UNISOLATED);
 
-            System.err.println("commitTime0   =" + commitTime0);
-            System.err.println("tx0: startTime=" + tx0);
-            System.err.println("tx1: startTime=" + tx1);
-            System.err.println("tx2: startTime=" + tx2);
+//             System.err.println("commitTime0   =" + commitTime0);
+//             System.err.println("tx0: startTime=" + tx0);
+//             System.err.println("tx1: startTime=" + tx1);
+//             System.err.println("tx2: startTime=" + tx2);
 
             assertTrue(commitTime0 <= Math.abs(tx0));
             assertTrue(Math.abs(tx0) < Math.abs(tx1));
@@ -923,7 +937,7 @@ public class TestTx extends ProxyTestCase<Journal> {
             assertNull(journal.getIndex(name, tx1).insert(id1, v0));
 
             // data version visible in tx1.
-            assertEquals(v0, (byte[]) journal.getIndex(name, tx1).lookup(id1));
+            assertArrayEquals(v0, (byte[]) journal.getIndex(name, tx1).lookup(id1));
 
             // data version not visible in global scope.
             assertNull(journal.getIndex(name).lookup(id1));
@@ -937,21 +951,21 @@ public class TestTx extends ProxyTestCase<Journal> {
             // commit.
             final long tx1CommitTime = journal.commit(tx1);
             assertNotSame(0L, tx1CommitTime);
-            System.err.println("tx1: startTime=" + tx1 + ", commitTime="
-                    + tx1CommitTime);
-            System.err.println("tx1: after commit: "
-                    + journal.getCommitRecord());
+//             System.err.println("tx1: startTime=" + tx1 + ", commitTime="
+//                     + tx1CommitTime);
+//             System.err.println("tx1: after commit: "
+//                     + journal.getCommitRecord());
             assertEquals("commitCounter", 2L, journal.getCommitRecord()
                     .getCommitCounter());
 
             // data version now visible in global scope.
-            assertEquals(v0, (byte[]) journal.getIndex(name).lookup(id1));
+            assertArrayEquals(v0, (byte[]) journal.getIndex(name).lookup(id1));
 
             // new transaction - commit is visible in this scope.
             final long tx3 = journal.newTx(ITx.UNISOLATED);
             assertTrue(Math.abs(tx2) < Math.abs(tx3));
             assertTrue(Math.abs(tx3) >= tx1CommitTime);
-            System.err.println("tx3: startTime=" + tx3);
+//             System.err.println("tx3: startTime=" + tx3);
             // System.err.println("tx3: ground state:
             // "+((Tx)journal.getTx(tx3)).commitRecord);
 
@@ -967,7 +981,7 @@ public class TestTx extends ProxyTestCase<Journal> {
              */
 
             // data version visible in the new tx (tx3).
-            assertEquals(v0, (byte[]) journal.getIndex(name, tx3).lookup(id1));
+            assertArrayEquals(v0, (byte[]) journal.getIndex(name, tx3).lookup(id1));
 
             /*
              * commit tx0 - nothing was written, no conflict should result.
@@ -989,7 +1003,7 @@ public class TestTx extends ProxyTestCase<Journal> {
                     .getCommitCounter());
 
             // data version in global scope was not changed by any other commit.
-            assertEquals(v0, (byte[]) journal.getIndex(name).lookup(id1));
+            assertArrayEquals(v0, (byte[]) journal.getIndex(name).lookup(id1));
 
         } finally {
 
@@ -1003,6 +1017,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * Test in which a transaction deletes a pre-existing version (that is, a
      * version that existed in global scope when the transaction was started).
      */
+    @Test
     public void test_deletePreExistingVersion_noConflict() {
 
         final Journal journal = getStore();
@@ -1033,7 +1048,7 @@ public class TestTx extends ProxyTestCase<Journal> {
             journal.getIndex(name).insert(id0, v0);
 
             // data version visible in global scope.
-            assertEquals(v0, journal.getIndex(name).lookup(id0));
+            assertArrayEquals(v0, journal.getIndex(name).lookup(id0));
 
             // commit the unisolated write.
             journal.commit();
@@ -1042,14 +1057,14 @@ public class TestTx extends ProxyTestCase<Journal> {
             final long tx0 = journal.newTx(ITx.UNISOLATED);
 
             // data version visible in the transaction.
-            assertEquals(v0, journal.getIndex(name, tx0).lookup(id0));
+            assertArrayEquals(v0, journal.getIndex(name, tx0).lookup(id0));
 
             // delete version in transaction scope.
-            assertEquals(v0, journal.getIndex(name, tx0).remove(id0));
+            assertArrayEquals(v0, journal.getIndex(name, tx0).remove(id0));
 
             // data version still visible in global scope.
             assertTrue(journal.getIndex(name).contains(id0));
-            assertEquals(v0, journal.getIndex(name).lookup(id0));
+            assertArrayEquals(v0, journal.getIndex(name).lookup(id0));
 
             // data version not visible in transaction.
             assertFalse(journal.getIndex(name, tx0).contains(id0));
@@ -1082,6 +1097,7 @@ public class TestTx extends ProxyTestCase<Journal> {
      * of the LocalTx state changes but the issue here is concurrent
      * modification to the B+Tree.
      */
+    @Test
     public void testStress() throws InterruptedException, ExecutionException {
 
         final int ntx = 30;

@@ -29,11 +29,9 @@ package com.bigdata.rdf.internal;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.bfs.BigdataFileSystem;
 import com.bigdata.btree.IOverflowHandler;
+import com.bigdata.test.Assert;
 
 /**
  * Above a configured size, long literals are transparently promoted to blobs.
@@ -79,21 +77,13 @@ import com.bigdata.btree.IOverflowHandler;
  *       cryptographic hash function might be better).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class TestLongLiterals extends TestCase2 {
+public class TestLongLiterals extends Assert {
 
     /**
      * 
      */
     public TestLongLiterals() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestLongLiterals(String name) {
-        super(name);
     }
 
     /**

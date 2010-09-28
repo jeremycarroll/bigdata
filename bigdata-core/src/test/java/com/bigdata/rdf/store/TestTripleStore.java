@@ -64,6 +64,11 @@ import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.vocab.NoVocabulary;
 import com.bigdata.striterator.ChunkedArrayIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test basic features of the {@link ITripleStore} API.
@@ -80,25 +85,26 @@ import com.bigdata.striterator.ChunkedArrayIterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestTripleStore extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestTripleStore() {
+    public TestTripleStore(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestTripleStore(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Verify that {@link AbstractTripleStore#isLiteral(long)} and friends all
      * reported <code>false</code> for {@link IRawTripleStore#NULL}.
      */
+    @Test
     public void test_bitFlagsReportFalseForNULL() {
 
 //        assertFalse(VTE.isStatement(TermId.NULL));
@@ -180,6 +186,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
     /**
      * Simple test of inserting one term at a time into the lexicon.
      */
+    @Test
     public void test_addTerm() {
 
         final Properties properties = super.getProperties();
@@ -244,6 +251,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
     /**
      * Simple test of batch insertion of terms into the lexicon.
      */
+    @Test
     public void test_insertTerms() {
 
         final AbstractTripleStore store = getStore();
@@ -344,6 +352,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
      * duplicates and verifies that the assigned term identifiers are
      * consistent.
      */
+    @Test
     public void test_addTermsFiltersDuplicates() {
 
         final AbstractTripleStore store = getStore();
@@ -414,6 +423,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
      * self-consistent within a canonicalizing mapping imposed for some blank
      * node context, e.g., a source document that is being parsed.
      */
+    @Test
     public void test_addTermsFiltersAlreadyAssigned() {
 
         final AbstractTripleStore store = getStore();
@@ -498,6 +508,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
      * Test of {@link ITripleStore#addStatement(Resource, URI, Value)} and
      * {@link ITripleStore#hasStatement(Resource, URI, Value)}.
      */
+    @Test
     public void test_statements() {
 
         final Properties properties = super.getProperties();
@@ -684,6 +695,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
      * Verify that we can locate a statement that we add to the database using
      * each statement index.
      */
+    @Test
     public void test_addLookup_nativeAPI() {
             
         final Properties properties = super.getProperties();
@@ -889,11 +901,12 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
         }
 
     }
-    
+
     /**
      * Test the ability to add and remove statements using both fully
      * bound and partly bound triple patterns using the native API.
      */
+    @Test
     public void test_addRemove_nativeAPI() {
         
         final Properties properties = super.getProperties();
@@ -975,6 +988,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
      * Test using the native API of adding explicit, inferred, and axiom
      * {@link SPO}s.
      */
+    @Test
     public void test_addInferredExplicitAxiom() {
 
         final Properties properties = super.getProperties();
@@ -1029,6 +1043,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
      * Test the ability to add and remove statements using both fully bound and
      * partly bound triple patterns using the Sesame compatible API.
      */
+    @Test
     public void test_addRemove_sesameAPI(){
 
         final Properties properties = super.getProperties();
@@ -1098,6 +1113,7 @@ public class TestTripleStore extends AbstractTripleStoreTestCase {
      * Test of
      * {@link IRawTripleStore#removeStatements(com.bigdata.relation.accesspath.IChunkedOrderedIterator)}
      */
+    @Test
     public void test_removeStatements() {
         
         final Properties properties = super.getProperties();

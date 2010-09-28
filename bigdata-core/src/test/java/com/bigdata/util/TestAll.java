@@ -28,10 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.util;
 
 
-import com.bigdata.io.TestChecksumUtility;
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites in increasing dependency order.
@@ -39,46 +38,21 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+       // test of the millisecond resolution timestamp factory.
+       TestMillisecondTimestampFactory.class,
 
-    /**
-     * 
-     */
-    public TestAll() {
-    }
+       // test of the nanosecond resolution timestamp factory.
+       TestNanosecondTimestampFactory.class,
 
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
+       // test of the hybrid timestamp factory.
+       // Note: class is not debugged and is marked as deprecated, test is commented out.
+       TestHybridTimestampFactory.class,
 
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
+       TestByteBufferBitVector.class,
 
-        TestSuite suite = new TestSuite("util");
-
-        // test of the millisecond resolution timestamp factory.
-        suite.addTestSuite( TestMillisecondTimestampFactory.class );
-        
-        // test of the nanosecond resolution timestamp factory.
-        suite.addTestSuite( TestNanosecondTimestampFactory.class );
-        
-        // test of the hybrid timestamp factory.
-        // Note: class is not debugged and is marked as deprecated, test is commented out.
-//        suite.addTestSuite( TestHybridTimestampFactory.class );               
-
-        suite.addTestSuite(TestByteBufferBitVector.class);
-
-        suite.addTestSuite( TestCSVReader.class );
-
-        return suite;
-        
-    }
-    
+       TestCSVReader.class
+        } )
+public class TestAll {
 }

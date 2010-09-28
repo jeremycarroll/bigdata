@@ -23,11 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.rdf.spo;
 
-
-
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites into increasing dependency order.
@@ -35,7 +33,37 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        TestSPO.class,
+
+        // test predicate impls.
+        TestSPOPredicate.class,
+
+        // test {inferred, explicit, axiom} enum class.
+        TestStatementEnum.class,
+
+        // @todo test IKeyOrder impl (comparators).
+        TestSPOKeyOrder.class,
+
+        // key/value coders
+        TestSPOKeyCoders.class,
+        TestSPOValueCoders.class,
+
+        // key and value (de-)serialization of SPO tuples for B+Tree.
+        TestSPOTupleSerializer.class,
+
+        // test suite for the access path api.
+        TestSPOAccessPath.class,
+
+        // test suite for the access path used for SPARQL default graphs (quads
+        // only).
+        TestDefaultGraphAccessPath.class,
+
+        // star joins
+        TestSPOStarJoin.class
+        } )
+public class TestAll {
 
     /**
      * 
@@ -43,60 +71,4 @@ public class TestAll extends TestCase {
     public TestAll() {
         
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-     
-        super(arg0);
-        
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     * <p>
-     * Note: Much of the testing of the {@link SPORelation} is performed by
-     * the tests in the com.bigdata.rdf.store package.
-     * 
-     * @todo SPO (compareTo, equals, hashCode)
-     */
-    public static Test suite()
-    {
-
-        final TestSuite suite = new TestSuite("SPORelation");
-
-        suite.addTestSuite(TestSPO.class);
-        
-        // test predicate impls.
-        suite.addTestSuite(TestSPOPredicate.class);
-        
-        // test {inferred, explicit, axiom} enum class.
-        suite.addTestSuite(TestStatementEnum.class);
-
-        // @todo test IKeyOrder impl (comparators).
-        suite.addTestSuite(TestSPOKeyOrder.class);
-
-        // key/value coders
-        suite.addTestSuite(TestSPOKeyCoders.class);
-        suite.addTestSuite(TestSPOValueCoders.class);
-
-        // key and value (de-)serialization of SPO tuples for B+Tree.
-        suite.addTestSuite(TestSPOTupleSerializer.class);
-        
-        // test suite for the access path api.
-        suite.addTestSuite(TestSPOAccessPath.class);
-
-        // test suite for the access path used for SPARQL default graphs (quads
-        // only).
-        suite.addTestSuite(TestDefaultGraphAccessPath.class);
-
-        // star joins
-        suite.addTestSuite(TestSPOStarJoin.class);
-        
-        return suite;
-        
-    }
-    
 }

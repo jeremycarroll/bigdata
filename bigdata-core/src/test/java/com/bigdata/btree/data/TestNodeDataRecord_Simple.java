@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree.data;
 
 import com.bigdata.btree.raba.codec.SimpleRabaCoder;
+import org.junit.Before;
 
 /**
  * Test suite without key compression.
@@ -43,13 +44,6 @@ public class TestNodeDataRecord_Simple extends AbstractNodeDataRecordTestCase {
     public TestNodeDataRecord_Simple() {
     }
 
-    /**
-     * @param name
-     */
-    public TestNodeDataRecord_Simple(String name) {
-        super(name);
-    }
-
     @Override
     protected boolean mayGenerateLeaves() {
         return false;
@@ -60,10 +54,9 @@ public class TestNodeDataRecord_Simple extends AbstractNodeDataRecordTestCase {
         return true;
     }
 
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         
-        super.setUp();
-
         coder = new DefaultNodeCoder(SimpleRabaCoder.INSTANCE);
         
     }

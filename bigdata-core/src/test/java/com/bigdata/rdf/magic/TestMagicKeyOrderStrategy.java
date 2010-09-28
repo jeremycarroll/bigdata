@@ -28,10 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.magic;
 
 import com.bigdata.rdf.magic.MagicKeyOrderStrategy.CharFormatter;
+import org.junit.Assert;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class TestMagicKeyOrderStrategy extends TestCase {
+public class TestMagicKeyOrderStrategy extends Assert {
 
     /**
      * 
@@ -40,13 +40,7 @@ public class TestMagicKeyOrderStrategy extends TestCase {
         super();
     }
 
-    /**
-     * @param name
-     */
-    public TestMagicKeyOrderStrategy(String name) {
-        super(name);
-    }
-
+    @Test
     public void testMagicKeyOrderStrategy() {
 
         for (int i = 1; i <= 5; i++) {

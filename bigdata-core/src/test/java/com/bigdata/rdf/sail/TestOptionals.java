@@ -29,16 +29,14 @@ package com.bigdata.rdf.sail;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Properties;
-import org.openrdf.model.BNode;
-import org.openrdf.model.Literal;
-import org.openrdf.model.Resource;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.openrdf.model.URI;
 import org.openrdf.model.ValueFactory;
-import org.openrdf.model.impl.BNodeImpl;
 import org.openrdf.model.impl.LiteralImpl;
 import org.openrdf.model.impl.URIImpl;
-import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.TupleQuery;
@@ -51,20 +49,20 @@ import org.openrdf.query.impl.BindingImpl;
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestOptionals extends QuadsTestCase {
 
     /**
      * 
      */
-    public TestOptionals() {
+    public TestOptionals(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestOptionals(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup7();
+    };
 
     /**
      * The foaf: namespace.
@@ -117,6 +115,7 @@ public class TestOptionals extends QuadsTestCase {
      * 
      * @throws Exception 
      */
+    @Test
     public void testLeftJoins() throws Exception {
 
         final BigdataSail sail = getSail();
@@ -203,6 +202,7 @@ public class TestOptionals extends QuadsTestCase {
 
     }
     
+    @Test
     public void testOptional() throws Exception {
 
         Properties properties = getProperties();

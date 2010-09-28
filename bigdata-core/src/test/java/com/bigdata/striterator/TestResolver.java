@@ -36,8 +36,8 @@ import java.util.Map;
 import com.bigdata.striterator.ChunkedStriterator;
 import com.bigdata.striterator.IChunkedStriterator;
 import com.bigdata.striterator.Resolver;
-
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link Resolver}.
@@ -45,7 +45,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestResolver extends TestCase2 {
+public class TestResolver extends Assert {
 
     /**
      * 
@@ -54,15 +54,7 @@ public class TestResolver extends TestCase2 {
 
     }
 
-    /**
-     * @param arg0
-     */
-    public TestResolver(String arg0) {
-        
-        super(arg0);
-        
-    }
-
+    @Test
     public void test_filter() {
         
         final Map<Long,String> map = new HashMap<Long,String>();

@@ -24,21 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.process;
 
-// NOTE: remove commented out references to org.junit and annotations
-//       when/if the junit infrastructure is upgraded to a version that
-//       supports those constructs.
-
-import static junit.framework.Assert.*;
-
-//import static org.junit.Assert.*;
-//import org.junit.After;
-//import org.junit.BeforeClass;
-//import org.junit.Test;
-
 import com.bigdata.DataFinder;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
 import static com.bigdata.process.Constants.*;
 import com.bigdata.util.Format;
 import com.bigdata.util.config.LogUtil;
@@ -46,10 +32,6 @@ import com.bigdata.util.config.LogUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import org.xml.sax.SAXException;
-
-import java.io.IOException;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -60,8 +42,11 @@ import java.util.TreeSet;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class ProcessConfigXmlHandlerTest extends TestCase {
+public class ProcessConfigXmlHandlerTest extends Assert {
 
     private static String CONFIG_FILE = DataFinder.bestPath("var/config/jini/boot/process-definitions.xml");
 
@@ -84,11 +69,7 @@ public class ProcessConfigXmlHandlerTest extends TestCase {
         initAll();
     }
 
-    public ProcessConfigXmlHandlerTest(String name) {
-        super(name);
-        initAll();
-    }
-
+    @After
     public void tearDown() throws Exception {
         cleanUp();
     }
@@ -260,7 +241,7 @@ continue;//TODO
 
     // File structural tests
 
-//    @Test
+    @Test
     public void testParseDefsVerifyRoles() throws Exception {
 
         testName = "testParseDefsVerifyRolesTest";
@@ -282,7 +263,7 @@ continue;//TODO
         testPassed = true;
     }
 
-//    @Test
+    @Test
     public void testParseDefsVerifyProcesses() throws Exception {
 
         testName = "testParseDefsVerifyProcessesTest";
@@ -302,7 +283,7 @@ continue;//TODO
         testPassed = true;
     }
 
-//    @Test
+    @Test
     public void testParseDefsVerifyRestartGroups() throws Exception {
 
         testName = "testParseDefsVerifyRestartGroupsTest";
@@ -343,7 +324,7 @@ continue;//TODO
         testPassed = true;
     }
 
-//    @Test
+    @Test
     public void testParseDefsVerifyNodeConfig() throws Exception {
 
         testName = "testParseDefsVerifyRestartGroupsTest";

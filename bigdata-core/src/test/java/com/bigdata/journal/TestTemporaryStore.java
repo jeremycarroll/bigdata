@@ -30,12 +30,11 @@ package com.bigdata.journal;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
 
 import com.bigdata.rawstore.AbstractRawStoreTestCase;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for {@link TemporaryStore} (temporary store with named indices).
@@ -53,148 +52,10 @@ public class TestTemporaryStore extends AbstractRawStoreTestCase {
     public TestTemporaryStore() {
     }
 
-    /**
-     * @param name
-     */
-    public TestTemporaryStore(String name) {
-        super(name);
-    }
-
-    public static Test suite() {
-
-        final TestTemporaryStore delegate = new TestTemporaryStore(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Temporary Raw Store Test Suite");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-        
-        // tests defined by this class.
-        suite.addTestSuite(TestTemporaryStore.class);
-
-        // test suite for the IRawStore api.
-        suite.addTestSuite( TestRawStore.class );
-
-        // test suite for handling asynchronous close of the file channel.
-        suite.addTestSuite( TestInterrupts.class );
-        
-        // test suite for MROW correctness.
-        suite.addTestSuite( TestMROW.class );
-
-        // test suite for MRMW correctness.
-        suite.addTestSuite( TestMRMW.class );
-
-        return suite;
-        
-    }
-    
     protected IRawStore getStore() {
 
         return new TemporaryRawStore();
         
-    }
-
-    /**
-     * Test suite integration for {@link AbstractRawStoreTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     * 
-     * Note: You can not re-open a transient store, hence it is not possible to
-     * extend {@link AbstractRestartSafeTestCase}.
-     */
-    public static class TestRawStore extends AbstractRawStoreTestCase {
-        
-        public TestRawStore() {
-            super();
-        }
-
-        public TestRawStore(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-            return new TemporaryRawStore();
-        }
-
-    }
-    
-    /**
-     * Test suite integration for {@link TestInterrupts}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestInterrupts extends AbstractInterruptsTestCase {
-        
-        public TestInterrupts() {
-            super();
-        }
-
-        public TestInterrupts(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-
-            return new TemporaryRawStore();
-            
-        }
-        
-    }
-    
-    /**
-     * Test suite integration for {@link AbstractMROWTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestMROW extends AbstractMROWTestCase {
-        
-        public TestMROW() {
-            super();
-        }
-
-        public TestMROW(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-
-            return new TemporaryRawStore();
-            
-        }
-        
-    }
-
-    /**
-     * Test suite integration for {@link AbstractMRMWTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestMRMW extends AbstractMRMWTestCase {
-        
-        public TestMRMW() {
-            super();
-        }
-
-        public TestMRMW(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-
-            return new TemporaryRawStore();
-            
-        }
-
     }
     
     /**
@@ -202,6 +63,7 @@ public class TestTemporaryStore extends AbstractRawStoreTestCase {
      * verifies that the extent and the user extent are correctly updated after
      * an overflow.
      */
+    @Test
     public void test_overflow() {
         
         TemporaryRawStore store = (TemporaryRawStore) getStore();
@@ -272,9 +134,9 @@ public class TestTemporaryStore extends AbstractRawStoreTestCase {
             
             final byte[] b = new byte[nbytes];
 
-            Random r = new Random();
+            Random r2 = new Random();
 
-            r.nextBytes(b);
+            r2.nextBytes(b);
 
             ByteBuffer tmp = ByteBuffer.wrap(b);
 
@@ -284,14 +146,14 @@ public class TestTemporaryStore extends AbstractRawStoreTestCase {
             
             leftover -= nbytes;
             
-            System.err.println("Wrote record#" + n + " with " + nbytes
-                    + " bytes: addr=" + store.toString(addr) + ", #leftover="
-                    + leftover);
+//             System.err.println("Wrote record#" + n + " with " + nbytes
+//                     + " bytes: addr=" + store.toString(addr) + ", #leftover="
+//                     + leftover);
 
         }
 
-        System.err.println("Wrote " + nbytesToWrite + " bytes in " + n
-                + " records: last addr=" + store.toString(addr));
+//         System.err.println("Wrote " + nbytesToWrite + " bytes in " + n
+//                 + " records: last addr=" + store.toString(addr));
 
         assert addr != 0L;
         
@@ -303,6 +165,7 @@ public class TestTemporaryStore extends AbstractRawStoreTestCase {
      * Test verifies that a write up to the remaining extent does not trigger an
      * overflow.
      */
+    @Test
     public void test_writeNoExtend() {
 
         TemporaryRawStore store = (TemporaryRawStore) getStore();
@@ -340,6 +203,7 @@ public class TestTemporaryStore extends AbstractRawStoreTestCase {
      * and that the new data is also recoverable (when the buffer is extended it
      * is typically copied while the length of a file is simply changed).
      */
+    @Test
     public void test_writeWithExtend() {
 
         TemporaryRawStore store = (TemporaryRawStore) getStore();

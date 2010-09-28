@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.cache;
 
 import com.bigdata.rawstore.Bytes;
+import org.junit.Before;
 
 /**
  * Some unit tests for the {@link HardReferenceGlobalLRURecycler}.
@@ -44,16 +45,8 @@ public class TestHardReferenceGlobalLRURecyclerExplicitDeleteRequired extends
     public TestHardReferenceGlobalLRURecyclerExplicitDeleteRequired() {
     }
 
-    /**
-     * @param name
-     */
-    public TestHardReferenceGlobalLRURecyclerExplicitDeleteRequired(String name) {
-        super(name);
-    }
-
-    protected void setUp() throws Exception {
-
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
 
         final long maximumBytesInMemory = 10 * Bytes.kilobyte;
 

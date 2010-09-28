@@ -40,6 +40,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.Options;
 import com.bigdata.journal.ValidationError;
+import org.junit.Test;
 
 /**
  * This is a test suite for mixing full transactions with unisolated operations
@@ -48,7 +49,6 @@ import com.bigdata.journal.ValidationError;
  * timestamps to the tuples in the B+Tree.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestMixedModeOperations extends AbstractBTreeTestCase {
 
@@ -58,13 +58,7 @@ public class TestMixedModeOperations extends AbstractBTreeTestCase {
     public TestMixedModeOperations() {
     }
 
-    /**
-     * @param name
-     */
-    public TestMixedModeOperations(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_mixedOps() throws IOException {
 
         final Properties properties = new Properties();
@@ -139,7 +133,7 @@ public class TestMixedModeOperations extends AbstractBTreeTestCase {
                 final ILocalBTreeView ndx = journal.getIndex(name,
                         ITx.UNISOLATED);
 
-                assertEquals(new byte[] { 2 }, ndx.lookup(new byte[] { 2 }));
+                assertArrayEquals(new byte[] { 2 }, ndx.lookup(new byte[] { 2 }));
 
                 final long revisionTimestamp = ((BTree) ndx)
                         .getRevisionTimestamp();

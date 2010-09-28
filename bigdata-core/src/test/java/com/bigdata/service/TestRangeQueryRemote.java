@@ -35,10 +35,6 @@ public class TestRangeQueryRemote extends TestRangeQuery {
 
     public TestRangeQueryRemote() { }
 
-    public TestRangeQueryRemote(String name) {
-        super(name);
-    }
-    
     public Properties getProperties() {
         final Properties properties = new Properties(super.getProperties());
         properties.setProperty

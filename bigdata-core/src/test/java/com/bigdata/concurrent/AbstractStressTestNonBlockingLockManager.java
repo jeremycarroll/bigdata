@@ -48,11 +48,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import junit.framework.TestCase;
-
 import org.apache.log4j.Logger;
-
 import com.bigdata.counters.CounterSet;
 import com.bigdata.service.DataService;
 import com.bigdata.test.ExperimentDriver;
@@ -60,6 +56,7 @@ import com.bigdata.test.ExperimentDriver.Result;
 import com.bigdata.util.NV;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
+import org.junit.Assert;
 
 /**
  * Suite of stress tests of the concurrency control mechanisms (without the
@@ -89,7 +86,7 @@ import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public abstract class AbstractStressTestNonBlockingLockManager extends TestCase {
+public abstract class AbstractStressTestNonBlockingLockManager extends Assert {
 
     protected static final Logger log = Logger
             .getLogger(StressTestNonBlockingLockManagerWithPredeclaredLocks.class);
@@ -102,13 +99,6 @@ public abstract class AbstractStressTestNonBlockingLockManager extends TestCase 
      * 
      */
     public AbstractStressTestNonBlockingLockManager() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public AbstractStressTestNonBlockingLockManager(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -542,7 +532,7 @@ public abstract class AbstractStressTestNonBlockingLockManager extends TestCase 
             }
 
             // Done.
-            System.out.println("\n-----------"+getName()+"-------------");
+            System.out.println("\n-----------"+getClass().getName()+"-------------");
             System.out.println(lockManager.toString());
             System.out.println(delegateCounterSet);
             System.out.println(lockManager.getCounters().toString());

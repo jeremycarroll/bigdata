@@ -10,6 +10,11 @@ import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.vocab.NoVocabulary;
 import com.bigdata.relation.accesspath.BlockingBuffer;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * This is a test class that fails on centos 64bit. On working machines, it runs
@@ -24,8 +29,19 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class StressTestCentos extends AbstractTripleStoreTestCase {
 
+    public StressTestCentos(AbstractTestCase delegate) {
+        setDelegate(delegate);
+    }
+
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
+
+    @Override
     public Properties getProperties() {
         
         final Properties properties = new Properties(super.getProperties());
@@ -43,6 +59,7 @@ public class StressTestCentos extends AbstractTripleStoreTestCase {
         
     }
     
+    @Test
     public void test_stress() {
 
         final AbstractTripleStore store = getStore(getProperties());

@@ -34,6 +34,11 @@ import com.bigdata.btree.BTree;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.io.DirectBufferPool;
 import com.bigdata.io.ChecksumUtility;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test the ability to abort (discard an uncommitted write set). This is a test
@@ -43,23 +48,22 @@ import com.bigdata.io.ChecksumUtility;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestAbort extends ProxyTestCase<Journal> {
 
     /**
      * 
      */
-    public TestAbort() {
+    public TestAbort(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestAbort(String name) {
-     
-        super(name);
-        
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
+    @Test
     public void test_rollback() {
 
         final Journal journal = getStore();//new Journal(getProperties());
@@ -125,6 +129,7 @@ public class TestAbort extends ProxyTestCase<Journal> {
      * Test of abort semantics when registering named {@link BTree}s (this tests
      * the integration of {@link Name2Addr} with abort).
      */
+    @Test
     public void test_abort() {
 
         Journal store = getStore();
@@ -238,7 +243,7 @@ public class TestAbort extends ProxyTestCase<Journal> {
             assertNotNull(ndx);
 
             // verify the write.
-            assertEquals(new byte[] { 2, 4 }, ndx
+            assertArrayEquals(new byte[] { 2, 4 }, ndx
                     .lookup(new byte[] { 1, 3 }));
 
         } finally {

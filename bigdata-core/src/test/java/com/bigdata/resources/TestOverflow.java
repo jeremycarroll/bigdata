@@ -45,6 +45,7 @@ import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.IndexPartitionCause;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.rawstore.Bytes;
+import org.junit.Test;
 
 /**
  * Basic tests for {@link ResourceManager#overflow(boolean, boolean)}
@@ -59,13 +60,6 @@ public class TestOverflow extends AbstractResourceManagerTestCase {
      */
     public TestOverflow() {
         super();
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestOverflow(String arg0) {
-        super(arg0);
     }
 
 //    /**
@@ -95,6 +89,7 @@ public class TestOverflow extends AbstractResourceManagerTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_overflow() throws IOException {
 
         /*

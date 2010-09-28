@@ -30,9 +30,6 @@ package com.bigdata.counters.httpd;
 
 import java.net.InetAddress;
 import java.util.Random;
-
-import junit.framework.TestCase;
-
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.History;
 import com.bigdata.counters.HistoryInstrument;
@@ -40,6 +37,7 @@ import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.counters.PeriodEnum;
 import com.bigdata.util.config.NicUtil;
+import org.junit.Before;
 
 /**
  * Utility class for testing {@link CounterSetHTTPD} or
@@ -48,7 +46,7 @@ import com.bigdata.util.config.NicUtil;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestCounterSetHTTPDServer extends TestCase {
+public class TestCounterSetHTTPDServer {
     
     /**
      * Invoked during server startup to allow customization of the

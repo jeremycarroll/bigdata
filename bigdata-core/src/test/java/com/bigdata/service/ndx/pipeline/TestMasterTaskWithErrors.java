@@ -36,6 +36,7 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.ndx.pipeline.AbstractMasterTestCase.H;
 import com.bigdata.service.ndx.pipeline.AbstractMasterTestCase.O;
 import com.bigdata.util.InnerCause;
+import org.junit.Test;
 
 /**
  * Unit tests for error handling in the control logic used by
@@ -49,10 +50,6 @@ public class TestMasterTaskWithErrors extends AbstractMasterTestCase {
     public TestMasterTaskWithErrors() {
     }
 
-    public TestMasterTaskWithErrors(String name) {
-        super(name);
-    }
-
     /**
      * Unit test verifies correct shutdown and error reporting when a subtask
      * fails.
@@ -60,6 +57,7 @@ public class TestMasterTaskWithErrors extends AbstractMasterTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_startWriteErrorStop() throws InterruptedException,
             ExecutionException {
 

@@ -32,9 +32,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.keys.ISortKeyBuilder;
 import com.bigdata.config.IValidator;
 import com.bigdata.io.IStreamSerializer;
@@ -58,6 +55,8 @@ import com.bigdata.relation.rule.Rule;
 import com.bigdata.relation.rule.Var;
 import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test harness for {@link DefaultEvaluationPlan}.
@@ -65,19 +64,12 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestDefaultEvaluationPlan extends TestCase2 {
+public class TestDefaultEvaluationPlan extends Assert {
 
     /**
      * 
      */
     public TestDefaultEvaluationPlan() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestDefaultEvaluationPlan(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -101,6 +93,7 @@ public class TestDefaultEvaluationPlan extends TestCase2 {
     /**
      * Based on LUBM query#8 with the U1 dataset.
      */
+    @Test
     public void test_lubmQuery8() {
 
         final String relation = "spo";
@@ -133,7 +126,7 @@ public class TestDefaultEvaluationPlan extends TestCase2 {
                 new IVariableOrConstant[] {//
                 Var.var("x"), emailAddress, Var.var("z") });
         
-        final IRule rule = new Rule(getName(), null/* head */,
+        final IRule rule = new Rule(this.getClass().getName(), null/* head */,
                 new IPredicate[] { pred0, pred1, pred2, pred3, pred4 }, //
                 null// constraints
         );

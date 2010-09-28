@@ -34,7 +34,6 @@ import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
  * implementation.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class AbstractInferenceEngineTestCase extends AbstractTripleStoreTestCase {
 
@@ -44,11 +43,4 @@ public class AbstractInferenceEngineTestCase extends AbstractTripleStoreTestCase
     public AbstractInferenceEngineTestCase() {
     }
 
-    /**
-     * @param name
-     */
-    public AbstractInferenceEngineTestCase(String name) {
-        super(name);
-    }
-    
 }

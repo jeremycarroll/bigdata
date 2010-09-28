@@ -55,6 +55,7 @@ import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.resources.ResourceManager.Options;
+import org.junit.Test;
 
 /**
  * Basic test of building an index segment from an index partition on overflow.
@@ -70,13 +71,6 @@ public class TestBuildTask extends AbstractResourceManagerTestCase {
     public TestBuildTask() {
         super();
 
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestBuildTask(String arg0) {
-        super(arg0);
     }
 
     public Properties getProperties() {
@@ -104,6 +98,7 @@ public class TestBuildTask extends AbstractResourceManagerTestCase {
      * {@link MetadataIndex} before clients will being reading from the new view
      * using the new {@link IndexSegment}.
      */
+    @Test
     public void test_buildWithOverflow() throws IOException,
             InterruptedException, ExecutionException {
 
@@ -294,6 +289,7 @@ public class TestBuildTask extends AbstractResourceManagerTestCase {
      * @throws ExecutionException
      * @throws InterruptedException
      */
+    @Test
     public void test_buildWithoutOverflow() throws InterruptedException,
             ExecutionException {
 

@@ -31,6 +31,8 @@ import java.util.Properties;
 
 import com.bigdata.journal.ITx;
 import com.bigdata.service.jini.JiniClient;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * Abstract test case that sets up and connects to a bigdata federation and
@@ -51,23 +53,19 @@ abstract public class AbstractDistributedTripleStoreTestCase extends AbstractDis
     }
 
     /**
-     * @param arg0
-     */
-    public AbstractDistributedTripleStoreTestCase(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * The triple store under test.
      */
     ScaleOutTripleStore store;
     
+    @Override
     public Properties getProperties() {
         
         return new Properties(System.getProperties());
     
     }
     
+    @Before
+    @Override
     public void setUp() throws Exception {
 
         super.setUp();
@@ -80,6 +78,8 @@ abstract public class AbstractDistributedTripleStoreTestCase extends AbstractDis
         
     }
 
+    @After
+    @Override
     public void tearDown() throws Exception {
         
         super.tearDown();

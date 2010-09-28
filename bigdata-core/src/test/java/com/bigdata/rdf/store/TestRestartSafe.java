@@ -42,6 +42,11 @@ import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.vocab.NoVocabulary;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test restart safety for the various indices.
@@ -49,15 +54,19 @@ import com.bigdata.rdf.vocab.NoVocabulary;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRestartSafe extends AbstractTripleStoreTestCase {
 
-    public TestRestartSafe() {
+    public TestRestartSafe(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    public TestRestartSafe(String name) {
-        super(name);
-    }
-    
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
+
+    @Test
     public void test_restartSafe() throws IOException {
 
         final Properties properties = super.getProperties();

@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.relation.rule.eval;
 
 import java.util.Arrays;
-import junit.framework.TestCase2;
 import com.bigdata.rdf.spo.SPOPredicate;
 import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IConstant;
@@ -39,12 +38,14 @@ import com.bigdata.relation.rule.IVariable;
 import com.bigdata.relation.rule.QueryOptions;
 import com.bigdata.relation.rule.Rule;
 import com.bigdata.relation.rule.Var;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
-public class TestRuleState extends TestCase2 {
+public class TestRuleState extends Assert {
 
     /**
      * 
@@ -52,13 +53,7 @@ public class TestRuleState extends TestCase2 {
     public TestRuleState() {
     }
 
-    /**
-     * @param name
-     */
-    public TestRuleState(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_requiredVars() {
         
         // select ?a where { ?a x ?b . ?b x ?c . ?c x ?d . ?d x ?e . }

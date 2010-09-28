@@ -41,6 +41,7 @@ import com.bigdata.btree.TestTuple;
 import com.bigdata.btree.Tuple;
 import com.bigdata.btree.AbstractBTreeTupleCursor.MutableBTreeTupleCursor;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link Removerator}.
@@ -57,16 +58,10 @@ public class TestRemoverator extends AbstractTupleCursorTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestRemoverator(String name) {
-        super(name);
-    }
-
-    /**
      * Test verifies that we can remove each tuple as we visit it and that the
      * tuple returned to the caller is not invalidated by that remove().
      */
+    @Test
     public void test() {
     
         final BTree btree = BTree.create(new SimpleMemoryRawStore(),

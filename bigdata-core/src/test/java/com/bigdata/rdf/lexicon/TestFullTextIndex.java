@@ -27,11 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.lexicon;
 
-import java.util.Arrays;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import junit.framework.AssertionFailedError;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.model.vocabulary.XMLSchema;
@@ -41,15 +39,22 @@ import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.spo.TestSPOKeyOrder;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
 import com.bigdata.rdf.store.BigdataValueIteratorImpl;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.search.Hit;
 import com.bigdata.search.Hiterator;
 import com.bigdata.striterator.ChunkedWrappedIterator;
 import com.bigdata.striterator.ICloseableIterator;
 import com.bigdata.striterator.Resolver;
 import com.bigdata.striterator.Striterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test of adding terms with the full text index enabled and of lookup of terms
@@ -65,20 +70,20 @@ import com.bigdata.striterator.Striterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestFullTextIndex extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestFullTextIndex() {
+    public TestFullTextIndex(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestFullTextIndex(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
 //    public Properties getProperties() {
 //
@@ -153,10 +158,10 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
 
             TestSPOKeyOrder.assertSameIteratorAnyOrder(expected, itr2);
 
-        } catch (AssertionFailedError ex) {
-
-            fail("minCosine=" + minCosine + ", expected="
-                    + Arrays.toString(expected) + ", actual=" + hitr, ex);
+//        } catch (AssertionFailedError ex) {
+//
+//            fail("minCosine=" + minCosine + ", expected="
+//                    + Arrays.toString(expected) + ", actual=" + hitr, ex);
 
         } finally {
 
@@ -166,6 +171,7 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
         
     }
 
+    @Test
     public void test_fullTextIndex01() throws InterruptedException {
 
         AbstractTripleStore store = getStore();
@@ -299,6 +305,7 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
 
     }
 
+    @Test
     public void test_text_index_datatype_literals() {
 
         final Properties properties = getProperties();

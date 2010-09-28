@@ -73,6 +73,10 @@ import com.bigdata.journal.BufferMode;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.sail.BigdataSail.Options;
 import com.bigdata.rdf.store.BD;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for high-level query against a graph containing statements about
@@ -81,21 +85,26 @@ import com.bigdata.rdf.store.BD;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestSearchQuery extends ProxyBigdataSailTestCase {
 
-    public TestSearchQuery() {
-        
+    private static final String TESTNAME = 
+        TestSearchQuery.class.getName();
+
+    public TestSearchQuery(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
     
-    public TestSearchQuery(String name) {
-        super(name);
-    }
-    
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup3();
+    };
+
     final File file;
     {
         try {
 
-            file = File.createTempFile(getName(), ".tmp");
+            file = File.createTempFile(TESTNAME, ".tmp");
 
             if (log.isInfoEnabled())
                 log.info("file=" + file);
@@ -136,6 +145,7 @@ public class TestSearchQuery extends ProxyBigdataSailTestCase {
 //        
 //    }
     
+    @Test
     public void test_query() throws SailException, IOException,
             RDFHandlerException, QueryEvaluationException {
 
@@ -327,6 +337,7 @@ public class TestSearchQuery extends ProxyBigdataSailTestCase {
      * 
      * @throws Exception
      */
+    @Test
     public void test_restart() throws Exception {
 
         final boolean doYouWantMeToBreak = true;
@@ -499,6 +510,7 @@ public class TestSearchQuery extends ProxyBigdataSailTestCase {
 
     }
     
+    @Test
     public void testWithNamedGraphs() throws Exception {
         
         final BigdataSail sail = getSail();

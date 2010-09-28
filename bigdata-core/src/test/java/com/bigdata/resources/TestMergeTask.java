@@ -51,6 +51,7 @@ import com.bigdata.mdi.IndexPartitionCause;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Basic test of compacting merge for an index partition on overflow.
@@ -66,13 +67,6 @@ public class TestMergeTask extends AbstractResourceManagerTestCase {
     public TestMergeTask() {
         super();
 
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestMergeTask(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -92,6 +86,7 @@ public class TestMergeTask extends AbstractResourceManagerTestCase {
      * 
      * @todo test more complex merges.
      */
+    @Test
     public void test_mergeWithOverflow() throws IOException,
             InterruptedException, ExecutionException {
 

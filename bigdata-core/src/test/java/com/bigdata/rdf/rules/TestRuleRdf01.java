@@ -34,8 +34,15 @@ import org.openrdf.model.vocabulary.RDF;
 
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.model.BigdataValueFactory;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.rule.Rule;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link RuleRdf01}.
@@ -46,26 +53,26 @@ import com.bigdata.relation.rule.Rule;
  * </pre>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRuleRdf01 extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestRuleRdf01() {
+    public TestRuleRdf01(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRuleRdf01(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Basic test of rule semantics.
      */
+    @Test
     public void test_rdf01() throws Exception {
         
         final Properties properties = super.getProperties();
@@ -116,6 +123,7 @@ public class TestRuleRdf01 extends AbstractRuleTestCase {
      * Test that can be used to verify that we are doing an efficient scan for
      * the distinct predicates (distinct key prefix scan).
      */
+    @Test
     public void test_rdf01_distinctPrefixScan() throws Exception {
         
         final Properties properties = super.getProperties();

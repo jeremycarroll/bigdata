@@ -42,6 +42,7 @@ import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.btree.proc.BatchInsert.BatchInsertConstructor;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.ITx;
+import org.junit.Test;
 
 /**
  * Test suite for the ability to re-open an {@link EmbeddedFederation}.
@@ -55,13 +56,6 @@ public class TestRestartSafe extends AbstractEmbeddedFederationTestCase {
      * 
      */
     public TestRestartSafe() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestRestartSafe(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -92,6 +86,7 @@ public class TestRestartSafe extends AbstractEmbeddedFederationTestCase {
      * @throws ExecutionException 
      * @throws InterruptedException 
      */
+    @Test
     public void test_restartSafe() throws IOException, InterruptedException, ExecutionException {
 
         /*
@@ -183,9 +178,9 @@ if(mds != null) {
                 
                 ITuple tuple = itr.next();
                 
-                assertEquals(keys[i],tuple.getKey());
+                assertArrayEquals(keys[i],tuple.getKey());
 
-                assertEquals(vals[i],tuple.getValue());
+                assertArrayEquals(vals[i],tuple.getValue());
                 
                 i++;
                 
@@ -315,9 +310,9 @@ assertEquals("metadataService UUID", metadataServiceUUID, mdsUUID);
                 
                 final ITuple tuple = itr.next();
                 
-                assertEquals(keys[i],tuple.getKey());
+                assertArrayEquals(keys[i],tuple.getKey());
 
-                assertEquals(vals[i],tuple.getValue());
+                assertArrayEquals(vals[i],tuple.getValue());
                 
                 i++;
                 

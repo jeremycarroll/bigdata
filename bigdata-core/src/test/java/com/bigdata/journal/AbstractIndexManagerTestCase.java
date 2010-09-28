@@ -28,19 +28,19 @@
 
 package com.bigdata.journal;
 
+import com.bigdata.test.Assert;
 import java.nio.ByteBuffer;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.Callable;
-
-import junit.framework.TestCase;
-import junit.framework.TestCase2;
+import org.junit.After;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public abstract class AbstractIndexManagerTestCase<S extends IIndexManager> extends TestCase2 {
+public abstract class AbstractIndexManagerTestCase<S extends IIndexManager>
+    extends Assert {
 
     protected final static boolean INFO = log.isInfoEnabled();
 
@@ -52,38 +52,34 @@ public abstract class AbstractIndexManagerTestCase<S extends IIndexManager> exte
 
     public AbstractIndexManagerTestCase() {}
     
-    public AbstractIndexManagerTestCase(String name) {super(name);}
-
     //************************************************************
     //************************************************************
     //************************************************************
     
     /**
-     * Invoked from {@link TestCase#setUp()} for each test in the suite.
+     * Invoked from {@link ProxyTestCase#setUp()} for each test in the suite.
      */
     public void setUp(ProxyTestCase testCase) throws Exception {
 
         if(INFO)
-        log.info("\n\n================:BEGIN:" + testCase.getName()
+        log.info("\n\n================:BEGIN:" + this.getClass().getName()
                 + ":BEGIN:====================");
 
     }
 
     /**
-     * Invoked from {@link TestCase#tearDown()} for each test in the suite.
+     * Invoked from {@link ProxyTestCase#tearDown()} for each test in the suite.
      */
     public void tearDown(ProxyTestCase testCase) throws Exception {
 
         if(INFO)
-        log.info("\n================:END:" + testCase.getName()
+        log.info("\n================:END:" + this.getClass().getName()
                 + ":END:====================\n");
         
     }
     
+    @After
     public void tearDown() throws Exception {
-        
-        super.tearDown();
-        
     }
 
     //
@@ -444,7 +440,7 @@ public abstract class AbstractIndexManagerTestCase<S extends IIndexManager> exte
 
         if (actual.hasArray() && actual.arrayOffset() == 0) {
 
-            assertEquals(expected, actual.array());
+            assertArrayEquals(expected, actual.array());
 
             return;
 
@@ -463,7 +459,7 @@ public abstract class AbstractIndexManagerTestCase<S extends IIndexManager> exte
         actual.get(actual2);
 
         // compare byte[]s.
-        assertEquals(expected, actual2);
+        assertArrayEquals(expected, actual2);
 
     }
 

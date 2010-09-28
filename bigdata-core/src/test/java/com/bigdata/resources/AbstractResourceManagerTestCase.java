@@ -56,7 +56,6 @@ import com.bigdata.mdi.IndexPartitionCause;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.IBlock;
-import com.bigdata.rawstore.IRawStore;
 import com.bigdata.relation.locator.IResourceLocator;
 import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.AbstractTransactionService;
@@ -64,8 +63,6 @@ import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataClient;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IDataService;
-import com.bigdata.service.IDataServiceCallable;
-import com.bigdata.service.IMetadataService;
 import com.bigdata.service.IService;
 import com.bigdata.service.Session;
 import com.bigdata.service.ndx.IClientIndex;
@@ -81,6 +78,8 @@ import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShutdownAdmin;
 import com.sun.jini.admin.DestroyAdmin;
 import net.jini.admin.Administrable;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * Base class for {@link ResourceManager} test suites that can use normal
@@ -99,16 +98,10 @@ public class AbstractResourceManagerTestCase extends
     }
 
     /**
-     * @param arg0
-     */
-    public AbstractResourceManagerTestCase(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Forces the use of persistent journals so that we can do overflow
      * operations and the like.
      */
+    @Override
     public Properties getProperties() {
         
         final Properties properties = new Properties( super.getProperties() );
@@ -136,6 +129,8 @@ protected ShardLocator metadataService;
     /**
      * Setup test fixtures.
      */
+    @Before
+    @Override
     public void setUp() throws Exception {
         
         super.setUp();
@@ -207,6 +202,7 @@ protected ShardLocator metadataService;
         
     }
 
+    @After
     public void tearDown() throws Exception {
 
         if(executorService != null)

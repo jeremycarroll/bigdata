@@ -30,10 +30,6 @@ package com.bigdata.rdf.store;
 import java.io.File;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
 import com.bigdata.journal.ITx;
 import com.bigdata.service.DataService;
 import com.bigdata.service.EmbeddedClient;
@@ -54,60 +50,10 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
     public TestScaleOutTripleStoreWithEmbeddedFederation () {
     }
 
-    public TestScaleOutTripleStoreWithEmbeddedFederation (String name) {
-        super(name);
-    }
-    
-    public static Test suite() {
-
-        final TestScaleOutTripleStoreWithEmbeddedFederation delegate = new TestScaleOutTripleStoreWithEmbeddedFederation(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Scale-Out Triple Store Test Suite (embedded federation)");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-        
-//        // writes on the term:id and id:term indices.
-//        suite.addTestSuite(TestTermAndIdsIndex.class);
-//
-//        // writes on the statement indices.
-//        suite.addTestSuite(TestStatementIndex.class);
-             
-        /*
-         * Proxied test suite for use only with the LocalTripleStore.
-         * 
-         * @todo test unisolated operation semantics.
-         */
-
-//        suite.addTestSuite(TestFullTextIndex.class);
-
-//        suite.addTestSuite(TestLocalTripleStoreTransactionSemantics.class);
-
-        /*
-         * Pickup the basic triple store test suite. This is a proxied test
-         * suite, so all the tests will run with the configuration specified in
-         * this test class and its optional .properties file.
-         */
-        
-        // basic test suite.
-        suite.addTest(TestTripleStoreBasics.suite());
-        
-        // rules, inference, and truth maintenance test suite.
-        suite.addTest( com.bigdata.rdf.rules.TestAll.suite() );
-
-        return suite;
-
-    }
-
     /**
      * Properties used by tests in the file and in this proxy suite.
      */
+    @Override
     public Properties getProperties() {
 
         final Properties properties = new Properties( super.getProperties() );
@@ -146,11 +92,12 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
      * Data files are placed into a directory named by the test. If the
      * directory exists, then it is removed before the federation is set up.
      */
+    @Override
     public void setUp(final ProxyTestCase testCase) throws Exception {
     
         super.setUp(testCase);
 
-        final File dataDir = new File(testCase.getName());
+        final File dataDir = new File(this.getClass().getName());
 
         if (dataDir.exists() && dataDir.isDirectory()) {
 
@@ -173,6 +120,7 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
         
     }
     
+    @Override
     public void tearDown(final ProxyTestCase testCase) throws Exception {
 
         if (client != null) {
@@ -191,8 +139,6 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
             client = null;
 
         }
-        
-        super.tearDown();
         
     }
     

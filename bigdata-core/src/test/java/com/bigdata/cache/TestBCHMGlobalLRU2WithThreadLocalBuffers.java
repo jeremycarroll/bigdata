@@ -29,14 +29,14 @@ package com.bigdata.cache;
 
 import com.bigdata.cache.LRUNexus.AccessPolicyEnum;
 import com.bigdata.rawstore.Bytes;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Some unit tests for the {@link BCHMGlobalLRU2} using true thread local
  * buffers.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id: TestBCHMGlobalLRU2WithThreadLocalBuffers.java 2792 2010-05-09
- *          20:54:39Z thompsonbry $
  * 
  * @see TestBCHMGlobalLRU2WithStripedLocks
  */
@@ -47,13 +47,6 @@ public class TestBCHMGlobalLRU2WithThreadLocalBuffers extends
      * 
      */
     public TestBCHMGlobalLRU2WithThreadLocalBuffers() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestBCHMGlobalLRU2WithThreadLocalBuffers(String name) {
-        super(name);
     }
 
     private final AccessPolicyEnum accessPolicy = AccessPolicyEnum.LRU;
@@ -75,9 +68,8 @@ public class TestBCHMGlobalLRU2WithThreadLocalBuffers extends
 
     private final static int threadLocalBufferCapacity = 128;
     
-    protected void setUp() throws Exception {
-
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
 
         lru = new BCHMGlobalLRU2<Long, Object>(accessPolicy,
                 maximumBytesInMemory, minCleared, minimumCacheSetCapacity,
@@ -92,6 +84,8 @@ public class TestBCHMGlobalLRU2WithThreadLocalBuffers extends
      * Note: The {@link #threadLocalBufferCapacity} is overridden for this unit
      * test to ONE (1) so that the counter updates are synchronous.
      */
+    @Test
+    @Override
     public void test_counters() {
 
         lru = new BCHMGlobalLRU2<Long, Object>(accessPolicy,
@@ -109,6 +103,7 @@ public class TestBCHMGlobalLRU2WithThreadLocalBuffers extends
      * Note: The {@link #threadLocalBufferCapacity} is overridden for this unit
      * test to ONE (1) so that the counter updates are synchronous.
      */
+    @Test
     public void test_clearCache() {
 
         lru = new BCHMGlobalLRU2<Long, Object>(accessPolicy,

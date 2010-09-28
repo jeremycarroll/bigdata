@@ -60,6 +60,7 @@ import com.bigdata.test.ExperimentDriver.Result;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.NV;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Test;
 
 /**
  * Test suite for MRMW (Multiple Readers, Multiple Writers) support.
@@ -89,15 +90,6 @@ abstract public class AbstractMRMWTestCase
      * 
      */
     public AbstractMRMWTestCase() {
-    }
-
-    /**
-     * @param name
-     */
-    public AbstractMRMWTestCase(String name) {
-
-        super(name);
-        
     }
 
     /**
@@ -227,6 +219,7 @@ abstract public class AbstractMRMWTestCase
      * 
      * @see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6371642
      */
+    @Test
     public void testMRMW() throws Exception {
 
         final IRawStore store = getStore();
@@ -330,7 +323,7 @@ abstract public class AbstractMRMWTestCase
             
             new WriterTask(groundTruth, store, reclen, nprewrites, false/*forceToDisk*/).call();
             
-            System.err.println("Pre-wrote " + nprewrites + " records");
+//             System.err.println("Pre-wrote " + nprewrites + " records");
             
         }
         
@@ -376,9 +369,9 @@ abstract public class AbstractMRMWTestCase
             // used to format percentages.
             final NumberFormat percentFormat = NumberFormat.getPercentInstance();
 
-            System.err.println("#clients=" + nclients + ", #readers="
-                    + nreaders + ", #writers=" + nwriters + ", readerToWriterRatio="
-                    + percentFormat.format(((double) nreaders / ntrials )));
+//             System.err.println("#clients=" + nclients + ", #readers="
+//                     + nreaders + ", #writers=" + nwriters + ", readerToWriterRatio="
+//                     + percentFormat.format(((double) nreaders / ntrials )));
             
         }
         
@@ -390,14 +383,14 @@ abstract public class AbstractMRMWTestCase
         
         // start clients.
         
-        System.err.println("Starting clients.");
+//         System.err.println("Starting clients.");
         
         final List<Future<Integer>> results = clientService.invokeAll(tasks,
                 timeout, TimeUnit.SECONDS);
 
         final long elapsed = System.currentTimeMillis() - begin;
         
-        System.err.println("Halting clients.");
+//         System.err.println("Halting clients.");
         
         // force the clients to terminate.
         clientService.shutdownNow();
@@ -419,7 +412,7 @@ abstract public class AbstractMRMWTestCase
 
         } else {
         
-            System.err.println("Clients halted.");
+//             System.err.println("Clients halted.");
             
         }
         
@@ -527,9 +520,9 @@ abstract public class AbstractMRMWTestCase
         ret.put("bytesVerified", ""+groundTruth.bytesVerified.get());
         ret.put("bytesVerifiedPerSec", ""+bytesVerifiedPerSecond);
         
-        System.err.println(ret.toString(true/*newline*/));
+//         System.err.println(ret.toString(true/*newline*/));
         
-        System.out.println(store.getCounters().toString());
+//         System.out.println(store.getCounters().toString());
   
         // Caller will destroy.
 //        store.destroy();

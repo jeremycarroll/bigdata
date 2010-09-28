@@ -82,13 +82,6 @@ public class TestMasterTaskWithSplits extends AbstractKeyRangeMasterTestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestMasterTaskWithSplits(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Method returns a separator key which lies 1/2 between the given separator
      * keys. This test suite uses long (64 bit) keys. An empty byte[]
      * corresponds to ZERO (0L). A <code>null</code>, which may only appear as

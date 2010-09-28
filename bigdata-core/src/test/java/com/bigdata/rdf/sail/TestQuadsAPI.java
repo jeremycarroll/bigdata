@@ -28,6 +28,10 @@ package com.bigdata.rdf.sail;
 
 import java.util.Collection;
 import java.util.LinkedList;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.openrdf.model.BNode;
 import org.openrdf.model.Resource;
 import org.openrdf.model.URI;
@@ -49,20 +53,20 @@ import org.openrdf.query.impl.BindingImpl;
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestQuadsAPI extends QuadsTestCase {
 
     /**
      * 
      */
-    public TestQuadsAPI() {
+    public TestQuadsAPI(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestQuadsAPI(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup7();
+    };
 
     /**
      * The foaf: namespace.
@@ -110,6 +114,7 @@ public class TestQuadsAPI extends QuadsTestCase {
      * graphs.
      * @throws Exception 
      */
+    @Test
     public void test_2graphs() throws Exception {
 
         final BigdataSail sail = getSail();
@@ -183,6 +188,7 @@ public class TestQuadsAPI extends QuadsTestCase {
 
     }
     
+    @Test
     public void testSCequality() throws Exception {
 
         final BigdataSail sail = getSail();

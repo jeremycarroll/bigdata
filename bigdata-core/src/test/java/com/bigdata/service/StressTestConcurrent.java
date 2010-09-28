@@ -85,6 +85,7 @@ import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 
 //BTM
 import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+import org.junit.Test;
 
 /**
  * Test suite for concurrent operations on a {@link DataService}. A federation
@@ -120,13 +121,6 @@ public class StressTestConcurrent extends
      * 
      */
     public StressTestConcurrent() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public StressTestConcurrent(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -243,6 +237,7 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
      * 
      * @throws Exception
      */
+    @Test
     public void test_stressTest2() throws Exception {
 
         int nclients = 10; // max concurrency limited by #of index partitions.

@@ -27,13 +27,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.spo;
 
-import junit.framework.TestCase2;
 import com.bigdata.io.ByteArrayBuffer;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.store.IRawTripleStore;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link SPO} class.
@@ -41,19 +42,12 @@ import com.bigdata.rdf.store.IRawTripleStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestSPO extends TestCase2 {
+public class TestSPO extends Assert {
 
     /**
      * 
      */
     public TestSPO() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestSPO(String name) {
-        super(name);
     }
 
     /**
@@ -63,6 +57,7 @@ public class TestSPO extends TestCase2 {
      * statement), and all possible {@link StatementEnum} that are actually
      * stored in the database.
      */
+    @Test
     public void test_valueEncodingRoundTrip() {
 
 //        assertFalse(VTE.isStatement(TermId.NULL));

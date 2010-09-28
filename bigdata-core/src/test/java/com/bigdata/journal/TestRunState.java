@@ -28,7 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.journal;
 
-import junit.framework.TestCase;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link RunState}.
@@ -36,7 +37,7 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestRunState extends TestCase {
+public class TestRunState extends Assert {
 
     /**
      * 
@@ -46,16 +47,9 @@ public class TestRunState extends TestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestRunState(String arg0) {
-        super(arg0);
-   
-    }
-
-    /**
      * Unit tests for legal and illegal state transitions.
      */
+    @Test
     public void test_stateMachine() {
 
         assertTrue(RunState.Active.isTransitionAllowed(RunState.Prepared));
@@ -82,6 +76,7 @@ public class TestRunState extends TestCase {
      * convenience) more than one may instruct us to make the same state
      * change).
      */
+    @Test
     public void test_selfTransitionOk() {
 
         assertTrue(RunState.Active.isTransitionAllowed(RunState.Active));

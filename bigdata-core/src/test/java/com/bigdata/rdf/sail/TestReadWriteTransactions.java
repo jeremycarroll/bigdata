@@ -41,25 +41,30 @@ import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.store.BD;
 import com.bigdata.rdf.vocab.NoVocabulary;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestReadWriteTransactions extends ProxyBigdataSailTestCase {
 
     /**
      * 
      */
-    public TestReadWriteTransactions() {
+    public TestReadWriteTransactions(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestReadWriteTransactions(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup5();
+    };
 
     @Override
     public Properties getProperties() {
@@ -97,6 +102,7 @@ public class TestReadWriteTransactions extends ProxyBigdataSailTestCase {
      * Test the commit semantics in the context of a read-committed view of the
      * database.
      */
+    @Test
     public void test_commit() throws Exception {
 
         // final LocalTripleStore store = (LocalTripleStore) getStore();
@@ -183,6 +189,7 @@ public class TestReadWriteTransactions extends ProxyBigdataSailTestCase {
     /**
      * Test of abort semantics.
      */
+    @Test
     public void test_abort() throws Exception {
 
         class AbortException extends RuntimeException {
@@ -232,6 +239,7 @@ public class TestReadWriteTransactions extends ProxyBigdataSailTestCase {
 
     }
 
+    @Test
     public void test_multiple_transaction() throws Exception {
 
         // final LocalTripleStore store = (LocalTripleStore) getStore();

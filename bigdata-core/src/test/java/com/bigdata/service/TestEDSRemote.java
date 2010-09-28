@@ -37,10 +37,6 @@ public class TestEDSRemote extends TestEDS {
         super();
     }
 
-    public TestEDSRemote(String name) {
-        super(name);
-    }
-
     public Properties getProperties() {
         Properties properties = new Properties(super.getProperties());
         properties.setProperty

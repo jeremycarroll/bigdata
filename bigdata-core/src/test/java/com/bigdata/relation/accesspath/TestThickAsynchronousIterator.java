@@ -29,11 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.relation.accesspath;
 
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase2;
-
 import com.bigdata.io.SerializerUtil;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link ThickAsynchronousIterator}.
@@ -41,7 +39,7 @@ import com.bigdata.io.SerializerUtil;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestThickAsynchronousIterator extends TestCase2 {
+public class TestThickAsynchronousIterator extends Assert {
 
     /**
      * 
@@ -49,13 +47,7 @@ public class TestThickAsynchronousIterator extends TestCase2 {
     public TestThickAsynchronousIterator() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestThickAsynchronousIterator(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void test_emptyIterator() {
     
         final String[] expected = new String[]{};
@@ -66,6 +58,7 @@ public class TestThickAsynchronousIterator extends TestCase2 {
         
     }
     
+    @Test
     public void test_singleValueIterator() {
 
         final String[] expected = new String[]{"a"};
@@ -76,6 +69,7 @@ public class TestThickAsynchronousIterator extends TestCase2 {
 
     }
     
+    @Test
     public void test_multipleValueIterator() {
         
         final String[] expected = new String[]{"a","b","c"};

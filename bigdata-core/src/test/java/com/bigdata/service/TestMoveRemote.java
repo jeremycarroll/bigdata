@@ -37,10 +37,6 @@ public class TestMoveRemote extends TestMove {
         super();
     }
 
-    public TestMoveRemote(String name) {
-        super(name);
-    }
-
     public Properties getProperties() {
         final Properties properties = new Properties(super.getProperties());
         properties.setProperty

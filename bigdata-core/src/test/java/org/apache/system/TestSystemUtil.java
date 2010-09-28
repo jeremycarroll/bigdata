@@ -18,7 +18,7 @@
  */
 package org.apache.system;
 
-import junit.framework.TestCase;
+import org.junit.Assert;
 
 /**
  * This is used to test SystemUtil for correctness.
@@ -26,12 +26,9 @@ import junit.framework.TestCase;
  * @author <a href="mailto:dev@avalon.apache.org">Avalon Development Team</a>
  * @version $Id$
  */
-public final class TestSystemUtil
-    extends TestCase
-{
-    public TestSystemUtil( String name )
-    {
-        super( name );
+public final class TestSystemUtil extends Assert {
+
+    public TestSystemUtil() {
     }
 
     public void testSystemUtil()

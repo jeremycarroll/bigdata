@@ -28,15 +28,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.keys;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+       // test methods that compute the successor for various data types.
+       TestSuccessorUtil.class,
+       // test key encoding operations.
+       TestKeyBuilder.class,
+       TestJDKUnicodeKeyBuilder.class,
+       TestICUUnicodeKeyBuilder.class
+        } )
+public class TestAll {
 
     /**
      * 
@@ -44,35 +53,4 @@ public class TestAll extends TestCase {
     public TestAll() {
         
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-     
-        super(arg0);
-        
-    }
-
-    public static Test suite()
-    {
-
-        TestSuite suite = new TestSuite("BTree keys");
-        
-        /*
-         * test key encoding and comparison support.
-         */
-        
-        // test methods that compute the successor for various data types.
-        suite.addTestSuite( TestSuccessorUtil.class );
-
-        // test key encoding operations.
-        suite.addTestSuite(TestKeyBuilder.class);
-        suite.addTestSuite(TestJDKUnicodeKeyBuilder.class);
-        suite.addTestSuite(TestICUUnicodeKeyBuilder.class);
-
-        return suite;
-        
-    }
-    
 }

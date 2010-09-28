@@ -35,10 +35,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Date;
 import java.util.Iterator;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.sparse.TPS.TPV;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test of {@link TPS} (property timestamp set implementation).
@@ -50,19 +49,12 @@ import com.bigdata.sparse.TPS.TPV;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestTPS extends TestCase2 implements IRowStoreConstants {
+public class TestTPS extends Assert implements IRowStoreConstants {
 
     /**
      * 
      */
     public TestTPS() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestTPS(String arg0) {
-        super(arg0);
     }
 
     final Schema schema = new Schema("testSchema", "pkey", KeyType.Unicode);
@@ -83,6 +75,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
      * and then rebound using a later timestamp; and (d) it was bound and then
      * deleted (rebound as null at a later timestamp).
      */
+    @Test
     public void test_getSet_neverBound() {
         
         assertEquals("size", 0, tps.size());
@@ -95,6 +88,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
         
     }
     
+    @Test
     public void test_getPrimaryKey() {
         
         // note: null since not bound.
@@ -108,6 +102,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
 
     }
 
+    @Test
     public void test_getSet_boundOnce() {
         
         assertEquals("size", 0, tps.size());
@@ -129,6 +124,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
         
     }
     
+    @Test
     public void test_getSet_boundReboundSameTimestamp() {
         
         assertEquals("size", 0, tps.size());
@@ -163,6 +159,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
 
     }
     
+    @Test
     public void test_getSet_boundReboundEarlierTimestamp() {
         
         assertEquals("size", 0, tps.size());
@@ -200,6 +197,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
 
     }
     
+    @Test
     public void test_getSet_boundReboundLaterTimestamp() {
         
         assertEquals("size", 0, tps.size());
@@ -237,6 +235,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
 
     }
     
+    @Test
     public void test_getSet_boundDeleted() {
         
         assertEquals("size", 0, tps.size());
@@ -280,6 +279,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
      * @throws ClassNotFoundException 
      * @throws IOException 
      */
+    @Test
     public void test_roundTrip01() throws IOException, ClassNotFoundException {
 
         assertRoundTrip(tps);
@@ -302,6 +302,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
      * Tests a series of bindings for one property where each binding of the
      * property uses a different {@link ValueType}.
      */
+    @Test
     public void test_roundTrip02() throws IOException, ClassNotFoundException {
 
         // empty
@@ -340,6 +341,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
     /**
      * Unit tests for {@link TPS#currentRow(INameFilter)} 
      */
+    @Test
     public void test_currentRow() {
 
         // verify when all property values pass the filter.
@@ -396,6 +398,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
     /**
      * Unit tests for {@link TPS#filter(long, long, INameFilter)}
      */
+    @Test
     public void test_filter() {
 
         // verify when an earlier property value gets filtered out by [fromTime].
@@ -515,7 +518,7 @@ public class TestTPS extends TestCase2 implements IRowStoreConstants {
 
             // Note: case necessary to invoke appropriate comparison method.
 
-            assertEquals("value", (byte[]) expected.getValue(), (byte[]) actual
+            assertArrayEquals("value", (byte[]) expected.getValue(), (byte[]) actual
                     .getValue());
 
         } else {

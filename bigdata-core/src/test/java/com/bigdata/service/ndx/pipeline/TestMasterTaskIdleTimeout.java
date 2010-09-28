@@ -44,6 +44,7 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.ndx.pipeline.AbstractMasterTestCase.H;
 import com.bigdata.service.ndx.pipeline.AbstractMasterTestCase.O;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Test;
 
 /**
  * Unit tests of the idle timeout behavior for {@link AbstractMasterTask} and
@@ -57,15 +58,12 @@ public class TestMasterTaskIdleTimeout extends AbstractMasterTestCase {
     public TestMasterTaskIdleTimeout() {
     }
 
-    public TestMasterTaskIdleTimeout(String name) {
-        super(name);
-    }
-    
     /**
      * Unit test to verify that output buffers are not closed too quickly. This
      * also verifies that a buffer automatically re-opened if it was closed by a
      * timeout.
      */
+    @Test
     public void test_idleTimeout() throws InterruptedException,
             ExecutionException {
 
@@ -214,6 +212,7 @@ public class TestMasterTaskIdleTimeout extends AbstractMasterTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_idleTimeout_LT_chunkTimeout() throws InterruptedException, ExecutionException {
 
         final H masterStats = new H();
@@ -335,6 +334,7 @@ public class TestMasterTaskIdleTimeout extends AbstractMasterTestCase {
      *       latency in excess of the idle timeout and verify that we test for
      *       an available chunk before concluding that the sink is idle.
      */
+    @Test
     public void test_idleTimeout_LT_chunkTimeout2() throws InterruptedException, ExecutionException {
 
         // how long to run this test.
@@ -611,6 +611,7 @@ public class TestMasterTaskIdleTimeout extends AbstractMasterTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_idleTimeoutInfinite_chunkTimeoutInfinite() throws InterruptedException,
             ExecutionException {
 
@@ -714,6 +715,7 @@ public class TestMasterTaskIdleTimeout extends AbstractMasterTestCase {
      * @throws ExecutionException
      * @throws TimeoutException
      */
+    @Test
     public void test_idleTimeout_with_infiniteChunkTimeout()
             throws InterruptedException, ExecutionException, TimeoutException {
 

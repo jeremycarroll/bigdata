@@ -27,12 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.io;
 
+import com.bigdata.test.Assert;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.zip.Adler32;
-
-import com.bigdata.io.ChecksumUtility;
-import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * Test suite for {@link ChecksumUtility}.
@@ -40,7 +39,7 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestChecksumUtility extends TestCase {
+public class TestChecksumUtility extends Assert {
 
     Random r = new Random();
     
@@ -53,17 +52,10 @@ public class TestChecksumUtility extends TestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestChecksumUtility(String arg0) {
-        super(arg0);
-    }
-
-    
-    /**
      * Test verifies that the checksum of the buffer is being computed
      * correctly.
      */
+    @Test
     public void test_checksum01() {
         
         byte[] data = new byte[100];
@@ -82,6 +74,7 @@ public class TestChecksumUtility extends TestCase {
      * Test verifies that only the specified region of the buffer is used to
      * compute the checksum.
      */
+    @Test
     public void test_checksum02() {
 
         byte[] data = new byte[100];
@@ -100,6 +93,7 @@ public class TestChecksumUtility extends TestCase {
      * Test verifies that the mark, position and limit are unchanged by the
      * checksum operation.
      */
+    @Test
     public void test_checksum03() {
 
         byte[] data = new byte[100];
@@ -132,6 +126,7 @@ public class TestChecksumUtility extends TestCase {
      * Verify that the computed checksum is the same whether the buffer is
      * backed by an array or not.
      */
+    @Test
     public void test_checksum04() {
         
         byte[] data = new byte[100];
@@ -156,6 +151,7 @@ public class TestChecksumUtility extends TestCase {
      * backed by an array or not when the checksum is computed for only a region
      * of the buffer.
      */
+    @Test
     public void test_checksum05() {
         
         byte[] data = new byte[100];

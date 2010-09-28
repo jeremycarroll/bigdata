@@ -33,6 +33,7 @@ import org.apache.log4j.Level;
 
 import com.bigdata.btree.keys.NoSuccessorException;
 import com.bigdata.btree.keys.TestKeyBuilder;
+import org.junit.Test;
 
 /**
  * Test suite for the "linear list" access methods.
@@ -54,15 +55,9 @@ public class TestLinearListMethods extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestLinearListMethods(String name) {
-        super(name);
-    }
-    
-    /**
      * Tests on the root leaf.
      */
+    @Test
     public void test_linearListHeight0() {
         
         BTree btree = getBTree(3);
@@ -151,9 +146,9 @@ public class TestLinearListMethods extends AbstractBTreeTestCase {
         } catch (IndexOutOfBoundsException ex) {
             log.info("Ignoring expected exception: " + ex);
         }
-        assertEquals(i2k(3),btree.keyAt(0));
-        assertEquals(i2k(5),btree.keyAt(1));
-        assertEquals(i2k(7),btree.keyAt(2));
+        assertArrayEquals(i2k(3),btree.keyAt(0));
+        assertArrayEquals(i2k(5),btree.keyAt(1));
+        assertArrayEquals(i2k(7),btree.keyAt(2));
         try {
             btree.keyAt(3);
             fail("Expecting: " + IndexOutOfBoundsException.class);
@@ -185,6 +180,7 @@ public class TestLinearListMethods extends AbstractBTreeTestCase {
     /**
      * Tests on a tree with one root node and two leaves.
      */
+    @Test
     public void test_linearListHeight1() throws NoSuccessorException {
         
         BTree btree = getBTree(3);
@@ -298,10 +294,10 @@ public class TestLinearListMethods extends AbstractBTreeTestCase {
         } catch (IndexOutOfBoundsException ex) {
             log.info("Ignoring expected exception: " + ex);
         }
-        assertEquals(i2k(2),btree.keyAt(0));
-        assertEquals(i2k(3),btree.keyAt(1));
-        assertEquals(i2k(5),btree.keyAt(2));
-        assertEquals(i2k(7),btree.keyAt(3));
+        assertArrayEquals(i2k(2),btree.keyAt(0));
+        assertArrayEquals(i2k(3),btree.keyAt(1));
+        assertArrayEquals(i2k(5),btree.keyAt(2));
+        assertArrayEquals(i2k(7),btree.keyAt(3));
         try {
             btree.keyAt(4);
             fail("Expecting: " + IndexOutOfBoundsException.class);
@@ -336,6 +332,7 @@ public class TestLinearListMethods extends AbstractBTreeTestCase {
      * 
      * @see src/architecture/btree.xls for the example used in this test.
      */
+    @Test
     public void test_linearListHeight2() throws NoSuccessorException {
 
         /*
@@ -367,9 +364,9 @@ public class TestLinearListMethods extends AbstractBTreeTestCase {
         {
 //            System.arraycopy(keys, 0, order, 0, keys.length);
 //            Arrays.sort(order);
-            System.err.println("keys="+Arrays.toString(keys));
-            System.err.println("vals="+Arrays.toString(vals));
-            System.err.println("order="+Arrays.toString(order));
+//             System.err.println("keys="+Arrays.toString(keys));
+//             System.err.println("vals="+Arrays.toString(vals));
+//             System.err.println("order="+Arrays.toString(order));
         }
         
         final int m = 3;
@@ -723,14 +720,14 @@ public class TestLinearListMethods extends AbstractBTreeTestCase {
         } catch (IndexOutOfBoundsException ex) {
             log.info("Ignoring expected exception: " + ex);
         }
-        assertEquals(k1,btree.keyAt(0));
-        assertEquals(k2,btree.keyAt(1));
-        assertEquals(k3,btree.keyAt(2));
-        assertEquals(k4,btree.keyAt(3));
-        assertEquals(k5,btree.keyAt(4));
-        assertEquals(k6,btree.keyAt(5));
-        assertEquals(k7,btree.keyAt(6));
-        assertEquals(k8,btree.keyAt(7));
+        assertArrayEquals(k1,btree.keyAt(0));
+        assertArrayEquals(k2,btree.keyAt(1));
+        assertArrayEquals(k3,btree.keyAt(2));
+        assertArrayEquals(k4,btree.keyAt(3));
+        assertArrayEquals(k5,btree.keyAt(4));
+        assertArrayEquals(k6,btree.keyAt(5));
+        assertArrayEquals(k7,btree.keyAt(6));
+        assertArrayEquals(k8,btree.keyAt(7));
         try {
             btree.keyAt(8);
             fail("Expecting: " + IndexOutOfBoundsException.class);

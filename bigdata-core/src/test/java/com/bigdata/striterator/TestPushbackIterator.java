@@ -28,11 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.striterator;
 
+import com.bigdata.test.Assert;
 import java.util.Arrays;
-
-import com.bigdata.striterator.PushbackIterator;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 
 /**
@@ -41,7 +39,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestPushbackIterator extends TestCase2 {
+public class TestPushbackIterator extends Assert {
 
     /**
      * 
@@ -49,13 +47,7 @@ public class TestPushbackIterator extends TestCase2 {
     public TestPushbackIterator() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestPushbackIterator(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void test_filter() {
         
         final PushbackIterator<Long> actual = new PushbackIterator<Long>(Arrays

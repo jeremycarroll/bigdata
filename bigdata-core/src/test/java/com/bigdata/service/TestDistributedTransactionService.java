@@ -36,6 +36,7 @@ import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.journal.ITx;
+import org.junit.Test;
 
 /**
  * Unit tests of local (all writes are on a single data service) and distributed
@@ -67,13 +68,6 @@ public class TestDistributedTransactionService extends
      * 
      */
     public TestDistributedTransactionService() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestDistributedTransactionService(String arg0) {
-        super(arg0);
     }
 
 //    /**
@@ -119,6 +113,7 @@ public class TestDistributedTransactionService extends
      * @throws InterruptedException
      * @throws IOException
      */
+    @Test
     public void test_localTxAbort() throws IOException, InterruptedException, ExecutionException {
         
         final String name1 = "ndx1";

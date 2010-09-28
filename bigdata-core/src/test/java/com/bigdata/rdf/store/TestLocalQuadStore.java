@@ -29,10 +29,6 @@ package com.bigdata.rdf.store;
 
 import java.io.File;
 import java.util.Properties;
-
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
 import com.bigdata.journal.Options;
 import com.bigdata.rdf.axioms.NoAxioms;
 
@@ -50,51 +46,7 @@ public class TestLocalQuadStore extends AbstractTestCase {
     public TestLocalQuadStore() {
     }
 
-    public TestLocalQuadStore(String name) {
-        super(name);
-    }
-    
-    public static Test suite() {
-
-        final TestLocalQuadStore delegate = new TestLocalQuadStore(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Local Quad Store Test Suite");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-
-        // ...
-//        suite.addTestSuite(TestCompletionScan.class);
-        
-        /*
-         * Proxied test suite for use only with the LocalTripleStore.
-         */
-
-        suite.addTestSuite(TestLocalTripleStoreTransactionSemantics.class);
-
-        /*
-         * Pickup the basic triple store test suite. This is a proxied test
-         * suite, so all the tests will run with the configuration specified in
-         * this test class and its optional .properties file.
-         */
-
-        // basic test suite.
-        suite.addTest(TestTripleStoreBasics.suite());
-  
-        // Note: quad store does not support inference at this time.
-        // rules, inference, and truth maintenance test suite.
-//        suite.addTest( com.bigdata.rdf.rules.TestAll.suite() );
-
-        return suite;
-        
-    }
-
+    @Override
     public Properties getProperties() {
 
         // Note: clone to avoid modifying!!!

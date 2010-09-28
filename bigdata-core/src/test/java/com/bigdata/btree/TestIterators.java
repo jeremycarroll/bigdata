@@ -33,6 +33,7 @@ import org.apache.log4j.Level;
 import com.bigdata.btree.filter.FilterConstructor;
 import com.bigdata.btree.filter.TupleFilter;
 import com.bigdata.btree.keys.TestKeyBuilder;
+import org.junit.Test;
 
 /**
  * Test suite for iterators. The tests are presented from the least dependencies
@@ -61,18 +62,12 @@ public class TestIterators extends AbstractBTreeTestCase {
     public TestIterators() {
     }
 
-    /**
-     * @param name
-     */
-    public TestIterators(String name) {
-        super(name);
-    }
-
     final int flags = IRangeQuery.KEYS | IRangeQuery.VALS;
     
     /**
      * Test ability to visit the entries on a leaf in key order.
      */
+    @Test
     public void test_leaf_entryIterator01() {
         
         final BTree btree = getBTree(3);
@@ -118,7 +113,7 @@ public class TestIterators extends AbstractBTreeTestCase {
             root.rangeIterator(k8, k3,flags).next();
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
         
         // remove keys until the root leaf is empty.
@@ -142,6 +137,7 @@ public class TestIterators extends AbstractBTreeTestCase {
     /**
      * Test ability to visit the direct children of a node.
      */
+    @Test
     public void test_childIterator01() {
 
         final BTree btree = getBTree(3);
@@ -215,14 +211,14 @@ public class TestIterators extends AbstractBTreeTestCase {
             c.childIterator(k9, k3);
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
 
         try { // try with search keys out of order.
             btree.rangeIterator(k9, k3);
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
 
         /*
@@ -297,6 +293,7 @@ public class TestIterators extends AbstractBTreeTestCase {
     /**
      * Test ability to visit the nodes of the tree in a post-order traversal.
      */
+    @Test
     public void test_postOrderIterator01() {
 
         final BTree btree = getBTree(3);
@@ -451,6 +448,7 @@ public class TestIterators extends AbstractBTreeTestCase {
     /**
      * Test the use stacked iterators to visit only select values.
      */
+    @Test
     public void test_filters() {
         
         final byte[] k3 = i2k(3);

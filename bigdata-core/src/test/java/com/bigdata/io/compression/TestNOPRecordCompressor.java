@@ -42,13 +42,6 @@ public class TestNOPRecordCompressor extends
     public TestNOPRecordCompressor() {
     }
 
-    /**
-     * @param name
-     */
-    public TestNOPRecordCompressor(String name) {
-        super(name);
-    }
-
     public IRecordCompressor getInstance() {
 
         return NOPRecordCompressor.INSTANCE;

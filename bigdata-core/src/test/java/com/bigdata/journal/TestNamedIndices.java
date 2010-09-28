@@ -32,6 +32,11 @@ import java.util.UUID;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.SimpleEntry;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for api supporting registration, lookup, use, and atomic commit
@@ -54,19 +59,23 @@ import com.bigdata.btree.SimpleEntry;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestNamedIndices extends ProxyTestCase<Journal> {
 
-    public TestNamedIndices() {
+    public TestNamedIndices(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    public TestNamedIndices(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
     /**
      * Test the ability to register and use named index, including whether the
      * named index is restart safe.
      */
+    @Test
     public void test_registerAndUse() {
 
         Journal journal = new Journal(getProperties());

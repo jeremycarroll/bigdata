@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.relation;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites into increasing dependency order.
@@ -33,7 +33,27 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        // data declaration layer.
+        com.bigdata.relation.ddl.TestAll.class,
+
+        // test suite for rules, but not rule execution.
+        com.bigdata.relation.rule.TestAll.class,
+
+        // test suite for access paths.
+        com.bigdata.relation.accesspath.TestAll.class,
+
+        // test suite for locating resources.
+        com.bigdata.relation.locator.TestAll.class
+
+        /*
+         * Note: The relation impls, access path impls, and rule execution are
+         * currently tested in the context of the RDF DB.
+         */
+//        com.bigdata.relation.rdf.TestAll.class
+        } )
+public class TestAll {
 
     /**
      * 
@@ -41,45 +61,4 @@ public class TestAll extends TestCase {
     public TestAll() {
         
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-     
-        super(arg0);
-        
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
-
-        final TestSuite suite = new TestSuite("relations");
-
-        // data declaration layer.
-        suite.addTest(com.bigdata.relation.ddl.TestAll.suite());
-        
-        // test suite for rules, but not rule execution.
-        suite.addTest(com.bigdata.relation.rule.TestAll.suite());
-        
-        // test suite for access paths.
-        suite.addTest(com.bigdata.relation.accesspath.TestAll.suite());
-
-        // test suite for locating resources.
-        suite.addTest(com.bigdata.relation.locator.TestAll.suite());
-        
-        /*
-         * Note: The relation impls, access path impls, and rule execution are
-         * currently tested in the context of the RDF DB.
-         */
-//        suite.addTest(com.bigdata.relation.rdf.TestAll.suite());
-        
-        return suite;
-        
-    }
-    
 }

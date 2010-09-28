@@ -46,6 +46,7 @@ import com.bigdata.btree.view.TestFusedView;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.Options;
+import org.junit.Test;
 
 /**
  * Test suite for {@link IsolatedFusedView}.
@@ -66,10 +67,6 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
     public TestIsolatedFusedView() {
     }
 
-    public TestIsolatedFusedView(String name) {
-        super(name);
-    }
-
     /**
      * Unit test examines the propagation of timestamps from the ground state
      * into the isolated write set with both insert() and remove() operations.
@@ -78,6 +75,7 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_writeSetIsolation() throws IOException {
         
         final byte[] k3 = i2k(3);
@@ -176,15 +174,15 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
             assertTrue(itr.hasNext());
             ITuple tuple;
             tuple = itr.next();
-            assertEquals(k3,tuple.getKey());
-            assertEquals(v3a,tuple.getValue());
+            assertArrayEquals(k3,tuple.getKey());
+            assertArrayEquals(v3a,tuple.getValue());
             assertFalse(tuple.isDeletedVersion());
             assertEquals(t1,tuple.getVersionTimestamp());
             
             // k7 (deleted)
             assertTrue(itr.hasNext());
             tuple = itr.next();
-            assertEquals(k7,tuple.getKey());
+            assertArrayEquals(k7,tuple.getKey());
             assertTrue(tuple.isDeletedVersion());
             assertEquals(t2,tuple.getVersionTimestamp());
         }
@@ -192,17 +190,17 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
         /*
          * Write on the isolated view under a new key (k5).
          */
-        assertEquals(null,view.insert(k5, v5a));
-        assertEquals(v5a,view.lookup(k5));// in view
-        assertEquals(v5a,writeSet.lookup(k5)); // on write set.
+        assertArrayEquals(null,view.insert(k5, v5a));
+        assertArrayEquals(v5a,view.lookup(k5));// in view
+        assertArrayEquals(v5a,writeSet.lookup(k5)); // on write set.
         assertFalse(groundState.contains(k5)); // not on ground state.
         {
             /*
              * Verify the written entry.
              */
             ITuple tuple = view.rangeIterator(k5, BytesUtil.successor(k5)).next();
-            assertEquals(k5,tuple.getKey());
-            assertEquals(v5a,tuple.getValue());
+            assertArrayEquals(k5,tuple.getKey());
+            assertArrayEquals(v5a,tuple.getValue());
             assertFalse(tuple.isDeletedVersion());
             assertEquals(startTime,tuple.getVersionTimestamp());
         }
@@ -210,17 +208,17 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
         /*
          * Write on the isolated view under an existing key (k3).
          */
-        assertEquals(v3a,view.insert(k3, v3b));
-        assertEquals(v3b,view.lookup(k3));// in view
-        assertEquals(v3b,writeSet.lookup(k3)); // on write set.
-        assertEquals(v3a,groundState.lookup(k3)); // unchanged on groundState.
+        assertArrayEquals(v3a,view.insert(k3, v3b));
+        assertArrayEquals(v3b,view.lookup(k3));// in view
+        assertArrayEquals(v3b,writeSet.lookup(k3)); // on write set.
+        assertArrayEquals(v3a,groundState.lookup(k3)); // unchanged on groundState.
         {
             /*
              * Verify the written entry.
              */
             ITuple tuple = view.rangeIterator(k3, BytesUtil.successor(k3)).next();
-            assertEquals(k3,tuple.getKey());
-            assertEquals(v3b,tuple.getValue());
+            assertArrayEquals(k3,tuple.getKey());
+            assertArrayEquals(v3b,tuple.getValue());
             assertFalse(tuple.isDeletedVersion());
             assertEquals(t1,tuple.getVersionTimestamp()); // note: timestamp is copied from groundState!
         }
@@ -228,17 +226,17 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
         /*
          * Write on the isolated view under an existing key with a deleted entry (k7).
          */
-        assertEquals(null,view.insert(k7, v7a));
-        assertEquals(v7a,view.lookup(k7));// in view
-        assertEquals(v7a,writeSet.lookup(k7)); // on write set.
-        assertEquals(null,groundState.lookup(k7)); // unchanged on groundState.
+        assertArrayEquals(null,view.insert(k7, v7a));
+        assertArrayEquals(v7a,view.lookup(k7));// in view
+        assertArrayEquals(v7a,writeSet.lookup(k7)); // on write set.
+        assertArrayEquals(null,groundState.lookup(k7)); // unchanged on groundState.
         {
             /*
              * Verify the written entry.
              */
             ITuple tuple = view.rangeIterator(k7, BytesUtil.successor(k7)).next();
-            assertEquals(k7,tuple.getKey());
-            assertEquals(v7a,tuple.getValue());
+            assertArrayEquals(k7,tuple.getKey());
+            assertArrayEquals(v7a,tuple.getValue());
             assertFalse(tuple.isDeletedVersion());
             assertEquals(t2,tuple.getVersionTimestamp()); // note: timestamp is copied from groundState!
         }
@@ -246,17 +244,17 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
         /*
          * Verify re-write of k7 updates the value but not the timestamp.
          */
-        assertEquals(v7a,view.insert(k7, v7b));
-        assertEquals(v7b,view.lookup(k7));// in view
-        assertEquals(v7b,writeSet.lookup(k7)); // on write set.
-        assertEquals(null,groundState.lookup(k7)); // unchanged on groundState.
+        assertArrayEquals(v7a,view.insert(k7, v7b));
+        assertArrayEquals(v7b,view.lookup(k7));// in view
+        assertArrayEquals(v7b,writeSet.lookup(k7)); // on write set.
+        assertArrayEquals(null,groundState.lookup(k7)); // unchanged on groundState.
         {
             /*
              * Verify the written entry.
              */
             ITuple tuple = view.rangeIterator(k7, BytesUtil.successor(k7)).next();
-            assertEquals(k7,tuple.getKey());
-            assertEquals(v7b,tuple.getValue());
+            assertArrayEquals(k7,tuple.getKey());
+            assertArrayEquals(v7b,tuple.getValue());
             assertFalse(tuple.isDeletedVersion());
             assertEquals(t2,tuple.getVersionTimestamp()); // note: timestamp unchanged from groundState!
         
@@ -289,6 +287,7 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
      * 
      * @todo verify commit
      */
+    @Test
     public void test_validate() {
 
 //        fail("write test");
@@ -301,6 +300,7 @@ public class TestIsolatedFusedView extends AbstractBTreeTestCase {
      * 
      * @todo write mergeDown tests.
      */
+    @Test
     public void test_mergeDown() {
         
 //        fail("write test");

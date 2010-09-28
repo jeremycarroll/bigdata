@@ -28,10 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.relation.rule;
 
-import junit.framework.TestCase2;
-
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.relation.rule.Var;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link Var}.
@@ -39,7 +39,7 @@ import com.bigdata.relation.rule.Var;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestVar extends TestCase2 {
+public class TestVar extends Assert {
 
     /**
      * 
@@ -48,17 +48,9 @@ public class TestVar extends TestCase2 {
     }
 
     /**
-     * @param name
-     */
-    public TestVar(String name) {
-
-        super(name);
-        
-    }
-
-    /**
      * Test the singleton factory for {@link Var}s.
      */
+    @Test
     public void test_variableSingletonFactory() {
         
         final Var u = Var.var("u");
@@ -75,6 +67,7 @@ public class TestVar extends TestCase2 {
         
     }
 
+    @Test
     public void test_variableSingletonDeserialization() {
         
         final Var expected = Var.var("u");

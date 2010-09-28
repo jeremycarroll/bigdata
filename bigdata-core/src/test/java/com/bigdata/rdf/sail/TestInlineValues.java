@@ -69,13 +69,6 @@ public class TestInlineValues extends ProxyBigdataSailTestCase {
     public TestInlineValues() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestInlineValues(String arg0) {
-        super(arg0);
-    }
-
     public void testInlineValuesLT() throws Exception {
 
         final BigdataSail sail = getSail();

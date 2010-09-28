@@ -31,27 +31,19 @@ import java.io.IOException;
 import java.util.Properties;
 
 import com.bigdata.DataFinder;
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
 
 /**
  * Test case for helper class to parse generated queries.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class TestQueryReader extends TestCase2 {
+public class TestQueryReader extends Assert {
 
     /**
      * 
      */
     public TestQueryReader() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestQueryReader(String arg0) {
-        super(arg0);
     }
 
     public void test_queryParser() throws IOException {

@@ -75,6 +75,11 @@ import com.bigdata.rdf.spo.SPOComparator;
 import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.striterator.ChunkedArrayIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test of the statement identifier semantics.
@@ -82,25 +87,26 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestStatementIdentifiers() {
+    public TestStatementIdentifiers(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestStatementIdentifiers(String name) {
-        super(name);
-    }
-    
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
+
     /**
      * Some validation of the logic for assigning statement identifiers to
      * explicit statements.
      */
+    @Test
     public void test_statementIdentifiers() {
 
         final Properties properties = super.getProperties();
@@ -404,6 +410,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
      * using the statement identifier for (a) and then retracts (a) and verifies
      * that (b) is also retracted.
      */
+    @Test
     public void test_retractionOfStatementsAboutStatements() {
         
         final Properties properties = super.getProperties();
@@ -521,6 +528,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
      * statement (c) about statement (b) and then retracts (a) and verifies that
      * both (b) and (c) are also retracted.
      */
+    @Test
     public void test_retractionOfStatementsAboutStatements2() {
         
         final Properties properties = super.getProperties();
@@ -718,6 +726,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
     /**
      * Tests the correct rejection of a statement about itself.
      */
+    @Test
     public void test_correctRejection_cycles01() {
         
         AbstractTripleStore store = getStore();
@@ -780,6 +789,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
     /**
      * Tests the correct rejection of cycles within statements about statements.
      */
+    @Test
     public void test_correctRejection_cycles02() {
         
         AbstractTripleStore store = getStore();
@@ -845,6 +855,7 @@ public class TestStatementIdentifiers extends AbstractTripleStoreTestCase {
      * Tests the correct rejection when the same blank node is used in the
      * context position of more than one statement.
      */
+    @Test
     public void test_correctRejection_unificationError() {
         
         AbstractTripleStore store = getStore();

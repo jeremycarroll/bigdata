@@ -32,10 +32,6 @@ public class TestDistributedTransactionServiceRemote
 {
     public TestDistributedTransactionServiceRemote() { }
 
-    public TestDistributedTransactionServiceRemote(String arg0) {
-        super(arg0);
-    }
-
     public Properties getProperties() {
         final Properties properties = new Properties(super.getProperties());
         properties.setProperty

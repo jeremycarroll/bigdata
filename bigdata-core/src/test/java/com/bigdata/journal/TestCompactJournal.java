@@ -38,6 +38,11 @@ import com.bigdata.btree.AbstractBTreeTestCase;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.KV;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link Journal#compact(java.io.File)}.
@@ -45,20 +50,22 @@ import com.bigdata.btree.keys.KV;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestCompactJournal extends ProxyTestCase<Journal> {
+
+    private static final String TESTNAME = TestCompactJournal.class.getName();
 
     /**
      * 
      */
-    public TestCompactJournal() {
+    public TestCompactJournal(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestCompactJournal(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
     /**
      * Verifies exception if there are no commits on the journal (the
@@ -69,10 +76,11 @@ public class TestCompactJournal extends ProxyTestCase<Journal> {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_emptyJournal() throws IOException, InterruptedException,
             ExecutionException {
 
-        final File out = File.createTempFile(getName(), Options.JNL);
+        final File out = File.createTempFile(TESTNAME, Options.JNL);
 
         out.deleteOnExit();
         
@@ -115,10 +123,11 @@ public class TestCompactJournal extends ProxyTestCase<Journal> {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_journal_oneIndexNoData() throws IOException,
             InterruptedException, ExecutionException {
 
-        final File out = File.createTempFile(getName(), Options.JNL);
+        final File out = File.createTempFile(TESTNAME, Options.JNL);
 
         out.deleteOnExit();
 
@@ -169,10 +178,11 @@ public class TestCompactJournal extends ProxyTestCase<Journal> {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_journal_oneIndexRandomData() throws IOException,
             InterruptedException, ExecutionException {
 
-        final File out = File.createTempFile(getName(), Options.JNL);
+        final File out = File.createTempFile(TESTNAME, Options.JNL);
 
         out.deleteOnExit();
 
@@ -227,10 +237,11 @@ public class TestCompactJournal extends ProxyTestCase<Journal> {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_journal_manyIndicesRandomData() throws IOException,
             InterruptedException, ExecutionException {
 
-        final File out = File.createTempFile(getName(), Options.JNL);
+        final File out = File.createTempFile(TESTNAME, Options.JNL);
 
         out.deleteOnExit();
 

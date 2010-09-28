@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.rdf.lexicon;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites into increasing dependency order.
@@ -33,61 +33,38 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        TestComparators.class,
+
+        TestSerialization.class,
+
+        TestTermIdEncoder.class,
+
+        TestTerm2IdTupleSerializer.class,
+
+        TestId2TermTupleSerializer.class,
+
+        // basic unit tests for adding terms to the lexicon.
+        TestAddTerms.class,
+
+        // test suite for the vocabulary models and their persistence.
+        TestVocabulary.class,
+
+        // test suite for the completion scan (prefix match for literals).
+        TestCompletionScan.class,
+
+        // test suite for the full-text indexer integration.
+        TestFullTextIndex.class,
+
+        // test suite for inlining
+        TestInlining.class
+      } )
+public class TestAll {
 
     /**
      * 
      */
     public TestAll() {
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
-
-        final TestSuite suite = new TestSuite("lexicon");
-
-        /*
-         * Non-proxy tests.
-         */
-        
-        suite.addTestSuite(TestComparators.class);
-
-        suite.addTestSuite(TestSerialization.class);
-
-        suite.addTestSuite(TestTermIdEncoder.class);
-        
-        suite.addTestSuite(TestTerm2IdTupleSerializer.class);
-
-        suite.addTestSuite(TestId2TermTupleSerializer.class);
-
-        // basic unit tests for adding terms to the lexicon.
-        suite.addTestSuite(TestAddTerms.class);
-        
-        // test suite for the vocabulary models and their persistence.
-        suite.addTestSuite(TestVocabulary.class);
-
-        // test suite for the completion scan (prefix match for literals).
-        suite.addTestSuite(TestCompletionScan.class);
-        
-        // test suite for the full-text indexer integration.
-        suite.addTestSuite(TestFullTextIndex.class);
-
-        // test suite for inlining
-        suite.addTestSuite(TestInlining.class);
-
-        return suite;
-        
-    }
-    
 }

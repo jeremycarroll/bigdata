@@ -35,9 +35,16 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
 import com.bigdata.rdf.model.StatementEnum;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
 import com.bigdata.rdf.store.IRawTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link StatementBuffer}.
@@ -51,21 +58,22 @@ import com.bigdata.rdf.store.IRawTripleStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestStatementBuffer extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestStatementBuffer() {
+    public TestStatementBuffer(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestStatementBuffer(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
+    @Test
     public void test_ctor() {
         
         final int capacity = 27;
@@ -98,6 +106,7 @@ public class TestStatementBuffer extends AbstractTripleStoreTestCase {
      * Test verifies detection of duplicate terms and their automatic
      * replacement with a canonicalizing term.
      */
+    @Test
     public void test_handleStatement_distinctTerm() {
 
         final int capacity = 5;

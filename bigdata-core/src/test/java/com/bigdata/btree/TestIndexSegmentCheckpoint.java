@@ -32,12 +32,11 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.util.UUID;
-
-import junit.framework.TestCase;
-
 import com.bigdata.io.IReopenChannel;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.WormAddressManager;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link IndexSegmentCheckpoint}.
@@ -45,20 +44,13 @@ import com.bigdata.rawstore.WormAddressManager;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestIndexSegmentCheckpoint extends TestCase {
+public class TestIndexSegmentCheckpoint extends Assert {
 
     /**
      * 
      */
     public TestIndexSegmentCheckpoint() {
         super();
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestIndexSegmentCheckpoint(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -69,6 +61,7 @@ public class TestIndexSegmentCheckpoint extends TestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_write_read01() throws IOException {
 
         /*
@@ -172,7 +165,7 @@ public class TestIndexSegmentCheckpoint extends TestCase {
                 commitTime//
                 );
         
-            System.err.println("Checkpoint: "+checkpoint);
+//             System.err.println("Checkpoint: "+checkpoint);
             
         }
         
@@ -183,7 +176,7 @@ public class TestIndexSegmentCheckpoint extends TestCase {
                 addrBloom, addrFirstLeaf, addrLastLeaf, length, compactingMerge,
                 segmentUUID, commitTime);
         
-        System.err.println("Expected: "+expected);
+//         System.err.println("Expected: "+expected);
         
         File tmp = File.createTempFile("test", "ndx");
         
@@ -218,7 +211,7 @@ public class TestIndexSegmentCheckpoint extends TestCase {
             // read back from the file.
             final IndexSegmentCheckpoint actual = new IndexSegmentCheckpoint(raf);
 
-            System.err.println("Actual: "+actual);
+//             System.err.println("Actual: "+actual);
 
             assertEquals("offsetBits",offsetBits,actual.offsetBits);
             

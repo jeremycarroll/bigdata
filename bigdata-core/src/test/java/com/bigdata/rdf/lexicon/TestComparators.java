@@ -29,7 +29,6 @@ package com.bigdata.rdf.lexicon;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import junit.framework.TestCase2;
 import com.bigdata.io.BytesUtil;
 import com.bigdata.io.BytesUtil.UnsignedByteArrayComparator;
 import com.bigdata.btree.keys.KeyBuilder;
@@ -40,12 +39,14 @@ import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.BigdataValueFactoryImpl;
 import com.bigdata.rdf.model.TermIVComparator;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestComparators extends TestCase2 {
+public class TestComparators extends Assert {
 
     /**
      * 
@@ -53,13 +54,7 @@ public class TestComparators extends TestCase2 {
     public TestComparators() {
     }
 
-    /**
-     * @param name
-     */
-    public TestComparators(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_termIdComparator() {
 
         final IV lmin = new TermId(VTE.URI, Long.MIN_VALUE);
@@ -69,7 +64,7 @@ public class TestComparators extends TestCase2 {
         final IV lmax = new TermId(VTE.URI, Long.MAX_VALUE);
 
         final BigdataValueFactory f = BigdataValueFactoryImpl
-                .getInstance(getName()/*namespace*/);
+                .getInstance(this.getClass().getName()/*namespace*/);
 
         final BigdataValue vmin = f.createLiteral("a"); vmin.setIV( lmin);
         final BigdataValue vm1  = f.createLiteral("b"); vm1 .setIV( lm1 );

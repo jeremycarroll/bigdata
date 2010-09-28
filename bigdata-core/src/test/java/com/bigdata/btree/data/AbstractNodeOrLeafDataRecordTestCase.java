@@ -34,10 +34,11 @@ import com.bigdata.btree.raba.ReadOnlyValuesRaba;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
 import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.io.FixedByteArrayBuffer;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 abstract public class AbstractNodeOrLeafDataRecordTestCase extends
         AbstractBTreeTestCase {
@@ -46,13 +47,6 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
      * 
      */
     public AbstractNodeOrLeafDataRecordTestCase() {
-    }
-
-    /**
-     * @param name
-     */
-    public AbstractNodeOrLeafDataRecordTestCase(String name) {
-        super(name);
     }
 
 //    protected IRabaCoder keysCoder = null;
@@ -67,6 +61,7 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
      * De-serialization stress test conducted for a variety of and branching
      * factors.
      */
+    @Test
     public void testStress() {
      
         final int ntrials = 10;
@@ -109,16 +104,16 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
 
             final boolean versionTimestamps = r.nextBoolean();
 
-            System.err.println("Trial "
-                    + trial
-                    + " of "
-                    + ntrials
-                    + " : testing "
-                    + nnodes
-                    + " random nodes:  branchingFactor="
-                    + branchingFactor
-                    + (mayGenerateLeaves() ? ", deleteMarkers=" + deleteMarkers
-                            + ", versionTimestamps=" + versionTimestamps : ""));
+//             System.err.println("Trial "
+//                     + trial
+//                     + " of "
+//                     + ntrials
+//                     + " : testing "
+//                     + nnodes
+//                     + " random nodes:  branchingFactor="
+//                     + branchingFactor
+//                     + (mayGenerateLeaves() ? ", deleteMarkers=" + deleteMarkers
+//                             + ", versionTimestamps=" + versionTimestamps : ""));
 
             final DataOutputBuffer buf = new DataOutputBuffer();
             
@@ -135,6 +130,9 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
         
     }
 
+    @Before
+    public void setup() {
+    }
     /**
      * 
      * @param expected
@@ -198,7 +196,7 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
                         .encode((ILeafData) expected, out);
 
                 // verify same encoded data for the slice.
-                assertEquals(originalData.toByteArray(), slice.toByteArray());
+                assertArrayEquals(originalData.toByteArray(), slice.toByteArray());
 
             }
 
@@ -216,7 +214,7 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
                         tmp, off, originalData.len());
 
                 // verify same slice.
-                assertEquals(originalData.toByteArray(), slice.toByteArray());
+                assertArrayEquals(originalData.toByteArray(), slice.toByteArray());
 
                 // decode the slice.
                 final ILeafData actual = ((IAbstractNodeDataCoder<ILeafData>) coder)
@@ -272,7 +270,7 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
                         .encode((INodeData) expected, out);
 
                 // verify same encoded data for the slice.
-                assertEquals(originalData.toByteArray(), slice.toByteArray());
+                assertArrayEquals(originalData.toByteArray(), slice.toByteArray());
 
             }
             
@@ -290,7 +288,7 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
                         tmp, off, originalData.len());
 
                 // verify same slice.
-                assertEquals(originalData.toByteArray(), slice.toByteArray());
+                assertArrayEquals(originalData.toByteArray(), slice.toByteArray());
 
                 // decode the slice.
                 final INodeData actual = ((IAbstractNodeDataCoder<INodeData>) coder)
@@ -489,6 +487,7 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
     /**
      * Verify methods that recognize a node vs a leaf based on a byte.
      */
+    @Test
     public void test_nodeOrLeafFlag() {
 
         // isLeaf()
@@ -644,7 +643,6 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
 //     * probability distribution described in the constructor call.
 //     * 
 //     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-//     * @version $Id$
 //     */
 //    static class Op {
 //        
@@ -780,7 +778,6 @@ abstract public class AbstractNodeOrLeafDataRecordTestCase extends
 //     * Tests of the {@link Op} test helper class.
 //     * 
 //     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-//     * @version $Id$
 //     */
 //    public static class TestOp extends TestCase {
 //

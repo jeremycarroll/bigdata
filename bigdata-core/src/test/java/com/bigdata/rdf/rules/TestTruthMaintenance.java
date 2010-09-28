@@ -56,15 +56,22 @@ import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOComparator;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.DataLoader;
 import com.bigdata.rdf.store.TempTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
 import com.bigdata.rdf.store.DataLoader.ClosureEnum;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.striterator.ChunkedArrayIterator;
 import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link TruthMaintenance}.
@@ -75,23 +82,21 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * @todo run for both full and fast closure programs.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
 
     /**
      * 
      */
-    public TestTruthMaintenance() {
-        super();
+    public TestTruthMaintenance(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestTruthMaintenance(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     final private Random r = new Random();
 
@@ -99,6 +104,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      * Test for
      * {@link TruthMaintenance#applyExistingStatements(AbstractTripleStore, AbstractTripleStore, IElementFilter filter)}.
      */
+    @Test
     public void test_filter_01() {
 
         final AbstractTripleStore store = getStore();
@@ -230,6 +236,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      * asserted and their closure is computed and aspects of that closure are
      * verified (this is based on rdfs11).
      */
+    @Test
     public void test_assertAll_01() {
         
         final AbstractTripleStore store = getStore();
@@ -305,6 +312,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      *       focusStore). This test could actually be done in
      *       {@link TestJustifications}.
      */
+    @Test
     public void test_retractAll_01() {
         
         final AbstractTripleStore store = getStore();
@@ -446,6 +454,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      * explicit statement and then verify that the closure was updated such that
      * the statement was downgraded to an inference.
      */
+    @Test
     public void test_downgradeExplicitToInference() {
         
         final AbstractTripleStore store = getStore();
@@ -595,6 +604,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      * <p>
      * Delete a and verify that c is NOT gone since it is an explicit statement.
      */
+    @Test
     public void test_retractWhenStatementSupportsExplicitStatement() {
      
         URI user = new URIImpl("http://www.bigdata.com/user");
@@ -707,6 +717,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      * not the same. Too many inferences were deleted from the first store
      * during TM.
      */
+    @Test
     public void test_closurecorrectness() {
         
         final URI a = new URIImpl("http://www.bigdata.com/a");
@@ -819,6 +830,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
     /**
      * This test demonstrates an infinite loop in TM arising from owl:sameAs.
      */
+    @Test
     public void test_infiniteloop() {
      
 //        if(true) fail("re-enable this test");
@@ -915,6 +927,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      * 
      * @todo use data files that we can bundle with the distribution.
      */
+    @Test
     public void test_stress() {
 
 //        fail("enable test");
@@ -1009,7 +1022,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
             
         } catch(Exception ex) {
             
-            fail("Not expecting: "+ex, ex);
+            fail("Not expecting: " + ex);
             
         } finally {
             

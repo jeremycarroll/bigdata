@@ -27,10 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.store;
 
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-import junit.framework.TestCase2;
-import junit.framework.TestSuite;
+import com.bigdata.test.Assert;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test that are run for each {@link ITripleStore} implementation.
@@ -38,72 +38,56 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestTripleStoreBasics extends TestCase2 {
-
-    /**
-     * Aggregates the test suites into something approximating increasing
-     * dependency. This is designed to run as a <em>proxy test suite</em> in
-     * which all tests are run using a common configuration and a delegation
-     * mechanism. You MUST add the returned {@link Test} into a properly
-     * configured {@link ProxyTestSuite}.
-     * 
-     * @see ProxyTestSuite
-     */
-    public static Test suite() {
-
-        final TestSuite suite = new TestSuite("Triple store basics");
-
+@RunWith(Suite.class)
+@SuiteClasses( {
         /*
          * Bootstrap test suites.
          */
-        
+
         // make sure that the db can find the relations and they their container
-        suite.addTestSuite(TestRelationLocator.class);
+        TestRelationLocator.class,
 
         // test suite for the LexiconRelation.
-        suite.addTest(com.bigdata.rdf.lexicon.TestAll.suite());
+        com.bigdata.rdf.lexicon.TestAll.class,
 
         // test suite for the SPORelation.
-        suite.addTest(com.bigdata.rdf.spo.TestAll.suite());
+        com.bigdata.rdf.spo.TestAll.class,
 
         /*
          * Tests at the RDF Statement level, requiring use of both the
          * LexiconRelation and the SPORelation.
          */
-        
+
         // test adding terms and statements.
-        suite.addTestSuite(TestTripleStore.class);
+        TestTripleStore.class,
 
         // test the ISPO#isModified() API (low-level API).
-        suite.addTestSuite(TestIsModified.class);
+        TestIsModified.class,
 
         // test adding terms and statements is restart safe.
-        suite.addTestSuite(TestRestartSafe.class);
+        TestRestartSafe.class,
 
         // a stress test based on an issue observed for centos.
-        suite.addTestSuite(StressTestCentos.class);
-        
+        StressTestCentos.class,
+
         // somewhat dated test of sustained insert rate on synthetic data.
-        suite.addTestSuite(TestInsertRate.class);
+        TestInsertRate.class,
 
         // test of the statement identifier semantics.
-        suite.addTestSuite(TestStatementIdentifiers.class);
+        TestStatementIdentifiers.class,
 
         // test suite for bulk filter of statements absent/present in the kb.
-        suite.addTestSuite(TestBulkFilter.class);
+        TestBulkFilter.class,
 
         /*
          * test suite for the rio parser and data loading integration, including
          * support for statement identifiers and handling of blank nodes when
          * statement identifiers are NOT enabled.
          */
-        suite.addTest(com.bigdata.rdf.rio.TestAll.suite());
+        com.bigdata.rdf.rio.TestAll.class,
 
         // magic sets support (still under development).
-        suite.addTest(com.bigdata.rdf.magic.TestAll.suite());
-        
-        return suite;
-
-    }
-
+        com.bigdata.rdf.magic.TestAll.class
+        } )
+public class TestTripleStoreBasics extends Assert {
 }

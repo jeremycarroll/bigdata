@@ -29,10 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.service.ndx.pipeline;
 
 import java.util.concurrent.atomic.AtomicInteger;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.keys.KVO;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link DefaultDuplicateRemover}.
@@ -40,7 +39,7 @@ import com.bigdata.btree.keys.KVO;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestDefaultDuplicateRemover extends TestCase2 {
+public class TestDefaultDuplicateRemover extends Assert {
 
     /**
      * 
@@ -49,15 +48,9 @@ public class TestDefaultDuplicateRemover extends TestCase2 {
     }
 
     /**
-     * @param arg0
-     */
-    public TestDefaultDuplicateRemover(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test of filter which removes identical writes (same key, same value). 
      */
+    @Test
     public void test_filter_keyAndVal() {
 
         final IDuplicateRemover<Object> fixture = new DefaultDuplicateRemover<Object>(
@@ -94,6 +87,7 @@ public class TestDefaultDuplicateRemover extends TestCase2 {
      * Test of filter which removes writes having the same reference (the
      * reference test is used to avoid the key and value comparison).
      */
+    @Test
     public void test_filter_ref() {
 
         final IDuplicateRemover<Object> fixture = new DefaultDuplicateRemover<Object>(
@@ -170,6 +164,7 @@ public class TestDefaultDuplicateRemover extends TestCase2 {
      * duplicate is identified to verify that the linked list is constructed
      * correctly.
      */
+    @Test
     public void test_duplicateList() {
 
         final IDuplicateRemover<Object> fixture = new DefaultDuplicateRemover<Object>(

@@ -41,7 +41,6 @@ import com.bigdata.rdf.lexicon.LexiconKeyOrder;
  * 
  * @deprecated completely superseded by the new {@link IV} lexicon refactor
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public interface ITermIdCodes {
 

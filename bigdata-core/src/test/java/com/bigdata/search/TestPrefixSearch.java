@@ -31,9 +31,15 @@ package com.bigdata.search;
 import java.io.StringReader;
 import java.util.Properties;
 
+import com.bigdata.journal.AbstractIndexManagerTestCase;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.ProxyTestCase;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Unit test for prefix search. Prefix search allows a query "bro" to match
@@ -42,23 +48,22 @@ import com.bigdata.journal.ProxyTestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestPrefixSearch extends ProxyTestCase<IIndexManager> {
 
     /**
      * 
      */
-    public TestPrefixSearch() {
+    public TestPrefixSearch(AbstractIndexManagerTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestPrefixSearch(String name) {
-        
-        super(name);
-        
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup2();
+    };
 
+    @Test
     public void test_prefixSearch() throws InterruptedException {
 
         final Properties properties = getProperties();

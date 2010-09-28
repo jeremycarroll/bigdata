@@ -28,12 +28,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.cache;
 
 import com.bigdata.rawstore.Bytes;
+import org.junit.Before;
 
 /**
  * Some unit tests for the {@link StoreAndAddressLRUCache}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @todo due to its design, it can not correctly report all of the counters
  *       declared by {@link IHardReferenceGlobalLRU} so it is failing various
@@ -48,16 +48,8 @@ public class TestStoreAndAddressLRUCache extends
     public TestStoreAndAddressLRUCache() {
     }
 
-    /**
-     * @param name
-     */
-    public TestStoreAndAddressLRUCache(String name) {
-        super(name);
-    }
-
-    protected void setUp() throws Exception {
-
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
 
         final long maximumBytesInMemory = 10 * Bytes.kilobyte;
 

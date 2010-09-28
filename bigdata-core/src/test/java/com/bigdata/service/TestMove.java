@@ -57,6 +57,7 @@ import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
 //BTM
 import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+import org.junit.Test;
 
 /**
  * Some unit tests for moving an index partition.
@@ -68,10 +69,6 @@ public class TestMove extends AbstractEmbeddedFederationTestCase {
 
     public TestMove() {
         super();
-    }
-
-    public TestMove(String name) {
-        super(name);
     }
 
     /**
@@ -137,6 +134,7 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
      * @throws ExecutionException
      * @throws InterruptedException
      */
+    @Test
     public void test_move() throws IOException, InterruptedException, ExecutionException {
         
         /*

@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.spo;
 
 import java.util.HashMap;
-import junit.framework.TestCase2;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
@@ -38,6 +37,8 @@ import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.relation.rule.Predicate;
 import com.bigdata.relation.rule.Var;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link SPOPredicate}.
@@ -45,7 +46,7 @@ import com.bigdata.relation.rule.Var;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestSPOPredicate extends TestCase2 {
+public class TestSPOPredicate extends Assert {
 
     /**
      * 
@@ -53,13 +54,6 @@ public class TestSPOPredicate extends TestCase2 {
     public TestSPOPredicate() {
     }
 
-    /**
-     * @param name
-     */
-    public TestSPOPredicate(String name) {
-        super(name);
-    }
-    
     final String relation  = "test";
 
     final static Constant<IV> rdfsSubClassOf = new Constant<IV>(
@@ -74,6 +68,7 @@ public class TestSPOPredicate extends TestCase2 {
     final static Constant<IV> rdfsClass = new Constant<IV>(
             new TermId(VTE.URI, 4L));
     
+    @Test
     public void test_ctor() {
 
         {
@@ -135,6 +130,7 @@ public class TestSPOPredicate extends TestCase2 {
     /**
      * Verify equality testing with same impl.
      */
+    @Test
     public void test_equalsSameImpl() {
 
         final Var<IV> u = Var.var("u");
@@ -157,6 +153,7 @@ public class TestSPOPredicate extends TestCase2 {
         
     }
     
+    @Test
     public void test_equalsDifferentImpl() {
         
         final Var<IV> u = Var.var("u");
@@ -182,6 +179,7 @@ public class TestSPOPredicate extends TestCase2 {
      * <code>equals(IPredicate)</code> then {@link Object#equals(Object)} will
      * be invoked instead!
      */
+    @Test
     public void test_hashMapSameImpl() {
 
         final Var<IV> u = Var.var("u");

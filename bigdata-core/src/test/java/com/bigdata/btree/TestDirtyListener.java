@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree;
 
 import com.bigdata.rawstore.IRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link IDirtyListener} protocol.
@@ -45,13 +46,6 @@ public class TestDirtyListener extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestDirtyListener(String name) {
-        super(name);
-    }
-
-    /**
      * Test exercises the various ways in which {@link BTree#fireDirtyEvent()}
      * should and should not be triggered.
      * <p>
@@ -62,6 +56,7 @@ public class TestDirtyListener extends AbstractBTreeTestCase {
      * a btree becomes dirty so that we can make sure that it will partitipate
      * in a commit.
      */
+    @Test
     public void test_dirtyListener1() {
 
         /*

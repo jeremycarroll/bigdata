@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.io;
 
+import com.bigdata.test.Assert;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -34,9 +35,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
 import org.CognitiveWeb.extser.LongPacker;
+import org.junit.Test;
 
 /**
  * Test suite for packing and unpacking unsigned long integers.
@@ -44,20 +44,13 @@ import org.CognitiveWeb.extser.LongPacker;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestLongPacker extends TestCase {
+public class TestLongPacker extends Assert {
 
     /**
      * 
      */
     public TestLongPacker() {
         super();
-    }
-
-    /**
-     * @param name
-     */
-    public TestLongPacker(String name) {
-        super(name);
     }
 
     /**
@@ -70,7 +63,7 @@ public class TestLongPacker extends TestCase {
      * @throws IOException
      *             If there was not enough data.
      * 
-     * @throws junit.framework.AssertionFailedError
+     * @throws AssertionError
      *             If there is too much data.
      */
 
@@ -90,7 +83,7 @@ public class TestLongPacker extends TestCase {
             fail("Expecting: "+IOException.class);
         }
         catch(IOException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
 
     }
@@ -114,6 +107,7 @@ public class TestLongPacker extends TestCase {
         return nbytes;  
     }
     
+    @Test
     public void testNBytes()
     {
        
@@ -152,6 +146,7 @@ public class TestLongPacker extends TestCase {
        
     }
     
+    @Test
     public void testUnpack()
     	throws IOException
     {
@@ -196,6 +191,7 @@ public class TestLongPacker extends TestCase {
         
     }
 
+    @Test
     public void test_getNibbleLength()
     {
 
@@ -276,6 +272,7 @@ public class TestLongPacker extends TestCase {
 
     }
     
+    @Test
     public void testPack()
     	throws IOException
     {
@@ -320,6 +317,7 @@ public class TestLongPacker extends TestCase {
         
     public static final long SIGN_MASK = 1L<<63;
     
+    @Test
     public void testHighBit() {
         assertTrue( "sign bit", ( -1L & SIGN_MASK ) != 0 );
         assertFalse( "sign bit", ( 0L & SIGN_MASK ) != 0 );
@@ -461,6 +459,7 @@ public class TestLongPacker extends TestCase {
      * @throws IOException
      */
 
+    @Test
     public void testStressSequence() throws IOException {
 
         // dense coverage of the first 1M values.
@@ -478,6 +477,7 @@ public class TestLongPacker extends TestCase {
      * @throws IOException
      */
     
+    @Test
     public void testStressRandom() throws IOException {
 
         // test on 1M random long values.
@@ -494,6 +494,7 @@ public class TestLongPacker extends TestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void testStressRandomNonNegativeLeadingZeros() throws IOException {
 
         // test on 1M random long values.
@@ -570,13 +571,13 @@ public class TestLongPacker extends TestCase {
             
         }
 
-        System.err.println( "\nWrote "+nwritten+" non-negative long values." );
-        System.err.println( "minv="+minv+", maxv="+maxv );
-        System.err.println( "#packed bytes       ="+packlen );
-        System.err.println( "#bytes if not packed="+(nwritten * 8));
-        long nsaved = ( nwritten * 8 ) - packlen;
-        System.err.println ("#bytes saved        ="+nsaved);
-        System.err.println( "%saved by packing   ="+nsaved/(nwritten*8f)*100+"%");
+//         System.err.println( "\nWrote "+nwritten+" non-negative long values." );
+//         System.err.println( "minv="+minv+", maxv="+maxv );
+//         System.err.println( "#packed bytes       ="+packlen );
+//         System.err.println( "#bytes if not packed="+(nwritten * 8));
+//         long nsaved = ( nwritten * 8 ) - packlen;
+//         System.err.println ("#bytes saved        ="+nsaved);
+//         System.err.println( "%saved by packing   ="+nsaved/(nwritten*8f)*100+"%");
         
     }
     
@@ -592,6 +593,7 @@ public class TestLongPacker extends TestCase {
      * This test packs the data using the {@link LongPacker} and unpacks it
      * using a {@link DataInputBuffer}.
      */
+    @Test
     public void test_compatiblity_LongPacker_DataInputBuffer()
             throws IOException {
 
@@ -655,6 +657,7 @@ public class TestLongPacker extends TestCase {
      * This test packs the data using a {@link DataOutputBuffer} and unpacks it
      * using the {@link LongPacker}.
      */
+    @Test
     public void test_compatiblity_DataOutputBuffer_LongPacker()
             throws IOException {
 

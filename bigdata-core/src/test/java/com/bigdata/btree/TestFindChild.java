@@ -29,6 +29,7 @@ package com.bigdata.btree;
 
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.MutableKeyBuffer;
+import org.junit.Test;
 
 
 /**
@@ -47,16 +48,10 @@ public class TestFindChild extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestFindChild(String name) {
-        super(name);
-    }
-
-    /**
      * A test of {@link Node#findChild(int searchKeyOffset, byte[] searchKey)}
      * with zero offsets.
      */
+    @Test
     public void test_node_findChild01() {
      
         final int m = 4;

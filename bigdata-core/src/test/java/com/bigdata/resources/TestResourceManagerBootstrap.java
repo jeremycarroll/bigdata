@@ -56,6 +56,8 @@ import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.AbstractTransactionService;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
+import org.junit.After;
+import org.junit.Test;
 
 /**
  * Bootstrap test suite for the {@link ResourceManager}.
@@ -71,18 +73,12 @@ public class TestResourceManagerBootstrap extends AbstractResourceManagerBootstr
     public TestResourceManagerBootstrap() {
     }
 
-    /**
-     * @param name
-     */
-    public TestResourceManagerBootstrap(String name) {
-        super(name);
-    }
-
     private final boolean bufferNodes = true;
     
     /**
      * Removes the per-test data directory.
      */
+    @After
     public void tearDown() throws Exception {
         
         if (dataDir != null) {
@@ -90,8 +86,6 @@ public class TestResourceManagerBootstrap extends AbstractResourceManagerBootstr
             recursiveDelete(dataDir);
             
         }
-        
-        super.tearDown();
         
     }
     
@@ -134,6 +128,7 @@ public class TestResourceManagerBootstrap extends AbstractResourceManagerBootstr
      * 
      * @throws IOException
      */
+    @Test
     public void test_create() throws IOException {
 
         /*
@@ -199,6 +194,7 @@ public class TestResourceManagerBootstrap extends AbstractResourceManagerBootstr
      * 
      * @throws IOException
      */
+    @Test
     public void test_restartWithTwoJournals() throws IOException {
         
         // create the data directory.
@@ -377,6 +373,7 @@ public class TestResourceManagerBootstrap extends AbstractResourceManagerBootstr
      * 
      * @throws IOException
      */
+    @Test
     public void test_restartWithIndexSegments() throws Exception {
         
         // create the data directory.
@@ -525,6 +522,7 @@ public class TestResourceManagerBootstrap extends AbstractResourceManagerBootstr
      * 
      * @throws IOException
      */
+    @Test
     public void test_openIndexPartition() throws Exception {
         
         // create the data directory.

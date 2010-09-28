@@ -33,6 +33,7 @@ import java.util.Properties;
 import com.bigdata.journal.AbstractIndexManagerTestCase;
 import com.bigdata.journal.ProxyTestCase;
 import com.bigdata.resources.OverflowManager;
+import org.junit.Before;
 
 /**
  * Delegate for {@link ProxyTestCase}s for services running against an
@@ -49,13 +50,6 @@ public class TestEDS extends
      */
     public TestEDS() {
         super();
-    }
-
-    /**
-     * @param name
-     */
-    public TestEDS(String name) {
-        super(name);
     }
 
     public Properties getProperties() {
@@ -100,9 +94,10 @@ public class TestEDS extends
      * Data files are placed into a directory named by the test. If the
      * directory exists, then it is removed before the federation is set up.
      */
+    @Override
     public void setUp(ProxyTestCase testCase) throws Exception {
       
-        final String name = testCase.getName();
+        final String name = this.getClass().getName();
         
         assert name != null;
 

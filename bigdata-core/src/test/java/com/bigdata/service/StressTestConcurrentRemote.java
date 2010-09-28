@@ -34,10 +34,6 @@ public class StressTestConcurrentRemote
 {
     public StressTestConcurrentRemote() { }
 
-    public StressTestConcurrentRemote(String arg0) {
-        super(arg0);
-    }
-
     public Properties getProperties() {
         final Properties properties = new Properties(super.getProperties());
         properties.setProperty

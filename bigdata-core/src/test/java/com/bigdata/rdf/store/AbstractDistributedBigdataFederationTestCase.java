@@ -27,10 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.store;
 
-import junit.framework.TestCase2;
-
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.util.JiniServicesHelper;
+import com.bigdata.test.Assert;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * An abstract test harness that sets up (and tears down) the metadata and data
@@ -43,21 +44,18 @@ import com.bigdata.service.jini.util.JiniServicesHelper;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class AbstractDistributedBigdataFederationTestCase extends TestCase2 {
+abstract public class AbstractDistributedBigdataFederationTestCase extends Assert {
 
     public AbstractDistributedBigdataFederationTestCase() {
         super();
     }
     
-    public AbstractDistributedBigdataFederationTestCase(String name) {
-        super(name);
-    }
-
     private JiniServicesHelper helper = new JiniServicesHelper();
     
     protected JiniClient client;
     
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         
         // start services.
         helper.start();
@@ -67,7 +65,8 @@ abstract public class AbstractDistributedBigdataFederationTestCase extends TestC
         
     }
 
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         
         helper.destroy();
         

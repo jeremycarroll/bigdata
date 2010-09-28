@@ -31,8 +31,8 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
-
-import junit.framework.TestCase;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link NameAndExtensionFilter}.
@@ -40,21 +40,13 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestNameAndExtensionFilter extends TestCase
-{
+public class TestNameAndExtensionFilter extends Assert {
 
     /**
      * 
      */
     public TestNameAndExtensionFilter() {
         super();
-    }
-
-    /**
-     * @param name
-     */
-    public TestNameAndExtensionFilter(String name) {
-        super(name);
     }
 
     /**
@@ -130,14 +122,15 @@ public class TestNameAndExtensionFilter extends TestCase
     /**
      * Test verifies that no files are found using a guarenteed unique basename.
      */
+    @Test
     public void test_filter_001() throws IOException
     {
      
-        final File basefile = File.createTempFile(getName(),"-test");        
+        final File basefile = File.createTempFile(getClass().getName(),"-test");
         basefile.deleteOnExit();
         
         final String basename = basefile.toString();
-        System.err.println( "basename="+basename );
+//         System.err.println( "basename="+basename );
         
         NameAndExtensionFilter logFilter = new NameAndExtensionFilter( basename, ".log" );
         
@@ -148,15 +141,16 @@ public class TestNameAndExtensionFilter extends TestCase
     /**
      * Test verifies that N files are found using a guarenteed unique basename.
      */
+    @Test
     public void test_filter_002() throws IOException {
 
         int N = 100;
         
-        final File logBaseFile = File.createTempFile(getName(),"-test");
+        final File logBaseFile = File.createTempFile(getClass().getName(),"-test");
         logBaseFile.deleteOnExit();
         
         final String basename = logBaseFile.toString();
-        System.err.println( "basename="+basename );
+//         System.err.println( "basename="+basename );
         
         NameAndExtensionFilter logFilter = new NameAndExtensionFilter( basename, ".log" );
 

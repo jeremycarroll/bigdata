@@ -37,13 +37,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.keys.KVO;
 import com.bigdata.relation.accesspath.BlockingBuffer;
+import com.bigdata.test.Assert;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.After;
 
 /**
  * Abstract base class for test suites for the {@link AbstractMasterTask} and
@@ -57,20 +55,12 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class AbstractMasterTestCase extends TestCase2 {
+public class AbstractMasterTestCase extends Assert {
 
     /**
      * 
      */
     public AbstractMasterTestCase() {
-       
-    }
-
-    /**
-     * @param arg0
-     */
-    public AbstractMasterTestCase(String arg0) {
-        super(arg0);
        
     }
 
@@ -419,7 +409,8 @@ public class AbstractMasterTestCase extends TestCase2 {
     final ExecutorService executorService = Executors
             .newCachedThreadPool(DaemonThreadFactory.defaultThreadFactory());
 
-    protected void tearDown() {
+    @After
+    public void tearDown() {
 
         executorService.shutdownNow();
 

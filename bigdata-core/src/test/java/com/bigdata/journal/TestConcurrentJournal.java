@@ -42,11 +42,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.bigdata.btree.BTree;
-import com.bigdata.btree.Checkpoint;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
@@ -56,8 +53,11 @@ import com.bigdata.journal.AbstractTask.ResubmitException;
 import com.bigdata.journal.ConcurrencyManager.Options;
 import com.bigdata.service.DataService;
 import com.bigdata.service.ndx.DataServiceTupleIterator;
-import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for the {@link IConcurrencyManager} interface on the
@@ -71,23 +71,25 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  *       operations, from the {@link DataService}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestConcurrentJournal extends ProxyTestCase {
 
-    public TestConcurrentJournal() {
-        super();
+    public TestConcurrentJournal(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
     
-    public TestConcurrentJournal(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
     /**
      * Test ability to create a {@link Journal} and then shut it down (in
      * particular this is testing shutdown of the thread pool on the
      * {@link ConcurrencyManager}).
      */
+    @Test
     public void test_shutdown() {
 
         final Journal journal = new Journal(getProperties());
@@ -104,6 +106,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
         
     }
 
+    @Test
     public void test_shutdownNow() {
         
         final Journal journal = new Journal(getProperties());
@@ -126,6 +129,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_submit_readService_01() throws InterruptedException, ExecutionException {
         
         final Journal journal = new Journal(getProperties());
@@ -187,6 +191,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_submit_writeService_01() throws InterruptedException, ExecutionException {
         
         final Journal journal = new Journal(getProperties());
@@ -255,6 +260,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_submit_txService_readOnly_01() throws InterruptedException, ExecutionException {
         
         final Journal journal = new Journal(getProperties());
@@ -325,6 +331,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_submit_txService_readCommitted_01()
             throws InterruptedException, ExecutionException {
 
@@ -403,6 +410,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_submit_txService_readWrite_01() throws InterruptedException, ExecutionException {
         
         final Journal journal = new Journal(getProperties());
@@ -477,6 +485,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_submit_interrupt01() throws InterruptedException, ExecutionException {
         
         final Properties properties = getProperties();
@@ -560,7 +569,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
 
             } catch (CancellationException ex) {
 
-                System.err.println("Ignoring expected exception: " + ex);
+//                 System.err.println("Ignoring expected exception: " + ex);
 
             }
 
@@ -607,6 +616,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_submit_interrupt02() throws InterruptedException,
             ExecutionException {
 
@@ -907,6 +917,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
      * @throws ExecutionException
      * @throws InterruptedException
      */
+    @Test
     public void test_tasksAreNotThreadSafe() throws InterruptedException, ExecutionException {
         
         final Journal journal = new Journal(getProperties());
@@ -951,7 +962,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
 
                 if (ex.getCause() instanceof ResubmitException) {
 
-                    System.err.println("Ignoring expected exception: " + ex);
+//                     System.err.println("Ignoring expected exception: " + ex);
 
                 } else {
 
@@ -1162,6 +1173,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
      * Test verifies that a write on an index will cause the index to be
      * checkpointed when the task completes.
      */
+    @Test
     public void test_writeServiceCheckpointDirtyIndex()throws Exception {
 
         final Journal journal = new Journal(getProperties());
@@ -1640,6 +1652,7 @@ public class TestConcurrentJournal extends ProxyTestCase {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
+    @Test
     public void test_concurrentReadersAreOk() throws Throwable {
 
         // Note: clone so that we do not modify!!!

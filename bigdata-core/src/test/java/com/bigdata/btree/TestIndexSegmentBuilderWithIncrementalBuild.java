@@ -33,6 +33,9 @@ import java.util.UUID;
 
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * A test of the {@link IndexSegmentBuilder} in which there are some deleted
@@ -52,21 +55,13 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
     public TestIndexSegmentBuilderWithIncrementalBuild() {
     }
 
-    /**
-     * @param name
-     */
-    public TestIndexSegmentBuilderWithIncrementalBuild(String name) {
-        super(name);
-    }
-
     File outFile;
     File tmpDir;
     
+    @Before
     public void setUp() throws Exception {
 
-        super.setUp();
-        
-        outFile = new File(getName() + ".seg");
+        outFile = new File(this.getClass().getName() + ".seg");
 
         if (outFile.exists() && !outFile.delete()) {
 
@@ -78,6 +73,7 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
 
     }
 
+    @After
     public void tearDown() throws Exception {
 
         if (outFile != null && outFile.exists() && !outFile.delete()) {
@@ -86,8 +82,6 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
 
         }
 
-        super.tearDown();
-        
     }
 
     /**
@@ -100,6 +94,7 @@ public class TestIndexSegmentBuilderWithIncrementalBuild extends
      *       (or create an entire test suite for that purpose). Note that
      *       version timestamps are only used for full transactions.
      */
+    @Test
     public void test_deletedEntries() throws Exception {
         
         final long createTime = System.currentTimeMillis();

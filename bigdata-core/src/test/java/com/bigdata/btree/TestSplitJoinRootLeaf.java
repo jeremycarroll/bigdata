@@ -31,6 +31,7 @@ import org.apache.log4j.Level;
 
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.io.SerializerUtil;
+import org.junit.Test;
 
 /**
  * Test split and join of the root leaf (the tree never has more than two
@@ -47,13 +48,6 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
      * 
      */
     public TestSplitJoinRootLeaf() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestSplitJoinRootLeaf(String name) {
-        super(name);
     }
 
     /**
@@ -83,6 +77,7 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
      * @todo Do detailed tests for a Node with a branching factor of 3.
      * @todo Do detailed tests for a Node with a branching factor of 4.
      */
+    @Test
     public void test_splitJoinLeafBranchingFactor3_01() {
         
         BTree btree = getBTree(3);
@@ -149,6 +144,7 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
 
     }
     
+    @Test
     public void test_splitJoinLeafBranchingFactor3_02() {
         
         BTree btree = getBTree(3);
@@ -215,6 +211,7 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
 
     }
     
+    @Test
     public void test_splitJoinLeafBranchingFactor3_03() {
         
         BTree btree = getBTree(3);
@@ -281,6 +278,7 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
 
     }
     
+    @Test
     public void test_splitJoinLeafBranchingFactor3_04() {
         
         BTree btree = getBTree(3);
@@ -356,6 +354,7 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
      * 
      * This test triggers the redistribution of a key from (b) to (a).
      */
+    @Test
     public void test_splitJoinLeafBranchingFactor4_01() {
         
         BTree btree = getBTree(4);
@@ -408,7 +407,7 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
          * will move one key from (b) -> (a) and update the separator key on the
          * parent.
          */
-        assertEquals(v3,btree.remove(TestKeyBuilder.asSortKey(3)));
+        assertArrayEquals(v3,btree.remove(TestKeyBuilder.asSortKey(3)));
         assertTrue("after redistribute b->a", btree.dump(Level.DEBUG,System.err));
         
         assertKeys(new int[]{7},root);
@@ -438,7 +437,7 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
          * the root leaf and that (a) and the root node are deleted.
          */
 
-        assertEquals(v7,btree.remove(TestKeyBuilder.asSortKey(7)));
+        assertArrayEquals(v7,btree.remove(TestKeyBuilder.asSortKey(7)));
         assertTrue("after join", btree.dump(Level.DEBUG,System.err));
         
         assertKeys(new int[]{2,5,9},b);
@@ -458,6 +457,7 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
     /**
      * This test triggers the redistribution of a key from (a) to (b).
      */
+    @Test
     public void test_splitJoinLeafBranchingFactor4_02() {
         
         BTree btree = getBTree(4);
@@ -533,12 +533,12 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
          * b.redistributeKeys(a). The latter will move one key from (a) -> (b)
          * and update the separator key on the parent.
          */
-        assertEquals(v5,btree.remove(TestKeyBuilder.asSortKey(5)));
+        assertArrayEquals(v5,btree.remove(TestKeyBuilder.asSortKey(5)));
         assertKeys(new int[]{7,9},b);
         assertValues(new Object[]{v7,v9},b);
         assertEntryCounts(new int[]{3,2},root);
 
-        assertEquals(v9,btree.remove(TestKeyBuilder.asSortKey(9)));
+        assertArrayEquals(v9,btree.remove(TestKeyBuilder.asSortKey(9)));
         assertTrue("after redistribute a->b",btree.dump(Level.DEBUG,System.err));
         
         assertKeys(new int[]{4},root);
@@ -567,7 +567,7 @@ public class TestSplitJoinRootLeaf extends AbstractBTreeTestCase {
          * postcondition is that (a) has all the remaining keys and has become
          * the root leaf and (b) and the root node are deleted.
          */
-        assertEquals(v3,btree.remove(TestKeyBuilder.asSortKey(3)));
+        assertArrayEquals(v3,btree.remove(TestKeyBuilder.asSortKey(3)));
         assertTrue("after join",btree.dump(Level.DEBUG,System.err));
         
         assertKeys(new int[]{2,4,7},a);

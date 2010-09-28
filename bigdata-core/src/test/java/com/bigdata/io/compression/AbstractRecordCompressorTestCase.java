@@ -32,11 +32,10 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.io.DirectBufferPool;
 import com.bigdata.io.SerializerUtil;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Abstract base class for {@link IRecordCompressor} test suites.
@@ -49,20 +48,13 @@ import com.bigdata.io.SerializerUtil;
  *          testing. This will test the logic that handles cases when we can not
  *          access the backing byte[].
  */
-public abstract class AbstractRecordCompressorTestCase extends TestCase2
+public abstract class AbstractRecordCompressorTestCase extends Assert
         implements IRecordCompressorFactory {
 
     /**
      * 
      */
     public AbstractRecordCompressorTestCase() {
-    }
-
-    /**
-     * @param name
-     */
-    public AbstractRecordCompressorTestCase(String name) {
-        super(name);
     }
 
     /**
@@ -801,6 +793,7 @@ public abstract class AbstractRecordCompressorTestCase extends TestCase2
     /**
      * Test ability to compress and decompress data.
      */
+    @Test
     public void test_recordCompressor01() {
 
         final IRecordCompressor c = getInstance();
@@ -815,6 +808,7 @@ public abstract class AbstractRecordCompressorTestCase extends TestCase2
      * Test ability to compress and decompress data using a de-serialized
      * compression provider.
      */
+    @Test
     public void test_recordCompressor02() {
 
         final IRecordCompressor c = (IRecordCompressor) SerializerUtil
@@ -829,6 +823,7 @@ public abstract class AbstractRecordCompressorTestCase extends TestCase2
     /**
      * Test ability to compress and decompress zero-length data.
      */
+    @Test
     public void test_recordCompressor03() {
 
         final IRecordCompressor c = getInstance();
@@ -842,6 +837,7 @@ public abstract class AbstractRecordCompressorTestCase extends TestCase2
     /**
      * Stress test ability to compress and decompress data.
      */
+    @Test
     public void test_recordCompressor_stressTest() {
 
         final long begin = System.nanoTime();
@@ -878,11 +874,11 @@ public abstract class AbstractRecordCompressorTestCase extends TestCase2
 
         final long elapsed = System.nanoTime() - begin;
         
-        System.err.println("Compressed " + limit + " records totaling "
-                + sumBytes + " bytes into " + sumCompressed + " bytes: ratio="
-                + ((double) sumCompressed / (double) sumBytes) + ", rate="
-                + (sumBytes / (double) TimeUnit.NANOSECONDS.toSeconds(elapsed))
-                + " bytes/sec: " + c);
+//         System.err.println("Compressed " + limit + " records totaling "
+//                 + sumBytes + " bytes into " + sumCompressed + " bytes: ratio="
+//                 + ((double) sumCompressed / (double) sumBytes) + ", rate="
+//                 + (sumBytes / (double) TimeUnit.NANOSECONDS.toSeconds(elapsed))
+//                 + " bytes/sec: " + c);
 
     }
 

@@ -27,31 +27,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.rules;
 
+import com.bigdata.rdf.store.AbstractTestCase;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.rule.IQueryOptions;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Unit tests for {@link IQueryOptions#isDistinct()}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestDistinct extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestDistinct() {
-
+    public TestDistinct(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestDistinct(String name) {
-
-        super(name);
-     
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * @todo write unit tests for "distinct".
@@ -60,6 +63,7 @@ public class TestDistinct extends AbstractRuleTestCase {
      * 
      * @todo Unit test where duplicates are correctly dropped.
      */
+    @Test
     public void test_distinct() {
         
 //        fail("write tests");

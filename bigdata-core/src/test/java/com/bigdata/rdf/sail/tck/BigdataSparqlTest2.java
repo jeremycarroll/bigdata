@@ -55,7 +55,7 @@ public class BigdataSparqlTest2 extends TestCase {
     protected static BigdataSparqlTest getSingleTest(String testURI) throws Exception {
         
         BigdataSparqlTest test = null;
-        TestSuite suite = (TestSuite) BigdataSparqlTest.suite(false);
+        TestSuite suite = (TestSuite) BigdataSparqlSuite.suite(false);
         Enumeration e1 = suite.tests();
         while (e1.hasMoreElements()) {
             suite = (TestSuite) e1.nextElement();

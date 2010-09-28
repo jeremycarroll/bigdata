@@ -6,15 +6,14 @@
  */
 package com.bigdata;
 
-import junit.framework.TestCase;
+import org.junit.Assert;
 
-import java.io.File;
-
-public class TestDataFinder extends TestCase {
+public class TestDataFinder extends Assert {
 
 
     public void testFindsFilesInTestDeployDirectory(){
         String deployResource = "testing/data/datafinder.txt";
-        assertTrue("Didn't find the file in the deployment directory.", DataFinder.defaultFinder().exists( deployResource ));
+        assertTrue("Didn't find the file in the deployment directory.",
+                DataFinder.defaultFinder().exists( deployResource ));
     }
 }

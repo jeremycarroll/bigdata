@@ -30,14 +30,13 @@ package com.bigdata.sparse;
 
 import java.text.Collator;
 import java.util.Properties;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.keys.CollatorEnum;
 import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
+import com.bigdata.test.Assert;
 import com.ibm.icu.text.CollationKey;
+import org.junit.Test;
 
 /**
  * Test suite for round trip of keys as encoded by
@@ -51,18 +50,12 @@ import com.ibm.icu.text.CollationKey;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestKeyEncodeDecode extends TestCase2 {
+public class TestKeyEncodeDecode extends Assert {
 
     public TestKeyEncodeDecode() {
         
     }
     
-    public TestKeyEncodeDecode(String name) {
-        
-        super(name);
-        
-    }
-
     /**
      * Test for primitive data types where we can round trip the primary key
      * value.
@@ -78,6 +71,7 @@ public class TestKeyEncodeDecode extends TestCase2 {
      * FIXME All unit tests in this class should be for all collators (e.g., an
      * abstract base class).
      */
+    @Test
     public void test_primitive_long() {
 
         final IKeyBuilder keyBuilder = KeyBuilder.newUnicodeInstance(); 
@@ -102,6 +96,7 @@ public class TestKeyEncodeDecode extends TestCase2 {
      * Unit test verifies that we can correctly locate the start of the column
      * name and decode the key when using {@link CollatorEnum#ICU}.
      */
+    @Test
     public void test_keyDecode_ICU() {
 
         final Properties props = new Properties();
@@ -128,6 +123,7 @@ public class TestKeyEncodeDecode extends TestCase2 {
      * Unit test verifies that we can correctly locate the start of the column
      * name and decode the key when using {@link CollatorEnum#ASCII}.
      */
+    @Test
     public void test_keyDecode_ASCII() {
 
         final Properties props = new Properties();
@@ -146,6 +142,7 @@ public class TestKeyEncodeDecode extends TestCase2 {
      * Note: The JDK {@link CollationKey} embeds <code>nul</code> bytes in its
      * Unicode sort keys.
      */
+    @Test
     public void test_keyDecode_JDK() {
 
         final Properties props = new Properties();

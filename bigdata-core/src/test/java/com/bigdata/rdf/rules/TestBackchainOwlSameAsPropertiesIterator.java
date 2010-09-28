@@ -39,30 +39,35 @@ import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOAccessPath;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link BackchainOwlSameAsPropertiesIterator}.
  * 
  * @author <a href="mailto:mpersonick@users.sourceforge.net">Mike Personick</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestBackchainOwlSameAsPropertiesIterator extends AbstractInferenceEngineTestCase {
 
     /**
      * 
      */
-    public TestBackchainOwlSameAsPropertiesIterator() {
-        super();
+    public TestBackchainOwlSameAsPropertiesIterator(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestBackchainOwlSameAsPropertiesIterator(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
 //    final TemporaryStore tempStore = new TemporaryStore();
     
@@ -70,6 +75,7 @@ public class TestBackchainOwlSameAsPropertiesIterator extends AbstractInferenceE
      * Test the various access paths for backchaining the property collection
      * normally done through owl:sameAs {2,3}.
      */
+    @Test
     public void test_backchain() 
     {
      

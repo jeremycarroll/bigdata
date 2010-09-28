@@ -54,8 +54,4 @@ public class TestMappedRDFDataLoadMasterRemote
     public TestMappedRDFDataLoadMasterRemote() {
         super(true);
     }
-
-    public TestMappedRDFDataLoadMasterRemote(String name) {
-        super(name, true);
-    }
 }

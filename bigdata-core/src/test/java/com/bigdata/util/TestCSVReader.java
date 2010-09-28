@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.util;
 
+import com.bigdata.test.Assert;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.text.ParseException;
@@ -34,10 +35,8 @@ import java.text.SimpleDateFormat;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.util.CSVReader.Header;
+import org.junit.Test;
 
 /**
  * Test suite for {@link CSVReader}.
@@ -48,7 +47,7 @@ import com.bigdata.util.CSVReader.Header;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestCSVReader extends TestCase2 {
+public class TestCSVReader extends Assert {
 
     /**
      * 
@@ -57,13 +56,7 @@ public class TestCSVReader extends TestCase2 {
         super();
     }
 
-    /**
-     * @param name
-     */
-    public TestCSVReader(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_ctor_correctRejection() throws IOException {
         
         try {
@@ -89,6 +82,7 @@ public class TestCSVReader extends TestCase2 {
      * @throws IOException
      * @throws ParseException
      */
+    @Test
     public void test_read_test_csv() throws IOException, ParseException {
         
         Header[] headers = new Header[] {
@@ -157,6 +151,7 @@ public class TestCSVReader extends TestCase2 {
      * @throws IOException
      * @throws ParseException
      */
+    @Test
     public void test_read_test_no_headers_csv() throws IOException, ParseException {
         
         Header[] headers = new Header[] {

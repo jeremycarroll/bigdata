@@ -33,31 +33,36 @@ import org.openrdf.model.vocabulary.OWL;
 
 import com.bigdata.rdf.rio.IStatementBuffer;
 import com.bigdata.rdf.rio.StatementBuffer;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.Vocabulary;
 import com.bigdata.relation.rule.Rule;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link RuleOwlEquivalentProperty}
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRuleOwlEquivalentProperty extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestRuleOwlEquivalentProperty() {
-        super();
+    public TestRuleOwlEquivalentProperty(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRuleOwlEquivalentProperty(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Test where the data satisifies the rule exactly once.
@@ -67,6 +72,7 @@ public class TestRuleOwlEquivalentProperty extends AbstractRuleTestCase {
      * </pre>
      * @throws Exception 
      */
+    @Test
     public void test_owlEquivalentProperty() throws Exception {
 
         AbstractTripleStore store = getStore();

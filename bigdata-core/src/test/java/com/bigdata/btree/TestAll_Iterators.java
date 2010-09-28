@@ -28,10 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 /**
  * Aggregates the unit tests for the {@link IndexSegment} and its related
  * classes, all of which are in the same package as the {@link BTree}.
@@ -39,44 +38,28 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll_Iterators extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        // test leaf traversal cursors.
+        TestBTreeLeafCursors.class,
+
+        // test suite for B+Tree iterators (vs cursors).
+        TestIterators.class,
+
+        // test cursors for a read-only B+Tree.
+        TestReadOnlyBTreeCursors.class,
+
+        // test cursors for a read-write B+Tree.
+        TestMutableBTreeCursors.class,
+
+        // test stackable tuple filters
+        com.bigdata.btree.filter.TestAll.class,
+
+        // test chunked iterators.
+        TestChunkedIterators.class
+        } )
+public class TestAll_Iterators {
 
     public TestAll_Iterators() {
     }
-
-    public TestAll_Iterators(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
-        
-        final TestSuite suite = new TestSuite("Iterators");
-
-        // test leaf traversal cursors.
-        suite.addTestSuite(TestBTreeLeafCursors.class);
-
-        // test suite for B+Tree iterators (vs cursors).
-        suite.addTestSuite(TestIterators.class);
-        
-        // test cursors for a read-only B+Tree.
-        suite.addTestSuite(TestReadOnlyBTreeCursors.class);
-        
-        // test cursors for a read-write B+Tree.
-        suite.addTestSuite(TestMutableBTreeCursors.class);
-        
-        // test stackable tuple filters
-        suite.addTest(com.bigdata.btree.filter.TestAll.suite());
-        
-        // test chunked iterators.
-        suite.addTestSuite(TestChunkedIterators.class);
-
-        return suite;
-
-    }
-
 }

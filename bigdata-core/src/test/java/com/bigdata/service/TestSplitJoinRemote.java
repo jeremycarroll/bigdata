@@ -41,10 +41,6 @@ public class TestSplitJoinRemote extends TestSplitJoin {
         super();
     }
 
-    public TestSplitJoinRemote(String name) {
-        super(name);
-    }
-
     public Properties getProperties() {
         final Properties properties = new Properties(super.getProperties());
         properties.setProperty

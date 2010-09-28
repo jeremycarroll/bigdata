@@ -27,22 +27,41 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.sparse;
 
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
-import com.bigdata.journal.AbstractIndexManagerTestCase;
-import com.bigdata.journal.IIndexManager;
-import com.bigdata.service.TestEDS;
-import com.bigdata.service.TestEDSRemote;
-import com.bigdata.service.TestJournal;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        // value encoding and decoding.
+        TestValueType.class,
+        // sparse property set object.
+        TestTPS.class,
+        // encoding and decoding of keys.
+        TestKeyEncodeDecode.class,
+        TestSparseRowStore.class
+        /*
+         * For EDS:
+         *
+         * @todo test when the index is statically partitioned.
+         *
+         * @todo test consistent across split/join operations.
+         *
+         *
+         *
+         * @todo use of btree to support column store (in another package)?
+         *
+         * @todo test version expiration based on age?
+         *
+         * @todo test version expiration based on #of versions?
+         */
+
+        } )
+public class TestAll {
 
     /**
      * 
@@ -50,86 +69,4 @@ public class TestAll extends TestCase {
     public TestAll() {
         super();
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     * 
-     * @see TestSegSplitter, which tests the constraint imposed in the separator
-     *      key during an index partition split for a {@link SparseRowStore}
-     *      index.
-     */
-    public static Test suite()
-    {
-
-        TestSuite suite = new TestSuite("Sparse Row Store");
-
-        // value encoding and decoding.
-        suite.addTestSuite(TestValueType.class);
-        
-        // sparse property set object.
-        suite.addTestSuite(TestTPS.class);
-
-        // encoding and decoding of keys.
-        suite.addTestSuite(TestKeyEncodeDecode.class);
-        
-        // test row store backed by a Journal.
-        suite.addTest(proxySuite(new TestJournal("Journal row store"),"Journal"));
-
-//        // test row store backed by LDS.
-//        suite.addTest(proxySuite(new TestLDS("LDS row store"),"LDS"));
-
-        // test row store backed by EDS.
-        suite.addTest(proxySuite(new TestEDS("EDS row store"),"EDS"));
-        suite.addTest(proxySuite(new TestEDSRemote("EDS row store Remote"),"EDS Remote"));
-
-        /*
-         * For EDS:
-         * 
-         * @todo test when the index is statically partitioned.
-         * 
-         * @todo test consistent across split/join operations.
-         * 
-         * 
-         * 
-         * @todo use of btree to support column store (in another package)?
-         * 
-         * @todo test version expiration based on age?
-         * 
-         * @todo test version expiration based on #of versions?
-         */
-        
-        return suite;
-        
-    }
-    
-    /**
-     * Create and populate a {@link ProxyTestSuite} with the unit tests that we
-     * will run against any of the {@link IIndexManager} implementations.
-     * 
-     * @param delegate
-     *            The delegate for the proxied unit tests.
-     * @param name
-     *            The name of the test suite.
-     * @return The {@link ProxyTestSuite} populated with the unit tests.
-     */
-    protected static ProxyTestSuite proxySuite(
-            AbstractIndexManagerTestCase<? extends IIndexManager> delegate, String name) {
-
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate, name);
-
-        // sparse row store operations.
-        suite.addTestSuite(TestSparseRowStore.class);
-        
-        return suite;
-        
-    }
-
 }

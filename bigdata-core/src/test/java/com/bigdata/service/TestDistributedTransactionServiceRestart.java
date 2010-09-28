@@ -30,11 +30,10 @@ package com.bigdata.service;
 
 import java.io.File;
 import java.util.Properties;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests of the setReleaseTime, snapshot and restart aspects of the
@@ -44,19 +43,12 @@ import com.bigdata.btree.ITupleIterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestDistributedTransactionServiceRestart extends TestCase2 {
+public class TestDistributedTransactionServiceRestart extends Assert {
 
     /**
      * 
      */
     public TestDistributedTransactionServiceRestart() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestDistributedTransactionServiceRestart(String arg0) {
-        super(arg0);
     }
 
     protected static class MockDistributedTransactionService extends DistributedTransactionService {
@@ -175,12 +167,13 @@ public class TestDistributedTransactionServiceRestart extends TestCase2 {
      * a read-only tx as of the timestamp immediately after the current release
      * time.
      */
+    @Test
     public void test_setReleaseTime() {
 
         final Properties properties = new Properties();
 
         properties.setProperty(DistributedTransactionService.Options.DATA_DIR,
-                getName());
+                this.getClass().getName());
 
         properties.setProperty(DistributedTransactionService.Options.MIN_RELEASE_AGE,
                 "10");
@@ -206,7 +199,7 @@ public class TestDistributedTransactionServiceRestart extends TestCase2 {
 
                     assertEquals(2, ndx.getEntryCount());
 
-                    assertEquals(new long[] { 10, 20 }, toArray(ndx));
+                    assertArrayEquals(new long[] { 10, 20 }, toArray(ndx));
 
                 }
 
@@ -227,7 +220,7 @@ public class TestDistributedTransactionServiceRestart extends TestCase2 {
                     
                     assertEquals(1, ndx.getEntryCount());
                     
-                    assertEquals(new long[] { 20 }, toArray(ndx));
+                    assertArrayEquals(new long[] { 20 }, toArray(ndx));
                     
                 }
 
@@ -249,7 +242,7 @@ public class TestDistributedTransactionServiceRestart extends TestCase2 {
                     
                     assertEquals(1, ndx.getEntryCount());
                     
-                    assertEquals(new long[] { 20 }, toArray(ndx));
+                    assertArrayEquals(new long[] { 20 }, toArray(ndx));
                     
                 }
 
@@ -279,12 +272,13 @@ public class TestDistributedTransactionServiceRestart extends TestCase2 {
      * the service one more time and verify that the commit index has the data
      * that we would expect if it had read the 2nd snapshot.
      */
+    @Test
     public void test_snapshotCommitIndex() {
 
         final Properties properties = new Properties();
 
         properties.setProperty(DistributedTransactionService.Options.DATA_DIR,
-                getName());
+                this.getClass().getName());
 
         MockDistributedTransactionService service = new MockDistributedTransactionService(
                 properties).start();
@@ -314,7 +308,7 @@ public class TestDistributedTransactionServiceRestart extends TestCase2 {
                     
                     assertEquals(2, ndx.getEntryCount());
 
-                    assertEquals(new long[] { 10, 20 }, toArray(ndx));
+                    assertArrayEquals(new long[] { 10, 20 }, toArray(ndx));
                     
                 }
                 
@@ -338,7 +332,7 @@ public class TestDistributedTransactionServiceRestart extends TestCase2 {
                     
                     assertEquals(2, ndx.getEntryCount());
 
-                    assertEquals(new long[] { 10, 20 }, toArray(ndx));
+                    assertArrayEquals(new long[] { 10, 20 }, toArray(ndx));
                     
                 }
                 
@@ -351,7 +345,7 @@ public class TestDistributedTransactionServiceRestart extends TestCase2 {
 
                 synchronized (ndx) {
                     assertEquals(1, ndx.getEntryCount());
-                    assertEquals(new long[] { 20 }, toArray(ndx));
+                    assertArrayEquals(new long[] { 20 }, toArray(ndx));
                 }
 
             }
@@ -376,7 +370,7 @@ public class TestDistributedTransactionServiceRestart extends TestCase2 {
                     
                     assertEquals(1, ndx.getEntryCount());
 
-                    assertEquals(new long[] { 20 }, toArray(ndx));
+                    assertArrayEquals(new long[] { 20 }, toArray(ndx));
                     
                 }
                 

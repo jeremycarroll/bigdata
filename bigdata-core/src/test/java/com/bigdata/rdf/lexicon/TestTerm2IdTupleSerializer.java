@@ -28,16 +28,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.lexicon;
 
 import java.util.Locale;
-
-import com.bigdata.io.BytesUtil;
-import junit.framework.TestCase2;
-
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.model.vocabulary.XMLSchema;
 
 import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
+import com.bigdata.io.BytesUtil;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for construction of variable length unsigned byte[] keys from RDF
@@ -46,7 +45,7 @@ import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestTerm2IdTupleSerializer extends TestCase2 {
+public class TestTerm2IdTupleSerializer extends Assert {
 
     /**
      * Note: The key builder will wind up configured with the default
@@ -63,13 +62,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
     public TestTerm2IdTupleSerializer() {
     }
 
-    /**
-     * @param name
-     */
-    public TestTerm2IdTupleSerializer(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_uri() {
         
         String uri1 = "http://www.cognitiveweb.org";
@@ -92,6 +85,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         
     }
     
+    @Test
     public void test_plainLiteral() {
 
         String lit1 = "abc";
@@ -111,6 +105,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         
     }
     
+    @Test
     public void test_languageCodeLiteral() {
         
         String en = "en";
@@ -138,6 +133,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         
     }
     
+    @Test
     public void test_plain_vs_languageCode_literal() {
         
         final String en = "en";
@@ -163,6 +159,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
     /**
      * Verify an unknown datatype URI is coded.
      */
+    @Test
     public void test_datatype_unknown() {
 
         fixture.datatypeLiteral2key(new URIImpl("http://www.bigdata.com/foo"),
@@ -170,6 +167,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         
     }
     
+    @Test
     public void test_datatypeLiteral_xsd_boolean() {
         
         final URI datatype = XMLSchema.BOOLEAN;
@@ -203,6 +201,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
 
     }
     
+    @Test
     public void test_datatypeLiteral_xsd_int() {
         
         final URI datatype = XMLSchema.INT;
@@ -239,6 +238,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
     /**
      * Verify that the value spaces for long, int, short and byte are disjoint.
      */
+    @Test
     public void test_disjoint_value_space() {
         
         assertFalse(BytesUtil.bytesEqual(//
@@ -273,6 +273,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
 
     }
     
+    @Test
     public void test_datatypeLiteral_xsd_float() {
         
         final URI datatype = XMLSchema.FLOAT;
@@ -310,6 +311,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
 
     }
     
+    @Test
     public void test_datatypeLiteral_xsd_double() {
         
         final URI datatype = XMLSchema.DOUBLE;
@@ -350,6 +352,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
     /**
      * Verify that some value spaces are disjoint.
      */
+    @Test
     public void test_datatypeLiteral_xsd_int_not_double_or_float() {
         
         final String lit1 = "4";
@@ -372,6 +375,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
     /**
      * Verify that some value spaces are disjoint.
      */
+    @Test
     public void test_datatypeLiteral_xsd_float_not_double() {
         
         final String lit1 = "04.21";
@@ -388,6 +392,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
         
     }
     
+    @Test
     public void test_blankNode() {
         
         String id1 = "_12";
@@ -415,6 +420,7 @@ public class TestTerm2IdTupleSerializer extends TestCase2 {
      * the term index since you want to insert the type types according to this
      * order for the best performance.
      */
+    @Test
     public void test_termTypeOrder() {
 
         /*

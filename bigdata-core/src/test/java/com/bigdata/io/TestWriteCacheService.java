@@ -36,18 +36,16 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Random;
-
 import com.bigdata.rwstore.RWWriteCacheService;
-
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link WriteCacheService}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class TestWriteCacheService extends TestCase2 {
+public class TestWriteCacheService extends Assert {
 
     /**
      * 
@@ -55,22 +53,17 @@ public class TestWriteCacheService extends TestCase2 {
     public TestWriteCacheService() {
     }
 
-    /**
-     * @param name
-     */
-    public TestWriteCacheService(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_simpleService() {
         
         // TODO: write test for WORM WriteCacheService
         
     }
     
+    @Test
     public void test_simpleRWService() throws IOException {
         
-        final File file = File.createTempFile(getName(), ".rw.tmp");
+        final File file = File.createTempFile(this.getClass().getName(), ".rw.tmp");
 		try {
 
 			RWWriteCacheService writeCache = new RWWriteCacheService(5, file, null, "rw");
@@ -85,9 +78,10 @@ public class TestWriteCacheService extends TestCase2 {
         
     }
     
+    @Test
     public void test_simpleDataRWService() throws IOException {
         
-        final File file = File.createTempFile(getName(), ".rw.tmp");
+        final File file = File.createTempFile(this.getClass().getName(), ".rw.tmp");
 		try {
 
 			RWWriteCacheService writeCache = new RWWriteCacheService(5, file, null, "rw");
@@ -125,6 +119,7 @@ public class TestWriteCacheService extends TestCase2 {
         }
 	}
 
+    @Test
     public void test_stressDataRWService() throws InterruptedException, IOException {
         /*
          * Whether or nor the write cache will force writes to the disk. For
@@ -155,7 +150,7 @@ public class TestWriteCacheService extends TestCase2 {
         
         File file = null;
 		try {
-			file = File.createTempFile(getName(), ".rw.tmp");
+			file = File.createTempFile(this.getClass().getName(), ".rw.tmp");
 
 	        final ReopenFileChannel opener = new ReopenFileChannel(file, "rw");
 			RWWriteCacheService writeCache = new RWWriteCacheService(4, file, null, "rw");
@@ -322,6 +317,7 @@ public class TestWriteCacheService extends TestCase2 {
 
         }
 
+        @Override
         public String toString() {
 
             return file.toString();

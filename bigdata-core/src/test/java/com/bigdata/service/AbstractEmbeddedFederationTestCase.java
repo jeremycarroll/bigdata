@@ -47,6 +47,8 @@ import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.search.FullTextIndex;
 import com.bigdata.service.ndx.RawDataServiceTupleIterator;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * An abstract test harness that sets up (and tears down) the metadata and data
@@ -70,13 +72,6 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
         super();
     }
 
-    /**
-     * @param arg0
-     */
-    public AbstractEmbeddedFederationTestCase(String arg0) {
-        super(arg0);
-    }
-
     protected IBigdataClient<?> client;
     protected IBigdataFederation<?> fed;
 //BTM    protected IMetadataService metadataService;
@@ -93,11 +88,11 @@ protected ShardLocator metadataService;
                 .toString());
         
         // when the data are persistent use the test to name the data directory.
-        properties.setProperty(EmbeddedClient.Options.DATA_DIR, getName());
+        properties.setProperty(EmbeddedClient.Options.DATA_DIR, this.getClass().getName());
         
         // when the data are persistent use the test to name the data directory.
         properties.setProperty(DistributedTransactionService.Options.DATA_DIR,
-                new File(getName(), "txService").toString());
+                new File(this.getClass().getName(), "txService").toString());
         
         /*
          * Disable the o/s specific statistics collection for the test run.
@@ -123,11 +118,10 @@ protected ShardLocator metadataService;
      * Data files are placed into a directory named by the test. If the
      * directory exists, then it is removed before the federation is set up.
      */
+    @Before
     public void setUp() throws Exception {
       
-        super.setUp();
-
-        dataDir = new File( getName() );
+        dataDir = new File( this.getClass().getName() );
         
         if(dataDir.exists() && dataDir.isDirectory()) {
 
@@ -169,6 +163,7 @@ if (log.isInfoEnabled()) {
 
     }
     
+    @After
     public void tearDown() throws Exception {
 
         client.disconnect(true/*immediateShutdown*/);
@@ -183,8 +178,6 @@ if (log.isInfoEnabled()) {
             recursiveDelete( dataDir );
             
         }
-
-        super.tearDown();
 
     }
     

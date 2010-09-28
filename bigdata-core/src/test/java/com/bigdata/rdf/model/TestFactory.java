@@ -27,20 +27,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.model;
 
+import com.bigdata.test.Assert;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.omg.CORBA.portable.ValueFactory;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class TestFactory extends TestCase2 {
+public class TestFactory extends Assert {
 
     /**
      * 
@@ -48,16 +47,10 @@ public class TestFactory extends TestCase2 {
     public TestFactory() {
     }
 
-    /**
-     * @param name
-     */
-    public TestFactory(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_gregorian() throws DatatypeConfigurationException {
 
-        final BigdataValueFactory vf = BigdataValueFactoryImpl.getInstance(getName());
+        final BigdataValueFactory vf = BigdataValueFactoryImpl.getInstance(this.getClass().getName());
 
         final XMLGregorianCalendar cal = DatatypeFactory.newInstance().newXMLGregorianCalendarDate(
                 2010,// year

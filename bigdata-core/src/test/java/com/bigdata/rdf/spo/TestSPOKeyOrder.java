@@ -29,11 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.spo;
 
 import java.util.Iterator;
-
-import com.bigdata.io.BytesUtil;
-import junit.framework.TestCase2;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.keys.SuccessorUtil;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.internal.IV;
@@ -42,6 +40,8 @@ import com.bigdata.rdf.internal.VTE;
 import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.Var;
 import com.bigdata.striterator.ICloseableIterator;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link SPOKeyOrder}. 
@@ -49,7 +49,7 @@ import com.bigdata.striterator.ICloseableIterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestSPOKeyOrder extends TestCase2 {
+public class TestSPOKeyOrder extends Assert {
 
     /**
      * 
@@ -58,17 +58,11 @@ public class TestSPOKeyOrder extends TestCase2 {
     }
 
     /**
-     * @param name
-     */
-    public TestSPOKeyOrder(String name) {
-        super(name);
-    }
-
-    /**
      * Writes the serialized size of an instance on stdout. It is an amazing 61
      * bytes. You can serialize just the {@link SPOKeyOrder#index()} byte value
      * for an amazing 60 byte savings per instance.
      */
+    @Test
     public void test_serializationSize() {
 
         System.out.println("serializedSize="
@@ -86,6 +80,7 @@ public class TestSPOKeyOrder extends TestCase2 {
      * key order and checking against the expected permutation of the (s,p,o)
      * values.
      */
+    @Test
     public void test_keyOrder_triples() {
 
         final KeyBuilder keyBuilder = new KeyBuilder(4 * Bytes.SIZEOF_LONG);
@@ -111,6 +106,7 @@ public class TestSPOKeyOrder extends TestCase2 {
      * key order and checking against the expected permutation of the (s,p,o,c)
      * values.
      */
+    @Test
     public void test_keyOrder_quads() {
 
         final KeyBuilder keyBuilder = new KeyBuilder(4 * Bytes.SIZEOF_LONG);
@@ -156,6 +152,7 @@ public class TestSPOKeyOrder extends TestCase2 {
      * {@link SPOKeyOrder#encodeKey(com.bigdata.btree.keys.IKeyBuilder, ISPO)}
      * and {@link SPOKeyOrder#decodeKey(byte[])} round trip correctly.
      */
+    @Test
     public void test_encodeDecode() {
 
         final KeyBuilder keyBuilder = new KeyBuilder(4 * Bytes.SIZEOF_LONG);
@@ -180,6 +177,7 @@ public class TestSPOKeyOrder extends TestCase2 {
      * Unit test examines the correct formulation of the from/to keys for the
      * POCS key order.
      */
+    @Test
     public void test_getFromKey_getToKey_quads() {
 
         final IV P = tid(1);
@@ -220,6 +218,7 @@ public class TestSPOKeyOrder extends TestCase2 {
      * Unit test examines the correct formulation of the from/to keys for the
      * POS key order.
      */
+    @Test
     public void test_getFromKey_getToKey_triples() {
 
         final IV P = tid(1);
@@ -254,6 +253,7 @@ public class TestSPOKeyOrder extends TestCase2 {
 
     }
 
+    @Test
     public void test_spoOnlyKeyOrder_iterator() {
 
         assertSameIteratorAnyOrder(new SPOKeyOrder[] { SPOKeyOrder.SPO },
@@ -261,6 +261,7 @@ public class TestSPOKeyOrder extends TestCase2 {
         
     }
     
+    @Test
     public void test_spocOnlyKeyOrder_iterator() {
 
         assertSameIteratorAnyOrder(new SPOKeyOrder[] { SPOKeyOrder.SPOC },
@@ -268,6 +269,7 @@ public class TestSPOKeyOrder extends TestCase2 {
         
     }
     
+    @Test
     public void test_tripleStoreKeyOrders_iterator() {
 
         assertSameIteratorAnyOrder(new SPOKeyOrder[] { SPOKeyOrder.SPO,
@@ -276,6 +278,7 @@ public class TestSPOKeyOrder extends TestCase2 {
 
     }
 
+    @Test
     public void test_quadStoreKeyOrders_iterator() {
 
         assertSameIteratorAnyOrder(new SPOKeyOrder[] { SPOKeyOrder.SPOC,

@@ -37,8 +37,10 @@ import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPOPredicate;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.rule.ArrayBindingSet;
 import com.bigdata.relation.rule.Constant;
@@ -57,6 +59,11 @@ import com.bigdata.relation.rule.eval.IJoinNexusFactory;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.relation.rule.eval.NestedSubqueryWithJoinThreadsTask;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test for {@link ISlice} handling in native {@link IRule} execution. Slice for
@@ -65,22 +72,21 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * tested by this class.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestSlice extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestSlice() {
+    public TestSlice(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestSlice(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Tests various slices on an {@link IRule} using a single JOIN with 3
@@ -88,6 +94,7 @@ public class TestSlice extends AbstractRuleTestCase {
      * 
      * @throws Exception
      */
+    @Test
     public void test_slice() throws Exception {
         
         final AbstractTripleStore store;
@@ -285,7 +292,7 @@ public class TestSlice extends AbstractRuleTestCase {
         assert foo.getIV() != NULL;
         assert bar.getIV() != NULL;
         
-        return new Rule<ISPO>(getName(),
+        return new Rule<ISPO>(this.getClass().getName(),
                 null/* head */, new SPOPredicate[] {
                 //
                 new SPOPredicate(store.getSPORelation()

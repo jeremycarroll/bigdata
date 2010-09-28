@@ -28,13 +28,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.cache;
 
+import com.bigdata.test.Assert;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-
-import junit.framework.TestCase2;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * Test suite for {@link RingBuffer}.
@@ -42,7 +43,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestRingBuffer extends TestCase2 {
+public class TestRingBuffer extends Assert {
 
     /**
      * 
@@ -51,15 +52,7 @@ public class TestRingBuffer extends TestCase2 {
    
     }
 
-    /**
-     * @param name
-     */
-    public TestRingBuffer(String name) {
-   
-        super(name);
-   
-    }
-
+    @Test
     public void test_ctor() {
         
         try {
@@ -126,6 +119,7 @@ public class TestRingBuffer extends TestCase2 {
      * poll() : [ _, _, _ ] : head=1; tail=1; size=0; returns [d] (empty, head==tail)
      * </pre>
      */
+    @Test
     public void test_ringBuffer() {
 
         final String a = "a";
@@ -304,6 +298,7 @@ public class TestRingBuffer extends TestCase2 {
      * 
      * When removing the tail, head := (head-1) % capacity.
      */
+    @Test
     public void test_removeNth() {
 
         final String a = "a";
@@ -330,6 +325,7 @@ public class TestRingBuffer extends TestCase2 {
      * elements in the order in which they will be read from the buffer (LRU to
      * MRU).
      */
+    @Test
     public void test_iterator() {
 
         final String a = "a";
@@ -375,6 +371,7 @@ public class TestRingBuffer extends TestCase2 {
      * correct element and to refuse to (a) double-remove an element; and (b) to
      * remove an element when non-has been visited.
      */
+    @Test
     public void test_iterator_remove() {
 
         final String a = "a";
@@ -420,6 +417,7 @@ public class TestRingBuffer extends TestCase2 {
 
     }
 
+    @Test
     public void test_add_with_null_arg() {
         final RingBuffer<String> buffer = new RingBuffer<String>(3);
 
@@ -433,6 +431,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(buffer.isEmpty());    	
     }
     
+    @Test
     public void test_offer_with_null_arg() {
         final RingBuffer<String> buffer = new RingBuffer<String>(3);
 
@@ -446,6 +445,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(buffer.isEmpty());    	
     }    
 
+    @Test
     public void test_offer_full() {
     	final int capacity = 3;
         final RingBuffer<String> buffer = new RingBuffer<String>(capacity);
@@ -463,6 +463,7 @@ public class TestRingBuffer extends TestCase2 {
         }
     }   
     
+    @Test
     public void test_addAll_full() {
         final List<String> l = Arrays.asList("a", "b", "c");
         final RingBuffer<String> buffer = new RingBuffer<String>(l.size());
@@ -471,6 +472,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(buffer.size()==l.size());       
     } 
     
+    @Test
     public void test_addAll_empty() {
     	final int capacity = 3;
         final RingBuffer<String> buffer = new RingBuffer<String>(capacity);
@@ -480,6 +482,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(buffer.size()==l.size());       
     }     
     
+    @Test
     public void test_addAll_overflow() {
         final List<String> l = Arrays.asList("a", "b", "c", "d");
         int capacity = l.size()-1;
@@ -496,6 +499,7 @@ public class TestRingBuffer extends TestCase2 {
         
     } 
     
+    @Test
     public void test_clear_full() {
         final List<String> l = Arrays.asList("a", "b", "c");
         final RingBuffer<String> buffer = new RingBuffer<String>(l.size());
@@ -507,6 +511,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(buffer.isEmpty());                
     } 
     
+    @Test
     public void test_clear_empty() {
         int capacity = 7;    	
         final RingBuffer<String> buffer = new RingBuffer<String>(capacity);
@@ -518,6 +523,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(buffer.size()==0);  
     }     
     
+    @Test
     public void test_clear_true_full() {
         final List<String> l = Arrays.asList("a", "b", "c");
         final RingBuffer<String> buffer = new RingBuffer<String>(l.size());
@@ -529,6 +535,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(buffer.isEmpty());                
     } 
     
+    @Test
     public void test_clear_true_empty() {
         int capacity = 7;    	
         final RingBuffer<String> buffer = new RingBuffer<String>(capacity);
@@ -540,6 +547,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(buffer.size()==0);  
     }        
 
+    @Test
     public void test_clear_false_full() {
         final List<String> l = Arrays.asList("a", "b", "c");
         final RingBuffer<String> buffer = new RingBuffer<String>(l.size());
@@ -551,6 +559,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(buffer.isEmpty());                
     } 
     
+    @Test
     public void test_clear_false_empty() {
         int capacity = 7;    	
         final RingBuffer<String> buffer = new RingBuffer<String>(capacity);
@@ -562,11 +571,13 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(buffer.size()==0);  
     }     
     
+    @Test
     public void test_getHeadIndex_empty() {
         final RingBuffer<String> buffer = new RingBuffer<String>(7);
         assertTrue(buffer.getHeadIndex()==0);    	
     }
     
+    @Test
     public void test_getHeadIndex_overflow() {
     	final int capacity = 7;
         final RingBuffer<String> buffer = new RingBuffer<String>(capacity);
@@ -582,11 +593,13 @@ public class TestRingBuffer extends TestCase2 {
         }        
     }
     
+    @Test
     public void test_getTailIndex_empty() {
             final RingBuffer<String> buffer = new RingBuffer<String>(7);
             assertTrue(buffer.getTailIndex()==0);    	
     }
         
+    @Test
     public void test_getTailIndex_overflow() {
     	final int capacity = 3;
         final RingBuffer<String> buffer = new RingBuffer<String>(capacity);
@@ -606,6 +619,7 @@ public class TestRingBuffer extends TestCase2 {
         }  
     }
  
+    @Test
     public void test_toArray1_empty() {
     	final int capacity = 3;
         final RingBuffer<String> buffer = new RingBuffer<String>(capacity);
@@ -613,6 +627,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(emptyArr.length==0);            
     }
     
+    @Test
     public void test_toArray1_nonempty() {
         Object [] intArr = new Object[] {
         		Integer.valueOf(1),
@@ -622,9 +637,10 @@ public class TestRingBuffer extends TestCase2 {
         final RingBuffer<Object> buffer = new RingBuffer<Object>(intArr.length);
         buffer.addAll(Arrays.asList(intArr));
         // Checks for same array elements and ordering (LRU to MRU)
-        assertSameArray(intArr, buffer.toArray());
+        assertArrayEquals(intArr, buffer.toArray());
     }    
     
+    @Test
     public void test_toArray1_nonempty_oversized() {
         Object [] intArr = new Object[] {
         		Integer.valueOf(1),
@@ -651,6 +667,7 @@ public class TestRingBuffer extends TestCase2 {
         }
     }       
     
+    @Test
     public void test_remove1_illegal_args() {
     
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
@@ -671,6 +688,7 @@ public class TestRingBuffer extends TestCase2 {
 	    }
     }
     
+    @Test
     public void test_remove1_single() {
         String expected = "a";
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
@@ -680,6 +698,7 @@ public class TestRingBuffer extends TestCase2 {
     }  
     
     // see https://sourceforge.net/apps/trac/bigdata/ticket/101
+    @Test
     public void test_remove_get_order() {
         final String[] expected = new String[] {
         		"a", "b", "c", "d"
@@ -701,7 +720,8 @@ public class TestRingBuffer extends TestCase2 {
 	    assertTrue(b.isEmpty());
     }
     
-    // see https://sourceforge.net/apps/trac/bigdata/ticket/101    
+    // see https://sourceforge.net/apps/trac/bigdata/ticket/101
+    @Test
     public void test_remove1_multiple_mru_to_lru() {
         String[] expected = new String[] {
         		"a", "b", "c", "d"
@@ -723,6 +743,7 @@ public class TestRingBuffer extends TestCase2 {
     }    
     
     // see https://sourceforge.net/apps/trac/bigdata/ticket/101    
+    @Test
     public void test_remove1_multiple_lru_to_mru() {
         String[] expected = new String[] {
         		"a", "b", "c", "d"
@@ -743,6 +764,7 @@ public class TestRingBuffer extends TestCase2 {
 	    assertTrue(b.isEmpty());
     }        
     
+    @Test
     public void test_element_empty() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
 	    try {
@@ -754,6 +776,7 @@ public class TestRingBuffer extends TestCase2 {
 	    }
     }     
     
+    @Test
     public void test_element_single() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
 	    String elem = "a";
@@ -761,6 +784,7 @@ public class TestRingBuffer extends TestCase2 {
 	    assertSame(elem, b.element());
     }        
     
+    @Test
     public void test_element_multiple() {
         String[] expected = new String[] {
         		"a", "b", "c", "d"
@@ -777,11 +801,13 @@ public class TestRingBuffer extends TestCase2 {
 	    assertTrue(b.isEmpty());	    
     }
     
+    @Test
     public void test_peek_empty() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
 	    assertNull(b.peek());
     }     
     
+    @Test
     public void test_peek_single() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
 	    String elem = "a";
@@ -789,6 +815,7 @@ public class TestRingBuffer extends TestCase2 {
 	    assertSame(elem, b.peek());
     }        
     
+    @Test
     public void test_peek_multiple() {
         String[] expected = new String[] {
         		"a", "b", "c", "d"
@@ -805,12 +832,14 @@ public class TestRingBuffer extends TestCase2 {
 	    
     }
 
+    @Test
     public void test_poll_empty() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
 	    assertNull(b.poll());
 	    assertTrue(b.isEmpty());	    
     }     
 
+    @Test
     public void test_poll_single() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
 	    String elem = "a";
@@ -819,6 +848,7 @@ public class TestRingBuffer extends TestCase2 {
 	    assertTrue(b.isEmpty());	    
     }        
 
+    @Test
     public void test_poll_multiple() {
         String[] expected = new String[] {
         		"a", "b", "c", "d"
@@ -834,6 +864,7 @@ public class TestRingBuffer extends TestCase2 {
 	    assertTrue(b.isEmpty());
     }
 
+    @Test
     public void test_scanHead_null_ref() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
         try {
@@ -845,11 +876,13 @@ public class TestRingBuffer extends TestCase2 {
 	    }        
     }
     
+    @Test
     public void test_scanHead_empty() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
         assertFalse(b.scanHead(1, "a"));
     }  
     
+    @Test
     public void test_scanHead_single() {
 	    String[] elems = {"a"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -857,6 +890,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(b.scanHead(1, "a"));
     }    
     
+    @Test
     public void test_scanHead_multiple_all() {
 	    String[] elems = {"a", "b", "c"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -864,6 +898,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(b.scanHead(elems.length, "a"));
     }   
  
+    @Test
     public void test_scanHead_multiple_over_scan() {
 	    String[] elems = {"a", "b", "c"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -872,6 +907,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(b.scanHead((elems.length * 2), "a"));
     }   
 
+    @Test
     public void test_scanHead_multiple_partial_scan() {
 	    String[] elems = {"a", "b", "c"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -882,6 +918,7 @@ public class TestRingBuffer extends TestCase2 {
     	}
     }   
     
+    @Test
     public void test_scanTail_null_ref() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
         try {
@@ -893,6 +930,7 @@ public class TestRingBuffer extends TestCase2 {
 	    }        
     }
     
+    @Test
     public void test_scanTail_nonpositive() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
         try {
@@ -911,11 +949,13 @@ public class TestRingBuffer extends TestCase2 {
 	    }        
     }    
     
+    @Test
     public void test_scanTail_empty() {
 	    final RingBuffer<String> b = new RingBuffer<String>(1);
         assertFalse(b.scanTail(1, "a"));
     }  
     
+    @Test
     public void test_scanTail_single() {
 	    String[] elems = {"a"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -923,6 +963,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(b.scanTail(1, "a"));
     }    
     
+    @Test
     public void test_scanTail_multiple_all() {
 	    String[] elems = {"a", "b", "c"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -930,6 +971,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(b.scanTail(elems.length, "c"));
     }   
     
+    @Test
     public void test_scanTail_multiple_over_scan() {
 	    String[] elems = {"a", "b", "c"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -938,6 +980,7 @@ public class TestRingBuffer extends TestCase2 {
         assertTrue(b.scanTail((elems.length * 2), "c"));
     }   
 
+    @Test
     public void test_scanTail_multiple_partial_scan() {
 	    String[] elems = {"a", "b", "c"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -948,11 +991,13 @@ public class TestRingBuffer extends TestCase2 {
     	}
     }  
     
+    @Test
     public void test_contains_empty() {
     	final RingBuffer<String> b = new RingBuffer<String>(1);	
    	    assertFalse(b.contains("a"));
     }
     
+    @Test
     public void test_contains_missing() {
 	    String[] elems = {"a", "b", "c"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -960,6 +1005,7 @@ public class TestRingBuffer extends TestCase2 {
    	    assertFalse(b.contains("d"));
     }
 
+    @Test
     public void test_contains_each() {
 	    String[] elems = {"a", "b", "c"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -969,8 +1015,9 @@ public class TestRingBuffer extends TestCase2 {
    	    assertTrue(b.contains("c"));
     }
     
+    @Test
     public void test_contains_null() {
-        final RingBuffer<String> b = new RingBuffer<String>(1);
+    	final RingBuffer<String> b = new RingBuffer<String>(1);	
         try {
             b.contains(null);
             fail("Expecting: " + NullPointerException.class);
@@ -980,6 +1027,7 @@ public class TestRingBuffer extends TestCase2 {
         }
     }
     
+    @Test
     public void test_contains_all_null() {
     	final RingBuffer<String> b = new RingBuffer<String>(1);	
         try {
@@ -991,6 +1039,7 @@ public class TestRingBuffer extends TestCase2 {
         }
     }
     
+    @Test
     public void test_contains_all_this() {
     	final RingBuffer<String> b = new RingBuffer<String>(1);
     	// Note: This is a tautology.
@@ -1004,11 +1053,13 @@ public class TestRingBuffer extends TestCase2 {
 //        }
     }
 
+    @Test
     public void test_contains_all_empty() {
     	final RingBuffer<String> b = new RingBuffer<String>(1);	
    	    assertFalse(b.contains(Arrays.asList("a")));
     }
     
+    @Test
     public void test_contains_all_missing() {
 	    String[] elems = {"a", "b", "c"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -1016,6 +1067,7 @@ public class TestRingBuffer extends TestCase2 {
    	    assertFalse(b.containsAll(Arrays.asList("d")));
     }
 
+    @Test
     public void test_contains_all_subset() {
 	    String[] elems = {"a", "b", "c"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -1026,6 +1078,7 @@ public class TestRingBuffer extends TestCase2 {
     	}
     }
     
+    @Test
     public void test_contains_all_superset() {
 	    String[] superset = {"a", "b", "c"};
 	    String[] subset = Arrays.copyOf(superset, superset.length-1);	    
@@ -1034,6 +1087,7 @@ public class TestRingBuffer extends TestCase2 {
         assertFalse(b.containsAll(Arrays.asList(superset)));
     }    
     
+    @Test
     public void test_iterator_hasnext_empty() {
     	final RingBuffer<String> b = new RingBuffer<String>(1);	
     	assertTrue(b.size()==0);
@@ -1048,11 +1102,13 @@ public class TestRingBuffer extends TestCase2 {
     	}
     }
     
+    @Test
     public void test_iterator_hasnext_single() {
 	    String[] elems = {"a"};
 	    test_iterator_hasnext_common(elems);
     }
 
+    @Test
     public void test_iterator_hasnext_multiple() {
 	    String[] elems = {"a", "b", "c", "d"};
 	    test_iterator_hasnext_common(elems);
@@ -1070,6 +1126,7 @@ public class TestRingBuffer extends TestCase2 {
     	assertFalse(iter.hasNext());
     }  
     
+    @Test
     public void test_iterator_hasnext_remove_empty() {
     	final RingBuffer<String> b = new RingBuffer<String>(1);	
     	try {
@@ -1081,11 +1138,13 @@ public class TestRingBuffer extends TestCase2 {
     	}    	
     }
     
+    @Test
     public void test_iterator_hasnext_remove_single() {
 	    String[] elems = {"a"};
 	    test_iterator_hasnext_remove_common(elems);
     }
 
+    @Test
     public void test_iterator_hasnext_remove_multiple() {
 	    String[] elems = {"a", "b", "c", "d"};
 	    test_iterator_hasnext_remove_common(elems);
@@ -1105,11 +1164,13 @@ public class TestRingBuffer extends TestCase2 {
     	assertTrue(b.isEmpty());
     }    
     
+    @Test
     public void test_iterator_remove_ref_single() {
 	    String[] elems = {"a"};
 	    test_remove_ref_common(elems);
     }
     
+    @Test
     public void test_iterator_remove_ref_multiple() {
 	    String[] elems = {"a", "b", "c", "d"};
 	    test_remove_ref_common(elems);
@@ -1124,6 +1185,7 @@ public class TestRingBuffer extends TestCase2 {
     	assertTrue(b.isEmpty());
     }    
 
+    @Test
     public void test_iterator_remove_ref_missing() {
 	    String[] elems = {"a", "b", "c", "d"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -1132,6 +1194,7 @@ public class TestRingBuffer extends TestCase2 {
     }
     
 
+    @Test
     public void test_iterator_remove_all_null_existing() {
 	    String[] elems = {"a", "b", "c", "d"};
      	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	 
@@ -1145,6 +1208,7 @@ public class TestRingBuffer extends TestCase2 {
     	}
     }
     
+    @Test
     public void test_iterator_remove_all_missing() {
 	    String[] elems = {"a", "b", "c", "d"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -1152,6 +1216,7 @@ public class TestRingBuffer extends TestCase2 {
     	assertFalse(b.removeAll(Arrays.asList("z")));
     }  
     
+    @Test
     public void test_iterator_remove_all() {
 	    String[] elems = {"a", "b", "c", "d"};
     	final RingBuffer<String> b = new RingBuffer<String>(elems.length);	
@@ -1160,6 +1225,7 @@ public class TestRingBuffer extends TestCase2 {
     	assertTrue(b.isEmpty());
     }    
     
+    @Test
     public void test_iterator_remove_all_subset() {
 	    String[] elems = {"a", "b", "c", "d"};
 	    String[] subset = Arrays.copyOf(elems, elems.length-1);
@@ -1170,6 +1236,7 @@ public class TestRingBuffer extends TestCase2 {
     	assertTrue(b.size()==1);
     }    
     
+    @Test
     public void test_iterator_remove_all_superset() {
 	    String[] superset = {"a", "b", "c", "d"};
 	    String[] elems = Arrays.copyOf(superset, superset.length-1);
@@ -1179,6 +1246,7 @@ public class TestRingBuffer extends TestCase2 {
     	assertTrue(b.isEmpty());
     }      
     
+    @Test
     public void test_iterator_retain_all() {
 	    String[] elems = {"a", "b", "c", "d"};
 	    List<String> l = Arrays.asList(elems);
@@ -1187,6 +1255,7 @@ public class TestRingBuffer extends TestCase2 {
     	assertFalse(b.retainAll(l));
     }  
 
+    @Test
     public void test_iterator_retain_all_subset() {
 	    String[] superset = {"a", "b", "c", "d"};
 	    String[] subset = Arrays.copyOf(superset, superset.length-1);
@@ -1194,7 +1263,7 @@ public class TestRingBuffer extends TestCase2 {
     	b.addAll(Arrays.asList(superset));
     	assertTrue(b.retainAll(Arrays.asList(subset)));
     	assertTrue(b.size()==subset.length);
-    	assertSameArray(subset, b.toArray());
+    	assertArrayEquals(subset, b.toArray());
     	
     }     
 }

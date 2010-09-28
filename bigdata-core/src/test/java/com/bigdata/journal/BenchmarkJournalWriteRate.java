@@ -34,11 +34,6 @@ import java.nio.ByteBuffer;
 import java.text.NumberFormat;
 import java.util.Properties;
 import java.util.UUID;
-
-import junit.framework.Test;
-import junit.framework.TestCase2;
-import junit.framework.TestSuite;
-
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
@@ -46,7 +41,13 @@ import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
+import com.bigdata.test.Assert;
 import com.bigdata.test.ExperimentDriver;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * <p>
@@ -113,7 +114,7 @@ import com.bigdata.test.ExperimentDriver;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class BenchmarkJournalWriteRate extends TestCase2 {
+abstract public class BenchmarkJournalWriteRate extends Assert {
 
     /**
      * 
@@ -122,15 +123,9 @@ abstract public class BenchmarkJournalWriteRate extends TestCase2 {
     }
 
     /**
-     * @param name
-     */
-    public BenchmarkJournalWriteRate(String name) {
-        super(name);
-    }
-
-    /**
      * Sets the initial extent for the test.
      */
+    @Override
     public Properties getProperties() {
         
         Properties properties = super.getProperties();
@@ -175,7 +170,7 @@ abstract public class BenchmarkJournalWriteRate extends TestCase2 {
     
     protected String getFilename() {
     
-        return "benchmark-"+getBufferMode()+"-"+getName()+".jnl";
+        return "benchmark-"+getBufferMode()+"-"+this.getClass().getName()+".jnl";
         
     }
     
@@ -215,9 +210,10 @@ abstract public class BenchmarkJournalWriteRate extends TestCase2 {
 
     }
     
+    @Before
     public void setUp() throws IOException {
         
-        System.err.println("------------------\n");
+//         System.err.println("------------------\n");
         
         deleteFile();
         
@@ -225,6 +221,7 @@ abstract public class BenchmarkJournalWriteRate extends TestCase2 {
         
     }
     
+    @After
     public void tearDown() throws IOException {
         
         try {
@@ -624,7 +621,7 @@ abstract public class BenchmarkJournalWriteRate extends TestCase2 {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    public abstract static class AbstractBenchmarkOptimium extends TestCase2 {
+    public abstract static class AbstractBenchmarkOptimium extends Assert {
 
         /**
          * The file is named for the test class.
@@ -673,6 +670,7 @@ abstract public class BenchmarkJournalWriteRate extends TestCase2 {
 
         }
         
+        @Before
         public void setUp() throws IOException {
             
             System.err.println("------------------\n");
@@ -686,6 +684,7 @@ abstract public class BenchmarkJournalWriteRate extends TestCase2 {
             
         }
         
+        @After
         public void tearDown() throws IOException {
             
             raf.getChannel().force(false);
@@ -836,6 +835,23 @@ abstract public class BenchmarkJournalWriteRate extends TestCase2 {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
+    @RunWith(Suite.class)
+    @SuiteClasses( {
+            /**
+             * Runs the tests that have not been commented out :-)
+             * <p>
+             * Note: Running all benchmarks together can challange the VM by running low
+             * on heap, native memory given over to direct buffers - and things can actually
+             * slow down with more memory.
+             */
+            BenchmarkTransientJournal.class,
+            BenchmarkDirectJournal.class,
+//            BenchmarkMappedJournal.class,
+            BenchmarkDiskJournal.class,
+            BenchmarkSmallRecordOptimium.class,
+            BenchmarkBlockBasedOptimium.class,
+            BenchmarkSustainedTransferOptimium.class
+        } )
     public static class BenchmarkSustainedTransferOptimium extends AbstractBenchmarkOptimium {
 
         /**
@@ -847,29 +863,6 @@ abstract public class BenchmarkJournalWriteRate extends TestCase2 {
             
         }
 
-    }
-    
-    /**
-     * Runs the tests that have not been commented out :-)
-     * <p>
-     * Note: Running all benchmarks together can challange the VM by running low
-     * on heap, native memory given over to direct buffers - and things can actually
-     * slow down with more memory.
-     */
-    public static Test suite() {
-        
-        TestSuite suite = new TestSuite("Benchmark Journal Write Rates");
-        
-        suite.addTestSuite( BenchmarkTransientJournal.class );
-        suite.addTestSuite( BenchmarkDirectJournal.class );
-//        suite.addTestSuite( BenchmarkMappedJournal.class );
-        suite.addTestSuite( BenchmarkDiskJournal.class );
-        suite.addTestSuite( BenchmarkSmallRecordOptimium.class );
-        suite.addTestSuite( BenchmarkBlockBasedOptimium.class );
-        suite.addTestSuite( BenchmarkSustainedTransferOptimium.class );
-
-        return suite;
-        
     }
     
     /**

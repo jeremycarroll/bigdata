@@ -41,11 +41,16 @@ import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.impl.BindingImpl;
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.vocab.NoVocabulary;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestOrderBy extends ProxyBigdataSailTestCase {
 
     @Override
@@ -67,17 +72,16 @@ public class TestOrderBy extends ProxyBigdataSailTestCase {
     /**
      * 
      */
-    public TestOrderBy() {
+    public TestOrderBy(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestOrderBy(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup5();
+    };
 
-    
+    @Test
     public void testOrderBy() throws Exception {
 
         final BigdataSail sail = getSail();

@@ -33,8 +33,15 @@ import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.spo.SPO;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.Vocabulary;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link AbstractRuleFastClosure_11_13}.
@@ -43,27 +50,27 @@ import com.bigdata.rdf.vocab.Vocabulary;
  * @see RuleFastClosure13
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRuleFastClosure_11_13 extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestRuleFastClosure_11_13() {
+    public TestRuleFastClosure_11_13(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRuleFastClosure_11_13(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Tests {@link RuleFastClosure11} with the minimum data required to compute
      * a single entailment.
      */
+    @Test
     public void test_RuleFastForwardClosure11() throws Exception {
         
         AbstractTripleStore store = getStore();
@@ -136,6 +143,7 @@ public class TestRuleFastClosure_11_13 extends AbstractRuleTestCase {
      * a single entailment.
      * @throws Exception 
      */
+    @Test
     public void test_RuleFastForwardClosure13() throws Exception {
         
         AbstractTripleStore store = getStore();

@@ -44,11 +44,16 @@ import org.openrdf.query.algebra.TupleExpr;
 import org.openrdf.query.impl.BindingImpl;
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.vocab.NoVocabulary;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestDescribe extends ProxyBigdataSailTestCase {
 
     @Override
@@ -69,16 +74,16 @@ public class TestDescribe extends ProxyBigdataSailTestCase {
     /**
      * 
      */
-    public TestDescribe() {
+    public TestDescribe(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestDescribe(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup3();
+    };
 
+    @Test
     public void testSingleDescribe() throws Exception {
 
         final BigdataSail sail = getSail();
@@ -220,6 +225,7 @@ public class TestDescribe extends ProxyBigdataSailTestCase {
 
     }
     
+    @Test
     public void testMultiDescribe() throws Exception {
 
         final BigdataSail sail = getSail();
