@@ -65,6 +65,8 @@ public class NV implements Serializable, Comparable<NV> {
     
     @Override
     public boolean equals(Object o) {
+    	if (this==o) return true;
+    	
     	if (!(o instanceof NV)) {
     		return false;
     	}

@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.util;
 
 
-import com.bigdata.io.TestChecksumUtility;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -63,16 +62,16 @@ public class TestAll extends TestCase {
 
         TestSuite suite = new TestSuite("util");
 
-        // test of the millisecond resolution timestamp factory.
-        suite.addTestSuite( TestMillisecondTimestampFactory.class );
-                
+        suite.addTestSuite( TestBootStateUtil.class );                
         suite.addTestSuite( TestCSVReader.class );
-        suite.addTestSuite( TestBootStateUtil.class );
         suite.addTestSuite( TestEntryUtil.class );
         suite.addTestSuite( TestFormat.class );
         suite.addTestSuite( TestHTMLUtility.class );
+        suite.addTestSuite( TestInnerCause.class );
+        suite.addTestSuite( TestMillisecondTimestampFactory.class );
         suite.addTestSuite( TestNT.class );
         suite.addTestSuite( TestNV.class );
+        suite.addTestSuite( TestReverseLongComparator.class );
         return suite;
         
     }
