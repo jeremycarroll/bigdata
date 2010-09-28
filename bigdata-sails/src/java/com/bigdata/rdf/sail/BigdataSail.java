@@ -57,6 +57,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.bigdata.rdf.sail;
 
+import info.aduna.collections.iterators.EmptyIterator;
 import info.aduna.iteration.CloseableIteration;
 
 import java.io.IOException;
@@ -128,6 +129,8 @@ import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.rules.BackchainAccessPath;
 import com.bigdata.rdf.rules.InferenceEngine;
+import com.bigdata.rdf.sail.changesets.IChangeLog;
+import com.bigdata.rdf.sail.changesets.IChangeRecord;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.InferredSPOFilter;
@@ -1066,6 +1069,7 @@ public class BigdataSail extends SailBase implements Sail {
      * @todo many of the stores can support concurrent writers, but there is a
      *       requirement to serialize writers when truth maintenance is enabled.
      */
+    @Override
     protected NotifyingSailConnection getConnectionInternal() 
         throws SailException {
 
@@ -2441,6 +2445,21 @@ public class BigdataSail extends SailBase implements Sail {
             database.commit();
             
         }
+        
+//        /**
+//         * Commit the write set, providing detailed feedback on the change set 
+//         * that occurred as a result of this commit.
+//         * 
+//         * @return
+//         *          an iterator over a set of {@link IChangeRecord}s.
+//         */
+//        public synchronized Iterator<IChangeRecord> commit2() throws SailException {
+//
+//            commit();
+//            
+//            return new EmptyIterator<IChangeRecord>();
+//            
+//        }
 
         final public boolean isOpen() throws SailException {
 
@@ -3299,6 +3318,16 @@ public class BigdataSail extends SailBase implements Sail {
             
             return new Object[] { dataset, bindings };
 
+        }
+        
+        /**
+         * Set the change log on the SAIL connection.  See {@link IChangeLog} 
+         * and {@link IChangeRecord}.
+         * 
+         * @param log
+         *          the change log
+         */
+        public void setChangeLog(final IChangeLog log) {
         }
 
     }
