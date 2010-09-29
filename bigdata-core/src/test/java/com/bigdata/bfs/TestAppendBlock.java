@@ -31,7 +31,7 @@ package com.bigdata.bfs;
 import java.io.IOException;
 import java.util.Random;
 
-import com.bigdata.bfs.BigdataFileSystem;
+import org.junit.Test;
 
 /**
  * Test atomic append operations on the file data index for the
@@ -68,17 +68,11 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestAppendBlock(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test the ability to write a byte[] onto the index and read it back.
      * 
      * @throws IOException
      */
+    @Test
     public void test_atomicAppendSmallBlock() throws IOException {
      
         final String id = "test";
@@ -97,9 +91,9 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
         assertSameIterator("block identifiers", new Long[] { block }, repo
                 .blocks(id, version));
         
-        assertEquals("readBlock", expected, repo.readBlock(id, version, block));
+        assertArrayEquals("readBlock", expected, repo.readBlock(id, version, block));
         
-        assertEquals("inputStream", expected, read(repo.inputStream(id, version)));
+        assertArrayEquals("inputStream", expected, read(repo.inputStream(id, version)));
 
     }
 
@@ -109,6 +103,7 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_atomicAppend2SmallBlocks() throws IOException {
      
         final String id = "test";
@@ -129,9 +124,9 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
         assertSameIterator("block identifiers", new Long[] { block0 }, repo
                 .blocks(id, version));
 
-        assertEquals("data", expected0, repo.readBlock(id, version, block0));
+        assertArrayEquals("data", expected0, repo.readBlock(id, version, block0));
 
-        assertEquals("data", expected0, read(repo.inputStream(id, version)));
+        assertArrayEquals("data", expected0, read(repo.inputStream(id, version)));
 
         // 2nd block
         final long block1 = repo.appendBlock(id, version, expected1, 0,
@@ -144,10 +139,10 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
         assertSameIterator("block identifiers", new Long[] { block0, block1 },
                 repo.blocks(id, version));
 
-        assertEquals("data", expected0, repo.readBlock(id, version, block0));
-        assertEquals("data", expected1, repo.readBlock(id, version, block1));
+        assertArrayEquals("data", expected0, repo.readBlock(id, version, block0));
+        assertArrayEquals("data", expected1, repo.readBlock(id, version, block1));
 
-        assertEquals("data", new byte[] { 1, 2, 3, 4, 5, 6 }, read(repo
+        assertArrayEquals("data", new byte[] { 1, 2, 3, 4, 5, 6 }, read(repo
                 .inputStream(id, version)));
 
     }
@@ -158,6 +153,7 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_atomicAppend3SmallBlocks() throws IOException {
      
         final String id = "test";
@@ -176,10 +172,10 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
 
         assertEquals("blockCount", 1, repo.getBlockCount(id, version));
 
-        assertEquals("readBlock", expected0, repo
+        assertArrayEquals("readBlock", expected0, repo
                 .readBlock(id, version, block0));
 
-        assertEquals("inputStream", expected0, read(repo.inputStream(id,
+        assertArrayEquals("inputStream", expected0, read(repo.inputStream(id,
                 version)));
 
         // 2nd block
@@ -190,10 +186,10 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
 
         assertEquals("blockCount", 2, repo.getBlockCount(id, version));
 
-        assertEquals("readBlock", expected1, repo
+        assertArrayEquals("readBlock", expected1, repo
                 .readBlock(id, version, block1));
 
-        assertEquals("data", new byte[] { 1, 2, 3, 4, 5, 6 }, read(repo
+        assertArrayEquals("data", new byte[] { 1, 2, 3, 4, 5, 6 }, read(repo
                 .inputStream(id, version)));
 
         // 3rd block
@@ -204,9 +200,9 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
 
         assertEquals("blockCount", 3, repo.getBlockCount(id, version));
 
-        assertEquals("data", expected2, repo.readBlock(id, version, block2));
+        assertArrayEquals("data", expected2, repo.readBlock(id, version, block2));
 
-        assertEquals("data", new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 },
+        assertArrayEquals("data", new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 },
                 read(repo.inputStream(id, version)));
 
     }
@@ -216,6 +212,7 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_atomicAppendEmptyBlock() throws IOException {
 
         final String id = "test";
@@ -231,9 +228,9 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
         
         assertEquals("blockCount", 1, repo.getBlockCount(id, version));
 
-        assertEquals("readBlock", expected, repo.readBlock(id, version, block0));
+        assertArrayEquals("readBlock", expected, repo.readBlock(id, version, block0));
 
-        assertEquals("inputStream", expected, read(repo.inputStream(id, version)));
+        assertArrayEquals("inputStream", expected, read(repo.inputStream(id, version)));
         
     }
 
@@ -242,17 +239,18 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_atomicAppendFullBlock() throws IOException {
         
         final String id = "test";
         
         final int version = 0;
         
-        Random r = new Random();
+        Random r2 = new Random();
         
         final byte[] expected = new byte[BLOCK_SIZE];
 
-        r.nextBytes(expected);
+        r2.nextBytes(expected);
         
         final long block0 = repo.appendBlock(id, version,
                 expected, 0, expected.length);
@@ -261,9 +259,9 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
         
         assertEquals("blockCount", 1, repo.getBlockCount(id, version));
 
-        assertEquals("readBlock", expected, repo.readBlock(id, version, block0));
+        assertArrayEquals("readBlock", expected, repo.readBlock(id, version, block0));
 
-        assertEquals("inputStream", expected, read(repo.inputStream(id, version)));
+        assertArrayEquals("inputStream", expected, read(repo.inputStream(id, version)));
         
     }
 
@@ -274,6 +272,7 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_atomicAppendCorrectRejection() throws IOException {
      
         final String id = "test";
@@ -307,11 +306,12 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_atomicAppendStressTest() throws IOException {
         
         final int LIMIT = 25;
         
-        final Random r = new Random();
+        final Random r2 = new Random();
 
         int nzero = 0;
         int nfull = 0;
@@ -321,7 +321,7 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
             /*
              * Note: {id + version} are always unique for this test.
              */
-            final String id = "test#" + r.nextInt(1000);
+            final String id = "test#" + r2.nextInt(1000);
 
             final int version = i;
 
@@ -333,16 +333,16 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
              */
             final int len;
             {
-                final int x = r.nextInt(100);
+                final int x = r2.nextInt(100);
                 if (x < 10) {
                     // short block length.
-                    len = r.nextInt(5);
+                    len = r2.nextInt(5);
                 } else if (x >= 90) {
                     // long block length (up to block_size).
-                    len = r.nextInt(5) + BLOCK_SIZE - 4;
+                    len = r2.nextInt(5) + BLOCK_SIZE - 4;
                 } else {
                     // uniform random distribution.
-                    len = r.nextInt(BLOCK_SIZE + 1);
+                    len = r2.nextInt(BLOCK_SIZE + 1);
                 }
             }
             
@@ -352,7 +352,7 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
             final byte[] expected = new byte[len];
             
             // random data.
-            r.nextBytes(expected);
+            r2.nextBytes(expected);
 
             final long block0 = repo.appendBlock(id, version,
                     expected, 0, expected.length);
@@ -361,9 +361,9 @@ public class TestAppendBlock extends AbstractRepositoryTestCase {
             
             assertEquals("blockCount", 1, repo.getBlockCount(id, version));
 
-            assertEquals("readBlock", expected, repo.readBlock(id, version, block0));
+            assertArrayEquals("readBlock", expected, repo.readBlock(id, version, block0));
 
-            assertEquals("inputStream", expected, read(repo.inputStream(id, version)));
+            assertArrayEquals("inputStream", expected, read(repo.inputStream(id, version)));
 
         }
         

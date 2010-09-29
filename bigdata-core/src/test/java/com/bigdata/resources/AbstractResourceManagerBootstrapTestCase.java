@@ -30,29 +30,21 @@ package com.bigdata.resources;
 
 import java.io.File;
 import java.util.Properties;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.resources.ResourceManager.Options;
+import com.bigdata.test.Assert;
+import org.junit.Before;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class AbstractResourceManagerBootstrapTestCase extends TestCase2 {
+public class AbstractResourceManagerBootstrapTestCase extends Assert {
 
     /**
      * 
      */
     public AbstractResourceManagerBootstrapTestCase() {
         super();
-    }
-
-    /**
-     * @param arg0
-     */
-    public AbstractResourceManagerBootstrapTestCase(String arg0) {
-        super(arg0);
     }
 
     public Properties getProperties() {
@@ -85,16 +77,15 @@ public class AbstractResourceManagerBootstrapTestCase extends TestCase2 {
     /**
      * Sets up the per-test data directory.
      */
+    @Before
     public void setUp() throws Exception {
 
-        super.setUp();
-        
         /*
          * Create a normal temporary file whose path is the path of the data
          * directory and then delete the temporary file.
          */
 
-        dataDir = File.createTempFile(getName(), "", tmpDir).getCanonicalFile();
+        dataDir = File.createTempFile(this.getClass().getName(), "", tmpDir).getCanonicalFile();
         
         assertTrue(dataDir.delete()); 
 

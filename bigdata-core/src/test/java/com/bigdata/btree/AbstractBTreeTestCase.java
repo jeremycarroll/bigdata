@@ -36,11 +36,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 import java.util.UUID;
-
-import com.bigdata.io.BytesUtil;
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase2;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -54,11 +49,13 @@ import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.codec.RandomKeysGenerator;
 import com.bigdata.cache.HardReferenceQueue;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.service.ndx.ClientIndexView;
+import com.bigdata.test.Assert;
 
 /**
  * Abstract test case for {@link BTree} tests.
@@ -66,7 +63,7 @@ import com.bigdata.service.ndx.ClientIndexView;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class AbstractBTreeTestCase extends TestCase2 {
+abstract public class AbstractBTreeTestCase extends Assert {
 
     protected Random r = new Random();
 
@@ -97,13 +94,6 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
      * 
      */
     public AbstractBTreeTestCase() {
-    }
-
-    /**
-     * @param name
-     */
-    public AbstractBTreeTestCase(String name) {
-        super(name);
     }
 
     /**
@@ -252,7 +242,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
         // verify the undefined values are all null.
         for (int i = nvalues; i < leaf.getValues().size(); i++) {
 
-            assertEquals(msg + "values[" + i + "]", null, leaf.getValues().get(
+            assertArrayEquals(msg + "values[" + i + "]", null, leaf.getValues().get(
                     i));
 
         }
@@ -526,7 +516,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
 
                 // same data.
                 if (!BytesUtil.bytesEqual(ea, aa))
-                    assertEquals("get(" + j + ")", ea, aa);
+                    assertArrayEquals("get(" + j + ")", ea, aa);
 
                 // verify same byte[] length reported.
                 assertEquals("length(" + j + ")", expected.length(j), actual
@@ -538,7 +528,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
                     final DataOutputStream dos = new DataOutputStream(baos);
                     actual.copy(j, dos);
                     dos.flush();
-                    assertEquals("copy(" + j + ",dos)", expected.get(j), baos
+                    assertArrayEquals("copy(" + j + ",dos)", expected.get(j), baos
                             .toByteArray());
                 } catch (IOException ex) {
                     fail("Not expecting exception", ex);
@@ -546,7 +536,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
                 
             } else {
 
-                assertEquals("get(" + j + ")", null, actual.get(j));
+                assertArrayEquals("get(" + j + ")", null, actual.get(j));
 
                 // verify actual throws the expected exception.
                 try {
@@ -585,7 +575,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
                 assertTrue("hasNext", aitr.hasNext());
                 
                 // verify same byte[] (compare data, may both be null).
-                assertEquals("byte[" + i + "]", eitr.next(), aitr.next());
+                assertArrayEquals("byte[" + i + "]", eitr.next(), aitr.next());
 
                 i++;
                 
@@ -955,7 +945,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
 //     * Note: An alternative to generating random keys is to generate known keys
 //     * and then generate a random permutation of the key order.  This technique
 //     * works well when you need to permutate the presentation of keys and values.
-//     * See {@link TestCase2#getRandomOrder(int)}.
+//     * See {@link Assert#getRandomOrder(int)}.
 //     * </p>
 //     * 
 //     * @param nkeys
@@ -1139,7 +1129,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
                 
                 assertEquals(entries[i],btree.lookup(key));
                 assertEquals(entries[i],btree.remove(key));
-                assertEquals(null,btree.lookup(key));
+                assertArrayEquals(null,btree.lookup(key));
                 
             }
             
@@ -1258,7 +1248,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
                 
                 assertEquals(entries[i],btree.lookup(key));
                 assertEquals(entries[i],btree.remove(key));
-                assertEquals(null,btree.lookup(key));
+                assertArrayEquals(null,btree.lookup(key));
 
             }
             
@@ -1562,7 +1552,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
 
             return btree;
             
-        } catch (AssertionFailedError ex) {
+        } catch (AssertionError ex) {
             System.err.println("int m=" + btree.getBranchingFactor()+";");
             System.err.println("int ninserts="+keys.length+";");
             System.err.print("int[] keys   = new   int[]{");
@@ -2104,9 +2094,9 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
 
             try {
                 
-                assertEquals(expectedKey, actualKey);
+                assertArrayEquals(expectedKey, actualKey);
                 
-            } catch (AssertionFailedError ex) {
+            } catch (AssertionError ex) {
                 
                 /*
                  * Lazily generate message.
@@ -2129,9 +2119,9 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
 
                 try {
 
-                    assertSameValue(expectedVal, actualVal);
+                    assertArrayEquals(expectedVal, actualVal);
 
-                } catch (AssertionFailedError ex) {
+                } catch (AssertionError ex) {
                     /*
                      * Lazily generate message.
                      */
@@ -2259,7 +2249,7 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
 
             final byte[] expectedVal = vals[entryIndex];
 
-            assertEquals(expectedVal, val);
+            assertArrayEquals(expectedVal, val);
             
         }
  
@@ -2317,9 +2307,9 @@ abstract public class AbstractBTreeTestCase extends TestCase2 {
 
             final byte[] expectedVal = vals[entryIndex];
 
-            assertEquals("keyAt", key, btree.keyAt(entryIndex));
+            assertArrayEquals("keyAt", key, btree.keyAt(entryIndex));
 
-            assertEquals("valueAt", expectedVal, btree.valueAt(entryIndex));
+            assertArrayEquals("valueAt", expectedVal, btree.valueAt(entryIndex));
 
         }
 

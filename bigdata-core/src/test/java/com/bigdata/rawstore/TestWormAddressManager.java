@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rawstore;
 
+import com.bigdata.test.Assert;
 import java.util.Random;
-
-import junit.framework.TestCase;
+import org.junit.Test;
 
 
 /**
@@ -38,7 +38,7 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestWormAddressManager extends TestCase {
+public class TestWormAddressManager extends Assert {
 
     Random r = new Random();
 
@@ -47,10 +47,6 @@ public class TestWormAddressManager extends TestCase {
      */
     public TestWormAddressManager() {
         super();
-    }
-
-    public TestWormAddressManager(String name) {
-        super(name);
     }
 
 //    /**
@@ -74,6 +70,7 @@ public class TestWormAddressManager extends TestCase {
      * Test of constructor when splitting the long integer into two 32-bit
      * unsigned integer components (offset and #bytes).
      */
+    @Test
     public void test_ctor_32bits() {
     
         WormAddressManager am = new WormAddressManager(32);
@@ -104,6 +101,7 @@ public class TestWormAddressManager extends TestCase {
      * Test of constructor when splitting the long integer into a 48-bit
      * unsigned integer (offset) and a 16-bit unsigned integer (#bytes).
      */
+    @Test
     public void test_ctor_48bits() {
 
         WormAddressManager am = new WormAddressManager(48);
@@ -122,6 +120,7 @@ public class TestWormAddressManager extends TestCase {
         
     }
 
+    @Test
     public void test_ctor_correctRejection() {
 
         try {
@@ -132,7 +131,7 @@ public class TestWormAddressManager extends TestCase {
             
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
             
         }
         
@@ -144,7 +143,7 @@ public class TestWormAddressManager extends TestCase {
             
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
             
         }
         
@@ -156,7 +155,7 @@ public class TestWormAddressManager extends TestCase {
             
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
             
         }
         
@@ -168,7 +167,7 @@ public class TestWormAddressManager extends TestCase {
             
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
             
         }
 
@@ -186,6 +185,7 @@ public class TestWormAddressManager extends TestCase {
      * byte count or a zero offset since the value <code>0L</code> is reserved
      * to represent a null reference.
      */
+    @Test
     public void test_canNotConstructNULLs() {
         
         for(int i=WormAddressManager.MIN_OFFSET_BITS; i<=WormAddressManager.MAX_OFFSET_BITS; i++) {
@@ -198,7 +198,7 @@ public class TestWormAddressManager extends TestCase {
                 
             } catch(IllegalArgumentException ex) {
                 
-                System.err.println("Ignoring expected exception: "+ex);
+//                 System.err.println("Ignoring expected exception: "+ex);
                 
             }
 
@@ -208,7 +208,7 @@ public class TestWormAddressManager extends TestCase {
                 
             } catch(IllegalArgumentException ex) {
                 
-                System.err.println("Ignoring expected exception: "+ex);
+//                 System.err.println("Ignoring expected exception: "+ex);
                 
             }
             
@@ -220,6 +220,7 @@ public class TestWormAddressManager extends TestCase {
      * Test of encoding and decoding addressed with a small set of 32 bit
      * offsets.
      */
+    @Test
     public void test_get_32() {
 
         doTestGet(32, 1000);
@@ -230,6 +231,7 @@ public class TestWormAddressManager extends TestCase {
      * Test of encoding and decoding addressed with a small set of 48 bit
      * offsets.
      */
+    @Test
     public void test_get_48() {
 
         doTestGet(48, 1000);
@@ -240,6 +242,7 @@ public class TestWormAddressManager extends TestCase {
      * Test of encoding and decoding addresses with a set of addresses selected
      * from each of the legal values of the offsetBits.
      */
+    @Test
     public void test_get() {
 
         for (int i = WormAddressManager.MIN_OFFSET_BITS; i <= WormAddressManager.MAX_OFFSET_BITS; i++) {
@@ -617,6 +620,7 @@ public class TestWormAddressManager extends TestCase {
      * One of a series of tests of encoding and decoding addresses that have
      * proven themselves to be edge conditions in the code.
      */
+    @Test
     public void test_encodeDecode_offsetBits32_01() {
         
         WormAddressManager am = new WormAddressManager(32);
@@ -633,6 +637,7 @@ public class TestWormAddressManager extends TestCase {
         
     }
     
+    @Test
     public void test_encodeDecode_offsetBits48_01() {
         
         WormAddressManager am = new WormAddressManager(48);
@@ -649,6 +654,7 @@ public class TestWormAddressManager extends TestCase {
         
     }
 
+    @Test
     public void test_static_getMaxByteCount() {
         
         /*
@@ -681,6 +687,7 @@ public class TestWormAddressManager extends TestCase {
      * Test that {@link IAddressManager#toAddr(int, long)} will correctly reject
      * requests where the byte count is invalid.
      */
+    @Test
     public void test_toAddr_correctRejection_byteCount() {
 
         WormAddressManager am = new WormAddressManager(48);
@@ -694,7 +701,7 @@ public class TestWormAddressManager extends TestCase {
             
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ingoring expected exception: "+ex);
+//             System.err.println("Ingoring expected exception: "+ex);
             
         }
 
@@ -712,7 +719,7 @@ public class TestWormAddressManager extends TestCase {
             
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ingoring expected exception: "+ex);
+//             System.err.println("Ingoring expected exception: "+ex);
             
         }
         
@@ -722,6 +729,7 @@ public class TestWormAddressManager extends TestCase {
      * Test that {@link IAddressManager#toAddr(int, long)} will correctly reject
      * requests where the byte offset is invalid.
      */
+    @Test
     public void test_toAddr_correctRejection_byteOffset() {
         
         WormAddressManager am = new WormAddressManager(48);
@@ -735,7 +743,7 @@ public class TestWormAddressManager extends TestCase {
             
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ingoring expected exception: "+ex);
+//             System.err.println("Ingoring expected exception: "+ex);
             
         }
 
@@ -753,7 +761,7 @@ public class TestWormAddressManager extends TestCase {
             
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ingoring expected exception: "+ex);
+//             System.err.println("Ingoring expected exception: "+ex);
             
         }
 

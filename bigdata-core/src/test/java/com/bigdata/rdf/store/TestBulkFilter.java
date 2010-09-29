@@ -35,31 +35,36 @@ import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test bulk filter API.
  * 
  * @author <a href="mailto:mpersonick@users.sourceforge.net">Mike Personick</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestBulkFilter extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestBulkFilter() {
+    public TestBulkFilter(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestBulkFilter(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Simple test of bulk filtering out and in.
      */
+    @Test
     public void test_filterOut() {
 
         AbstractTripleStore store = getStore();
@@ -184,6 +189,7 @@ public class TestBulkFilter extends AbstractTripleStoreTestCase {
     /**
      * Simple test of bulk SPO completion (value lookup).
      */
+    @Test
     public void testCompletion() {
 
         AbstractTripleStore store = getStore();

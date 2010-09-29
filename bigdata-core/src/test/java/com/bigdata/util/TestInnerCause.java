@@ -28,28 +28,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.util;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestInnerCause extends TestCase {
+public class TestInnerCause {
 
     /**
      * 
      */
     public TestInnerCause() {
         super();
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestInnerCause(String arg0) {
-        super(arg0);
     }
 
     protected Throwable getInnerCause(Throwable t, Class<? extends Throwable> cls) {
@@ -63,6 +61,7 @@ public class TestInnerCause extends TestCase {
         return InnerCause.isInnerCause(t, cls);
         
     }    
+    @Test
     public void test_getInnerCause_correctRejection() {
 
         try {
@@ -91,6 +90,7 @@ public class TestInnerCause extends TestCase {
     /**
      * Finds cause when it is on top of the stack trace and the right type.
      */
+    @Test
     public void test_getInnerCause01_find_exact() {
 
         Throwable t = new RuntimeException();
@@ -103,6 +103,7 @@ public class TestInnerCause extends TestCase {
      * Find cause when it is on top of the stack trace and a subclass of the
      * desired type.
      */
+    @Test
     public void test_getInnerCause01_find_subclass() {
 
         Throwable t = new IOException();
@@ -115,6 +116,7 @@ public class TestInnerCause extends TestCase {
     /**
      * Does not find cause that is a super class of the desired type.
      */
+    @Test
     public void test_getInnerCause01_reject_superclass() {
 
         Throwable t = new Exception();
@@ -128,6 +130,7 @@ public class TestInnerCause extends TestCase {
      * Does not find cause when it is on top of the stack trace and not either
      * the desired type or a subclass of the desired type.
      */
+    @Test
     public void test_getInnerCause01_reject_otherType() {
 
         Throwable t = new Throwable();
@@ -140,6 +143,7 @@ public class TestInnerCause extends TestCase {
     /**
      * Finds inner cause that is the exact type.
      */
+    @Test
     public void test_getInnerCause02_find_exact() {
 
         Throwable cause = new Exception();
@@ -154,6 +158,7 @@ public class TestInnerCause extends TestCase {
     /**
      * Finds inner cause that is a derived type (subclass).
      */
+    @Test
     public void test_getInnerCause02_find_subclass() {
 
         Throwable cause = new IOException();
@@ -168,6 +173,7 @@ public class TestInnerCause extends TestCase {
     /**
      * Does not find inner cause that is a super class of the desired type.
      */
+    @Test
     public void test_getInnerCause02_reject_superclass() {
 
         Throwable cause = new Exception();
@@ -183,6 +189,7 @@ public class TestInnerCause extends TestCase {
      * Does not find an inner cause that is neither the specified type nor a
      * subtype of the specified type.
      */
+    @Test
     public void test_getInnerCause03_reject_otherType() {
 
         Throwable cause = new RuntimeException();

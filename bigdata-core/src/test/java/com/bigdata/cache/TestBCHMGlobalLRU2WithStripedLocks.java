@@ -29,12 +29,13 @@ package com.bigdata.cache;
 
 import com.bigdata.cache.LRUNexus.AccessPolicyEnum;
 import com.bigdata.rawstore.Bytes;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Some unit tests for the {@link BCHMGlobalLRU2} using striped locks.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @see TestBCHMGlobalLRU2WithThreadLocalBuffers
  */
@@ -47,13 +48,6 @@ public class TestBCHMGlobalLRU2WithStripedLocks extends
     public TestBCHMGlobalLRU2WithStripedLocks() {
     }
 
-    /**
-     * @param name
-     */
-    public TestBCHMGlobalLRU2WithStripedLocks(String name) {
-        super(name);
-    }
-    
     private final AccessPolicyEnum accessPolicy = AccessPolicyEnum.LRU;
 
     private final static long maximumBytesInMemory = 10 * Bytes.kilobyte;
@@ -73,9 +67,8 @@ public class TestBCHMGlobalLRU2WithStripedLocks extends
 
     private final static int threadLocalBufferCapacity = 128;
 
-    protected void setUp() throws Exception {
-
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
 
         lru = new BCHMGlobalLRU2<Long, Object>(accessPolicy,
                 maximumBytesInMemory, minCleared, minimumCacheSetCapacity,
@@ -90,6 +83,8 @@ public class TestBCHMGlobalLRU2WithStripedLocks extends
      * Note: The {@link #threadLocalBufferCapacity} is overridden for this unit
      * test to ONE (1) so that the counter updates are synchronous.
      */
+    @Test
+    @Override
     public void test_counters() {
 
         lru = new BCHMGlobalLRU2<Long, Object>(accessPolicy,
@@ -107,6 +102,7 @@ public class TestBCHMGlobalLRU2WithStripedLocks extends
      * Note: The {@link #threadLocalBufferCapacity} is overridden for this unit
      * test to ONE (1) so that the counter updates are synchronous.
      */
+    @Test
     public void test_clearCache() {
 
         lru = new BCHMGlobalLRU2<Long, Object>(accessPolicy,

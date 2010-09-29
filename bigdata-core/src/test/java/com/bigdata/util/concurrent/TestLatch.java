@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.util.concurrent;
 
+import com.bigdata.test.Assert;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -35,8 +36,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link Latch}.
@@ -44,7 +44,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestLatch extends TestCase2 {
+public class TestLatch extends Assert {
 
     /**
      * 
@@ -54,16 +54,9 @@ public class TestLatch extends TestCase2 {
     }
 
     /**
-     * @param name
-     */
-    public TestLatch(String name) {
-        super(name);
-
-    }
-
-    /**
      * Basic tests of the counter.
      */
+    @Test
     public void test1() {
 
         final Latch latch = new Latch();
@@ -101,6 +94,7 @@ public class TestLatch extends TestCase2 {
      *       timeout is to short in the Callable, where the outer thread fails
      *       to dec() or where the inner thread fails to inc().
      */
+    @Test
     public void test2() throws InterruptedException, ExecutionException {
 
         final Latch latch = new Latch();
@@ -145,6 +139,7 @@ public class TestLatch extends TestCase2 {
     /**
      * Verify that dec() does not allow the counter to become negative.
      */
+    @Test
     public void test3() {
 
         final Latch latch = new Latch();
@@ -187,6 +182,7 @@ public class TestLatch extends TestCase2 {
      * Verify that addAndGet() allows the counter to return to zero but does not
      * allow the counter to become negative.
      */
+    @Test
     public void test4() {
 
         final Latch latch = new Latch();

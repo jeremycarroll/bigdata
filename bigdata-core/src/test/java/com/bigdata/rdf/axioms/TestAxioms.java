@@ -38,9 +38,16 @@ import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.spo.SPO;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
+import com.bigdata.rdf.store.ProxyTestCase;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for the {@link Axioms}.
@@ -48,24 +55,22 @@ import com.bigdata.rdf.store.AbstractTripleStore.Options;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestAxioms extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestAxioms() {
-        super();
-       
+    public TestAxioms(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestAxioms(String name) {
-        super(name);
-       
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
+    @Test
     public void test_NoAxioms() {
 
         Properties properties = getProperties();
@@ -152,6 +157,7 @@ public class TestAxioms extends AbstractTripleStoreTestCase {
 
     }
     
+    @Test
     public void test_RdfsAxioms() {
         
         Properties properties = getProperties();
@@ -231,6 +237,7 @@ public class TestAxioms extends AbstractTripleStoreTestCase {
         
     }
 
+    @Test
     public void test_OwlAxioms() {
       
         Properties properties = getProperties();

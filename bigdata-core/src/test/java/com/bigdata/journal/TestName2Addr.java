@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.journal;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link Name2Addr index} used to name index names to the
@@ -36,7 +36,7 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestName2Addr extends TestCase {
+public class TestName2Addr {
 
     /**
      * 
@@ -44,14 +44,8 @@ public class TestName2Addr extends TestCase {
     public TestName2Addr() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestName2Addr(String arg0) {
-        super(arg0);
-    }
-
     // @todo write tests (generally, nothing works if this is broken :-)
+    @Test
     public void test_something() {
         
 //        fail("write tests");

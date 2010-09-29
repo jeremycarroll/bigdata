@@ -28,13 +28,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.counters.linux;
 
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class TestKernelVersion extends TestCase2 {
+public class TestKernelVersion extends Assert {
 
     /**
      * 
@@ -42,13 +42,7 @@ public class TestKernelVersion extends TestCase2 {
     public TestKernelVersion() {
     }
 
-    /**
-     * @param name
-     */
-    public TestKernelVersion(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_correctRejection() {
 
         try {
@@ -69,6 +63,7 @@ public class TestKernelVersion extends TestCase2 {
 
     }
 
+    @Test
     public void test_kernelVersion01() {
 
         final KernelVersion t = new KernelVersion("2.6.31");
@@ -81,6 +76,7 @@ public class TestKernelVersion extends TestCase2 {
     /**
      * Observed on a fedora 10 build <code>2.6.31-302-rs</code>.
      */
+    @Test
     public void test_kernelVersion02() {
 
         final KernelVersion t = new KernelVersion("2.6.31-302-rs");

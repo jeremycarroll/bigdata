@@ -34,6 +34,7 @@ import java.util.Properties;
 import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.keys.KeyBuilder.Options;
 import com.ibm.icu.text.Collator;
+import org.junit.Test;
 
 /**
  * Tests for Unicode support in {@link KeyBuilder}.
@@ -60,13 +61,7 @@ public class TestICUUnicodeKeyBuilder extends AbstractUnicodeKeyBuilderTestCase 
     public TestICUUnicodeKeyBuilder() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestICUUnicodeKeyBuilder(String arg0) {
-        super(arg0);
-    }
-
+    @Override
     public Properties getProperties() {
 
         final Properties properties = new Properties(super.getProperties());
@@ -77,6 +72,7 @@ public class TestICUUnicodeKeyBuilder extends AbstractUnicodeKeyBuilderTestCase 
         
     }
     
+    @Test
     public void test_correctCollator() {
         
         final Properties properties = getProperties();
@@ -104,6 +100,7 @@ public class TestICUUnicodeKeyBuilder extends AbstractUnicodeKeyBuilderTestCase 
      * Unicode string), then I would strongly recommend that you form the sort
      * key first and then its successor (by appending a trailing nul).
      */
+    @Test
     public void test_keyBuilder_unicode_trailingNuls() {
 
         /*
@@ -154,15 +151,15 @@ public class TestICUUnicodeKeyBuilder extends AbstractUnicodeKeyBuilderTestCase 
                 "Collator will not differentiate trailing nul characters at any strength.",
                 minStrength == -1); 
 
-        System.err
-                .println("Minimum strength ("+minStrength+") to differentiate trailing nul character is: "
-                        + (minStrength == Collator.PRIMARY ? "PRIMARY"
-                                : (minStrength == Collator.SECONDARY ? "SECONDARY"
-                                        : (minStrength == Collator.TERTIARY ? "TERTIARY"
-                                                : (minStrength == Collator.QUATERNARY ? "QUARERNARY"
-                                                        : (minStrength == Collator.IDENTICAL ? "IDENTICAL"
-                                                                : ""
-                                                                        + minStrength))))));
+//         System.err
+//                 .println("Minimum strength ("+minStrength+") to differentiate trailing nul character is: "
+//                         + (minStrength == Collator.PRIMARY ? "PRIMARY"
+//                                 : (minStrength == Collator.SECONDARY ? "SECONDARY"
+//                                         : (minStrength == Collator.TERTIARY ? "TERTIARY"
+//                                                 : (minStrength == Collator.QUATERNARY ? "QUARERNARY"
+//                                                         : (minStrength == Collator.IDENTICAL ? "IDENTICAL"
+//                                                                 : ""
+//                                                                         + minStrength))))));
         
     }
 
@@ -207,11 +204,11 @@ public class TestICUUnicodeKeyBuilder extends AbstractUnicodeKeyBuilderTestCase 
             log
                     .warn("Key1 does NOT order less than successor(key1) : comparator returns "
                             + ret);
-            System.err.println("text=" + s);
-            System.err.println("strength="
-                    + properties.getProperty(Options.STRENGTH));
-            System.err.println("key1: " + Arrays.toString(key1));
-            System.err.println("key2: " + Arrays.toString(key2));
+//             System.err.println("text=" + s);
+//             System.err.println("strength="
+//                     + properties.getProperty(Options.STRENGTH));
+//             System.err.println("key1: " + Arrays.toString(key1));
+//             System.err.println("key2: " + Arrays.toString(key2));
             return false;
         }
 

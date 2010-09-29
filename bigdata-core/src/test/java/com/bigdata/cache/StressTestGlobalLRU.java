@@ -43,11 +43,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.bigdata.DataFinder;
-import junit.framework.TestCase;
-
 import org.apache.log4j.Logger;
 
+import com.bigdata.DataFinder;
 import com.bigdata.cache.LRUNexus.AccessPolicyEnum;
 import com.bigdata.cache.LRUNexus.CacheSettings;
 import com.bigdata.concurrent.TestLockManager;
@@ -58,6 +56,7 @@ import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.WormAddressManager;
+import com.bigdata.test.Assert;
 import com.bigdata.test.ExperimentDriver;
 import com.bigdata.test.ExperimentDriver.IComparisonTest;
 import com.bigdata.test.ExperimentDriver.Result;
@@ -73,9 +72,8 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * access policy provided by the cache for the application.  
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class StressTestGlobalLRU extends TestCase implements IComparisonTest {
+public class StressTestGlobalLRU extends Assert implements IComparisonTest {
 
     public static final Logger log = Logger.getLogger(StressTestGlobalLRU.class);
 
@@ -86,10 +84,6 @@ public class StressTestGlobalLRU extends TestCase implements IComparisonTest {
         super();
     }
 
-    public StressTestGlobalLRU(String name) {
-        super(name);
-    }
-    
     /**
      * Test driver. 
      */
@@ -184,7 +178,6 @@ public class StressTestGlobalLRU extends TestCase implements IComparisonTest {
      * Options for {@link TestLockManager#doComparisonTest(Properties)}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static interface TestOptions extends LRUNexus.Options {
 
@@ -249,7 +242,6 @@ public class StressTestGlobalLRU extends TestCase implements IComparisonTest {
      * Wrap a byte[] as a mock data record.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected static class MockDataRecord implements IDataRecordAccess {
 
@@ -276,7 +268,6 @@ public class StressTestGlobalLRU extends TestCase implements IComparisonTest {
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      */
     static class OpCounters {
         /** Total #of operations. */
@@ -301,7 +292,6 @@ public class StressTestGlobalLRU extends TestCase implements IComparisonTest {
      * Counters for a stress test run, including the per-thread counters.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static class RunCounters {
 
@@ -558,7 +548,6 @@ public class StressTestGlobalLRU extends TestCase implements IComparisonTest {
      * probability distribution described in the constructor call.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static class Op {
         
@@ -698,9 +687,8 @@ public class StressTestGlobalLRU extends TestCase implements IComparisonTest {
      * Tests of the {@link Op} test helper class.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
-    public static class TestOp extends TestCase {
+    public static class TestOp {
 
 //        private final Random r = new Random();
         
@@ -796,7 +784,6 @@ public class StressTestGlobalLRU extends TestCase implements IComparisonTest {
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      */
     static public class Generate extends ExperimentDriver {
         

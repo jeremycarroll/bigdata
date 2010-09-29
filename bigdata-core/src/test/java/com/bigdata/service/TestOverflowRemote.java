@@ -38,10 +38,6 @@ public class TestOverflowRemote extends TestOverflow {
         super();
     }
 
-    public TestOverflowRemote(String name) {
-        super(name);
-    }
-
     public Properties getProperties() {
         final Properties properties = new Properties(super.getProperties());
         properties.setProperty

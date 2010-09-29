@@ -30,9 +30,6 @@ package com.bigdata.cache;
 
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.cache.StressTestGlobalLRU.Op;
 import com.bigdata.io.FixedByteArrayBuffer;
@@ -41,21 +38,18 @@ import com.bigdata.io.IFixedDataRecord;
 import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import com.bigdata.test.Assert;
 import com.bigdata.test.ExperimentDriver.Result;
+import org.junit.After;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
+public class AbstractHardReferenceGlobalLRUTest extends Assert {
 
     public AbstractHardReferenceGlobalLRUTest() {
-        
-    }
-    
-    public AbstractHardReferenceGlobalLRUTest(String name) {
-        
-        super(name);
         
     }
     
@@ -71,7 +65,8 @@ public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
     // Note: not used for this test suite, not defined for memStore.
     protected IAddressManager am2 = null;
     
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         
         store1 = store2 = null;
         
@@ -83,6 +78,7 @@ public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
      * Unit test explores ability to recover the {@link ILRUCache}
      * implementation for a given {@link IRawStore}.
      */
+    @Test
     public void test_cacheSet() {
 
         assertFalse(store1.getUUID().equals(store2.getUUID()));
@@ -131,6 +127,7 @@ public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
      * @see BCHMGlobalLRU
      * @see BCHMGlobalLRU2
      */
+    @Test
     public void test_counters() {
         
         if (lru instanceof BCHMGlobalLRU<?>) {
@@ -212,6 +209,7 @@ public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
     /**
      * Stress test for clearing a cache.
      */
+    @Test
     public void test_clearCache() {
 
         final Random r = new Random();
@@ -325,6 +323,7 @@ public class AbstractHardReferenceGlobalLRUTest extends TestCase2 {
      * @see StressTestGlobalLRU, which is used to measure the throughput of the
      *      various {@link IGlobalLRU} implementations.
      */
+    @Test
     final public void test_concurrentOperations() throws InterruptedException,
             ExecutionException {
         

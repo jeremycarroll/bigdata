@@ -9,23 +9,25 @@ package com.bigdata.btree;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.SegmentMetadata;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
-import junit.framework.TestCase;
 
 import java.io.File;
 import java.util.UUID;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Basic unit tests for IndexSegment class.
  */
-public class TestIndexSegment extends TestCase {
+public class TestIndexSegment extends Assert {
     File outputDirectory;
     File outputFile;
 
     BTree sampleTree;
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
 
         outputFile = new File(getClass().getName() + ".seg").getAbsoluteFile();
         outputDirectory = outputFile.getParentFile();
@@ -47,12 +49,12 @@ public class TestIndexSegment extends TestCase {
 
     }
 
-    @Override
-    protected void tearDown() throws Exception {
-        super.tearDown();
+    @After
+    public void tearDown() throws Exception {
         outputFile.delete();
     }
 
+    @Test
     public void test_verify_getResourceMetadata() throws Exception {
         //write segment file from sample tree to disk.
         IndexSegmentCheckpoint checkpoint = IndexSegmentBuilder

@@ -34,8 +34,15 @@ import org.openrdf.model.vocabulary.RDFS;
 
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.model.BigdataValueFactory;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.rule.Rule;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Note: rdfs 5 and 11 use the same base class.
@@ -44,27 +51,27 @@ import com.bigdata.relation.rule.Rule;
  * @see RuleRdfs11
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRuleRdfs11 extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestRuleRdfs11() {
+    public TestRuleRdfs11(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRuleRdfs11(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Simple test verifies inference of a subclassof entailment.
      * @throws Exception 
      */
+    @Test
     public void test_rdfs11() throws Exception {
 
         final Properties properties = super.getProperties();

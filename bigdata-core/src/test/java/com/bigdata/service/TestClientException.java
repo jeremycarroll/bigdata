@@ -32,8 +32,6 @@ import java.util.Arrays;
 
 import com.bigdata.service.ndx.ClientException;
 
-import junit.framework.TestCase;
-
 /**
  * Class written to verify the stack trace printing behavior of
  * {@link ClientException}.
@@ -43,19 +41,12 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestClientException extends TestCase {
+public class TestClientException {
 
     /**
      * 
      */
     public TestClientException() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestClientException(String arg0) {
-        super(arg0);
     }
 
     void ex1() {

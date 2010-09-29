@@ -36,10 +36,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link WriteCache}.
@@ -50,23 +49,15 @@ import com.bigdata.rawstore.Bytes;
  * {@link ByteBuffer}s back to the {@link DirectBufferPool}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @todo test concurrent readers and a single writer.
  */
-public class TestWriteCache extends TestCase2 {
+public class TestWriteCache extends Assert {
 
     /**
      * 
      */
     public TestWriteCache() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestWriteCache(String name) {
-        super(name);
     }
 
     /**
@@ -81,6 +72,7 @@ public class TestWriteCache extends TestCase2 {
      * @throws IOException
      * @throws InterruptedException
      */
+    @Test
     public void test_writeCache01() throws IOException, InterruptedException {
 
         /*
@@ -103,7 +95,7 @@ public class TestWriteCache extends TestCase2 {
          */
         final AtomicLong _addr = new AtomicLong(baseOffset);
         
-        final File file = File.createTempFile(getName(), ".tmp");
+        final File file = File.createTempFile(this.getClass().getName(), ".tmp");
 
         try {
 
@@ -449,6 +441,7 @@ public class TestWriteCache extends TestCase2 {
      * @throws IOException
      * @throws InterruptedException
      */
+    @Test
     public void test_writeCacheScatteredWrites() throws IOException, InterruptedException {
 
         /*
@@ -470,7 +463,7 @@ public class TestWriteCache extends TestCase2 {
          */
         long _addr[] = {4096,1024,3072,8192};
         
-        final File file = File.createTempFile(getName(), ".tmp");
+        final File file = File.createTempFile(this.getClass().getName(), ".tmp");
         
 
         try {
@@ -828,6 +821,7 @@ public class TestWriteCache extends TestCase2 {
      * @throws IOException
      * @throws InterruptedException
      */
+    @Test
     public void test_writeCacheStressScatteredWrites() throws IOException, InterruptedException {
 
         /*
@@ -857,7 +851,7 @@ public class TestWriteCache extends TestCase2 {
         // Now randomize the array for writing
         randomizeArray(allocs);
         
-        final File file = File.createTempFile(getName(), ".tmp");
+        final File file = File.createTempFile(this.getClass().getName(), ".tmp");
         
 
         try {
@@ -1172,7 +1166,7 @@ public class TestWriteCache extends TestCase2 {
 
         if (actual.hasArray() && actual.arrayOffset() == 0) {
 
-            assertEquals(expected, actual.array());
+            assertArrayEquals(expected, actual.array());
 
             return;
 
@@ -1191,7 +1185,7 @@ public class TestWriteCache extends TestCase2 {
         actual.get(actual2);
 
         // compare byte[]s.
-        assertEquals(expected, actual2);
+        assertArrayEquals(expected, actual2);
 
     }
 

@@ -30,12 +30,10 @@ package com.bigdata.btree;
 
 import java.util.NoSuchElementException;
 import java.util.UUID;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.btree.raba.ReadOnlyKeysRaba;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import com.bigdata.test.Assert;
 
 /**
  * Abstract base class for {@link ITupleCursor} test suites.
@@ -47,19 +45,12 @@ import com.bigdata.rawstore.SimpleMemoryRawStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class AbstractTupleCursorTestCase extends TestCase2 {
+abstract public class AbstractTupleCursorTestCase extends Assert {
 
     /**
      * 
      */
     public AbstractTupleCursorTestCase() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public AbstractTupleCursorTestCase(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -287,65 +278,65 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
             // seek to a probe key that does not exist.
             assertEquals(null, cursor.seek(29));
             assertEquals(null, cursor.tuple());
-            assertEquals(TestKeyBuilder.asSortKey(29),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(29),cursor.currentKey());
             assertTrue(cursor.hasNext());
             assertEquals(new TestTuple<String>(30, "James"), cursor.next());
             assertEquals(new TestTuple<String>(30, "James"), cursor.tuple());
-            assertEquals(TestKeyBuilder.asSortKey(30),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(30),cursor.currentKey());
             assertFalse(cursor.hasNext());
             assertTrue(cursor.hasPrior());
             assertEquals(new TestTuple<String>(20, "Mike"), cursor.prior());
             assertEquals(new TestTuple<String>(20, "Mike"), cursor.tuple());
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
 
             // seek to a probe key that does not exist.
             assertEquals(null, cursor.seek(9));
             assertEquals(null, cursor.tuple());
-            assertEquals(TestKeyBuilder.asSortKey(9),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(9),cursor.currentKey());
             assertTrue(cursor.hasNext());
             assertEquals(new TestTuple<String>(10, "Bryan"), cursor.next());
             assertEquals(new TestTuple<String>(10, "Bryan"), cursor.tuple());
-            assertEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
             assertFalse(cursor.hasPrior());
             assertTrue(cursor.hasNext());
             assertEquals(new TestTuple<String>(20, "Mike"), cursor.next());
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
 
             // seek to a probe key that does not exist and scan forward.
             assertEquals(null, cursor.seek(19));
             assertEquals(null, cursor.tuple());
-            assertEquals(TestKeyBuilder.asSortKey(19),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(19),cursor.currentKey());
             assertTrue(cursor.hasNext());
             assertEquals(new TestTuple<String>(20, "Mike"), cursor.next());
             assertEquals(new TestTuple<String>(20, "Mike"), cursor.tuple());
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
             assertTrue(cursor.hasNext());
             assertEquals(new TestTuple<String>(30, "James"), cursor.next());
             assertEquals(new TestTuple<String>(30, "James"), cursor.tuple());
-            assertEquals(TestKeyBuilder.asSortKey(30),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(30),cursor.currentKey());
 
             // seek to a probe key that does not exist and scan backward.
             assertEquals(null, cursor.seek(19));
             assertEquals(null, cursor.tuple());
-            assertEquals(TestKeyBuilder.asSortKey(19),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(19),cursor.currentKey());
             assertTrue(cursor.hasPrior());
             assertEquals(new TestTuple<String>(10, "Bryan"), cursor.prior());
             assertEquals(new TestTuple<String>(10, "Bryan"), cursor.tuple());
-            assertEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
             assertFalse(cursor.hasPrior());
 
             // seek to a probe key that does not exist (after all valid tuples).
             assertEquals(null, cursor.seek(31));
             assertEquals(null, cursor.tuple());
             assertTrue(cursor.isCursorPositionDefined());
-            assertEquals(TestKeyBuilder.asSortKey(31),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(31),cursor.currentKey());
             assertFalse(cursor.hasNext());
 
             // seek to a probe key that does not exist (after all valid tuples).
             assertEquals(null, cursor.seek(31));
             assertEquals(null, cursor.tuple());
             assertTrue(cursor.isCursorPositionDefined());
-            assertEquals(TestKeyBuilder.asSortKey(31),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(31),cursor.currentKey());
             assertTrue(cursor.hasPrior());
             assertEquals(new TestTuple<String>(30, "James"), cursor.prior());
 
@@ -471,7 +462,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
 //                assertEquals(KeyBuilder.asSortKey(19),cursor.currentKey());
                 assertTrue(cursor.hasPrior());
                 assertEquals(new TestTuple<String>(10, "Bryan"), cursor.prior());
-                assertEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
+                assertArrayEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
                 assertFalse(cursor.hasPrior());
 
             }
@@ -490,10 +481,10 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
 
                 assertTrue(cursor.hasPrior());
                 assertEquals(new TestTuple<String>(20, "Mike"), cursor.prior());
-                assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+                assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
                 assertTrue(cursor.hasPrior());
                 assertEquals(new TestTuple<String>(10, "Bryan"), cursor.prior());
-                assertEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
+                assertArrayEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
                 assertFalse(cursor.hasPrior());
 
             }
@@ -512,7 +503,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
 
                 assertTrue(cursor.hasPrior());
                 assertEquals(new TestTuple<String>(10, "Bryan"), cursor.prior());
-                assertEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
+                assertArrayEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
                 assertFalse(cursor.hasPrior());
 
             }
@@ -574,7 +565,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
         assertEquals("ntuples", 5, btree.getEntryCount());
 
         // The separator key is (30).
-        assertEquals(TestKeyBuilder.asSortKey(30), ((Node) btree.getRoot())
+        assertArrayEquals(TestKeyBuilder.asSortKey(30), ((Node) btree.getRoot())
                 .getKeys().get(0));
         
         // Verify the expected keys in the 1st leaf.
@@ -636,7 +627,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
 
             assertTrue(cursor.hasPrior());
             assertEquals(new TestTuple<String>(20, "Mike"), cursor.prior());
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
 
         }
 
@@ -656,7 +647,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
 
             assertTrue(cursor.hasPrior());
             assertEquals(new TestTuple<String>(10, "Bryan"), cursor.prior());
-            assertEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
             assertFalse(cursor.hasPrior());
 
         }
@@ -698,7 +689,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
              * Verify that the separatorKey in the parent is the first tuple we
              * expect to find in the 2nd leaf.
              */
-            assertEquals(TestKeyBuilder.asSortKey(30), ((Node) btree.getRoot())
+            assertArrayEquals(TestKeyBuilder.asSortKey(30), ((Node) btree.getRoot())
                     .getKeys().get(0));
 
             /*
@@ -711,7 +702,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
             // Remove the first tuple in the 2nd leaf.
             btree.remove(30);
             // The separator key has not been changed.
-            assertEquals(((Node) btree.getRoot()).getKeys().get(0), TestKeyBuilder
+            assertArrayEquals(((Node) btree.getRoot()).getKeys().get(0), TestKeyBuilder
                     .asSortKey(30));
             // The #of leaves has not been changed.
             assertEquals(2, btree.getLeafCount());
@@ -733,7 +724,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
 
             assertTrue(cursor.hasPrior());
             assertEquals(new TestTuple<String>(20, "Mike"), cursor.prior());
-            assertEquals(TestKeyBuilder.asSortKey(20), cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20), cursor.currentKey());
             assertTrue(cursor.hasPrior());
 
         }
@@ -768,7 +759,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
                 assertFalse(cursor.isCursorPositionDefined());
 
                 // no current key.
-                assertEquals(null, cursor.currentKey());
+                assertArrayEquals(null, cursor.currentKey());
 
                 assertNull(cursor.tuple());
 
@@ -790,7 +781,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
                 assertFalse(cursor.isCursorPositionDefined());
 
                 // no current key.
-                assertEquals(null, cursor.currentKey());
+                assertArrayEquals(null, cursor.currentKey());
 
                 assertNull(cursor.tuple());
 
@@ -879,7 +870,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
                 assertFalse(cursor.isCursorPositionDefined());
 
                 // no current key.
-                assertEquals(null, cursor.currentKey());
+                assertArrayEquals(null, cursor.currentKey());
 
                 assertNull(cursor.tuple());
 
@@ -902,7 +893,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
                 assertFalse(cursor.isCursorPositionDefined());
 
                 // no current key.
-                assertEquals(null, cursor.currentKey());
+                assertArrayEquals(null, cursor.currentKey());
 
                 assertNull(cursor.tuple());
 
@@ -1107,7 +1098,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
 
                 assertNull(cursor.seek(1));
 
-                assertEquals(TestKeyBuilder.asSortKey(1), cursor.currentKey());
+                assertArrayEquals(TestKeyBuilder.asSortKey(1), cursor.currentKey());
 
                 assertFalse(cursor.hasPrior());
 
@@ -1157,7 +1148,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
                 assertFalse(cursor.isCursorPositionDefined());
                 
                 // no current key.
-                assertEquals(null,cursor.currentKey());
+                assertArrayEquals(null,cursor.currentKey());
                 
                 assertFalse(cursor.hasNext());
 
@@ -1177,7 +1168,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
                 assertFalse(cursor.isCursorPositionDefined());
                 
                 // no current key.
-                assertEquals(null,cursor.currentKey());
+                assertArrayEquals(null,cursor.currentKey());
                 
                 assertFalse(cursor.hasNext());
 
@@ -1237,7 +1228,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
 
                 assertNull(cursor.seek(7));
 
-                assertEquals(TestKeyBuilder.asSortKey(7), cursor.currentKey());
+                assertArrayEquals(TestKeyBuilder.asSortKey(7), cursor.currentKey());
 
                 assertFalse(cursor.hasPrior());
 
@@ -1338,7 +1329,7 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
 
                 assertNull(cursor.seek(17));
 
-                assertEquals(TestKeyBuilder.asSortKey(17), cursor.currentKey());
+                assertArrayEquals(TestKeyBuilder.asSortKey(17), cursor.currentKey());
 
                 assertFalse(cursor.hasPrior());
 
@@ -1411,14 +1402,14 @@ abstract public class AbstractTupleCursorTestCase extends TestCase2 {
 
         assertEquals("flags", expected.flags(), actual.flags());
 
-        assertEquals("key", expected.getKey(), actual.getKey());
+        assertArrayEquals("key", expected.getKey(), actual.getKey());
 
         assertEquals("deleted", expected.isDeletedVersion(), actual
                 .isDeletedVersion());
 
         if (!expected.isDeletedVersion()) {
 
-            assertEquals("val", expected.getValue(), actual.getValue());
+            assertArrayEquals("val", expected.getValue(), actual.getValue());
 
         }
 

@@ -31,6 +31,7 @@ package com.bigdata.btree.keys;
 import java.util.Properties;
 
 import com.bigdata.btree.keys.KeyBuilder.Options;
+import org.junit.Test;
 
 /**
  * 
@@ -47,13 +48,7 @@ public class TestJDKUnicodeKeyBuilder extends AbstractUnicodeKeyBuilderTestCase 
     public TestJDKUnicodeKeyBuilder() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestJDKUnicodeKeyBuilder(String arg0) {
-        super(arg0);
-    }
-
+    @Override
     public Properties getProperties() {
 
         final Properties properties = new Properties(super.getProperties());
@@ -64,6 +59,7 @@ public class TestJDKUnicodeKeyBuilder extends AbstractUnicodeKeyBuilderTestCase 
 
     }
     
+    @Test
     public void test_correctCollator() {
         
         final Properties properties = getProperties();

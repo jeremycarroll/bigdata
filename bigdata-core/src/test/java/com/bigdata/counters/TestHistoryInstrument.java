@@ -28,9 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.counters;
 
+import com.bigdata.test.Assert;
 import java.util.Random;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
@@ -38,7 +38,7 @@ import junit.framework.TestCase2;
  * 
  * @todo unit tests when overwrite is disabled.
  */
-public class TestHistoryInstrument extends TestCase2 {
+public class TestHistoryInstrument extends Assert {
     
     // 60 seconds.
     final long t60 = 60*1000;
@@ -63,16 +63,10 @@ public class TestHistoryInstrument extends TestCase2 {
     }
 
     /**
-     * @param arg0
-     */
-    public TestHistoryInstrument(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test of {@link History} adds two samples spaced one minute apart and then
      * a 3rd sample that is two minutes later.
      */
+    @Test
     public void test_history01() {
     
         // a history buffer with 60 samples each spaced 60 seconds apart.
@@ -88,7 +82,7 @@ public class TestHistoryInstrument extends TestCase2 {
 
         assertEquals(1,h.size());
         assertEquals(60,h.capacity());
-        assertEquals(12d,h.getAverage().doubleValue());
+        assertEquals(12d,h.getAverage().doubleValue(), 0d);
 
         log.info("\n"+h.toString());
 
@@ -97,7 +91,7 @@ public class TestHistoryInstrument extends TestCase2 {
 
         assertEquals(2,h.size());
         assertEquals(60,h.capacity());
-        assertEquals(((6d+12d)/2d),h.getAverage().doubleValue());
+        assertEquals(((6d+12d)/2d),h.getAverage().doubleValue(), 0d);
 
         log.info("\n"+h.toString());
 
@@ -106,7 +100,7 @@ public class TestHistoryInstrument extends TestCase2 {
 
         assertEquals(3,h.size());
         assertEquals(60,h.capacity());
-        assertEquals(((6d+12d+9d)/3d),h.getAverage().doubleValue());
+        assertEquals(((6d+12d+9d)/3d),h.getAverage().doubleValue(), 0d);
 
         log.info("\n"+h.toString());
 
@@ -115,6 +109,7 @@ public class TestHistoryInstrument extends TestCase2 {
     /**
      * Test that overflow occurs correctly using a short buffer.
      */
+    @Test
     public void test_historyOverflow() {
         
         /*
@@ -149,7 +144,7 @@ public class TestHistoryInstrument extends TestCase2 {
         assertEquals(1,h.size());
         assertEquals(0,h2.size());
         
-        assertEquals(12d,h.getAverage().doubleValue());
+        assertEquals(12d,h.getAverage().doubleValue(), 0d);
 
         // add a 2nd sample.
         h.add(t0+t60,6d);
@@ -160,7 +155,7 @@ public class TestHistoryInstrument extends TestCase2 {
         assertEquals(2,h.size());
         assertEquals(0,h2.size());
         
-        assertEquals(((6d+12d)/2d),h.getAverage().doubleValue());
+        assertEquals(((6d+12d)/2d),h.getAverage().doubleValue(), 0d);
         
         /*
          * add a 3rd sample, this should cause the first buffer to overflow.
@@ -175,10 +170,10 @@ public class TestHistoryInstrument extends TestCase2 {
         log.info("\nh2="+h2.toString());
 
         // check average in the base buffer.
-        assertEquals(((6d+9d)/2d),h.getAverage().doubleValue());
+        assertEquals(((6d+9d)/2d),h.getAverage().doubleValue(), 0d);
 
         // overflow should propagate the average before adding the new sample.
-        assertEquals((12d+6d)/2d,h2.getAverage().doubleValue());
+        assertEquals((12d+6d)/2d,h2.getAverage().doubleValue(), 0d);
 
     }
     

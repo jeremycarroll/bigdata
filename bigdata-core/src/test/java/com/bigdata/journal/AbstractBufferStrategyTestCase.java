@@ -35,6 +35,7 @@ import com.bigdata.btree.IndexSegmentBuilder;
 import com.bigdata.rawstore.AbstractRawStoreTestCase;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
+import org.junit.Test;
 
 /**
  * Base class for writing test cases for the different {@link IBufferStrategy}
@@ -50,10 +51,6 @@ import com.bigdata.rawstore.IRawStore;
 abstract public class AbstractBufferStrategyTestCase extends AbstractRawStoreTestCase {
 
     public AbstractBufferStrategyTestCase() {
-    }
-
-    public AbstractBufferStrategyTestCase(String name) {
-        super(name);
     }
 
     abstract protected BufferMode getBufferMode();
@@ -114,6 +111,7 @@ abstract public class AbstractBufferStrategyTestCase extends AbstractRawStoreTes
      * verifies that the extent and the user extent are correctly updated after
      * an overflow.
      */
+    @Test
     public void test_overflow() {
         
         Journal store = (Journal) getStore();
@@ -148,7 +146,7 @@ abstract public class AbstractBufferStrategyTestCase extends AbstractRawStoreTes
                 
             } catch (UnsupportedOperationException ex) {
                 
-                System.err.println("Ignoring expected exception: " + ex);
+//                 System.err.println("Ignoring expected exception: " + ex);
                 
             }
             
@@ -178,6 +176,7 @@ abstract public class AbstractBufferStrategyTestCase extends AbstractRawStoreTes
      * Test verifies that a write up to the remaining extent does not trigger
      * an overflow.
      */
+    @Test
     public void test_writeNoExtend() {
 
         Journal store = (Journal) getStore();
@@ -266,14 +265,14 @@ abstract public class AbstractBufferStrategyTestCase extends AbstractRawStoreTes
             
             leftover -= nbytes;
             
-            System.err.println("Wrote record#" + n + " with " + nbytes
-                    + " bytes: addr=" + store.toString(addr) + ", #leftover="
-                    + leftover);
+//             System.err.println("Wrote record#" + n + " with " + nbytes
+//                     + " bytes: addr=" + store.toString(addr) + ", #leftover="
+//                     + leftover);
 
         }
 
-        System.err.println("Wrote " + nbytesToWrite + " bytes in " + n
-                + " records: last addr=" + store.toString(addr));
+//         System.err.println("Wrote " + nbytesToWrite + " bytes in " + n
+//                 + " records: last addr=" + store.toString(addr));
 
         assert addr != 0L;
         
@@ -287,6 +286,7 @@ abstract public class AbstractBufferStrategyTestCase extends AbstractRawStoreTes
      * and that the new data is also recoverable (when the buffer is extended it
      * is typically copied while the length of a file is simply changed).
      */
+    @Test
     public void test_writeWithExtend() {
 
         Journal store = (Journal) getStore();

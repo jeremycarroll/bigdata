@@ -27,23 +27,23 @@
 
 package com.bigdata.rdf.lexicon;
 
+import com.bigdata.io.BytesUtil;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-
-import com.bigdata.io.BytesUtil;
-import junit.framework.TestCase2;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.model.BigdataValueFactoryImpl;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestId2TermTupleSerializer extends TestCase2 {
+public class TestId2TermTupleSerializer extends Assert {
 
     /**
      * 
@@ -51,13 +51,7 @@ public class TestId2TermTupleSerializer extends TestCase2 {
     public TestId2TermTupleSerializer() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestId2TermTupleSerializer(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void test_id2key() {
         
         final String namespace = "lexicon";
@@ -93,6 +87,7 @@ public class TestId2TermTupleSerializer extends TestCase2 {
      * A unit test of the proposal for introducing backward compatible
      * versioning into an unversioned class.
      */
+    @Test
     public void test_versionedSerialization() {
         
         final TestClass v0 = new TestClass((short) 0/* version */, "namespace",

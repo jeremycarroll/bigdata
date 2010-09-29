@@ -34,10 +34,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
-
 import com.bigdata.bfs.BigdataFileSystem;
-
-import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * Unit tests for random block IO include read, write, overwrite (aka update),
@@ -56,18 +54,12 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestRandomBlockOps(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Tests random write of a block, read back of the data, overwrite of the
      * same block, atomic append after the random write, and random delete.
      * 
      * @throws IOException
      */
+    @Test
     public void test_write01() throws IOException {
         
         final String id = "test";
@@ -98,11 +90,11 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
         assertSameIterator("blockIds", new Long[] { block_12 }, repo.blocks(id,
                 version));
 
-        assertEquals("inputStream", expected_12, read(repo.inputStream(id, version)));
+        assertArrayEquals("inputStream", expected_12, read(repo.inputStream(id, version)));
 
-        assertEquals("readBlock", expected_12, repo.readBlock(id, version, block_12));
+        assertArrayEquals("readBlock", expected_12, repo.readBlock(id, version, block_12));
 
-        assertEquals("readHead", expected_12, repo.readHead(id, version));
+        assertArrayEquals("readHead", expected_12, repo.readHead(id, version));
 
         /*
          * change the data and overwrite that block.
@@ -118,11 +110,11 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
         assertSameIterator("blockIds", new Long[] { block_12 }, repo.blocks(id,
                 version));
 
-        assertEquals("inputStream", expected_12, read(repo.inputStream(id, version)));
+        assertArrayEquals("inputStream", expected_12, read(repo.inputStream(id, version)));
 
-        assertEquals("readBlock", expected_12, repo.readBlock(id, version, block_12));
+        assertArrayEquals("readBlock", expected_12, repo.readBlock(id, version, block_12));
 
-        assertEquals("readHead", expected_12, repo.readHead(id, version));
+        assertArrayEquals("readHead", expected_12, repo.readHead(id, version));
         
         /*
          * Test atomic append after write leaving holes.
@@ -137,12 +129,12 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
         assertSameIterator("blockIds", new Long[] { block_12, block_13 }, repo
                 .blocks(id, version));
 
-        assertEquals("readBlock", expected_13, repo.readBlock(id, version,
+        assertArrayEquals("readBlock", expected_13, repo.readBlock(id, version,
                 block_13));
 
-        assertEquals("readHead", expected_12, repo.readHead(id, version));
+        assertArrayEquals("readHead", expected_12, repo.readHead(id, version));
 
-        assertEquals("inputStream", new byte[] { 4, 5, 6, 7, 8, 9 }, read(repo
+        assertArrayEquals("inputStream", new byte[] { 4, 5, 6, 7, 8, 9 }, read(repo
                 .inputStream(id, version)));
         
         /*
@@ -160,13 +152,13 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
         assertSameIterator("blockIds", new Long[] { block_13 }, repo.blocks(id,
                 version));
 
-        assertEquals("inputStream", expected_13, read(repo.inputStream(id, version)));
+        assertArrayEquals("inputStream", expected_13, read(repo.inputStream(id, version)));
 
-        assertEquals("readBlock", null, repo.readBlock(id, version, block_12));
+        assertArrayEquals("readBlock", null, repo.readBlock(id, version, block_12));
 
-        assertEquals("readBlock", expected_13, repo.readBlock(id, version, block_13));
+        assertArrayEquals("readBlock", expected_13, repo.readBlock(id, version, block_13));
 
-        assertEquals("readHead", expected_13, repo.readHead(id, version));
+        assertArrayEquals("readHead", expected_13, repo.readHead(id, version));
         
         // re-delete returns false.
         assertFalse("delete",repo.deleteBlock(id, version, block_12));
@@ -181,6 +173,7 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_write02() throws IOException {
         
         final String id = "test";
@@ -211,11 +204,11 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
         assertSameIterator("blockIds", new Long[] { block_12 }, repo.blocks(id,
                 version));
 
-        assertEquals("inputStream", expected_12, read(repo.inputStream(id, version)));
+        assertArrayEquals("inputStream", expected_12, read(repo.inputStream(id, version)));
 
-        assertEquals("readBlock", expected_12, repo.readBlock(id, version, block_12));
+        assertArrayEquals("readBlock", expected_12, repo.readBlock(id, version, block_12));
 
-        assertEquals("readHead", expected_12, repo.readHead(id, version));
+        assertArrayEquals("readHead", expected_12, repo.readHead(id, version));
 
         // re-write as an empty block.
         assertTrue("overwrite", repo.writeBlock(id, version, block_12, expected_12,
@@ -226,17 +219,18 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
         assertSameIterator("blockIds", new Long[] { block_12 }, repo.blocks(id,
                 version));
 
-        assertEquals("inputStream", new byte[]{}, read(repo.inputStream(id, version)));
+        assertArrayEquals("inputStream", new byte[]{}, read(repo.inputStream(id, version)));
 
-        assertEquals("readBlock", new byte[]{}, repo.readBlock(id, version, block_12));
+        assertArrayEquals("readBlock", new byte[]{}, repo.readBlock(id, version, block_12));
 
-        assertEquals("readHead", new byte[]{}, repo.readHead(id, version));
+        assertArrayEquals("readHead", new byte[]{}, repo.readHead(id, version));
 
     }
     
     /**
      * Test for delete of the head block.
      */
+    @Test
     public void test_deleteH() throws IOException {
             
         final String id = "test";
@@ -264,13 +258,13 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
         assertSameIterator("blockIds", new Long[] { block0 }, repo.blocks(id,
                 version));
 
-        assertEquals("inputStream", expected0, read(repo.inputStream(id,
+        assertArrayEquals("inputStream", expected0, read(repo.inputStream(id,
                 version)));
 
-        assertEquals("readBlock", expected0, repo.readBlock(id, version,
+        assertArrayEquals("readBlock", expected0, repo.readBlock(id, version,
                 block0));
 
-        assertEquals("readHead", expected0, repo.readHead(id, version));
+        assertArrayEquals("readHead", expected0, repo.readHead(id, version));
 
         /*
          * write the 2nd block.
@@ -287,16 +281,16 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
         assertSameIterator("blockIds", new Long[] { block0, block1 }, repo.blocks(id,
                 version));
 
-        assertEquals("inputStream", new byte[] { 1, 2, 3, 4, 5, 6 }, read(repo
+        assertArrayEquals("inputStream", new byte[] { 1, 2, 3, 4, 5, 6 }, read(repo
                 .inputStream(id, version)));
 
-        assertEquals("readBlock", expected0, repo
+        assertArrayEquals("readBlock", expected0, repo
                 .readBlock(id, version, block0));
 
-        assertEquals("readBlock", expected1, repo
+        assertArrayEquals("readBlock", expected1, repo
                 .readBlock(id, version, block1));
 
-        assertEquals("readHead", expected0, repo.readHead(id, version));
+        assertArrayEquals("readHead", expected0, repo.readHead(id, version));
 
         /*
          * delete the head.
@@ -310,13 +304,13 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
         assertSameIterator("blockIds", new Long[] { block1 }, repo.blocks(id,
                 version));
 
-        assertEquals("inputStream", expected1, read(repo.inputStream(id,
+        assertArrayEquals("inputStream", expected1, read(repo.inputStream(id,
                 version)));
 
-        assertEquals("readBlock", expected1, repo
+        assertArrayEquals("readBlock", expected1, repo
                 .readBlock(id, version, block1));
 
-        assertEquals("readHead", expected1, repo.readHead(id, version));
+        assertArrayEquals("readHead", expected1, repo.readHead(id, version));
 
         /*
          * delete the head again.
@@ -329,16 +323,17 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
 
         assertSameIterator("blockIds", new Long[] {}, repo.blocks(id, version));
 
-        assertEquals("inputStream", new byte[] {}, read(repo.inputStream(id,
+        assertArrayEquals("inputStream", new byte[] {}, read(repo.inputStream(id,
                 version)));
 
-        assertEquals("readHead", null, repo.readHead(id, version));
+        assertArrayEquals("readHead", null, repo.readHead(id, version));
 
     }
 
     /**
      * A small stress test for a single file version.
      */
+    @Test
     public void test_stress() {
 
         Op gen = new Op(//
@@ -514,7 +509,7 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    public static class TestOp extends TestCase {
+    public static class TestOp {
 
         public void test_Op() {
             Op gen = new Op(.2f, .05f, .2f,.1f, .0001f, .00001f);
@@ -805,7 +800,7 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
                         byte[] actual = repo.readBlock(id, version, block);
                         byte[] expected = blocks.get(new FileVersionBlock(id,version,block));
                         assert expected != null;
-                        assertEquals("data",expected,actual);
+                        assertArrayEquals("data",expected,actual);
                     }
                     break;
                 }
@@ -817,7 +812,7 @@ public class TestRandomBlockOps extends AbstractRepositoryTestCase {
                         byte[] actual = repo.readHead(id, version);
                         byte[] expected = blocks.get(new FileVersionBlock(id,version,block));
                         assert expected != null;
-                        assertEquals("data",expected,actual);
+                        assertArrayEquals("data",expected,actual);
                     }
                     break;
                 }

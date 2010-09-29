@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.io;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites in increasing dependency order.
@@ -37,50 +37,21 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll_Buffers extends TestCase {
-
-    /**
-     * 
-     */
-    public TestAll_Buffers() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestAll_Buffers(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite() {
-
-        final TestSuite suite = new TestSuite(TestAll.class.getPackage()
-                .getName());
-
-        /*
-         * test fast DataOutput and DataInput implementations.
-         */
-
-        // test use of ByteBuffer as an input/output stream.
-        suite.addTestSuite(TestByteBufferStreams.class);
-        // test fixed-length record w/ absolute access.
-        suite.addTestSuite(TestFixedByteArrayBuffer.class);
-        // test extensible record w/ absolute and relative and stream-based
-        // access.
-        suite.addTestSuite(TestByteArrayBuffer.class);
-        // test extensible record w/ DataOutput API.
-        suite.addTestSuite(TestDataOutputBuffer.class);
-        // test packed short support.
-        suite.addTestSuite(TestShortPacker.class);
-        // test packed long support.
-        suite.addTestSuite(TestLongPacker.class);
-
-        return suite;
-
-    }
-
+@RunWith(Suite.class)
+@SuiteClasses( {
+       // test use of ByteBuffer as an input/output stream.
+       TestByteBufferStreams.class,
+       // test fixed-length record w/ absolute access.
+       TestFixedByteArrayBuffer.class,
+       // test extensible record w/ absolute and relative and stream-based
+       // access.
+       TestByteArrayBuffer.class,
+       // test extensible record w/ DataOutput API.
+       TestDataOutputBuffer.class,
+       // test packed short support.
+       TestShortPacker.class,
+       // test packed long support.
+       TestLongPacker.class
+    } )
+public class TestAll_Buffers {
 }

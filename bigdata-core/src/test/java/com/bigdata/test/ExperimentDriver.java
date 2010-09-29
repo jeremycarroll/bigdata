@@ -53,9 +53,6 @@ import java.util.Vector;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-
-import junit.framework.TestCase2;
-
 import org.CognitiveWeb.util.PropertyUtil;
 import org.apache.log4j.Logger;
 import org.apache.system.SystemUtil;
@@ -427,7 +424,7 @@ public class ExperimentDriver {
         
         Condition[] a = conditions.toArray(new Condition[conditions.size()]);
         
-        int[] order = TestCase2.getRandomOrder(a.length);
+        int[] order = Assert.getRandomOrder(a.length);
         
         List<Condition> ret = new ArrayList<Condition>(a.length);
         

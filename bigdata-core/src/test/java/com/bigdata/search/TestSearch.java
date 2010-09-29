@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.search;
 
+import com.bigdata.journal.AbstractIndexManagerTestCase;
 import java.io.StringReader;
 import java.util.Iterator;
 import java.util.Properties;
@@ -35,6 +36,11 @@ import java.util.Properties;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.ProxyTestCase;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite using examples based on <a
@@ -49,15 +55,17 @@ import com.bigdata.journal.ProxyTestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestSearch extends ProxyTestCase<IIndexManager> {
 
-    public TestSearch() {
-        super();
+    public TestSearch(AbstractIndexManagerTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    public TestSearch(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup2();
+    };
 
     final String NAMESPACE = "test";
 
@@ -105,6 +113,7 @@ public class TestSearch extends ProxyTestCase<IIndexManager> {
     /** all documents are in English. */
     final String languageCode = "EN";
 
+    @Test
     public void test_ChildProofing() throws InterruptedException {
 
         final Properties properties = getProperties();
@@ -190,7 +199,8 @@ public class TestSearch extends ProxyTestCase<IIndexManager> {
             assertEquals("wrong document: rank="+(i+1),expected.getDocId(),actual.getDocId());
 
             // then verify the cosine.
-            assertEquals("wrong cosine: rank="+(i+1),expected.getCosine(),actual.getCosine());
+            assertEquals("wrong cosine: rank="+(i+1),
+                    expected.getCosine(), actual.getCosine(), 1.0e-9d);
             
         }
         

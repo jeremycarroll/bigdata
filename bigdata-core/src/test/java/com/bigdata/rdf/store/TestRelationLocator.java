@@ -49,6 +49,11 @@ package com.bigdata.rdf.store;
 
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.spo.SPORelation;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for locating an {@link AbstractTripleStore}, locating the
@@ -59,21 +64,22 @@ import com.bigdata.rdf.spo.SPORelation;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRelationLocator extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestRelationLocator() {
+    public TestRelationLocator(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRelationLocator(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
+    @Test
     public void test_locators() {
         
         final AbstractTripleStore store = getStore();

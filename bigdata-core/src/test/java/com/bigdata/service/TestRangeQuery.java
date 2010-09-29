@@ -49,6 +49,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.ndx.ClientIndexView;
 import com.bigdata.service.ndx.PartitionedTupleIterator;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link IRangeQuery} API.
@@ -62,12 +63,6 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
 
     }
 
-    public TestRangeQuery(String name) {
-   
-        super(name);
-        
-    }
-    
     /*
      * Range query tests with static partitions.
      */
@@ -79,6 +74,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_rangeCount_staticPartitions_01() throws IOException {
         
         final String name = "testIndex";
@@ -149,6 +145,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_rangeQuery_staticPartitions_unbounded_emptyIndex_2partitions() throws IOException {
         
         final String name = "testIndex";
@@ -198,6 +195,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_rangeQuery_staticPartitions_unbounded_1entry_2partitions_01() throws IOException {
         
         final String name = "testIndex";
@@ -229,8 +227,8 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
             assertTrue("hasNext", itr.hasNext());
 
             final ITuple tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 1 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 1 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 1 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 1 }, tuple.getValue());
 
             assertFalse("hasNext", itr.hasNext());
 
@@ -244,6 +242,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_rangeQuery_staticPartitions_unbounded_1entry_2partitions_02() throws IOException {
         
         final String name = "testIndex";
@@ -275,8 +274,8 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
             assertTrue("hasNext", itr.hasNext());
 
             final ITuple tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 5 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 5 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 5 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 5 }, tuple.getValue());
 
             assertFalse("hasNext", itr.hasNext());
 
@@ -290,6 +289,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_rangeQuery_staticPartitions_unbounded_2entries_2partitions_01() throws IOException {
                 
         final String name = "testIndex";
@@ -326,14 +326,14 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
             assertTrue("hasNext", itr.hasNext());
 
             ITuple tuple = itr.next();
-            assertEquals("getKey()",new byte[]{1},tuple.getKey());
-            assertEquals("getValue()",new byte[]{1},tuple.getValue());
+            assertArrayEquals("getKey()",new byte[]{1},tuple.getKey());
+            assertArrayEquals("getValue()",new byte[]{1},tuple.getValue());
 
             assertTrue("hasNext", itr.hasNext());
 
             tuple = itr.next();
-            assertEquals("getKey()",new byte[]{5},tuple.getKey());
-            assertEquals("getValue()",new byte[]{5},tuple.getValue());
+            assertArrayEquals("getKey()",new byte[]{5},tuple.getKey());
+            assertArrayEquals("getValue()",new byte[]{5},tuple.getValue());
 
             assertFalse("hasNext", itr.hasNext());
 
@@ -347,6 +347,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
      * data service query to one result per query.
      * 
      */
+    @Test
     public void test_rangeQuery_staticPartitions_unbounded_2entries_2partitions_02() throws IOException {
         
         final String name = "testIndex";
@@ -385,14 +386,14 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
             assertTrue("hasNext", itr.hasNext());
 
             ITuple tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 1 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 1 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 1 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 1 }, tuple.getValue());
 
             assertTrue("hasNext", itr.hasNext());
 
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 2 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 2 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 2 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 2 }, tuple.getValue());
 
             assertFalse("hasNext", itr.hasNext());
 
@@ -408,6 +409,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_removeAll_limit1_twoPartitions() throws IOException {
         
         final String name = "testIndex";
@@ -493,7 +495,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
 
                 assertEquals(index, i);
 
-                assertEquals(keys[i], key);
+                assertArrayEquals(keys[i], key);
 
                 if (index == 0) {
 
@@ -509,7 +511,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
 
                     final byte[] val = tuple.getValue();
 
-                    assertEquals(vals[i], val);
+                    assertArrayEquals(vals[i], val);
 
                     nremaining++;
                     
@@ -531,6 +533,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_removeAll() throws IOException {
         
         final String name = "testIndex";
@@ -615,9 +618,9 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
 
                 byte[] val = tuple.getValue();
 
-                assertEquals(keys[i], key);
+                assertArrayEquals(keys[i], key);
 
-                assertEquals(vals[i], val);
+                assertArrayEquals(vals[i], val);
 
                 ndeleted++;
 
@@ -648,9 +651,9 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
 
                 byte[] val = tuple.getValue();
 
-                assertEquals(keys[i], key);
+                assertArrayEquals(keys[i], key);
 
-                assertEquals(vals[i], val);
+                assertArrayEquals(vals[i], val);
 
                 nremaining++;
 
@@ -672,6 +675,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_reverseScan() throws IOException {
         
         final String name = "testIndex";
@@ -738,48 +742,48 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 1 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 1 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 1 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 1 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 2 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 2 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 2 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 2 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 3 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 3 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 3 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 3 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 4 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 4 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 4 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 4 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 5 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 5 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 5 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 5 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 6 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 6 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 6 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 6 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 10 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 10 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 10 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 10 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 11 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 11 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 11 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 11 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 12 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 12 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 12 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 12 }, tuple.getValue());
 
             assertFalse("hasNext", itr.hasNext());
 
@@ -805,48 +809,48 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 12 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 12 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 12 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 12 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 11 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 11 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 11 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 11 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 10 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 10 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 10 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 10 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 6 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 6 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 6 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 6 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 5 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 5 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 5 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 5 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 4 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 4 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 4 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 4 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 3 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 3 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 3 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 3 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 2 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 2 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 2 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 2 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 1 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 1 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 1 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 1 }, tuple.getValue());
             
             assertFalse("hasNext", itr.hasNext());
 
@@ -881,48 +885,48 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 1 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 1 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 1 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 1 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 2 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 2 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 2 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 2 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 3 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 3 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 3 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 3 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 4 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 4 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 4 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 4 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 5 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 5 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 5 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 5 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 6 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 6 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 6 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 6 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 10 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 10 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 10 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 10 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 11 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 11 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 11 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 11 }, tuple.getValue());
             
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 12 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 12 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 12 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 12 }, tuple.getValue());
 
             assertFalse("hasNext", itr.hasNext());
 
@@ -938,48 +942,48 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 12 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 12 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 12 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 12 }, tuple.getValue());
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 11 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 11 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 11 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 11 }, tuple.getValue());
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 10 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 10 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 10 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 10 }, tuple.getValue());
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 6 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 6 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 6 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 6 }, tuple.getValue());
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 5 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 5 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 5 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 5 }, tuple.getValue());
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 4 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 4 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 4 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 4 }, tuple.getValue());
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 3 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 3 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 3 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 3 }, tuple.getValue());
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 2 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 2 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 2 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 2 }, tuple.getValue());
 
             assertTrue("hasNext", itr.hasNext());
             tuple = itr.next();
-            assertEquals("getKey()", new byte[] { 1 }, tuple.getKey());
-            assertEquals("getValue()", new byte[] { 1 }, tuple.getValue());
+            assertArrayEquals("getKey()", new byte[] { 1 }, tuple.getKey());
+            assertArrayEquals("getValue()", new byte[] { 1 }, tuple.getValue());
 
             assertFalse("hasNext", itr.hasNext());
 
@@ -996,7 +1000,7 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
      * when the iterator is closed early, and when it is closed early with a
      * read consistent tx created on the caller's behalf.
      */
-    @SuppressWarnings("unchecked")
+    @Test
     public void test_parallelRangeIterator() {
 
         final String name = "testIndex";

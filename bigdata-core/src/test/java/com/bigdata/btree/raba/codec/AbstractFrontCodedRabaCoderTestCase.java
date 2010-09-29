@@ -34,6 +34,7 @@ import java.util.Arrays;
 
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.ReadOnlyKeysRaba;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link FrontCodedRabaCoder}.
@@ -50,18 +51,12 @@ public class AbstractFrontCodedRabaCoderTestCase extends AbstractRabaCoderTestCa
     }
 
     /**
-     * @param name
-     */
-    public AbstractFrontCodedRabaCoderTestCase(String name) {
-        super(name);
-    }
-
-    /**
      * Unit test demonstrates and verifies front coding of a well known example
      * with a ratio of 4.
      * 
      * @throws UnsupportedEncodingException
      */
+    @Test
     public void test_example_ratio4() throws UnsupportedEncodingException {
         
         final byte[][] a = new byte[4][];
@@ -80,12 +75,12 @@ public class AbstractFrontCodedRabaCoderTestCase extends AbstractRabaCoderTestCa
         {
             final byte[] t = frontCodedList.getBackingBuffer().toArray();
 
-            System.out.println("coded: " + Arrays.toString(t));
+//             System.out.println("coded: " + Arrays.toString(t));
         }
 
         for (int i = 0; i < a.length; i++) {
 
-            assertEquals("get(" + i + ")", a[i], frontCodedList.get(i));
+            assertArrayEquals("get(" + i + ")", a[i], frontCodedList.get(i));
 
             assertEquals("length(" + i + ")", a[i].length, frontCodedList
                     .arrayLength(i));
@@ -106,6 +101,7 @@ public class AbstractFrontCodedRabaCoderTestCase extends AbstractRabaCoderTestCa
      * 
      * @throws UnsupportedEncodingException
      */
+    @Test
     public void test_example_ratio3() throws UnsupportedEncodingException {
         
         final byte[][] a = new byte[4][];
@@ -124,12 +120,12 @@ public class AbstractFrontCodedRabaCoderTestCase extends AbstractRabaCoderTestCa
         {
             final byte[] t = frontCodedList.getBackingBuffer().toArray();
 
-            System.out.println("coded: " + Arrays.toString(t));
+//             System.out.println("coded: " + Arrays.toString(t));
         }
 
         for (int i = 0; i < a.length; i++) {
 
-            assertEquals("get(" + i + ")", a[i], frontCodedList.get(i));
+            assertArrayEquals("get(" + i + ")", a[i], frontCodedList.get(i));
 
             assertEquals("length(" + i + ")", a[i].length, frontCodedList
                     .arrayLength(i));
@@ -152,6 +148,7 @@ public class AbstractFrontCodedRabaCoderTestCase extends AbstractRabaCoderTestCa
      * 
      * @throws UnsupportedEncodingException
      */
+    @Test
     public void test_example1_ratio2() throws UnsupportedEncodingException {
         
         final byte[][] a = new byte[4][];
@@ -170,12 +167,12 @@ public class AbstractFrontCodedRabaCoderTestCase extends AbstractRabaCoderTestCa
         {
             final byte[] t = frontCodedList.getBackingBuffer().toArray();
 
-            System.out.println("coded: " + Arrays.toString(t));
+//             System.out.println("coded: " + Arrays.toString(t));
         }
 
         for (int i = 0; i < a.length; i++) {
 
-            assertEquals("get(" + i + ")", a[i], frontCodedList.get(i));
+            assertArrayEquals("get(" + i + ")", a[i], frontCodedList.get(i));
 
             assertEquals("length(" + i + ")", a[i].length, frontCodedList
                     .arrayLength(i));
@@ -196,6 +193,7 @@ public class AbstractFrontCodedRabaCoderTestCase extends AbstractRabaCoderTestCa
      * 
      * @throws UnsupportedEncodingException
      */
+    @Test
     public void test_example1_ratio1() throws UnsupportedEncodingException {
         
         final byte[][] a = new byte[4][];
@@ -214,12 +212,12 @@ public class AbstractFrontCodedRabaCoderTestCase extends AbstractRabaCoderTestCa
         {
             final byte[] t = frontCodedList.getBackingBuffer().toArray();
 
-            System.out.println("coded: " + Arrays.toString(t));
+//             System.out.println("coded: " + Arrays.toString(t));
         }
 
         for (int i = 0; i < a.length; i++) {
 
-            assertEquals("get(" + i + ")", a[i], frontCodedList.get(i));
+            assertArrayEquals("get(" + i + ")", a[i], frontCodedList.get(i));
 
             assertEquals("length(" + i + ")", a[i].length, frontCodedList
                     .arrayLength(i));

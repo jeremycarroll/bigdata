@@ -37,12 +37,10 @@ import java.util.Iterator;
 import java.util.regex.Pattern;
 
 import javax.xml.parsers.ParserConfigurationException;
-
-import junit.framework.TestCase;
-
 import org.xml.sax.SAXException;
-
 import com.bigdata.counters.ICounterSet.IInstrumentFactory;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link CounterSet}.
@@ -50,7 +48,7 @@ import com.bigdata.counters.ICounterSet.IInstrumentFactory;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestCounters extends TestCase {
+public class TestCounters extends Assert {
 
     /**
      * 
@@ -59,13 +57,7 @@ public class TestCounters extends TestCase {
         super();
     }
 
-    /**
-     * @param arg0
-     */
-    public TestCounters(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void test_ctor() {
         
         CounterSet root = new CounterSet();
@@ -78,6 +70,7 @@ public class TestCounters extends TestCase {
     /**
      * Tests of path construction.
      */
+    @Test
     public void test_pathSemantics1() {
         
         // root (name := "").
@@ -140,7 +133,6 @@ public class TestCounters extends TestCase {
             root.makePath("");
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
         }
         
         /*
@@ -172,7 +164,6 @@ public class TestCounters extends TestCase {
             root.getPath("");
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
         }
 
         assertTrue(bigdata == root.getPath("www.bigdata.com"));
@@ -188,6 +179,7 @@ public class TestCounters extends TestCase {
      * root and otherwise move of the source itself. Verify detection of cycles
      * (cycles indicate an illegal request).
      */
+    @Test
     public void test_attach1() {
 
         CounterSet root = new CounterSet();
@@ -206,6 +198,7 @@ public class TestCounters extends TestCase {
         
     }
     
+    @Test
     public void test_directCounters() {
         
         CounterSet root = new CounterSet();
@@ -302,6 +295,7 @@ public class TestCounters extends TestCase {
     /**
      * 
      */
+    @Test
     public void test_children() {
         
         final CounterSet root = new CounterSet();
@@ -361,6 +355,7 @@ public class TestCounters extends TestCase {
     /**
      * Test that empty path components are not allowed.
      */
+    @Test
     public void test_emptyPathComponentsNotAllowed() {
 
         final CounterSet countersRoot = new CounterSet();
@@ -375,9 +370,6 @@ public class TestCounters extends TestCase {
             fail("Expecting: " + IllegalArgumentException.class);
 
         } catch (IllegalArgumentException ex) {
-            
-            System.err.println("Ignoring expected exception: " + ex);
-            
         }
 
         try {
@@ -387,9 +379,6 @@ public class TestCounters extends TestCase {
             fail("Expecting: " + IllegalArgumentException.class);
 
         } catch (IllegalArgumentException ex) {
-            
-            System.err.println("Ignoring expected exception: " + ex);
-            
         }
 
         
@@ -402,6 +391,7 @@ public class TestCounters extends TestCase {
      * @throws SAXException
      * @throws ParserConfigurationException
      */
+    @Test
     public void test_xml() throws IOException, ParserConfigurationException, SAXException {
         
         final CounterSet root = new CounterSet();
@@ -451,7 +441,7 @@ public class TestCounters extends TestCase {
             
         }
         
-        System.err.println(sb.toString());
+//         System.err.println(sb.toString());
     
         {
             
@@ -483,7 +473,7 @@ public class TestCounters extends TestCase {
             
             tmp.readXML(new ByteArrayInputStream(data), instrumentFactory, filter);
             
-            System.err.println("Read back:\n"+tmp.toString());
+//             System.err.println("Read back:\n"+tmp.toString());
             
             /*
              * verify the counters that we had declared.

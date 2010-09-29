@@ -33,14 +33,13 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.AbstractTransactionService;
 import com.bigdata.service.CommitTimeIndex;
 import com.bigdata.service.TxServiceRunState;
+import com.bigdata.test.Assert;
 import com.bigdata.util.MillisecondTimestampFactory;
+import org.junit.Test;
 
 //BTM
 import com.bigdata.service.TxState;
@@ -51,19 +50,12 @@ import com.bigdata.service.TxState;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestTransactionService extends TestCase2 {
+public class TestTransactionService extends Assert {
 
     /**
      * 
      */
     public TestTransactionService() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestTransactionService(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -293,6 +285,7 @@ public class TestTransactionService extends TestCase2 {
      * service is running. Likewise there is no contention other than for the
      * next distinct timestamp.
      */
+    @Test
     public void test_newTx_readWrite_01() {
 
         final MockTransactionService service = newFixture();
@@ -347,6 +340,7 @@ public class TestTransactionService extends TestCase2 {
     /**
      * Create a new read-write tx and then commit it.
      */
+    @Test
     public void test_newTx_readWrite_02() {
 
         final MockTransactionService service = newFixture();
@@ -399,6 +393,7 @@ public class TestTransactionService extends TestCase2 {
     /**
      * Create two read-write transactions and commit both.
      */
+    @Test
     public void test_newTx_readWrite_03() {
         
         final MockTransactionService service = newFixture();
@@ -452,6 +447,7 @@ public class TestTransactionService extends TestCase2 {
      * it and to abort it - those operations should fail with an
      * {@link IllegalStateException}.
      */
+    @Test
     public void test_newTx_readWrite_txComplete_postConditions() {
         
         final MockTransactionService service = newFixture();
@@ -496,6 +492,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_newTx_readCommitted01() throws IOException {
 
         final MockTransactionService service = newFixture();
@@ -555,6 +552,7 @@ public class TestTransactionService extends TestCase2 {
     /**
      * Unit test when [lastCommitTime] is zero.
      */
+    @Test
     public void test_newTx_readCommitted02() {
 
         final MockTransactionService service = newFixture();
@@ -638,6 +636,7 @@ public class TestTransactionService extends TestCase2 {
      *       which has been overridden to guarantee that there are at least
      *       two distinct values such that this test will pass.
      */
+    @Test
     public void test_newTx_readOnly() throws IOException {
 
         final Properties properties = new Properties();
@@ -717,6 +716,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws IOException
      */
+    @Test
     public void test_newTx_readOnly_contention() throws IOException {
 
         final MockTransactionService service = newFixture();
@@ -854,6 +854,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws IOException
      */
+    @Test
     public void test_newTx_readOnly_timestamp_is_lastCommitTime() throws IOException {
         
         final MockTransactionService service = newFixture();
@@ -901,6 +902,7 @@ public class TestTransactionService extends TestCase2 {
      * Verify that you can not create a read-only transaction using a timestamp
      * that is in the future.
      */
+    @Test
     public void test_newTx_readOnly_timestampInFuture() {
         
         final MockTransactionService service = newFixture();
@@ -936,6 +938,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws IOException
      */
+    @Test
     public void test_newTx_readOnly_historyGone() throws IOException {
         
         final MockTransactionService service = newFixture();
@@ -1008,6 +1011,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws IOException
      */
+    @Test
     public void test_updateReleaseTime_noTxRemaining() throws IOException {
 
         final MockTransactionService service = newFixture();
@@ -1073,6 +1077,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws IOException
      */
+    @Test
     public void test_updateReleaseTime_otherTxStillActive() throws IOException {
 
         final MockTransactionService service = newFixture();
@@ -1146,6 +1151,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_newTx_readOnly_txComplete_postConditions() throws IOException {
         
         final MockTransactionService service = newFixture();
@@ -1185,6 +1191,7 @@ public class TestTransactionService extends TestCase2 {
      * Verifies that we can shutdown() the service when there are no
      * active transactions.
      */
+    @Test
     public void test_shutdown_nothingRunning() {
 
         final MockTransactionService service = newFixture();
@@ -1206,6 +1213,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws InterruptedException
      */
+    @Test
     public void test_shutdown_waitsForReadWriteTx_commits()
             throws InterruptedException {
 
@@ -1249,6 +1257,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws InterruptedException
      */
+    @Test
     public void test_shutdown_waitsForReadWriteTx_aborts()
             throws InterruptedException {
 
@@ -1293,6 +1302,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws InterruptedException
      */
+    @Test
     public void test_shutdown_newTxNotAllowed() throws InterruptedException {
 
         final MockTransactionService service = newFixture();
@@ -1354,6 +1364,7 @@ public class TestTransactionService extends TestCase2 {
     /**
      * Test that the service will wait for a read-only tx to commit.
      */
+    @Test
     public void test_shutdown_waitsForReadOnlyTx_commits()
             throws InterruptedException {
 
@@ -1395,6 +1406,7 @@ public class TestTransactionService extends TestCase2 {
     /**
      * Test that the service will wait for a read-only tx to abort.
      */
+    @Test
     public void test_shutdown_waitsForReadOnlyTx_aborts()
             throws InterruptedException {
 
@@ -1439,6 +1451,7 @@ public class TestTransactionService extends TestCase2 {
      * 
      * @throws InterruptedException
      */
+    @Test
     public void test_shutdown_interrupted() throws InterruptedException {
 
         final MockTransactionService service = newFixture();

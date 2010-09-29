@@ -37,6 +37,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.ndx.ClientIndexView;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link EmbeddedClient}.
@@ -49,14 +50,11 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
     public TestEmbeddedClient() {
     }
 
-    public TestEmbeddedClient(String name) {
-        super(name);
-    }
-
     /**
      * Test ability to register a scale-out index, access it, and then drop the
      * index.
      */
+    @Test
     public void test_registerIndex() {
 
         final String name = "testIndex";
@@ -124,6 +122,7 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
     /**
      * Tests the ability to statically partition a scale-out index.
      */
+    @Test
     public void test_staticPartitioning() throws Exception {
         
         final String name = "testIndex";
@@ -172,10 +171,10 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
             assertEquals("partitionId", partitionId0, actual
                     .getPartitionMetadata().getPartitionId());
 
-            assertEquals("leftSeparator", new byte[] {}, actual
+            assertArrayEquals("leftSeparator", new byte[] {}, actual
                     .getPartitionMetadata().getLeftSeparatorKey());
             
-            assertEquals("rightSeparator", new byte[] { 5 }, actual
+            assertArrayEquals("rightSeparator", new byte[] { 5 }, actual
                     .getPartitionMetadata().getRightSeparatorKey());
             
             // other metadata.
@@ -198,10 +197,10 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
             assertEquals("partitionId", partitionId1, actual
                     .getPartitionMetadata().getPartitionId());
 
-            assertEquals("leftSeparator", new byte[] {5}, actual
+            assertArrayEquals("leftSeparator", new byte[] {5}, actual
                     .getPartitionMetadata().getLeftSeparatorKey());
             
-            assertEquals("rightSeparator", null, actual.getPartitionMetadata()
+            assertArrayEquals("rightSeparator", null, actual.getPartitionMetadata()
                     .getRightSeparatorKey());
 
             // other metadata
@@ -218,6 +217,7 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
      * {@link MetadataIndex} in order to identify the split points in the
      * keys[].
      */
+    @Test
     public void test_splitKeys_staticPartitions01() throws IOException {
         
         final String name = "testIndex";
@@ -348,6 +348,7 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
                 
     }
 
+    @Test
     public void test_addDropIndex_twoPartitions() throws IOException {
         
         final String name = "testIndex";

@@ -40,21 +40,20 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import com.bigdata.DataFinder;
-import junit.framework.TestCase2;
-
 import com.bigdata.service.ResourceService.ReadResourceTask;
+import com.bigdata.test.Assert;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.config.NicUtil;
+import org.junit.Test;
 
 /**
  * Test verifies the ability to transmit a file using the
  * {@link ResourceService}.
  * 
- * @version $Id$
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson
  *         </a>
  */
-public class TestResourceService extends TestCase2 {
+public class TestResourceService extends Assert {
 
     /**
      * 
@@ -63,15 +62,12 @@ public class TestResourceService extends TestCase2 {
         super();
     }
 
-    public TestResourceService(String name) {
-        super(name);
-    }
-
     /**
      * Test the ability to receive a file.
      * 
      * @throws Exception
      */
+    @Test
     public void test_receiveFile() throws Exception {
 
         final UUID allowedUUID = UUID.randomUUID();
@@ -148,6 +144,7 @@ public class TestResourceService extends TestCase2 {
      * @see http://blogs.sun.com/DaveB/entry/new_improved_in_java_se1
      * @see http://forums.sun.com/thread.jspa?threadID=5324314.
      */
+    @Test
     public void test_concurrentReceiveRequests() throws Exception {
 
         final UUID allowedUUID = UUID.randomUUID();

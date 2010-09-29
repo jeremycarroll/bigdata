@@ -28,10 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.net;
 
+import com.bigdata.test.Assert;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Test suite for {@link InetAddressUtil}.
@@ -39,7 +39,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestInetAddressUtil extends TestCase2 {
+public class TestInetAddressUtil extends Assert {
 
     /**
      * 
@@ -47,13 +47,7 @@ public class TestInetAddressUtil extends TestCase2 {
     public TestInetAddressUtil() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestInetAddressUtil(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void test01() {
 
         assertSameByte((byte) 0, "0");
@@ -94,14 +88,15 @@ public class TestInetAddressUtil extends TestCase2 {
      * 
      * @throws UnknownHostException
      */
+    @Test
     public void test_getHostByName() throws UnknownHostException {
         
-        assertEquals(
+        assertArrayEquals(
                 InetAddress.getByName("0.127.128.255").getAddress(),
                 InetAddressUtil.getByName("0.127.128.255").getAddress()
                 );
 
-        assertEquals(
+        assertArrayEquals(
               InetAddress.getByName("192.168.8.12").getAddress(),
               InetAddressUtil.getByName("192.168.8.12").getAddress()
               );

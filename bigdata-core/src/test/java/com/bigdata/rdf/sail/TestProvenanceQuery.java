@@ -61,26 +61,31 @@ import org.openrdf.sail.SailException;
 import com.bigdata.rdf.model.BigdataStatementImpl;
 import com.bigdata.rdf.store.BigdataStatementIterator;
 import com.bigdata.rdf.store.DataLoader;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for high-level query against a graph containing statements about
  * statements.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestProvenanceQuery extends ProxyBigdataSailTestCase {
 
-    public TestProvenanceQuery() {
-        
+    public TestProvenanceQuery(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
     
-    public TestProvenanceQuery(String name) {
-        
-        super(name);
-        
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup3();
+    };
 
+    @Test
     public void test_query() throws SailException, IOException,
             RDFHandlerException, QueryEvaluationException {
 

@@ -28,7 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.relation.accesspath;
 
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link UnsynchronizedArrayBuffer}.
@@ -36,21 +37,12 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestUnsynchronizedArrayBuffer extends TestCase2 {
+public class TestUnsynchronizedArrayBuffer extends Assert {
 
     /**
      * 
      */
     public TestUnsynchronizedArrayBuffer() {
-   
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestUnsynchronizedArrayBuffer(String arg0) {
-   
-        super(arg0);
    
     }
 
@@ -114,6 +106,7 @@ public class TestUnsynchronizedArrayBuffer extends TestCase2 {
      * {@link UnsynchronizedArrayBuffer#flush() flushed} to target
      * {@link IBuffer}.
      */
+    @Test
     public void test_unsynchronizedBuffer1() {
         
         assertTrue("isEmpty",unsyncBuffer.isEmpty());
@@ -150,6 +143,7 @@ public class TestUnsynchronizedArrayBuffer extends TestCase2 {
         
     }
 
+    @Test
     public void test_unsynchronizedBuffer2() {
 
         unsyncBuffer.add("a");

@@ -39,11 +39,6 @@ import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.bigdata.io.BytesUtil;
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
-import junit.framework.TestCase2;
 import org.openrdf.model.Statement;
 import org.openrdf.model.Value;
 import org.openrdf.rio.RDFHandler;
@@ -55,6 +50,7 @@ import com.bigdata.btree.UnisolatedReadWriteIndex;
 import com.bigdata.btree.proc.IResultHandler;
 import com.bigdata.btree.proc.AbstractKeyArrayIndexProcedure.ResultBitBuffer;
 import com.bigdata.btree.proc.BatchContains.BatchContainsConstructor;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.Options;
 import com.bigdata.rdf.internal.IV;
@@ -76,6 +72,8 @@ import com.bigdata.service.AbstractClient;
 import com.bigdata.service.Split;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
+import com.bigdata.test.Assert;
+import org.apache.log4j.Logger;
 
 /**
  * <p>
@@ -92,11 +90,11 @@ import com.bigdata.striterator.IKeyOrder;
  * test.
  * </p>
  */
-abstract public class AbstractTestCase
-    extends TestCase2
-{
+abstract public class AbstractTestCase extends Assert {
 
     protected final IV NULL = null;
+    protected static final Logger log =
+            Logger.getLogger(AbstractTestCase.class);
     
     //
     // Constructors.
@@ -104,8 +102,6 @@ abstract public class AbstractTestCase
 
     public AbstractTestCase() {}
     
-    public AbstractTestCase(String name) {super(name);}
-
     //************************************************************
     //************************************************************
     //************************************************************
@@ -118,7 +114,7 @@ abstract public class AbstractTestCase
         begin = System.currentTimeMillis();
         
         if (log.isInfoEnabled())
-        log.info("\n\n================:BEGIN:" + testCase.getName()
+        log.info("\n\n================:BEGIN:" + this.getClass().getName()
                 + ":BEGIN:====================");
         
     }
@@ -131,7 +127,7 @@ abstract public class AbstractTestCase
         final long elapsed = System.currentTimeMillis() - begin;
         
         if (log.isInfoEnabled())
-        log.info("\n================:END:" + testCase.getName()
+        log.info("\n================:END:" + this.getClass().getName()
                 + " ("+elapsed+"ms):END:====================\n");
 
     }
@@ -167,7 +163,7 @@ abstract public class AbstractTestCase
              * Read properties from a hierarchy of sources and cache a
              * reference.
              */
-            m_properties = super.getProperties();
+            m_properties = new Properties();
 
             // disregard the inherited properties.
 //            m_properties = new Properties();
@@ -308,25 +304,25 @@ abstract public class AbstractTestCase
         
         for( int i=0; i<expected.length; i++ ) {
             
-            try {
+//            try {
 
                 assertEquals(expected[i], actual[i]);
                 
-            } catch (AssertionFailedError ex) {
-                
-                /*
-                 * Only do the message construction once the assertion is known
-                 * to fail.
-                 */
-                
-                fail(msg + "values differ: index=" + i, ex);
-                
-            }
+//            } catch (AssertionFailedError ex) {
+//
+//                /*
+//                 * Only do the message construction once the assertion is known
+//                 * to fail.
+//                 */
+//
+//                throw new AssertionFailedErrorfail(msg + "values differ: index=" + i, ex);
+//
+//            }
             
         }
         
     }
-    
+
     /**
      * Dumps the lexicon in a variety of ways.
      * 
@@ -448,7 +444,7 @@ abstract public class AbstractTestCase
 //     * {@link Object#equals( Object other )}. Errors are reported if too few or
 //     * too many objects are produced, etc.
 //     * 
-//     * Note: refactored to {@link TestCase2}.
+//     * Note: refactored to {@link Assert}.
 //     */
 //    static public void assertSameItr(Object[] expected, Iterator<?> actual) {
 //
@@ -606,8 +602,8 @@ abstract public class AbstractTestCase
             if (!map.isEmpty()) {
 
                 // @todo convert term identifiers before rendering.
-                if (log.isInfoEnabled())
-                log.info("Iterator empty but still expecting: " + map.values());
+//                if (log.isInfoEnabled())
+//                log.info("Iterator empty but still expecting: " + map.values());
 
                 fail("Expecting: " + map.size() + " more statements: "+map.values());
 
@@ -950,6 +946,7 @@ abstract public class AbstractTestCase
         /**
          * Extended to flush the {@link #buffer}.
          */
+        @Override
         protected void success() {
 
             super.success();
@@ -958,10 +955,12 @@ abstract public class AbstractTestCase
             
         }
         
+        @Override
         public RDFHandler newRDFHandler() {
 
             return new RDFHandlerBase() {
 
+                @Override
                 public void handleStatement(final Statement stmt) {
                     
                     buffer.add(stmt);
@@ -1213,5 +1212,4 @@ abstract public class AbstractTestCase
         }
 
     }
-    
 }

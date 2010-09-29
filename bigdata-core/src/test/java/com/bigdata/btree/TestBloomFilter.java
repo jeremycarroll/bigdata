@@ -27,11 +27,11 @@
 
 package com.bigdata.btree;
 
+import com.bigdata.test.Assert;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Test suite for bloom filter functionality.
@@ -41,7 +41,7 @@ import junit.framework.TestCase2;
  * 
  * @see BloomFilter
  */
-public class TestBloomFilter extends TestCase2 {
+public class TestBloomFilter extends Assert {
 
     /**
      * 
@@ -50,17 +50,9 @@ public class TestBloomFilter extends TestCase2 {
     }
 
     /**
-     * @param name
-     */
-    public TestBloomFilter(String name) {
-     
-        super(name);
-        
-    }
-
-    /**
      * Simple constructor tests
      */
+    @Test
     public void test_ctor() {
 
         new BloomFilter(1000/* n */, .01/* p */, 10000/* maxN */);
@@ -74,6 +66,7 @@ public class TestBloomFilter extends TestCase2 {
     /**
      * Correct rejection tests.
      */
+    @Test
     public void test_ctor_correctRejection() {
 
         try {
@@ -110,6 +103,7 @@ public class TestBloomFilter extends TestCase2 {
      * Test that a bloom filter constructed for a given #of keys and maximum
      * error rate respects that maximum error rate in practice.
      */
+    @Test
     public void test_errorRate() {
 
         final double errorRate = 0.05d;
@@ -117,13 +111,13 @@ public class TestBloomFilter extends TestCase2 {
         final int nkeys = 1000;
 
         // inputs.
-        System.err.println("targets: nkeys=" + nkeys + ", errorRate="
-                + errorRate);
+//         System.err.println("targets: nkeys=" + nkeys + ", errorRate="
+//                 + errorRate);
 
         final BloomFilter bloomFilter = new BloomFilter(nkeys, errorRate, nkeys/* maxKeys */);
 
         // displays filter state as provisioned.
-        System.err.println("provisioned: " + bloomFilter.toString());
+//         System.err.println("provisioned: " + bloomFilter.toString());
 
         final Set<byte[]> groundTruth = new HashSet<byte[]>(nkeys);
 
@@ -183,13 +177,13 @@ public class TestBloomFilter extends TestCase2 {
             }
 
             // outputs.
-            System.err.println("error rate on keys added to the filter"
-                    + ": #errors=" + falsePositiveCount
-                    + ", actual error rate="
-                    + ((double) falsePositiveCount / (double) nkeys));
+//             System.err.println("error rate on keys added to the filter"
+//                     + ": #errors=" + falsePositiveCount
+//                     + ", actual error rate="
+//                     + ((double) falsePositiveCount / (double) nkeys));
 
             // displays filter state after inserting keys.
-            System.err.println("after inserts: " + bloomFilter.toString());
+//             System.err.println("after inserts: " + bloomFilter.toString());
 
         }
 
@@ -240,10 +234,10 @@ public class TestBloomFilter extends TestCase2 {
             }
 
             // outputs.
-            System.err.println("error rate on random distinct keys"
-                    + ": #errors=" + falsePositiveCount2
-                    + ", actual error rate="
-                    + ((double) falsePositiveCount2 / (double) nkeys));
+//             System.err.println("error rate on random distinct keys"
+//                     + ": #errors=" + falsePositiveCount2
+//                     + ", actual error rate="
+//                     + ((double) falsePositiveCount2 / (double) nkeys));
         }
 
     }
@@ -258,6 +252,7 @@ public class TestBloomFilter extends TestCase2 {
      * we increase the #of hash functions the table moves to a new bit length
      * value in a given column.
      */
+    @Test
     public void test_spaceCurve() {
 
         // the increments in error rate that will be plotted.
@@ -280,7 +275,7 @@ public class TestBloomFilter extends TestCase2 {
 
             }
 
-            System.out.println();
+//             System.out.println();
 
         }
 
@@ -299,7 +294,7 @@ public class TestBloomFilter extends TestCase2 {
 
             }
 
-            System.out.println();
+//             System.out.println();
 
         }
 
@@ -328,6 +323,7 @@ public class TestBloomFilter extends TestCase2 {
      * 
      * @see BloomFilter#getEntryCountForErrorRate(double)
      */
+    @Test
     public void test_errorRateCurve() {
 
         final BloomFilter filter;
@@ -341,10 +337,10 @@ public class TestBloomFilter extends TestCase2 {
 
             filter = new BloomFilter(n, p, n/* maxN */);
 
-            System.out.println("Given p=" + p + ", n=" + n
-                    + " the filter will use " + filter.getHashFunctionCount()
-                    + " hash functions and have a bit length of "
-                    + filter.getBitLength());
+//             System.out.println("Given p=" + p + ", n=" + n
+//                     + " the filter will use " + filter.getHashFunctionCount()
+//                     + " hash functions and have a bit length of "
+//                     + filter.getBitLength());
             
             k = filter.getHashFunctionCount();
             
@@ -353,13 +349,13 @@ public class TestBloomFilter extends TestCase2 {
         }
 
         // headings
-        System.out.println("p\tn");
+//         System.out.println("p\tn");
 
         for (double p = 0.01; p < .2; p += 0.01) {
 
             int n = BloomFilter.getEntryCountForErrorRate(k, m, p);
 
-            System.out.println("" + p + "\t" + n);
+//             System.out.println("" + p + "\t" + n);
 
         }
 
@@ -371,6 +367,7 @@ public class TestBloomFilter extends TestCase2 {
      * @todo write test (this gets tested by the index segment build test suite
      *       where the bloom filter is enabled)
      */
+    @Test
     public void test_serialization() {
         
 //        fail("write test");

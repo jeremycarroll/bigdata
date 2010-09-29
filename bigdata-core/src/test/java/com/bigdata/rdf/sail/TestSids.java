@@ -72,13 +72,6 @@ public class TestSids extends ProxyBigdataSailTestCase {
     public TestSids() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestSids(String arg0) {
-        super(arg0);
-    }
-
     public void testSids() throws Exception {
 
         final BigdataSail sail = getSail();

@@ -28,14 +28,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.striterator;
 
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.TemporaryStore;
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link DistinctFilter}.
@@ -43,7 +43,7 @@ import com.bigdata.rawstore.Bytes;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestDistinctFilter extends TestCase2 {
+public class TestDistinctFilter extends Assert {
 
     /**
      * 
@@ -52,16 +52,10 @@ public class TestDistinctFilter extends TestCase2 {
     }
 
     /**
-     * @param arg0
-     */
-    public TestDistinctFilter(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Unit test where all elements are visited in the first chunk. This case is
      * optimized to avoid the creation of the {@link BTree}.
      */
+    @Test
     public void test_distinctOneChunk() {
         
         final IIndexManager indexManager = new TemporaryStore();
@@ -99,6 +93,7 @@ public class TestDistinctFilter extends TestCase2 {
     /**
      * Unit test where the source iterator is empty.
      */
+    @Test
     public void test_distinctOneChunkEmptyIterator() {
 
         final IIndexManager indexManager = new TemporaryStore();
@@ -135,6 +130,7 @@ public class TestDistinctFilter extends TestCase2 {
      * Unit test where multiple chunks are processed. One of the chunks consists
      * entirely of duplicate elements.
      */
+    @Test
     public void test_distinctManyChunks() {
         
         final IIndexManager indexManager = new TemporaryStore();

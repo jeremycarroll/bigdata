@@ -33,13 +33,10 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
-
 import org.apache.log4j.Logger;
-
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * basic unit tests.
@@ -56,7 +53,7 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestNonBlockingLockManager extends TestCase {
+public class TestNonBlockingLockManager extends Assert {
 
     protected static final Logger log = Logger.getLogger(TestNonBlockingLockManager.class);
 
@@ -69,10 +66,6 @@ public class TestNonBlockingLockManager extends TestCase {
      */
     public TestNonBlockingLockManager() {
         super();
-    }
-
-    public TestNonBlockingLockManager(String name) {
-        super(name);
     }
 
     /**
@@ -160,7 +153,7 @@ public class TestNonBlockingLockManager extends TestCase {
 
             if (delegate == null) {
 
-                throw new AssertionFailedError(
+                throw new AssertionError(
                         "Not expecting task (no delegate): " + arg0);
                 
             }
@@ -180,6 +173,7 @@ public class TestNonBlockingLockManager extends TestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_shutdownNow() throws InterruptedException, ExecutionException {
 
         final NonBlockingLockManager<String> service = new NonBlockingLockManager<String>(
@@ -208,6 +202,7 @@ public class TestNonBlockingLockManager extends TestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_shutdown() throws InterruptedException, ExecutionException {
 
         final NonBlockingLockManager<String> service = new NonBlockingLockManager<String>(
@@ -270,6 +265,7 @@ public class TestNonBlockingLockManager extends TestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_run1() throws InterruptedException, ExecutionException {
         
         final ExecutorService delegate = Executors
@@ -309,6 +305,7 @@ public class TestNonBlockingLockManager extends TestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_run1WithLock() throws InterruptedException, ExecutionException {
         
         final ExecutorService delegate = Executors

@@ -42,12 +42,4 @@ abstract public class AbstractTripleStoreTestCase extends ProxyTestCase {
      */
     public AbstractTripleStoreTestCase() {
     }
-
-    /**
-     * @param name
-     */
-    public AbstractTripleStoreTestCase(String name) {
-        super(name);
-    }
-
 }

@@ -40,6 +40,8 @@ import com.bigdata.bfs.BigdataFileSystem.Options;
 import com.bigdata.journal.ITx;
 import com.bigdata.rawstore.WormAddressManager;
 import com.bigdata.service.AbstractEmbeddedFederationTestCase;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
@@ -52,13 +54,6 @@ public class AbstractRepositoryTestCase extends
      * 
      */
     public AbstractRepositoryTestCase() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public AbstractRepositoryTestCase(String arg0) {
-        super(arg0);
     }
 
     public Properties getProperties() {
@@ -82,6 +77,7 @@ public class AbstractRepositoryTestCase extends
 
     protected BigdataFileSystem repo;
     
+    @Before
     public void setUp() throws Exception {
 
         super.setUp();
@@ -98,6 +94,7 @@ public class AbstractRepositoryTestCase extends
         
     }
 
+    @After
     public void tearDown() throws Exception {
 
         super.tearDown();

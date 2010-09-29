@@ -41,33 +41,38 @@ import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.rdf.vocab.NoVocabulary;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link ISPO#isModified()}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestIsModified extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestIsModified() {
+    public TestIsModified(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestIsModified(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Unit test for {@link ISPO#isModified()}. The test explores the correct
      * reporting of statement modification as statements are asserted and
      * retracted on the database using the low-level {@link SPORelation} API.
      */
+    @Test
     public void test_reportMutation() {
 
         final Properties properties = super.getProperties();

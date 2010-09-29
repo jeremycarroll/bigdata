@@ -26,8 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.config;
 
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates unit tests into dependency order.
@@ -36,29 +37,9 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
 
-public class TestAll extends TestCase {
-
-    /**
-     * 
-     */
-    public TestAll() {
-        super();
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    public static junit.framework.Test suite() {
-        
-        TestSuite retval = new TestSuite("config");
-        
-        retval.addTestSuite( TestConfiguration.class );
-
-        return retval;
-    }
-
+@RunWith(Suite.class)
+@SuiteClasses( {
+        TestConfiguration.class
+        } )
+public class TestAll {
 }

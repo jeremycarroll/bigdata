@@ -48,6 +48,7 @@ import com.bigdata.rawstore.IMROW;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.test.ExperimentDriver;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Test;
 
 /**
  * Test suite for MROW (Multiple Readers, One Writer) support.
@@ -77,16 +78,10 @@ abstract public class AbstractMROWTestCase extends AbstractRawStoreTestCase {
     }
 
     /**
-     * @param name
-     */
-    public AbstractMROWTestCase(String name) {
-        super(name);
-    }
-
-    /**
      * Correctness/stress test verifies that the implementation supports
      * Multiple Readers One Writer (MROW).
      */
+    @Test
     public void testMROW() throws Exception {
 
         final IRawStore store = getStore();
@@ -179,7 +174,7 @@ abstract public class AbstractMROWTestCase extends AbstractRawStoreTestCase {
             writerTask.write();
             
         }
-        System.err.println("Pre-wrote "+npreWrites+" records");
+//         System.err.println("Pre-wrote "+npreWrites+" records");
         
         // start the writer.
         writerExecutor.submit(writerTask);
@@ -270,10 +265,10 @@ abstract public class AbstractMROWTestCase extends AbstractRawStoreTestCase {
             
         }
         
-        System.err.println("#clients=" + nclients + ", ntrials=" + ntrials
-                + ", nok=" + nok + ", ncancelled=" + ncancelled + ", nerrors="
-                + nerr.get() + " in " + elapsed + "ms (" + nok * 1000 / elapsed
-                + " reads per second); nwritten=" + nwritten);
+//         System.err.println("#clients=" + nclients + ", ntrials=" + ntrials
+//                 + ", nok=" + nok + ", ncancelled=" + ncancelled + ", nerrors="
+//                 + nerr.get() + " in " + elapsed + "ms (" + nok * 1000 / elapsed
+//                 + " reads per second); nwritten=" + nwritten);
        
     }
 
@@ -398,7 +393,7 @@ abstract public class AbstractMROWTestCase extends AbstractRawStoreTestCase {
 
             }
 
-            System.err.println("Writer done: nwritten="+nrecs);
+//             System.err.println("Writer done: nwritten="+nrecs);
             
             return nrecs;
         

@@ -29,6 +29,7 @@ package com.bigdata.rawstore;
 
 import java.io.File;
 import java.io.IOException;
+import org.junit.After;
 
 
 /**
@@ -45,19 +46,12 @@ public class TestSimpleFileRawStore extends AbstractRawStoreTestCase {
     public TestSimpleFileRawStore() {
     }
 
-    /**
-     * @param name
-     */
-    public TestSimpleFileRawStore(String name) {
-        super(name);
-    }
-
     private boolean firstTime = true;
     private SimpleFileRawStore store;
     
     protected IRawStore getStore() {
 
-        File file = new File(getName()+".raw2");
+        File file = new File(this.getClass().getName()+".raw2");
 
         if(firstTime && file.exists() && !file.delete()) {
 
@@ -83,9 +77,8 @@ public class TestSimpleFileRawStore extends AbstractRawStoreTestCase {
         
     }
     
+    @After
     public void tearDown() throws Exception {
-        
-        super.tearDown();
         
         if(store != null && store.isOpen()) {
             

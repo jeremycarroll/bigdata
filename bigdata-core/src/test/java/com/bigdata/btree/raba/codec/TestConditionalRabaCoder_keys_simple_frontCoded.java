@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree.raba.codec;
 
 import com.bigdata.btree.raba.ConditionalRabaCoder;
+import org.junit.Before;
 
 /**
  * Test suite for the {@link ConditionalRabaCoder}.
@@ -44,16 +45,8 @@ public class TestConditionalRabaCoder_keys_simple_frontCoded extends
     public TestConditionalRabaCoder_keys_simple_frontCoded() {
     }
 
-    /**
-     * @param name
-     */
-    public TestConditionalRabaCoder_keys_simple_frontCoded(String name) {
-        super(name);
-    }
-
-    protected void setUp() throws Exception {
-
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
 
         rabaCoder = new ConditionalRabaCoder( //
                 SimpleRabaCoder.INSTANCE,//

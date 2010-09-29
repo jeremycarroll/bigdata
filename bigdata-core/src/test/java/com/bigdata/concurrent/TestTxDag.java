@@ -32,13 +32,10 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
-
 import org.apache.log4j.Logger;
-
 import com.bigdata.concurrent.TxDag.Edge;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for online transaction deadlock algorithm.
@@ -85,25 +82,20 @@ import com.bigdata.concurrent.TxDag.Edge;
  *       updated.
  */
 
-public class TestTxDag extends TestCase
-{
+public class TestTxDag extends Assert {
 
     public static final Logger log = Logger.getLogger
 	( TestTxDag.class
 	  );
 
-    public TestTxDag()
-    {
+    public TestTxDag() {
     }
 
-    public TestTxDag( String name )
-    {
-        super( name );
-    }
     
     /**
      * Constructor tests.
      */
+    @Test
     public void test_ctor()
     {
         try {
@@ -142,6 +134,7 @@ public class TestTxDag extends TestCase
      * graph.
      */
     
+    @Test
     public void test_lookup_001()
     {
         
@@ -180,6 +173,7 @@ public class TestTxDag extends TestCase
     /**
      * Correct rejection test when transaction object is <code>null</code>.
      */
+    @Test
     public void test_lookup_002()
     {
         try {
@@ -196,6 +190,7 @@ public class TestTxDag extends TestCase
      * Test capacity limits. This test verifies that insert fails if capacity
      * the graph (the maximum #of vertices) would be exceeded.
      */
+    @Test
     public void test_capacity_001()
     {
         
@@ -234,6 +229,7 @@ public class TestTxDag extends TestCase
      * {@link TxDag#hasEdge(Object, Object)}and friends.
      */
 
+    @Test
     public void test_addEdge_001()
     {
 
@@ -269,6 +265,7 @@ public class TestTxDag extends TestCase
      * Test for correct rejection of addEdge() when edge already exists.
      */
 
+    @Test
     public void test_addEdge_correctRejection_001()
     {
 
@@ -295,6 +292,7 @@ public class TestTxDag extends TestCase
      * null or when both parameters are the same.
      */
 
+    @Test
     public void test_addEdge_correctRejection_002()
     {
 
@@ -334,6 +332,7 @@ public class TestTxDag extends TestCase
      * Test for correct rejection of addEdges() when an edge already exists.
      */
 
+    @Test
     public void test_addEdges_correctRejection_001()
     {
 
@@ -361,6 +360,7 @@ public class TestTxDag extends TestCase
      * is given more than once.
      */
 
+    @Test
     public void test_addEdges_correctRejection_002()
     {
 
@@ -410,6 +410,7 @@ public class TestTxDag extends TestCase
 	 * @see TxDag#getOrder()
 	 */
 
+    @Test
     public void test_getOrder_001()
     {
         
@@ -518,6 +519,7 @@ public class TestTxDag extends TestCase
 	 * not actually updated.
 	 */
 
+    @Test
     public void test_updateClosure_001()
     {
 
@@ -588,6 +590,7 @@ public class TestTxDag extends TestCase
 	 * capacity of <code>4</code> after adding an edge.
 	 */
 
+    @Test
     public void test_updateClosure_002()
     {
 
@@ -900,7 +903,7 @@ public class TestTxDag extends TestCase
     			this.src = src;
     			this.tgt = tgt;
     		}
-    	};
+    	}
     	// Vector of states for the DAG together with the action which produced that state.
     	
     	/*
@@ -1102,6 +1105,7 @@ public class TestTxDag extends TestCase
     /**
      * Some tests to verify {@link #assertSameEdges(Edge[], Edge[])}.
      */
+    @Test
     public void testAssertSameEdges()
     {
     	/*
@@ -1153,17 +1157,17 @@ public class TestTxDag extends TestCase
     	// Test correct failure for actual not consistent with expected.
     	try {
     		assertSameEdges( new Edge[]{e1,e2}, new Edge[]{e1} );
-    		throw new RuntimeException("Expecting "+AssertionFailedError.class);
+    		throw new RuntimeException("Expecting "+AssertionError.class);
     	}
-    	catch( AssertionFailedError ex ) {
+    	catch( AssertionError ex ) {
     		log.info("Expected exception: "+ex);
     	}
     	
     	try {
     		assertSameEdges( new Edge[]{e1}, new Edge[]{e2} );
-    		throw new RuntimeException("Expecting "+AssertionFailedError.class);
+    		throw new RuntimeException("Expecting "+AssertionError.class);
     	}
-    	catch( AssertionFailedError ex ) {
+    	catch( AssertionError ex ) {
     		log.info("Expected exception: "+ex);
     	}
 
@@ -1185,6 +1189,7 @@ public class TestTxDag extends TestCase
 	 * suggesting that vertices are being recycled correctly).
 	 */
     
+    @Test
     public void test_recyclingIndices()
     {
     	final int CAPACITY = 10;
@@ -1201,6 +1206,7 @@ public class TestTxDag extends TestCase
      * WAITS_FOR relationships that do NOT form cycles.
      */
     
+    @Test
     public void test_noCycles_001()
     {
     	final int CAPACITY = 5;
@@ -1228,6 +1234,7 @@ public class TestTxDag extends TestCase
 	 * operation to add edges).
 	 */
     
+    @Test
     public void test_noCycles__batch_001()
     {
     	final int CAPACITY = 5;
@@ -1248,6 +1255,7 @@ public class TestTxDag extends TestCase
 	 * cycle.
 	 */
 
+    @Test
     public void test_deadlock_001()
     {
     	final int CAPACITY = 5;
@@ -1265,6 +1273,7 @@ public class TestTxDag extends TestCase
         }
     }
 
+    @Test
     public void test_deadlock_002()
     {
     	final int CAPACITY = 5;
@@ -1286,6 +1295,7 @@ public class TestTxDag extends TestCase
         }
     }
 
+    @Test
     public void test_deadlock_003()
     {
     	final int CAPACITY = 5;
@@ -1307,6 +1317,7 @@ public class TestTxDag extends TestCase
         }
     }
 
+    @Test
     public void test_deadlock_batch_001()
     {
     	final int CAPACITY = 5;
@@ -1355,6 +1366,7 @@ public class TestTxDag extends TestCase
 	 * @see #doSymmetricOperationsTest(Random, TxDag)
 	 */
     
+    @Test
     public void testSymmetricOperations()
     {
     	final int NTRIALS = 30;

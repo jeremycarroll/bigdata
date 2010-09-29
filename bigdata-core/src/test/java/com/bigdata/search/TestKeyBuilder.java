@@ -29,13 +29,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.search;
 
 import java.util.Properties;
-
 import com.bigdata.io.BytesUtil;
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.search.FullTextIndex.Options;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for key formation for the {@link FullTextIndex}.
@@ -45,19 +44,12 @@ import com.bigdata.search.FullTextIndex.Options;
  * 
  * @todo write tests in which the docId is a negative long integer.
  */
-public class TestKeyBuilder extends TestCase2 {
+public class TestKeyBuilder extends Assert {
 
     /**
      * 
      */
     public TestKeyBuilder() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestKeyBuilder(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -97,6 +89,7 @@ public class TestKeyBuilder extends TestCase2 {
      *       a prefix match and then verify that they do match and that terms
      *       that are not prefix matches do not match.
      */
+    @Test
     public void test_prefixMatch_unicode() {
 
     }
@@ -107,6 +100,7 @@ public class TestKeyBuilder extends TestCase2 {
      * successor of the prefix are ordered before and after the term and its
      * successor respectively.
      */
+    @Test
     public void test_keyOrder() {
         
         final IKeyBuilder keyBuilder = getKeyBuilder();

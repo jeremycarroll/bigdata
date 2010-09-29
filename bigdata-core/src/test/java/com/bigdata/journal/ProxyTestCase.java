@@ -27,10 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.journal;
 
+import java.util.Collection;
 import java.util.Properties;
-
-import junit.extensions.proxy.IProxyTest;
-import junit.framework.Test;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * <p>
@@ -51,26 +51,39 @@ import junit.framework.Test;
  * @see AbstractJournalTestCase
  */
 public abstract class ProxyTestCase<S extends IIndexManager>
-    extends AbstractIndexManagerTestCase<S>
-    implements IProxyTest
-{
+    extends AbstractIndexManagerTestCase<S> {
 
     public ProxyTestCase() {}
-    public ProxyTestCase(String name){super(name);}
-    
+
+    public static Collection<Object[]> getDelegateGroup1() {
+        Object[][] list = new Object[][] {
+            { new com.bigdata.journal.TestTransientJournal() },
+            //{ new com.bigdata.journal.TestDirectJournal()    } ,
+            { new com.bigdata.journal.TestWORMStrategy()     } };
+        return java.util.Arrays.asList(list);
+    };
+
+    public static Collection<Object[]> getDelegateGroup2() {
+        Object[][] list = new Object[][] {
+            { new com.bigdata.service.TestJournal()   },
+            { new com.bigdata.service.TestEDSRemote() },
+            { new com.bigdata.service.TestEDS()       } } ;
+        return java.util.Arrays.asList(list);
+    };
+
     //************************************************************
     //************************ IProxyTest ************************
     //************************************************************
 
-    private AbstractIndexManagerTestCase<S> m_delegate = null;
+    private Object m_delegate = null;
 
-    public void setDelegate(Test delegate) {
+    public void setDelegate(Object delegate) {
 
-        m_delegate = (AbstractIndexManagerTestCase<S>)delegate;
+        m_delegate = delegate;
 
     }
 
-    public Test getDelegate() throws IllegalStateException {
+    public Object getDelegate() throws IllegalStateException {
 
         return m_delegate;
 
@@ -108,7 +121,7 @@ public abstract class ProxyTestCase<S extends IIndexManager>
             }
             try {
                 Class cl = Class.forName(testClass);
-                m_delegate = (AbstractIndexManagerTestCase<S>) cl.newInstance();
+                m_delegate = cl.newInstance();
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
@@ -143,14 +156,18 @@ public abstract class ProxyTestCase<S extends IIndexManager>
      * an entire suite of tests.)
      */
     
+    @Before
     public void setUp() throws Exception {
         getOurDelegate().setUp(this);
     }
 
+    @After
+    @Override
     public void tearDown() throws Exception {
         getOurDelegate().tearDown(this);
     }
 
+    @Override
     public Properties getProperties() {
         return getOurDelegate().getProperties();
     }

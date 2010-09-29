@@ -28,11 +28,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.sparse;
 
 
+import com.bigdata.test.Assert;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Random;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Test suite for {@link ValueType}.
@@ -40,7 +40,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestValueType extends TestCase2 {
+public class TestValueType extends Assert {
 
     /**
      * 
@@ -49,13 +49,7 @@ public class TestValueType extends TestCase2 {
         super();
     }
 
-    /**
-     * @param name
-     */
-    public TestValueType(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_encode_null() {
 
         assertEquals(null, ValueType
@@ -63,6 +57,7 @@ public class TestValueType extends TestCase2 {
 
     }
     
+    @Test
     public void test_encode_Integer() {
         
         assertEquals(0, ValueType
@@ -82,6 +77,7 @@ public class TestValueType extends TestCase2 {
 
     }
     
+    @Test
     public void test_encode_Long() {
         
         assertEquals(0L, ValueType
@@ -101,6 +97,7 @@ public class TestValueType extends TestCase2 {
 
     }
     
+    @Test
     public void test_encode_Float() {
         
         assertEquals(0f, ValueType
@@ -120,6 +117,7 @@ public class TestValueType extends TestCase2 {
 
     }
     
+    @Test
     public void test_encode_Double() {
         
         assertEquals(0d, ValueType
@@ -139,6 +137,7 @@ public class TestValueType extends TestCase2 {
 
     }
 
+    @Test
     public void test_encode_Unicode() {
         
         assertEquals("", ValueType
@@ -152,6 +151,7 @@ public class TestValueType extends TestCase2 {
         
     }
     
+    @Test
     public void test_encode_Date() {
         
         assertEquals(new Date(0L), ValueType
@@ -170,12 +170,13 @@ public class TestValueType extends TestCase2 {
     
     }
 
+    @Test
     public void test_encode_ByteArray() {
 
-        assertEquals(new byte[] {}, (byte[]) ValueType.decode(ValueType
+        assertArrayEquals(new byte[] {}, (byte[]) ValueType.decode(ValueType
                 .encode(new byte[] {})));
 
-        assertEquals(new byte[] { 1, 0, 4, 2 }, (byte[]) ValueType
+        assertArrayEquals(new byte[] { 1, 0, 4, 2 }, (byte[]) ValueType
                 .decode(ValueType.encode(new byte[] { 1, 0, 4, 2 })));
 
         Random r = new Random();
@@ -184,10 +185,11 @@ public class TestValueType extends TestCase2 {
 
         r.nextBytes(data);
 
-        assertEquals(data, (byte[]) ValueType.decode(ValueType.encode(data)));
+        assertArrayEquals(data, (byte[]) ValueType.decode(ValueType.encode(data)));
         
     }
 
+    @Test
     public void test_encode_Object() {
 
         doEncodeDecodeTest(new MySerializable("abc"));

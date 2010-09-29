@@ -40,6 +40,11 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.SimpleEntry;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.WormAddressManager;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for restart-safety of {@link BTree}s backed by an
@@ -48,20 +53,20 @@ import com.bigdata.rawstore.WormAddressManager;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRestartSafe extends ProxyTestCase<Journal> {
 
     /**
      * 
      */
-    public TestRestartSafe() {
+    public TestRestartSafe(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRestartSafe(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
 //    public Properties getProperties() {
 //
@@ -152,6 +157,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
      * 
      * @throws IOException
      */
+    @Test
     public void test_restartSafe01() throws IOException {
 
         Journal journal = new Journal(getProperties());
@@ -188,7 +194,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
                 
             }
             
-            assertTrue(btree.dump(Level.DEBUG,System.err));
+            assertTrue(btree.dump(Level.DEBUG,getNullPrintStream()));
     
             // @todo verify in more detail.
             assertSameIterator(new Object[] { v1, v2, v3, v4, v5, v6, v7, v8 },
@@ -211,7 +217,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
 
                 final BTree btree = BTree.load(journal, addr1);
 
-                assertTrue(btree.dump(Level.DEBUG, System.err));
+                assertTrue(btree.dump(Level.DEBUG, getNullPrintStream()));
 
                 // @todo verify in more detail.
                 assertSameIterator(new Object[] { v1, v2, v3, v4, v5, v6, v7,
@@ -221,7 +227,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
 
                 btree.removeAll();
 
-                assertTrue(btree.dump(Level.DEBUG, System.err));
+                assertTrue(btree.dump(Level.DEBUG, getNullPrintStream()));
 
                 assertSameIterator(new Object[] {}, btree.rangeIterator());
 
@@ -239,7 +245,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
 
                 final BTree btree = BTree.load(journal, addr2);
 
-                assertTrue(btree.dump(Level.DEBUG, System.err));
+                assertTrue(btree.dump(Level.DEBUG, getNullPrintStream()));
 
                 assertSameIterator(new Object[] {}, btree.rangeIterator());
 
@@ -265,6 +271,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
      * 
      * @throws IOException
      */
+    @Test
     public void test_restartSafe_offsetBits() throws IOException {
 
         final int offsetBits = WormAddressManager.SCALE_OUT_OFFSET_BITS;
@@ -336,7 +343,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
 
                 final BTree btree = BTree.load(journal, addr1);
 
-                assertTrue(btree.dump(Level.DEBUG, System.err));
+                assertTrue(btree.dump(Level.DEBUG, getNullPrintStream()));
 
                 // @todo verify in more detail.
                 assertSameIterator(new Object[] { v1, v2, v3, v4, v5, v6, v7,
@@ -346,7 +353,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
 
                 btree.removeAll();
 
-                assertTrue(btree.dump(Level.DEBUG, System.err));
+                assertTrue(btree.dump(Level.DEBUG, getNullPrintStream()));
 
                 assertSameIterator(new Object[] {}, btree.rangeIterator());
 
@@ -364,7 +371,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
 
                 final BTree btree = BTree.load(journal, addr2);
 
-                assertTrue(btree.dump(Level.DEBUG, System.err));
+                assertTrue(btree.dump(Level.DEBUG, getNullPrintStream()));
 
                 assertSameIterator(new Object[] {}, btree.rangeIterator());
 
@@ -385,6 +392,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
     /**
      * Test verifies that the {@link ICounter} is restart-safe.
      */
+    @Test
     public void test_restartSafeCounter() {
        
         Journal journal = new Journal(getProperties());
@@ -434,6 +442,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
      * Test verifies that classes which extend {@link BTree} are correctly
      * restored by {@link BTree#load(com.bigdata.rawstore.IRawStore, long)}.
      */
+    @Test
     public void test_restartSafeSubclass() {
 
         Journal journal = new Journal(getProperties());
@@ -484,7 +493,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
                 
             }
 
-            assertTrue(btree.dump(Level.DEBUG, System.err));
+            assertTrue(btree.dump(Level.DEBUG, getNullPrintStream()));
 
             // @todo verify in more detail.
             assertSameIterator(new Object[] { v1, v2, v3, v4, v5, v6, v7, v8 },
@@ -505,7 +514,7 @@ public class TestRestartSafe extends ProxyTestCase<Journal> {
 
             final MyBTree btree = (MyBTree) BTree.load(journal, addr1);
 
-            assertTrue(btree.dump(Level.DEBUG, System.err));
+            assertTrue(btree.dump(Level.DEBUG, getNullPrintStream()));
 
             // @todo verify in more detail.
             assertSameIterator(new Object[] { v1, v2, v3, v4, v5, v6, v7, v8 },

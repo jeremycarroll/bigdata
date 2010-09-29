@@ -31,6 +31,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import com.bigdata.btree.BTree;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test the ability to get (exact match) and find (most recent less than or
@@ -41,20 +46,20 @@ import com.bigdata.btree.BTree;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestCommitHistory extends ProxyTestCase<Journal> {
 
     /**
      * 
      */
-    public TestCommitHistory() {
+    public TestCommitHistory(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestCommitHistory(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
     /**
      * Compare two {@link ICommitRecord}s for equality in their data.
@@ -93,6 +98,7 @@ public class TestCommitHistory extends ProxyTestCase<Journal> {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_behaviorBeforeAnythingIsCommitted() throws IOException {
 
         final Journal journal = new Journal(getProperties());
@@ -114,6 +120,7 @@ public class TestCommitHistory extends ProxyTestCase<Journal> {
      * Test the ability to recover a {@link ICommitRecord} from the
      * {@link CommitRecordIndex}.
      */
+    @Test
     public void test_recoverCommitRecord() {
 
         final Journal journal = new Journal(getProperties());
@@ -159,6 +166,7 @@ public class TestCommitHistory extends ProxyTestCase<Journal> {
     /**
      * Tests whether the {@link CommitRecordIndex} is restart-safe.
      */
+    @Test
     public void test_commitRecordIndex_restartSafe() {
         
         Journal journal = new Journal(getProperties());
@@ -228,6 +236,7 @@ public class TestCommitHistory extends ProxyTestCase<Journal> {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_commitRecordIndex_find() throws IOException {
         
         Journal journal = new Journal(getProperties());
@@ -356,6 +365,7 @@ public class TestCommitHistory extends ProxyTestCase<Journal> {
      * for the same commit record (at least as long as the test holds a hard
      * reference to the commit record of interest).
      */
+    @Test
     public void test_canonicalizingCache() {
         
         final Journal journal = new Journal(getProperties());
@@ -421,6 +431,7 @@ public class TestCommitHistory extends ProxyTestCase<Journal> {
      * verifies that the historical named index is NOT the same instance as the
      * current unisolated index by that name.
      */
+    @Test
     public void test_objectCache() {
         
         final Journal journal = new Journal(getProperties());

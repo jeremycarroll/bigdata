@@ -32,6 +32,11 @@ import java.util.UUID;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.IIndex;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for restart-safety of {@link BTree}s backed by an
@@ -40,22 +45,21 @@ import com.bigdata.btree.IIndex;
  * @todo explore flushing the indexCache as if a GC had occurred after a commit?
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestCommitList extends ProxyTestCase<Journal> {
 
     /**
      * 
      */
-    public TestCommitList() {
+    public TestCommitList(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestCommitList(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
 //    public Properties getProperties() {
 //
@@ -148,6 +152,7 @@ public class TestCommitList extends ProxyTestCase<Journal> {
      * 
      * @see #test_commitList_001_restartSafe()
      */
+    @Test
     public void test_commitList_001() {
 
         final Journal journal = new Journal(getProperties());
@@ -191,7 +196,7 @@ public class TestCommitList extends ProxyTestCase<Journal> {
             assertFalse(journal._getName2Addr().willCommit(name));
 
             // verify entry written by the commit.
-            assertEquals(new byte[] { 1, 2, 3 }, (byte[]) ndx
+            assertArrayEquals(new byte[] { 1, 2, 3 }, (byte[]) ndx
                     .lookup(new byte[] { 1, 2, 3 }));
 
             // still not on the commit list.
@@ -210,6 +215,7 @@ public class TestCommitList extends ProxyTestCase<Journal> {
      * after each commit and verify that the record written can be read so that
      * we know that the commit was made restart safe.
      */
+    @Test
     public void test_commitList_001_restartSafe() {
         
         Journal journal = new Journal(getProperties());
@@ -266,7 +272,7 @@ public class TestCommitList extends ProxyTestCase<Journal> {
                 assertFalse(journal._getName2Addr().willCommit(name));
 
                 // verify entry written by the commit.
-                assertEquals(new byte[] { 1, 2, 3 }, (byte[]) ndx
+                assertArrayEquals(new byte[] { 1, 2, 3 }, (byte[]) ndx
                         .lookup(new byte[] { 1, 2, 3 }));
 
                 // still not on the commit list.
@@ -288,6 +294,7 @@ public class TestCommitList extends ProxyTestCase<Journal> {
      * intervening commit). The test then re-opens the store and verifies that
      * the data are restart safe.
      */
+    @Test
     public void test_commitList002() {
         
         Journal journal = new Journal(getProperties());
@@ -328,7 +335,7 @@ public class TestCommitList extends ProxyTestCase<Journal> {
                 assertFalse(journal._getName2Addr().willCommit(name));
 
                 // verify entry written by the commit.
-                assertEquals(new byte[] { 1, 2, 3 }, (byte[]) ndx
+                assertArrayEquals(new byte[] { 1, 2, 3 }, (byte[]) ndx
                         .lookup(new byte[] { 1, 2, 3 }));
 
                 // still not on the commit list.

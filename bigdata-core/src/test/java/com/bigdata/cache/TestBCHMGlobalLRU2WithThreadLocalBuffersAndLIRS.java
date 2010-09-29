@@ -35,14 +35,13 @@ import com.bigdata.cache.BCHMGlobalLRU2.LIRSAccessPolicy;
 import com.bigdata.cache.BCHMGlobalLRU2.LRUCacheImpl;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IAddressManager;
+import org.junit.Before;
 
 /**
  * Some unit tests for the {@link BCHMGlobalLRU2} using true thread local
  * buffers.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id: TestBCHMGlobalLRU2WithThreadLocalBuffers.java 2792 2010-05-09
- *          20:54:39Z thompsonbry $
  * 
  * @see TestBCHMGlobalLRU2WithStripedLocks
  */
@@ -53,13 +52,6 @@ public class TestBCHMGlobalLRU2WithThreadLocalBuffersAndLIRS extends
      * 
      */
     public TestBCHMGlobalLRU2WithThreadLocalBuffersAndLIRS() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestBCHMGlobalLRU2WithThreadLocalBuffersAndLIRS(String name) {
-        super(name);
     }
 
     private final AccessPolicyEnum accessPolicy = AccessPolicyEnum.LIRS;
@@ -81,9 +73,8 @@ public class TestBCHMGlobalLRU2WithThreadLocalBuffersAndLIRS extends
 
     private final static int threadLocalBufferCapacity = 128;
     
-    protected void setUp() throws Exception {
-
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
 
         lru = new BCHMGlobalLRU2<Long, Object>(accessPolicy,
                 maximumBytesInMemory, minCleared, minimumCacheSetCapacity,
@@ -98,6 +89,7 @@ public class TestBCHMGlobalLRU2WithThreadLocalBuffersAndLIRS extends
      * Note: The {@link #threadLocalBufferCapacity} is overridden for this unit
      * test to ONE (1) so that the counter updates are synchronous.
      */
+    @Override
     public void test_counters() {
 
         lru = new BCHMGlobalLRU2<Long, Object>(accessPolicy,

@@ -29,10 +29,6 @@ package com.bigdata.journal;
 
 import java.io.IOException;
 import java.util.Properties;
-
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
 import com.bigdata.rawstore.IRawStore;
 
 /**
@@ -48,56 +44,7 @@ public class TestMappedJournal extends AbstractJournalTestCase {
         super();
     }
 
-    public TestMappedJournal(String name) {
-        super(name);
-    }
-
-    public static Test suite() {
-
-        final TestMappedJournal delegate = new TestMappedJournal(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Mapped Journal Test Suite");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-        
-        // tests defined by this class.
-        suite.addTestSuite(TestMappedJournal.class);
-
-        // test suite for the IRawStore api.
-        suite.addTestSuite( TestRawStore.class );
-
-        /*
-         * Note: This suite will doubltless fail since you can't re-open a
-         * mapped file using Java since you have not control over when it is
-         * unmapped.
-         */
-        // test suite for handling asynchronous close of the file channel.
-//        suite.addTestSuite( TestInterrupts.class );
-
-        // test suite for MROW correctness.
-        suite.addTestSuite( TestMROW.class );
-
-        // test suite for MRMW correctness.
-        suite.addTestSuite( TestMRMW.class );
-
-        /*
-         * Pickup the basic journal test suite. This is a proxied test suite, so
-         * all the tests will run with the configuration specified in this test
-         * class and its optional .properties file.
-         */
-        suite.addTest(TestJournalBasics.suite());
-
-        return suite;
-
-    }
-
+    @Override
     public Properties getProperties() {
 
         Properties properties = super.getProperties();
@@ -159,10 +106,6 @@ public class TestMappedJournal extends AbstractJournalTestCase {
             super();
         }
 
-        public TestRawStore(String name) {
-            super(name);
-        }
-
         protected BufferMode getBufferMode() {
             
             return BufferMode.Mapped;
@@ -181,10 +124,6 @@ public class TestMappedJournal extends AbstractJournalTestCase {
         
         public TestInterrupts() {
             super();
-        }
-
-        public TestInterrupts(String name) {
-            super(name);
         }
 
         protected IRawStore getStore() {
@@ -216,10 +155,6 @@ public class TestMappedJournal extends AbstractJournalTestCase {
             super();
         }
 
-        public TestMROW(String name) {
-            super(name);
-        }
-
         protected IRawStore getStore() {
 
             Properties properties = getProperties();
@@ -247,10 +182,6 @@ public class TestMappedJournal extends AbstractJournalTestCase {
         
         public TestMRMW() {
             super();
-        }
-
-        public TestMRMW(String name) {
-            super(name);
         }
 
         protected IRawStore getStore() {

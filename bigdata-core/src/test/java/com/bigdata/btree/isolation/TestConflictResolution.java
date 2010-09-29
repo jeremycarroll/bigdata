@@ -29,9 +29,6 @@ package com.bigdata.btree.isolation;
 
 import java.util.Properties;
 import java.util.UUID;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITuple;
@@ -42,6 +39,8 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.Options;
 import com.bigdata.journal.ValidationError;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Tests of write-write conflict resolution.
@@ -92,19 +91,12 @@ import com.bigdata.journal.ValidationError;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestConflictResolution extends TestCase2 {
+public class TestConflictResolution extends Assert {
 
     /**
      * 
      */
     public TestConflictResolution() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestConflictResolution(String name) {
-        super(name);
     }
 
     public Properties getProperties() {
@@ -124,6 +116,7 @@ public class TestConflictResolution extends TestCase2 {
      * and commits.  tx2 attempts to prepare, and the test verifies that a
      * {@link ValidationError} is reported.
      */
+    @Test
     public void test_writeWriteConflict_correctDetection() {
 
         final Journal journal = new Journal(getProperties());
@@ -178,7 +171,7 @@ public class TestConflictResolution extends TestCase2 {
          * verify that the value from tx1 is found under the key on the
          * unisolated index.
          */
-        assertEquals(v1a,(byte[])journal.getIndex(name).lookup(k1));
+        assertArrayEquals(v1a,(byte[])journal.getIndex(name).lookup(k1));
 
 //        final ITx tmp = journal.getTx(tx2);
 
@@ -186,7 +179,7 @@ public class TestConflictResolution extends TestCase2 {
             journal.commit(tx2);
             fail("Expecting: "+ValidationError.class);
         } catch(ValidationError ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
 //            assertTrue(tmp.isAborted());
         }
         
@@ -208,6 +201,7 @@ public class TestConflictResolution extends TestCase2 {
      * succeed and that the value determined by conflict resolution is made
      * persistent when tx2 commits.
      */
+    @Test
     public void test_writeWriteConflict_conflictIsResolved() {
 
         final Journal journal = new Journal(getProperties());
@@ -266,7 +260,7 @@ public class TestConflictResolution extends TestCase2 {
              * verify that the value from tx1 is found under the key on the
              * unisolated index.
              */
-            assertEquals(v1a, (byte[]) journal.getIndex(name).lookup(k1));
+            assertArrayEquals(v1a, (byte[]) journal.getIndex(name).lookup(k1));
 
             journal.commit(tx2);
 
@@ -274,7 +268,7 @@ public class TestConflictResolution extends TestCase2 {
              * verify that the resolved value is found under the key on the
              * unisolated index.
              */
-            assertEquals(v1c, (byte[]) journal.getIndex(name).lookup(k1));
+            assertArrayEquals(v1c, (byte[]) journal.getIndex(name).lookup(k1));
 
         } finally {
 
@@ -370,12 +364,12 @@ public class TestConflictResolution extends TestCase2 {
         public boolean resolveConflict(IIndex writeSet, ITuple txTuple, ITuple currentTuple) throws Exception {
 
             // The key must be the same for both tuples.
-            assertEquals(txTuple.getKey(),currentTuple.getKey());
+            assertArrayEquals(txTuple.getKey(),currentTuple.getKey());
             
             // the key for the conflicting writes.
             final byte[] key = txTuple.getKey();
             
-            assertEquals("key", expectedKey, key );
+            assertArrayEquals("key", expectedKey, key );
             
             writeSet.insert(key, resolvedValue);
             

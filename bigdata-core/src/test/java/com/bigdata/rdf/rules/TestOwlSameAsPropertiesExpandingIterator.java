@@ -46,7 +46,6 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * Test suite for {@link OwlSameAsPropertiesExpandingIterator}.
  * 
  * @author <a href="mailto:mpersonick@users.sourceforge.net">Mike Personick</a>
- * @version $Id$
  */
 public class TestOwlSameAsPropertiesExpandingIterator extends AbstractInferenceEngineTestCase {
 
@@ -55,13 +54,6 @@ public class TestOwlSameAsPropertiesExpandingIterator extends AbstractInferenceE
      */
     public TestOwlSameAsPropertiesExpandingIterator() {
         super();
-    }
-
-    /**
-     * @param name
-     */
-    public TestOwlSameAsPropertiesExpandingIterator(String name) {
-        super(name);
     }
 
     /**

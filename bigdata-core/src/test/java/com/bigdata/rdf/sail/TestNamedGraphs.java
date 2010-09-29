@@ -49,6 +49,10 @@ import org.openrdf.query.impl.BindingImpl;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 import com.bigdata.rdf.store.BD;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Unit tests for named graphs. Specify
@@ -58,6 +62,7 @@ import com.bigdata.rdf.store.BD;
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestNamedGraphs extends QuadsTestCase {
 
     protected static final Logger log = Logger.getLogger(TestNamedGraphs.class);
@@ -65,15 +70,14 @@ public class TestNamedGraphs extends QuadsTestCase {
     /**
      * 
      */
-    public TestNamedGraphs() {
+    public TestNamedGraphs(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestNamedGraphs(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup7();
+    };
 
     /**
      * The foaf: namespace.
@@ -144,6 +148,7 @@ public class TestNamedGraphs extends QuadsTestCase {
      * the RDF merge of the graphs obtained from representations of the 
      * resources identified by the given IRIs.     
      */
+    @Test
     public void test_8_2_1() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
 
@@ -253,6 +258,7 @@ public class TestNamedGraphs extends QuadsTestCase {
      * In general, no assumptions can be made about the equivalence of the 
      * graphs. 
      */
+    @Test
     public void test_8_2_3() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
 
@@ -411,6 +417,7 @@ public class TestNamedGraphs extends QuadsTestCase {
      * <http://example.org/foaf/aliceFoaf>     "Bobby"
      * <http://example.org/foaf/bobFoaf>   "Robert"
      */
+    @Test
     public void test_8_3_1() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
 
@@ -598,6 +605,7 @@ public class TestNamedGraphs extends QuadsTestCase {
      * nick
      * "Robert"
      */
+    @Test
     public void test_8_3_2() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
 
@@ -803,6 +811,7 @@ public class TestNamedGraphs extends QuadsTestCase {
      * a nick for Bob because the pattern involving variable nick is restricted 
      * by ppd to a particular Personal Profile Document.
      */
+    @Test
     public void test_8_3_3() throws RepositoryException, SailException, 
              MalformedQueryException, QueryEvaluationException, IOException {
 
@@ -955,6 +964,7 @@ public class TestNamedGraphs extends QuadsTestCase {
      * @throws QueryEvaluationException
      * @throws MalformedQueryException
      */
+    @Test
     public void test_defaultGraphs_accessPathScan() throws RepositoryException,
             SailException, QueryEvaluationException, MalformedQueryException {
 
@@ -1208,6 +1218,7 @@ public class TestNamedGraphs extends QuadsTestCase {
      * @throws QueryEvaluationException
      * @throws MalformedQueryException
      */
+    @Test
     public void test_defaultGraphs_joins() throws RepositoryException,
             SailException, QueryEvaluationException, MalformedQueryException {
 
@@ -1558,6 +1569,7 @@ public class TestNamedGraphs extends QuadsTestCase {
 
     }
     
+    @Test
     public void testSearchQuery() throws Exception {
         
         final BigdataSail sail = getSail();

@@ -37,9 +37,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
-
-import junit.framework.TestCase2;
-
 import org.CognitiveWeb.util.PropertyUtil;
 import org.openrdf.rio.RDFFormat;
 
@@ -48,6 +45,8 @@ import com.bigdata.rdf.rio.LoadStats;
 import com.bigdata.rdf.store.DataLoader;
 import com.bigdata.rdf.store.DataLoader.ClosureEnum;
 import com.bigdata.util.config.NicUtil;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * Test harness for loading randomly generated files into a repository.
@@ -73,7 +72,6 @@ import com.bigdata.util.config.NicUtil;
  *       assumptions for encoding of Unicode.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestMetrics extends AbstractMetricsTestCase {
 
@@ -81,7 +79,6 @@ public class TestMetrics extends AbstractMetricsTestCase {
      * Additional properties defined for the metrics test harness.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class RuntimeOptions //extends AbstractRepositoryTestCase.RuntimeOptions
     {
@@ -165,7 +162,7 @@ public class TestMetrics extends AbstractMetricsTestCase {
     public TestMetrics( String name ) throws IOException
     {
         
-        super( name );
+        super();
         
         if( name == null ) {
             
@@ -753,6 +750,8 @@ public class TestMetrics extends AbstractMetricsTestCase {
      * 
      * </pre>
      */
+    @Before
+    @Override
     public void setUp() throws Exception
     {
         
@@ -764,6 +763,8 @@ public class TestMetrics extends AbstractMetricsTestCase {
         
     }
     
+    @After
+    @Override
     public void tearDown() throws Exception
     {
 
@@ -822,8 +823,7 @@ public class TestMetrics extends AbstractMetricsTestCase {
     }
 
     /**
-     * Writes information about the store and the indices on stderr and the
-     * {@link TestCase2#log}.
+     * Writes information about the store and the indices on stderr and the log
      */
     private void usage() {
 
@@ -901,7 +901,6 @@ public class TestMetrics extends AbstractMetricsTestCase {
      * and proofs are reported only for the GOM SAIL.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
 
     public class Trial {
@@ -1157,7 +1156,6 @@ public class TestMetrics extends AbstractMetricsTestCase {
 //     * required to perform the commit.
 //     * 
 //     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-//     * @version $Id$
 //     * 
 //     * @todo we can now this stuff directly for our {@link LocalTripleStore} and that
 //     *       will pose fewer problems than this integration point with Sesame,

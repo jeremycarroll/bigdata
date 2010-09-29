@@ -50,10 +50,6 @@ public class TestJournal extends AbstractJournalTestCase {
         super();
     }
 
-    public TestJournal(String name) {
-        super(name);
-    }
-
     public Properties getProperties() {
 
         final Properties properties = super.getProperties();

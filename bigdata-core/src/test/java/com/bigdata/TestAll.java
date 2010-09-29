@@ -27,12 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites in increase dependency order.
@@ -40,86 +37,37 @@ import org.apache.log4j.Logger;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
-
-    /**
-     * 
-     */
-    public TestAll() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Aggregates the tests in increasing dependency order.
-     */
-    public static Test suite()
-    {
-
-        /*
-         * log4j defaults to DEBUG which will produce simply huge amounts of
-         * logging information when running the unit tests. Therefore we
-         * explicitly set the default logging level to WARN. If you are using a
-         * log4j configuration file then this is unlikely to interact with your
-         * configuration, and in any case you can override specific loggers.
-         */
-        {
-
-            final Logger log = Logger.getRootLogger();
-
-            if (log.getLevel().equals(Level.DEBUG)) {
-
-                log.setLevel(Level.WARN);
-
-                log.warn("Defaulting debugging level to WARN for the unit tests");
-
-            }
-            
-        }
-        
-        final TestSuite suite = new TestSuite("bigdata");
-
+@RunWith(Suite.class)
+@SuiteClasses( {
         // boot launcher tests
-        suite.addTestSuite(com.bigdata.boot.BootComponentTest.class);
-        suite.addTestSuite
-            (com.bigdata.boot.launcher.ConfigReaderUnitTest.class);
-        suite.addTestSuite
-            (com.bigdata.process.ProcessConfigXmlHandlerTest.class);
+        com.bigdata.boot.BootComponentTest.class,
+        com.bigdata.boot.launcher.ConfigReaderUnitTest.class,
+        com.bigdata.process.ProcessConfigXmlHandlerTest.class,
 
-        // core bigdata packages.
-        suite.addTest( com.bigdata.cache.TestAll.suite() );
-        suite.addTest( com.bigdata.io.TestAll.suite() );
-        suite.addTest( com.bigdata.net.TestAll.suite() );
-        suite.addTest( com.bigdata.config.TestAll.suite() );
-        suite.addTest( com.bigdata.util.TestAll.suite() );
-        suite.addTest( com.bigdata.util.concurrent.TestAll.suite() );
-        suite.addTest( com.bigdata.striterator.TestAll.suite() );
-        suite.addTest( com.bigdata.counters.TestAll.suite() );
-        suite.addTest( com.bigdata.rawstore.TestAll.suite() );
-        suite.addTest( com.bigdata.btree.TestAll.suite() );
-        suite.addTest( com.bigdata.concurrent.TestAll.suite() );
-        suite.addTest( com.bigdata.journal.TestAll.suite() );
-        suite.addTest( com.bigdata.resources.TestAll.suite() );
-        suite.addTest( com.bigdata.mdi.TestAll.suite() );
-        suite.addTest( com.bigdata.service.TestAll.suite() );
-        suite.addTest( com.bigdata.sparse.TestAll.suite() );
-        suite.addTest( com.bigdata.search.TestAll.suite() );
-        suite.addTest( com.bigdata.bfs.TestAll.suite() );
-        suite.addTest( com.bigdata.relation.TestAll.suite() );
-//        suite.addTest( com.bigdata.service.mapReduce.TestAll.suite() );
-
+        com.bigdata.cache.TestAll.class,
+        com.bigdata.io.TestAll.class,
+        com.bigdata.net.TestAll.class,
+        com.bigdata.config.TestAll.class,
+        com.bigdata.util.TestAll.class,
+        com.bigdata.util.concurrent.TestAll.class,
+        com.bigdata.striterator.TestAll.class,
+        com.bigdata.counters.TestAll.class,
+        com.bigdata.rawstore.TestAll.class,
+        com.bigdata.btree.TestAll.class,
+        com.bigdata.concurrent.TestAll.class,
+        com.bigdata.journal.TestAll.class,
+        com.bigdata.resources.TestAll.class,
+        com.bigdata.mdi.TestAll.class,
+        com.bigdata.service.TestAll.class,
+        com.bigdata.sparse.TestAll.class,
+        com.bigdata.search.TestAll.class,
+        //com.bigdata.bfs.TestAll.class,
+        com.bigdata.relation.TestAll.class,
+        //com.bigdata.service.mapReduce.TestAll.class,
 
         // RDF
-        suite.addTest(com.bigdata.rdf.TestAll.suite());
-        suite.addTest(com.bigdata.rdf.sail.TestAll.suite());
-
-        return suite;
-        
-    }
-
+        com.bigdata.rdf.TestAll.class,
+        com.bigdata.rdf.sail.TestAll.class
+        } )
+public class TestAll {
 }

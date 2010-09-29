@@ -30,6 +30,7 @@ package com.bigdata.concurrent;
 import java.util.Properties;
 
 import com.bigdata.test.ExperimentDriver.Result;
+import org.junit.Test;
 
 /**
  * Stress tests where a {@link TxDag} is used to detect deadlock.
@@ -47,10 +48,6 @@ public class StressTestNonBlockingLockManagerWithTxDag extends
         super();
     }
 
-    public StressTestNonBlockingLockManagerWithTxDag(String name) {
-        super(name);
-    }
-
     /**
      * Test where each operation locks only a single resource (low concurrency
      * condition w/ 5 threads). There is no timeout. All tasks should run to
@@ -58,6 +55,7 @@ public class StressTestNonBlockingLockManagerWithTxDag extends
      * since each task declares a single resource lock, the maximum observed
      * concurrency should be the #of tasks in the thread pool.
      */
+    @Test
     public void test_singleResourceLocking_waitsFor_lowConcurrency5() throws Exception {
 
         final Properties properties = new Properties();
@@ -93,6 +91,7 @@ public class StressTestNonBlockingLockManagerWithTxDag extends
      * run to completion. The maximum observed concurrency SHOULD be equal to
      * the size of the thread pool.
      */
+    @Test
     public void test_singleResourceLocking_waitsFor_defaultConcurrency20()
             throws Exception {
 
@@ -128,6 +127,7 @@ public class StressTestNonBlockingLockManagerWithTxDag extends
      * Test where each operation locks only a single resource (high concurrency
      * condition with 100 threads).
      */
+    @Test
     public void test_singleResourceLocking_waitsFor_highConcurrency100() throws Exception {
 
         final Properties properties = new Properties();
@@ -166,6 +166,7 @@ public class StressTestNonBlockingLockManagerWithTxDag extends
      * Test where each operation locks only a single resource and there is only one
      * resource to be locked so that all operations MUST be serialized.
      */
+    @Test
     public void test_singleResourceLocking_serialized_waitsFor_lowConcurrency2() throws Exception {
 
         final Properties properties = new Properties();
@@ -201,6 +202,7 @@ public class StressTestNonBlockingLockManagerWithTxDag extends
      * one resource to be locked so that all operations MUST be serialized and
      * where 10% of all tasks die a horrid death.
      */
+    @Test
     public void test_singleResourceLocking_serialized_waitsFor_lowConcurrency5_withTaskDeath()
             throws Exception {
 
@@ -263,6 +265,7 @@ public class StressTestNonBlockingLockManagerWithTxDag extends
      * Test where each operation locks only a single resource and there is only
      * one resource to be locked so that all operations MUST be serialized.
      */
+    @Test
     public void test_singleResourceLocking_serialized_waitsFor_highConcurrency()
             throws Exception {
 
@@ -302,6 +305,7 @@ public class StressTestNonBlockingLockManagerWithTxDag extends
      * lock requests when a task is cancelled either while awaiting its locks or
      * while running.
      */
+    @Test
     public void test_singleResourceLocking_serialized_waitsFor_highConcurrency_taskTimeout()
             throws Exception {
 
@@ -346,6 +350,7 @@ public class StressTestNonBlockingLockManagerWithTxDag extends
      * 2PL and to use {@link TxDag} when 2PL is possible and locks are not
      * predeclared (you can not use 2PL if you predeclare locks).
      */
+    @Test
     public void test_multipleResourceLocking_resources3_waitsFor_deadlocks_locktries3()
             throws Exception {
 
@@ -384,6 +389,7 @@ public class StressTestNonBlockingLockManagerWithTxDag extends
      * 2PL and to use {@link TxDag} when 2PL is possible and locks are not
      * predeclared (you can not use 2PL if you predeclare locks).
      */
+    @Test
     public void test_multipleResourceLocking_resources10_waitsFor_deadlocks_locktries10()
             throws Exception {
 

@@ -38,11 +38,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
-
-import com.bigdata.io.BytesUtil;
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.AbstractBTreeTestCase;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.FixedLengthPrefixSplits;
@@ -60,6 +55,7 @@ import com.bigdata.journal.Journal;
 import com.bigdata.journal.Options;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.io.BytesUtil;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.service.Split;
 import com.bigdata.sparse.KeyDecoder;
@@ -67,6 +63,8 @@ import com.bigdata.sparse.KeyType;
 import com.bigdata.sparse.LogicalRowSplitHandler;
 import com.bigdata.sparse.Schema;
 import com.bigdata.sparse.SparseRowStore;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for splitting an index segment based on its size on the disk, the
@@ -79,11 +77,10 @@ import com.bigdata.sparse.SparseRowStore;
  * which covers their key-range.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @see src/architecture/SplitMath.xls
  */
-public class TestSegSplitter extends TestCase2 {
+public class TestSegSplitter extends Assert {
 
     /**
      * 
@@ -91,18 +88,11 @@ public class TestSegSplitter extends TestCase2 {
     public TestSegSplitter() {
     }
 
-    /**
-     * @param name
-     */
-    public TestSegSplitter(String name) {
-        super(name);
-    }
-
     protected IJournal getStore() throws IOException {
         
         Properties p = new Properties();
         
-        p.setProperty(Options.FILE, File.createTempFile(getName(), Options.JNL).toString());
+        p.setProperty(Options.FILE, File.createTempFile(this.getClass().getName(), Options.JNL).toString());
         
         return new Journal(p);
         
@@ -186,7 +176,7 @@ public class TestSegSplitter extends TestCase2 {
         if (src == null)
             throw new IllegalArgumentException();
 
-        final String name = getName();
+        final String name = this.getClass().getName();
 
         final File tmpDir = new File(System.getProperty("java.io.tmpdir"));
 
@@ -280,7 +270,7 @@ public class TestSegSplitter extends TestCase2 {
             
             md.setPartitionMetadata(pmd);
             
-            btree = (BTree) store.registerIndex(getName(), md);
+            btree = (BTree) store.registerIndex(this.getClass().getName(), md);
             
         }
 
@@ -302,7 +292,7 @@ public class TestSegSplitter extends TestCase2 {
         store.commit();
         
         // return view with lastCommitTime set.
-        return (BTree) store.getIndex(getName());
+        return (BTree) store.getIndex(this.getClass().getName());
         
     }
 
@@ -338,7 +328,7 @@ public class TestSegSplitter extends TestCase2 {
             
             md.setPartitionMetadata(pmd);
             
-            btree = (BTree) store.registerIndex(getName(), md);
+            btree = (BTree) store.registerIndex(this.getClass().getName(), md);
             
         }
 
@@ -398,7 +388,7 @@ public class TestSegSplitter extends TestCase2 {
         store.commit();
         
         // return view with lastCommitTime set.
-        return (BTree) store.getIndex(getName());
+        return (BTree) store.getIndex(this.getClass().getName());
         
     }
 
@@ -436,7 +426,7 @@ public class TestSegSplitter extends TestCase2 {
             
             md.setPartitionMetadata(pmd);
             
-            btree = (BTree) store.registerIndex(getName(), md);
+            btree = (BTree) store.registerIndex(this.getClass().getName(), md);
             
         }
 
@@ -478,7 +468,7 @@ public class TestSegSplitter extends TestCase2 {
         store.commit();
         
         // return view with lastCommitTime set.
-        return (BTree) store.getIndex(getName());
+        return (BTree) store.getIndex(this.getClass().getName());
         
     }
 
@@ -488,7 +478,6 @@ public class TestSegSplitter extends TestCase2 {
      * name parameter is ignored.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static class MockPartitionIdFactory implements IPartitionIdFactory {
 
@@ -510,6 +499,7 @@ public class TestSegSplitter extends TestCase2 {
      * 
      * @throws Exception
      */
+    @Test
     public void test_split_segment_underflow() throws Exception {
 
         final byte[] fromKey = new byte[0];
@@ -524,7 +514,7 @@ public class TestSegSplitter extends TestCase2 {
         try {
 
             final LocalPartitionMetadata pmd = new LocalPartitionMetadata(
-                    pidFactory.nextPartitionId(getName()),//
+                    pidFactory.nextPartitionId(this.getClass().getName()),//
                     -1, // sourcePartitionId
                     fromKey, //
                     toKey,//
@@ -643,6 +633,7 @@ public class TestSegSplitter extends TestCase2 {
      * A unit test when the split would create two or three index segments (both
      * cases are tested here to cover the lower bound and the near lower bound).
      */
+    @Test
     public void test_split_lower_bounds() throws Exception {
 
         /*
@@ -660,7 +651,7 @@ public class TestSegSplitter extends TestCase2 {
         try {
 
             final LocalPartitionMetadata pmd = new LocalPartitionMetadata(
-                    pidFactory.nextPartitionId(getName()),//
+                    pidFactory.nextPartitionId(this.getClass().getName()),//
                     -1, // sourcePartitionId
                     fromKey, //
                     toKey,//
@@ -753,6 +744,7 @@ public class TestSegSplitter extends TestCase2 {
      * A unit test for fence posts when nominal shard size is so small that we
      * will get only one tuple into each generated split.
      */
+    @Test
     public void test_split_upper_bound() throws Exception {
 
         /*
@@ -770,7 +762,7 @@ public class TestSegSplitter extends TestCase2 {
         try {
 
             final LocalPartitionMetadata pmd = new LocalPartitionMetadata(
-                    pidFactory.nextPartitionId(getName()),//
+                    pidFactory.nextPartitionId(this.getClass().getName()),//
                     -1, // sourcePartitionId
                     fromKey, //
                     toKey,//
@@ -847,6 +839,7 @@ public class TestSegSplitter extends TestCase2 {
      * 
      * @throws Exception
      */
+    @Test
     public void test_split_stress() throws Exception {
 
         /*
@@ -864,7 +857,7 @@ public class TestSegSplitter extends TestCase2 {
         try {
 
             final LocalPartitionMetadata pmd = new LocalPartitionMetadata(
-                    pidFactory.nextPartitionId(getName()),//
+                    pidFactory.nextPartitionId(this.getClass().getName()),//
                     -1, // sourcePartitionId
                     fromKey, //
                     toKey,//
@@ -945,6 +938,7 @@ public class TestSegSplitter extends TestCase2 {
      * 
      * @throws Exception
      */
+    @Test
     public void test_split_fromToKeyConstraints() throws Exception {
 
         /*
@@ -966,7 +960,7 @@ public class TestSegSplitter extends TestCase2 {
             final byte[] fromKey = new byte[0];
             final byte[] toKey = null;
             final LocalPartitionMetadata pmd = new LocalPartitionMetadata(
-                    pidFactory.nextPartitionId(getName()),//
+                    pidFactory.nextPartitionId(this.getClass().getName()),//
                     -1, // sourcePartitionId
                     fromKey, //
                     toKey,//
@@ -1013,7 +1007,7 @@ public class TestSegSplitter extends TestCase2 {
                     assertEquals("#splits", 3, splits.length);
                     
                     // 1st.
-                    assertEquals(new byte[0], splits[0].pmd
+                    assertArrayEquals(new byte[0], splits[0].pmd
                             .getLeftSeparatorKey());
                     assertNotNull(splits[0].pmd.getRightSeparatorKey());
 
@@ -1058,7 +1052,7 @@ public class TestSegSplitter extends TestCase2 {
                         AbstractBTreeTestCase.assertSameEntryIterator(src
                                 .rangeIterator(aFromKey, aToKey), aSeg
                                 .rangeIterator());
-                    } catch (AssertionFailedError ex) {
+                    } catch (AssertionError ex) {
                         fail("Validation failed: split#=" + i + ", split="
                                 + split, ex);
                     } finally {
@@ -1118,6 +1112,7 @@ public class TestSegSplitter extends TestCase2 {
      * 
      * @throws Exception
      */
+    @Test
     public void test_split_applicationConstraint_acceptAllSplits()
             throws Exception {
 
@@ -1136,7 +1131,7 @@ public class TestSegSplitter extends TestCase2 {
         try {
 
             final LocalPartitionMetadata pmd = new LocalPartitionMetadata(
-                    pidFactory.nextPartitionId(getName()),//
+                    pidFactory.nextPartitionId(this.getClass().getName()),//
                     -1, // sourcePartitionId
                     fromKey, //
                     toKey,//
@@ -1207,6 +1202,7 @@ public class TestSegSplitter extends TestCase2 {
      * 
      * @throws Exception
      */
+    @Test
     public void test_split_applicationConstraint_rejectAllSplits()
             throws Exception {
 
@@ -1225,7 +1221,7 @@ public class TestSegSplitter extends TestCase2 {
         try {
 
             final LocalPartitionMetadata pmd = new LocalPartitionMetadata(
-                    pidFactory.nextPartitionId(getName()),//
+                    pidFactory.nextPartitionId(this.getClass().getName()),//
                     -1, // sourcePartitionId
                     fromKey, //
                     toKey,//
@@ -1296,6 +1292,7 @@ public class TestSegSplitter extends TestCase2 {
      * generated from a given input B+Tree.  Specifically, this test the
      * {@link FixedLengthPrefixSplits} constraint.
      */
+    @Test
     public void test_split_applicationConstraint_nbytePrefix() throws Exception {
 
         /*
@@ -1312,7 +1309,7 @@ public class TestSegSplitter extends TestCase2 {
         try {
 
             final LocalPartitionMetadata pmd = new LocalPartitionMetadata(
-                    pidFactory.nextPartitionId(getName()),//
+                    pidFactory.nextPartitionId(this.getClass().getName()),//
                     -1, // sourcePartitionId
                     fromKey, //
                     toKey,//
@@ -1455,6 +1452,7 @@ public class TestSegSplitter extends TestCase2 {
      * 
      * @throws Exception
      */
+    @Test
     public void test_split_applicationConstraint_remainerGoesIntoSplit()
             throws Exception {
 
@@ -1472,7 +1470,7 @@ public class TestSegSplitter extends TestCase2 {
         try {
 
             final LocalPartitionMetadata pmd = new LocalPartitionMetadata(
-                    pidFactory.nextPartitionId(getName()),//
+                    pidFactory.nextPartitionId(this.getClass().getName()),//
                     -1, // sourcePartitionId
                     fromKey, //
                     toKey,//
@@ -1559,7 +1557,7 @@ public class TestSegSplitter extends TestCase2 {
                     final byte[] firstKeyInLastSplit = seg.keyAt(lastSplit.fromIndex);
 
                     // Verify that successor(firstKeyInLastSplit) is the rejectKey.
-                    assertEquals("rejectKey", rejectKey, BytesUtil
+                    assertArrayEquals("rejectKey", rejectKey, BytesUtil
                             .successor(firstKeyInLastSplit));
                     
                 }
@@ -1602,6 +1600,7 @@ public class TestSegSplitter extends TestCase2 {
      * 
      * @throws Exception
      */
+    @Test
     public void test_split_applicationConstraint_rowStore() throws Exception {
 
         /*
@@ -1618,7 +1617,7 @@ public class TestSegSplitter extends TestCase2 {
         try {
 
             final LocalPartitionMetadata pmd = new LocalPartitionMetadata(
-                    pidFactory.nextPartitionId(getName()),//
+                    pidFactory.nextPartitionId(this.getClass().getName()),//
                     -1, // sourcePartitionId
                     fromKey, //
                     toKey,//

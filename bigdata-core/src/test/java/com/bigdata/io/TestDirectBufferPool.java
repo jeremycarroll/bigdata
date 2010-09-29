@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.io;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * Test suite for {@link DirectBufferPool}.
@@ -36,7 +36,7 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestDirectBufferPool extends TestCase {
+public class TestDirectBufferPool {
 
     /**
      * 
@@ -44,14 +44,8 @@ public class TestDirectBufferPool extends TestCase {
     public TestDirectBufferPool() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestDirectBufferPool(String arg0) {
-        super(arg0);
-    }
-
     /** @todo write tests. */
+    @Test
     public void test_nothing() {
         
 //        fail("No tests written yet.");

@@ -24,23 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.boot;
 
-// NOTE: remove commented out references to org.junit and annotations
-//       when/if the junit infrastructure is upgraded to a version that
-//       supports those constructs.
-
-import static junit.framework.Assert.*;
-
-//import static org.junit.Assert.*;
-//import org.junit.After;
-//import org.junit.BeforeClass;
-//import org.junit.Test;
-
 import com.bigdata.DataFinder;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
-import com.bigdata.boot.BootManager;
-import com.bigdata.boot.ProcessState;
 import com.bigdata.util.config.LogUtil;
 
 import org.apache.log4j.Level;
@@ -52,13 +36,16 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Test;
 
 /*
  * Test suite for most of the boot launcher components. The tests provided
  * in this suite is intended to exercise the boot launcher itself, the
  * BootAgent, and the BootManager.
  */
-public class BootComponentTest extends TestCase {
+public class BootComponentTest extends Assert {
     private static String P_SEP    = System.getProperty("path.separator");
     private static String APP_HOME = System.getProperty("app.home");
 
@@ -77,11 +64,7 @@ public class BootComponentTest extends TestCase {
         initAll();
     }
 
-    public BootComponentTest(String name) {
-        super(name);
-        initAll();
-    }
-
+    @After
     public void tearDown() throws Exception {
         cleanUp();
     }
@@ -173,6 +156,7 @@ public class BootComponentTest extends TestCase {
     // Test the BootManager API
 
 //    @Test(timeout=3000, expected=IOException.class)
+    @Test(timeout=3000)
     public void testBootManager_noConnect() throws Exception {
         try {
             BootManager bootMgr = new BootManager();
@@ -183,7 +167,7 @@ public class BootComponentTest extends TestCase {
         }
     }
 
-//    @Test(timeout=5000)
+    @Test(timeout=5000)
     public void testBootManager_getProcessTags() throws Exception {
         testName = "testBootManager_getProcessTags";
         testPassed = false;
@@ -210,7 +194,7 @@ public class BootComponentTest extends TestCase {
         testPassed = true;
     }
 
-//    @Test(timeout=5000)
+    @Test(timeout=5000)
     public void testBootManager_getState() throws Exception {
 
         testName = "testBootManager_getState";
@@ -236,6 +220,7 @@ public class BootComponentTest extends TestCase {
     }
 
 //    @Test(timeout=5000, expected=IllegalArgumentException.class)
+    @Test(timeout=5000)
     public void testBootManager_getState_noSuchProcess() throws Exception {
 
         testName = "testBootManager_getState_noSuchProcess";
@@ -257,6 +242,7 @@ public class BootComponentTest extends TestCase {
     }
 
 //    @Test(timeout=5000, expected=IllegalArgumentException.class)
+    @Test(timeout=5000)
     public void testBootManager_startProcess_noSuchProcess() throws Exception {
 
         testName = "testBootManager_startProcess_noSuchProcess";
@@ -278,6 +264,7 @@ public class BootComponentTest extends TestCase {
     }
 
 //    @Test(timeout=5000, expected=IllegalArgumentException.class)
+    @Test(timeout=5000)
     public void testBootManager_stopProcess_noSuchProcess() throws Exception {
 
         testName = "testBootManager_stopProcess_noSuchProcess";
@@ -301,7 +288,7 @@ public class BootComponentTest extends TestCase {
     // Test boot launcher starting/stopping
 
     // Start and stop an empty launcher
-//    @Test(timeout=10000)
+    @Test(timeout=10000)
     public void testStartAndStopEmptyLauncher() throws Exception {
 
         testName = "testStartAndStopEmptyLauncher";
@@ -327,7 +314,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a launcher with 1 boot process that succeeds in starting
-//    @Test(timeout=6000)
+    @Test(timeout=6000)
     public void testStartLauncher1Process() throws Exception {
 
         testName = "testStartLauncherProcess";
@@ -350,7 +337,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a launcher with 1 boot process that fails to start
-//    @Test(timeout=6000)
+    @Test(timeout=6000)
     public void testStartLauncher1Process1Fails() throws Exception {
 
         testName = "testStartLauncher1ProcessFails";
@@ -379,7 +366,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a launcher with 3 boot processes that all succeed in starting
-//    @Test(timeout=12000)
+    @Test(timeout=12000)
     public void testStartLauncher3Processes() throws Exception {
 
         testName = "testStartLauncher3Processes";
@@ -415,7 +402,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a launcher with 3 boot processes, 1 of which fails to start
-//    @Test(timeout=12000)
+    @Test(timeout=12000)
     public void testStartLauncher3Processes1Fails() throws Exception {
 
         testName = "testStartLauncher3Processes1Fails";
@@ -458,7 +445,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Stop a launcher with 3 running processes
-//    @Test(timeout=12000)
+    @Test(timeout=12000)
     public void testStopLauncher3Processes() throws Exception {
 
         testName = "testStopLauncher3Processes";
@@ -531,7 +518,7 @@ public class BootComponentTest extends TestCase {
 
     // Start a launcher with 3 boot processes, 1 of which eventually crashes
     // causing the boot launcher to shut down
-//    @Test(timeout=20000)
+    @Test(timeout=20000)
     public void testBootProcessCrash() throws Exception {
 
         testName = "testBootProcessCrash";
@@ -577,7 +564,7 @@ public class BootComponentTest extends TestCase {
     // Test state transition processing
 
     // Start a process that fails to start
-//    @Test(timeout=10000)
+    @Test(timeout=10000)
     public void testStartProcessFailToStart() throws Exception {
 
         testName = "testStartProcessFailToStart";
@@ -605,7 +592,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a process that succeeds in starting
-//    @Test(timeout=10000)
+    @Test(timeout=10000)
     public void testStartProcessSuccess() throws Exception {
 
         testName = "testStartProcessSuccess";
@@ -633,7 +620,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Stop a process
-//    @Test(timeout=10000)
+    @Test(timeout=10000)
     public void testStopProcessSuccess() throws Exception {
 
         testName = "testStopProcessSuccess";
@@ -674,7 +661,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Stop a process and it exceeds the stop timelimit
-//    @Test(timeout=10000)
+    @Test(timeout=10000)
     public void testStopProcessExceedTimelimit() throws Exception {
 
         testName = "testStopProcessExceedTimelimit";
@@ -724,7 +711,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a process that stops itself
-//    @Test(timeout=8000)
+    @Test(timeout=8000)
     public void testSelfStopProcessSuccess() throws Exception {
 
         testName = "testSelfStopProcessSuccess";
@@ -754,7 +741,7 @@ public class BootComponentTest extends TestCase {
     }
 
     // Start a process that stops itself but exceeds the stop time limit
-//    @Test(timeout=20000)
+    @Test(timeout=20000)
     public void testSelfStopProcessExceedTimelimit() throws Exception {
 
         testName = "testSelfStopProcessExceedTimelimit";
@@ -802,6 +789,7 @@ public class BootComponentTest extends TestCase {
             this.output = output;
         }
 
+        @Override
         public void run() {
             byte[] buf = new byte[256];
             try {
@@ -881,6 +869,7 @@ public class BootComponentTest extends TestCase {
             super(ptag, null);
         }
 
+        @Override
         public void processStateChangeEvent(ProcessStateChangeEvent event) {
 
             if( !event.tag.equals(ptag) || done ) return;
@@ -925,6 +914,7 @@ public class BootComponentTest extends TestCase {
             super(ptag, null);
         }
 
+        @Override
         public void processStateChangeEvent(ProcessStateChangeEvent event) {
 
             if( !event.tag.equals(ptag) || done ) return;

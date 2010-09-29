@@ -36,8 +36,8 @@ import java.nio.channels.FileChannel;
 import java.util.Random;
 
 import com.bigdata.rawstore.Bytes;
-
-import junit.framework.TestCase;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link FileChannelUtility}.
@@ -54,19 +54,12 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestFileChannelUtility extends TestCase {
+public class TestFileChannelUtility extends Assert {
 
     /**
      * 
      */
     public TestFileChannelUtility() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestFileChannelUtility(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -128,9 +121,11 @@ public class TestFileChannelUtility extends TestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_oneTrial_readAll_writeAll() throws IOException {
         
-        final File file = File.createTempFile("TestFileChannelUtility", getName());
+        final File file = File.createTempFile("TestFileChannelUtility",
+                getClass().getName());
 
         file.deleteOnExit();
 
@@ -184,9 +179,11 @@ public class TestFileChannelUtility extends TestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_readAll_writeAll() throws IOException {
         
-        File file = File.createTempFile("TestFileChannelUtility", getName());
+        File file = File.createTempFile("TestFileChannelUtility",
+                getClass().getName());
 
         file.deleteOnExit();
 
@@ -233,8 +230,8 @@ public class TestFileChannelUtility extends TestCase {
                     // length of purturbed region.
                     final int len = r.nextInt(expected.length - off);
                     
-                    System.err.println("purturbing region after trial: trial="
-                            + trial + ", off=" + off + ", len=" + len);
+//                     System.err.println("purturbing region after trial: trial="
+//                             + trial + ", off=" + off + ", len=" + len);
                     
                     final byte[] a = new byte[len];
                     
@@ -302,7 +299,7 @@ public class TestFileChannelUtility extends TestCase {
             
             final int count = getRandomLength(raf, pos);
             
-            System.err.println("verifying data: pos="+pos+", count="+count);
+//             System.err.println("verifying data: pos="+pos+", count="+count);
             
             final ByteBuffer actual = ByteBuffer.wrap(new byte[count]);
 
@@ -322,7 +319,7 @@ public class TestFileChannelUtility extends TestCase {
 
             if (ioCount > 1) {
                 
-                System.err.println("Note: read required: "+ioCount+" IOs");
+//                 System.err.println("Note: read required: "+ioCount+" IOs");
                 
             }
             
@@ -345,13 +342,16 @@ public class TestFileChannelUtility extends TestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_transferAllFrom() throws IOException {
 
-        final File sourceFile = File.createTempFile("TestFileChannelUtility", getName());
+        final File sourceFile = File.createTempFile("TestFileChannelUtility",
+                getClass().getName());
 
         sourceFile.deleteOnExit();
 
-        final File targetFile = File.createTempFile("TestFileChannelUtility", getName());
+        final File targetFile = File.createTempFile("TestFileChannelUtility",
+                getClass().getName());
 
         targetFile.deleteOnExit();
 
@@ -386,7 +386,7 @@ public class TestFileChannelUtility extends TestCase {
                 
                 final int count = getRandomLength(source, fromPosition);
                 
-                System.err.println("fromPosition="+fromPosition+", count="+count);
+//                 System.err.println("fromPosition="+fromPosition+", count="+count);
 
                 /*
                  * Transfer some number of bytes from the source channel to the

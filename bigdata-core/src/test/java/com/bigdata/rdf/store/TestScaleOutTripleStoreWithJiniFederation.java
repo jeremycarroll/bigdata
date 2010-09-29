@@ -30,12 +30,12 @@ package com.bigdata.rdf.store;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
 
 import com.bigdata.jini.start.ServicesManagerServer;
 import com.bigdata.journal.ITx;
 import com.bigdata.service.jini.util.JiniServicesHelper;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * Proxy test suite for {@link ScaleOutTripleStore} running against an
@@ -93,75 +93,19 @@ import com.bigdata.service.jini.util.JiniServicesHelper;
 public class TestScaleOutTripleStoreWithJiniFederation extends AbstractTestCase {
 
     public TestScaleOutTripleStoreWithJiniFederation() {
-
-    }
-
-    public TestScaleOutTripleStoreWithJiniFederation(String name) {
-
-        super(name);
-        
-    }
-    
-    public static Test suite() {
-
-        final TestScaleOutTripleStoreWithJiniFederation delegate = new TestScaleOutTripleStoreWithJiniFederation(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Scale-Out Triple Store Test Suite (jini federation)");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-        
-//        // writes on the term:id and id:term indices.
-//        suite.addTestSuite(TestTermAndIdsIndex.class);
-//
-//        // writes on the statement indices.
-//        suite.addTestSuite(TestStatementIndex.class);
-               
-        /*
-         * Proxied test suite for use only with the LocalTripleStore.
-         * 
-         * @todo test unisolated operation semantics.
-         */
-
-//        suite.addTestSuite(TestFullTextIndex.class);
-
-//        suite.addTestSuite(TestLocalTripleStoreTransactionSemantics.class);
-
-        /*
-         * Pickup the basic triple store test suite. This is a proxied test
-         * suite, so all the tests will run with the configuration specified in
-         * this test class and its optional .properties file.
-         */
-        
-        // basic test suite.
-        suite.addTest(TestTripleStoreBasics.suite());
-        
-        // rules, inference, and truth maintenance test suite.
-        suite.addTest(com.bigdata.rdf.rules.TestAll.suite());
-
-        return suite;
-
     }
     
     private JiniServicesHelper helper;
     
+    @Before
     public void setUp() throws Exception {
         
-        super.setUp();
-
         System.setSecurityManager(new SecurityManager());
         
     }
 
+    @After
     public void tearDown() throws Exception {
-        
-        super.tearDown();
         
     }
     
@@ -169,6 +113,7 @@ public class TestScaleOutTripleStoreWithJiniFederation extends AbstractTestCase 
      * Data files are placed into a directory named by the test. If the
      * directory exists, then it is removed before the federation is set up.
      */
+    @Override
     public void setUp(final ProxyTestCase testCase) throws Exception {
 
         super.setUp(testCase);
@@ -179,6 +124,7 @@ public class TestScaleOutTripleStoreWithJiniFederation extends AbstractTestCase 
         
     }
     
+    @Override
     public void tearDown(final ProxyTestCase testCase) throws Exception {
 
         if (helper != null) {
@@ -189,8 +135,6 @@ public class TestScaleOutTripleStoreWithJiniFederation extends AbstractTestCase 
             helper = null;
             
         }
-        
-        super.tearDown();
         
     }
     

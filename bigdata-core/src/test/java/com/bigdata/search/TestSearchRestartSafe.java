@@ -28,12 +28,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.search;
 
+import com.bigdata.journal.AbstractIndexManagerTestCase;
 import java.io.StringReader;
 import java.util.Properties;
 
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.ProxyTestCase;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Simple test verifies that the {@link FullTextIndex} data are restart safe.
@@ -41,20 +47,20 @@ import com.bigdata.journal.ProxyTestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestSearchRestartSafe extends ProxyTestCase<IIndexManager> {
 
     /**
      * 
      */
-    public TestSearchRestartSafe() {
+    public TestSearchRestartSafe(AbstractIndexManagerTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestSearchRestartSafe(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup2();
+    };
 
 //    final File file;
 //    {
@@ -86,6 +92,7 @@ public class TestSearchRestartSafe extends ProxyTestCase<IIndexManager> {
 //        
 //    }
     
+    @Test
     public void test_simple() throws InterruptedException {
 
         final Properties properties = getProperties();

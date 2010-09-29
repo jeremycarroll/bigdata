@@ -33,11 +33,10 @@ import java.io.Serializable;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.service.ClientService;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * This is a test suite for the {@link ReentrantLock} deserialization pattern
@@ -45,21 +44,13 @@ import com.bigdata.service.ClientService;
  * {@link ClientService}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class TestLockDeserialization extends TestCase2 {
+public class TestLockDeserialization extends Assert {
 
     /**
      * 
      */
     public TestLockDeserialization() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestLockDeserialization(String name) {
-        super(name);
     }
 
     /**
@@ -102,6 +93,7 @@ public class TestLockDeserialization extends TestCase2 {
 
     }
 
+    @Test
     public void test_serialization() {
         
         final C expected = new C(1);

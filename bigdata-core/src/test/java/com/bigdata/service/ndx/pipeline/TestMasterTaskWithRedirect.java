@@ -48,6 +48,7 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.ndx.pipeline.AbstractKeyRangeMasterTestCase.L;
 import com.bigdata.service.ndx.pipeline.AbstractMasterTestCase.H;
 import com.bigdata.service.ndx.pipeline.AbstractMasterTestCase.O;
+import org.junit.Test;
 
 /**
  * Test ability to handle a redirect (subtask learns that the target service no
@@ -60,10 +61,6 @@ import com.bigdata.service.ndx.pipeline.AbstractMasterTestCase.O;
 public class TestMasterTaskWithRedirect extends AbstractMasterTestCase {
 
     public TestMasterTaskWithRedirect() {
-    }
-
-    public TestMasterTaskWithRedirect(String name) {
-        super(name);
     }
 
     /**
@@ -90,6 +87,7 @@ public class TestMasterTaskWithRedirect extends AbstractMasterTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_startWriteRedirectStop() throws InterruptedException,
             ExecutionException {
 
@@ -209,6 +207,7 @@ public class TestMasterTaskWithRedirect extends AbstractMasterTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_startWriteRedirectWithReopenStop() throws InterruptedException,
             ExecutionException {
 
@@ -432,6 +431,7 @@ public class TestMasterTaskWithRedirect extends AbstractMasterTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_redirectStressTest() throws InterruptedException,
             ExecutionException {
 

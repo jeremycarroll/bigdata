@@ -33,6 +33,7 @@ import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.cache.HardReferenceQueue;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for the logic performing incremental writes of nodes and leaves
@@ -52,13 +53,6 @@ public class TestIncrementalWrite extends AbstractBTreeTestCase {
     public TestIncrementalWrite() {
     }
 
-    /**
-     * @param name
-     */
-    public TestIncrementalWrite(String name) {
-        super(name);
-    }
-       
     protected BTree getBTree(int branchingFactor, final int queueCapacity, final int queueScan) {
         
         IRawStore store = new SimpleMemoryRawStore();
@@ -150,6 +144,7 @@ public class TestIncrementalWrite extends AbstractBTreeTestCase {
      * Test verifies that an incremental write of the root leaf may be
      * performed.
      */
+    @Test
     public void test_incrementalWrite() {
         
         /*
@@ -190,6 +185,7 @@ public class TestIncrementalWrite extends AbstractBTreeTestCase {
      * identity is assigned to the written leaf, and that the childKey[] on the
      * parent node is updated to reflect the identity assigned to the leaf.
      */
+    @Test
     public void test_incrementalWrite02() {
 
         /*
@@ -279,6 +275,7 @@ public class TestIncrementalWrite extends AbstractBTreeTestCase {
      * dirty children are written out when the node is evicted so that the 
      * persistent node knows the persistent identity of each child).
      */
+    @Test
     public void test_incrementalWrite03() {
 
         /*

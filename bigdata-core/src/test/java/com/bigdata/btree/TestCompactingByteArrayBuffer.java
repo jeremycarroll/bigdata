@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree;
 
-import junit.framework.TestCase;
-
 import com.bigdata.io.DataOutputBuffer;
 import com.ibm.icu.impl.ByteBuffer;
 
@@ -163,19 +161,12 @@ import com.ibm.icu.impl.ByteBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestCompactingByteArrayBuffer extends TestCase {
+public class TestCompactingByteArrayBuffer {
 
     /**
      * 
      */
     public TestCompactingByteArrayBuffer() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestCompactingByteArrayBuffer(String arg0) {
-        super(arg0);
     }
 
 //    /**

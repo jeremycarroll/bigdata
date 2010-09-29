@@ -32,6 +32,7 @@ import java.util.UUID;
 
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Test of basic btree operations when delete markers are maintained.
@@ -48,15 +49,9 @@ public class TestDeleteMarkers extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestDeleteMarkers(String name) {
-        super(name);
-    }
-
-    /**
      * Test of basic index operation semantics when delete markers are enabled.
      */
+    @Test
     public void test_crud() {
         
         IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
@@ -80,7 +75,7 @@ public class TestDeleteMarkers extends AbstractBTreeTestCase {
          */
         assertFalse(btree.contains( k1 ));
         
-        assertEquals(null,btree.lookup( k1 ));
+        assertArrayEquals(null,btree.lookup( k1 ));
         
         assertEquals(0,btree.getEntryCount());
         
@@ -101,7 +96,7 @@ public class TestDeleteMarkers extends AbstractBTreeTestCase {
 
         assertTrue(btree.contains( k1 ));
 
-        assertEquals(null,btree.lookup( k1 ));
+        assertArrayEquals(null,btree.lookup( k1 ));
 
         assertEquals(1, btree.getEntryCount());
 
@@ -122,7 +117,7 @@ public class TestDeleteMarkers extends AbstractBTreeTestCase {
         
         assertTrue(btree.contains( k1 ));
 
-        assertEquals(v1, btree.lookup(k1));
+        assertArrayEquals(v1, btree.lookup(k1));
 
         assertEquals(1, btree.getEntryCount());
 
@@ -145,7 +140,7 @@ public class TestDeleteMarkers extends AbstractBTreeTestCase {
 
         assertFalse(btree.contains(k1));
 
-        assertEquals(null, btree.lookup(k1));
+        assertArrayEquals(null, btree.lookup(k1));
 
         // verify that the delete marker is present.
         assertTrue(btree.lookup(k1, btree.getLookupTuple()).isDeletedVersion());
@@ -176,6 +171,7 @@ public class TestDeleteMarkers extends AbstractBTreeTestCase {
      * @todo test the semantics of {@link BTree#remove(byte[])}, which should
      *       be equivalent to an insert of a delete marker.
      */
+    @Test
     public void test_removeNotAllowed() {
         
         IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
@@ -211,6 +207,7 @@ public class TestDeleteMarkers extends AbstractBTreeTestCase {
      * on the underlying iterator to correctly support removal or update of an
      * entry in the btree in any leaf regardless of the height of the btree.
      */
+    @Test
     public void test_removeAll_rootLeaf() {
         
         final byte[] k3 = new byte[]{3};

@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.cache;
 
+import org.junit.Test;
+
 
 /**
  * Tests suite for the {@link WeakValueCache}. This class tests the weak cache
@@ -62,15 +64,9 @@ public class TestWeakValueCache extends AbstractCachePolicyTest {
     }
 
     /**
-     * @param name
-     */
-    public TestWeakValueCache(String name) {
-        super(name);
-    }
-
-    /**
      * Test legal and illegal invocations of the constructors.
      */
+    @Test
     public void test_ctor() {
     	
     	// local fixtures.
@@ -147,6 +143,7 @@ public class TestWeakValueCache extends AbstractCachePolicyTest {
 	 * cache under a given oid, but only to update the dirty flag associated
 	 * with that entry (and to update the LRU cache ordering).
 	 */
+    @Test
     public void test_put_mayNotModifyObject() {
     	String A = "A";
     	String B = "B";
@@ -166,6 +163,7 @@ public class TestWeakValueCache extends AbstractCachePolicyTest {
     /**
      * Tests excercises the ability to set and get the cache listener.
      */
+    @Test
     public void test_cacheListener_getSet() {
     	WeakValueCache<Integer,String> cache = new WeakValueCache<Integer,String>(new LRUCache<Integer,String>(1));
     	assertNull(cache.getCacheListener());
@@ -182,6 +180,7 @@ public class TestWeakValueCache extends AbstractCachePolicyTest {
 	 * Test verifies that cache evictions are fired once the inner LRU cache is
 	 * full.
 	 */
+    @Test
     public void test_cacheListener_objectEvicted() {
     	/*
 		 * Setup weak cache backed by an LRU with a capacity of ONE (1).
@@ -242,6 +241,7 @@ public class TestWeakValueCache extends AbstractCachePolicyTest {
      * Test verifies that changes to the dirty flag are propagated to the hard
      * reference cache.
      */
+    @Test
     public void test_dirtyFlagPropagatesToHardReferenceCache() {
 
     	LRUCache<Integer,String> lru = new LRUCache<Integer,String>(3);

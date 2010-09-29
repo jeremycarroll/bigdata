@@ -40,6 +40,7 @@ import com.bigdata.btree.NOPTupleSerializer;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * @todo Add tests at that layer for cursor, reverse, remove, and other flag
@@ -64,18 +65,10 @@ public class TestTupleFilters extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestTupleFilters(String name) {
-
-        super(name);
-        
-    }
-
-    /**
      * Test of {@link IRangeQuery#REMOVEALL}. The state of the index is
      * verified afterwards.
      */
+    @Test
     public void test_removeAll() {
         
         IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
@@ -157,6 +150,7 @@ public class TestTupleFilters extends AbstractBTreeTestCase {
      * Test of {@link IRangeQuery#REMOVEALL} using a {@link TupleFilter}. Only
      * the even keys are deleted. The state of the index is verified afterwards.
      */
+    @Test
     public void test_removeAll_with_TupleFilter() {
         
         IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
@@ -234,9 +228,9 @@ public class TestTupleFilters extends AbstractBTreeTestCase {
 
                 final byte[] val = tuple.getValue();
 
-                assertEquals(keys[i], key);
+                assertArrayEquals(keys[i], key);
 
-                assertEquals(vals[i], val);
+                assertArrayEquals(vals[i], val);
 
                 ndeleted++;
 
@@ -275,9 +269,9 @@ public class TestTupleFilters extends AbstractBTreeTestCase {
 
                 final byte[] val = tuple.getValue();
 
-                assertEquals(keys[i], key);
+                assertArrayEquals(keys[i], key);
 
-                assertEquals(vals[i], val);
+                assertArrayEquals(vals[i], val);
 
                 nremaining++;
 

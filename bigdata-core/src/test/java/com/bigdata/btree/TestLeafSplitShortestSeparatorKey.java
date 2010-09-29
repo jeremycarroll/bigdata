@@ -31,28 +31,20 @@ package com.bigdata.btree;
 import java.util.UUID;
 
 import org.apache.log4j.Level;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestLeafSplitShortestSeparatorKey extends TestCase2 {
+public class TestLeafSplitShortestSeparatorKey extends Assert {
 
     /**
      * 
      */
     public TestLeafSplitShortestSeparatorKey() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestLeafSplitShortestSeparatorKey(String name) {
-        super(name);
     }
 
     /**
@@ -103,6 +95,7 @@ public class TestLeafSplitShortestSeparatorKey extends TestCase2 {
      * key in the parent between the new left and right sibling. That should be
      * correct, just a longer separator key.
      */
+    @Test
     public void test_shortestSeparatorKey() {
 
         final int m = 3;
@@ -131,19 +124,19 @@ public class TestLeafSplitShortestSeparatorKey extends TestCase2 {
 
         // causes split.
         btree.insert(new byte[] { 20 }, (byte[]) null);
-        System.out.println("----------------------");
+//         System.out.println("----------------------");
         assertTrue( btree.dump(Level.DEBUG,System.out) );
         
         // add to right edge of right sibling
         btree.insert(new byte[] { 20, 20 }, (byte[]) null);
         // remove left edge of right sibling (EQ to separator key).
         btree.remove(new byte[] { 20});
-        System.out.println("----------------------");
+//         System.out.println("----------------------");
         assertTrue( btree.dump(Level.DEBUG,System.out));
 
         // insert deleted key -- causes split for existing separator key.
         btree.insert(new byte[] { 20 }, (byte[]) null);
-        System.out.println("----------------------");
+//         System.out.println("----------------------");
         assertTrue( btree.dump(Level.DEBUG,System.out) );
         
     }

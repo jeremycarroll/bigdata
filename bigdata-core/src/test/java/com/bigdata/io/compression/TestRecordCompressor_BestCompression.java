@@ -44,13 +44,6 @@ public class TestRecordCompressor_BestCompression extends
     public TestRecordCompressor_BestCompression() {
     }
 
-    /**
-     * @param name
-     */
-    public TestRecordCompressor_BestCompression(String name) {
-        super(name);
-    }
-
     public IRecordCompressor getInstance() {
 
         return new RecordCompressor(Deflater.BEST_COMPRESSION);

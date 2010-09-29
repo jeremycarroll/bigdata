@@ -55,6 +55,7 @@ import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.striterator.Resolver;
 import com.bigdata.striterator.Striterator;
+import org.junit.Test;
 
 /**
  * Test suite for {@link FusedView}.
@@ -70,13 +71,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
     public TestFusedView() {
     }
 
-    /**
-     * @param name
-     */
-    public TestFusedView(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_ctor() {
         
         IRawStore store = new SimpleMemoryRawStore();
@@ -107,42 +102,42 @@ public class TestFusedView extends AbstractBTreeTestCase {
             new FusedView(null);
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
         
         try {
             new FusedView(new AbstractBTree[]{});
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
         
         try {
             new FusedView(new AbstractBTree[]{btree1});
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
                 
         try {
             new FusedView(new AbstractBTree[]{btree1,null});
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
                 
         try {
             new FusedView(new AbstractBTree[]{btree1,btree1});
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
                 
         try {
             new FusedView(new AbstractBTree[]{btree1,btree3});
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
         
         new FusedView(new AbstractBTree[] { btree1, btree2 });
@@ -156,6 +151,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
      * the current value under the key from the view (not just from the btree to
      * which the write operations are directed).
      */
+    @Test
     public void test_indexStuff() {
         
         byte[] k3 = i2k(3);
@@ -233,7 +229,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
          * 
          * btree2 {k3=v3a; k7=v7a}
          */
-        assertEquals(null,view.insert(k5, v5a));
+        assertArrayEquals(null,view.insert(k5, v5a));
         assertEquals(1, btree1.rangeCount(null, null));
         assertEquals(2, btree2.rangeCount(null, null));
         assertEquals(3, view.rangeCount(null, null));
@@ -254,7 +250,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
          * 
          * btree2 {k3=v3a; k7=v7a}
          */
-        assertEquals(v7a,view.insert(k7, v7b));
+        assertArrayEquals(v7a,view.insert(k7, v7b));
         assertEquals(2, btree1.rangeCount(null, null));
         assertEquals(2, btree2.rangeCount(null, null));
         assertEquals(4, view.rangeCount(null, null));
@@ -275,7 +271,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
          * 
          * btree2 {k3=v3a; k7=v7a}
          */
-        assertEquals(v3a, view.remove(k3));
+        assertArrayEquals(v3a, view.remove(k3));
         assertEquals(3, btree1.rangeCount(null, null));
         assertEquals(2, btree2.rangeCount(null, null));
         assertEquals(5, view.rangeCount(null, null));
@@ -302,7 +298,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
          * 
          * btree2 {k3=v3a; k7=v7a}
          */
-        assertEquals(v5a, view.insert(k5,v5b));
+        assertArrayEquals(v5a, view.insert(k5,v5b));
         assertEquals(3, btree1.rangeCount(null, null));
         assertEquals(2, btree2.rangeCount(null, null));
         assertEquals(5, view.rangeCount(null, null));
@@ -329,7 +325,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
          * 
          * btree2 {k3=v3a; k7=v7a}
          */
-        assertEquals(null, view.insert(k3,v3b)); // Note: return is [null] because k3 was deleted in btree1 !
+        assertArrayEquals(null, view.insert(k3,v3b)); // Note: return is [null] because k3 was deleted in btree1 !
         assertEquals(3, btree1.rangeCount(null, null));
         assertEquals(2, btree2.rangeCount(null, null));
         assertEquals(5, view.rangeCount(null, null));
@@ -366,6 +362,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
      * @todo test bloom filter is on both and then the 2nd index bloom filter
      *       gets disabled.
      */
+    @Test
     public void test_bloomFilter() {
         
         byte[] k3 = i2k(3);
@@ -505,6 +502,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
      * 
      * @todo explore where one of the indices are {@link IndexSegment}s.
      */
+    @Test
     public void test_rangeIterator() {
         
         final byte[] k3 = i2k(3);
@@ -640,18 +638,19 @@ public class TestFusedView extends AbstractBTreeTestCase {
      * Test of the bit manipulation required under java to turn off the
      * {@link IRangeQuery#REMOVEALL} flag.
      */
+    @Test
     public void test_bitMath() {
 
         final int flags1 = IRangeQuery.REMOVEALL;
 
-        System.err.println("flags1="+Integer.toBinaryString(flags1));
+//         System.err.println("flags1="+Integer.toBinaryString(flags1));
         
         assertEquals(true, (flags1 & IRangeQuery.REMOVEALL) != 0);
         
         // turn off the bit.
         final int flags2 = flags1 & (~IRangeQuery.REMOVEALL);
 
-        System.err.println("flags1="+Integer.toBinaryString(flags2));
+//         System.err.println("flags1="+Integer.toBinaryString(flags2));
 
         assertEquals(false, (flags2 & IRangeQuery.REMOVEALL) != 0);
         
@@ -662,6 +661,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
      * removed by writing a delete marker into the first B+Tree in the ordered
      * sources.
      */
+    @Test
     public void test_remove() {
 
         final byte[] k3 = new byte[]{3};
@@ -728,8 +728,8 @@ public class TestFusedView extends AbstractBTreeTestCase {
             // k3 : found in btree2, but write delete marker in btree1.
             assertTrue(itr.hasNext());
             tuple = itr.next();
-            assertEquals(k3, tuple.getKey());
-            assertEquals(v3, tuple.getValue());
+            assertArrayEquals(k3, tuple.getKey());
+            assertArrayEquals(v3, tuple.getValue());
             assertFalse(btree1.contains(k3)); // not found in btree1
             assertTrue(btree2.contains(k3)); // found in btree2
             // tuple not found in btree1.
@@ -743,8 +743,8 @@ public class TestFusedView extends AbstractBTreeTestCase {
             // k5 : found in btree1, write delete marker in btree1.
             assertTrue(itr.hasNext());
             tuple = itr.next();
-            assertEquals(k5, tuple.getKey());
-            assertEquals(v5, tuple.getValue());
+            assertArrayEquals(k5, tuple.getKey());
+            assertArrayEquals(v5, tuple.getValue());
             assertTrue(btree1.contains(k5)); // found in btree1
             assertFalse(btree2.contains(k5)); // not found in btree2
             // undeleted tuple found in btree1.
@@ -763,6 +763,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
      * Test of {@link IRangeQuery#REMOVEALL}. Note that tuples are removed by
      * writing a delete marker into the first B+Tree in the ordered sources.
      */
+    @Test
     public void test_removeAll() {
         
         final byte[] k3 = new byte[]{3};
@@ -853,6 +854,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
      * Test of {@link IRangeQuery#REMOVEALL} with a filter verifies that only
      * those tuples which satisify the filter are visited and removed.
      */
+    @Test
     public void test_removeAll_filter() {
         
         final byte[] k3 = new byte[]{3};
@@ -912,9 +914,9 @@ public class TestFusedView extends AbstractBTreeTestCase {
             private static final long serialVersionUID = 1L;
             @Override
             protected boolean isValid(ITuple tuple) {
-                System.out.println("Considering tuple: " + tuple);
+//                 System.out.println("Considering tuple: " + tuple);
                 if (BytesUtil.compareBytes(k5, tuple.getKey()) == 0) {
-                    System.err.println("Skipping tuple: " + tuple);
+//                     System.err.println("Skipping tuple: " + tuple);
                     return false;
                 }
                 return true;
@@ -952,6 +954,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
      * 
      * @see FusedTupleIterator
      */
+    @Test
     public void test_reverseScan() {
         
         final byte[] k3 = i2k(3);
@@ -1048,6 +1051,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
      * fact applied to the {@link FusedTupleIterator} rather than to the source
      * iterators.
      */
+    @Test
     public void test_filter() {
         
         final byte[] k3 = i2k(3);
@@ -1146,7 +1150,7 @@ public class TestFusedView extends AbstractBTreeTestCase {
      * efficiently choose splits points for an index partition, especially for
      * the {@link SparseRowStore} (it must not split a logical row).
      */
-    @SuppressWarnings("unchecked")
+    @Test
     public void test_cursor() {
         
         final Integer k3 = 3;

@@ -28,11 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.relation.rule;
 
-import com.bigdata.relation.rule.ArrayBindingSet;
-import com.bigdata.relation.rule.HashBindingSet;
-import com.bigdata.relation.rule.IVariable;
-
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * FIXME test both {@link HashBindingSet} and {@link ArrayBindingSet}
@@ -42,7 +39,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestBindingSet extends TestCase2 {
+public class TestBindingSet extends Assert {
 
     /**
      * 
@@ -50,13 +47,7 @@ public class TestBindingSet extends TestCase2 {
     public TestBindingSet() {
     }
 
-    /**
-     * @param name
-     */
-    public TestBindingSet(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_copy_abs() {
         
         IVariable[] vars = new IVariable[] {
@@ -99,6 +90,7 @@ public class TestBindingSet extends TestCase2 {
         
     }
     
+    @Test
     public void test_copy_hbs() {
         
         IVariable[] vars = new IVariable[] {

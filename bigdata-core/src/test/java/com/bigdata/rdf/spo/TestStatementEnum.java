@@ -27,11 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.spo;
 
-import junit.framework.TestCase;
-
-import com.bigdata.io.ByteArrayBuffer;
-import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rdf.model.StatementEnum;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link StatementEnum}.
@@ -39,7 +37,7 @@ import com.bigdata.rdf.model.StatementEnum;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestStatementEnum extends TestCase {
+public class TestStatementEnum extends Assert {
 
     /**
      * 
@@ -47,13 +45,7 @@ public class TestStatementEnum extends TestCase {
     public TestStatementEnum() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestStatementEnum(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void test_max() {
         
         assertEquals(StatementEnum.Explicit, StatementEnum.max(

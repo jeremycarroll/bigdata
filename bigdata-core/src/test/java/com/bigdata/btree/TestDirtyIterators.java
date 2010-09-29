@@ -30,6 +30,7 @@ package com.bigdata.btree;
 import org.apache.log4j.Level;
 
 import com.bigdata.btree.keys.TestKeyBuilder;
+import org.junit.Test;
 
 /**
  * Test suite for iterators that visit only dirty nodes or leaves. This test
@@ -55,19 +56,13 @@ public class TestDirtyIterators extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestDirtyIterators(String name) {
-        super(name);
-    }
-
-    /**
      * Test ability to visit the direct dirty children of a node. For this test
      * we only verify that the dirty child iterator will visit the same children
      * as the normal child iterator. This is true since we never evict a node
      * onto the store during this test - see {@link #getBTree(int)}, which
      * throws an exception if the tree attempts a node eviction.
      */
+    @Test
     public void test_dirtyChildIterator01() {
 
         BTree btree = getBTree(3);
@@ -172,6 +167,7 @@ public class TestDirtyIterators extends AbstractBTreeTestCase {
      * we wind up with a new reference for that node or leaf and update the
      * variables in the test appropriately.
      */
+    @Test
     public void test_dirtyChildIterator02() {
 
         BTree btree = getBTree(3);
@@ -346,6 +342,7 @@ public class TestDirtyIterators extends AbstractBTreeTestCase {
      * iterator will visit the same nodes as the normal post-order iterator
      * since all nodes are dirty.
      */
+    @Test
     public void test_dirtyPostOrderIterator01() {
 
         BTree btree = getBTree(3);
@@ -523,6 +520,7 @@ public class TestDirtyIterators extends AbstractBTreeTestCase {
      * cloned by copy-on-write are distinct objects from their immutable
      * predecessors.
      */
+    @Test
     public void test_dirtyPostOrderIterator02() {
 
         BTree btree = getBTree(3);

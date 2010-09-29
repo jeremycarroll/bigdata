@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import com.bigdata.cache.LRUCache.LRUIterator;
+import org.junit.Test;
 
 /**
  * Test suite for the LRU cache implementation.
@@ -48,15 +49,9 @@ public class TestLRUCache extends AbstractCachePolicyTest {
     }
 
     /**
-     * @param name
-     */
-    public TestLRUCache(String name) {
-        super(name);
-    }
-
-    /**
      * Constructor tests.
      */
+    @Test
     public void test_ctor()
     {
         
@@ -112,6 +107,7 @@ public class TestLRUCache extends AbstractCachePolicyTest {
      * order is correct when {@link LRUCache#iterator()}is used to remove cache
      * entries during traversal.
      */
+    @Test
     public void test_iterator_removal()
     {
 
@@ -168,6 +164,7 @@ public class TestLRUCache extends AbstractCachePolicyTest {
      * uses the {@link ICachePolicy#entryIterator()} to verify the _dirty flag,
      * so it also provides a check on the behavior of that iterator.
      */
+    @Test
     public void test_dirtyFlag() {
 
         final int CAPACITY = 4;
@@ -265,6 +262,7 @@ public class TestLRUCache extends AbstractCachePolicyTest {
 	 * cache under a given oid, but only to update the dirty flag associated
 	 * with that entry (and to update the LRU cache ordering).
 	 */
+    @Test
     public void test_put_mayNotModifyObject() {
     	final String A = "A";
     	final String B = "B";
@@ -297,6 +295,7 @@ public class TestLRUCache extends AbstractCachePolicyTest {
 	 * Test verifies that objects put into the cache may be recovered using the
 	 * appropriate key until the objects is evicted from the cache.
 	 */
+    @Test
     public void test_get() {
 
         final int CAPACITY = 4;
@@ -372,6 +371,7 @@ public class TestLRUCache extends AbstractCachePolicyTest {
 	 * 
 	 * @see LRUCache#put(long, Object, boolean)
 	 */
+    @Test
     public void test_nextedCacheEvictionCausesTemporaryOverCapacity() {
     	
         final int CAPACITY = 4;
@@ -455,6 +455,7 @@ public class TestLRUCache extends AbstractCachePolicyTest {
 	 * 
 	 * @see LRUIterator
 	 */
+    @Test
     public void test_concurrentModificationDuringTraveral() {
 
         final int CAPACITY = 4;

@@ -26,12 +26,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.sail;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
+import com.bigdata.rdf.sail.tck.BigdataConnectionTestLTSWithPipelineJoins;
+import com.bigdata.rdf.sail.tck.BigdataSparqlSuite;
+import com.bigdata.rdf.sail.tck.BigdataStoreTestLTSWithPipelineJoins;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Test suite.
@@ -39,7 +41,50 @@ import org.apache.log4j.Logger;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        // bootstrap tests for the BigdataSail
+        TestBootstrapBigdataSail.class,
+
+        // test pruning of variables not required for downstream processing.
+        TestPruneBindingSets.class,
+
+        // misc named graph API stuff.
+        TestQuadsAPI.class,
+
+        // SPARQL named graphs tests.
+        TestNamedGraphs.class,
+
+        // test suite for optionals handling (left joins).
+        TestOptionals.class,
+
+        // test of the search magic predicate
+        TestSearchQuery.class,
+
+        // high-level query tests.
+        TestQuery.class,
+
+        // test of high-level query on a graph with statements about statements.
+        TestProvenanceQuery.class,
+
+        // unit tests for custom evaluation of high-level query
+        TestBigdataSailEvaluationStrategyImpl.class,
+
+        TestReadWriteTransactions.class,
+
+        TestOrderBy.class,
+
+        TestUnions.class,
+
+        TestDescribe.class,
+
+        BigdataStoreTestLTSWithPipelineJoins.class,
+
+        BigdataConnectionTestLTSWithPipelineJoins.class,
+
+        BigdataSparqlSuite.class
+        } )
+public class TestAll {
 
     /**
      * 
@@ -47,60 +92,4 @@ public class TestAll extends TestCase {
     public TestAll() {
         super();
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    public static Test suite() {
-
-        /*
-         * log4j defaults to DEBUG which will produce simply huge amounts of
-         * logging information when running the unit tests. Therefore we
-         * explicitly set the default logging level to WARN unless it has
-         * already been set to another value. If you are using a log4j
-         * configuration file then this is unlikely to interact with your
-         * configuration, and in any case you can override specific loggers.
-         */
-        {
-
-            Logger log = Logger.getRootLogger();
-
-            if (log.getLevel().equals(Level.DEBUG)) {
-
-                log.setLevel(Level.WARN);
-
-                log.warn("Defaulting debugging level to WARN for the unit tests");
-
-            }
-            
-        }
-        
-        final TestSuite suite = new TestSuite("Sesame 2.x integration");
-       
-        // bootstrap tests for the BigdataSail
-        suite.addTestSuite(TestBootstrapBigdataSail.class);
-
-        // run the test suite with statement identifiers enabled.
-        suite.addTest(TestBigdataSailWithSids.suite());
-        suite.addTest(TestBigdataSailWithSidsWithoutInlining.suite());
-        
-        // run the test suite without statement identifiers enabled.
-        suite.addTest(TestBigdataSailWithoutSids.suite());
-        
-        // nestedSubquery is deprecated.
-//        // quad store test suite w/ nested subquery joins.
-//        suite.addTest(TestBigdataSailWithQuads.suite());
-        
-        // quad store test suite w/ pipeline joins.
-        suite.addTest(TestBigdataSailWithQuadsAndPipelineJoins.suite());
-        suite.addTest(TestBigdataSailWithQuadsAndPipelineJoinsWithoutInlining.suite());
-        
-        return suite;
-
-    }
-
 }

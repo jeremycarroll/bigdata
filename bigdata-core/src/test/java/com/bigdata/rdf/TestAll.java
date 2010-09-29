@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.rdf;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites into increasing dependency order.
@@ -33,44 +33,25 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        // test suite for the internal representation of RDF Values.
+        com.bigdata.rdf.internal.TestAll.class,
+
+        // test RDF Value and Statement object model (Sesame compliant).
+        com.bigdata.rdf.model.TestAll.class,
+
+        // test various RDF database implementations.
+        com.bigdata.rdf.store.TestAll.class,
+
+        // test the bulk data loader : @todo use proxy tests and move into per-store suites?
+        com.bigdata.rdf.load.TestAll.class
+        } )
+public class TestAll {
 
     /**
      * 
      */
     public TestAll() {
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
-
-        final TestSuite suite = new TestSuite("RDF");
-
-        // test suite for the internal representation of RDF Values.
-        suite.addTest( com.bigdata.rdf.internal.TestAll.suite() );
-
-        // test RDF Value and Statement object model (Sesame compliant).
-        suite.addTest( com.bigdata.rdf.model.TestAll.suite() );
-        
-        // test various RDF database implementations.
-        suite.addTest( com.bigdata.rdf.store.TestAll.suite() );
-
-        // test the bulk data loader : @todo use proxy tests and move into per-store suites?
-        suite.addTest( com.bigdata.rdf.load.TestAll.suite() );
-        
-        return suite;
-        
-    }
-    
 }

@@ -31,6 +31,7 @@ package com.bigdata.btree.data;
 import com.bigdata.btree.raba.ReadOnlyKeysRaba;
 import com.bigdata.btree.raba.ReadOnlyValuesRaba;
 import com.bigdata.io.DataOutputBuffer;
+import org.junit.Test;
 
 /**
  * Test suite for the B+Tree {@link ILeafData} records (accessing coded data in
@@ -48,13 +49,6 @@ public class AbstractLeafDataRecordTestCase extends
     public AbstractLeafDataRecordTestCase() {
     }
 
-    /**
-     * @param name
-     */
-    public AbstractLeafDataRecordTestCase(String name) {
-        super(name);
-    }
-
     @Override
     protected boolean mayGenerateLeaves() {
         return true;
@@ -68,6 +62,7 @@ public class AbstractLeafDataRecordTestCase extends
     /**
      * Unit test for an empty leaf.
      */
+    @Test
     public void test_emptyLeaf() {
 
         final int m = 3;
@@ -90,6 +85,7 @@ public class AbstractLeafDataRecordTestCase extends
     /**
      * A single empty key (byte[0]) paired with a <code>null</code> value.
      */
+    @Test
     public void test_tupleCount1_emptyKey_nullVal() {
  
         final int m = 3;
@@ -122,6 +118,7 @@ public class AbstractLeafDataRecordTestCase extends
     /**
      * A single, empty key (byte[0]) paired with a delete marker.
      */
+    @Test
     public void test_tupleCount1_emptyKey_deleted() {
         
         final int m = 3;
@@ -168,6 +165,7 @@ public class AbstractLeafDataRecordTestCase extends
     /**
      * A leaf w/ two keys and version timestamps.
      */
+    @Test
     public void test_tupleCount2VersionTimestamps() {
         
         final int m = 3;

@@ -27,7 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.isolation;
 
-import junit.framework.TestCase;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * This test case demonstrates a state-based validation technique described in
@@ -57,19 +58,12 @@ import junit.framework.TestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAccount extends TestCase {
+public class TestAccount extends Assert {
 
     /**
      * 
      */
     public TestAccount() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestAccount(String arg0) {
-        super(arg0);
     }
 
     /**
@@ -174,6 +168,7 @@ public class TestAccount extends TestCase {
             
         }
 
+        @Override
         public String toString() {
             
             return "bal="+account.bal+", low="+low+", high="+high+", change="+change;
@@ -264,6 +259,7 @@ public class TestAccount extends TestCase {
      *         a Commit Q
      * </pre>
      */
+    @Test
     public void test_Schedule01() {
         
         Account a = new Account();

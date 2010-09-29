@@ -27,10 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.cache;
 
+import com.bigdata.test.Assert;
 import java.util.Stack;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 
 /**
@@ -39,20 +38,15 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestHardReferenceQueue extends TestCase2 {
+public class TestHardReferenceQueue extends Assert {
 
     public TestHardReferenceQueue() {
     }
     
-    public TestHardReferenceQueue(String name) {
-        
-        super(name);
-        
-    }
-
     /**
      * Test constructor and its post-conditions.
      */
+    @Test
     public void test_ctor() {
         
         HardReferenceQueueEvictionListener<String> listener = new MyListener<String>();
@@ -72,6 +66,7 @@ public class TestHardReferenceQueue extends TestCase2 {
     /**
      * Correct rejection tests for the constructor.
      */
+    @Test
     public void test_ctor_correct_rejection() {
         
 //        try {
@@ -93,6 +88,7 @@ public class TestHardReferenceQueue extends TestCase2 {
     /**
      * Correct rejection test for appending a null reference to the cache.
      */
+    @Test
     public void test_append_null() {
 
         HardReferenceQueueEvictionListener<String> listener = new MyListener<String>();
@@ -123,6 +119,7 @@ public class TestHardReferenceQueue extends TestCase2 {
      * test.
      * </p>
      */
+    @Test
     public void test_add_evict() {
 
         MyListener<String> listener = new MyListener<String>();
@@ -270,6 +267,7 @@ public class TestHardReferenceQueue extends TestCase2 {
      * function correctly with a head index of 0 (this requires continuing the
      * scan from the array capacity).
      */
+    @Test
     public void test_add_scan() {
 
         MyListener<String> listener = new MyListener<String>();
@@ -511,8 +509,7 @@ public class TestHardReferenceQueue extends TestCase2 {
         private int nevicted = 0;
         
         /**
-         * @throws AssertionFailedError
-         *             if the evicted reference is not the next expected
+         * Fails       if the evicted reference is not the next expected
          *             eviction reference or if no eviction is expected.
          */
         public void evicted(final IHardReferenceQueue<T> cache, final T ref) {

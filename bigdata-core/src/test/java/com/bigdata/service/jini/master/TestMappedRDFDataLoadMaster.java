@@ -52,21 +52,21 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 import com.bigdata.DataFinder;
-import junit.framework.TestCase2;
 import net.jini.config.ConfigurationException;
 
 import org.apache.zookeeper.KeeperException;
 
 import com.bigdata.rdf.load.MappedRDFDataLoadMaster;
 import com.bigdata.service.jini.util.JiniServicesHelper;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for the {@link MappedTaskMaster}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class TestMappedRDFDataLoadMaster extends TestCase2 {
+public class TestMappedRDFDataLoadMaster extends Assert {
 
     protected boolean serviceImplRemote;
 
@@ -77,26 +77,10 @@ public class TestMappedRDFDataLoadMaster extends TestCase2 {
         this.serviceImplRemote = false;
     }
 
-    /**
-     * @param name
-     */
-    public TestMappedRDFDataLoadMaster(String name) {
-        super(name);
-        this.serviceImplRemote = false;
-    }
-
-    public TestMappedRDFDataLoadMaster(boolean serviceImplRemote) {
+    protected TestMappedRDFDataLoadMaster(boolean serviceImplRemote) {
         this.serviceImplRemote = serviceImplRemote;
     }
 
-    /**
-     * @param name
-     */
-    public TestMappedRDFDataLoadMaster(String name, boolean serviceImplRemote) {
-        super(name);
-        this.serviceImplRemote = serviceImplRemote;
-    }
-    
     private JiniServicesHelper helper;
     
 //    protected void setUp() throws Exception {
@@ -126,6 +110,7 @@ public class TestMappedRDFDataLoadMaster extends TestCase2 {
      * 
      * @throws KeeperException
      */
+    @Test
     public void test() throws ConfigurationException, InterruptedException,
             IOException, ExecutionException, KeeperException {
 

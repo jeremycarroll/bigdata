@@ -1,22 +1,27 @@
 package com.bigdata.util;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-public class TestNV extends TestCase {
+import org.junit.Test;
 
+public class TestNV {
 
+    @Test
 	public void testGetName() {
 		String name =  "ABC";
 	    NV nt = new NV(name, name);
 	    assertEquals(name, nt.getName());
 	}
-
+    @Test
 	public void testGetValue() {
 		String name =  "ABC";
 	    NV nt = new NV(name, name);
 	    assertEquals(name, nt.getValue());
 	}
-
+    @Test
 	public void testNV_null() {
 	    try {
 	    	new NV(null, "abc");
@@ -25,14 +30,14 @@ public class TestNV extends TestCase {
 	    	//ignore -- expected 
 	    }
 	}
-
+    @Test
 	public void testToString() {
     	String name = "Name";
     	String value = "Value";
     	NV nv = new NV(name, value);
     	assertTrue((name+"="+value).equals(nv.toString()));
 	}
-
+    @Test
 	public void testEqualsNV() {
 		
     	String name = "abc";
@@ -62,7 +67,7 @@ public class TestNV extends TestCase {
     	assertFalse(h.equals(h_diff));
     	assertFalse(h.equals(h_diff2));	
     }
-	
+    @Test
 	public void testHashCode() {
     	String name = "abc";
     	String value = "xyz";
@@ -70,7 +75,7 @@ public class TestNV extends TestCase {
     	NV h_dup = new NV(name, value);
     	assertTrue(h.hashCode()==h_dup.hashCode());
 	}
-
+    @Test
 	public void testCompareTo() {
     	String name = "bcd";
     	String value = "xyz";
@@ -83,7 +88,7 @@ public class TestNV extends TestCase {
     	assertTrue(ltnv.compareTo(nv) < 0);
     	assertTrue(gtnv.compareTo(nv) > 0);
 	}
-	
+    @Test
 	public void testCompareContract() {
 		/*
 		 * The NV class has a natural ordering that is inconsistent with equals.

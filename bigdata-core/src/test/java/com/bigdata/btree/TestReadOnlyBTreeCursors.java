@@ -32,6 +32,7 @@ import java.util.UUID;
 
 import com.bigdata.btree.AbstractBTreeTupleCursor.ReadOnlyBTreeTupleCursor;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link ITupleCursor} for a read-only {@link BTree}.
@@ -46,14 +47,6 @@ public class TestReadOnlyBTreeCursors extends AbstractBTreeCursorTestCase {
      */
     public TestReadOnlyBTreeCursors() {
     }
-
-    /**
-     * @param arg0
-     */
-    public TestReadOnlyBTreeCursors(String arg0) {
-        super(arg0);
-    }
-
 
     @Override
     protected boolean isReadOnly() {
@@ -78,6 +71,7 @@ public class TestReadOnlyBTreeCursors extends AbstractBTreeCursorTestCase {
      * Verify that {@link ITupleCursor#remove()} will thrown an exception if
      * the source {@link BTree} does not allow writes.
      */
+    @Test
     public void test_remove_not_allowed() {
         
         BTree btree = BTree.create(new SimpleMemoryRawStore(),

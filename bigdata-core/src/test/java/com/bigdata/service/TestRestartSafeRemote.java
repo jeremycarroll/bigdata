@@ -38,10 +38,6 @@ public class TestRestartSafeRemote extends TestRestartSafe {
 
     public TestRestartSafeRemote() { }
 
-    public TestRestartSafeRemote(String arg0) {
-        super(arg0);
-    }
-
     public Properties getProperties() {
         final Properties properties = new Properties(super.getProperties());
         properties.setProperty

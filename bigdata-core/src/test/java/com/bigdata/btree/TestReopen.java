@@ -30,6 +30,7 @@ import org.apache.log4j.Level;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Unit tests for the close/checkpoint/reopen protocol designed to manage the
@@ -48,17 +49,11 @@ public class TestReopen extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestReopen(String name) {
-        super(name);
-    }
-
-    /**
      * Test close on a new tree - should force the root to the store since a new
      * root is dirty (if empty). reopen should then reload the empty root and on
      * life goes.
      */
+    @Test
     public void test_reopen01() {
 
         final IRawStore store = new SimpleMemoryRawStore();
@@ -86,7 +81,6 @@ public class TestReopen extends AbstractBTreeTestCase {
             btree.close();
             fail("Expecting: " + IllegalStateException.class);
         } catch (IllegalStateException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
         }
 
         assertNotNull(btree.getRoot());
@@ -98,6 +92,7 @@ public class TestReopen extends AbstractBTreeTestCase {
     /**
      * Test with a btree containing both branch nodes and leaves.
      */
+    @Test
     public void test_reopen02() {
      
         final IRawStore store = new SimpleMemoryRawStore();
@@ -163,6 +158,7 @@ public class TestReopen extends AbstractBTreeTestCase {
      * Stress test comparison with ground truth btree when {@link BTree#close()}
      * is randomly invoked during mutation operations.
      */
+    @Test
     public void test_reopen03() {
 
         final IRawStore store = new SimpleMemoryRawStore();

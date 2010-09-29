@@ -34,9 +34,16 @@ import org.openrdf.model.vocabulary.RDF;
 
 import com.bigdata.rdf.rio.IStatementBuffer;
 import com.bigdata.rdf.rio.StatementBuffer;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.Vocabulary;
 import com.bigdata.relation.rule.Rule;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for owl:transtitiveProperty processing.
@@ -48,23 +55,21 @@ import com.bigdata.relation.rule.Rule;
  * @see RuleOwlTranstitiveProperty
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRuleOwlTransitiveProperty extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestRuleOwlTransitiveProperty() {
-        super();
+    public TestRuleOwlTransitiveProperty(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRuleOwlTransitiveProperty(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Test where the data satisifies the rule exactly once.
@@ -74,6 +79,7 @@ public class TestRuleOwlTransitiveProperty extends AbstractRuleTestCase {
      * </pre>
      * @throws Exception 
      */
+    @Test
     public void test_OwlTranstitiveProperty1() throws Exception {
 
         AbstractTripleStore store = getStore();

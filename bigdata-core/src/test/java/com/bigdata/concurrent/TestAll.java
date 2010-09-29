@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.concurrent;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates tests in dependency order.
@@ -37,44 +37,25 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        // Test suite for deadlock detection.
+        TestTxDag.class,
+        
+        // Test suite for the lock manager.
+        TestLockManager.class,
+
+        // Test suite for the non-blocking lock manager.
+        TestNonBlockingLockManager.class,
+        TestNonBlockingLockManagerWithNewDesign.class,
+        StressTestNonBlockingLockManagerWithTxDag.class,
+        StressTestNonBlockingLockManagerWithPredeclaredLocks.class
+        } )
+public class TestAll {
 
     /**
      * 
      */
     public TestAll() {
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
-
-        final TestSuite suite = new TestSuite("concurrent");
-       
-        // Test suite for deadlock detection.
-        suite.addTestSuite(TestTxDag.class);
-        
-        // Test suite for the lock manager.
-        suite.addTestSuite(TestLockManager.class);
-
-        // Test suite for the non-blocking lock manager.
-        suite.addTestSuite(TestNonBlockingLockManager.class);
-        suite.addTestSuite(TestNonBlockingLockManagerWithNewDesign.class);
-        suite.addTestSuite(StressTestNonBlockingLockManagerWithTxDag.class);
-        suite.addTestSuite(StressTestNonBlockingLockManagerWithPredeclaredLocks.class);
-
-        return suite;
-        
-    }
-    
 }

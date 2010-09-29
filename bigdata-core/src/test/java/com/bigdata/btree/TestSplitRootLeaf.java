@@ -30,6 +30,7 @@ package com.bigdata.btree;
 import org.apache.log4j.Level;
 
 import com.bigdata.btree.keys.TestKeyBuilder;
+import org.junit.Test;
 
 /**
  * Test split of the root leaf.
@@ -48,18 +49,12 @@ public class TestSplitRootLeaf extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestSplitRootLeaf(String name) {
-        super(name);
-    }
-
-    /**
      * A series of tests split with the key below, at, and above the low key in
      * the right sibling. This verifies that the insert logic looks at the
      * separator key in the parent when determining which leaf receives the
      * insert key after a split and NOT at the low key in the rightSibling.
      */
+    @Test
     public void test_leafSplitBranchingFactor3_01() {
 
         final BTree btree = getBTree(3);
@@ -104,6 +99,7 @@ public class TestSplitRootLeaf extends AbstractBTreeTestCase {
 
     }
     
+    @Test
     public void test_leafSplitBranchingFactor3_02() {
         
         BTree btree = getBTree(3);
@@ -147,6 +143,7 @@ public class TestSplitRootLeaf extends AbstractBTreeTestCase {
 
     }
     
+    @Test
     public void test_leafSplitBranchingFactor3_03() {
         
         BTree btree = getBTree(3);
@@ -190,6 +187,7 @@ public class TestSplitRootLeaf extends AbstractBTreeTestCase {
 
     }
     
+    @Test
     public void test_leafSplitBranchingFactor3_04() {
         
         BTree btree = getBTree(3);
@@ -233,6 +231,7 @@ public class TestSplitRootLeaf extends AbstractBTreeTestCase {
 
     }
     
+    @Test
     public void test_leafSplitBranchingFactor4_01() {
         
         BTree btree = getBTree(4);
@@ -278,6 +277,7 @@ public class TestSplitRootLeaf extends AbstractBTreeTestCase {
 
     }
 
+    @Test
     public void test_leafSplitBranchingFactor4_02() {
         
         BTree btree = getBTree(4);
@@ -323,6 +323,7 @@ public class TestSplitRootLeaf extends AbstractBTreeTestCase {
 
     }
 
+    @Test
     public void test_leafSplitBranchingFactor4_03() {
         
         BTree btree = getBTree(4);
@@ -368,6 +369,7 @@ public class TestSplitRootLeaf extends AbstractBTreeTestCase {
 
     }
 
+    @Test
     public void test_leafSplitBranchingFactor4_04() {
         
         BTree btree = getBTree(4);
@@ -413,6 +415,7 @@ public class TestSplitRootLeaf extends AbstractBTreeTestCase {
 
     }
 
+    @Test
     public void test_leafSplitBranchingFactor4_05() {
         
         BTree btree = getBTree(4);

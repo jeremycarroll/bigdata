@@ -54,21 +54,17 @@ import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
 //BTM
 import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+import org.junit.Test;
 
 /**
  * Some unit tests for moving an index partition.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestScatterSplit extends AbstractEmbeddedFederationTestCase {
 
     public TestScatterSplit() {
         super();
-    }
-
-    public TestScatterSplit(String name) {
-        super(name);
     }
 
     /**
@@ -137,6 +133,7 @@ public class TestScatterSplit extends AbstractEmbeddedFederationTestCase {
      * @throws ExecutionException
      * @throws InterruptedException
      */
+    @Test
     public void test_scatterSplit() throws IOException, InterruptedException,
             ExecutionException {
 

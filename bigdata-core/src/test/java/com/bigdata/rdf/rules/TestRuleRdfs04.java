@@ -39,38 +39,44 @@ import org.openrdf.model.vocabulary.RDFS;
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.rules.InferenceEngine.Options;
 import com.bigdata.rdf.spo.ISPO;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.Vocabulary;
 import com.bigdata.relation.accesspath.IElementFilter;
 import com.bigdata.relation.rule.Rule;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link RuleRdfs04a} and {@link RuleRdfs04b}
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRuleRdfs04 extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestRuleRdfs04() {
-        super();
+    public TestRuleRdfs04(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRuleRdfs04(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Extended to explicitly turn on
      * {@link Options#FORWARD_CHAIN_RDF_TYPE_RDFS_RESOURCE} for testing
      * {@link RuleRdfs04}.
      */
+    @Override
     public Properties getProperties() {
 
         Properties properties = new Properties(super.getProperties());
@@ -85,6 +91,7 @@ public class TestRuleRdfs04 extends AbstractRuleTestCase {
      * Test of the basic semantics.
      * @throws Exception 
      */
+    @Test
     public void test_rdfs4a() throws Exception {
         
         final Properties properties = super.getProperties();
@@ -138,6 +145,7 @@ public class TestRuleRdfs04 extends AbstractRuleTestCase {
      * Test of the basic semantics.
      * @throws Exception 
      */
+    @Test
     public void test_rdfs4b() throws Exception {
         
         final Properties properties = super.getProperties();
@@ -194,6 +202,7 @@ public class TestRuleRdfs04 extends AbstractRuleTestCase {
      * 
      * @throws Exception 
      */
+    @Test
     public void test_rdfs4b_filterLiterals() throws Exception {
         
         final Properties properties = super.getProperties();

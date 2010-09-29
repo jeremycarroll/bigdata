@@ -27,19 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.rdf.sail.tck;
 
-import info.aduna.io.IOUtil;
 import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.Properties;
-import junit.framework.Test;
-import junit.framework.TestSuite;
 import org.openrdf.query.Dataset;
-import org.openrdf.query.parser.sparql.ManifestTest;
 import org.openrdf.query.parser.sparql.SPARQLQueryTest;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryException;
@@ -52,8 +44,8 @@ import com.bigdata.journal.IIndexManager;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSail.Options;
-import com.bigdata.rdf.store.LocalTripleStore;
-import com.bigdata.relation.AbstractResource;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * Test harness for running the SPARQL test suites.
@@ -86,117 +78,8 @@ public class BigdataSparqlTest extends SPARQLQueryTest {
           "http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#distinct-9",
     });
     
-    private static String datasetTests = "http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset"; 
+//     private static String datasetTests = "http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset"; 
     
-    /**
-     * Use the {@link #suiteLTSWithPipelineJoins()} test suite by default.
-     * <p>
-     * Skip the dataset tests for now until we can figure out what is wrong
-     * with them.
-     * 
-     * @todo FIXME fix the dataset tests 
-     */
-    public static Test suite() throws Exception {
-        
-        return suite(true /*hideDatasetTests*/);
-        
-    }
-    
-    public static Test suite(final boolean hideDatasetTests) throws Exception {
-        
-        TestSuite suite1 = suiteLTSWithPipelineJoins();
-
-        if (!hideDatasetTests) {
-            
-            return suite1;
-            
-        }
-        
-        TestSuite suite2 = new TestSuite(suite1.getName());
-        
-        Enumeration e = suite1.tests();
-        
-        while (e.hasMoreElements()) {
-            
-            TestSuite suite3 = (TestSuite)e.nextElement();
-            
-            if (suite3.getName().equals("dataset") == false) {
-                
-                suite2.addTest(suite3);
-                
-            }
-        }
-        
-        return suite2;
-        
-    }
-    
-    /**
-     * Return a test suite using the {@link LocalTripleStore} and nested
-     * subquery joins.
-     */
-    public static TestSuite suiteLTSWithNestedSubquery() throws Exception {
-        
-        return ManifestTest.suite(new Factory() {
-
-            public SPARQLQueryTest createSPARQLQueryTest(String testURI,
-                    String name, String queryFileURL, String resultFileURL,
-                    Dataset dataSet, boolean laxCardinality) {
-
-                return new BigdataSparqlTest(testURI, name, queryFileURL,
-                        resultFileURL, dataSet, laxCardinality) {
-
-                    protected Properties getProperties() {
-
-                        final Properties p = new Properties(super
-                                .getProperties());
-
-                        p.setProperty(AbstractResource.Options.NESTED_SUBQUERY,
-                                "true");
-
-                        return p;
-
-                    }
-
-                };
-
-            }
-            
-        });
-        
-    }
-
-    /**
-     * Return a test suite using the {@link LocalTripleStore} and pipeline joins. 
-     */
-    public static TestSuite suiteLTSWithPipelineJoins() throws Exception {
-       
-        return ManifestTest.suite(new Factory() {
-
-            public SPARQLQueryTest createSPARQLQueryTest(String testURI,
-                    String name, String queryFileURL, String resultFileURL,
-                    Dataset dataSet, boolean laxCardinality) {
-
-                return new BigdataSparqlTest(testURI, name, queryFileURL,
-                        resultFileURL, dataSet, laxCardinality) {
-
-                    protected Properties getProperties() {
-
-                        final Properties p = new Properties(super
-                                .getProperties());
-
-                        p.setProperty(AbstractResource.Options.NESTED_SUBQUERY,
-                                "false");
-
-                        return p;
-
-                    }
-                    
-                };
-
-            }
-        });
-    }
 
     public BigdataSparqlTest(String testURI, String name, String queryFileURL,
             String resultFileURL, Dataset dataSet, boolean laxCardinality) {
@@ -213,6 +96,7 @@ public class BigdataSparqlTest extends SPARQLQueryTest {
      * Overridden to destroy the backend database and its files on the disk.
      */
     @Override
+    @After
     public void tearDown()
         throws Exception
     {
@@ -327,6 +211,7 @@ public class BigdataSparqlTest extends SPARQLQueryTest {
     }
     
     @Override
+    @Before
     public void setUp() throws Exception {
         super.setUp();
     }
@@ -336,23 +221,23 @@ public class BigdataSparqlTest extends SPARQLQueryTest {
         super.runTest();
     }
     
-    public Repository getRepository() {
-        return dataRep;
-    }
+//     public Repository getRepository() {
+//         return dataRep;
+//     }
     
-    private String queryString = null;
-    public String getQueryString() throws Exception {
-        if (queryString == null) {
-            InputStream stream = new URL(queryFileURL).openStream();
-            try {
-                return IOUtil.readString(new InputStreamReader(stream, "UTF-8"));
-            }
-            finally {
-                stream.close();
-            }
-        }
-        return queryString;
-    }
+//     private String queryString = null;
+//     public String getQueryString() throws Exception {
+//         if (queryString == null) {
+//             InputStream stream = new URL(queryFileURL).openStream();
+//             try {
+//                 return IOUtil.readString(new InputStreamReader(stream, "UTF-8"));
+//             }
+//             finally {
+//                 stream.close();
+//             }
+//         }
+//         return queryString;
+//     }
     
     
 

@@ -51,13 +51,6 @@ public class AbstractIndexSegmentTestCase extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public AbstractIndexSegmentTestCase(String name) {
-        super(name);
-    }
-
-    /**
      * apply dump() as a structural validation of the tree.  note that we
      * have to materialize the leaves in the generated index segment since
      * dump does not materialize a child from its Addr if it is not already

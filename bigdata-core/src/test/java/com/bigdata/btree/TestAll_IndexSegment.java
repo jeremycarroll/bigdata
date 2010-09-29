@@ -28,9 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates the unit tests for the {@link IndexSegment} and its related
@@ -39,59 +39,34 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll_IndexSegment extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        //basic unit tests for IndexSegment.
+        TestIndexSegment.class,
+       // test static methods for the index builder.
+       TestIndexSegmentPlan.class,
+       // test encoding and decoding of child node/leaf addresses.
+       TestIndexSegmentAddressManager.class,
+       // test write and read back of the index segment metadata record.
+       TestIndexSegmentCheckpoint.class,
+       // test with small known examples in detail.
+       TestIndexSegmentBuilderWithSmallTree.class,
+       // test fence posts for incremental builds with deleted index entries.
+       TestIndexSegmentBuilderWithIncrementalBuild.class,
+       // test fence posts for compacting merges with deleted index entries.
+       TestIndexSegmentBuilderWithCompactingMerge.class,
+       // test multi-block iterators for the index segment.
+       TestIndexSegmentMultiBlockIterators.class,
+       // test iterators for the index segment.
+       TestIndexSegmentCursors.class,
+       // stress test with larger random input trees and a variety of branching
+       // factors.
+       TestIndexSegmentBuilderWithLargeTrees.class,
+       // test of the bloom filter integration.
+       TestIndexSegmentWithBloomFilter.class
+        } )
+public class TestAll_IndexSegment {
 
     public TestAll_IndexSegment() {
     }
-
-    public TestAll_IndexSegment(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
-        
-        final TestSuite suite = new TestSuite("IndexSegment");
-
-        /*
-         * test index segment builds.
-         * 
-         * Note: the fast forward and fast reverse leaf scans are testing at the
-         * same time that we test the index segment builds.
-         * 
-         * See DumpIndexSegment.
-         */
-
-        //basic unit tests for IndexSegment.
-        suite.addTestSuite(TestIndexSegment.class);
-        // test static methods for the index builder.
-        suite.addTestSuite(TestIndexSegmentPlan.class);
-        // test encoding and decoding of child node/leaf addresses.
-        suite.addTestSuite(TestIndexSegmentAddressManager.class);
-        // test write and read back of the index segment metadata record.
-        suite.addTestSuite(TestIndexSegmentCheckpoint.class);
-        // test with small known examples in detail.
-        suite.addTestSuite(TestIndexSegmentBuilderWithSmallTree.class);        
-        // test fence posts for incremental builds with deleted index entries.
-        suite.addTestSuite(TestIndexSegmentBuilderWithIncrementalBuild.class);
-        // test fence posts for compacting merges with deleted index entries.
-        suite.addTestSuite(TestIndexSegmentBuilderWithCompactingMerge.class);
-        // test multi-block iterators for the index segment.
-        suite.addTestSuite(TestIndexSegmentMultiBlockIterators.class);
-        // test iterators for the index segment.
-        suite.addTestSuite(TestIndexSegmentCursors.class);
-        // stress test with larger random input trees and a variety of branching
-        // factors.
-        suite.addTestSuite(TestIndexSegmentBuilderWithLargeTrees.class);
-        // test of the bloom filter integration.
-        suite.addTestSuite(TestIndexSegmentWithBloomFilter.class);
-
-        return suite;
-
-    }
-
 }

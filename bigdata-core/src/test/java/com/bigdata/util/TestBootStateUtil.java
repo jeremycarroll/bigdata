@@ -1,35 +1,36 @@
 package com.bigdata.util;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.StreamCorruptedException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
 import net.jini.config.Configuration;
+import net.jini.config.ConfigurationException;
 import net.jini.config.ConfigurationFile;
 import net.jini.config.EmptyConfiguration;
-import net.jini.config.ConfigurationException;
-import net.jini.config.NoSuchEntryException;
 import net.jini.core.lookup.ServiceID;
 
 import org.apache.log4j.Logger;
 
-import junit.framework.TestCase;
-import junit.framework.TestCase2;
+import org.junit.Test;
 
-public class TestBootStateUtil extends TestCase2 {
+public class TestBootStateUtil {
 
-	public TestBootStateUtil(String name) {
-		super(name);
+	public TestBootStateUtil() {
+		super();
 	}
-	   
+	
+    @Test
 	public void testBootStateUtilNullConsArgs() throws SecurityException, NoSuchMethodException {
 		Configuration dummyConfiguration = EmptyConfiguration.INSTANCE;
 		String dummyString = "dummy";
@@ -54,7 +55,7 @@ public class TestBootStateUtil extends TestCase2 {
 				{dummyConfiguration, dummyString, null, dummyLogger},		
 		};
 		
-		Constructor cons = 
+		Constructor<BootStateUtil> cons = 
 			BootStateUtil.class.getConstructor(Configuration.class,
 				String.class, Class.class, Logger.class);
 		for (int i=0; i < badCommandLines.length; i++) {
@@ -76,7 +77,7 @@ public class TestBootStateUtil extends TestCase2 {
 			} 
 		}
 	}
-	
+    @Test
 	public void testBootStateUtilGoodConsArgs() throws SecurityException, NoSuchMethodException {
 		Configuration dummyConfiguration = EmptyConfiguration.INSTANCE;
 		String dummyString = "dummy";
@@ -91,7 +92,7 @@ public class TestBootStateUtil extends TestCase2 {
 		
 		testGoodConsArgs(goodCommandLines);
 	}
-	
+    @Test
 	public void testBootStateUtilNoEntries() 
 	    throws SecurityException, NoSuchMethodException, IOException, 
 	           ConfigurationException, ClassNotFoundException 
@@ -100,7 +101,6 @@ public class TestBootStateUtil extends TestCase2 {
 	    String className = dummyClass.getName();
 	    ConfigurationBuilder builder = new ConfigurationBuilder();
 		Configuration dummyConfiguration = builder.buildConfiguration();
-		Logger dummyLogger = Logger.getLogger(className);
 		
 		BootStateUtil bsu = 
 			new BootStateUtil(dummyConfiguration, className, dummyClass, null);
@@ -109,7 +109,7 @@ public class TestBootStateUtil extends TestCase2 {
 		assertTrue(bsu.getServiceId() != null);
 		
 	}	
-
+    @Test
 	public void testBootStateUtilNonExistentPersistenceDir() 
 		throws SecurityException, NoSuchMethodException, IOException, ConfigurationException 
 	{
@@ -133,7 +133,7 @@ public class TestBootStateUtil extends TestCase2 {
 		assertTrue(persistenceDir.exists());
 		persistenceDir.delete();
 	}	
-	
+    @Test
 	public void testBootStateUtilExistentPersistenceDir() 
 	throws SecurityException, NoSuchMethodException, IOException, ConfigurationException 
 	{
@@ -157,7 +157,7 @@ public class TestBootStateUtil extends TestCase2 {
 		testGoodConsArgs(goodCommandLines);	 
     	persistenceDir.delete();
 	}	
-	
+    @Test
 	public void testBootStateUtilWithEmptyBootState() 
 	    throws SecurityException, NoSuchMethodException, IOException, 
 	           ConfigurationException, ClassNotFoundException 
@@ -176,15 +176,14 @@ public class TestBootStateUtil extends TestCase2 {
 		Configuration dummyConfiguration = builder.buildConfiguration();
 		
 		try {
-			BootStateUtil bsu =
-				new BootStateUtil(dummyConfiguration, className, dummyClass, null);
+			new BootStateUtil(dummyConfiguration, className, dummyClass, null);
 			fail("Created boot state instance with emtpy state information file");
 		} catch (IOException e) {
 			//ignore -- expected
 		}
 
 	}	
-	
+    @Test
 	public void testBootStateUtilWithInvalidBootState() 
     throws SecurityException, NoSuchMethodException, IOException, 
            ConfigurationException, ClassNotFoundException 
@@ -215,7 +214,7 @@ public class TestBootStateUtil extends TestCase2 {
 			//ignore -- expected
 		}
 	}	
-	
+    @Test
 	public void testBootStateUtilConsWithDefaultServiceId() 
 	    throws SecurityException, NoSuchMethodException, IOException, 
 	           ConfigurationException, ClassNotFoundException 
@@ -229,7 +228,6 @@ public class TestBootStateUtil extends TestCase2 {
 	    ServiceID defaultServiceId = new ServiceID(1L, 2L);
 	    builder.setDefaultServiceId(defaultServiceId);
 		Configuration dummyConfiguration = builder.buildConfiguration();
-		Logger dummyLogger = Logger.getLogger(className);
 		
 		BootStateUtil bsu = 
 			new BootStateUtil(dummyConfiguration, className, dummyClass, null);
@@ -240,7 +238,7 @@ public class TestBootStateUtil extends TestCase2 {
 				defaultServiceId.getLeastSignificantBits());
 		assertTrue(bsu.getProxyId().equals(defaultProxyID));
 	}	
-	
+    @Test
 	public void testBootStateUtilDefaultServiceId() 
 	throws SecurityException, NoSuchMethodException, IOException, 
 	       ConfigurationException, ClassNotFoundException 
@@ -262,7 +260,7 @@ public class TestBootStateUtil extends TestCase2 {
 		assertTrue(proxyID.getLeastSignificantBits() == defaultServiceID.getLeastSignificantBits());
 		assertTrue(proxyID.getMostSignificantBits() == defaultServiceID.getMostSignificantBits());
 	}	
-	
+    @Test
 	public void testBootStateUtilBadPersistenceDir() 
 	throws SecurityException, NoSuchMethodException, IOException, ConfigurationException, ClassNotFoundException 
 	{
@@ -284,7 +282,6 @@ public class TestBootStateUtil extends TestCase2 {
 		}
 	}		
 	
-		
 	private static void testGoodConsArgs(Object[][] goodCommandLines) 
 		throws SecurityException, NoSuchMethodException 
 	{

@@ -40,6 +40,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.NoSuchIndexException;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StaleLocatorException;
+import org.junit.Test;
 
 /**
  * Test of basic index operations.
@@ -54,13 +55,6 @@ public class TestBasicIndexStuff extends
      * 
      */
     public TestBasicIndexStuff() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestBasicIndexStuff(String arg0) {
-        super(arg0);
     }
 
 //    /**
@@ -168,6 +162,7 @@ public class TestBasicIndexStuff extends
      * 
      * @throws Exception
      */
+    @Test
     public void test_onePartition() throws Exception {
 
         final String name = "testIndex";
@@ -188,7 +183,7 @@ public class TestBasicIndexStuff extends
         assertFalse(ndx.contains(new byte[]{1}));
      
         // the key is not in the index.
-        assertEquals(null, ndx.lookup(new byte[]{1}));
+        assertArrayEquals(null, ndx.lookup(new byte[]{1}));
         
         // insert a key-value pair.
         assertNull(ndx.insert(new byte[]{1}, new byte[]{1}));
@@ -197,7 +192,7 @@ public class TestBasicIndexStuff extends
         assertTrue(ndx.contains(new byte[]{1}));
 
         // verify correct value in the index.
-        assertEquals(new byte[]{1}, ndx.lookup(new byte[]{1}));
+        assertArrayEquals(new byte[]{1}, ndx.lookup(new byte[]{1}));
 
         // verify some range counts.
         assertEquals(0, ndx.rangeCount(new byte[] {}, new byte[] { 1 }));
@@ -218,13 +213,13 @@ public class TestBasicIndexStuff extends
         assertSameIterator(new byte[][]{new byte[]{1}}, ndx.rangeIterator(null, null));
 
         // remove the index entry.
-        assertEquals(new byte[] { 1 }, ndx.remove(new byte[] { 1 }));
+        assertArrayEquals(new byte[] { 1 }, ndx.remove(new byte[] { 1 }));
 
         // the index is empty.
         assertFalse(ndx.contains(new byte[] { 1 }));
 
         // the key is not in the index.
-        assertEquals(null, ndx.lookup(new byte[] { 1 }));
+        assertArrayEquals(null, ndx.lookup(new byte[] { 1 }));
         
         /*
          * verify some range counts.
@@ -257,6 +252,7 @@ public class TestBasicIndexStuff extends
      * Tests a variety of operations on a scale-out index with two index
      * partitions.
      */
+    @Test
     public void test_twoPartitions() throws Exception {
 
         final String name = "testIndex";
@@ -283,8 +279,8 @@ public class TestBasicIndexStuff extends
         assertFalse(ndx.contains(new byte[]{5}));
         
         // the key is not in the index.
-        assertEquals(null, ndx.lookup(new byte[]{1}));
-        assertEquals(null, ndx.lookup(new byte[]{5}));
+        assertArrayEquals(null, ndx.lookup(new byte[]{1}));
+        assertArrayEquals(null, ndx.lookup(new byte[]{5}));
         
         // insert a key-value pair into each partition.
         assertNull(ndx.insert(new byte[]{1}, new byte[]{1}));
@@ -295,11 +291,11 @@ public class TestBasicIndexStuff extends
         assertTrue(ndx.contains(new byte[]{5}));
 
         // verify correct value in the index.
-        assertEquals(new byte[]{1}, ndx.lookup(new byte[]{1}));
-        assertEquals(new byte[]{5}, ndx.lookup(new byte[]{5}));
+        assertArrayEquals(new byte[]{1}, ndx.lookup(new byte[]{1}));
+        assertArrayEquals(new byte[]{5}, ndx.lookup(new byte[]{5}));
 
         // verify correct value in the index on the correct data service.
-        assertEquals(new byte[] { 1 }, ((ResultBuffer) dataService0.submit(
+        assertArrayEquals(new byte[] { 1 }, ((ResultBuffer) dataService0.submit(
                 ITx.UNISOLATED,//
                 DataService.getIndexPartitionName(name, partitionId0),//
                 BatchLookupConstructor.INSTANCE.newInstance(//
@@ -310,7 +306,7 @@ public class TestBasicIndexStuff extends
                         null //vals
                 )).get()).getResult(0));
         //
-        assertEquals(new byte[] { 5 }, ((ResultBuffer) dataService1.submit(
+        assertArrayEquals(new byte[] { 5 }, ((ResultBuffer) dataService1.submit(
                 ITx.UNISOLATED,//
                 DataService.getIndexPartitionName(name, partitionId1),//
                 BatchLookupConstructor.INSTANCE.newInstance(//
@@ -354,13 +350,13 @@ public class TestBasicIndexStuff extends
                 }, ndx.rangeIterator(null, null));
         
         // remove the index entry.
-        assertEquals(new byte[] { 1 }, ndx.remove(new byte[] { 1 }));
+        assertArrayEquals(new byte[] { 1 }, ndx.remove(new byte[] { 1 }));
 
         // verify that this entry is gone (actually it is marked as deleted).
         assertFalse(ndx.contains(new byte[] { 1 }));
 
         // the key is not in the index.
-        assertEquals(null, ndx.lookup(new byte[] { 1 }));
+        assertArrayEquals(null, ndx.lookup(new byte[] { 1 }));
         
         /*
          * verify some range counts.
@@ -403,13 +399,13 @@ public class TestBasicIndexStuff extends
                 }, ndx.rangeIterator(null, null));
 
         // remove the other index entry.
-        assertEquals(new byte[]{5},(byte[])ndx.remove(new byte[]{5}));
+        assertArrayEquals(new byte[]{5},(byte[])ndx.remove(new byte[]{5}));
 
         // verify that this entry is gone (actually it is marked as deleted).
         assertFalse(ndx.contains(new byte[]{5}));
 
         // the key is not in the index.
-        assertEquals(null,(byte[])ndx.lookup(new byte[]{5}));
+        assertArrayEquals(null,(byte[])ndx.lookup(new byte[]{5}));
 
         /*
          * verify some range counts -- they are unchanged since the deleted keys

@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.isolation;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites in increasing dependency order.
@@ -37,46 +37,28 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+       // test isolated fused view (handles delete markers).
+       TestIsolatedFusedView.class,
+
+       // test for mixing full transactions with unisolated operations.
+       TestMixedModeOperations.class,
+
+       // test for state-based validation _concept_
+       TestAccount.class,
+
+       // tests of write-write conflict resolution.
+       TestConflictResolution.class
+
+       // @todo write test suite for this and handle remove() (propagate the tuple revision timestamp).
+       // suite.addTestSuite(TestIsolatedFusedViewCursors.class);
+        } )
+public class TestAll {
 
     /**
      * 
      */
     public TestAll() {
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Aggregates test suites in increasing dependency order.
-     */
-    public static Test suite()
-    {
-
-        final TestSuite suite = new TestSuite("B+Tree Isolation");
-
-        // test isolated fused view (handles delete markers).
-        suite.addTestSuite(TestIsolatedFusedView.class);
-
-        // test for mixing full transactions with unisolated operations.
-        suite.addTestSuite(TestMixedModeOperations.class);
-        
-        // test for state-based validation _concept_
-        suite.addTestSuite(TestAccount.class);
-        
-        // tests of write-write conflict resolution.
-        suite.addTestSuite(TestConflictResolution.class);
-
-        // @todo write test suite for this and handle remove() (propagate the tuple revision timestamp).
-        // suite.addTestSuite(TestIsolatedFusedViewCursors.class);
-
-        return suite;
-        
-    }
-    
 }

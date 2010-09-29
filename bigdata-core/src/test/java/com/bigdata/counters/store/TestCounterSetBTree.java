@@ -35,9 +35,6 @@ import java.io.StringWriter;
 import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.ParserConfigurationException;
-
-import junit.framework.TestCase2;
-
 import org.xml.sax.SAXException;
 
 import com.bigdata.counters.CounterSet;
@@ -49,12 +46,14 @@ import com.bigdata.counters.IHistoryEntry;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.PeriodEnum;
 import com.bigdata.counters.History.SampleIterator;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestCounterSetBTree extends TestCase2 {
+public class TestCounterSetBTree extends Assert {
 
     /**
      * 
@@ -63,16 +62,10 @@ public class TestCounterSetBTree extends TestCase2 {
     }
 
     /**
-     * @param arg0
-     */
-    public TestCounterSetBTree(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * FIXME work through unit tests for writing counters and for querying for
      * the use cases covered by the httpd interface.
      */
+    @Test
     public void test1() {
         
         final CounterSetBTree fixture = CounterSetBTree.createTransient();
@@ -148,6 +141,7 @@ public class TestCounterSetBTree extends TestCase2 {
      * @throws ParserConfigurationException
      * @throws IOException
      */
+    @Test
     public void test_XML() throws IOException, ParserConfigurationException,
             SAXException {
 

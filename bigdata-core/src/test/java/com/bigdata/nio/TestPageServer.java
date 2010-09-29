@@ -32,8 +32,6 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.nio.channels.spi.AbstractSelectableChannel;
 
-import junit.framework.TestCase;
-
 /**
  * Test class uses non-blocking I/O to communicate between collection of clients
  * and a single page server backed by test data. This test is designed to
@@ -169,7 +167,7 @@ import junit.framework.TestCase;
  *         </a>
  */
 
-public class TestPageServer extends TestCase {
+public class TestPageServer {
 
 //    public static Logger log = Logger.getLogger(TestPageServer.class);
 //

@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.WormAddressManager;
+import org.junit.Test;
 
 /**
  * Tests logic to encode and decode the offsets within regions in an
@@ -52,18 +53,12 @@ public class TestIndexSegmentAddressManager extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestIndexSegmentAddressManager(String name) {
-        super(name);
-    }
-
-    /**
      * Test works through the basic operations required to encode and decode
      * an address for a node and a leaf.
      * 
      * @see IndexSegmentRegion
      */
+    @Test
     public void test_bitMath() {
 
         // addr:=1, shift left by one, result is (2).
@@ -89,6 +84,7 @@ public class TestIndexSegmentAddressManager extends AbstractBTreeTestCase {
     /**
      * Test encoding and decoding of the region code and the offset.
      */
+    @Test
     public void test_regionEnum_encodeDecode() {
         
         {
@@ -133,6 +129,7 @@ public class TestIndexSegmentAddressManager extends AbstractBTreeTestCase {
      * Unit test verifies that an offset of <code>0L</code> (not a full
      * address, just an offset) is correctly encoded and decoded.
      */
+    @Test
     public void test_encodeDecode_offsetZero() {
 
         final long expectedOffset = 0L;
@@ -150,6 +147,7 @@ public class TestIndexSegmentAddressManager extends AbstractBTreeTestCase {
      * Test of correct decoding of addresses by the
      * {@link IndexSegmentAddressManager}.
      */
+    @Test
     public void test_addressManager_decode() {
 
         /*
@@ -239,7 +237,7 @@ public class TestIndexSegmentAddressManager extends AbstractBTreeTestCase {
                 System.currentTimeMillis()//commitTime
                 );
         
-            System.err.println("Checkpoint: "+checkpoint);
+//             System.err.println("Checkpoint: "+checkpoint);
             
         }
 

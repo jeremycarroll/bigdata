@@ -45,7 +45,6 @@ import com.bigdata.rawstore.IRawStore;
  * {@link IRawStore} from which the tuple was read.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id: BlobOverflowHandler.java 2265 2009-10-26 12:51:06Z thompsonbry
  *          $
  * 
  * @todo {@link IBlock} reads are not finished so this will not work yet. It

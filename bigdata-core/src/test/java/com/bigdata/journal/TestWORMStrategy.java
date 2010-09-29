@@ -30,18 +30,13 @@ package com.bigdata.journal;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
-
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
+import org.junit.Test;
 import com.bigdata.io.DirectBufferPool;
-import com.bigdata.rawstore.IRawStore;
 
 /**
  * Test suite for {@link BufferMode#DiskWORM} journals.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestWORMStrategy extends AbstractJournalTestCase {
 
@@ -49,51 +44,7 @@ public class TestWORMStrategy extends AbstractJournalTestCase {
         super();
     }
 
-    public TestWORMStrategy(String name) {
-        super(name);
-    }
-
-    public static Test suite() {
-
-        final TestWORMStrategy delegate = new TestWORMStrategy(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "DiskWORM Journal Test Suite");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-        
-        // tests defined by this class.
-        suite.addTestSuite(TestWORMStrategy.class);
-
-        // test suite for the IRawStore api.
-        suite.addTestSuite(TestRawStore.class);
-
-        // test suite for handling asynchronous close of the file channel.
-        suite.addTestSuite(TestInterrupts.class);
-
-        // test suite for MROW correctness.
-        suite.addTestSuite(TestMROW.class);
-
-        // test suite for MRMW correctness.
-        suite.addTestSuite(TestMRMW.class);
-
-        /*
-         * Pickup the basic journal test suite. This is a proxied test suite, so
-         * all the tests will run with the configuration specified in this test
-         * class and its optional .properties file.
-         */
-        suite.addTest(TestJournalBasics.suite());
-        
-        return suite;
-
-    }
-
+    @Override
     public Properties getProperties() {
 
         final Properties properties = super.getProperties();
@@ -117,6 +68,7 @@ public class TestWORMStrategy extends AbstractJournalTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_create_disk01() throws IOException {
 
         final Properties properties = getProperties();
@@ -156,9 +108,10 @@ public class TestWORMStrategy extends AbstractJournalTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_create_emptyFile() throws IOException {
         
-        final File file = File.createTempFile(getName(), Options.JNL);
+        final File file = File.createTempFile(this.getClass().getName(), Options.JNL);
 
         final Properties properties = new Properties();
 
@@ -184,159 +137,6 @@ public class TestWORMStrategy extends AbstractJournalTestCase {
     }
 
     /**
-     * Test suite integration for {@link AbstractRestartSafeTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestRawStore extends AbstractRestartSafeTestCase {
-        
-        public TestRawStore() {
-            super();
-        }
-
-        public TestRawStore(String name) {
-            super(name);
-        }
-
-        protected BufferMode getBufferMode() {
-            
-            return BufferMode.DiskWORM;
-            
-        }
-
-    }
-    
-    /**
-     * Test suite integration for {@link AbstractInterruptsTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestInterrupts extends AbstractInterruptsTestCase {
-        
-        public TestInterrupts() {
-            super();
-        }
-
-        public TestInterrupts(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-
-            final Properties properties = getProperties();
-            
-            properties.setProperty(Options.DELETE_ON_EXIT, "true");
-
-            properties.setProperty(Options.CREATE_TEMP_FILE, "true");
-
-            properties.setProperty(Options.BUFFER_MODE, BufferMode.DiskWORM
-                    .toString());
-
-            properties.setProperty(Options.WRITE_CACHE_ENABLED, ""
-                    + writeCacheEnabled);
-
-            return new Journal(properties).getBufferStrategy();
-
-        }
-
-    }
-    
-    /**
-     * Test suite integration for {@link AbstractMROWTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestMROW extends AbstractMROWTestCase {
-        
-        public TestMROW() {
-            super();
-        }
-
-        public TestMROW(String name) {
-            super(name);
-        }
-        
-        protected IRawStore getStore() {
-
-            final Properties properties = getProperties();
-
-            properties.setProperty(Options.CREATE_TEMP_FILE, "true");
-
-            properties.setProperty(Options.DELETE_ON_EXIT, "true");
-
-            properties.setProperty(Options.BUFFER_MODE, BufferMode.DiskWORM
-                    .toString());
-
-            properties.setProperty(Options.WRITE_CACHE_ENABLED, ""
-                    + writeCacheEnabled);
-
-            return new Journal(properties).getBufferStrategy();
-
-        }
-
-    }
-
-    /**
-     * Test suite integration for {@link AbstractMRMWTestCase}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class TestMRMW extends AbstractMRMWTestCase {
-        
-        public TestMRMW() {
-            super();
-        }
-
-        public TestMRMW(String name) {
-            super(name);
-        }
-
-        protected IRawStore getStore() {
-
-            final Properties properties = getProperties();
-
-            properties.setProperty(Options.CREATE_TEMP_FILE, "true");
-
-            properties.setProperty(Options.DELETE_ON_EXIT, "true");
-
-            properties.setProperty(Options.BUFFER_MODE, BufferMode.DiskWORM
-                    .toString());
-
-            properties.setProperty(Options.WRITE_CACHE_ENABLED, ""
-                    + writeCacheEnabled);
-
-            /*
-             * The following two properties are dialed way down in order to
-             * raise the probability that we will observe the following error
-             * during this test.
-             * 
-             * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6371642
-             * 
-             * FIXME We should make the MRMW test harder and focus on
-             * interleaving concurrent extensions of the backing store for both
-             * WORM and R/W stores.
-             */
-            
-            // Note: Use a relatively small initial extent. 
-            properties.setProperty(Options.INITIAL_EXTENT, ""
-                    + DirectBufferPool.INSTANCE.getBufferCapacity() * 1);
-
-            // Note: Use a relatively small extension each time.
-            properties.setProperty(Options.MINIMUM_EXTENSION,
-                    "" + (long) (DirectBufferPool.INSTANCE
-                                    .getBufferCapacity() * 1.1));
-
-            return new Journal(properties).getBufferStrategy();
-
-        }
-
-    }
-
-    /**
      * Note: The write cache is allocated by the {@link WORMStrategy} from
      * the {@link DirectBufferPool} and should be released back to that pool as
      * well, so the size of the {@link DirectBufferPool} SHOULD NOT grow as we
@@ -351,7 +151,7 @@ public class TestWORMStrategy extends AbstractJournalTestCase {
 //     * using a write cache. Since small write caches are disallowed, we wind up
 //     * testing with the write cache disabled!
 //     */
-    private static final boolean writeCacheEnabled = true;
+    static final boolean writeCacheEnabled = true;
     
 }
     

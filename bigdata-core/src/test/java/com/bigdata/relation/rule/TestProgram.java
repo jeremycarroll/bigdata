@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.relation.rule;
 
 import java.util.Iterator;
+import org.junit.Test;
 
 /**
  * Test suite for {@link Program} and common rule/program re-writes.
@@ -44,13 +45,7 @@ public class TestProgram extends AbstractRuleTestCase {
     public TestProgram() {
     }
 
-    /**
-     * @param name
-     */
-    public TestProgram(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_emptyProgram() {
 
         {
@@ -108,6 +103,7 @@ public class TestProgram extends AbstractRuleTestCase {
         
     }
 
+    @Test
     public void test_simpleProgram() {
         
         final Program program = new Program("p1", false/* parallel */, false/* closure */);

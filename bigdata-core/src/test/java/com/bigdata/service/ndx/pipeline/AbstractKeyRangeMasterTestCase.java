@@ -42,10 +42,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.KVO;
 import com.bigdata.mdi.IMetadataIndex;
@@ -57,7 +53,9 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.Split;
 import com.bigdata.service.ndx.AbstractSplitter;
 import com.bigdata.service.ndx.ISplitter;
+import com.bigdata.test.Assert;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.After;
 
 /**
  * Abstract base class for test suites for the {@link AbstractMasterTask} and
@@ -71,20 +69,12 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class AbstractKeyRangeMasterTestCase extends TestCase2 {
+public class AbstractKeyRangeMasterTestCase extends Assert {
 
     /**
      * 
      */
     public AbstractKeyRangeMasterTestCase() {
-       
-    }
-
-    /**
-     * @param arg0
-     */
-    public AbstractKeyRangeMasterTestCase(String arg0) {
-        super(arg0);
        
     }
 
@@ -590,7 +580,8 @@ public class AbstractKeyRangeMasterTestCase extends TestCase2 {
     final ExecutorService executorService = Executors
             .newCachedThreadPool(DaemonThreadFactory.defaultThreadFactory());
 
-    protected void tearDown() {
+    @After
+    public void tearDown() {
 
         executorService.shutdownNow();
 

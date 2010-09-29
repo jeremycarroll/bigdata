@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rawstore;
 
+import org.junit.Test;
+
 /**
  * Test suite for {@link SimpleMemoryRawStore}.
  * 
@@ -41,19 +43,13 @@ public class TestSimpleMemoryRawStore extends AbstractRawStoreTestCase {
     public TestSimpleMemoryRawStore() {
     }
 
-    /**
-     * @param name
-     */
-    public TestSimpleMemoryRawStore(String name) {
-        super(name);
-    }
-
     protected IRawStore getStore() {
         
         return new SimpleMemoryRawStore();
 
     }
     
+    @Test
     public void test_ctor() {
         
         new SimpleMemoryRawStore();
@@ -70,7 +66,7 @@ public class TestSimpleMemoryRawStore extends AbstractRawStoreTestCase {
                 
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
             
         }
         

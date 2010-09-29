@@ -36,6 +36,7 @@ import com.bigdata.journal.TestRestartSafe;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for {@link BTree#removeAll()}.
@@ -54,15 +55,9 @@ public class TestRemoveAll extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestRemoveAll(String name) {
-        super(name);
-    }
-
-    /**
      *
      */
+    @Test
     public void test_removeAll() {
 
         final int m = 3;
@@ -114,6 +109,7 @@ public class TestRemoveAll extends AbstractBTreeTestCase {
      * cleared since nodes that have been detached from their parents will be in
      * the cache.
      */
+    @Test
     public void test_removeAll_02() {
 
         final BTree btree;

@@ -39,11 +39,16 @@ import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.impl.BindingImpl;
 import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.vocab.NoVocabulary;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestPruneBindingSets extends ProxyBigdataSailTestCase {
 
     @Override
@@ -64,21 +69,21 @@ public class TestPruneBindingSets extends ProxyBigdataSailTestCase {
     /**
      * 
      */
-    public TestPruneBindingSets() {
+    public TestPruneBindingSets(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestPruneBindingSets(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup3();
+    };
 
     /**
      * Tests adding query hints in SPARQL.
      * 
      * @throws Exception 
      */
+    @Test
     public void testPruneBindingSets() throws Exception {
 
         final BigdataSail sail = getSail();

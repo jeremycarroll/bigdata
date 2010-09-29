@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.journal;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Runs all tests for all journal implementations.
@@ -37,61 +37,55 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+       // test ability of the platform to synchronize writes to disk.
+       TestRandomAccessFileSynchronousWrites.class,
+       // test the ability to (de-)serialize the root addreses.
+       TestCommitRecordSerializer.class,
+       // test the root block api.
+       TestRootBlockView.class,
+       // @todo tests of the index used map index names to indices.
+       TestName2Addr.class,
+       // tests of the index used to access historical commit records
+       TestCommitRecordIndex.class,
+       // Test a scalable temporary store (uses the transient and disk-only
+       // buffer modes).
 
-    /**
-     * 
-     */
-    public TestAll() {
-    }
+       TestJournalBasics.class,
 
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
 
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
+       // ==== Proxy Tests previously from TestTemporaryStore.suite()
+           TestTemporaryStore.class,
+           TestTemporaryStoreRawStore.class,
+           TestTemporaryStoreInterrupts.class,
+           TestTemporaryStoreMROW.class,
+           TestTemporaryStoreMRMW.class,
 
-        final TestSuite suite = new TestSuite("journal");
+       // ==== Proxy Tests previously from TestTransientJournal.suite()
+           TestTransientJournal.class,
+           TestTransientJournalRawStore.class,
+           TestTransientJournalMROW.class,
+           TestTransientJournalMRMW.class,
 
-        // test ability of the platform to synchronize writes to disk.
-        suite.addTestSuite( TestRandomAccessFileSynchronousWrites.class );
-        
-        // test the ability to (de-)serialize the root addreses.
-        suite.addTestSuite( TestCommitRecordSerializer.class );
-        
-        // test the root block api.
-        suite.addTestSuite( TestRootBlockView.class );
+       // ==== Proxy Tests previously from TestDirectJournal.suite()
 
-        // @todo tests of the index used map index names to indices.
-        suite.addTestSuite( TestName2Addr.class );
+           //TestDirectJournal.class,
+           //TestDirectJournalRawStore.class,
+           //TestDirectJournalInterrupts.class,
+           //TestDirectJournalMROW.class,
+           //TestDirectJournalMRMW.class,
 
-        // tests of the index used to access historical commit records
-        suite.addTestSuite( TestCommitRecordIndex.class );
-        
-        /*
-         * Test a scalable temporary store (uses the transient and disk-only
-         * buffer modes).
-         */
-        suite.addTest( TestTemporaryStore.suite() );
-        
-        /*
-         * Test the different journal modes.
-         * 
-         * -DminimizeUnitTests="true" is used when building the project site to keep
-         * down the nightly build demands.
-         */
-        
-//        if(Boolean.parseBoolean(System.getProperty("minimizeUnitTests","false"))) {
+       /*
+        * Note: The mapped journal is somewhat problematic and its tests are
+        * disabled for the moment since (a) we have to pre-allocate large
+        * extends; (b) it does not perform any better than other options; and
+        * (c) we can not synchronously unmap or delete a mapped file which
+        * makes cleanup of the test suites difficult and winds up spewing 200M
+        * files all over your temp directory.
+        */
 
-            suite.addTest( TestTransientJournal.suite() );
+        //TestMappedJournal.class,
 
         /*
          * Commented out since this mode is not used and there is an occasional
@@ -111,30 +105,22 @@ public class TestAll extends TestCase {
          * excised from the code since it might be appropriate for some
          * applications.)
          */
-//            suite.addTest( TestDirectJournal.suite() );
+         //TestDiskJournal.class,
 
-            /*
-             * Note: The mapped journal is somewhat problematic and its tests are
-             * disabled for the moment since (a) we have to pre-allocate large
-             * extends; (b) it does not perform any better than other options; and
-             * (c) we can not synchronously unmap or delete a mapped file which
-             * makes cleanup of the test suites difficult and winds up spewing 200M
-             * files all over your temp directory.
-             */
-            
-//            suite.addTest( TestMappedJournal.suite() );
+       // ==== Proxy Tests previously from TestWORMStrategy.suite()
+           TestWORMStrategy.class,
+           TestWORMStrategyRawStore.class,
+           TestWORMStrategyInterrupts.class,
+           TestWORMStrategyMROW.class,
+           TestWORMStrategyMRMW.class,
 
-//        }
+           com.bigdata.rwstore.TestAll.class
+        } )
+public class TestAll {
 
-        // Remove since we are no longer using the DiskOnlyStrategy for the Journal.
-        //suite.addTest( TestDiskJournal.suite() );
-
-        suite.addTest( TestWORMStrategy.suite() );
-
-        suite.addTest( com.bigdata.rwstore.TestAll.suite() );
-
-        return suite;
-
+    /**
+     * 
+     */
+    public TestAll() {
     }
-
 }

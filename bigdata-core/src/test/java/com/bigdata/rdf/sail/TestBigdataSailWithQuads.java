@@ -27,15 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.sail;
 
 import java.util.Properties;
-
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-import junit.framework.TestSuite;
-
 import com.bigdata.rdf.sail.BigdataSail.Options;
-import com.bigdata.rdf.sail.tck.BigdataConnectionTest;
-import com.bigdata.rdf.sail.tck.BigdataSparqlTest;
-import com.bigdata.rdf.sail.tck.BigdataStoreTest;
 import com.bigdata.relation.AbstractResource;
 
 /**
@@ -43,7 +35,6 @@ import com.bigdata.relation.AbstractResource;
  * mode is disabled. Inference is disabled.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
 
@@ -53,75 +44,6 @@ public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
     public TestBigdataSailWithQuads() {
     }
 
-    public TestBigdataSailWithQuads(String name) {
-        super(name);
-    }
-    
-    public static Test suite() {
-        
-        final TestBigdataSailWithQuads delegate = new TestBigdataSailWithQuads(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate, "SAIL with Quads (nested subquery joins)");
-
-        // test pruning of variables not required for downstream processing.
-        suite.addTestSuite(TestPruneBindingSets.class);
-
-        // misc named graph API stuff.
-        suite.addTestSuite(TestQuadsAPI.class);
-
-        // SPARQL named graphs tests.
-        suite.addTestSuite(TestNamedGraphs.class);
-
-        // test suite for optionals handling (left joins).
-        suite.addTestSuite(TestOptionals.class);
-
-        // test of the search magic predicate
-        suite.addTestSuite(TestSearchQuery.class);
-        
-        // high-level query tests.
-        suite.addTestSuite(TestQuery.class);
-
-        // test of high-level query on a graph with statements about statements.
-        suite.addTestSuite(TestProvenanceQuery.class);
-
-        // unit tests for custom evaluation of high-level query
-        suite.addTestSuite(TestBigdataSailEvaluationStrategyImpl.class);
-
-        suite.addTestSuite(TestUnions.class);
-        
-        suite.addTestSuite(TestDescribe.class);
-        
-        // The Sesame TCK, including the SPARQL test suite.
-        {
-
-            final TestSuite tckSuite = new TestSuite("Sesame 2.x TCK");
-
-            tckSuite.addTestSuite(BigdataStoreTest.LTSWithNestedSubquery.class);
-
-            tckSuite.addTestSuite(BigdataConnectionTest.LTSWithNestedSubquery.class);
-
-            try {
-
-                tckSuite.addTest(BigdataSparqlTest.suiteLTSWithNestedSubquery());
-
-            } catch (Exception ex) {
-
-                throw new RuntimeException(ex);
-
-            }
-
-            suite.addTest(tckSuite);
-
-        }
-        
-        return suite;
-        
-    }
-    
     @Override
     protected BigdataSail getSail(final Properties properties) {
         
@@ -129,6 +51,7 @@ public class TestBigdataSailWithQuads extends AbstractBigdataSailTestCase {
         
     }
 
+    @Override
     public Properties getProperties() {
 
         final Properties properties = new Properties(super.getProperties());

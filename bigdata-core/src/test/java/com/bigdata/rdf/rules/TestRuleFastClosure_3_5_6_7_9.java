@@ -41,7 +41,9 @@ import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.rules.AbstractRuleFastClosure_3_5_6_7_9.FastClosureRuleTask;
 import com.bigdata.rdf.rules.AbstractRuleFastClosure_3_5_6_7_9.SubPropertyClosureTask;
 import com.bigdata.rdf.spo.ISPO;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.Vocabulary;
 import com.bigdata.relation.IRelation;
 import com.bigdata.relation.accesspath.IBuffer;
@@ -52,6 +54,11 @@ import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IRuleTaskFactory;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.relation.rule.eval.IStepTask;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link AbstractRuleFastClosure_3_5_6_7_9}.
@@ -63,29 +70,28 @@ import com.bigdata.relation.rule.eval.IStepTask;
  * @see RuleFastClosure9
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRuleFastClosure_3_5_6_7_9 extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestRuleFastClosure_3_5_6_7_9() {
-        super();
+    public TestRuleFastClosure_3_5_6_7_9(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRuleFastClosure_3_5_6_7_9(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Unit test for
      * {@link InferenceEngine#getSubProperties(AbstractTripleStore)}, which is
      * used to setup the pre-conditions for {@link RuleFastClosure3}.
      */
+    @Test
     public void test_getSubProperties() {
 
         final Properties properties = super.getProperties();
@@ -166,6 +172,7 @@ public class TestRuleFastClosure_3_5_6_7_9 extends AbstractRuleTestCase {
      * 
      * @throws Exception
      */
+    @Test
     public void test_rule() throws Exception {
         
         final Properties properties = super.getProperties();
@@ -262,7 +269,6 @@ public class TestRuleFastClosure_3_5_6_7_9 extends AbstractRuleTestCase {
      * accepting a hand-built property set closure.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     @SuppressWarnings("serial")
     private static class MyRuleFastClosure6 extends
@@ -286,7 +292,6 @@ public class TestRuleFastClosure_3_5_6_7_9 extends AbstractRuleTestCase {
      * Custom rule evaluation overriden to use a hand-built {@link Set}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private static class MyFastClosure_6_RuleTaskFactory implements IRuleTaskFactory {
 

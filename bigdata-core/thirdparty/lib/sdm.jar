@@ -1,0 +1,4 @@
+This is a bogus jar file for the purposes of keeping maven from
+complaining when a -dl, -resources, -lib, or -platform jar is needed,
+but the jar file with no suffix does not exist.
+

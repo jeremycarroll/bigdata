@@ -28,10 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.lexicon;
 
 import java.util.Random;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.ICounter;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit test for unified encoding / decoding for partitioned and unpartitioned
@@ -41,19 +40,16 @@ import com.bigdata.btree.ICounter;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestTermIdEncoder extends TestCase2 {
+public class TestTermIdEncoder extends Assert {
 
     public TestTermIdEncoder() {
         
     }
     
-    public TestTermIdEncoder(String s) {
-        super(s);
-    }
-
     /**
      * Ctor correct rejection tests.
      */
+    @Test
     public void test_ctor_correctRejection() {
 
         // Ok.
@@ -88,6 +84,7 @@ public class TestTermIdEncoder extends TestCase2 {
      * contains a partition identifier which is negative or a local counter
      * value which is negative or zero.
      */
+    @Test
     public void test_encode_correctRejection() {
 
         final TermIdEncoder encoder = new TermIdEncoder(1);
@@ -132,6 +129,7 @@ public class TestTermIdEncoder extends TestCase2 {
      * the local counter rather than stealing both bits from the partition
      * identifier, which is what the historical encoding scheme was doing).
      */
+    @Test
     public void test_encode_decode_0bits_pid1_ctr1() {
 
         final TermIdEncoder encoder = new TermIdEncoder(0);
@@ -149,6 +147,7 @@ public class TestTermIdEncoder extends TestCase2 {
      * rotated into the high bits of the long value and random values for the
      * partition identifier and the local counter.
      */
+    @Test
     public void test_encode_decode_0bits_stress() {
 
         final Random r = new Random();
@@ -169,6 +168,7 @@ public class TestTermIdEncoder extends TestCase2 {
 
     }
 
+    @Test
     public void test_encode_decode_1bits_pid1_ctr1() {
 
         doEncodeDecodeTest(new TermIdEncoder(1), 1/* pid */, 1/* ctr */);
@@ -180,6 +180,7 @@ public class TestTermIdEncoder extends TestCase2 {
      * rotated into the high bits of the long value and random values for the
      * partition identifier and the local counter.
      */
+    @Test
     public void test_encode_decode_randomBits_stress() {
 
         final Random r = new Random();

@@ -27,14 +27,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.raba.codec;
 
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.AbstractBTreeTestCase;
 import com.bigdata.btree.raba.EmptyRaba;
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.ReadOnlyValuesRaba;
 import com.bigdata.io.DataOutputBuffer;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 
 /**
@@ -43,7 +42,7 @@ import com.bigdata.io.DataOutputBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestEmptyRabaCoder extends TestCase2 {
+public class TestEmptyRabaCoder extends Assert {
 
     /**
      * 
@@ -52,15 +51,9 @@ public class TestEmptyRabaCoder extends TestCase2 {
     }
 
     /**
-     * @param name
-     */
-    public TestEmptyRabaCoder(String name) {
-        super(name);
-    }
-
-    /**
      * Verify will not code keys. 
      */
+    @Test
     public void test_emptyRabaCoder_keysNotAllowed() {
 
         final IRabaCoder rabaCoder = EmptyRabaValueCoder.INSTANCE;
@@ -86,6 +79,7 @@ public class TestEmptyRabaCoder extends TestCase2 {
     /**
      * Unit test with an empty byte[][].
      */
+    @Test
     public void test_emptyRabaCoder() {
         
         final IRabaCoder rabaCoder = EmptyRabaValueCoder.INSTANCE;
@@ -102,6 +96,7 @@ public class TestEmptyRabaCoder extends TestCase2 {
      * Verify discards data with the {@link IRaba} is non-empty but all
      * <code>null</code>s.
      */
+    @Test
     public void test_emptyRabaCoder_nonZeroSize() {
 
         final IRabaCoder rabaCoder = EmptyRabaValueCoder.INSTANCE;
@@ -120,6 +115,7 @@ public class TestEmptyRabaCoder extends TestCase2 {
      * Verify discards data with the {@link IRaba} is non-empty but all
      * non-<code>null</code>s.
      */
+    @Test
     public void test_emptyRabaCoder_discardsData() {
         
         final IRabaCoder rabaCoder = EmptyRabaValueCoder.INSTANCE;

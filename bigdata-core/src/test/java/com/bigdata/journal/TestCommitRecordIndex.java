@@ -32,6 +32,7 @@ import java.nio.ByteBuffer;
 import com.bigdata.btree.BTree;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for {@link CommitRecordIndex}. Tests focus on get (exact match)
@@ -51,17 +52,11 @@ public class TestCommitRecordIndex extends AbstractCommitRecordTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestCommitRecordIndex(String name) {
-        super(name);
-    }
-
-    /**
      * Tests the ability to perform an exact match on a commit time and return
      * the address for the associated commit record. This also tests fence posts
      * for find and restart-safety for one entry.
      */
+    @Test
     public void test_basics() {
         
         IRawStore store = new SimpleMemoryRawStore();
@@ -91,7 +86,7 @@ public class TestCommitRecordIndex extends AbstractCommitRecordTestCase {
              */
             ndx.add(addr1, cr1);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
         
         // verify existence test.

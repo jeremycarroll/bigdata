@@ -1,33 +1,36 @@
 package com.bigdata.util;
 
-import com.bigdata.util.CSVReader.Header;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-public class TestNT extends TestCase {
+public class TestNT {
 
-
+    @Test
 	public void testGetName() {
 		String name =  "ABC";
 	    NT nt = new NT(name, 1L);
 	    assertEquals(name, nt.getName());
 	}
-
+    @Test
 	public void testGetTimestamp() {
 		long time = 1L;
 		NT nt = new NT("ABC", time);
 	    assertEquals(time, nt.getTimestamp());
 	}
-
+    @Test
 	public void testNT_null() {
 		try {
-			NT nt = new NT(null, 1L);
+			new NT(null, 1L);
 			fail("Sucessfully called NT with a null name argument.");			
 		} catch (IllegalArgumentException e) {
 			// ignore -- expected
 		}
 	}
-
+    @Test
 	public void testEqualsObject() {
     	String name = "abc";
     	long time = 1L;
@@ -56,7 +59,7 @@ public class TestNT extends TestCase {
     	assertFalse(h.equals(h_diff));
     	assertFalse(h.equals(h_diff2));
 	}
-	
+    @Test
     public void test_hashcode() {
     	String name = "abc";
     	long time = 1L;
@@ -64,13 +67,15 @@ public class TestNT extends TestCase {
     	NT h_dup = new NT(name, time);
     	assertTrue(h.hashCode()==h_dup.hashCode());
     }
-    
+    @Test
     public void test_toString() {
     	String name = "abc";
     	long time = 1L;
     	NT h = new NT(name, time);
     	NT h_dup = new NT(name, time);
-    	assertTrue(h.toString().equals("NT{name=" + "abc" + ",timestamp=" + 1L + "}"));
+    	String expected = "NT{name=" + "abc" + ",timestamp=" + 1L + "}";
+    	assertTrue(h.toString().equals(expected));
+    	assertTrue(h_dup.toString().equals(expected));
     }	
 
 }

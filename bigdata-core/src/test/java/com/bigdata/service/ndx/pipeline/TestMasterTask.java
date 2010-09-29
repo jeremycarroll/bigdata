@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.bigdata.btree.keys.KVO;
 import com.bigdata.relation.accesspath.BlockingBuffer;
+import org.junit.Test;
 
 /**
  * Unit tests for the control logic used by {@link AbstractMasterTask} and
@@ -47,16 +48,13 @@ public class TestMasterTask extends AbstractMasterTestCase {
     public TestMasterTask() {
     }
 
-    public TestMasterTask(String name) {
-        super(name);
-    }
-        
     /**
      * Test verifies start/stop of the master.
      * 
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_startStop() throws InterruptedException,
             ExecutionException {
 
@@ -90,6 +88,7 @@ public class TestMasterTask extends AbstractMasterTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_startEmptyWriteStop() throws InterruptedException,
             ExecutionException {
 
@@ -126,6 +125,7 @@ public class TestMasterTask extends AbstractMasterTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_startWriteStop1() throws InterruptedException,
             ExecutionException {
 
@@ -182,6 +182,7 @@ public class TestMasterTask extends AbstractMasterTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_startWriteStop2() throws InterruptedException,
             ExecutionException {
 
@@ -198,6 +199,7 @@ public class TestMasterTask extends AbstractMasterTestCase {
      * @todo This test now logs a warning rather than failing pending resolution
      *       of https://sourceforge.net/apps/trac/bigdata/ticket/147
      */
+    @Test
     public void test_stress_startWriteStop2() throws InterruptedException,
             ExecutionException {
 
@@ -324,6 +326,7 @@ public class TestMasterTask extends AbstractMasterTestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_startWriteWriteStop2() throws InterruptedException,
             ExecutionException {
 

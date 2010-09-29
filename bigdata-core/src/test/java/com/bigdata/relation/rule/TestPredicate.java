@@ -28,7 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.relation.rule;
 
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link Predicate}.
@@ -36,7 +37,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestPredicate extends TestCase2 {
+public class TestPredicate extends Assert {
 
     /**
      * 
@@ -44,13 +45,6 @@ public class TestPredicate extends TestCase2 {
     public TestPredicate() {
     }
 
-    /**
-     * @param name
-     */
-    public TestPredicate(String name) {
-        super(name);
-    }
-    
     private final String relation = "test";
     
     private final static Constant<Long> c1 = new Constant<Long>(1L);
@@ -61,6 +55,7 @@ public class TestPredicate extends TestCase2 {
 
     private final static Constant<Long> c4 = new Constant<Long>(4L);
 
+    @Test
     public void test_ctor() {
 
         {
@@ -114,6 +109,7 @@ public class TestPredicate extends TestCase2 {
     /**
      * Verify equality testing with same impl.
      */
+    @Test
     public void test_equalsSameImpl() {
 
         final Var<Long> u = Var.var("u");

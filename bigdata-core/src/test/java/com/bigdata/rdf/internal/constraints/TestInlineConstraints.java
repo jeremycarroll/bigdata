@@ -37,6 +37,7 @@ import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.rules.RuleContextEnum;
 import com.bigdata.rdf.spo.SPOPredicate;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.rule.Constant;
@@ -56,27 +57,31 @@ import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * @author <a href="mailto:mpersonick@users.sourceforge.net">Mike Personick</a>
- * @version $Id: TestOptionals.java 3149 2010-07-07 01:19:11Z mrpersonick $
  */
+@RunWith(Parameterized.class)
 public class TestInlineConstraints extends ProxyTestCase {
 
     /**
      * 
      */
-    public TestInlineConstraints() {
-        super();
+    public TestInlineConstraints(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestInlineConstraints(String name) {
-        super(name);
-    }
-    
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
+
+    @Test
     public void testGT() {
         
         // store with no owl:sameAs closure
@@ -179,6 +184,7 @@ public class TestInlineConstraints extends ProxyTestCase {
         
     }
 
+    @Test
     public void testGE() {
         
         // store with no owl:sameAs closure
@@ -283,6 +289,7 @@ public class TestInlineConstraints extends ProxyTestCase {
         
     }
 
+    @Test
     public void testLT() {
         
         // store with no owl:sameAs closure
@@ -391,6 +398,7 @@ public class TestInlineConstraints extends ProxyTestCase {
         
     }
 
+    @Test
     public void testLE() {
         
         // store with no owl:sameAs closure

@@ -32,6 +32,7 @@ import java.util.Arrays;
 import org.apache.log4j.Level;
 
 import com.bigdata.btree.keys.TestKeyBuilder;
+import org.junit.Test;
 
 /**
  * Test suite using {@link BTree#insert(Object, Object)} to split a tree to
@@ -62,13 +63,6 @@ public class TestSplitJoinThreeLevels extends AbstractBTreeTestCase {
     }
 
     /**
-     * @param name
-     */
-    public TestSplitJoinThreeLevels(String name) {
-        super(name);
-    }
-
-    /**
      * Test ability to split and join a tree of order m == 3 driven by the
      * insertion and then the removal of a known sequence of keys. This test
      * checks the state of the tree after each operation against the expected
@@ -88,6 +82,7 @@ public class TestSplitJoinThreeLevels extends AbstractBTreeTestCase {
      * 
      * @see #test_removeOrder3a()
      */
+    @Test
     public void test_removeOrder3a() {
 
         /*
@@ -111,9 +106,9 @@ public class TestSplitJoinThreeLevels extends AbstractBTreeTestCase {
         {
             System.arraycopy(keys, 0, order, 0, keys.length);
             Arrays.sort(order);
-            System.err.println("keys="+Arrays.toString(keys));
-            System.err.println("vals="+Arrays.toString(vals));
-            System.err.println("order="+Arrays.toString(order));
+//             System.err.println("keys="+Arrays.toString(keys));
+//             System.err.println("vals="+Arrays.toString(vals));
+//             System.err.println("order="+Arrays.toString(order));
         }
         
         final int m = 3;
@@ -600,6 +595,7 @@ public class TestSplitJoinThreeLevels extends AbstractBTreeTestCase {
      * the other test beings by removing a key (1) from the left edge of the
      * tree.
      */
+    @Test
     public void test_removeOrder3b() {
 
         /*
@@ -623,9 +619,9 @@ public class TestSplitJoinThreeLevels extends AbstractBTreeTestCase {
         {
             System.arraycopy(keys, 0, order, 0, keys.length);
             Arrays.sort(order);
-            System.err.println("keys="+Arrays.toString(keys));
-            System.err.println("vals="+Arrays.toString(vals));
-            System.err.println("order="+Arrays.toString(order));
+//             System.err.println("keys="+Arrays.toString(keys));
+//             System.err.println("vals="+Arrays.toString(vals));
+//             System.err.println("order="+Arrays.toString(order));
         }
         
         final int m = 3;
@@ -1123,6 +1119,7 @@ public class TestSplitJoinThreeLevels extends AbstractBTreeTestCase {
      * redistribution of keys among the left and right siblings of a node when
      * that node underflows during a deletion operation.
      */
+    @Test
     public void test_removeOrder3c() {
 
         /*
@@ -1146,9 +1143,9 @@ public class TestSplitJoinThreeLevels extends AbstractBTreeTestCase {
         {
             System.arraycopy(keys, 0, order, 0, keys.length);
             Arrays.sort(order);
-            System.err.println("keys="+Arrays.toString(keys));
-            System.err.println("vals="+Arrays.toString(vals));
-            System.err.println("order="+Arrays.toString(order));
+//             System.err.println("keys="+Arrays.toString(keys));
+//             System.err.println("vals="+Arrays.toString(vals));
+//             System.err.println("order="+Arrays.toString(order));
         }
         
         final int m = 3;

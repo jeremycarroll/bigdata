@@ -40,7 +40,9 @@ import org.openrdf.model.vocabulary.RDFS;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.SPOPredicate;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.AbstractRelation;
 import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.IPredicate;
@@ -56,27 +58,31 @@ import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * @author <a href="mailto:mpersonick@users.sourceforge.net">Mike Personick</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestOptionals extends AbstractInferenceEngineTestCase {
 
     /**
      * 
      */
-    public TestOptionals() {
-        super();
+    public TestOptionals(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestOptionals(String name) {
-        super(name);
-    }
-    
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
+
+//    @Test
 //    public void test_optionals_nextedSubquery() 
 //    {
 //     
@@ -88,6 +94,7 @@ public class TestOptionals extends AbstractInferenceEngineTestCase {
 //
 //    } 
     
+    @Test
     public void test_optionals_pipeline() 
     {
      

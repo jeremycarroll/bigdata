@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.io;
 
+import com.bigdata.test.Assert;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -34,8 +35,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Random;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Test suite for classes that let us treat a {@link ByteBuffer} as an
@@ -44,7 +44,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestByteBufferStreams extends TestCase2 {
+public class TestByteBufferStreams extends Assert {
 
     private Random r = new Random();
     
@@ -54,13 +54,7 @@ public class TestByteBufferStreams extends TestCase2 {
     public TestByteBufferStreams() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestByteBufferStreams(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void testByteBufferStreams00() throws IOException {
         
         doRoundTripTest( (byte)0 );
@@ -102,6 +96,7 @@ public class TestByteBufferStreams extends TestCase2 {
 
     }
     
+    @Test
     public void testByteBufferStreams02() throws IOException {
         
         byte[] expected = new byte[1024*8];
@@ -131,14 +126,15 @@ public class TestByteBufferStreams extends TestCase2 {
             
             byte[] actual = new byte[expected.length];
             
-            dis.read(actual);
+            dis.readFully(actual);
             
-            assertEquals(expected,actual);
+            assertArrayEquals(expected,actual);
             
         }
         
     }
     
+    @Test
     public void testByteBufferStreams03() throws IOException {
         
         byte[] expected = new byte[256];
@@ -175,14 +171,15 @@ public class TestByteBufferStreams extends TestCase2 {
             
             byte[] actual = new byte[expected.length];
             
-            dis.read(actual);
+            dis.readFully(actual);
             
-            assertEquals(expected,actual);
+            assertArrayEquals(expected,actual);
             
         }
         
     }
 
+    @Test
     public void testByteBufferStreams04() throws IOException {
         
         for (int i = 0; i < 1000; i++) {

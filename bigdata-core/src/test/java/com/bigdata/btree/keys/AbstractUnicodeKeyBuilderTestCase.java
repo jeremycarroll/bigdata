@@ -31,11 +31,10 @@ package com.bigdata.btree.keys;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Properties;
-
-import com.bigdata.io.BytesUtil;
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.keys.KeyBuilder.Options;
+import com.bigdata.io.BytesUtil;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Base class for the test suites that examine support for Unicode sort keys in
@@ -44,7 +43,7 @@ import com.bigdata.btree.keys.KeyBuilder.Options;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
+abstract public class AbstractUnicodeKeyBuilderTestCase extends Assert {
 
     /**
      * 
@@ -53,17 +52,11 @@ abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
     }
 
     /**
-     * @param arg0
-     */
-    public AbstractUnicodeKeyBuilderTestCase(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test ability to encode unicode data into a variable length byte[] that
      * allows direct byte-by-byte comparisons which maintain the local-specific
      * sort order of the original strings.
      */
+    @Test
     public void test_keyBuilder_unicode_string_key_us_primary() {
 
         /*
@@ -104,9 +97,9 @@ abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
         byte[] key2 = keyBuilder.reset().append("ABC").getKey();
         byte[] key3 = keyBuilder.reset().append("Abc").getKey();
 
-        System.err.println("abc: "+ BytesUtil.toString(key1));
-        System.err.println("ABC: "+BytesUtil.toString(key2));
-        System.err.println("Abc: "+BytesUtil.toString(key3));
+//         System.err.println("abc: "+BytesUtil.toString(key1));
+//         System.err.println("ABC: "+BytesUtil.toString(key2));
+//         System.err.println("Abc: "+BytesUtil.toString(key3));
 
         // all are equal using PRIMARY strength.
         assertEquals(0,BytesUtil.compareBytes(key1, key2));
@@ -114,6 +107,7 @@ abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
         
     }
 
+    @Test
     public void test_keyBuilder_unicode_string_key_us_identical() {
 
         /*
@@ -146,9 +140,9 @@ abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
         byte[] key2 = keyBuilder.reset().append("ABC").getKey();
         byte[] key3 = keyBuilder.reset().append("Abc").getKey();
 
-        System.err.println("abc: "+BytesUtil.toString(key1));
-        System.err.println("ABC: "+BytesUtil.toString(key2));
-        System.err.println("Abc: "+BytesUtil.toString(key3));
+//         System.err.println("abc: "+BytesUtil.toString(key1));
+//         System.err.println("ABC: "+BytesUtil.toString(key2));
+//         System.err.println("Abc: "+BytesUtil.toString(key3));
 
         // verify ordering for IDENTICAL comparison.
         assertTrue(BytesUtil.compareBytes(key1, key2)<0);
@@ -165,6 +159,7 @@ abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
      * interest for Java processing. However, note that a <code>nul</code>
      * byte MAY be used to separate components of a complex key.
      */
+    @Test
     public void test_keyBuilder_unicode_String_noTrailingNul() {
 
         final IKeyBuilder keyBuilder = KeyBuilder.newUnicodeInstance(getProperties());
@@ -208,6 +203,7 @@ abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
     /**
      * Test of the ability to normalize trailing pad characters.
      */
+    @Test
     public void test_keyBuilder_normalizeTrailingPadCharacters() {
         
         final KeyBuilder keyBuilder = (KeyBuilder) KeyBuilder
@@ -250,6 +246,7 @@ abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
      * @todo verify that trailing whitespace is removed after truncation rather
      *       than before truncation.
      */
+    @Test
     public void test_keyBuilder_normalizeTruncatesVeryLongStrings() {
 
         final KeyBuilder keyBuilder = (KeyBuilder)KeyBuilder.newUnicodeInstance(getProperties());
@@ -268,7 +265,8 @@ abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
      * the pad byte causes a prefix such as "bro" to sort before a term which
      * extends that prefix, such as "brown".
      */
-    public void test_keyBuilder_unicode_order() {        
+    @Test
+    public void test_keyBuilder_unicode_order() {
 
         final KeyBuilder keyBuilder = (KeyBuilder) KeyBuilder.newUnicodeInstance(getProperties());
         
@@ -309,6 +307,7 @@ abstract public class AbstractUnicodeKeyBuilderTestCase extends TestCase2 {
      *   
      * </pre>
      */
+    @Test
     public void test_keyBuilder_multiField_unicode() {
 
         final KeyBuilder keyBuilder = (KeyBuilder) KeyBuilder

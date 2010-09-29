@@ -27,10 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rawstore;
 
+import com.bigdata.test.Assert;
 import java.nio.ByteBuffer;
 import java.util.Random;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Base class for writing tests of the {@link IRawStore} interface.
@@ -38,19 +38,12 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class AbstractRawStoreTestCase extends TestCase2 {
+abstract public class AbstractRawStoreTestCase extends Assert {
 
     /**
      * 
      */
     public AbstractRawStoreTestCase() {
-    }
-
-    /**
-     * @param name
-     */
-    public AbstractRawStoreTestCase(String name) {
-        super(name);
     }
 
     /**
@@ -84,7 +77,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
 
         if(actual.hasArray() && actual.arrayOffset()==0) {
         
-            assertEquals(expected,actual.array());
+            assertArrayEquals(expected,actual.array());
             
             return;
             
@@ -101,7 +94,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
         
         actual.get(actual2);
 
-        assertEquals(expected,actual2);
+        assertArrayEquals(expected,actual2);
         
     }
 
@@ -140,6 +133,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
      * Test verifies correct rejection of a write operation when the caller
      * supplies an empty buffer (no bytes remaining).
      */
+    @Test
     public void test_write_correctRejection_emptyRecord() {
         
         final IRawStore store = getStore();
@@ -154,7 +148,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
                 
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
             
         }   
         
@@ -171,7 +165,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
                 
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
             
         }   
         
@@ -187,6 +181,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
      * Test verifies correct rejection of a write operation when the caller
      * supplies a [null] buffer.
      */
+    @Test
     public void test_write_correctRejection_null() {
         
         final IRawStore store = getStore();
@@ -201,7 +196,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
                 
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
             
         }   
         
@@ -216,6 +211,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
     /**
      * A read with a 0L address is always an error.
      */
+    @Test
     public void test_read_correctRejection_0L() {
         
         final IRawStore store = getStore();
@@ -230,7 +226,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
                 
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
             
         }   
 
@@ -247,6 +243,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
      * (the address is ill-formed since we do not allow writes of zero length
      * records).
      */
+    @Test
     public void test_read_correctRejection_zeroLength() {
         
         final IRawStore store = getStore();
@@ -263,7 +260,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
                 
         } catch(IllegalArgumentException ex) {
             
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
             
         } finally {
         
@@ -282,6 +279,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
      *       translate logical to physical addresses is able to "know" if an
      *       address is valid.
      */
+    @Test
     public void test_read_correctRejection_neverWritten() {
    
         // @todo this test disabled until a RW store is implemented.
@@ -393,6 +391,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
     /**
      * Test verifies that we can write and then read back a record.
      */
+    @Test
     public void test_writeRead() {
         
         final IRawStore store = getStore();
@@ -438,6 +437,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
     /**
      * Test verifies that we can write and then read back a record twice.
      */
+    @Test
     public void test_writeReadRead() {
         
         final IRawStore store = getStore();
@@ -845,6 +845,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
      * modifying the supplied buffer after the write operation (i.e., a copy
      * is made of the data in the buffer).
      */
+    @Test
     public void test_writeImmutable() {
 
         final IRawStore store = getStore();
@@ -895,6 +896,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
      * Test verifies that read does not permit changes to the store state by
      * modifying the returned buffer.
      */
+    @Test
     public void test_readImmutable() {
        
         final IRawStore store = getStore();
@@ -956,6 +958,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
      * it is written.  The test then performs a random order read and verifies
      * that each of the records can be read correctly.
      */
+    @Test
     public void test_multipleWrites() {
 
         final IRawStore store = getStore();
@@ -1073,6 +1076,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
 //     * Note: This will leave a test file around each time since we can
 //     * not really call closeAndDelete() when we are testing close().
 //     */
+    @Test
     public void test_close() {
 
         final IRawStore store = getStore();
@@ -1093,7 +1097,7 @@ abstract public class AbstractRawStoreTestCase extends TestCase2 {
 
             } catch (IllegalStateException ex) {
 
-                System.err.println("Ignoring expected exception: " + ex);
+//                 System.err.println("Ignoring expected exception: " + ex);
             }
 
         } finally {

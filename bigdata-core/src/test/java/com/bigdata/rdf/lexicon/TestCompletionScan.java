@@ -55,8 +55,15 @@ import org.openrdf.model.impl.LiteralImpl;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
+import com.bigdata.rdf.store.ProxyTestCase;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Unit tests for
@@ -65,24 +72,25 @@ import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestCompletionScan extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestCompletionScan() {
+    public TestCompletionScan(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestCompletionScan(String name) {
-        super(name);
-    }
-    
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
+
     /**
      * Unit test for a completion scan.
      */
+    @Test
     public void test_completionScan() {
         
         AbstractTripleStore store = getStore();

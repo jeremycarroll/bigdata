@@ -36,6 +36,7 @@ import com.bigdata.btree.data.IAbstractNodeDataCoder;
 import com.bigdata.btree.raba.codec.IRabaCoder;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Test of storing null values under a key with persistence.
@@ -56,13 +57,6 @@ public class TestNullValues extends AbstractBTreeTestCase {
    
     }
 
-    /**
-     * @param name
-     */
-    public TestNullValues(String name) {
-        super(name);
-    }
-
     private static final boolean bufferNodes = true;
     
     /**
@@ -75,6 +69,7 @@ public class TestNullValues extends AbstractBTreeTestCase {
      * @throws IOException
      * @throws Exception
      */
+    @Test
     public void test_nullValues() throws IOException, Exception {
         
         final IRawStore store = new SimpleMemoryRawStore();
@@ -105,7 +100,7 @@ public class TestNullValues extends AbstractBTreeTestCase {
 
         try {
 
-            outFile = new File(getName() + ".seg");
+            outFile = new File(this.getClass().getName() + ".seg");
 
             if (outFile.exists() && !outFile.delete()) {
 

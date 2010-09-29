@@ -31,29 +31,34 @@ import java.util.UUID;
 
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for transactions reading from a start time corresponding to the
  * last commit time on the database.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestReadCommittedTx<S extends Journal> extends ProxyTestCase<S> {
 
     /**
      * 
      */
-    public TestReadCommittedTx() {
+    public TestReadCommittedTx(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestReadCommittedTx(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
+    @Test
     public void test_readCommitted() {
 
         final Journal journal = getStore();
@@ -102,13 +107,12 @@ public class TestReadCommittedTx<S extends Journal> extends ProxyTestCase<S> {
 
                 assertNotNull(ndx);
 
-                assertEquals((byte[]) v1, (byte[]) ndx.lookup(k1));
+                assertArrayEquals((byte[]) v1, (byte[]) ndx.lookup(k1));
 
                 try {
                     ndx.insert(k1, new byte[] { 1, 2, 3 });
                     fail("Expecting: " + UnsupportedOperationException.class);
                 } catch (UnsupportedOperationException ex) {
-                    System.err.println("Ignoring expected exception: " + ex);
                 }
 
                 journal.commit(tx1);
@@ -130,13 +134,12 @@ public class TestReadCommittedTx<S extends Journal> extends ProxyTestCase<S> {
 
                 assertNotNull(ndx);
 
-                assertEquals((byte[]) v1, (byte[]) ndx.lookup(k1));
+                assertArrayEquals((byte[]) v1, (byte[]) ndx.lookup(k1));
 
                 try {
                     ndx.insert(k1, new byte[] { 1, 2, 3 });
                     fail("Expecting: " + UnsupportedOperationException.class);
                 } catch (UnsupportedOperationException ex) {
-                    System.err.println("Ignoring expected exception: " + ex);
                 }
 
                 journal.abort(tx1);

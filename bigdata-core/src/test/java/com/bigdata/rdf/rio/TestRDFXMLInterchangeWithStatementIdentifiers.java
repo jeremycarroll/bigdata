@@ -75,14 +75,21 @@ import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.spo.ISPO;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
 import com.bigdata.rdf.store.BD;
 import com.bigdata.rdf.store.BigdataStatementIterator;
 import com.bigdata.rdf.store.DataLoader;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.store.TempTripleStore;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for correct handling of blank nodes and statement identifiers
@@ -95,22 +102,22 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestRDFXMLInterchangeWithStatementIdentifiers extends
         AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestRDFXMLInterchangeWithStatementIdentifiers() {
+    public TestRDFXMLInterchangeWithStatementIdentifiers(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestRDFXMLInterchangeWithStatementIdentifiers(String name) {
-        super(name);
-    }
-    
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
+
     /**
      * Test case builds up a graph from Sesame {@link Value} objects, using
      * {@link BNode}s to create statements about statements. The state of the
@@ -124,6 +131,7 @@ public class TestRDFXMLInterchangeWithStatementIdentifiers extends
      * @throws RDFHandlerException
      * @throws IOException
      */
+    @Test
     public void test_rdfXmlInterchange() throws RDFHandlerException,
             IOException {
 
@@ -160,6 +168,7 @@ public class TestRDFXMLInterchangeWithStatementIdentifiers extends
      * @throws RDFHandlerException
      * @throws IOException
      */
+    @Test
     public void test_blankNodeHandling() throws RDFHandlerException,
             IOException {
 

@@ -34,6 +34,7 @@ import java.util.UUID;
 import com.bigdata.btree.AbstractBTreeTupleCursor.MutableBTreeTupleCursor;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Test ability to traverse tuples using an {@link ITupleCursor} while the SAME
@@ -49,15 +50,6 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
      * 
      */
     public TestMutableBTreeCursors() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestMutableBTreeCursors(String name) {
-    
-        super(name);
-        
     }
 
     @Override
@@ -82,6 +74,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
      * Test ability to remove tuples using {@link ITupleCursor#remove()} during
      * forward traversal.
      */
+    @Test
     public void test_cursor_remove_during_forward_traversal() {
 
         final BTree btree;
@@ -162,6 +155,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
      * Test ability to remove tuples using {@link ITupleCursor#remove()} during
      * reverse traversal.
      */
+    @Test
     public void test_cursor_remove_during_reverse_traversal() {
 
         final BTree btree;
@@ -244,6 +238,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
      * Note that copy-on-write is handled differently even when the trigger is
      * an update (vs an insert or a remove).
      */
+    @Test
     public void test_concurrent_modification_update() {
 
         final BTree btree;
@@ -285,6 +280,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
     /**
      * Unit test for concurrent modification resulting from insert() and remove().
      */
+    @Test
     public void test_concurrent_modification_insert() {
         
         final BTree btree;
@@ -325,7 +321,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
             btree.insert(15, "Paul");
 
             // verify the cursor position is unchanged.
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
 
             // verify the current tuple state is unchanged.
             assertEquals(new TestTuple<String>(20, "Mike"), cursor.tuple());
@@ -346,7 +342,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
             assertEquals(null, cursor.tuple());
 
             // verify the cursor position is unchanged.
-            assertEquals(TestKeyBuilder.asSortKey(15),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(15),cursor.currentKey());
 
             // visit the next tuple.
             assertEquals(new TestTuple<String>(20, "Mike"), cursor.next());
@@ -358,13 +354,13 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
             assertEquals(null, cursor.tuple());
             
             // verify the cursor position is unchanged.
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
             
             // insert another tuple that is a successor of the deleted tuple.
             btree.insert(25, "Allen");
 
             // verify the cursor position is unchanged.
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
 
             // verify the tuple state - still null since we have not repositioned the cursor.
             assertEquals(null, cursor.tuple());
@@ -392,6 +388,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
      * stress tests where a BTree is perturbed randomly and checked against
      * ground truth.
      */
+    @Test
     public void test_concurrent_modification_insert_split_root_leaf() {
 
         final BTree btree;
@@ -429,7 +426,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
             btree.insert(15, "Paul");
 
             // verify the cursor position is unchanged.
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
 
             // verify the current tuple state is unchanged.
             assertEquals(new TestTuple<String>(20, "Mike"), cursor.tuple());
@@ -448,7 +445,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
             btree.remove(15);
 
             // verify the cursor position is unchanged.
-            assertEquals(TestKeyBuilder.asSortKey(15),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(15),cursor.currentKey());
 
             // verify the tuple state - it should be null since the tuple for that key was just deleted.
             assertEquals(null, cursor.tuple());
@@ -460,7 +457,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
             btree.remove(20);
             
             // verify the cursor position is unchanged.
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
 
             // verify the tuple state - it should be null since the tuple for that key was just deleted.
             assertEquals(null, cursor.tuple());
@@ -469,7 +466,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
             btree.insert(25, "Allen");
 
             // verify the cursor position is unchanged.
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
 
             // verify the tuple state - still null since we have not repositioned the cursor.
             assertEquals(null, cursor.tuple());
@@ -490,6 +487,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
      * leaf). The listener needs to notice the event and relocate itself within
      * the BTree.
      */
+    @Test
     public void test_concurrent_modification_copy_on_write() {
 
         final BTree btree;
@@ -527,7 +525,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
             btree.remove(10);
             
             // verify the cursor position is unchanged.
-            assertEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(10),cursor.currentKey());
 
             // verify the tuple state - still null since we have not repositioned the cursor.
             assertEquals(null, cursor.tuple());
@@ -536,7 +534,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
             assertEquals(new TestTuple<String>(20,"Mike"),cursor.next());
 
             // verify the cursor position.
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
 
             /*
              * flush the btree again making all nodes clean.
@@ -547,7 +545,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
             btree.insert(10, "Bryan");
             
             // verify the cursor position is unchanged.
-            assertEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
+            assertArrayEquals(TestKeyBuilder.asSortKey(20),cursor.currentKey());
 
             // verify the current tuple state.
             assertEquals(new TestTuple<String>(20,"Mike"),cursor.tuple());
@@ -567,6 +565,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
      * Since deleted tuples are being visited by the cursor, the caller will see
      * the deleted tuples.
      */
+    @Test
     public void test_delete_markers_visitDeleted() {
         
         final BTree btree;
@@ -626,6 +625,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
      * caller deleted tuples will appear to "disappear" just like they do when a
      * tuple is remove()'d from an index that does not support delete markers.
      */
+    @Test
     public void test_delete_markers_doNotVisitDeleted() {
         
         final BTree btree;
@@ -688,6 +688,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
      * visitable tuple inserted after the current cursor position will be
      * noticed by {@link ITupleCursor#hasNext()} and visited.
      */
+    @Test
     public void test_hasNext_continues_after_insert() {
         
         final BTree btree;
@@ -730,6 +731,7 @@ public class TestMutableBTreeCursors extends AbstractBTreeCursorTestCase {
      * visitable tuple inserted after the current cursor position will be
      * noticed by {@link ITupleCursor#hasPrior()} and visited.
      */
+    @Test
     public void test_hasPrior_continues_after_insert() {
         
         final BTree btree;

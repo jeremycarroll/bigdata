@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.bfs;
 
-import com.bigdata.bfs.BigdataFileSystem;
+import org.junit.Test;
 
 /**
  * Test suite for {@link BigdataFileSystem#deleteAll(String, String)}.
@@ -44,13 +44,7 @@ public class TestRangeDelete extends AbstractRepositoryTestCase {
     public TestRangeDelete() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestRangeDelete(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void test_rangeDelete() {
         
         fail("write test");

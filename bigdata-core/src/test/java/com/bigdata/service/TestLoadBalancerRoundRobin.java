@@ -32,10 +32,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.resources.AsynchronousOverflowTask;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for the round robin behaviors of the load balancer in isolation
@@ -44,21 +43,12 @@ import com.bigdata.resources.AsynchronousOverflowTask;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestLoadBalancerRoundRobin extends TestCase2 {
+public class TestLoadBalancerRoundRobin extends Assert {
 
     /**
      * 
      */
     public TestLoadBalancerRoundRobin() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestLoadBalancerRoundRobin(String arg0) {
-
-        super(arg0);
-        
     }
 
     /**
@@ -68,6 +58,7 @@ public class TestLoadBalancerRoundRobin extends TestCase2 {
      * @throws TimeoutException
      * @throws InterruptedException
      */
+    @Test
     public void test_roundRobin_2DataServices() throws InterruptedException,
             TimeoutException {
 
@@ -150,6 +141,7 @@ public class TestLoadBalancerRoundRobin extends TestCase2 {
      * @throws TimeoutException
      * @throws InterruptedException
      */
+    @Test
     public void test_roundRobin_NDataServices() throws InterruptedException,
             TimeoutException {
 
@@ -229,6 +221,7 @@ public class TestLoadBalancerRoundRobin extends TestCase2 {
      * @throws TimeoutException 
      * @throws InterruptedException 
      */
+    @Test
     public void test_excluded() throws InterruptedException, TimeoutException {
 
         final int minCount = 0;

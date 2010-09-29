@@ -28,11 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree;
 
 import java.util.UUID;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for commit functionality that do not trigger copy-on-write.
@@ -40,19 +39,12 @@ import com.bigdata.rawstore.SimpleMemoryRawStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestCommit extends TestCase2 {
+public class TestCommit extends Assert {
 
     /**
      * 
      */
     public TestCommit() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestCommit(String name) {
-        super(name);
     }
 
     /*
@@ -62,6 +54,7 @@ public class TestCommit extends TestCase2 {
     /**
      * Test commit of a new tree (the root is a leaf node).
      */
+    @Test
     public void test_commit01() {
 
         IRawStore store = new SimpleMemoryRawStore();

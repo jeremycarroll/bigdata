@@ -55,27 +55,31 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.sail.SailException;
 import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 import com.bigdata.rdf.store.DataLoader;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Unit tests for high-level query.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestQuery extends ProxyBigdataSailTestCase {
 
     /**
      * 
      */
-    public TestQuery() {
+    public TestQuery(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestQuery(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup3();
+    };
 
     /**
      * The namespace used when the LUBM data set was generated.
@@ -154,6 +158,7 @@ public class TestQuery extends ProxyBigdataSailTestCase {
      * @throws QueryEvaluationException
      * @throws IOException 
      */
+    @Test
     public void test_query() throws SailException, QueryEvaluationException, IOException, Exception {
 
 //        assertEquals(new URIImpl(

@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.sail;
 
+import com.bigdata.journal.AbstractJournalTestCase;
 import info.aduna.xml.XMLWriter;
 import java.io.StringWriter;
 import java.util.Collection;
@@ -48,29 +49,32 @@ import org.openrdf.query.resultio.sparqlxml.SPARQLResultsXMLWriter;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import com.bigdata.rdf.store.BD;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Unit tests for high-level query.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestCase {
 
     /**
      * 
      */
-    public TestBigdataSailEvaluationStrategyImpl() {
-        
+    public TestBigdataSailEvaluationStrategyImpl(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestBigdataSailEvaluationStrategyImpl(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup3();
+    };
 
+    @Test
     public void test_or_equals() throws Exception {
 
         final String ns = "http://www.bigdata.com/rdf#";
@@ -126,7 +130,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
                     final TupleQuery tupleQuery = cxn.prepareTupleQuery(
                             QueryLanguage.SPARQL, query);
                     tupleQuery.evaluate(handler);
-                    System.err.println(sw.toString());
+                    //System.err.println(sw.toString());
 
                 }
                 
@@ -163,6 +167,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
 
     }
     
+    @Test
     public void test_and_equals() throws Exception {
 
         final String ns = "http://www.bigdata.com/rdf#";
@@ -222,7 +227,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
                     
                     tupleQuery.evaluate(handler);
                     
-                    System.err.println(sw.toString());
+                    //System.err.println(sw.toString());
 
                 }
                 
@@ -262,6 +267,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
 
     }
     
+    @Test
     public void test_and_nequals() throws Exception {
 
         final String ns = "http://www.bigdata.com/rdf#";
@@ -326,7 +332,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
                     
                     tupleQuery.evaluate(handler);
                     
-                    System.err.println(sw.toString());
+                    //System.err.println(sw.toString());
 
                 }
                 
@@ -366,6 +372,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
 
     }
     
+    @Test
     public void test_filter_literals() throws Exception {
 
         final String ns = "http://www.bigdata.com/rdf#";
@@ -426,7 +433,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
                     
                     tupleQuery.evaluate(handler);
                     
-                    System.err.println(sw.toString());
+                    //System.err.println(sw.toString());
 
                 }
                 
@@ -467,6 +474,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
 
     }
     
+    @Test
     public void test_filter_regex() throws Exception {
 
         final String ns = "http://www.bigdata.com/rdf#";
@@ -521,7 +529,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
                     
                     tupleQuery.evaluate(handler);
                     
-                    System.err.println(sw.toString());
+                    //System.err.println(sw.toString());
 
                 }
                 
@@ -560,6 +568,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
 
     }
     
+    @Test
     public void test_union() throws Exception {
 
         final String ns = "http://www.bigdata.com/rdf#";
@@ -618,7 +627,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
                     
                     tupleQuery.evaluate(handler);
                     
-                    System.err.println(sw.toString());
+                    //System.err.println(sw.toString());
 
                 }
                 
@@ -659,6 +668,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
 
     }
     
+    @Test
     public void test_free_text_search() throws Exception {
 
         final String ns = "http://www.bigdata.com/rdf#";
@@ -701,10 +711,10 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
                 
                 cxn.commit();
                 
-                System.err.println("<mike> = " + sail.getDatabase().getIV(mike));
-                System.err.println("<jane> = " + sail.getDatabase().getIV(jane));
-                System.err.println("\"Mike\" = " + sail.getDatabase().getIV(new LiteralImpl("Mike")));
-                System.err.println("\"Jane\" = " + sail.getDatabase().getIV(new LiteralImpl("Jane")));
+                //System.err.println("<mike> = " + sail.getDatabase().getIV(mike));
+                //System.err.println("<jane> = " + sail.getDatabase().getIV(jane));
+                //System.err.println("\"Mike\" = " + sail.getDatabase().getIV(new LiteralImpl("Mike")));
+                //System.err.println("\"Jane\" = " + sail.getDatabase().getIV(new LiteralImpl("Jane")));
                 
                 String query = 
                     "select ?s ?label " +
@@ -726,7 +736,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
                     
                     tupleQuery.evaluate(handler);
                     
-                    System.err.println(sw.toString());
+                    //System.err.println(sw.toString());
 
                 }
                 
@@ -766,6 +776,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
 
     }
     
+    @Test
     public void test_nested_optionals() throws Exception {
 
         // define the vocabulary
@@ -817,6 +828,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
         
     }
     
+    @Test
     public void test_open_eq_12() throws Exception {
 
         // define the vocabulary
@@ -844,6 +856,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
         
     }
     
+    @Test
     public void test_join_combo_1() throws Exception {
 
         // define the vocabulary
@@ -868,6 +881,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
         
     }
     
+    @Test
     public void test_join_combo_2() throws Exception {
 
         // define the vocabulary
@@ -891,6 +905,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
         
     }
     
+    @Test
     public void test_two_nested_opt() throws Exception {
 
         // define the vocabulary
@@ -919,6 +934,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
         
     }
     
+    @Test
     public void test_two_nested_opt_alt() throws Exception {
 
         // define the vocabulary
@@ -972,7 +988,7 @@ public class TestBigdataSailEvaluationStrategyImpl extends ProxyBigdataSailTestC
                     final TupleQuery tupleQuery = cxn.prepareTupleQuery(
                             QueryLanguage.SPARQL, query);
                     tupleQuery.evaluate(handler);
-                    System.err.println(sw.toString());
+                    //System.err.println(sw.toString());
 
                 }
                 

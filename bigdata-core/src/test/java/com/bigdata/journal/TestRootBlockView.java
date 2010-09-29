@@ -27,16 +27,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.journal;
 
+import com.bigdata.io.ChecksumUtility;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.UUID;
-
-import com.bigdata.io.ChecksumUtility;
-import junit.framework.TestCase2;
-
 import com.bigdata.rawstore.TestWormAddressManager;
 import com.bigdata.rawstore.WormAddressManager;
+import com.bigdata.test.Assert;
 import com.bigdata.util.MillisecondTimestampFactory;
+import org.junit.Test;
 
 /**
  * Test suite for {@link RootBlockView}.
@@ -44,19 +43,12 @@ import com.bigdata.util.MillisecondTimestampFactory;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestRootBlockView extends TestCase2 {
+public class TestRootBlockView extends Assert {
 
     /**
      * 
      */
     public TestRootBlockView() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestRootBlockView(String arg0) {
-        super(arg0);
     }
 
     private long nextTimestamp() {
@@ -68,6 +60,7 @@ public class TestRootBlockView extends TestCase2 {
     /**
      * Constructor correct acceptance stress test.
      */
+    @Test
     public void test_ctor() {
         
         final Random r = new Random();
@@ -102,8 +95,8 @@ public class TestRootBlockView extends TestCase2 {
                     commitCounter, commitRecordAddr, commitRecordIndexAddr,
                     uuid, createTime, closeTime, checker);
 
-            System.err.println("pass=" + i + " of " + nrounds + " : challisField="
-                    + rootBlock.getChallisField());
+//             System.err.println("pass=" + i + " of " + nrounds + " : challisField="
+//                     + rootBlock.getChallisField());
 
             // the local time stored on the root block.
             final long localTime = rootBlock.getLocalTime();
@@ -200,7 +193,7 @@ public class TestRootBlockView extends TestCase2 {
                     
                 } catch(RootBlockException ex) {
                     
-                    System.err.println("Ignoring expected exception: "+ex);
+//                     System.err.println("Ignoring expected exception: "+ex);
                     
                 }
                 
@@ -247,7 +240,7 @@ public class TestRootBlockView extends TestCase2 {
                     
                 } catch(RootBlockException ex) {
                     
-                    System.err.println("Ignoring expected exception: "+ex);
+//                     System.err.println("Ignoring expected exception: "+ex);
                     
                 }
                 
@@ -267,9 +260,10 @@ public class TestRootBlockView extends TestCase2 {
     /**
      * Correct rejection tests for the constructor.
      */
+    @Test
     public void test_ctor_correctRejection() {
 
-        System.err.println("sizeof(RootBlock): "+RootBlockView.SIZEOF_ROOT_BLOCK);
+//         System.err.println("sizeof(RootBlock): "+RootBlockView.SIZEOF_ROOT_BLOCK);
         
         final boolean rootBlock0 = true; // all values are legal.
         //
@@ -361,7 +355,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
         try {
             new RootBlockView(rootBlock0, offsetBitsBad2, nextOffsetOk,
@@ -370,7 +364,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
         // bad next offset
@@ -381,7 +375,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
         // bad first,last transaction start timestamps and commit timestamp.
@@ -400,7 +394,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
         try {
             new RootBlockView(rootBlock0, offsetBitsOk, nextOffsetOk,
@@ -427,7 +421,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
         try {
             new RootBlockView(rootBlock0, offsetBitsOk, nextOffsetOk,
@@ -436,7 +430,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
         // bad {commit record, commit record index} combinations.
@@ -447,7 +441,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
         try {
             new RootBlockView(rootBlock0, offsetBitsOk, nextOffsetOk,
@@ -456,7 +450,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
         try {
             /*
@@ -469,7 +463,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
         // bad UUID.
@@ -480,7 +474,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
         // bad createTime.
@@ -491,7 +485,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
         // bad closeTime.
@@ -502,7 +496,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeBad, checkerOk);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
         // bad checker
@@ -513,7 +507,7 @@ public class TestRootBlockView extends TestCase2 {
                     closeTimeOk, checkerBad);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
     }

@@ -30,6 +30,8 @@ package com.bigdata.rdf.store;
 import java.util.Properties;
 
 import com.bigdata.journal.ITx;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
@@ -46,23 +48,19 @@ public class AbstractEmbeddedTripleStoreTestCase extends
     }
 
     /**
-     * @param arg0
-     */
-    public AbstractEmbeddedTripleStoreTestCase(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * The triple store under test.
      */
     ScaleOutTripleStore store;
 
-    protected Properties getProperties() {
+    @Override
+    public Properties getProperties() {
     
         return new Properties(System.getProperties());
     
     }
     
+    @Before
+    @Override
     public void setUp() throws Exception {
 
         super.setUp();
@@ -75,6 +73,8 @@ public class AbstractEmbeddedTripleStoreTestCase extends
         
     }
 
+    @After
+    @Override
     public void tearDown() throws Exception {
 
         super.tearDown();

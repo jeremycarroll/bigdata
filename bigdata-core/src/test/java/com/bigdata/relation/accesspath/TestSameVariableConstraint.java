@@ -47,7 +47,6 @@ Modifications:
 
 package com.bigdata.relation.accesspath;
 
-import junit.framework.TestCase2;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
@@ -55,6 +54,8 @@ import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPOPredicate;
 import com.bigdata.relation.rule.Constant;
 import com.bigdata.relation.rule.Var;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link SameVariableConstraint}.
@@ -62,20 +63,13 @@ import com.bigdata.relation.rule.Var;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestSameVariableConstraint extends TestCase2 {
+public class TestSameVariableConstraint extends Assert {
 
     /**
      * 
      */
     public TestSameVariableConstraint() {
      
-    }
-
-    /**
-     * @param name
-     */
-    public TestSameVariableConstraint(String name) {
-        super(name);
     }
 
     private final String relationName = "r";
@@ -88,6 +82,7 @@ public class TestSameVariableConstraint extends TestCase2 {
     
     protected final static Constant<IV> d = new Constant<IV>(new TermId(VTE.URI, 1L));
 
+    @Test
     public void test_no_dups1() {
 
         // (a,b,c,d)
@@ -144,6 +139,7 @@ public class TestSameVariableConstraint extends TestCase2 {
     // (a,b,?c,?c)
     // (a,?b,?c,?c)
     // (?a,?a,?a,d) 
+    @Test
     public void test_one_dup() {
 
         {
@@ -154,7 +150,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 2, 0, 1 }, constraint.indices);
+            assertArrayEquals(new int[] { 2, 0, 1 }, constraint.indices);
 
         }
 
@@ -166,7 +162,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 2, 0, 2 }, constraint.indices);
+            assertArrayEquals(new int[] { 2, 0, 2 }, constraint.indices);
 
         }
 
@@ -178,7 +174,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 2, 0, 3 }, constraint.indices);
+            assertArrayEquals(new int[] { 2, 0, 3 }, constraint.indices);
 
         }
 
@@ -190,7 +186,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 2, 1, 2 }, constraint.indices);
+            assertArrayEquals(new int[] { 2, 1, 2 }, constraint.indices);
 
         }
 
@@ -202,7 +198,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 2, 1, 3 }, constraint.indices);
+            assertArrayEquals(new int[] { 2, 1, 3 }, constraint.indices);
 
         }
 
@@ -214,7 +210,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 2, 2, 3 }, constraint.indices);
+            assertArrayEquals(new int[] { 2, 2, 3 }, constraint.indices);
 
         }
 
@@ -226,7 +222,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 3, 1, 2, 3 }, constraint.indices);
+            assertArrayEquals(new int[] { 3, 1, 2, 3 }, constraint.indices);
 
         }
 
@@ -238,7 +234,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 3, 0, 2, 3 }, constraint.indices);
+            assertArrayEquals(new int[] { 3, 0, 2, 3 }, constraint.indices);
 
         }
 
@@ -250,7 +246,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 3, 0, 1, 3 }, constraint.indices);
+            assertArrayEquals(new int[] { 3, 0, 1, 3 }, constraint.indices);
 
         }
 
@@ -262,7 +258,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 2, 0, 1 }, constraint.indices);
+            assertArrayEquals(new int[] { 2, 0, 1 }, constraint.indices);
 
         }
 
@@ -274,7 +270,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { 3, 0, 1, 2 }, constraint.indices);
+            assertArrayEquals(new int[] { 3, 0, 1, 2 }, constraint.indices);
 
         }
 
@@ -287,6 +283,7 @@ public class TestSameVariableConstraint extends TestCase2 {
     // (?a,?a,?b,?b)
     // (?a,?b,?a,?b)
     // (?a,?b,?b,?a)
+    @Test
     public void test_two_dups() {
 
         {
@@ -297,7 +294,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { //
+            assertArrayEquals(new int[] { //
                     2, 0, 1,//
                     2, 2, 3,//
                     }, constraint.indices);
@@ -312,7 +309,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { //
+            assertArrayEquals(new int[] { //
                     2, 0, 2,//
                     2, 1, 3,//
                     }, constraint.indices);
@@ -327,7 +324,7 @@ public class TestSameVariableConstraint extends TestCase2 {
 
             assertNotNull(constraint);
 
-            assertEquals(new int[] { //
+            assertArrayEquals(new int[] { //
                     2, 0, 3,//
                     2, 1, 2,//
                     }, constraint.indices);

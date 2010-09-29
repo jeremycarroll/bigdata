@@ -47,25 +47,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import junit.framework.TestCase2;
-
 import com.bigdata.journal.ConcurrencyManager;
+import com.bigdata.test.Assert;
 import com.bigdata.test.ExperimentDriver;
 import com.bigdata.test.ExperimentDriver.IComparisonTest;
 import com.bigdata.test.ExperimentDriver.Result;
 import com.bigdata.util.NV;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Test;
 
 /**
  * Test suite for {@link HardReferenceQueueWithBatchingUpdates}. The class under
  * test provides a thread-local buffer for updates
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @todo There is a lot more that could be tested here.
  */
-public class TestHardReferenceQueueWithBatchingUpdates extends TestCase2
+public class TestHardReferenceQueueWithBatchingUpdates extends Assert
         implements IComparisonTest {
 
     /**
@@ -75,15 +74,9 @@ public class TestHardReferenceQueueWithBatchingUpdates extends TestCase2
     }
 
     /**
-     * @param name
-     */
-    public TestHardReferenceQueueWithBatchingUpdates(String name) {
-        super(name);
-    }
-
-    /**
      * Basic test verifies that eviction is deferred until a batch is ready.
      */
+    @Test
     public void test01() {
 
         final HardReferenceQueueEvictionListener<String> listener = null;
@@ -173,6 +166,7 @@ public class TestHardReferenceQueueWithBatchingUpdates extends TestCase2
      * @throws BrokenBarrierException
      * @throws InterruptedException
      */
+    @Test
     public void test_stress() throws InterruptedException,
             BrokenBarrierException, TimeoutException, ExecutionException {
 
@@ -272,7 +266,7 @@ public class TestHardReferenceQueueWithBatchingUpdates extends TestCase2
                 );
 
         final ExecutorService service = Executors.newFixedThreadPool(
-                threadPoolSize, new DaemonThreadFactory(getName()));
+                threadPoolSize, new DaemonThreadFactory(this.getClass().getName()));
 
         final AtomicLong ntouch = new AtomicLong(0L);
         final AtomicLong nadd = new AtomicLong(0L);
@@ -569,7 +563,6 @@ public class TestHardReferenceQueueWithBatchingUpdates extends TestCase2
      * Experiment generation utility class.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class GenerateExperiment extends ExperimentDriver {
 

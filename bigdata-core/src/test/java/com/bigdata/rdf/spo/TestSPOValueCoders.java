@@ -29,9 +29,6 @@ package com.bigdata.rdf.spo;
 
 import java.io.IOException;
 import java.util.Random;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.AbstractBTreeTestCase;
 import com.bigdata.btree.ICounter;
 import com.bigdata.btree.raba.IRaba;
@@ -46,6 +43,8 @@ import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.StatementEnum;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for approaches to value compression for statement indices. The
@@ -59,20 +58,13 @@ import com.bigdata.rdf.model.StatementEnum;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestSPOValueCoders extends TestCase2 {
+public class TestSPOValueCoders extends Assert {
 
     /**
      * 
      */
     public TestSPOValueCoders() {
         super();
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestSPOValueCoders(String arg0) {
-        super(arg0);
     }
 
     private final Random r = new Random();
@@ -176,6 +168,7 @@ public class TestSPOValueCoders extends TestCase2 {
         
     }
 
+    @Test
     public void test_simpleCoder() {
 
         doRoundTripTests(SimpleRabaCoder.INSTANCE, false/* sids */, false/* inference */);
@@ -197,6 +190,7 @@ public class TestSPOValueCoders extends TestCase2 {
      * Note: this does not cover nulls or overrides, but the stress tests covers
      * both.
      */
+    @Test
     public void test_FastRDFValueCoder2_001() {
 
         doRoundTripTest(new SPO[] { new SPO(_0, _0, _0, StatementEnum.Axiom) },
@@ -218,6 +212,7 @@ public class TestSPOValueCoders extends TestCase2 {
 
     }
 
+    @Test
     public void test_FastRDFValueCoder2() {
 
         doRoundTripTests(new FastRDFValueCoder2(), false/* sids */, true/* inference */);
@@ -329,7 +324,7 @@ public class TestSPOValueCoders extends TestCase2 {
                         expected, out);
 
                 // verify same encoded data for the slice.
-                assertEquals(originalData.toByteArray(), slice.toByteArray());
+                assertArrayEquals(originalData.toByteArray(), slice.toByteArray());
 
             }
 
@@ -347,7 +342,7 @@ public class TestSPOValueCoders extends TestCase2 {
                         tmp, off, originalData.len());
 
                 // verify same slice.
-                assertEquals(originalData.toByteArray(), slice.toByteArray());
+                assertArrayEquals(originalData.toByteArray(), slice.toByteArray());
 
                 // decode the slice.
                 final IRaba actual = rabaCoder.decode(slice);

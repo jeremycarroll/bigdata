@@ -69,7 +69,6 @@ import com.bigdata.striterator.IKeyOrder;
 
 /**
  * @author <a href="mailto:mpersonick@users.sourceforge.net">Mike Personick</a>
- * @version $Id$
  */
 public class TestRuleExpansion extends AbstractInferenceEngineTestCase {
 
@@ -78,13 +77,6 @@ public class TestRuleExpansion extends AbstractInferenceEngineTestCase {
      */
     public TestRuleExpansion() {
         super();
-    }
-
-    /**
-     * @param name
-     */
-    public TestRuleExpansion(String name) {
-        super(name);
     }
 
     /**

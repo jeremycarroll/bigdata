@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree.data;
 
 import com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder;
+import org.junit.Before;
 
 /**
  * Test suite using the {@link CanonicalHuffmanRabaCoder} to provide key
@@ -44,13 +45,6 @@ public class TestNodeDataRecord_CanonicalHuffman extends AbstractNodeDataRecordT
     public TestNodeDataRecord_CanonicalHuffman() {
     }
 
-    /**
-     * @param name
-     */
-    public TestNodeDataRecord_CanonicalHuffman(String name) {
-        super(name);
-    }
-
     @Override
     protected boolean mayGenerateLeaves() {
         return false;
@@ -61,10 +55,9 @@ public class TestNodeDataRecord_CanonicalHuffman extends AbstractNodeDataRecordT
         return true;
     }
 
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         
-        super.setUp();
-
         coder = new DefaultNodeCoder(CanonicalHuffmanRabaCoder.INSTANCE);
 
     }

@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.io;
 
+import com.bigdata.test.Assert;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -34,9 +35,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
 import org.CognitiveWeb.extser.ShortPacker;
+import org.junit.Test;
 
 /**
  * Test suite for packing and unpacking unsigned short integers.
@@ -44,20 +44,13 @@ import org.CognitiveWeb.extser.ShortPacker;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestShortPacker extends TestCase {
+public class TestShortPacker extends Assert {
 
     /**
      * 
      */
     public TestShortPacker() {
         super();
-    }
-
-    /**
-     * @param name
-     */
-    public TestShortPacker(String name) {
-        super(name);
     }
 
     /**
@@ -70,7 +63,7 @@ public class TestShortPacker extends TestCase {
      * @throws IOException
      *             If there was not enough data.
      * 
-     * @throws junit.framework.AssertionFailedError
+     * @throws AssertionError
      *             If there is too much data.
      */
     public void doUnpackTest( short expected, byte[] packed )
@@ -89,7 +82,7 @@ public class TestShortPacker extends TestCase {
             fail("Expecting: "+IOException.class);
         }
         catch(IOException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
+//             System.err.println("Ignoring expected exception: "+ex);
         }
     
     }
@@ -101,6 +94,7 @@ public class TestShortPacker extends TestCase {
      * byte, and interpret the two bytes as a short value. Otherwise interpret
      * the byte as a short value.
      */
+    @Test
     public void testUnpack()
     	throws IOException
     {
@@ -133,6 +127,7 @@ public class TestShortPacker extends TestCase {
         
     }
     
+    @Test
     public void testPack()
     	throws IOException
     {
@@ -162,6 +157,7 @@ public class TestShortPacker extends TestCase {
 
     }
 
+    @Test
     public void test_rejectNegatives() throws IOException
     {
 
@@ -170,7 +166,7 @@ public class TestShortPacker extends TestCase {
             fail( "Expecting: "+IllegalArgumentException.class );
         }
         catch( IllegalArgumentException ex ) {
-            System.err.println( "Ignoring expected exception: "+ex );
+//             System.err.println( "Ignoring expected exception: "+ex );
         }
         
         try {
@@ -178,13 +174,14 @@ public class TestShortPacker extends TestCase {
             fail( "Expecting: "+IllegalArgumentException.class );
         }
         catch( IllegalArgumentException ex ) {
-            System.err.println( "Ignoring expected exception: "+ex );
+//             System.err.println( "Ignoring expected exception: "+ex );
         }
 
     }
     
     public static final long SIGN_MASK = 11<<15;
     
+    @Test
     public void testHighBit() {
         assertTrue( "sign bit",  ( (short)-1 & SIGN_MASK ) != 0 );
         assertFalse( "sign bit", ( (short) 0 & SIGN_MASK ) != 0 );
@@ -251,6 +248,7 @@ public class TestShortPacker extends TestCase {
      * @throws IOException
      */
 
+    @Test
     public void testStressSequence() throws IOException {
 
         // dense coverage of the first 1M values.
@@ -265,6 +263,7 @@ public class TestShortPacker extends TestCase {
      * @throws IOException
      */
     
+    @Test
     public void testStressRandom() throws IOException {
 
         // test on random long values.
@@ -366,13 +365,13 @@ public class TestShortPacker extends TestCase {
             
         }
 
-        System.err.println( "\nWrote "+nwritten+" non-negative long values." );
-        System.err.println( "minv="+minv+", maxv="+maxv );
-        System.err.println( "#packed bytes       ="+packlen );
-        System.err.println( "#bytes if not packed="+(nwritten * 8));
-        long nsaved = ( nwritten * 8 ) - packlen;
-        System.err.println ("#bytes saved        ="+nsaved);
-        System.err.println( "%saved by packing   ="+nsaved/(nwritten*8f)*100+"%");
+//         System.err.println( "\nWrote "+nwritten+" non-negative long values." );
+//         System.err.println( "minv="+minv+", maxv="+maxv );
+//         System.err.println( "#packed bytes       ="+packlen );
+//         System.err.println( "#bytes if not packed="+(nwritten * 8));
+//         long nsaved = ( nwritten * 8 ) - packlen;
+//         System.err.println ("#bytes saved        ="+nsaved);
+//         System.err.println( "%saved by packing   ="+nsaved/(nwritten*8f)*100+"%");
         
     }
     
@@ -388,6 +387,7 @@ public class TestShortPacker extends TestCase {
      * This test packs the data using the {@link ShortPacker} and unpacks it
      * using a {@link DataInputBuffer}.
      */
+    @Test
     public void test_compatiblity_ShortPacker_DataInputBuffer()
             throws IOException {
 
@@ -457,6 +457,7 @@ public class TestShortPacker extends TestCase {
      * This test packs the data using a {@link DataOutputBuffer} and unpacks it
      * using the {@link ShortPacker}.
      */
+    @Test
     public void test_compatiblity_DataOutputBuffer_ShortPacker()
             throws IOException {
 

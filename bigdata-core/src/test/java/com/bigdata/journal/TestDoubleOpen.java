@@ -36,29 +36,31 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import com.bigdata.util.InnerCause;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test the ability to rollback a commit.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestDoubleOpen extends ProxyTestCase<Journal> {
 
     /**
      * 
      */
-    public TestDoubleOpen() {
+    public TestDoubleOpen(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestDoubleOpen(String name) {
-     
-        super(name);
-        
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
     /**
      * This unit test was written to track down an exception which is not always
@@ -121,6 +123,7 @@ public class TestDoubleOpen extends ProxyTestCase<Journal> {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_doubleOpen() throws InterruptedException, ExecutionException {
 
         final Journal journal = new Journal(getProperties());

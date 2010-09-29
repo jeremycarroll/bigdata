@@ -40,9 +40,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.bfs.BigdataFileSystem;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.counters.CounterSet;
@@ -55,9 +52,11 @@ import com.bigdata.relation.locator.IResourceLocator;
 import com.bigdata.service.EventReceiver.EventBTree;
 import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.sparse.SparseRowStore;
+import com.bigdata.test.Assert;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.httpd.AbstractHTTPD;
 import com.ibm.icu.impl.LinkedHashMap;
+import org.junit.Test;
 
 
 /**
@@ -65,7 +64,7 @@ import com.ibm.icu.impl.LinkedHashMap;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
-public class TestEventReceiver extends TestCase2 {
+public class TestEventReceiver extends Assert {
 
     /**
      * 
@@ -73,13 +72,6 @@ public class TestEventReceiver extends TestCase2 {
     public TestEventReceiver() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestEventReceiver(String arg0) {
-        super(arg0);
-    }
-    
     /**
      * Subclass overrides {@link #sendEvent()} to send to a configured
      * {@link EventReceiver} on the {@link MockFederation}.
@@ -143,6 +135,7 @@ public class TestEventReceiver extends TestCase2 {
      * 
      * @throws InterruptedException
      */
+    @Test
     public void test_start_end() throws InterruptedException {
 
         final EventBTree eventBTree = EventBTree.createTransient();
@@ -224,6 +217,7 @@ public class TestEventReceiver extends TestCase2 {
      * 
      * @throws InterruptedException
      */
+    @Test
     public void test_endOnly() throws InterruptedException {
 
         final EventBTree eventBTree = EventBTree.createTransient();
@@ -298,6 +292,7 @@ public class TestEventReceiver extends TestCase2 {
      * 
      * @throws InterruptedException
      */
+    @Test
     public void test_purgesHistory() throws InterruptedException {
 
         final long eventHistoryMillis = 1000L;
@@ -368,6 +363,7 @@ public class TestEventReceiver extends TestCase2 {
      * @throws InterruptedException
      * @throws ExecutionException 
      */
+    @Test
     public void test_threadSafe() throws InterruptedException, ExecutionException {
 
         final long eventHistoryMillis = 1000L;

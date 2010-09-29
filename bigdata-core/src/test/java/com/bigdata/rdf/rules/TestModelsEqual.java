@@ -33,30 +33,36 @@ import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.rio.StatementBuffer;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.store.TripleStoreUtility;
 import com.bigdata.striterator.ICloseableIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link TripleStoreUtility#modelsEqual(AbstractTripleStore, AbstractTripleStore)}
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestModelsEqual extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestModelsEqual() {
+    public TestModelsEqual(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestModelsEqual(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Test compares two stores with the same data, then removes a statement
@@ -65,6 +71,7 @@ public class TestModelsEqual extends AbstractRuleTestCase {
      * 
      * @throws Exception
      */
+    @Test
     public void test_modelsEqual() throws Exception {
 
         final AbstractTripleStore store1 = getStore();

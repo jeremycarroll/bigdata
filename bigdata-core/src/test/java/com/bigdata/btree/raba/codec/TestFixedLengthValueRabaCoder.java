@@ -27,11 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.raba.codec;
 
+import org.junit.Before;
+
 /**
  * Test suite for the {@link FixedLengthValueRabaCoder}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestFixedLengthValueRabaCoder extends AbstractRabaCoderTestCase {
 
@@ -41,14 +42,8 @@ public class TestFixedLengthValueRabaCoder extends AbstractRabaCoderTestCase {
     public TestFixedLengthValueRabaCoder() {
     }
 
-    /**
-     * @param name
-     */
-    public TestFixedLengthValueRabaCoder(String name) {
-        super(name);
-    }
-
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
 
         rabaCoder = new FixedLengthValueRabaCoder(64);
         

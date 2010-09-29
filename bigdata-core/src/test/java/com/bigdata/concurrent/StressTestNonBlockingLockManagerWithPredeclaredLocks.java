@@ -30,6 +30,7 @@ package com.bigdata.concurrent;
 import java.util.Properties;
 
 import com.bigdata.test.ExperimentDriver.Result;
+import org.junit.Test;
 
 /**
  * Stress tests where we predeclare locks and sort the lock requests. Under
@@ -49,10 +50,6 @@ public class StressTestNonBlockingLockManagerWithPredeclaredLocks extends
         super();
     }
 
-    public StressTestNonBlockingLockManagerWithPredeclaredLocks(String name) {
-        super(name);
-    }
-
     /**
      * Test where no locks are declared. This should run all tasks with the
      * maximum concurrency. Since there is no timeout, all tasks should complete
@@ -60,6 +57,7 @@ public class StressTestNonBlockingLockManagerWithPredeclaredLocks extends
      * 
      * @throws Exception
      */
+    @Test
     public void test_noResourcesDoesNotWait_predeclareLocks_unboundedQueue() throws Exception {
         
         final Properties properties = new Properties();
@@ -96,6 +94,7 @@ public class StressTestNonBlockingLockManagerWithPredeclaredLocks extends
      * 
      * @throws Exception
      */
+    @Test
     public void test_noResourcesDoesNotWait_predeclareLocks_synchronousQueue() throws Exception {
         
         final Properties properties = new Properties();
@@ -140,6 +139,7 @@ public class StressTestNonBlockingLockManagerWithPredeclaredLocks extends
      * for tasks to have non-overlapping lock requests and therefore there can
      * be more than one task executing concurrently.
      */
+    @Test
     public void test_multipleResourceLocking_resources10_predeclareLocks_unboundedQueue_locktries10()
             throws Exception {
 
@@ -183,6 +183,7 @@ public class StressTestNonBlockingLockManagerWithPredeclaredLocks extends
      * for tasks to have non-overlapping lock requests and therefore there can
      * be more than one task executing concurrently.
      */
+    @Test
     public void test_multipleResourceLocking_resources10_predeclareLocks_synchronousQueue_locktries10()
             throws Exception {
 

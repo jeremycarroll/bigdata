@@ -27,25 +27,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.raba;
 
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class AbstractKeyBufferTestCase extends TestCase2 {
+public class AbstractKeyBufferTestCase extends Assert {
 
     /**
      * 
      */
     public AbstractKeyBufferTestCase() {
     }
-
-    /**
-     * @param name
-     */
-    public AbstractKeyBufferTestCase(String name) {
-        super(name);
-    }
-
 }

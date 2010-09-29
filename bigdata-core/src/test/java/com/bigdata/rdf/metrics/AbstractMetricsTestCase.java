@@ -40,10 +40,11 @@ import org.openrdf.rio.RDFFormat;
 
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class AbstractMetricsTestCase extends AbstractTripleStoreTestCase {
 
@@ -53,15 +54,10 @@ public class AbstractMetricsTestCase extends AbstractTripleStoreTestCase {
     public AbstractMetricsTestCase() {
     }
 
-    /**
-     * @param name
-     */
-    public AbstractMetricsTestCase(String name) {
-        super(name);
-    }
-
     protected AbstractTripleStore store;
     
+    @Before
+    @Override
     public void setUp() throws Exception
     {
         
@@ -74,6 +70,8 @@ public class AbstractMetricsTestCase extends AbstractTripleStoreTestCase {
     // @todo move config option into this class.
     boolean deleteAfter = true;
     
+    @After
+    @Override
     public void tearDown() throws Exception {
         
         if (store != null) {
@@ -199,7 +197,8 @@ public class AbstractMetricsTestCase extends AbstractTripleStoreTestCase {
      */
     public Writer getWriter(String ext) throws IOException {
 
-        return new BufferedWriter(new FileWriter(getName() + ext));
+        return new BufferedWriter(new FileWriter(
+                this.getClass().getName() + ext));
 
     }
 

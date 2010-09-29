@@ -29,6 +29,7 @@ package com.bigdata.btree;
 
 import com.bigdata.btree.raba.MutableKeyBuffer;
 import com.bigdata.btree.raba.MutableValueBuffer;
+import org.junit.Test;
 
 /**
  * Test suite for various utility methods, both static and instance, on
@@ -45,13 +46,6 @@ public class TestUtilMethods extends AbstractBTreeTestCase {
      * 
      */
     public TestUtilMethods() {
-    }
-
-    /**
-     * @param name
-     */
-    public TestUtilMethods(String name) {
-        super(name);
     }
 
 //    public void test_keysAsString() {
@@ -118,6 +112,7 @@ public class TestUtilMethods extends AbstractBTreeTestCase {
      * Note: the arrays are dimensions to nkeys + 1 for a leaf to provide a slot
      * for overflow during a split.
      */
+    @Test
     public void test_assertKeysMonotonic() {
 
         final int m = 3;
@@ -160,7 +155,7 @@ public class TestUtilMethods extends AbstractBTreeTestCase {
             leaf.assertKeysMonotonic();
             fail("Expecting " + AssertionError.class);
         } catch (AssertionError ex) {
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
         }
 
     }

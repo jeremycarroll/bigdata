@@ -28,8 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.bfs;
 
-import com.bigdata.bfs.BigdataFileSystem;
 import com.bigdata.sparse.SparseRowStore;
+import org.junit.Test;
 
 /**
  * Test suite for {@link BigdataFileSystem#getDocumentHeaders(String, String)}.
@@ -48,13 +48,7 @@ public class TestRangeScan extends AbstractRepositoryTestCase {
     public TestRangeScan() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestRangeScan(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void test_rangeScan() {
         
         fail("write test");

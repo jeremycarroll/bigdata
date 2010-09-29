@@ -29,9 +29,6 @@ package com.bigdata.rdf.store;
 
 import java.util.Properties;
 
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
 /**
  * Proxy test suite for {@link TempTripleStore}.
  * 
@@ -46,44 +43,10 @@ public class TestTempTripleStore extends AbstractTestCase {
     public TestTempTripleStore() {
     }
 
-    public TestTempTripleStore(String name) {
-        super(name);
-    }
-    
-    public static Test suite() {
-
-        final TestTempTripleStore delegate = new TestTempTripleStore(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Temporary Triple Store Test Suite");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-        
-        /*
-         * Pickup the basic triple store test suite. This is a proxied test
-         * suite, so all the tests will run with the configuration specified in
-         * this test class and its optional .properties file.
-         */
-        
-        // basic test suite.
-        suite.addTest(TestTripleStoreBasics.suite());
-        
-        // rules, inference, and truth maintenance test suite.
-        suite.addTest( com.bigdata.rdf.rules.TestAll.suite() );
-
-        return suite;
-
-    }
-
     /**
      * Properties for tests in this file and this proxy suite (if any).
      */
+    @Override
     public Properties getProperties() {
 
         Properties properties = super.getProperties();

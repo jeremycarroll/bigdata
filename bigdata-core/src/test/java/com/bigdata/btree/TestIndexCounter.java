@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree;
 
+import org.junit.Test;
+
 /**
  * Test suite for the {@link IIndex#getCounter()} interface.
  * 
@@ -41,13 +43,7 @@ public class TestIndexCounter extends AbstractBTreeTestCase {
     public TestIndexCounter() {
     }
 
-    /**
-     * @param name
-     */
-    public TestIndexCounter(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_counter() {
         
         BTree btree = getBTree(3);

@@ -28,12 +28,9 @@ package com.bigdata.rdf.sail;
 
 import java.io.File;
 import java.util.Properties;
-
-import junit.framework.TestCase;
-import junit.framework.TestCase2;
-
 import com.bigdata.journal.BufferMode;
 import com.bigdata.rdf.sail.BigdataSail.Options;
+import com.bigdata.test.Assert;
 
 /**
  * <p>
@@ -51,9 +48,8 @@ import com.bigdata.rdf.sail.BigdataSail.Options;
  * </p>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-abstract public class AbstractBigdataSailTestCase extends TestCase2 {
+abstract public class AbstractBigdataSailTestCase extends Assert {
 
     //
     // Constructors.
@@ -63,13 +59,6 @@ abstract public class AbstractBigdataSailTestCase extends TestCase2 {
      * 
      */
     public AbstractBigdataSailTestCase() {
-    }
-
-    /**
-     * @param name
-     */
-    public AbstractBigdataSailTestCase(String name) {
-        super(name);
     }
 
     //************************************************************
@@ -84,7 +73,7 @@ abstract public class AbstractBigdataSailTestCase extends TestCase2 {
         begin = System.currentTimeMillis();
         
         if (log.isInfoEnabled())
-            log.info("\n\n================:BEGIN:" + testCase.getName()
+            log.info("\n\n================:BEGIN:" + this.getClass().getName()
                     + ":BEGIN:====================");
 
     }
@@ -97,7 +86,7 @@ abstract public class AbstractBigdataSailTestCase extends TestCase2 {
         long elapsed = System.currentTimeMillis() - begin;
         
         if (log.isInfoEnabled())
-            log.info("\n================:END:" + testCase.getName() + " ("
+            log.info("\n================:END:" + this.getClass().getName() + " ("
                     + elapsed + "ms):END:====================\n");
 
     }

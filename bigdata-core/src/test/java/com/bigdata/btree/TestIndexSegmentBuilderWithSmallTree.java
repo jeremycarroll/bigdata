@@ -31,6 +31,9 @@ import org.apache.log4j.Level;
 import com.bigdata.btree.IndexSegment.ImmutableLeafCursor;
 import com.bigdata.btree.IndexSegment.ImmutableNodeFactory.ImmutableLeaf;
 import com.bigdata.btree.keys.TestKeyBuilder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Test suite based on a small btree with known keys and values.
@@ -49,15 +52,10 @@ public class TestIndexSegmentBuilderWithSmallTree extends
     public TestIndexSegmentBuilderWithSmallTree() {
     }
 
-    public TestIndexSegmentBuilderWithSmallTree(String name) {
-        super(name);
-    }
-
+    @Before
     public void setUp() throws Exception {
 
-        super.setUp();
-        
-        outFile = new File(getName() + ".seg");
+        outFile = new File(this.getClass().getName() + ".seg");
 
         if (outFile.exists() && !outFile.delete()) {
 
@@ -69,6 +67,7 @@ public class TestIndexSegmentBuilderWithSmallTree extends
 
     }
 
+    @After
     public void tearDown() throws Exception {
 
         if (outFile != null && outFile.exists() && !outFile.delete()) {
@@ -77,8 +76,6 @@ public class TestIndexSegmentBuilderWithSmallTree extends
 
         }
 
-        super.tearDown();
-        
     }
 
     /*
@@ -112,6 +109,7 @@ public class TestIndexSegmentBuilderWithSmallTree extends
     /**
      * Test ability to build an index segment from a {@link BTree}.
      */
+    @Test
     public void test_buildOrder3() throws Exception {
 
         final BTree btree = getProblem1();
@@ -208,6 +206,7 @@ public class TestIndexSegmentBuilderWithSmallTree extends
      * 
      * @throws IOException
      */
+    @Test
     public void test_buildOrder9() throws Exception {
         
         final BTree btree = getProblem1();
@@ -326,6 +325,7 @@ public class TestIndexSegmentBuilderWithSmallTree extends
      * 
      * @throws IOException
      */
+    @Test
     public void test_buildOrder10() throws Exception {
         
         final BTree btree = getProblem1();
@@ -428,6 +428,7 @@ public class TestIndexSegmentBuilderWithSmallTree extends
      * 
      * @throws IOException
      */
+    @Test
     public void test_problem2_buildOrder3() throws Exception {
         
         final BTree btree = getProblem2();
@@ -532,6 +533,7 @@ public class TestIndexSegmentBuilderWithSmallTree extends
      * 
      * @throws IOException
      */
+    @Test
     public void test_problem3_buildOrder3() throws Exception {
 
         final BTree btree = getProblem3();

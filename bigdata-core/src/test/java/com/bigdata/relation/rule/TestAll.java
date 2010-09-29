@@ -23,10 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.relation.rule;
 
-
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites into increasing dependency order.
@@ -34,7 +33,33 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        // test variable and constant impls.
+        TestVar.class,
+        TestConstant.class,
+
+        // test predicate impls.
+        TestPredicate.class,
+
+        // @todo test binding set impls.
+        TestBindingSet.class,
+
+        // test ISlice() impl.
+        TestSlice.class,
+
+        // test suite for basic rule mechanisms.
+         TestRule.class,
+
+        // test suite for IProgram, but not program evaluation.
+         TestProgram.class,
+
+        // test suite for rule evaluation.
+        com.bigdata.relation.rule.eval.TestAll.class
+
+        // @todo test suite for XML interchange of programs.
+        } )
+public class TestAll {
 
     /**
      * 
@@ -42,51 +67,4 @@ public class TestAll extends TestCase {
     public TestAll() {
         
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-     
-        super(arg0);
-        
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     */
-    public static Test suite()
-    {
-
-        TestSuite suite = new TestSuite("rule");
-
-        // test variable and constant impls.
-        suite.addTestSuite(TestVar.class);
-        suite.addTestSuite(TestConstant.class);
-        
-        // test predicate impls.
-        suite.addTestSuite(TestPredicate.class);
-        
-        // @todo test binding set impls.
-        suite.addTestSuite(TestBindingSet.class);
-
-        // test ISlice() impl.
-        suite.addTestSuite(TestSlice.class);
-        
-        // test suite for basic rule mechanisms.
-        suite.addTestSuite( TestRule.class );
-       
-        // test suite for IProgram, but not program evaluation.
-        suite.addTestSuite( TestProgram.class );
-
-        // test suite for rule evaluation.
-        suite.addTest( com.bigdata.relation.rule.eval.TestAll.suite() );
-
-        // @todo test suite for XML interchange of programs.
-        
-        return suite;
-        
-    }
-    
 }

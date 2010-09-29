@@ -29,10 +29,6 @@ package com.bigdata.rdf.store;
 
 import java.io.File;
 import java.util.Properties;
-
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
-
 import com.bigdata.btree.BTree;
 import com.bigdata.journal.Options;
 
@@ -42,7 +38,6 @@ import com.bigdata.journal.Options;
  * various indices are NOT isolatable.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestLocalTripleStoreWithoutInlining extends AbstractTestCase {
 
@@ -52,51 +47,8 @@ public class TestLocalTripleStoreWithoutInlining extends AbstractTestCase {
     public TestLocalTripleStoreWithoutInlining() {
     }
 
-    public TestLocalTripleStoreWithoutInlining(String name) {
-        super(name);
-    }
-    
-    public static Test suite() {
-
-        final TestLocalTripleStoreWithoutInlining delegate = new TestLocalTripleStoreWithoutInlining(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Local Triple Store With Provenance Test Suite Without Inlining");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-
-        // ...
-//        suite.addTestSuite(TestCompletionScan.class);
-        
-        /*
-         * Proxied test suite for use only with the LocalTripleStore.
-         */
-
-        suite.addTestSuite(TestLocalTripleStoreTransactionSemantics.class);
-
-        /*
-         * Pickup the basic triple store test suite. This is a proxied test
-         * suite, so all the tests will run with the configuration specified in
-         * this test class and its optional .properties file.
-         */
-
-        // basic test suite.
-        suite.addTest(TestTripleStoreBasics.suite());
-        
-        // rules, inference, and truth maintenance test suite.
-        suite.addTest( com.bigdata.rdf.rules.TestAll.suite() );
-
-        return suite;
-        
-    }
-
-    public Properties getProperties() {
+    @Override
+  public Properties getProperties() {
 
         final Properties properties = super.getProperties();
 

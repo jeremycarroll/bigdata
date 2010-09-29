@@ -35,6 +35,7 @@ import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.IStep;
 import com.bigdata.relation.rule.Program;
 import com.bigdata.relation.rule.Rule;
+import org.junit.Test;
 
 /**
  * Test suite for rule re-writes supporting truth maintenance for the RDF DB.
@@ -42,7 +43,6 @@ import com.bigdata.relation.rule.Rule;
  * maintenance.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestTMUtility extends AbstractRuleTestCase {
 
@@ -51,15 +51,6 @@ public class TestTMUtility extends AbstractRuleTestCase {
      */
     public TestTMUtility() {
 
-    }
-
-    /**
-     * @param name
-     */
-    public TestTMUtility(String name) {
-
-        super(name);
-        
     }
 
     final private String database = "database";
@@ -71,6 +62,7 @@ public class TestTMUtility extends AbstractRuleTestCase {
      * relations for truth maintenance. This will produce a single new rule.
      * That rule will read from the focusStore rather than the database.
      */
+    @Test
     public void test_rewrite1() {
 
         final Rule r = new TestRuleRdfs04a(database);
@@ -110,6 +102,7 @@ public class TestTMUtility extends AbstractRuleTestCase {
      * In the second rule, the first tail will read from the fused view while
      * the second tail will read from the focusStore.
      */
+    @Test
     public void test_rewrite2() {
 
         final Rule r = new TestRuleRdfs9(database);

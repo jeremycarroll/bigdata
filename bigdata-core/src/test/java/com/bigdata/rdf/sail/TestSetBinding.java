@@ -87,13 +87,6 @@ public class TestSetBinding extends ProxyBigdataSailTestCase {
     public TestSetBinding() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestSetBinding(String arg0) {
-        super(arg0);
-    }
-
     public void testSetBinding() throws Exception {
 
         final BigdataSail sail = getSail();

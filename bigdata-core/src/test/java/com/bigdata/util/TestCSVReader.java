@@ -34,19 +34,17 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.TreeMap;
 
-import junit.framework.TestCase2;
+import org.junit.Test;
 
+import com.bigdata.test.Assert;
 import com.bigdata.util.CSVReader.Header;
 
 /**
@@ -58,7 +56,7 @@ import com.bigdata.util.CSVReader.Header;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestCSVReader extends TestCase2 {
+public class TestCSVReader extends Assert {
 
     /**
      * 
@@ -67,13 +65,7 @@ public class TestCSVReader extends TestCase2 {
         super();
     }
 
-    /**
-     * @param name
-     */
-    public TestCSVReader(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_ctor1_correctRejection() 
         throws IOException, SecurityException, NoSuchMethodException, 
                InstantiationException, IllegalAccessException, InvocationTargetException 
@@ -99,7 +91,7 @@ public class TestCSVReader extends TestCase2 {
         }
 
     }
-    
+    @Test
     public void test_ctor2_correctRejection() throws IOException {
         try {
         	Reader r = null;
@@ -117,6 +109,7 @@ public class TestCSVReader extends TestCase2 {
      * @throws IOException
      * @throws ParseException
      */
+    @Test
     public void test_read_test_csv() throws IOException, ParseException {
         
         Header[] headers = new Header[] {
@@ -141,7 +134,7 @@ public class TestCSVReader extends TestCase2 {
         
         assertEquals(1,r.lineNo());
 
-        assertEquals(headers, r.getHeaders());
+        assertArrayEquals(headers, r.getHeaders());
         
         /*
          * 1st row of data.
@@ -185,6 +178,7 @@ public class TestCSVReader extends TestCase2 {
      * @throws IOException
      * @throws ParseException
      */
+    @Test
     public void test_read_test_no_headers_csv() throws IOException, ParseException {
         
         Header[] headers = new Header[] {
@@ -270,21 +264,24 @@ public class TestCSVReader extends TestCase2 {
     	}
     	return b;
     }
-    
+    @Test
     public void test_default_csv_reader_with_defaults() throws IOException {
     	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
     	verify_data_and_header(new CSVReader(cb.buildReader()));
     }
+    @Test
     public void test_default_csv_reader_with_tabs() throws IOException {
     	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
     	cb.setColumnDelimiter("\t");
     	verify_data_and_header(new CSVReader(cb.buildReader()));
     }
+    @Test
     public void test_default_csv_reader_without_quotes() throws IOException {
     	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
     	cb.setSuppressQoutes(true);
     	verify_data_and_header(new CSVReader(cb.buildReader()));
     }
+    @Test
     public void test_default_csv_reader_no_headers() throws IOException {
     	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
     	cb.setSuppressHeader(true);
@@ -295,7 +292,7 @@ public class TestCSVReader extends TestCase2 {
         // Read and verify header row
         assertTrue(cr.hasNext());
         cr.readHeaders();
-    	assertEquals(cr.getHeaders(), headers);
+    	assertArrayEquals(cr.getHeaders(), headers);
     	verify_data(cr, headers);
     }
     
@@ -307,7 +304,7 @@ public class TestCSVReader extends TestCase2 {
     	}    	
         assertFalse(cr.hasNext());
     }
-    
+    @Test
     public void test_header_cons_with_bad_args() {
     	try {
     		new Header(null);
@@ -322,13 +319,13 @@ public class TestCSVReader extends TestCase2 {
     		//ignore -- expected
     	}    	
     }
-    
+    @Test
     public void test_header_cons_with_good_arg() {
     	String name = "abc";
     	Header h = new Header(name);
     	assertEquals(h.getName(), name);
     }
-
+    @Test
     public void test_header_equals() {
     	String name = "abc";
     	Header h = new Header(name);
@@ -354,7 +351,7 @@ public class TestCSVReader extends TestCase2 {
     	
     	assertFalse(h.equals(h_diff));
     }
-    
+    @Test
     public void test_header_hashcode() {
     	String name = "abc";
     	Header h = new Header(name);
@@ -362,15 +359,16 @@ public class TestCSVReader extends TestCase2 {
 
     	assertTrue(h.hashCode()==h_dup.hashCode());
     }
-    
+    @Test
     public void test_header_toString() {
     	String name = "abc";
     	Header h = new Header(name);
     	Header h_dup = new Header(name);
 
     	assertTrue(h.toString().equals(name));
+    	assertTrue(h_dup.toString().equals(name));
     }
-    
+    @Test
     public void test_setTailDelayMillis_bad_arg() throws IOException {
     	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
     	CSVReader r = new CSVReader(cb.buildReader());
@@ -381,7 +379,7 @@ public class TestCSVReader extends TestCase2 {
     		//ignore -- expected
     	}
     }
-    
+    @Test
     public void test_setTailDelayMillis_good_arg() throws IOException {
     	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
     	CSVReader r = new CSVReader(cb.buildReader());
@@ -410,7 +408,7 @@ public class TestCSVReader extends TestCase2 {
 		}
     	
     }
-    
+    @Test
     public void test_delay_with_reader() throws IOException {
     	CSVReaderBuilder crb = new CSVReaderBuilder();
     	StringReader s = 
@@ -422,9 +420,9 @@ public class TestCSVReader extends TestCase2 {
     	r.readHeaders();
     	Header[] actualHeaders = r.getHeaders();
     	Header[] expectedHeaders = headers;
-    	assertEquals(expectedHeaders, actualHeaders);
+    	assertArrayEquals(expectedHeaders, actualHeaders);
     }
-    
+    @Test
     public void test_delay_with_reader_with_comments_and_empty_lines() 
         throws IOException 
     {
@@ -444,7 +442,7 @@ public class TestCSVReader extends TestCase2 {
     			new Header("H2"),
     			new Header("H3"),    			
     	};
-    	assertEquals(expectedHeaders, actualHeaders);
+    	assertArrayEquals(expectedHeaders, actualHeaders);
     	//Check that two rows of data gets returned
     	Map<String, Object> actualRow = r.next();
     	Map<String, Object> expectedRow = 
@@ -464,14 +462,14 @@ public class TestCSVReader extends TestCase2 {
     		//ignore -- expected 
     	}
     }
-  
+    @Test
     public void test_get_headers() 
     throws IOException 
 	{
 		CSVReader r = new CSVReader(new StringReader(""));
         assertNull(r.getHeaders());
 	}
-    
+    @Test
     public void test_get_headers2() 
     throws IOException 
 	{
@@ -482,9 +480,9 @@ public class TestCSVReader extends TestCase2 {
 					crb.join(Arrays.asList(stringHeaders))));
 		r.readHeaders();
         Header[] actual = r.getHeaders();
-        assertEquals(headers, actual);
+        assertArrayEquals(headers, actual);
 	}
-  
+    @Test
     public void test_set_headers_null() 
     throws IOException 
 	{
@@ -500,7 +498,7 @@ public class TestCSVReader extends TestCase2 {
 			//ignore -- expected
 		}
 	}
-    
+    @Test
     public void test_set_headers() 
     throws IOException 
 	{
@@ -511,13 +509,13 @@ public class TestCSVReader extends TestCase2 {
 					crb.join(Arrays.asList(stringHeaders))));
 		r.readHeaders();
         Header[] actual = r.getHeaders();
-        assertEquals(headers, actual);
+        assertArrayEquals(headers, actual);
         r.setHeaders(defaultHeaders);
         actual = r.getHeaders();        
-        assertEquals(defaultHeaders, actual);
+        assertArrayEquals(defaultHeaders, actual);
         
 	}
-    
+    @Test
     public void test_set_header_out_of_bounds() 
     throws IOException 
 	{
@@ -528,7 +526,7 @@ public class TestCSVReader extends TestCase2 {
 					crb.join(Arrays.asList(stringHeaders))));
 		r.readHeaders();
         Header[] actual = r.getHeaders();
-        assertEquals(headers, actual);
+        assertArrayEquals(headers, actual);
         try {
         	r.setHeader(stringHeaders.length, new Header("out-of-bounds"));
         	fail("Able to set an out-of-bounds header element.");
@@ -536,6 +534,7 @@ public class TestCSVReader extends TestCase2 {
         	//ignore -- expected
         }
 	}    
+    @Test
     public void test_set_header_null() 
     throws IOException 
 	{
@@ -546,7 +545,7 @@ public class TestCSVReader extends TestCase2 {
 					crb.join(Arrays.asList(stringHeaders))));
 		r.readHeaders();
         Header[] actual = r.getHeaders();
-        assertEquals(headers, actual);
+        assertArrayEquals(headers, actual);
         try {
         	r.setHeader(stringHeaders.length-1, null);
         	fail("Able to set a null header element.");
@@ -554,7 +553,7 @@ public class TestCSVReader extends TestCase2 {
         	//ignore -- expected
         }
 	}
-    
+    @Test
     public void test_set_header_valid() 
     throws IOException 
 	{
@@ -565,15 +564,15 @@ public class TestCSVReader extends TestCase2 {
 					crb.join(Arrays.asList(stringHeaders))));
 		r.readHeaders();
         Header[] actual = r.getHeaders();
-        assertEquals(headers, actual);
+        assertArrayEquals(headers, actual);
         Header[] headersClone = headers.clone();
         int last = headersClone.length-1;
         headersClone[last] = new Header("replacement");
        	r.setHeader(last, headersClone[last]);
         actual = r.getHeaders();
-        assertEquals(headersClone, actual);       	
+        assertArrayEquals(headersClone, actual);       	
 	}    
-
+    @Test
     public void test_remove() 
         throws IOException 
 	{
@@ -585,23 +584,8 @@ public class TestCSVReader extends TestCase2 {
 		} catch (UnsupportedOperationException e) {
 			// ignore -- expected
 		}
-	}
-    
-    protected void assertEquals(Header[] expected, Header[] actual) {
+	}    
         
-        assertEquals(expected.length,actual.length);
-        
-        for(int i=0; i<expected.length; i++) {
-            
-            if(!expected[i].equals( actual[i])) {
-                
-                fail("headers["+i+"], expected ["+expected[i]+"] not ["+actual[i]+"]" );
-                
-            }
-            
-        }
-        
-    }
     
     /**
      * Form data structure modeling an expected (parsed) row.

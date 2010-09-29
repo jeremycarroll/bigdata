@@ -35,6 +35,7 @@ import com.bigdata.btree.IndexSegmentBuilder.BuildEnum;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.Options;
+import org.junit.Test;
 
 /**
  * Test build trees on the journal, evicts them into an {@link IndexSegment},
@@ -48,10 +49,6 @@ public class TestIndexSegmentBuilderWithLargeTrees extends AbstractIndexSegmentT
     public TestIndexSegmentBuilderWithLargeTrees() {
     }
 
-    public TestIndexSegmentBuilderWithLargeTrees(String name) {
-        super(name);
-    }
-    
     // all the builds in this test suite use this flag.
     static private final boolean compactingMerge = true;
 
@@ -184,6 +181,7 @@ public class TestIndexSegmentBuilderWithLargeTrees extends AbstractIndexSegmentT
      * factors. For each {@link IndexSegment}, we then compare it against its
      * source {@link BTree} for the same total ordering.
      */
+    @Test
     public void test_randomDenseKeys() throws Exception {
 
         for(int i=0; i<branchingFactors.length; i++) {
@@ -211,6 +209,7 @@ public class TestIndexSegmentBuilderWithLargeTrees extends AbstractIndexSegmentT
      * factors. For each {@link IndexSegment}, we then compare it against its
      * source {@link BTree} for the same total ordering.
      */
+    @Test
     public void test_randomSparseKeys() throws Exception {
 
         final int trace = 0;
@@ -308,10 +307,10 @@ public class TestIndexSegmentBuilderWithLargeTrees extends AbstractIndexSegmentT
 
                 for (BuildEnum buildEnum : BuildEnum.values()) {
 
-                    doBuildIndexSegmentAndCompare(getName(), btree, m,
+                    doBuildIndexSegmentAndCompare(this.getClass().getName(), btree, m,
                             buildEnum, true/* bufferNodes */);
 
-                    doBuildIndexSegmentAndCompare(getName(), btree, m,
+                    doBuildIndexSegmentAndCompare(this.getClass().getName(), btree, m,
                             buildEnum, false/* bufferNodes */);
 
                 }

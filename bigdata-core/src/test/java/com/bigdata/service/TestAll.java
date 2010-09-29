@@ -28,10 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service;
 
-
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Test suite for embedded services.
@@ -39,7 +38,62 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        // event handling
+        TestEventParser.class,
+        TestEventReceiver.class,
+
+        // tests of the round-robin aspects of the LBS (isolated behaviors).
+        TestLoadBalancerRoundRobin.class,
+
+        // test utility to read index segments using NIO.
+        TestResourceService.class,
+
+        // tests of the metadata index.
+        TestMetadataIndex.class,
+        TestMetadataIndexRemote.class,
+
+        // tests of the client's view of a scale-out index.
+        com.bigdata.service.ndx.TestAll.class,
+
+        // test ability to re-open an embedded federation.
+        TestRestartSafe.class,
+        TestRestartSafeRemote.class,
+
+        // unit tests for the distributed transaction service's snapshots.
+        TestSnapshotHelper.class,
+
+        // unit tests of the commit time index for the dist. transaction service.
+        TestDistributedTransactionServiceRestart.class,
+
+        // unit tests of single-phase and distributed tx commit protocol.
+        TestDistributedTransactionService.class,
+        TestDistributedTransactionServiceRemote.class,
+
+        // test basic journal overflow scenario.
+        TestOverflow.class,
+        TestOverflowRemote.class,
+
+        // test split/join (inserts eventually split; deletes eventually join).
+        TestSplitJoin.class,
+        TestSplitJoinRemote.class,
+
+        // test scatter splits with 2DS.
+        TestScatterSplit.class,
+        TestScatterSplitRemote.class,
+
+        // test journal overflow scenarios (move)
+        TestMove.class,
+        TestMoveRemote.class,
+
+        /*
+         * Stress test of concurrent clients writing on a single data service.
+         */
+        StressTestConcurrent.class,
+        StressTestConcurrentRemote.class
+        } )
+public class TestAll {
 
     /**
      * 
@@ -47,84 +101,4 @@ public class TestAll extends TestCase {
     public TestAll() {
         
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-
-        super(arg0);
-        
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     * 
-     * FIXME Make the unit tests in this package into proxy unit tests and run
-     * all of the tests in this suite against both the
-     * {@link LocalDataServiceClient} and the {@link EmbeddedClient}. Ideally
-     * the jini module can then re-run the same unit tests.
-     */
-    public static Test suite() {
-
-        final TestSuite suite = new TestSuite("bigdata services");
-
-        // event handling
-        suite.addTestSuite(TestEventParser.class);
-        suite.addTestSuite(TestEventReceiver.class);
-        
-        // tests of the round-robin aspects of the LBS (isolated behaviors).
-        suite.addTestSuite(TestLoadBalancerRoundRobin.class);
-
-        // test utility to read index segments using NIO.
-        suite.addTestSuite(TestResourceService.class);
-        
-        // tests of the metadata index.
-        suite.addTestSuite(TestMetadataIndex.class);
-        suite.addTestSuite(TestMetadataIndexRemote.class);
-
-        // tests of the client's view of a scale-out index.
-        suite.addTest(com.bigdata.service.ndx.TestAll.suite());
-        
-        // test ability to re-open an embedded federation.
-        suite.addTestSuite(TestRestartSafe.class);
-        suite.addTestSuite(TestRestartSafeRemote.class);
-
-        // unit tests for the distributed transaction service's snapshots.
-        suite.addTestSuite(TestSnapshotHelper.class);
-
-        // unit tests of the commit time index for the dist. transaction service.
-        suite.addTestSuite(TestDistributedTransactionServiceRestart.class);
-        
-        // unit tests of single-phase and distributed tx commit protocol.
-        suite.addTestSuite(TestDistributedTransactionService.class);
-        suite.addTestSuite(TestDistributedTransactionServiceRemote.class);
-        
-        // test basic journal overflow scenario.
-        suite.addTestSuite(TestOverflow.class);
-        suite.addTestSuite(TestOverflowRemote.class);
-        
-        // test split/join (inserts eventually split; deletes eventually join).
-        suite.addTestSuite(TestSplitJoin.class);
-        suite.addTestSuite(TestSplitJoinRemote.class);
-
-        // test scatter splits with 2DS.
-        suite.addTestSuite(TestScatterSplit.class);
-        suite.addTestSuite(TestScatterSplitRemote.class);
-
-        // test journal overflow scenarios (move)
-        suite.addTestSuite(TestMove.class);
-        suite.addTestSuite(TestMoveRemote.class);
-
-        /*
-         * Stress test of concurrent clients writing on a single data service.
-         */
-        suite.addTestSuite(StressTestConcurrent.class);
-        suite.addTestSuite(StressTestConcurrentRemote.class);
-
-        return suite;
-        
-    }
-    
 }

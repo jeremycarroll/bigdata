@@ -52,13 +52,6 @@ public class TestAddDropIndexTask extends ProxyTestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestAddDropIndexTask(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test ability to submit an unisolated write task that creates a named
      * index and then shutdown the journal. The journal is then re-opened and we
      * verify that the registered index is restart safe. Finally we drop the
@@ -258,9 +251,6 @@ public class TestAddDropIndexTask extends ProxyTestCase {
                         fail("Expecting: "+NoSuchIndexException.class);
                         
                     } catch(NoSuchIndexException ex) {
-                        
-                        System.err.println("Ignoring expected exception: "+ex);
-                        
                     }
 
                     return null;
@@ -475,7 +465,7 @@ public class TestAddDropIndexTask extends ProxyTestCase {
             
             if(ex.getCause() instanceof NoSuchIndexException ) {
                 
-                System.err.println("Ignoring expected exception: "+ex);
+//                 System.err.println("Ignoring expected exception: "+ex);
                 
             } else {
 

@@ -30,9 +30,6 @@ import info.aduna.iteration.CloseableIteration;
 
 import java.io.File;
 import java.util.Properties;
-
-import junit.framework.TestCase;
-
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
@@ -43,6 +40,8 @@ import org.openrdf.sail.SailException;
 
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.sail.BigdataSail.Options;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Bootstrap test case for bringing up the {@link BigdataSail}.
@@ -50,7 +49,7 @@ import com.bigdata.rdf.sail.BigdataSail.Options;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestBootstrapBigdataSail extends TestCase {
+public class TestBootstrapBigdataSail extends Assert {
 
     /**
      * 
@@ -59,17 +58,11 @@ public class TestBootstrapBigdataSail extends TestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestBootstrapBigdataSail(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test create and shutdown of the default store.
      * 
      * @throws SailException
      */
+    @Test
     public void test_ctor_1() throws SailException {
         
         final BigdataSail sail = new BigdataSail();
@@ -107,9 +100,10 @@ public class TestBootstrapBigdataSail extends TestCase {
      * 
      * @throws SailException
      */
+    @Test
     public void test_ctor_2() throws SailException {
 
-        final File file = new File(getName() + Options.JNL);
+        final File file = new File(getClass().getName() + Options.JNL);
         
         if(file.exists()) {
             
@@ -159,9 +153,10 @@ public class TestBootstrapBigdataSail extends TestCase {
      * 
      * @throws SailException
      */
+    @Test
     public void test_getConnection() throws SailException {
 
-        final File file = new File(getName() + Options.JNL);
+        final File file = new File(getClass().getName() + Options.JNL);
         
         if(file.exists()) {
             
@@ -221,9 +216,10 @@ public class TestBootstrapBigdataSail extends TestCase {
      * 
      * @throws SailException
      */
+    @Test
     public void test_isolation() throws SailException {
 
-        final File file = new File(getName() + Options.JNL);
+        final File file = new File(getClass().getName() + Options.JNL);
         
         if(file.exists()) {
             

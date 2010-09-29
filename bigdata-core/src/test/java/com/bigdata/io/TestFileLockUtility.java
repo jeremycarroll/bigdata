@@ -28,14 +28,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.io;
 
+import com.bigdata.test.Assert;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Test suite for {@link FileLockUtility}.
@@ -45,7 +45,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestFileLockUtility extends TestCase2 {
+public class TestFileLockUtility extends Assert {
 
     /**
      * 
@@ -55,24 +55,16 @@ public class TestFileLockUtility extends TestCase2 {
     }
 
     /**
-     * @param arg0
-     */
-    public TestFileLockUtility(String arg0) {
-
-        super(arg0);
-        
-    }
-
-    /**
      * Test verifies creation of an exclusive lock, that an advisory lock was
      * NOT created, and that the {@link FileChannel} is correctly closed.
      * 
      * @throws IOException
      */
+    @Test
     public void test_exclusiveLock() throws IOException {
         
         final File file = File.createTempFile(getClass().getSimpleName(),
-                getName());
+                this.getClass().getName());
 
         RandomAccessFile raf = null;
         
@@ -127,10 +119,11 @@ public class TestFileLockUtility extends TestCase2 {
      * 
      * @throws IOException
      */
+    @Test
     public void test_advisoryLock() throws IOException {
         
         final File file = File.createTempFile(getClass().getSimpleName(),
-                getName());
+                this.getClass().getName());
 
         final File lockFile = new File(file + ".lock");
 

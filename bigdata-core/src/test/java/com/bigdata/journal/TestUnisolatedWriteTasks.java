@@ -36,6 +36,11 @@ import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.io.BytesUtil.UnsignedByteArrayComparator;
 import com.bigdata.btree.keys.KeyBuilder;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Correctness test suite for unisolated writes on one or more indices. The
@@ -49,21 +54,20 @@ import com.bigdata.btree.keys.KeyBuilder;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
 
     /**
      * 
      */
-    public TestUnisolatedWriteTasks() {
-        super();
+    public TestUnisolatedWriteTasks(AbstractJournalTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestUnisolatedWriteTasks(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup1();
+    };
 
     /**
      * Test creates a named index and writes a set of entries on that index
@@ -74,6 +78,7 @@ public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_writeOneIndex() throws InterruptedException, ExecutionException {
         
         final Journal journal = getStore();
@@ -196,7 +201,7 @@ public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
 
                             byte[] actualValue = (byte[])ndx.lookup(keys[i]);
                             
-                            assertEquals("i="+i, vals[i], actualValue);
+                            assertArrayEquals("i="+i, vals[i], actualValue);
                             
                         }
                         
@@ -227,6 +232,7 @@ public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_writeTwoIndex() throws InterruptedException, ExecutionException {
         
         final Journal journal = getStore();
@@ -356,7 +362,7 @@ public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
 
                                 byte[] actualValue = (byte[]) ndx.lookup(keys1[i]);
                                 
-                                assertEquals("i=" + i, vals1[i], actualValue);
+                                assertArrayEquals("i=" + i, vals1[i], actualValue);
 
                             }
                             
@@ -399,7 +405,7 @@ public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
 
                                 byte[] actualValue = (byte[]) ndx.lookup(keys2[i]);
                                 
-                                assertEquals("i=" + i, vals2[i], actualValue);
+                                assertArrayEquals("i=" + i, vals2[i], actualValue);
 
                             }
                             
@@ -436,6 +442,7 @@ public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
      * @throws ExecutionException 
      * @throws InterruptedException 
      */
+    @Test
     public void test_writeManyIndices() throws InterruptedException, ExecutionException {
         
         final Journal journal = getStore();
@@ -450,7 +457,7 @@ public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
         
         System.err.println("Stress test is using "+nindices+" indices");
 
-        final Random r = new Random();
+        final Random r2 = new Random();
         
         final KeyBuilder keyBuilder = new KeyBuilder(4);
         
@@ -458,7 +465,7 @@ public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
         class IndexStuff {
             final String name;
             final UUID indexUUID = UUID.randomUUID();
-            final int ninserts = r.nextInt(100)+100;
+            final int ninserts = r2.nextInt(100)+100;
             final byte[][] keys;
             final byte[][] vals;
             
@@ -471,7 +478,7 @@ public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
                 
                 for(int i=0; i<ninserts; i++) {
 
-                    keys[i] = keyBuilder.reset().append(r.nextInt()).getKey();
+                    keys[i] = keyBuilder.reset().append(r2.nextInt()).getKey();
                     
                     vals[i] = keyBuilder.getKey(); 
                     
@@ -578,7 +585,7 @@ public class TestUnisolatedWriteTasks extends ProxyTestCase<Journal> {
 
                                 byte[] actualValue = (byte[])ndx.lookup(stuff.keys[j]);
                                 
-                                assertEquals("j=" + j, stuff.vals[j], actualValue);
+                                assertArrayEquals("j=" + j, stuff.vals[j], actualValue);
 
                             }
 

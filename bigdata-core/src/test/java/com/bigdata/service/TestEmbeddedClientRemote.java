@@ -35,10 +35,6 @@ public class TestEmbeddedClientRemote extends TestEmbeddedClient {
     public TestEmbeddedClientRemote() {
     }
 
-    public TestEmbeddedClientRemote(String name) {
-        super(name);
-    }
-
     public Properties getProperties() {
         final Properties properties = new Properties(super.getProperties());
         properties.setProperty

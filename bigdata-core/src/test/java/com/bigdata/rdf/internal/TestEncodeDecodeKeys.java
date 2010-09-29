@@ -33,9 +33,6 @@ import java.util.Random;
 import java.util.UUID;
 import org.openrdf.model.URI;
 import org.openrdf.model.impl.LiteralImpl;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.rdf.model.BigdataBNode;
@@ -44,6 +41,8 @@ import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.BigdataValueFactoryImpl;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for encoding and decoding compound keys (such as are used by the
@@ -51,24 +50,20 @@ import com.bigdata.rdf.model.BigdataValueFactoryImpl;
  * having variable component lengths while others are term identifiers.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id: TestEncodeDecodeKeys.java 2756 2010-05-03 22:26:18Z thompsonbry
  *          $
  */
-public class TestEncodeDecodeKeys extends TestCase2 {
+public class TestEncodeDecodeKeys extends Assert {
 
     public TestEncodeDecodeKeys() {
         super();
     }
     
-    public TestEncodeDecodeKeys(String name) {
-        super(name);
-    }
-
     /**
      * Unit test for {@link VTE} verifies that the
      * correspondence between the enumerated types and the internal values is
      * correct (self-consistent).
      */
+    @Test
     public void test_VTE_selfConsistent() {
        
         for(VTE e : VTE.values()) {
@@ -86,6 +81,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
      * values decode to an internal value type enum (basically, this checks that
      * we mask the two lower bits).
      */
+    @Test
     public void test_VTE_decodeNoErrors() {
 
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
@@ -101,6 +97,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
      * correspondence between the enumerated types and the internal values is
      * correct.
      */
+    @Test
     public void test_DTE_selfConsistent() {
 
         for(DTE e : DTE.values()) {
@@ -118,6 +115,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit tests for {@link TermId}
      */
+    @Test
     public void test_TermId() {
 
         final Random r = new Random();
@@ -185,6 +183,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
         
     }
 
+    @Test
     public void test_InlineValue() {
 
         final Random r = new Random();
@@ -378,6 +377,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
      * Unit test for encoding and decoding a statement formed from
      * {@link TermId}s.
      */
+    @Test
     public void test_SPO_encodeDecode_allTermIds() {
 
         final IV<?, ?>[] e = {//
@@ -394,6 +394,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit test where the RDF Object position is an xsd:boolean.
      */
+    @Test
     public void test_SPO_encodeDecode_XSDBoolean() {
 
         final IV<?, ?>[] e = {//
@@ -414,6 +415,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit test where the RDF Object position is an xsd:byte.
      */
+    @Test
     public void test_SPO_encodeDecode_XSDByte() {
 
         final IV<?, ?>[] e = {//
@@ -446,6 +448,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit test where the RDF Object position is an xsd:short.
      */
+    @Test
     public void test_SPO_encodeDecode_XSDShort() {
 
         final IV<?, ?>[] e = {//
@@ -478,6 +481,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit test where the RDF Object position is an xsd:int.
      */
+    @Test
     public void test_SPO_encodeDecode_XSDInt() {
 
         final IV<?, ?>[] e = {//
@@ -510,6 +514,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit test where the RDF Object position is an xsd:long.
      */
+    @Test
     public void test_SPO_encodeDecode_XSDLong() {
 
         final IV<?, ?>[] e = {//
@@ -542,6 +547,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit test where the RDF Object position is an xsd:float.
      */
+    @Test
     public void test_SPO_encodeDecode_XSDFloat() {
 
         final IV<?, ?>[] e = {//
@@ -595,6 +601,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit test where the RDF Object position is an xsd:double.
      */
+    @Test
     public void test_SPO_encodeDecode_XSDDouble() {
 
         final IV<?, ?>[] e = {//
@@ -648,6 +655,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit test where the RDF Object position is a {@link UUID}.
      */
+    @Test
     public void test_SPO_encodeDecode_UUID() {
 
         final IV<?, ?>[] e = {//
@@ -672,6 +680,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit test where the RDF Object position is an xsd:integer.
      */
+    @Test
     public void test_SPO_encodeDecode_XSDInteger() {
 
         final IV<?, ?>[] e = {//
@@ -689,6 +698,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
     /**
      * Unit test where the RDF Object position is an xsd:decimal.
      */
+    @Test
     public void test_SPO_encodeDecode_XSDDecimal() {
 
         final IV<?, ?>[] e = {//
@@ -703,6 +713,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
         
     }
     
+    @Test
     public void test_SPO_encodeDecode_BNode() {
         
         final IV<?, ?>[] e = {//
@@ -716,6 +727,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
 
     }
 
+    @Test
     public void test_SPO_encodeDecodeEpoch() {
         
         final BigdataValueFactory vf = BigdataValueFactoryImpl.getInstance("test");
@@ -739,6 +751,7 @@ public class TestEncodeDecodeKeys extends TestCase2 {
 
     }
 
+    @Test
     public void test_SPO_encodeDecodeColor() {
         
         final BigdataValueFactory vf = BigdataValueFactoryImpl.getInstance("test");

@@ -42,12 +42,19 @@ import com.bigdata.rdf.lexicon.LexiconKeyOrder;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.spo.SPOKeyOrder;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.rdf.store.TestScaleOutTripleStoreWithEmbeddedFederation;
 import com.bigdata.rdf.vocab.NoVocabulary;
 import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.EmbeddedFederation;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link AsynchronousStatementBufferFactory}. To run this test
@@ -56,7 +63,6 @@ import com.bigdata.service.EmbeddedFederation;
  * .
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  *          FIXME variant to test w/ and w/o the full text index (with lookup by
  *          tokens).
@@ -75,21 +81,21 @@ import com.bigdata.service.EmbeddedFederation;
  * @see TestScaleOutTripleStoreWithEmbeddedFederation
  * @see RDFFileLoadTask
  */
+@RunWith(Parameterized.class)
 public class TestAsynchronousStatementBufferFactory extends
         AbstractRIOTestCase {
 
     /**
      * 
      */
-    public TestAsynchronousStatementBufferFactory() {
+    public TestAsynchronousStatementBufferFactory(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestAsynchronousStatementBufferFactory(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     final int chunkSize = 20000;
     final int valuesInitialCapacity = 10000;
@@ -167,6 +173,7 @@ public class TestAsynchronousStatementBufferFactory extends
      * 
      * @throws Exception
      */
+    @Test
     public void test_loadAndVerify_small() throws Exception {
         
         final String file = DataFinder.bestPath("testing/data/com/bigdata/rdf/rio/small.rdf");
@@ -182,6 +189,7 @@ public class TestAsynchronousStatementBufferFactory extends
      * 
      * @throws Exception
      */
+    @Test
     public void test_loadFails() throws Exception {
         
         final String file = DataFinder.bestPath("testing/data/com/bigdata/rdf/rio/broken.rdf");
@@ -224,6 +232,7 @@ public class TestAsynchronousStatementBufferFactory extends
      * 
      * @throws Exception
      */
+    @Test
     public void test_loadAndVerify_sampleData() throws Exception {
         
         final String resource = DataFinder.bestPath("testing/data/com/bigdata/rdf/rio/sample data.rdf");
@@ -235,6 +244,7 @@ public class TestAsynchronousStatementBufferFactory extends
     /**
      * Uses a modest file (~40k statements).
      */
+    @Test
     public void test_loadAndVerify_modest() throws Exception {
         
 //      final String file = "../rdf-data/nciOncology.owl";
@@ -243,7 +253,8 @@ public class TestAsynchronousStatementBufferFactory extends
 
         if (!new File(file).exists()) {
 
-            fail("Resource not found: " + file + ", test skipped: " + getName());
+            fail("Resource not found: " + file + ", test skipped: " +
+                    this.getClass().getName());
 
             return;
             
@@ -261,6 +272,7 @@ public class TestAsynchronousStatementBufferFactory extends
 	 * to the JVM. This is a JVM bug. The <code>-XX:+UseMembar</code> option is
 	 * the workaround.
 	 */
+    @Test
     public void test_loadAndVerify_U1() throws Exception {
         
         final String file = DataFinder.bestPath("testing/data/lehigh/U1");

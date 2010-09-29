@@ -1,13 +1,15 @@
 package com.bigdata.util;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertTrue;
 
-public class TestFormat extends TestCase {
+import org.junit.Test;
 
-	public TestFormat(String name) {
-		super(name);
+public class TestFormat {
+
+	public TestFormat() {
+		super();
 	}
-
+    @Test
 	public void testFormat() {
 		String fmtString = "Roses are {0}, violets are {1}";
 		Object[] fmtArgs = new Object[] { "red", "blue" };

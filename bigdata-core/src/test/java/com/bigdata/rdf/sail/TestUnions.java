@@ -31,6 +31,10 @@ import java.io.StringWriter;
 import java.util.Collection;
 import java.util.LinkedList;
 import org.apache.log4j.Logger;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.openrdf.model.BNode;
 import org.openrdf.model.URI;
 import org.openrdf.model.impl.BNodeImpl;
@@ -50,6 +54,7 @@ import org.openrdf.query.resultio.sparqlxml.SPARQLResultsXMLWriter;
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestUnions extends QuadsTestCase {
 
     protected static final Logger log = Logger.getLogger(TestUnions.class);
@@ -57,15 +62,14 @@ public class TestUnions extends QuadsTestCase {
     /**
      * 
      */
-    public TestUnions() {
+    public TestUnions(AbstractBigdataSailTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param arg0
-     */
-    public TestUnions(String arg0) {
-        super(arg0);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyBigdataSailTestCase.getDelegateGroup3();
+    };
 
     /**
      * The dc10: namespace.
@@ -102,6 +106,7 @@ public class TestUnions extends QuadsTestCase {
      * 
      * @throws Exception 
      */
+    @Test
     public void testUnions() throws Exception {
 
         final BigdataSail sail = getSail();
@@ -206,6 +211,7 @@ public class TestUnions extends QuadsTestCase {
      * 
      * @throws Exception 
      */
+    @Test
     public void testSesameFilters() throws Exception {
 
         final BigdataSail sail = getSail();

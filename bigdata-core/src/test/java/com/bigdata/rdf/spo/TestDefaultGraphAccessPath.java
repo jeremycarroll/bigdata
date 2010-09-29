@@ -37,8 +37,15 @@ import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.rio.StatementBuffer;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
+import com.bigdata.rdf.store.ProxyTestCase;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link DefaultGraphSolutionExpander}. These tests are written
@@ -53,21 +60,20 @@ import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestDefaultGraphAccessPath() {
-        super();
+    public TestDefaultGraphAccessPath(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestDefaultGraphAccessPath(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * A series of tests for querying SPARQL default graphs. The expander should
@@ -78,6 +84,7 @@ public class TestDefaultGraphAccessPath extends AbstractTripleStoreTestCase {
      * method will report a different (higher) estimate if the access path is
      * configured to filter out statements outside of the desired context(s).
      */
+    @Test
     public void test_defaultGraphs() {
         
         final AbstractTripleStore store = getStore();

@@ -32,6 +32,9 @@ import java.io.File;
 import java.io.IOException;
 
 import com.bigdata.btree.IndexSegment.IndexSegmentTupleCursor;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Test suite for {@link IndexSegmentTupleCursor}.
@@ -56,22 +59,12 @@ public class TestIndexSegmentCursors extends AbstractTupleCursorTestCase {
     public TestIndexSegmentCursors() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestIndexSegmentCursors(String arg0) {
-
-        super(arg0);
-
-    }
-
     File outFile, tmpDir;
     
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         
-        super.setUp();
-        
-        outFile = new File(getName() + ".seg");
+        outFile = new File(this.getClass().getName() + ".seg");
 
         if (outFile.exists() && !outFile.delete()) {
 
@@ -83,10 +76,9 @@ public class TestIndexSegmentCursors extends AbstractTupleCursorTestCase {
 
     }
 
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         
-        super.tearDown();
-
         if (outFile != null && outFile.exists() && !outFile.delete()) {
 
             log.warn("Could not delete file: " + outFile);
@@ -134,6 +126,7 @@ public class TestIndexSegmentCursors extends AbstractTupleCursorTestCase {
 
     }
 
+    @Test
     public void test_oneTuple() throws IOException, Exception {
 
         final BTree btree = getOneTupleBTree();
@@ -178,6 +171,7 @@ public class TestIndexSegmentCursors extends AbstractTupleCursorTestCase {
      * @throws Exception
      * @throws IOException
      */
+    @Test
     public void test_baseCase() throws Exception {
 
         final BTree btree = getBaseCaseBTree();

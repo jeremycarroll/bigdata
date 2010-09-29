@@ -41,6 +41,7 @@ import com.bigdata.bfs.RepositoryDocumentImpl;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.sparse.ITPS;
 import com.bigdata.sparse.ITPV;
+import org.junit.Test;
 
 /**
  * Test operations on the file metadata index for the {@link BigdataFileSystem}.
@@ -57,17 +58,11 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestFileMetadataIndex(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Create a binary file and verifies its metadata and content.
      * 
      * @throws IOException
      */
+    @Test
     public void test_create_binary01() throws IOException {
 
         final String id = "test";
@@ -97,7 +92,7 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
 
         assertEquals("Content-Type", mimeType, actual.getContentType());
 
-        assertEquals("content", content, read(actual.getInputStream()));
+        assertArrayEquals("content", content, read(actual.getInputStream()));
 
     }
 
@@ -106,6 +101,7 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_create_text01() throws IOException {
 
         final String id = "test";
@@ -148,6 +144,7 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
     /**
      * Create an empty file and verify its metadata.
      */
+    @Test
     public void test_create_empty() {
 
         final String id = "test";
@@ -195,6 +192,7 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_create_update() throws IOException {
 
         final String id = "test";
@@ -235,7 +233,7 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
             repo.copyStream(id, version0, new ByteArrayInputStream(expected0));
 
             // verify read back.
-            assertEquals("version0", expected0, read(repo.inputStream(id,
+            assertArrayEquals("version0", expected0, read(repo.inputStream(id,
                     version0)));
 
         }
@@ -282,14 +280,14 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
 //            repo.copyStream(id, version1, new ByteArrayInputStream(expected1));
 
             // verify read back.
-            assertEquals("version1", expected1, read(repo.inputStream(id,
+            assertArrayEquals("version1", expected1, read(repo.inputStream(id,
                     version1)));
 
             /*
              * verify read back of version0 is now an empty byte[] since that
              * version was deleted.
              */
-            assertEquals("version0", new byte[]{}, read(repo.inputStream(id,
+            assertArrayEquals("version0", new byte[]{}, read(repo.inputStream(id,
                     version0)));
 
             /*
@@ -329,6 +327,7 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_delete01() throws IOException {
 
         final String id = "test";
@@ -371,7 +370,7 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
             repo.copyStream(id, version0, new ByteArrayInputStream(expected0));
 
             // verify read back.
-            assertEquals("version0", expected0, read(repo.inputStream(id,
+            assertArrayEquals("version0", expected0, read(repo.inputStream(id,
                     version0)));
 
         }
@@ -400,7 +399,7 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
          * verify read back of version0 is now an empty byte[] since that
          * version was deleted.
          */
-        assertEquals("version0", new byte[]{}, read(repo.inputStream(id,
+        assertArrayEquals("version0", new byte[]{}, read(repo.inputStream(id,
                 version0)));
 
         /*
@@ -417,7 +416,7 @@ public class TestFileMetadataIndex extends AbstractRepositoryTestCase {
             final long timestamp = a[1].getTimestamp();
             
             // verify read back.
-            assertEquals("version0", expected0, read(repo.inputStream(id,
+            assertArrayEquals("version0", expected0, read(repo.inputStream(id,
                     version0, TimestampUtility.asHistoricalRead(timestamp))));
             
         }

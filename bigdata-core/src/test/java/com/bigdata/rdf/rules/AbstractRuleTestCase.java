@@ -43,7 +43,6 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
 
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 abstract public class AbstractRuleTestCase extends AbstractInferenceEngineTestCase {
     
@@ -51,13 +50,6 @@ abstract public class AbstractRuleTestCase extends AbstractInferenceEngineTestCa
      * 
      */
     public AbstractRuleTestCase() {
-    }
-
-    /**
-     * @param name
-     */
-    public AbstractRuleTestCase(String name) {
-        super(name);
     }
 
     protected void applyRule(AbstractTripleStore db, IRule rule,

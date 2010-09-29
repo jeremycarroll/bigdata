@@ -39,6 +39,7 @@ import com.bigdata.journal.Journal;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
+import org.junit.Test;
 
 /**
  * Unit test of the {@link StoreManager} when adding and deleting journals and
@@ -56,17 +57,11 @@ public class TestAddDeleteResource extends AbstractResourceManagerTestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestAddDeleteResource(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test verifies add and delete of a journal.
      * 
      * @throws IOException
      */
+    @Test
     public void test_addDeleteJournal() throws IOException {
         
         final Journal j1;
@@ -116,6 +111,7 @@ public class TestAddDeleteResource extends AbstractResourceManagerTestCase {
      * 
      * @throws Exception 
      */
+    @Test
     public void test_addDeleteSegment() throws Exception {
 
         assertEquals(0, resourceManager.getManagedSegmentCount());

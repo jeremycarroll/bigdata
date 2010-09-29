@@ -37,10 +37,16 @@ import com.bigdata.rdf.axioms.NoAxioms;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.NoVocabulary;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for adding terms to the lexicon.
@@ -48,24 +54,22 @@ import com.bigdata.rdf.vocab.NoVocabulary;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestAddTerms extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestAddTerms() {
-        super();
-       
+    public TestAddTerms(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestAddTerms(String name) {
-        super(name);
-       
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
+    @Test
     public void test_addTerms() {
 
         final Properties properties = getProperties();
@@ -156,6 +160,7 @@ public class TestAddTerms extends AbstractTripleStoreTestCase {
      * nodes in the reverse index (T2ID) so we can translate a blank node back
      * to a specific identifier.
      */
+    @Test
     public void test_toldBNodes() {
 
         final Properties properties = getProperties();

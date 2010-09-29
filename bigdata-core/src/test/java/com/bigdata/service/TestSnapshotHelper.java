@@ -34,8 +34,8 @@ import java.io.IOException;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
 import com.bigdata.service.DistributedTransactionService.SnapshotHelper;
-
-import junit.framework.TestCase2;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link SnapshotHelper}.
@@ -43,7 +43,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestSnapshotHelper extends TestCase2 {
+public class TestSnapshotHelper extends Assert {
 
     /**
      * 
@@ -51,16 +51,10 @@ public class TestSnapshotHelper extends TestCase2 {
     public TestSnapshotHelper() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestSnapshotHelper(String arg0) {
-        super(arg0);
-    }
-
+    @Test
     public void test_snapshots() throws IOException {
 
-        final File testFile = File.createTempFile(getName(), ".snapshot");
+        final File testFile = File.createTempFile(this.getClass().getName(), ".snapshot");
         
         if (!testFile.delete()) {
 
@@ -86,7 +80,7 @@ public class TestSnapshotHelper extends TestCase2 {
 
                     SnapshotHelper.read(ndx, testFile);
                     
-                    assertEquals(new long[]{},toArray(ndx));
+                    assertArrayEquals(new long[]{},toArray(ndx));
                     
                 }
                 
@@ -115,7 +109,7 @@ public class TestSnapshotHelper extends TestCase2 {
 
                     SnapshotHelper.read(ndx, testFile);
                     
-                    assertEquals(new long[]{10,20},toArray(ndx));
+                    assertArrayEquals(new long[]{10,20},toArray(ndx));
                     
                 }
 

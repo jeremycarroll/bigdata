@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.raba.codec;
 
+import org.junit.Before;
+
 
 /**
  * Test suite for the {@link SimpleRabaCoder}.
@@ -42,14 +44,8 @@ public class TestSimpleRabaCoder extends AbstractRabaCoderTestCase {
     public TestSimpleRabaCoder() {
     }
 
-    /**
-     * @param name
-     */
-    public TestSimpleRabaCoder(String name) {
-        super(name);
-    }
-
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
 
         rabaCoder = SimpleRabaCoder.INSTANCE;
         

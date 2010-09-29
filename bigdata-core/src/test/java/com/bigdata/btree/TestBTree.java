@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree;
 
 import com.bigdata.mdi.IResourceMetadata;
+import org.junit.Test;
 
 /**
  * Stress tests for basic tree operations (insert, lookup, and remove) without
@@ -40,15 +41,6 @@ public class TestBTree extends AbstractBTreeTestCase {
     public TestBTree() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestBTree(String arg0) {
-
-        super(arg0);
-
-    }
-
     /*
      * test helpers.
      */
@@ -62,6 +54,7 @@ public class TestBTree extends AbstractBTreeTestCase {
      * Stress test for building up a tree and then removing all keys in a random
      * order.
      */
+    @Test
     public void test_stress_removeStructure() {
        
         int nkeys = 500;
@@ -83,6 +76,7 @@ public class TestBTree extends AbstractBTreeTestCase {
      * know in advance how many touches will result and when leaf evictions will
      * begin, so ntrials is set heuristically.
      */
+    @Test
     public void test_insertLookupRemoveKeyTreeStressTest() {
 
         int ntrials = 1000;
@@ -103,6 +97,7 @@ public class TestBTree extends AbstractBTreeTestCase {
      * incorrectly reporting an error when nkeys was zero after a split of a
      * node.
      */
+    @Test
     public void test_errorSequence001() {
 
         final int m = 3;
@@ -117,6 +112,7 @@ public class TestBTree extends AbstractBTreeTestCase {
      * A stress test for sequential key insertion that runs with a variety of
      * branching factors and #of keys to insert.
      */
+    @Test
     public void test_splitRootLeaf_increasingKeySequence() {
 
         int[] branchingFactors = new int[]{3,4,5};// 6,7,8,20,55,79,256,512,1024,4097};
@@ -141,6 +137,7 @@ public class TestBTree extends AbstractBTreeTestCase {
      * A stress test for sequential decreasing key insertions that runs with a
      * variety of branching factors and #of keys to insert.
      */
+    @Test
     public void test_splitRootLeaf_decreasingKeySequence() {
 
         int[] branchingFactors = new int[]{3,4,5};// 6,7,8,20,55,79,256,512,1024,4097};
@@ -166,6 +163,7 @@ public class TestBTree extends AbstractBTreeTestCase {
      * for several different btrees, #of keys to be inserted, and permutations
      * of keys.
      */
+    @Test
     public void test_stress_split() {
 
         doSplitTest( 3, 0 );
@@ -180,6 +178,7 @@ public class TestBTree extends AbstractBTreeTestCase {
      * A stress test for random key insertion using a that runs with a variety
      * of branching factors and #of keys to insert.
      */
+    @Test
     public void test_splitRootLeaf_randomKeySequence() {
 
         int[] branchingFactors = new int[]{3,4,5};// 6,7,8,20,55,79,256,512,1024,4097};
@@ -200,6 +199,7 @@ public class TestBTree extends AbstractBTreeTestCase {
         
     }
 
+    @Test
     public void test_verify_getResourceMetadata(){
         //transient requirements on getResourceMetadata() are verified in TestTrasientBTree.
         

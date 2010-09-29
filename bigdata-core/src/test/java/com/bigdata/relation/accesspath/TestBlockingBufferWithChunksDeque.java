@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.relation.accesspath;
 
+import com.bigdata.test.Assert;
 import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.BlockingQueue;
@@ -42,10 +43,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.After;
+import org.junit.Test;
 
 /**
  * Test suite for {@link BlockingBuffer} and its {@link IAsynchronousIterator}
@@ -58,7 +58,7 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * 
  * @todo test ordered chunk process also.
  */
-public class TestBlockingBufferWithChunksDeque extends TestCase2 {
+public class TestBlockingBufferWithChunksDeque extends Assert {
 
 	/**
 	 * 
@@ -66,21 +66,13 @@ public class TestBlockingBufferWithChunksDeque extends TestCase2 {
 	public TestBlockingBufferWithChunksDeque() {
 	}
 
-	/**
-	 * @param arg0
-	 */
-	public TestBlockingBufferWithChunksDeque(String arg0) {
-		super(arg0);
-	}
-
 	private final ExecutorService service = Executors
 			.newCachedThreadPool(DaemonThreadFactory.defaultThreadFactory());
 
-	protected void tearDown() throws Exception {
+        @After
+	public void tearDown() throws Exception {
 
 		service.shutdownNow();
-
-		super.tearDown();
 
 	}
 
@@ -93,6 +85,7 @@ public class TestBlockingBufferWithChunksDeque extends TestCase2 {
 	 * @throws ExecutionException
 	 * @throws InterruptedException
 	 */
+    @Test
     public void test_blockingBuffer() throws InterruptedException,
             ExecutionException, TimeoutException {
 
@@ -242,7 +235,7 @@ public class TestBlockingBufferWithChunksDeque extends TestCase2 {
 						// take the first chunk - two elements.
 						if (log.isInfoEnabled())
 							log.info("Awaiting first chunk");
-					    assertSameArray(new Integer[] { e0, e1 }, itr.next(50,
+					    assertArrayEquals(new Integer[] { e0, e1 }, itr.next(50,
 								TimeUnit.MILLISECONDS));
 						if (log.isInfoEnabled())
 							log.info("Have first chunk");
@@ -261,7 +254,7 @@ public class TestBlockingBufferWithChunksDeque extends TestCase2 {
 						// take the 2nd chunk - 3 elements.
 	                      if (log.isInfoEnabled())
 	                            log.info("Awaiting second chunk");
-	                        assertSameArray(new Integer[] { e2, e3, e4 }, itr.next());
+	                        assertArrayEquals(new Integer[] { e2, e3, e4 }, itr.next());
 	                        if (log.isInfoEnabled())
 	                            log.info("Have second chunk");
 
@@ -291,7 +284,7 @@ public class TestBlockingBufferWithChunksDeque extends TestCase2 {
 					assertTrue("Iterator exhausted?", itr.hasNext());
 
 					// last chunk
-					assertSameArray(new Integer[] { e5, e6 }, itr.next());
+					assertArrayEquals(new Integer[] { e5, e6 }, itr.next());
 
 					// should be immediately false.
 					assertFalse(itr.hasNext(1, TimeUnit.NANOSECONDS));

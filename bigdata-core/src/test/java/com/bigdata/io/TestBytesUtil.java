@@ -27,11 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.io;
 
-import com.bigdata.io.BytesUtil;
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.KeyBuilder;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for low-level operations on variable length byte[]s.
@@ -43,7 +42,7 @@ import com.bigdata.btree.keys.KeyBuilder;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestBytesUtil extends TestCase2 {
+public class TestBytesUtil extends Assert {
 
     /**
      * 
@@ -51,13 +50,7 @@ public class TestBytesUtil extends TestCase2 {
     public TestBytesUtil() {
     }
 
-    /**
-     * @param name
-     */
-    public TestBytesUtil(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_getByteCount() {
 
         try {
@@ -125,6 +118,7 @@ public class TestBytesUtil extends TestCase2 {
      *      int signed_b = b &amp; 0xff;
      * </pre>
      */
+    @Test
     public void test_compareBytesSigned() {
         
         byte bmin = Byte.MIN_VALUE;
@@ -148,6 +142,7 @@ public class TestBytesUtil extends TestCase2 {
     /**
      * Test comparison of two variable length signed byte[]s.
      */
+    @Test
     public void test_compareBytes() {
 
         /*
@@ -185,6 +180,7 @@ public class TestBytesUtil extends TestCase2 {
      * Test of unsigned byte[] comparison with explicit offset into each array
      * and #of bytes to consider from that offset for each array.
      */
+    @Test
     public void test_compareBytesWithOffsetAndLength() {
 
         /*
@@ -270,6 +266,7 @@ public class TestBytesUtil extends TestCase2 {
      * Test method that returns the length of the longest common prefix for two
      * keys.
      */
+    @Test
     public void test_getPrefixLength() {
 
         assertEquals(0, BytesUtil.getPrefixLength(new byte[] { 1 },
@@ -289,18 +286,19 @@ public class TestBytesUtil extends TestCase2 {
     /**
      * Test method that returns the longest common prefix for two keys.
      */
+    @Test
     public void test_getPrefix() {
 
-        assertEquals(new byte[] {}, BytesUtil.getPrefix(new byte[] { 1 },
+        assertArrayEquals(new byte[] {}, BytesUtil.getPrefix(new byte[] { 1 },
                 new byte[] { 2 }));
 
-        assertEquals(new byte[] { 1 }, BytesUtil.getPrefix(new byte[] { 1 },
+        assertArrayEquals(new byte[] { 1 }, BytesUtil.getPrefix(new byte[] { 1 },
                 new byte[] { 1 }));
 
-        assertEquals(new byte[] { 1, 2 }, BytesUtil.getPrefix(new byte[] { 1,
+        assertArrayEquals(new byte[] { 1, 2 }, BytesUtil.getPrefix(new byte[] { 1,
                 2, 3 }, new byte[] { 1, 2, 4 }));
 
-        assertEquals(new byte[] { 1, 2 }, BytesUtil.getPrefix(
+        assertArrayEquals(new byte[] { 1, 2 }, BytesUtil.getPrefix(
                 new byte[] { 1, 2 }, new byte[] { 1, 2, 4 }));
 
     }
@@ -309,6 +307,7 @@ public class TestBytesUtil extends TestCase2 {
      * Verify the semantics of the successor of a byte[] and that the successor
      * is computed correctly by {@link BytesUtil#successor(byte[])}.
      */
+    @Test
     public void test_successor() {
 
         /*
@@ -337,10 +336,10 @@ public class TestBytesUtil extends TestCase2 {
         }
         
         // successor of an empty byte[].
-        assertEquals(new byte[]{0}, BytesUtil.successor(new byte[]{}));
+        assertArrayEquals(new byte[]{0}, BytesUtil.successor(new byte[]{}));
         
         // successor of a non-empty byte[].
-        assertEquals(new byte[]{1,3,1,0}, BytesUtil.successor(new byte[]{1,3,1}));
+        assertArrayEquals(new byte[]{1,3,1,0}, BytesUtil.successor(new byte[]{1,3,1}));
 
     }
 
@@ -365,6 +364,7 @@ public class TestBytesUtil extends TestCase2 {
      * 
      * @see http://en.wikipedia.org/wiki/Two's_complement
      */
+    @Test
     public void test_unsignedByteInc() {
 
         assertEquals( (byte)-128, (byte)((((byte) 127) & 0xff) + 1));
@@ -386,7 +386,7 @@ public class TestBytesUtil extends TestCase2 {
             
         }
 
-        System.err.println(BytesUtil.toString(seq));
+//         System.err.println(BytesUtil.toString(seq));
 
         /*
          * verify bytes in sequence corresponding to [0:255] when interpreted as
@@ -405,6 +405,7 @@ public class TestBytesUtil extends TestCase2 {
      * Test method that chooses the shortest key that is less than one key but
      * greater than another.
      */
+    @Test
     public void test_getSeparatorKey() {
 
         /*
@@ -462,7 +463,7 @@ public class TestBytesUtil extends TestCase2 {
             byte[] given = new byte[]{7};
             byte[] prior = new byte[]{};
             
-            assertEquals(given, // separator
+            assertArrayEquals(given, // separator
                     BytesUtil.getSeparatorKey(//
                             given,//
                             prior //
@@ -477,13 +478,13 @@ public class TestBytesUtil extends TestCase2 {
          */
         {
             
-            assertEquals(new byte[] {3}, // separator
+            assertArrayEquals(new byte[] {3}, // separator
                     BytesUtil.getSeparatorKey(//
                             new byte[] { 3, 5, 7 },// given
                             new byte[] { 1, 5, 7 }// prior
                             ));
             
-            assertEquals(new byte[] {7}, // separator
+            assertArrayEquals(new byte[] {7}, // separator
                     BytesUtil.getSeparatorKey(//
                             new byte[] { 7 },// given
                             new byte[] { 5, 1 }// prior
@@ -499,13 +500,13 @@ public class TestBytesUtil extends TestCase2 {
          */
         {
 
-            assertEquals(new byte[] {7, 1}, // separator
+            assertArrayEquals(new byte[] {7, 1}, // separator
                     BytesUtil.getSeparatorKey(//
                             new byte[] { 7, 1, 3 },// given
                             new byte[] { 7,      } // prior
                             ));
 
-            assertEquals(new byte[] {7, 1, 1}, // separator
+            assertArrayEquals(new byte[] {7, 1, 1}, // separator
                     BytesUtil.getSeparatorKey(//
                             new byte[] { 7, 1, 1, 3 },// given
                             new byte[] { 7, 1       } // prior
@@ -515,20 +516,19 @@ public class TestBytesUtil extends TestCase2 {
         
     }
 
+    @Test
     public void test_getSeparatorKey_correctRejection() {
         
         try { // null parameter.
             BytesUtil.getSeparatorKey(null, new byte[]{2});
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
         }
         
         try { // null parameter.
             BytesUtil.getSeparatorKey(new byte[]{2},null);
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
         }
 
         try { // same reference (so givenKey and priorKey must be equal).
@@ -536,7 +536,6 @@ public class TestBytesUtil extends TestCase2 {
             BytesUtil.getSeparatorKey(tmp,tmp);
             fail("Expecting: "+IllegalArgumentException.class);
         } catch(IllegalArgumentException ex) {
-            System.err.println("Ignoring expected exception: "+ex);
         }
 
         /*
@@ -586,6 +585,7 @@ public class TestBytesUtil extends TestCase2 {
      * array elements and the tests are repeated in the new context to verify
      * that the base and nmem parameters are correctly respected.
      */
+    @Test
     public void test_binarySearch01()
     {
 
@@ -809,6 +809,7 @@ public class TestBytesUtil extends TestCase2 {
      * Bit operations
      */
     
+    @Test
     public void test_bitFlagByteLength() {
         
         assertEquals(0,BytesUtil.bitFlagByteLength(0));
@@ -824,6 +825,7 @@ public class TestBytesUtil extends TestCase2 {
         
     }
     
+    @Test
     public void test_bitSetTest() {
         
         final int nbits = 12;

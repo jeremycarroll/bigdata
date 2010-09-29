@@ -42,9 +42,15 @@ import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.vocab.Vocabulary;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for {@link BackchainTypeResourceIterator}.
@@ -56,29 +62,28 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
  *       result graphs should be equals.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestBackchainTypeResourceIterator extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestBackchainTypeResourceIterator() {
-        super();
+    public TestBackchainTypeResourceIterator(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestBackchainTypeResourceIterator(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Test when only the subject of the triple pattern is bound. In this case
      * the iterator MUST add a single entailment (s rdf:Type rdfs:Resource)
      * unless it is explicitly present in the database.
      */
+    @Test
     public void test_subjectBound() {
      
         final Properties properties = super.getProperties();
@@ -166,6 +171,7 @@ public class TestBackchainTypeResourceIterator extends AbstractRuleTestCase {
      * iterator visits an "explicit" statement rather than adding its own
      * inference.
      */
+    @Test
     public void test_subjectBound2() {
      
         final Properties properties = super.getProperties();
@@ -255,6 +261,7 @@ public class TestBackchainTypeResourceIterator extends AbstractRuleTestCase {
      * unless there is also an explicit (s rdf:type rdfs:Resource) assertion in
      * the database.
      */
+    @Test
     public void test_noneBound() {
         
         final Properties properties = super.getProperties();
@@ -367,6 +374,7 @@ public class TestBackchainTypeResourceIterator extends AbstractRuleTestCase {
      * 
      * @todo this is only testing a single access path.
      */
+    @Test
     public void test_otherBound_01() {
         
         final Properties properties = super.getProperties();
@@ -451,6 +459,7 @@ public class TestBackchainTypeResourceIterator extends AbstractRuleTestCase {
      * where it is rdf:type and where the object is NULL and where it is
      * rdfs:Resource.
      */
+    @Test
     public void test_backchain_foo_type_resource() {
 
         final Properties properties = super.getProperties();

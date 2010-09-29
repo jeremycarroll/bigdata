@@ -39,11 +39,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.AbstractBTreeTestCase;
 import com.bigdata.io.BytesUtil;
 import com.bigdata.io.BytesUtil.UnsignedByteArrayComparator;
@@ -52,26 +47,20 @@ import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.ReadOnlyKeysRaba;
 import com.bigdata.btree.raba.ReadOnlyValuesRaba;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Abstract test suite for {@link IRabaCoder} implementations.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-abstract public class AbstractRabaCoderTestCase extends TestCase2 {
+abstract public class AbstractRabaCoderTestCase extends Assert {
 
     /**
      * 
      */
     public AbstractRabaCoderTestCase() {
-    }
-
-    /**
-     * @param name
-     */
-    public AbstractRabaCoderTestCase(String name) {
-        super(name);
     }
 
     /**
@@ -95,6 +84,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
     /**
      * A simple unit test.
      */
+    @Test
     public void test_mike_personick() throws UnsupportedEncodingException {
 
         if(isFixedLength()) return;
@@ -149,6 +139,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * Test with byte values which are negative values when interpreted as as
      * signed 8 bit integers.
      */
+    @Test
     public void test_negativeByteValues() throws UnsupportedEncodingException {
 
         if(isFixedLength()) return;
@@ -176,6 +167,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * 
      * @throws UnsupportedEncodingException
      */
+    @Test
     public void test_emptyElement() throws UnsupportedEncodingException {
 
         if(isFixedLength()) return;
@@ -205,6 +197,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * {@link CanonicalFast64CodeWordDecoder}. A workaround for that bug has
      * been implemented in the {@link CanonicalHuffmanRabaCoder}.
      */
+    @Test
     public void test_nsymbolsOne() {
 
         if(isFixedLength()) return;
@@ -232,6 +225,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * {@link CanonicalFast64CodeWordDecoder}. A workaround for that bug has
      * been implemented in the {@link CanonicalHuffmanRabaCoder}.
      */
+    @Test
     public void test_nsymbolsOne_nulls() {
 
         if(isFixedLength()) return;
@@ -254,6 +248,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * 
      * @throws UnsupportedEncodingException
      */
+    @Test
     public void test_withNulls() throws UnsupportedEncodingException {
 
         if (!rabaCoder.isValueCoder()) {
@@ -284,6 +279,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * parameterized to identify the <code>null</code>s or else just fix the
      * ctor.
      */
+    @Test
     public void test_withNulls2() {
         
         if (!rabaCoder.isValueCoder()) {
@@ -305,6 +301,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
 
     final Random r = new Random();
 
+    @Test
     public void test_empty() throws IOException {
 
         doRandomRoundTripTest(rabaCoder, 0/* size */, 0/*capacity*/);
@@ -321,6 +318,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * Test with {@link IRaba} having a size of ONE (1) and a variety of
      * capacities.
      */
+    @Test
     public void test_entryCount1() throws IOException {
 
         doRandomRoundTripTest(rabaCoder, 1/* n */, 1/* capacity */);
@@ -335,6 +333,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * Test with {@link IRaba} having a size of TWO (2) and a variety of
      * capacities.
      */
+    @Test
     public void test_entryCount2() throws IOException {
 
         doRandomRoundTripTest(rabaCoder, 2/* n */, 2/* capacity */);
@@ -348,6 +347,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
     /**
      * This test case was developed for the {@link FrontCodedRabaCoder}.
      */
+    @Test
     public void test_error1() throws IOException {
 
         if(isFixedLength()) return;
@@ -423,6 +423,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      *     at com.bigdata.btree.raba.codec.AbstractRabaCoderTestCase.test_error2(AbstractRabaCoderTestCase.java:325)
      * </pre>
      */
+    @Test
     public void test_error2() {
 
         if(isFixedLength()) return;
@@ -444,6 +445,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         }
     }
     
+    @Test
     public void test_randomOnce() throws IOException {
         
         // #of elements.
@@ -456,6 +458,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         
     }
 
+    @Test
     public void testStress() throws IOException {
         
         for (int i = 0; i < 1000; i++) {
@@ -477,6 +480,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * 
      * @throws Exception
      */
+    @Test
     public void test_randomURIs() throws Exception {
 
         if(isFixedLength()) return;
@@ -731,7 +735,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                         expected, out);
 
                 // verify same encoded data for the slice.
-                assertEquals(originalData.toByteArray(), slice.toByteArray());
+                assertArrayEquals(originalData.toByteArray(), slice.toByteArray());
                 
             }
 
@@ -749,7 +753,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                         tmp, off, originalData.len());
 
                 // verify same slice.
-                assertEquals(originalData.toByteArray(), slice.toByteArray());
+                assertArrayEquals(originalData.toByteArray(), slice.toByteArray());
 
                 // decode the slice.
                 final IRaba actual = rabaCoder.decode(slice);
@@ -759,7 +763,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                 
             }
             
-        } catch (Throwable t) {
+        } catch (IOException t) {
 
             fail("Cause=" + t + ", expectedRaba=" + expected, t);
 
@@ -829,8 +833,8 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                 CanonicalHuffmanRabaCoder.INSTANCE // huffman coding.
                 };
 
-        System.out.println("nops=" + nops + ", size=" + size + ", ncoders="
-                + coders.length);
+//         System.out.println("nops=" + nops + ", size=" + size + ", ncoders="
+//                 + coders.length);
 
         /*
          * Generate a raba.  The same data is used for each coder. 
@@ -878,7 +882,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                 
             } catch (Throwable t) {
 
-                System.err.println("coder failed: " + rabaCoder);
+//                 System.err.println("coder failed: " + rabaCoder);
                 
                 t.printStackTrace(System.err);
                 
@@ -886,10 +890,10 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
 
             final long elapsed = System.nanoTime() - begin;
 
-            System.out.println(rabaCoder.toString() + " : elapsed="
-                    + TimeUnit.NANOSECONDS.toMillis(elapsed)
-                    + ", recordLength="
-                    + (recordLength == -1 ? "N/A" : recordLength));
+//             System.out.println(rabaCoder.toString() + " : elapsed="
+//                     + TimeUnit.NANOSECONDS.toMillis(elapsed)
+//                     + ", recordLength="
+//                     + (recordLength == -1 ? "N/A" : recordLength));
 
         }
         
@@ -899,6 +903,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * A test designed to measure the performance of an {@link IRabaCoder} for
      * operations on B+Tree keys, including search.
      */
+    @Test
     public void test_keyCoderPerformance() {
         
         // test is only for coders which can code keys.
@@ -950,7 +955,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * 
      * @return The size of the coded record.
      */
-    static public int doRabaCoderPerformanceTest(final IRaba expected,
+    static private int doRabaCoderPerformanceTest(final IRaba expected,
             final IRabaCoder rabaCoder, final int size, final int nops,
             final Random r, final Op op) {
 
@@ -1015,7 +1020,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                 if (log.isDebugEnabled())
                     log.debug(op.getName(code) + "(" + index + ") : expected="
                             + BytesUtil.toString(expected.get(index)));
-                assertEquals(op.getName(code), expected.get(index), actual
+                assertArrayEquals(op.getName(code), expected.get(index), actual
                         .get(index));
                 break;
             }
@@ -1100,7 +1105,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
             case Op.ITERATOR: {
                 if (log.isDebugEnabled())
                     log.debug(op.getName(code) + "()");
-                assertSameIterator(expected.iterator(), actual.iterator());
+                assertSameByteArrayIterator(expected.iterator(), actual.iterator());
                 break;
             }
             case Op.RECODE: {
@@ -1152,7 +1157,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                             actual, buf);
 
                     // verify the same coding was produced.
-                    assertEquals(originalData, data.toByteArray());
+                    assertArrayEquals(originalData, data.toByteArray());
                     
                     // new instance wrapping the buffer.
                     actual = rabaCoder.decode(data);
@@ -1160,7 +1165,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                     // verify recoded raba.
                     AbstractBTreeTestCase.assertSameRaba(expected, actual);
                     
-                } catch (AssertionFailedError ex) {
+                } catch (AssertionError ex) {
                     fail(op.getName(code) + "(): start=" + start + ", buf.len="
                             + tmp.length, ex);
                 }
@@ -1184,23 +1189,23 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         final NumberFormat rateF = NumberFormat.getInstance();
         rateF.setMinimumFractionDigits(0);
         rateF.setMaximumFractionDigits(0);
-        System.out.println("op\tcount\tnanos\t%time\tops/ms");
+//         System.out.println("op\tcount\tnanos\t%time\tops/ms");
         for (int i = 0; i < count.length; i++) {
 
             if (count[i] == 0)
                 continue;
             
-            System.out.println(//
-                    op.getName(i) + "\t"
-                    + count[i]
-                    + "\t"
-                    + elapsed[i]
-                    + "\t"
-                    + percentF.format(elapsed[i] / totalNS)//
-                    + "\t"
-                    + (elapsed[i] == 0 ? "N/A" : rateF.format(count[i]
-                                    / (elapsed[i] * scalingFactor))) //
-                    );
+//             System.out.println(//
+//                     op.getName(i) + "\t"
+//                     + count[i]
+//                     + "\t"
+//                     + elapsed[i]
+//                     + "\t"
+//                     + percentF.format(elapsed[i] / totalNS)//
+//                     + "\t"
+//                     + (elapsed[i] == 0 ? "N/A" : rateF.format(count[i]
+//                                     / (elapsed[i] * scalingFactor))) //
+//                     );
 
         }
         
@@ -1217,7 +1222,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * @param aitr
      *            The actual iterator.
      */
-    static protected void assertSameIterator(final Iterator<byte[]> eitr,
+    static protected void assertSameByteArrayIterator(final Iterator<byte[]> eitr,
             final Iterator<byte[]> aitr) {
 
         int i = 0;
@@ -1226,7 +1231,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
             assertTrue("hasNext", aitr.hasNext());
             
             // verify same byte[] (compare data, may both be null).
-            assertEquals("byte[" + i + "]", eitr.next(), aitr.next());
+            assertArrayEquals("byte[" + i + "]", eitr.next(), aitr.next());
 
             i++;
             
@@ -1247,7 +1252,6 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * probability distribution described in the constructor call.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static class Op {
         
@@ -1383,12 +1387,12 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * Tests of the {@link Op} test helper class.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
-    public static class TestOp extends TestCase {
+    public static class TestOp {
 
         private final Random r = new Random();
         
+        @Test
         public void test_Op() {
             /*
              * isNull, length, get, copy, search, iterator, recode.
@@ -1397,6 +1401,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
             doOpTest(gen);
         }
 
+        @Test
         public void test_Op2() {
             /*
              * isNull, length, get, copy, search, iterator, recode.
@@ -1408,6 +1413,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         /**
          * Correct rejection test when all rates are zero.
          */
+        @Test
         public void test_correctRejectionAllZero() {
             /*
              * isNull, length, get, copy, search, iterator, recode.
@@ -1424,6 +1430,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         /**
          * Correct rejection test when one or more rates are negative.
          */
+        @Test
         public void test_correctRejectionNegativeRate() {
             /*
              * isNull, length, get, copy, search, iterator, recode.
@@ -1460,10 +1467,10 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                 actualProbDistribution[i] = (float) ((double) sums[i] / (double) limit);
                 float diff = Math.abs(actualProbDistribution[i]
                         - expectedProbDistribution[i]);
-                System.err.println("expected[i=" + i + "]="
-                        + expectedProbDistribution[i] + ", actual[i=" + i
-                        + "]=" + actualProbDistribution[i] + ", diff="
-                        + ((int) (diff * 1000)) / 10f + "%");
+//                 System.err.println("expected[i=" + i + "]="
+//                         + expectedProbDistribution[i] + ", actual[i=" + i
+//                         + "]=" + actualProbDistribution[i] + ", diff="
+//                         + ((int) (diff * 1000)) / 10f + "%");
                 assertTrue(diff < 0.02); // difference is less than 2%
                                             // percent.
             }

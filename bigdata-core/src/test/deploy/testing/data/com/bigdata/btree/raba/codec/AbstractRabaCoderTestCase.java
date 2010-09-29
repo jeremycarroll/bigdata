@@ -39,10 +39,6 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.AbstractBTreeTestCase;
 import com.bigdata.io.BytesUtil;
 import com.bigdata.io.BytesUtil.UnsignedByteArrayComparator;
@@ -58,7 +54,7 @@ import com.bigdata.btree.raba.ReadOnlyValuesRaba;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class AbstractRabaCoderTestCase extends TestCase2 {
+abstract public class AbstractRabaCoderTestCase extends Assert {
 
     /**
      *
@@ -94,6 +90,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
     /**
      * A simple unit test.
      */
+    @Test
     public void test_mike_personick() throws UnsupportedEncodingException {
 
         if(isFixedLength()) return;
@@ -148,6 +145,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * Test with byte values which are negative values when interpreted as as
      * signed 8 bit integers.
      */
+    @Test
     public void test_negativeByteValues() throws UnsupportedEncodingException {
 
         if(isFixedLength()) return;
@@ -175,6 +173,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      *
      * @throws UnsupportedEncodingException
      */
+    @Test
     public void test_emptyElement() throws UnsupportedEncodingException {
 
         if(isFixedLength()) return;
@@ -204,6 +203,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * {@link CanonicalFast64CodeWordDecoder}. A workaround for that bug has
      * been implemented in the {@link CanonicalHuffmanRabaCoder}.
      */
+    @Test
     public void test_nsymbolsOne() {
 
         if(isFixedLength()) return;
@@ -231,6 +231,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * {@link CanonicalFast64CodeWordDecoder}. A workaround for that bug has
      * been implemented in the {@link CanonicalHuffmanRabaCoder}.
      */
+    @Test
     public void test_nsymbolsOne_nulls() {
 
         if(isFixedLength()) return;
@@ -253,6 +254,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      *
      * @throws UnsupportedEncodingException
      */
+    @Test
     public void test_withNulls() throws UnsupportedEncodingException {
 
         if (!rabaCoder.isValueCoder()) {
@@ -283,6 +285,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * parameterized to identify the <code>null</code>s or else just fix the
      * ctor.
      */
+    @Test
     public void test_withNulls2() {
 
         if (!rabaCoder.isValueCoder()) {
@@ -304,6 +307,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
 
     final Random r = new Random();
 
+    @Test
     public void test_empty() throws IOException {
 
         doRandomRoundTripTest(rabaCoder, 0/* size */, 0/*capacity*/);
@@ -320,6 +324,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * Test with {@link IRaba} having a size of ONE (1) and a variety of
      * capacities.
      */
+    @Test
     public void test_entryCount1() throws IOException {
 
         doRandomRoundTripTest(rabaCoder, 1/* n */, 1/* capacity */);
@@ -334,6 +339,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * Test with {@link IRaba} having a size of TWO (2) and a variety of
      * capacities.
      */
+    @Test
     public void test_entryCount2() throws IOException {
 
         doRandomRoundTripTest(rabaCoder, 2/* n */, 2/* capacity */);
@@ -347,6 +353,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
     /**
      * This test case was developed for the {@link FrontCodedRabaCoder}.
      */
+    @Test
     public void test_error1() throws IOException {
 
         if(isFixedLength()) return;
@@ -422,6 +429,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      *     at com.bigdata.btree.raba.codec.AbstractRabaCoderTestCase.test_error2(AbstractRabaCoderTestCase.java:325)
      * </pre>
      */
+    @Test
     public void test_error2() {
 
         if(isFixedLength()) return;
@@ -443,6 +451,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         }
     }
 
+    @Test
     public void test_randomOnce() throws IOException {
 
         // #of elements.
@@ -455,6 +464,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
 
     }
 
+    @Test
     public void testStress() throws IOException {
 
         for (int i = 0; i < 1000; i++) {
@@ -476,6 +486,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      *
      * @throws Exception
      */
+    @Test
     public void test_randomURIs() throws Exception {
 
         if(isFixedLength()) return;
@@ -730,7 +741,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                         expected, out);
 
                 // verify same encoded data for the slice.
-                assertEquals(originalData.toByteArray(), slice.toByteArray());
+                assertArrayEquals(originalData.toByteArray(), slice.toByteArray());
 
             }
 
@@ -748,7 +759,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
                         tmp, off, originalData.len());
 
                 // verify same slice.
-                assertEquals(originalData.toByteArray(), slice.toByteArray());
+                assertArrayEquals(originalData.toByteArray(), slice.toByteArray());
 
                 // decode the slice.
                 final IRaba actual = rabaCoder.decode(slice);
@@ -899,6 +910,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * A test designed to measure the performance of an {@link IRabaCoder} for
      * operations on B+Tree keys, including search.
      */
+    @Test
     public void test_keyCoderPerformance() {
 
         // test is only for coders which can code keys.
@@ -1385,10 +1397,11 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    public static class TestOp extends TestCase {
+    public static class TestOp
 
         private final Random r = new Random();
 
+        @Test
         public void test_Op() {
             /*
              * isNull, length, get, copy, search, iterator, recode.
@@ -1397,6 +1410,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
             doOpTest(gen);
         }
 
+        @Test
         public void test_Op2() {
             /*
              * isNull, length, get, copy, search, iterator, recode.
@@ -1408,6 +1422,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         /**
          * Correct rejection test when all rates are zero.
          */
+        @Test
         public void test_correctRejectionAllZero() {
             /*
              * isNull, length, get, copy, search, iterator, recode.
@@ -1424,6 +1439,7 @@ abstract public class AbstractRabaCoderTestCase extends TestCase2 {
         /**
          * Correct rejection test when one or more rates are negative.
          */
+        @Test
         public void test_correctRejectionNegativeRate() {
             /*
              * isNull, length, get, copy, search, iterator, recode.

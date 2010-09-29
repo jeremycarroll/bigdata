@@ -27,9 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.raba;
 
-import junit.framework.TestCase2;
-
 import com.bigdata.io.BytesUtil;
+import com.bigdata.test.Assert;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link IKeyBuffer#search(byte[] searchKey)}.
@@ -53,30 +56,20 @@ import com.bigdata.io.BytesUtil;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestKeyBufferSearch extends TestCase2 {
+@RunWith(Suite.class)
+@SuiteClasses( {
+//         TestBinarySearch.class,
+//         TestLinearSearch.class
+        } )
+public class TestKeyBufferSearch extends Assert {
 
     public TestKeyBufferSearch() {
     }
 
-    public TestKeyBufferSearch(String name) {
-        super(name);
-    }
-
-//    public static Test suite() {
-//        
-//        TestSuite suite = new TestSuite("IKeyBuffer.search");
-//        
-//        suite.addTestSuite(TestBinarySearch.class);
-//        suite.addTestSuite(TestLinearSearch.class);
-//        
-//        return suite;
-//
-//    }
-
-//    /*
-//     * abstract search methods are implemented by subclasses for testing the
-//     * linear vs binary search code.
-//     */
+   /*
+    * abstract search methods are implemented by subclasses for testing the
+    * linear vs binary search code.
+    */
     
     public int search(AbstractKeyBuffer kbuf, byte[] key) {
 
@@ -88,6 +81,7 @@ public class TestKeyBufferSearch extends TestCase2 {
      * Test search for keys using both a mutable and an immutable key buffer and
      * a known set of keys.
      */
+    @Test
     public void test_search01()
     {
 
@@ -172,6 +166,7 @@ public class TestKeyBufferSearch extends TestCase2 {
      * Tests with non-zero offset into a key buffer with a shared prefix
      * of 3 bytes.
      */
+    @Test
     public void test_search02() {
 
         // build up keys in sorted order.
@@ -237,6 +232,7 @@ public class TestKeyBufferSearch extends TestCase2 {
     /** 
     * Test with prefixLength of zero and various search keys.
     */
+    @Test
     public void test_search03() {
 
         int nkeys = 3;
@@ -283,6 +279,7 @@ public class TestKeyBufferSearch extends TestCase2 {
     /**
      * Test search on empty key buffer.
      */
+    @Test
     public void test_search04() {
       
         int nkeys = 0;
@@ -305,6 +302,7 @@ public class TestKeyBufferSearch extends TestCase2 {
         
     }
     
+    @Test
     public void test_prefixMatchLength() {
         
         // build up keys in sorted order.
@@ -341,7 +339,7 @@ public class TestKeyBufferSearch extends TestCase2 {
         final int prefixLength = 3;
         assertEquals("prefixLength", prefixLength, kbuf.getPrefixLength());
         // verify the prefix.
-        assertEquals("prefix", new byte[]{1,3,4}, kbuf.getPrefix());
+        assertArrayEquals("prefix", new byte[]{1,3,4}, kbuf.getPrefix());
 
         if(log.isInfoEnabled()) log.info("prefix="+BytesUtil.toString(kbuf.getPrefix()));
             

@@ -55,10 +55,17 @@ import org.openrdf.rio.RDFFormat;
 
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.rdf.rio.LoadStats;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.DataLoader;
 import com.bigdata.rdf.store.TripleStoreUtility;
 import com.bigdata.rdf.store.AbstractTripleStore.Options;
+import com.bigdata.rdf.store.ProxyTestCase;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite comparing full fix point closure of RDFS entailments against the
@@ -70,23 +77,23 @@ import com.bigdata.rdf.store.AbstractTripleStore.Options;
  *       nested subquery for the EDS and JDS cases).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestCompareFullAndFastClosure extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestCompareFullAndFastClosure() {
+    public TestCompareFullAndFastClosure(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestCompareFullAndFastClosure(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
+    @Test
     public void test_compareEntailments() throws Exception {
         
         // String[] resource = new String[]{"/com/bigdata/rdf/rules/testOwlSameAs.rdf"};

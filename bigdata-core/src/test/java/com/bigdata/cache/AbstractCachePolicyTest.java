@@ -27,10 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.cache;
 
+import com.bigdata.test.Assert;
 import java.util.Iterator;
 import java.util.Vector;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Abstract base class for cache policy test defines some test harness helper
@@ -39,20 +39,13 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public abstract class AbstractCachePolicyTest extends TestCase2 {
+public abstract class AbstractCachePolicyTest extends Assert {
 
 	/**
 	 * 
 	 */
 	public AbstractCachePolicyTest() {
 		super();
-	}
-
-	/**
-	 * @param name
-	 */
-	public AbstractCachePolicyTest(String name) {
-		super(name);
 	}
 
     /**
@@ -104,7 +97,7 @@ public abstract class AbstractCachePolicyTest extends TestCase2 {
      * reference </strong>. Errors are reported if too few or too many objects
      * are produced, etc.
      * 
-     * @see TestCase2#assertSameIterator(String, Object[], Iterator)
+     * @see com.bigdata.test.Assert#assertSameIterator(String, Object[], Iterator)
      */
 
     static public void assertSameIterator
@@ -411,6 +404,7 @@ public abstract class AbstractCachePolicyTest extends TestCase2 {
 	 * @see WeakValueCache#iterator()
 	 * @see WeakValueCache#entryIterator()
 	 */
+    @Test
     public void test_maintainsLRUOrder()
     {
         final int CAPACITY = 4;

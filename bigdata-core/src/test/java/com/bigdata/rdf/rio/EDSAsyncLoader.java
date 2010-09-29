@@ -46,7 +46,6 @@ import com.bigdata.service.EmbeddedFederation;
 /**
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class EDSAsyncLoader {
 

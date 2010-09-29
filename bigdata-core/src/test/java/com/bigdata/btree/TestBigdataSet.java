@@ -29,10 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.btree;
 
 import java.util.UUID;
-
-import junit.framework.TestCase;
-
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Test suite for {@link BigdataSet}.
@@ -45,7 +45,7 @@ import com.bigdata.rawstore.SimpleMemoryRawStore;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestBigdataSet extends TestCase {
+public class TestBigdataSet extends Assert {
 
     /**
      * 
@@ -54,19 +54,13 @@ public class TestBigdataSet extends TestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestBigdataSet(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * The test fixture - this is backed by a temporary store in order to
      * make the unit test cleanup simple.
      */
     BigdataSet<String> set;
     
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
     
         final IndexMetadata indexMetadata = new IndexMetadata(UUID.randomUUID());
      
@@ -84,6 +78,7 @@ public class TestBigdataSet extends TestCase {
     /**
      * basic tests of add(), isEmpty(), size(), contains(), and remove().
      */
+    @Test
     public void testSet() {
  
         assertTrue(set.isEmpty());

@@ -29,11 +29,11 @@ package com.bigdata.rdf.store;
 
 import java.io.File;
 import java.util.Properties;
-
-import junit.framework.TestCase;
-
 import com.bigdata.service.EmbeddedClient;
 import com.bigdata.service.IBigdataClient;
+import com.bigdata.test.Assert;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * An abstract test harness that sets up (and tears down) the metadata and data
@@ -43,7 +43,7 @@ import com.bigdata.service.IBigdataClient;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-abstract public class AbstractEmbeddedBigdataFederationTestCase extends TestCase {
+abstract public class AbstractEmbeddedBigdataFederationTestCase extends Assert {
 
     /**
      * 
@@ -52,14 +52,8 @@ abstract public class AbstractEmbeddedBigdataFederationTestCase extends TestCase
         super();
     }
 
-    /**
-     * @param arg0
-     */
-    public AbstractEmbeddedBigdataFederationTestCase(String arg0) {
-        super(arg0);
-    }
-
-    protected Properties getProperties() {
+    @Override
+    public Properties getProperties() {
         
         return new Properties(System.getProperties());
         
@@ -71,9 +65,10 @@ abstract public class AbstractEmbeddedBigdataFederationTestCase extends TestCase
      * Data files are placed into a directory named by the test. If the
      * directory exists, then it is removed before the federation is set up.
      */
+    @Before
     public void setUp() throws Exception {
 
-        final File dataDir = new File(getName());
+        final File dataDir = new File(getClass().getName());
 
         if (dataDir.exists() && dataDir.isDirectory()) {
 
@@ -83,7 +78,7 @@ abstract public class AbstractEmbeddedBigdataFederationTestCase extends TestCase
 
         final Properties properties = new Properties(getProperties());
 
-        properties.setProperty(EmbeddedClient.Options.DATA_DIR, getName());
+        properties.setProperty(EmbeddedClient.Options.DATA_DIR, getClass().getName());
         
         /*
          * Disable the o/s specific statistics collection for the test run.
@@ -100,6 +95,7 @@ abstract public class AbstractEmbeddedBigdataFederationTestCase extends TestCase
         
     }
     
+    @After
     public void tearDown() throws Exception {
         
         if (client != null) {

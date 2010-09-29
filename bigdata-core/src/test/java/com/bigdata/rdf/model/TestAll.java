@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.rdf.model;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * Aggregates test suites into increasing dependency order.
@@ -33,39 +33,24 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestAll extends TestCase {
+@RunWith(Suite.class)
+@SuiteClasses( {
+        /**
+         * Returns a test that will run each of the implementation specific test
+         * suites in turn.
+         *
+         * @todo while there is nothing left in this test suite the src/java package
+         *       is the {@link BigdataValue} and {@link BigdataStatement}
+         *       implementation and those implementations should be tested for
+         *       Sesame 2 API compatibility.
+         */
+        TestFactory.class
+        } )
+public class TestAll {
 
     /**
      * 
      */
     public TestAll() {
     }
-
-    /**
-     * @param arg0
-     */
-    public TestAll(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * Returns a test that will run each of the implementation specific test
-     * suites in turn.
-     * 
-     * @todo while there is nothing left in this test suite the src/java package
-     *       is the {@link BigdataValue} and {@link BigdataStatement}
-     *       implementation and those implementations should be tested for
-     *       Sesame 2 API compatibility.
-     */
-    public static Test suite()
-    {
-
-        TestSuite suite = new TestSuite("RDF data model");
-
-        suite.addTestSuite(TestFactory.class);
-        
-        return suite;
-        
-    }
-    
 }

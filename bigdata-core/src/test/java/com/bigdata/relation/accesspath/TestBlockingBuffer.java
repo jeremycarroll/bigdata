@@ -28,16 +28,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.relation.accesspath;
 
+import com.bigdata.test.Assert;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.After;
+import org.junit.Test;
 
 /**
  * Test suite for {@link BlockingBuffer} and its {@link IAsynchronousIterator}.
@@ -45,7 +45,7 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestBlockingBuffer extends TestCase2 {
+public class TestBlockingBuffer extends Assert {
 
     /**
      * 
@@ -53,21 +53,13 @@ public class TestBlockingBuffer extends TestCase2 {
     public TestBlockingBuffer() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestBlockingBuffer(String arg0) {
-        super(arg0);
-    }
-
     private final ExecutorService service = Executors
             .newCachedThreadPool(DaemonThreadFactory.defaultThreadFactory());
 
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
 
         service.shutdownNow();
-        
-        super.tearDown();
         
     }
     
@@ -80,6 +72,7 @@ public class TestBlockingBuffer extends TestCase2 {
      * @throws ExecutionException
      * @throws InterruptedException
      */
+    @Test
     public void test_blockingBuffer() throws InterruptedException,
             ExecutionException, TimeoutException {
 

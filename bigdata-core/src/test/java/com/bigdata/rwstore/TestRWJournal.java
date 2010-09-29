@@ -34,8 +34,7 @@ import java.util.ArrayList;
 import java.util.Properties;
 import java.util.TreeMap;
 
-import junit.extensions.proxy.ProxyTestSuite;
-import junit.framework.Test;
+import org.junit.Test;
 
 import com.bigdata.journal.AbstractInterruptsTestCase;
 import com.bigdata.journal.AbstractJournalTestCase;
@@ -46,7 +45,6 @@ import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.DiskOnlyStrategy;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.RWStrategy;
-import com.bigdata.journal.TestJournalBasics;
 import com.bigdata.journal.Journal.Options;
 import com.bigdata.rawstore.AbstractRawStoreTestCase;
 import com.bigdata.rawstore.IRawStore;
@@ -58,7 +56,6 @@ import com.bigdata.rawstore.IRawStore;
  * Once done then ensure the write cache is enabled when running test suite
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestRWJournal extends AbstractJournalTestCase {
 
@@ -66,51 +63,7 @@ public class TestRWJournal extends AbstractJournalTestCase {
         super();
     }
 
-    public TestRWJournal(String name) {
-        super(name);
-    }
-
-    public static Test suite() {
-
-        final TestRWJournal delegate = new TestRWJournal(); // !!!! THIS CLASS !!!!
-
-        /*
-         * Use a proxy test suite and specify the delegate.
-         */
-
-        final ProxyTestSuite suite = new ProxyTestSuite(delegate,
-                "Disk RW Journal Test Suite");
-
-        /*
-         * List any non-proxied tests (typically bootstrapping tests).
-         */
-        
-        // tests defined by this class.
-        suite.addTestSuite(TestRWJournal.class);
-
-        // test suite for the IRawStore api.
-        suite.addTestSuite(TestRawStore.class);
-
-        // test suite for handling asynchronous close of the file channel.
-        suite.addTestSuite(TestInterrupts.class);
-
-        // test suite for MROW correctness.
-        suite.addTestSuite(TestMROW.class);
-
-        // test suite for MRMW correctness.
-        suite.addTestSuite(TestMRMW.class);
-
-        /*
-         * Pickup the basic journal test suite. This is a proxied test suite, so
-         * all the tests will run with the configuration specified in this test
-         * class and its optional .properties file.
-         */
-        suite.addTest(TestJournalBasics.suite());
-        
-        return suite;
-
-    }
-
+    @Override
     public Properties getProperties() {
 
         final Properties properties = super.getProperties();
@@ -134,6 +87,7 @@ public class TestRWJournal extends AbstractJournalTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_create_disk01() throws IOException {
 
         final Properties properties = getProperties();
@@ -173,9 +127,10 @@ public class TestRWJournal extends AbstractJournalTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_create_emptyFile() throws IOException {
         
-        final File file = File.createTempFile(getName(), Options.JNL);
+        final File file = File.createTempFile(this.getClass().getName(), Options.JNL);
 
         final Properties properties = new Properties();
 
@@ -210,16 +165,11 @@ public class TestRWJournal extends AbstractJournalTestCase {
      *       tests into {@link AbstractRawStoreTestCase}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class TestRawStore extends AbstractRestartSafeTestCase {
         
         public TestRawStore() {
             super();
-        }
-
-        public TestRawStore(String name) {
-            super(name);
         }
 
         protected BufferMode getBufferMode() {
@@ -687,16 +637,11 @@ public class TestRWJournal extends AbstractJournalTestCase {
      * Test suite integration for {@link AbstractInterruptsTestCase}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class TestInterrupts extends AbstractInterruptsTestCase {
         
         public TestInterrupts() {
             super();
-        }
-
-        public TestInterrupts(String name) {
-            super(name);
         }
 
         protected IRawStore getStore() {
@@ -723,7 +668,6 @@ public class TestRWJournal extends AbstractJournalTestCase {
      * Test suite integration for {@link AbstractMROWTestCase}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class TestMROW extends AbstractMROWTestCase {
         
@@ -731,10 +675,6 @@ public class TestRWJournal extends AbstractJournalTestCase {
             super();
         }
 
-        public TestMROW(String name) {
-            super(name);
-        }
-        
         protected IRawStore getStore() {
 
             final Properties properties = getProperties();
@@ -759,16 +699,11 @@ public class TestRWJournal extends AbstractJournalTestCase {
      * Test suite integration for {@link AbstractMRMWTestCase}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class TestMRMW extends AbstractMRMWTestCase {
         
         public TestMRMW() {
             super();
-        }
-
-        public TestMRMW(String name) {
-            super(name);
         }
 
         protected IRawStore getStore() {

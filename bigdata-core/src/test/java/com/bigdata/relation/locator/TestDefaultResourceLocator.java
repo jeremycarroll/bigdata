@@ -33,9 +33,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.BufferMode;
@@ -51,7 +48,9 @@ import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
+import com.bigdata.test.Assert;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Test;
 
 /**
  * Test suite for location relations, etc.
@@ -62,16 +61,12 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * @todo make this a proxy test case and run for {@link Journal} and
  *       {@link IBigdataFederation}
  */
-public class TestDefaultResourceLocator extends TestCase2 {
+public class TestDefaultResourceLocator extends Assert {
 
     public TestDefaultResourceLocator() {
         super();
     }
     
-    public TestDefaultResourceLocator(String name) {
-        super(name);
-    }
-
     public Properties getProperties() {
         
         Properties properties = super.getProperties();
@@ -94,6 +89,7 @@ public class TestDefaultResourceLocator extends TestCase2 {
      *       resolved.
      * 
      */
+    @Test
     public void test_locateRelation() {
         
         final Properties properties = getProperties();

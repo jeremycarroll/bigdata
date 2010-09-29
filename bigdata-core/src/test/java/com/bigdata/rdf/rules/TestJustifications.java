@@ -39,7 +39,9 @@ import com.bigdata.rdf.inf.Justification.VisitedSPOSet;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.spo.SPO;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.rdf.store.TempTripleStore;
 import com.bigdata.rdf.vocab.Vocabulary;
 import com.bigdata.relation.IMutableRelation;
@@ -52,6 +54,11 @@ import com.bigdata.relation.rule.eval.ActionEnum;
 import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.relation.rule.eval.Solution;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for writing, reading, chasing and retracting {@link Justification}s.
@@ -69,23 +76,21 @@ import com.bigdata.relation.rule.eval.Solution;
  *       whichever is the shorter array.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestJustifications extends AbstractRuleTestCase {
 
     /**
      * 
      */
-    public TestJustifications() {
-        super();
+    public TestJustifications(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestJustifications(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     protected void assertEquals(Justification expected, Justification actual) {
         
@@ -103,6 +108,7 @@ public class TestJustifications extends AbstractRuleTestCase {
      * can read it back from the store, and then retracts the justified
      * statement and verifies that the justification was also retracted.
      */
+    @Test
     public void test_writeReadRetract() {
 
         final Properties properties = super.getProperties();

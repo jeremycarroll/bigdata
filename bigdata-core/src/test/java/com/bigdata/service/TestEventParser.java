@@ -31,10 +31,9 @@ package com.bigdata.service;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.service.TestEventReceiver.MyEvent;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Unit tests for parsing {@link Event}s.
@@ -42,19 +41,12 @@ import com.bigdata.service.TestEventReceiver.MyEvent;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestEventParser extends TestCase2 {
+public class TestEventParser extends Assert {
 
     /**
      * 
      */
     public TestEventParser() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestEventParser(String arg0) {
-        super(arg0);
     }
 
     private static class MockEventReceivingService implements
@@ -66,6 +58,7 @@ public class TestEventParser extends TestCase2 {
 
     }
     
+    @Test
     public void test_parser() throws ClassNotFoundException {
 
         final Event e = new MyEvent(new TestEventReceiver.MockFederation(

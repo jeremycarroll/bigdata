@@ -18,6 +18,11 @@ import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.vocab.NoVocabulary;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 //BTM
 import com.bigdata.journal.TransactionService;
@@ -31,22 +36,23 @@ import com.bigdata.journal.TransactionService;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestLocalTripleStoreTransactionSemantics extends ProxyTestCase {
 
-    public TestLocalTripleStoreTransactionSemantics() {
-        
+    public TestLocalTripleStoreTransactionSemantics(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
     
-    public TestLocalTripleStoreTransactionSemantics(String name) {
-
-        super(name);
-
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup6();
+    };
 
     /**
      * Test the commit semantics in the context of a read-committed view of the
      * database.
      */
+    @Test
     public void test_commit() {
 
         final LocalTripleStore store = (LocalTripleStore) getStore();
@@ -105,6 +111,7 @@ public class TestLocalTripleStoreTransactionSemantics extends ProxyTestCase {
     /**
      * Test of abort semantics.
      */
+    @Test
     public void test_abort() {
 
         class AbortException extends RuntimeException {
@@ -148,7 +155,7 @@ public class TestLocalTripleStoreTransactionSemantics extends ProxyTestCase {
             // discard the write set.
             store.abort();
 
-            fail("Unexpected exception: " + t, t);
+            fail("Unexpected exception: " + t);
 
         } finally {
 
@@ -182,6 +189,7 @@ public class TestLocalTripleStoreTransactionSemantics extends ProxyTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_txIsolation() throws IOException {
 
         final Properties p = new Properties(getProperties());

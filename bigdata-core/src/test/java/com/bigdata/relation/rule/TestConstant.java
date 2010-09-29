@@ -29,8 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.relation.rule;
 
 import com.bigdata.relation.rule.Constant;
+import com.bigdata.test.Assert;
 
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Test suite for {@link Constant}.
@@ -38,7 +39,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestConstant extends TestCase2 {
+public class TestConstant extends Assert {
 
     /**
      * 
@@ -46,13 +47,7 @@ public class TestConstant extends TestCase2 {
     public TestConstant() {
     }
 
-    /**
-     * @param name
-     */
-    public TestConstant(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_equals() {
         
         Constant c = new Constant<Integer>(1);

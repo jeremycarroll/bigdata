@@ -38,14 +38,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
-
 import org.apache.log4j.Logger;
-
 import com.bigdata.concurrent.NonBlockingLockManagerWithNewDesign.LockFutureTask;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * basic unit tests.
@@ -53,7 +50,7 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestNonBlockingLockManagerWithNewDesign extends TestCase {
+public class TestNonBlockingLockManagerWithNewDesign extends Assert {
 
     protected static final Logger log = Logger
             .getLogger(TestNonBlockingLockManagerWithNewDesign.class);
@@ -67,10 +64,6 @@ public class TestNonBlockingLockManagerWithNewDesign extends TestCase {
      */
     public TestNonBlockingLockManagerWithNewDesign() {
         super();
-    }
-
-    public TestNonBlockingLockManagerWithNewDesign(String name) {
-        super(name);
     }
 
     /**
@@ -140,6 +133,7 @@ public class TestNonBlockingLockManagerWithNewDesign extends TestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_shutdownNow() throws InterruptedException, ExecutionException {
 
         final NonBlockingLockManagerWithNewDesign<String> service = new NonBlockingLockManagerWithNewDesign<String>(
@@ -176,6 +170,7 @@ public class TestNonBlockingLockManagerWithNewDesign extends TestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_shutdown() throws InterruptedException, ExecutionException {
 
         final NonBlockingLockManagerWithNewDesign<String> service = new NonBlockingLockManagerWithNewDesign<String>(
@@ -233,6 +228,7 @@ public class TestNonBlockingLockManagerWithNewDesign extends TestCase {
      * @throws InterruptedException
      * @throws ExecutionException
      */
+    @Test
     public void test_submitOneThenCancel() throws InterruptedException, ExecutionException {
         
         final BlockingQueue<Runnable> readyQueue = new LinkedBlockingQueue<Runnable>();
@@ -310,6 +306,7 @@ public class TestNonBlockingLockManagerWithNewDesign extends TestCase {
      * @throws ExecutionException
      * @throws TimeoutException
      */
+    @Test
     public void test_runOne() throws InterruptedException, ExecutionException,
             TimeoutException {
 
@@ -372,6 +369,7 @@ public class TestNonBlockingLockManagerWithNewDesign extends TestCase {
      * @throws ExecutionException
      * @throws TimeoutException
      */
+    @Test
     public void test_runOneThrowsException() throws InterruptedException, ExecutionException,
             TimeoutException {
 
@@ -409,7 +407,7 @@ public class TestNonBlockingLockManagerWithNewDesign extends TestCase {
                     if(INFO)
                         log.info("Ignoring expected exception: " + ex);
                 } else {
-                    final AssertionFailedError err = new AssertionFailedError(
+                    final AssertionError err = new AssertionError(
                             "Expecting: " + HorridTaskDeath.class
                                     + " as the cause");
                     err.initCause(ex);
@@ -481,6 +479,7 @@ public class TestNonBlockingLockManagerWithNewDesign extends TestCase {
      * @throws ExecutionException
      * @throws TimeoutException
      */
+    @Test
     public void test_runOneWithLock() throws InterruptedException,
             ExecutionException, TimeoutException {
 
@@ -539,6 +538,7 @@ public class TestNonBlockingLockManagerWithNewDesign extends TestCase {
      * @throws ExecutionException
      * @throws TimeoutException
      */
+    @Test
     public void test_runOneWithLockAndReleaseLockFromTask() throws InterruptedException,
             ExecutionException, TimeoutException {
 

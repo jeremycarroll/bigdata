@@ -58,13 +58,6 @@ public class TestJoinScope extends QuadsTestCase {
     }
 
     /**
-     * @param arg0
-     */
-    public TestJoinScope(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * The foaf: namespace.
      */
     final String FOAF = "http://xmlns.com/foaf/0.1/";

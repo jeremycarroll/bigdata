@@ -29,10 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.io;
 
 import java.util.Random;
-
-import junit.framework.TestCase2;
-
 import com.bigdata.rawstore.Bytes;
+import com.bigdata.test.Assert;
+import org.junit.Test;
 
 /**
  * Test suite for {@link ByteArrayBuffer}.
@@ -40,19 +39,12 @@ import com.bigdata.rawstore.Bytes;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestByteArrayBuffer extends TestCase2 {
+public class TestByteArrayBuffer extends Assert {
 
     /**
      * 
      */
     public TestByteArrayBuffer() {
-    }
-
-    /**
-     * @param arg0
-     */
-    public TestByteArrayBuffer(String arg0) {
-        super(arg0);
     }
 
     /*
@@ -62,6 +54,7 @@ public class TestByteArrayBuffer extends TestCase2 {
     /**
      * ctor tests, including correct rejection.
      */
+    @Test
     public void test_ctor() {
 
         {
@@ -98,6 +91,7 @@ public class TestByteArrayBuffer extends TestCase2 {
     /**
      * correct rejection tests.
      */
+    @Test
     public void test_ctor_correctRejection() {
 
         try {
@@ -113,6 +107,7 @@ public class TestByteArrayBuffer extends TestCase2 {
      * buffer extension tests.
      */
 
+    @Test
     public void test_ensureCapacity() {
 
         final ByteArrayBuffer buf = new ByteArrayBuffer(0);
@@ -140,6 +135,7 @@ public class TestByteArrayBuffer extends TestCase2 {
         assertTrue(originalBuffer == buf.buf); // same buffer.
     }
 
+    @Test
     public void test_ensureCapacity02() {
 
         ByteArrayBuffer buf = new ByteArrayBuffer(0);
@@ -161,6 +157,7 @@ public class TestByteArrayBuffer extends TestCase2 {
     /**
      * verify that existing data is preserved if the capacity is extended.
      */
+    @Test
     public void test_ensureCapacity03() {
 
         final byte[] expected = new byte[20];
@@ -201,6 +198,7 @@ public class TestByteArrayBuffer extends TestCase2 {
         
     }
 
+    @Test
     public void test_trim() {
 
         // note: will be extended.
@@ -246,6 +244,7 @@ public class TestByteArrayBuffer extends TestCase2 {
     
     final int LIMIT = 1000;
 
+    @Test
     public void test_get_correctRejection() {
 
         final int capacity = 20;
@@ -275,6 +274,7 @@ public class TestByteArrayBuffer extends TestCase2 {
     /**
      * Test bulk get/put byte[] methods.
      */
+    @Test
     public void test_getPutByteArray() {
         
         final int capacity = 200;
@@ -315,6 +315,7 @@ public class TestByteArrayBuffer extends TestCase2 {
     /**
      * Test bulk get/put byte[] methods with offset and length.
      */
+    @Test
     public void test_getPutByteArrayWithOffsetAndLength() {
         
         final int capacity = 200;
@@ -360,6 +361,7 @@ public class TestByteArrayBuffer extends TestCase2 {
         
     }
 
+    @Test
     public void test_getByte_putByte() {
         
         ByteArrayBuffer buf = new ByteArrayBuffer(Bytes.SIZEOF_BYTE*3);
@@ -388,6 +390,7 @@ public class TestByteArrayBuffer extends TestCase2 {
 
     }
     
+    @Test
     public void test_getShort_putShort() {
         
         ByteArrayBuffer buf = new ByteArrayBuffer(Bytes.SIZEOF_SHORT*3);
@@ -412,6 +415,7 @@ public class TestByteArrayBuffer extends TestCase2 {
 
     }
     
+    @Test
     public void test_getInt_putInt() {
         
         ByteArrayBuffer buf = new ByteArrayBuffer(Bytes.SIZEOF_INT*3);
@@ -436,13 +440,14 @@ public class TestByteArrayBuffer extends TestCase2 {
 
     }
 
+    @Test
     public void test_getFloat_putFloat() {
         
         ByteArrayBuffer buf = new ByteArrayBuffer(Bytes.SIZEOF_FLOAT*3);
         
         final int pos = Bytes.SIZEOF_FLOAT;
         
-        assertEquals(0f,buf.getFloat(pos));
+        assertEquals(0f,buf.getFloat(pos), 0d);
 
         for (int i = 0; i < LIMIT; i++) {
 
@@ -450,15 +455,16 @@ public class TestByteArrayBuffer extends TestCase2 {
 
             buf.putFloat(pos, expected);
 
-            assertEquals(expected, buf.getFloat(pos));
+            assertEquals(expected, buf.getFloat(pos), 0d);
         }
         
-        assertEquals(0f,buf.getFloat(pos-Bytes.SIZEOF_FLOAT));
+        assertEquals(0f,buf.getFloat(pos-Bytes.SIZEOF_FLOAT), 0d);
 
-        assertEquals(0f,buf.getFloat(pos+Bytes.SIZEOF_FLOAT));
+        assertEquals(0f,buf.getFloat(pos+Bytes.SIZEOF_FLOAT), 0d);
 
     }
     
+    @Test
     public void test_getLong_putLong() {
         
         ByteArrayBuffer buf = new ByteArrayBuffer(Bytes.SIZEOF_LONG*3);
@@ -483,13 +489,14 @@ public class TestByteArrayBuffer extends TestCase2 {
 
     }
 
+    @Test
     public void test_getDouble_putDouble() {
         
         ByteArrayBuffer buf = new ByteArrayBuffer(Bytes.SIZEOF_DOUBLE*3);
         
         final int pos = Bytes.SIZEOF_DOUBLE;
         
-        assertEquals(0d,buf.getDouble(pos));
+        assertEquals(0d,buf.getDouble(pos), 0d);
 
         for (int i = 0; i < LIMIT; i++) {
 
@@ -497,18 +504,19 @@ public class TestByteArrayBuffer extends TestCase2 {
 
             buf.putDouble(pos, expected);
 
-            assertEquals(expected, buf.getDouble(pos));
+            assertEquals(expected, buf.getDouble(pos), 0d);
         }
         
-        assertEquals(0d,buf.getDouble(pos-Bytes.SIZEOF_DOUBLE));
+        assertEquals(0d,buf.getDouble(pos-Bytes.SIZEOF_DOUBLE), 0d);
 
-        assertEquals(0d,buf.getDouble(pos+Bytes.SIZEOF_DOUBLE));
+        assertEquals(0d,buf.getDouble(pos+Bytes.SIZEOF_DOUBLE), 0d);
 
     }
 
     /**
      * Test of reading past the limit on the buffer.
      */
+    @Test
     public void test_readPastLimit() {
         
         ByteArrayBuffer buf = new ByteArrayBuffer(2);
@@ -553,6 +561,7 @@ public class TestByteArrayBuffer extends TestCase2 {
 
     }
     
+    @Test
     public void test_readPastLimit2() {
         
         final int capacity = 10;

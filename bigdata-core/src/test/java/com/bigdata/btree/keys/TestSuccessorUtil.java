@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree.keys;
 
+import com.bigdata.test.Assert;
 import java.util.Arrays;
-
-import junit.framework.TestCase2;
+import org.junit.Test;
 
 /**
  * Test suite for {@link SuccessorUtil}.
@@ -40,7 +40,7 @@ import junit.framework.TestCase2;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestSuccessorUtil extends TestCase2 {
+public class TestSuccessorUtil extends Assert {
 
     /**
      * 
@@ -48,13 +48,7 @@ public class TestSuccessorUtil extends TestCase2 {
     public TestSuccessorUtil() {
     }
 
-    /**
-     * @param name
-     */
-    public TestSuccessorUtil(String name) {
-        super(name);
-    }
-
+    @Test
     public void test_float_data_points() {
 
         // positive value space.
@@ -76,6 +70,7 @@ public class TestSuccessorUtil extends TestCase2 {
         
     }
     
+    @Test
     public void test_double_data_points() {
 
         // positive value space.
@@ -128,6 +123,7 @@ public class TestSuccessorUtil extends TestCase2 {
      * href="http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm">
      * Comparing floating point numbers </a> by Bruce Dawson.
      */
+    @Test
     public void test_keyBuilder_successor_float_data()
     {
 
@@ -163,6 +159,7 @@ public class TestSuccessorUtil extends TestCase2 {
      * verified in the previous test as being successors in the float
      * value space.
      */
+    @Test
     public void test_keyBuilder_successor_float_positiveValue()
         throws NoSuccessorException
     {
@@ -182,6 +179,7 @@ public class TestSuccessorUtil extends TestCase2 {
      * space.  The successor is formed by subtracting one from the integer
      * representation when in the negative value space.
      */
+    @Test
     public void test_keyBuilder_successor_float_negativeValue()
         throws NoSuccessorException
     {
@@ -190,8 +188,8 @@ public class TestSuccessorUtil extends TestCase2 {
         
         float neg2 = Float.intBitsToFloat(0x81111110);
         
-        System.err.println("neg1="+neg1);
-        System.err.println("neg2="+neg2);
+//         System.err.println("neg1="+neg1);
+//         System.err.println("neg2="+neg2);
         
         assertTrue("neg1<neg2", neg1<neg2);
         
@@ -207,6 +205,7 @@ public class TestSuccessorUtil extends TestCase2 {
      * href="http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm">
      * Comparing floating point numbers </a> by Bruce Dawson.
      */
+    @Test
     public void test_keyBuilder_successor_float_nearZero_data()
     {
     
@@ -277,6 +276,7 @@ public class TestSuccessorUtil extends TestCase2 {
      * test.
      * <p>
      */
+    @Test
     public void test_keyBuilder_successor_float_nearZero()
         throws NoSuccessorException
     {
@@ -310,7 +310,7 @@ public class TestSuccessorUtil extends TestCase2 {
         assertTrue(-0.00000000f == Float.intBitsToFloat(0x80000000));
 
         assertEquals(Float.intBitsToFloat(0x00000000), SuccessorUtil
-                .successor(Float.intBitsToFloat(0x80000000)));
+                .successor(Float.intBitsToFloat(0x80000000)), 0f);
         
         assertZeroUlps
         ( +0.00000000f,  // 0x00000000
@@ -341,6 +341,7 @@ public class TestSuccessorUtil extends TestCase2 {
      * Verifies that the successor of the penultimate float is
      * correct.
      */
+    @Test
     public void test_keyBuilder_successor_float_penultimateValue()
         throws NoSuccessorException
     {
@@ -356,6 +357,7 @@ public class TestSuccessorUtil extends TestCase2 {
     /**
      * Verifies that successor of the maximum float value is positive infinity.
      */
+    @Test
     public void test_keyBuilder_successor_float_maxValue() 
         throws NoSuccessorException
     {
@@ -368,6 +370,7 @@ public class TestSuccessorUtil extends TestCase2 {
     /**
      * Verifies that there is no successor for a NaN.
      */
+    @Test
     public void test_keyBuilder_successor_float_NaN() {
 
         try {
@@ -378,7 +381,7 @@ public class TestSuccessorUtil extends TestCase2 {
             
         } catch (NoSuccessorException ex) {
             
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
             
         }
 
@@ -390,6 +393,7 @@ public class TestSuccessorUtil extends TestCase2 {
      * @todo Alternatively, we could make the successor the largest
      * negative floating point value - if we knew what that was.
      */
+    @Test
     public void test_keyBuilder_successor_float_negativeInfinity()
     {
 
@@ -401,7 +405,7 @@ public class TestSuccessorUtil extends TestCase2 {
             
         } catch (NoSuccessorException ex) {
             
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
             
         }
 
@@ -410,6 +414,7 @@ public class TestSuccessorUtil extends TestCase2 {
     /**
      * Verifies that there is no successor for positive infinity.
      */
+    @Test
     public void test_keyBuilder_successor_float_positiveInfinity()
     {
 
@@ -421,7 +426,7 @@ public class TestSuccessorUtil extends TestCase2 {
             
         } catch (NoSuccessorException ex) {
             
-            System.err.println("Ignoring expected exception: " + ex);
+//             System.err.println("Ignoring expected exception: " + ex);
             
         }
 
@@ -430,6 +435,7 @@ public class TestSuccessorUtil extends TestCase2 {
     /**
      * Test computation of the successor of a fixed length bit string.
      */
+    @Test
     public void test_bitString_successor() {
         
         // simplest case
@@ -444,7 +450,7 @@ public class TestSuccessorUtil extends TestCase2 {
             // expected successor.
             byte[] e = new byte[]{0x01};
             
-            assertEquals(e,s);
+            assertArrayEquals(e,s);
             
         }
 
@@ -460,7 +466,7 @@ public class TestSuccessorUtil extends TestCase2 {
             // expected successor.
             byte[] e = new byte[]{Byte.MIN_VALUE+1};
             
-            assertEquals(e,s);
+            assertArrayEquals(e,s);
             
         }
 
@@ -474,14 +480,14 @@ public class TestSuccessorUtil extends TestCase2 {
             // successor.
             byte[] s = SuccessorUtil.successor(b.clone());
             
-            System.err.println("b: "+Arrays.toString(b));
-            System.err.println("s: "+Arrays.toString(s));
+//             System.err.println("b: "+Arrays.toString(b));
+//             System.err.println("s: "+Arrays.toString(s));
             
             // expected successor.
 //            byte[] e = new byte[]{0x01,Byte.MIN_VALUE};
             byte[] e = new byte[]{0x01,0x00};
             
-            assertEquals(e,s);
+            assertArrayEquals(e,s);
             
         }
 
@@ -496,7 +502,7 @@ public class TestSuccessorUtil extends TestCase2 {
                 SuccessorUtil.successor(b.clone());
                 fail("Expecting: " + NoSuccessorException.class);
             } catch (NoSuccessorException ex) {
-                System.err.println("Ignoring expected exception: "+ex);
+//                 System.err.println("Ignoring expected exception: "+ex);
             }
 
         }
@@ -513,7 +519,7 @@ public class TestSuccessorUtil extends TestCase2 {
                 SuccessorUtil.successor(b.clone());
                 fail("Expecting: " + NoSuccessorException.class);
             } catch (NoSuccessorException ex) {
-                System.err.println("Ignoring expected exception: "+ex);
+//                 System.err.println("Ignoring expected exception: "+ex);
             }
             
         }
@@ -549,7 +555,7 @@ public class TestSuccessorUtil extends TestCase2 {
                     if(b[k]!=-1) allones = false;
                 }
                 if(allones) {
-                    System.err.println("short "+v+" is all ones.");
+//                     System.err.println("short "+v+" is all ones.");
                 }}
                 if (v == Short.MAX_VALUE) {
                     // no successor.
@@ -558,8 +564,8 @@ public class TestSuccessorUtil extends TestCase2 {
                         SuccessorUtil.successor(b.clone());
                         fail("Expecting: " + NoSuccessorException.class);
                     } catch (NoSuccessorException ex) {
-                        System.err
-                                .println("Ignoring expected exception: " + ex);
+//                         System.err
+//                                 .println("Ignoring expected exception: " + ex);
                     }
                 } else {
                     // expected successor.
@@ -575,12 +581,15 @@ public class TestSuccessorUtil extends TestCase2 {
                         System.err.println("e: " + Arrays.toString(e));
                     }
 
-                    assertEquals(e, s);
+                    assertArrayEquals(e, s);
                 }
             }
             
         }
         
     }
-    
+
+    private static void assertZeroUlps(float f1, float f2) {
+        assertEquals(Float.floatToIntBits(f1), Float.floatToIntBits(f2));
+    }
 }

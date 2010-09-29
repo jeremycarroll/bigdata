@@ -59,36 +59,43 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
 import com.bigdata.rdf.rio.StatementBuffer;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.AbstractTripleStoreTestCase;
+import com.bigdata.rdf.store.ProxyTestCase;
 import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.Var;
 import com.bigdata.striterator.ICloseableIterator;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Unit tests for {@link AbstractTripleStore#match(Literal[], URI[], URI)}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestMatch extends AbstractTripleStoreTestCase {
 
     /**
      * 
      */
-    public TestMatch() {
+    public TestMatch(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestMatch(String name) {
-        super(name);
-    }
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
 
     /**
      * Unit test for {@link AbstractTripleStore#match(Literal[], URI[], URI)}
      */
+    @Test
     public void test_match() {
 
 //        LocalTripleStore store = new LocalTripleStore(getProperties());

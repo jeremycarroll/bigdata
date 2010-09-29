@@ -49,6 +49,8 @@ import com.bigdata.btree.raba.ReadOnlyKeysRaba;
 import com.bigdata.btree.raba.ReadOnlyValuesRaba;
 import com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder.AbstractCodingSetup;
 import com.bigdata.btree.raba.codec.CanonicalHuffmanRabaCoder.RabaCodingSetup;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link CanonicalHuffmanRabaCoder}.
@@ -64,14 +66,8 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
     public TestCanonicalHuffmanRabaCoder() {
     }
 
-    /**
-     * @param name
-     */
-    public TestCanonicalHuffmanRabaCoder(String name) {
-        super(name);
-    }
-
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         
         rabaCoder = CanonicalHuffmanRabaCoder.INSTANCE;
         
@@ -115,6 +111,7 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
     /**
      * Test with a simple fixed frequency[].
      */
+    @Test
     public void test_huffmanCodec01() {
 
         final int[] frequency = new int[] { 1, 2, 3, 3, 4, 5 };
@@ -135,6 +132,7 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
      *     at com.bigdata.btree.raba.codec.TestCanonicalHuffmanRabaCoder.test_huffmanCodec_noSymbols(TestCanonicalHuffmanRabaCoder.java:121)
      * </pre>
      */
+    @Test
     public void test_huffmanCodec_noSymbols() {
 
         final int[] frequency = new int[] {};
@@ -155,6 +153,7 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
      *     at com.bigdata.btree.raba.codec.TestCanonicalHuffmanRabaCoder.test_huffmanCodec_oneSymbols(TestCanonicalHuffmanRabaCoder.java:132)
      * </pre>
      */
+    @Test
     public void test_huffmanCodec_oneSymbols() {
 
         final int[] frequency = new int[] {1};
@@ -168,6 +167,7 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
      * distinct symbols. Frequencies MAY be zero for some symbols. Tests with
      * zero and one symbols are done separately since both cases have errors.
      */
+    @Test
     public void test_huffmanCodecStress() {
 
         final int ntrials = 10000;
@@ -235,6 +235,7 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_huffmanRecoderStress() throws IOException {
 
         final int ntrials = 10000;
@@ -268,6 +269,7 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_huffmanRecoder01() throws IOException {
         
         final int[] frequency = new int[]{1,0,3,5,0,0,9};
@@ -372,6 +374,7 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_emptyKeyRabaSetup() throws IOException {
         
         final int n = 0;
@@ -401,6 +404,7 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
      * 
      * @throws IOException 
      */
+    @Test
     public void test_keyRabaSetup() throws IOException {
 
         final int n = 8;
@@ -436,6 +440,7 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
      * 
      * @todo test w/ nulls.
      */
+    @Test
     public void test_valueRabaSetup() throws IOException {
 
         final int n = 3;
@@ -471,6 +476,7 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
      * 
      * @throws IOException
      */
+    @Test
     public void test_emptyValueRabaSetup() throws IOException {
 
         final int n = 0;
@@ -549,10 +555,10 @@ public class TestCanonicalHuffmanRabaCoder extends AbstractRabaCoderTestCase {
             assertEquals("shortestCodeWord", decoderInputs
                     .getShortestCodeWord(), actualInputs.getShortestCodeWord());
 
-            assertEquals("length[]", decoderInputs.getLengths(), actualInputs
+            assertArrayEquals("length[]", decoderInputs.getLengths(), actualInputs
                     .getLengths());
 
-            assertEquals("symbol[]", decoderInputs.getSymbols(), actualInputs
+            assertArrayEquals("symbol[]", decoderInputs.getSymbols(), actualInputs
                     .getSymbols());
 
         }

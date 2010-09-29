@@ -43,6 +43,7 @@ import com.bigdata.btree.TestTuple;
 import com.bigdata.btree.Tuple;
 import com.bigdata.btree.AbstractBTreeTupleCursor.ReadOnlyBTreeTupleCursor;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
+import org.junit.Test;
 
 /**
  * Test suite for the {@link Reverserator}.
@@ -58,13 +59,6 @@ public class TestReverserator extends AbstractTupleCursorTestCase {
     public TestReverserator() {
     }
 
-    /**
-     * @param arg0
-     */
-    public TestReverserator(String arg0) {
-        super(arg0);
-    }
-
     protected ITupleCursor2<String> newCursor(AbstractBTree btree, int flags,
             byte[] fromKey, byte[] toKey) {
         
@@ -78,6 +72,7 @@ public class TestReverserator extends AbstractTupleCursorTestCase {
      * @todo add tests for the rest of the {@link ITupleCursor} API since the
      *       {@link Reverserator} implements the full {@link ITupleCursor} API.
      */
+    @Test
     public void test_reverse_traversal() {
 
         BTree btree = BTree.create(new SimpleMemoryRawStore(), new IndexMetadata(

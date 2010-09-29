@@ -36,30 +36,36 @@ import org.openrdf.model.Statement;
 import com.bigdata.btree.UnisolatedReadWriteIndex;
 import com.bigdata.rdf.load.IStatementBufferFactory;
 import com.bigdata.rdf.model.BigdataStatement;
+import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.ProxyTestCase;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test loads an RDF/XML resource into a database and then verifies by re-parse
  * that all expected statements were made persistent in the database.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
+@RunWith(Parameterized.class)
 public class TestLoadAndVerify extends AbstractRIOTestCase {
 
     /**
      * 
      */
-    public TestLoadAndVerify() {
+    public TestLoadAndVerify(AbstractTestCase delegate) {
+        setDelegate(delegate);
     }
 
-    /**
-     * @param name
-     */
-    public TestLoadAndVerify(String name) {
-        super(name);
-    }
-    
+    @Parameters
+    public static Collection<Object[]> getDelegates() {
+        return ProxyTestCase.getDelegateGroup4();
+    };
+
     /**
      * @todo observed exception with verify in parallel which suggests a problem
      *       with {@link UnisolatedReadWriteIndex}
@@ -111,6 +117,7 @@ public class TestLoadAndVerify extends AbstractRIOTestCase {
      *  
      * @throws Exception
      */
+    @Test
     public void test_loadAndVerify_small() throws Exception {
         
         final String file = DataFinder.bestPath("testing/data/com/bigdata/rdf/rio/small.rdf");
@@ -124,6 +131,7 @@ public class TestLoadAndVerify extends AbstractRIOTestCase {
      * 
      * @throws Exception
      */
+    @Test
     public void test_loadAndVerify_sampleData() throws Exception {
         
         final String file = DataFinder.bestPath("testing/data/com/bigdata/rdf/rio/sample data.rdf");
@@ -135,6 +143,7 @@ public class TestLoadAndVerify extends AbstractRIOTestCase {
     /**
      * Uses a modest (40k statements) file.
      */
+    @Test
     public void test_loadAndVerify_modest() throws Exception {
         
 //      final String file = "../rdf-data/nciOncology.owl";
@@ -143,7 +152,8 @@ public class TestLoadAndVerify extends AbstractRIOTestCase {
 
         if (!new File(file).exists()) {
 
-            fail("Resource not found: " + file + ", test skipped: " + getName());
+            fail("Resource not found: " + file + ", test skipped: " +
+                    this.getClass().getName());
 
             return;
             
@@ -156,6 +166,7 @@ public class TestLoadAndVerify extends AbstractRIOTestCase {
     /**
      * LUBM U(1)
      */
+    @Test
     public void test_loadAndVerify_U1() throws Exception {
         
         final String file = DataFinder.bestPath("testing/data/lehigh/U1");
