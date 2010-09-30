@@ -33,13 +33,6 @@ package com.bigdata.util;
 public class HTMLUtility {
 
     /**
-     * 
-     */
-    public HTMLUtility() {
-        super();
-    }
-
-    /**
      * <p>
      * Sometimes you want to escape something without using a DOM instance. This
      * method escapes a String value so that it may be written as the value of
@@ -145,120 +138,120 @@ public class HTMLUtility {
 //	return new String(retval.getBytes(enc), enc);
 //    }
 
-    public static String escapeForXMLName(String s) {
-
-        if( s == null ) {
-            
-            throw new IllegalArgumentException();
-            
-        }
-        
-        int len = s.length();
-
-        if (len == 0)
-            return s;
-
-        StringBuffer sb = new StringBuffer(len + 20);
-
-	char ch = s.charAt(0);
-
-	if(Character.isDigit(ch))
-	{
-		sb.append("_num_");
-	}
-
-        for (int i = 0; i < len; i++) {
-
-            ch = s.charAt(i);
-
-            switch (ch) {
-
-            case '"':
-                sb.append("_quote_");
-                break;
-
-            case '\'':
-                sb.append("_apos_");
-                break;
-
-            case '&':
-                sb.append("_amp_");
-                break;
-
-            case '<':
-                sb.append("_lt_");
-                break;
-
-            case '>':
-                sb.append("_gt_");
-                break;
-
-            case '$':
-                sb.append("_dollar_");
-                break;
-
-            case ':':
-                sb.append("_colon_");
-                break;
-
-            case '~':
-                sb.append("_tilda_");
-                break;
-
-            case '(':
-                sb.append("_lparen_");
-                break;
-
-            case ')':
-                sb.append("_rparen_");
-                break;
-
-            case ',':
-                sb.append("_comma_");
-                break;
-
-            case '=':
-                sb.append("_eq_");
-                break;
-
-            case '!':
-                sb.append("_bang_");
-                break;
-
-            case '?':
-                sb.append("_quest_");
-                break;
-
-            case '/':
-                sb.append("_fw_slash_");
-                break;
-
-            case '\\':
-                sb.append("_bk_slash_");
-                break;
-
-            case ';':
-                sb.append("_semicolon_");
-                break;
-
-            case '.':
-                sb.append("_period_");
-                break;
-
-            case '`':
-                sb.append("_tic_");
-                break;
-
-            default:
-                sb.append(ch);
-                break;
-
-            }
-
-        }
-
-        return sb.toString();
-
-    }
+//    public static String escapeForXMLName(String s) {
+//
+//        if( s == null ) {
+//            
+//            throw new IllegalArgumentException();
+//            
+//        }
+//        
+//        int len = s.length();
+//
+//        if (len == 0)
+//            return s;
+//
+//        StringBuffer sb = new StringBuffer(len + 20);
+//
+//	char ch = s.charAt(0);
+//
+//	if(Character.isDigit(ch))
+//	{
+//		sb.append("_num_");
+//	}
+//
+//        for (int i = 0; i < len; i++) {
+//
+//            ch = s.charAt(i);
+//
+//            switch (ch) {
+//
+//            case '"':
+//                sb.append("_quote_");
+//                break;
+//
+//            case '\'':
+//                sb.append("_apos_");
+//                break;
+//
+//            case '&':
+//                sb.append("_amp_");
+//                break;
+//
+//            case '<':
+//                sb.append("_lt_");
+//                break;
+//
+//            case '>':
+//                sb.append("_gt_");
+//                break;
+//
+//            case '$':
+//                sb.append("_dollar_");
+//                break;
+//
+//            case ':':
+//                sb.append("_colon_");
+//                break;
+//
+//            case '~':
+//                sb.append("_tilda_");
+//                break;
+//
+//            case '(':
+//                sb.append("_lparen_");
+//                break;
+//
+//            case ')':
+//                sb.append("_rparen_");
+//                break;
+//
+//            case ',':
+//                sb.append("_comma_");
+//                break;
+//
+//            case '=':
+//                sb.append("_eq_");
+//                break;
+//
+//            case '!':
+//                sb.append("_bang_");
+//                break;
+//
+//            case '?':
+//                sb.append("_quest_");
+//                break;
+//
+//            case '/':
+//                sb.append("_fw_slash_");
+//                break;
+//
+//            case '\\':
+//                sb.append("_bk_slash_");
+//                break;
+//
+//            case ';':
+//                sb.append("_semicolon_");
+//                break;
+//
+//            case '.':
+//                sb.append("_period_");
+//                break;
+//
+//            case '`':
+//                sb.append("_tic_");
+//                break;
+//
+//            default:
+//                sb.append(ch);
+//                break;
+//
+//            }
+//
+//        }
+//
+//        return sb.toString();
+//
+//    }
 
 }

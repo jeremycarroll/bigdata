@@ -105,7 +105,7 @@ public class MillisecondTimestampFactory {
 
         assertPositive(lowerBound);
 
-        if (_lastTimestamp < lowerBound) {
+        if (lowerBound < _lastTimestamp) {
 
             log.warn("Timestamp factory is being set to an earlier time!");
 
@@ -161,7 +161,6 @@ public class MillisecondTimestampFactory {
 
         // current time.
         long timestamp = System.currentTimeMillis();
-        ;
 
         if (_autoIncMode) {
 
@@ -182,8 +181,7 @@ public class MillisecondTimestampFactory {
 
             _autoIncMode = false;
 
-            log
-                    .warn("Leaving auto-increment mode: time is going forward again: lastTimestamp="
+            log.warn("Leaving auto-increment mode: time is going forward again: lastTimestamp="
                             + _lastTimestamp + ", millisTime=" + timestamp);
 
             // fall through.
@@ -226,8 +224,7 @@ public class MillisecondTimestampFactory {
              * by this factory moving forward.
              */
 
-            log
-                    .warn("Entering auto-increment mode : milliseconds go backward: lastTimestamp="
+            log.warn("Entering auto-increment mode : milliseconds go backward: lastTimestamp="
                             + _lastTimestamp + ", millisTime=" + timestamp);
 
             _autoIncMode = true;

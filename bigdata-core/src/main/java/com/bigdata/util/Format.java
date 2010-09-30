@@ -36,6 +36,7 @@ import java.text.MessageFormat;
  * the logger; which occurs only when the log level satisfies the
  * necessary criteria for the message to be logged.
  */
+//TODO - replace references with log level checks intstead
 public class Format {
 
     private final String pattern;

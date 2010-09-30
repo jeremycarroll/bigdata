@@ -27,16 +27,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.util;
 
-import com.bigdata.test.Assert;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.TreeMap;
-import com.bigdata.util.CSVReader.Header;
+
 import org.junit.Test;
+
+import com.bigdata.test.Assert;
+import com.bigdata.util.CSVReader.Header;
 
 /**
  * Test suite for {@link CSVReader}.
@@ -57,23 +66,41 @@ public class TestCSVReader extends Assert {
     }
 
     @Test
-    public void test_ctor_correctRejection() throws IOException {
+    public void test_ctor1_correctRejection() 
+        throws IOException, SecurityException, NoSuchMethodException, 
+               InstantiationException, IllegalAccessException, InvocationTargetException 
+    {
+        Object[][] cmdLines = {
+            new Object[] {null, null},
+            new Object[] {null, "UTF-8"},
+            new Object[] {new ByteArrayInputStream(new byte[]{}), null},            
+        };
         
-        try {
-            new CSVReader(null,"UTF-8");
-            fail("Expecting: "+IllegalArgumentException.class);
-        } catch(IllegalArgumentException ex) {
-            log.info("Ignoring expected exception: "+ex);
-        }
-
-        try {
-            new CSVReader(new ByteArrayInputStream(new byte[]{}),null);
-            fail("Expecting: "+IllegalArgumentException.class);
-        } catch(IllegalArgumentException ex) {
-            log.info("Ignoring expected exception: "+ex);
+        Constructor<CSVReader> cons = 
+        	CSVReader.class.getConstructor(InputStream.class, String.class);
+        for (Object[] cmdLine: cmdLines) {
+	        try {
+	            cons.newInstance(cmdLine);
+	            fail("Expecting: " + IllegalArgumentException.class.toString());
+	        } catch(InvocationTargetException ex) {
+	            if (!(ex.getCause() instanceof IllegalArgumentException)) {
+		            fail("Expecting: " + IllegalArgumentException.class.toString());
+	            }
+	            //ignore -- expected
+	        }
         }
 
     }
+    @Test
+    public void test_ctor2_correctRejection() throws IOException {
+        try {
+        	Reader r = null;
+        	new CSVReader(r);
+            fail("Expecting: " + IllegalArgumentException.class.toString());
+        } catch(IllegalArgumentException ex) {
+            //ignore -- expected
+        }
+	}
     
     /**
      * Test reads from a tab-delimited file <code>test.csv</code> with headers
@@ -107,7 +134,7 @@ public class TestCSVReader extends Assert {
         
         assertEquals(1,r.lineNo());
 
-        assertEquals(headers, r.headers);
+        assertArrayEquals(headers, r.getHeaders());
         
         /*
          * 1st row of data.
@@ -201,22 +228,364 @@ public class TestCSVReader extends Assert {
         assertFalse(r.hasNext());
         
     }
+    
 
-    protected void assertEquals(Header[] expected, Header[] actual) {
-        
-        assertEquals(expected.length,actual.length);
-        
-        for(int i=0; i<expected.length; i++) {
-            
-            if(!expected[i].equals( actual[i])) {
-                
-                fail("headers["+i+"], expected ["+expected[i]+"]u not ["+actual[i]+"]" );
-                
-            }
-            
-        }
-        
+    private static Header[] convertStringToHeader(String[] sa) {
+    	Header[] h = new Header[sa.length];
+    	int i=0;
+    	for (String s: sa) {
+    		h[i++] = new Header(s);
+    	}
+    	return h;
     }
+    private static String[] stringHeaders = { "Header1", "Header2", "Header3" };
+    private static String[] defaultStringHeaders = { "1", "2", "3" };
+    
+    private static Header[] headers = convertStringToHeader(stringHeaders);
+    private static Header[] defaultHeaders = convertStringToHeader(defaultStringHeaders);
+    
+    private static Object[][] rows = {
+    	{ "Column11", "Column12", "Column13" },
+    	{ "Column21", "Column22", "Column23" },
+        { "Column31", "Column32", "Column33" },
+        { "Column with spaces", "and more spaces", "and embedded \"quotes\"" },
+    };
+    
+    private static CSVReaderBuilder getDefaultTestCSVReaderBuilder() {
+    	CSVReaderBuilder b = new CSVReaderBuilder();
+    	for (String header: stringHeaders) {
+    		b.header(header);
+    	}
+    	for (Object[] row: rows) {
+    		b.newRow();
+    		for (Object col: row) {
+    			b.column(col.toString());
+    		}
+    	}
+    	return b;
+    }
+    @Test
+    public void test_default_csv_reader_with_defaults() throws IOException {
+    	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
+    	verify_data_and_header(new CSVReader(cb.buildReader()));
+    }
+    @Test
+    public void test_default_csv_reader_with_tabs() throws IOException {
+    	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
+    	cb.setColumnDelimiter("\t");
+    	verify_data_and_header(new CSVReader(cb.buildReader()));
+    }
+    @Test
+    public void test_default_csv_reader_without_quotes() throws IOException {
+    	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
+    	cb.setSuppressQoutes(true);
+    	verify_data_and_header(new CSVReader(cb.buildReader()));
+    }
+    @Test
+    public void test_default_csv_reader_no_headers() throws IOException {
+    	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
+    	cb.setSuppressHeader(true);
+    	verify_data(new CSVReader(cb.buildReader()),defaultHeaders);
+    }
+    
+    private void verify_data_and_header(CSVReader cr) throws IOException {
+        // Read and verify header row
+        assertTrue(cr.hasNext());
+        cr.readHeaders();
+    	assertArrayEquals(cr.getHeaders(), headers);
+    	verify_data(cr, headers);
+    }
+    
+    private void verify_data(CSVReader cr, Header[] headers) throws IOException {
+    	//Read and verify data rows
+    	for (int i=0; i < rows.length; i++) {
+            assertTrue(cr.hasNext());
+            assertSameValues( newMap(headers, rows[i]), cr.next() );
+    	}    	
+        assertFalse(cr.hasNext());
+    }
+    @Test
+    public void test_header_cons_with_bad_args() {
+    	try {
+    		new Header(null);
+    		fail("Constructed Header with null arg.");
+    	} catch (IllegalArgumentException e){
+    		//ignore -- expected
+    	}
+    	try {
+    		new Header("");
+    		fail("Constructed Header with empty arg.");
+    	} catch (IllegalArgumentException e){
+    		//ignore -- expected
+    	}    	
+    }
+    @Test
+    public void test_header_cons_with_good_arg() {
+    	String name = "abc";
+    	Header h = new Header(name);
+    	assertEquals(h.getName(), name);
+    }
+    @Test
+    public void test_header_equals() {
+    	String name = "abc";
+    	Header h = new Header(name);
+    	Header h_dup = new Header(name);
+    	Header h_dup2 = new Header(name);
+    	Header h_diff = new Header(name + "diff");
+    	
+    	// Test reflexive property
+    	assertTrue(h.equals(h));
+    	
+    	// Test symmetric property    	
+    	assertTrue(h.equals(h_dup) && h_dup.equals(h));
+    	
+    	//Test transitive property
+    	assertTrue(h.equals(h_dup) && h_dup.equals(h_dup2) && h.equals(h_dup2));
+    	
+    	// consistency property already tested
+    	
+    	// Test negative cases
+    	assertFalse(h.equals(null));
+    	
+    	assertFalse(h.equals(name));
+    	
+    	assertFalse(h.equals(h_diff));
+    }
+    @Test
+    public void test_header_hashcode() {
+    	String name = "abc";
+    	Header h = new Header(name);
+    	Header h_dup = new Header(name);
+
+    	assertTrue(h.hashCode()==h_dup.hashCode());
+    }
+    @Test
+    public void test_header_toString() {
+    	String name = "abc";
+    	Header h = new Header(name);
+    	Header h_dup = new Header(name);
+
+    	assertTrue(h.toString().equals(name));
+    	assertTrue(h_dup.toString().equals(name));
+    }
+    @Test
+    public void test_setTailDelayMillis_bad_arg() throws IOException {
+    	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
+    	CSVReader r = new CSVReader(cb.buildReader());
+    	try {
+    		r.setTailDelayMillis(-1L);
+    		fail("Created CSVReader with negative delay.");
+    	} catch (IllegalArgumentException e) {
+    		//ignore -- expected
+    	}
+    }
+    @Test
+    public void test_setTailDelayMillis_good_arg() throws IOException {
+    	CSVReaderBuilder cb = getDefaultTestCSVReaderBuilder();
+    	CSVReader r = new CSVReader(cb.buildReader());
+    	long delay = 1L;
+    	long oldDelay = 0L;
+    	long tmpDelay = 0L;
+    	tmpDelay = r.setTailDelayMillis(delay);
+  		assertTrue(r.getTailDelayMillis()==delay);
+  		assertTrue(tmpDelay==oldDelay);
+    }    
+    
+    private static class DelayedReader extends StringReader {
+
+    	private boolean isReady = false;
+    	private int maxDelayCount = 3;
+    	private int delayCount = 1;
+    	
+		public DelayedReader(String s) {
+			super(s);
+		}		
+		
+		@Override
+		public boolean ready() {
+			if (delayCount++ > maxDelayCount) isReady = true;
+			return isReady;
+		}
+    	
+    }
+    @Test
+    public void test_delay_with_reader() throws IOException {
+    	CSVReaderBuilder crb = new CSVReaderBuilder();
+    	StringReader s = 
+    		new DelayedReader(
+    			crb.join(Arrays.asList(stringHeaders)));
+    	CSVReader r = new CSVReader(s);
+    	r.setTailDelayMillis(1000); // 1 sec
+    	assertTrue(r.hasNext());
+    	r.readHeaders();
+    	Header[] actualHeaders = r.getHeaders();
+    	Header[] expectedHeaders = headers;
+    	assertArrayEquals(expectedHeaders, actualHeaders);
+    }
+    @Test
+    public void test_delay_with_reader_with_comments_and_empty_lines() 
+        throws IOException 
+    {
+    	CSVReaderBuilder crb = new CSVReaderBuilder();
+    	crb.header("H1").header("H2").header("H3");
+    	crb.newRow().column("c1").column("c2").column("c3");
+    	crb.newRow().column("# Comment line");
+    	crb.newRow().column(""); //Blank line
+    	crb.newRow().column("d1").column("d2").column("d3");
+    	crb.setSuppressQoutes(true); // Otherwise # isn't first char
+    	CSVReader r = new CSVReader(crb.buildReader());
+    	assertTrue(r.hasNext());
+    	r.readHeaders();
+    	Header[] actualHeaders = r.getHeaders();
+    	Header[] expectedHeaders = new Header[] {
+    			new Header("H1"),
+    			new Header("H2"),
+    			new Header("H3"),    			
+    	};
+    	assertArrayEquals(expectedHeaders, actualHeaders);
+    	//Check that two rows of data gets returned
+    	Map<String, Object> actualRow = r.next();
+    	Map<String, Object> expectedRow = 
+    		newMap(expectedHeaders, 
+    			new Object[] { "c1", "c2", "c3"} );
+    	assertSameValues(expectedRow, actualRow);
+    	actualRow = r.next();
+    	expectedRow = 
+    		newMap(expectedHeaders, 
+    			new Object[] { "d1", "d2", "d3"} );
+    	assertSameValues(expectedRow, actualRow);
+    	assertFalse(r.hasNext());
+    	try {
+    		r.next();
+    		fail("Successfully called next() on an empty reader.");
+    	} catch (NoSuchElementException e) {
+    		//ignore -- expected 
+    	}
+    }
+    @Test
+    public void test_get_headers() 
+    throws IOException 
+	{
+		CSVReader r = new CSVReader(new StringReader(""));
+        assertNull(r.getHeaders());
+	}
+    @Test
+    public void test_get_headers2() 
+    throws IOException 
+	{
+    	CSVReaderBuilder crb = new CSVReaderBuilder();
+		CSVReader r = 
+			new CSVReader(
+				new StringReader(
+					crb.join(Arrays.asList(stringHeaders))));
+		r.readHeaders();
+        Header[] actual = r.getHeaders();
+        assertArrayEquals(headers, actual);
+	}
+    @Test
+    public void test_set_headers_null() 
+    throws IOException 
+	{
+    	CSVReaderBuilder crb = new CSVReaderBuilder();
+		CSVReader r = 
+			new CSVReader(
+				new StringReader(
+					crb.join(Arrays.asList(stringHeaders))));
+		try {
+			r.setHeaders(null);
+			fail("Was able to set null headers.");
+		} catch (IllegalArgumentException e) {
+			//ignore -- expected
+		}
+	}
+    @Test
+    public void test_set_headers() 
+    throws IOException 
+	{
+    	CSVReaderBuilder crb = new CSVReaderBuilder();
+		CSVReader r = 
+			new CSVReader(
+				new StringReader(
+					crb.join(Arrays.asList(stringHeaders))));
+		r.readHeaders();
+        Header[] actual = r.getHeaders();
+        assertArrayEquals(headers, actual);
+        r.setHeaders(defaultHeaders);
+        actual = r.getHeaders();        
+        assertArrayEquals(defaultHeaders, actual);
+        
+	}
+    @Test
+    public void test_set_header_out_of_bounds() 
+    throws IOException 
+	{
+    	CSVReaderBuilder crb = new CSVReaderBuilder();
+		CSVReader r = 
+			new CSVReader(
+				new StringReader(
+					crb.join(Arrays.asList(stringHeaders))));
+		r.readHeaders();
+        Header[] actual = r.getHeaders();
+        assertArrayEquals(headers, actual);
+        try {
+        	r.setHeader(stringHeaders.length, new Header("out-of-bounds"));
+        	fail("Able to set an out-of-bounds header element.");
+        } catch (IndexOutOfBoundsException e) {
+        	//ignore -- expected
+        }
+	}    
+    @Test
+    public void test_set_header_null() 
+    throws IOException 
+	{
+    	CSVReaderBuilder crb = new CSVReaderBuilder();
+		CSVReader r = 
+			new CSVReader(
+				new StringReader(
+					crb.join(Arrays.asList(stringHeaders))));
+		r.readHeaders();
+        Header[] actual = r.getHeaders();
+        assertArrayEquals(headers, actual);
+        try {
+        	r.setHeader(stringHeaders.length-1, null);
+        	fail("Able to set a null header element.");
+        } catch (IllegalArgumentException e) {
+        	//ignore -- expected
+        }
+	}
+    @Test
+    public void test_set_header_valid() 
+    throws IOException 
+	{
+    	CSVReaderBuilder crb = new CSVReaderBuilder();
+		CSVReader r = 
+			new CSVReader(
+				new StringReader(
+					crb.join(Arrays.asList(stringHeaders))));
+		r.readHeaders();
+        Header[] actual = r.getHeaders();
+        assertArrayEquals(headers, actual);
+        Header[] headersClone = headers.clone();
+        int last = headersClone.length-1;
+        headersClone[last] = new Header("replacement");
+       	r.setHeader(last, headersClone[last]);
+        actual = r.getHeaders();
+        assertArrayEquals(headersClone, actual);       	
+	}    
+    @Test
+    public void test_remove() 
+        throws IOException 
+	{
+		CSVReader r = 
+			new CSVReader(new StringReader("bogus"));
+		try { 
+			r.remove();
+			fail("Successfully called unsupported operation.");
+		} catch (UnsupportedOperationException e) {
+			// ignore -- expected
+		}
+	}    
+        
     
     /**
      * Form data structure modeling an expected (parsed) row.

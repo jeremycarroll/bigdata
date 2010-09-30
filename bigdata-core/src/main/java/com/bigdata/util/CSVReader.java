@@ -93,10 +93,8 @@ public class CSVReader implements Iterator<Map<String, Object>> {
 
         private final String name;
         
-        public String getName() {
-            
-            return name;
-            
+        public String getName() {            
+            return name;           
         }
 
         /**
@@ -227,25 +225,29 @@ public class CSVReader implements Iterator<Map<String, Object>> {
         }
 
         /**
-         * Equal if the headers have the same data.
+         * Equal if the headers have the same name.
          */
-        public boolean equals(Header o) {
+        @Override
+        public boolean equals(Object o) {
+        	if (!(o instanceof Header))
+        	    return false;
+        	
+        	Header h = (Header)o;            
             
-            if(this==o) return true;
-            
-            return name.equals(o.name);
-            
+            return name.equals(h.name);            
         }
         
         /**
          * Based on the header name.
          */
+        @Override
         public int hashCode() {
             
             return name.hashCode();
             
         }
 
+        @Override
         public String toString() {
             
             return name;
@@ -289,7 +291,7 @@ public class CSVReader implements Iterator<Map<String, Object>> {
      * The header definitions (initially null).
      * 
      * @see #readHeaders()
-     * @see #setHeaders(String[])
+     * @see #setHeaders(Header[])
      */
     protected Header[] headers;
 
@@ -324,53 +326,53 @@ public class CSVReader implements Iterator<Map<String, Object>> {
 
     }
     
-    public boolean setSkipCommentLines(boolean skipCommentLines) {
+//    public boolean setSkipCommentLines(boolean skipCommentLines) {
+//
+//        boolean tmp = this.skipCommentLines;
+//
+//        this.skipCommentLines = skipCommentLines;
+//
+//        return tmp;
+//
+//    }
+//
+//    public boolean getSkipCommentLines() {
+//
+//        return skipCommentLines;
+//
+//    }
 
-        boolean tmp = this.skipCommentLines;
+//    public boolean setSkipBlankLines(boolean skipBlankLines) {
+//
+//        boolean tmp = this.skipBlankLines;
+//
+//        this.skipBlankLines = skipBlankLines;
+//
+//        return tmp;
+//
+//    }
+//
+//    public boolean getSkipBlankLines() {
+//
+//        return skipBlankLines;
+//
+//    }
 
-        this.skipCommentLines = skipCommentLines;
-
-        return tmp;
-
-    }
-
-    public boolean getSkipCommentLines() {
-
-        return skipCommentLines;
-
-    }
-
-    public boolean setSkipBlankLines(boolean skipBlankLines) {
-
-        boolean tmp = this.skipBlankLines;
-
-        this.skipBlankLines = skipBlankLines;
-
-        return tmp;
-
-    }
-
-    public boolean getSkipBlankLines() {
-
-        return skipBlankLines;
-
-    }
-
-    public boolean setTrimWhitespace(boolean trimWhitespace) {
-
-        boolean tmp = this.trimWhitespace;
-
-        this.trimWhitespace = trimWhitespace;
-
-        return tmp;
-
-    }
-
-    public boolean getTrimWhitespace() {
-
-        return trimWhitespace;
-
-    }
+//    public boolean setTrimWhitespace(boolean trimWhitespace) {
+//
+//        boolean tmp = this.trimWhitespace;
+//
+//        this.trimWhitespace = trimWhitespace;
+//
+//        return tmp;
+//
+//    }
+//
+//    public boolean getTrimWhitespace() {
+//
+//        return trimWhitespace;
+//
+//    }
 
     /**
      * The #of milliseconds that the {@link CSVReader} should wait before
@@ -505,8 +507,7 @@ public class CSVReader implements Iterator<Map<String, Object>> {
     }
 
     /**
-     * Trim whitespace and optional quotes from each value iff
-     * {@link #getTrimWhitespace()} is true.
+     * Trim whitespace and optional quotes.
      * 
      * @param cols
      *            The column values.
@@ -651,7 +652,7 @@ public class CSVReader implements Iterator<Map<String, Object>> {
      */
     public Header[] getHeaders() {
 
-        return headers.clone();
+        return ((headers==null)? null : headers.clone());
         
     }
     
@@ -679,7 +680,7 @@ public class CSVReader implements Iterator<Map<String, Object>> {
      */
     public void setHeader(int index,Header header) {
         
-        if (index < 0 || index > headers.length)
+        if (index < 0 || index >= headers.length)
             throw new IndexOutOfBoundsException();
 
         if (header == null)
@@ -688,7 +689,7 @@ public class CSVReader implements Iterator<Map<String, Object>> {
         headers[index] = header;
         
     }
-    
+
     /**
      * Unsupported operation.
      */

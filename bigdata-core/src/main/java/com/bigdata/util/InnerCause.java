@@ -53,7 +53,6 @@ public class InnerCause {
      * @throws IllegalArgumentException
      *             if any parameter is null.
      */
-//    static public Throwable getInnerCause(Throwable t, Class cls) {
     static public Throwable getInnerCause(Throwable t, Class<? extends Throwable> cls) {
         
         if (t == null)
@@ -97,8 +96,6 @@ public class InnerCause {
      * @throws IllegalArgumentException
      *             if any parameter is null.
      */
-//    static public boolean isInnerCause(Throwable t, Class cls) {
-        // Note: Use of generics commented out for 1.4 compatibility.
     static public boolean isInnerCause(Throwable t, Class<? extends Throwable>cls) {
         
         return getInnerCause(t, cls) != null;

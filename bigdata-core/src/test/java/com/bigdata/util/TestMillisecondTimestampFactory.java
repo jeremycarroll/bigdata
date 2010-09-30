@@ -27,8 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.util;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
+
 import java.util.Date;
-import org.junit.Assert;
+
+import org.junit.After;
 import org.junit.Test;
 
 /**
@@ -37,7 +41,7 @@ import org.junit.Test;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestMillisecondTimestampFactory extends Assert {
+public class TestMillisecondTimestampFactory {
 
     public TestMillisecondTimestampFactory() {
         
@@ -161,5 +165,36 @@ public class TestMillisecondTimestampFactory extends Assert {
                 + " milliseconds over " + limit + " trials and "+elapsed+" milliseconds");
         
     }
+    @Test
+    public void test_nextMillis_wrap() {
+        final long startMillis = Long.MAX_VALUE;
+        MillisecondTimestampFactory.setLowerBound(startMillis);
+        try {
+        	MillisecondTimestampFactory.nextMillis();
+        	fail("Successfully called nextMillis() with wrap aorund.");
+        } catch (IllegalStateException e) {
+        	//ignore -- expected
+        }
+    }
+    @Test
+    public void test_setLowerBound() {
+        final long startMillis = Long.MAX_VALUE;
+        //Synch to ensure atomic calling sequence
+        synchronized(MillisecondTimestampFactory.class) {
+	        MillisecondTimestampFactory.setLowerBound(startMillis);
+	        //Setting lower bound clears auot-inc mode
+	        assertFalse(MillisecondTimestampFactory.isAutoIncMode());
+        }
+    }
     
+    /**
+     * Reset "global" time back to normal after each run. Because 
+     *  MillisecondTimestampFactory is static, changes made in these
+     *  tests will affect other tests in the same JVM. Therefore, need to
+     *  reset value back to current time after each run.
+     */
+    @After
+    public void tearDown() throws Exception {
+    	MillisecondTimestampFactory.setLowerBound(System.currentTimeMillis());
+	}
 }

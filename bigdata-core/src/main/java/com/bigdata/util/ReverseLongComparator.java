@@ -33,17 +33,19 @@ import java.util.Comparator;
 
 /**
  * Places {@link Long} values into descending order.
- *  
+ * Note: Creates a comparator that compares objects based on the inverse of their 
+ * natural ordering. 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
 public class ReverseLongComparator implements Comparator<Long>, Serializable {
     
-    /**
-     * 
-     */
     private static final long serialVersionUID = -234224494051463945L;
 
+    /**
+     * Provides an inverse comparison to the <code>Comparator</code> interface.
+     * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
+     */
     public int compare(final Long o1, final Long o2) {
 
         final long l1 = o1.longValue();

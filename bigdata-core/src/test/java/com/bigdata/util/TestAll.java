@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.util;
 
 
+
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
@@ -40,19 +41,16 @@ import org.junit.runners.Suite.SuiteClasses;
  */
 @RunWith(Suite.class)
 @SuiteClasses( {
-       // test of the millisecond resolution timestamp factory.
-       TestMillisecondTimestampFactory.class,
-
-       // test of the nanosecond resolution timestamp factory.
-       TestNanosecondTimestampFactory.class,
-
-       // test of the hybrid timestamp factory.
-       // Note: class is not debugged and is marked as deprecated, test is commented out.
-       TestHybridTimestampFactory.class,
-
-       TestByteBufferBitVector.class,
-
-       TestCSVReader.class
+        TestBootStateUtil.class,           
+        TestCSVReader.class,
+        TestEntryUtil.class,
+        TestFormat.class,
+        TestHTMLUtility.class,
+        TestInnerCause.class,
+        TestMillisecondTimestampFactory.class,
+        TestNT.class,
+        TestNV.class,
+        TestReverseLongComparator.class  
         } )
 public class TestAll {
 }
