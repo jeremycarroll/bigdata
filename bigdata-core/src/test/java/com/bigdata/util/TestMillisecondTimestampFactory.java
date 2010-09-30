@@ -32,6 +32,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Date;
 
+import org.junit.After;
 import org.junit.Test;
 
 /**
@@ -192,7 +193,8 @@ public class TestMillisecondTimestampFactory {
      *  tests will affect other tests in the same JVM. Therefore, need to
      *  reset value back to current time after each run.
      */
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
     	MillisecondTimestampFactory.setLowerBound(System.currentTimeMillis());
 	}
 }
