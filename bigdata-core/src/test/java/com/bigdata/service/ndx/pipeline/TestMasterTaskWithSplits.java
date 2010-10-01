@@ -45,12 +45,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.management.openmbean.OpenDataException;
-
 import com.bigdata.btree.keys.KVO;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.keys.TestKeyBuilder;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 
@@ -278,7 +276,7 @@ public class TestMasterTaskWithSplits extends AbstractKeyRangeMasterTestCase {
      * Redirects are stored in an {@link IMetadataIndex} so we may test the
      * behavior under SPLITs, MOVEs, or JOINs. The test writes {@link KVO}
      * tuples on a {@link M master}. The master allocates the tuples to output
-     * buffers based on the {@link IMetadataIndex} mapping. A single thread
+     * buffers based on the {@link com.bigdata.btree.IMetadataIndex} mapping. A single thread
      * executes an {@link Op}[] schedule while N concurrent producer threads
      * write on the master.  The test ends when the schedule is done.
      * 

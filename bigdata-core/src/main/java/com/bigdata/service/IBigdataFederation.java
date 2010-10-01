@@ -35,7 +35,7 @@ import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.IIndexManager;
 //BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.service.ndx.ClientIndexView;
 import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.sparse.GlobalRowStoreSchema;
@@ -220,7 +220,7 @@ public ShardLocator getMetadataService();
      * @param name
      *            The name of the scale-out index.
      * 
-     * @return The {@link IMetadataIndex} for the named scale-out index -or-
+     * @return The {@link com.bigdata.btree.IMetadataIndex} for the named scale-out index -or-
      *         <code>null</code> iff there is no such scale-out index.
      */
     public IMetadataIndex getMetadataIndex(String name, long timestamp);

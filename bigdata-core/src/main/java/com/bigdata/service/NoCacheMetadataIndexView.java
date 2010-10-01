@@ -8,9 +8,9 @@ import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.btree.proc.RangeCountProcedure;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.WriteExecutorService;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.btree.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
 /**

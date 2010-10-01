@@ -31,6 +31,7 @@ package com.bigdata.resources;
 import java.util.Arrays;
 
 import com.bigdata.btree.BTree;
+import com.bigdata.btree.LocalPartitionMetadata;
 import com.bigdata.io.BytesUtil;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
@@ -39,8 +40,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.IndexPartitionCause;
-import com.bigdata.mdi.LocalPartitionMetadata;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
@@ -289,7 +289,7 @@ public class JoinIndexPartitionTask extends AbstractPrepareTask<JoinResult> {
                         // Note: the live journal.
                         getJournal().getResourceMetadata() //
                         },//
-                        IndexPartitionCause.join(resourceManager)
+                        resourceManager.partitionCause(IndexPartitionCause.CauseEnum.Join)
 //                        // new history line.
 //                        , summary+" "
                 ));

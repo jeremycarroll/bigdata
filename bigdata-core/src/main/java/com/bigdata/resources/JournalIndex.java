@@ -40,7 +40,7 @@ import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.journal.ICommitRecord;
 import com.bigdata.journal.IJournal;
-import com.bigdata.mdi.JournalMetadata;
+import com.bigdata.btree.JournalMetadata;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
 

@@ -21,7 +21,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-package com.bigdata.mdi;
+package com.bigdata.btree;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -29,12 +29,9 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.UUID;
 
+import com.bigdata.mdi.PartitionLocator;
 import org.CognitiveWeb.extser.LongPacker;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.Checkpoint;
-import com.bigdata.btree.DefaultTupleSerializer;
-import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.IKeyBuilderFactory;
 import com.bigdata.btree.view.FusedView;
 import com.bigdata.journal.ICommitter;
@@ -47,7 +44,7 @@ import com.bigdata.service.MetadataService;
  * metadata index for each distributed index. The keys of the metadata index are
  * the first key that would be directed into the corresponding index segment,
  * e.g., a <em>separator key</em> (this is just the standard btree semantics).
- * The values are serialized {@link PartitionLocator} objects.
+ * The values are serialized {@link com.bigdata.mdi.PartitionLocator} objects.
  * <p>
  * Note: At this time the recommended scale-out approach for the metadata index
  * is to place the metadata indices on a {@link MetadataService} (the same

@@ -33,6 +33,7 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.TreeMap;
 
+import com.bigdata.mdi.IndexPartitionCause;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.IndexSegmentBuilder;
@@ -41,11 +42,10 @@ import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.journal.IConcurrencyManager;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.DataService;
 //BTM import com.bigdata.service.IMetadataService;
-import com.bigdata.service.MetadataService;
 import com.bigdata.util.ReverseLongComparator;
 
 //BTM
@@ -759,6 +759,14 @@ final ShardLocator mds = getFederation().getMetadataService();
 
         }
 
+    }
+
+    public IndexPartitionCause partitionCause(IndexPartitionCause.CauseEnum cause){
+        return new IndexPartitionCause(
+                cause,
+                this.getSynchronousOverflowCount(),
+                this.getLiveJournal().getLastCommitTime()
+        );
     }
 
 //    /**

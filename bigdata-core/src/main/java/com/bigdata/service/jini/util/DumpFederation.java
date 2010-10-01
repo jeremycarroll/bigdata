@@ -48,6 +48,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.bigdata.btree.*;
 import com.bigdata.io.BytesUtil;
 import com.bigdata.journal.IStoreFile;
 import net.jini.config.ConfigurationException;
@@ -57,21 +58,13 @@ import net.jini.lookup.entry.Name;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.AbstractBTree;
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.ITupleIterator;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.btree.IndexSegmentCheckpoint;
-import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.config.Configuration;
 import com.bigdata.jini.lookup.entry.Hostname;
 import com.bigdata.journal.DumpJournal;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StoreManager;

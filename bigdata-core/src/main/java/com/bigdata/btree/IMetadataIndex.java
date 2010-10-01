@@ -26,16 +26,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Feb 11, 2008
  */
 
-package com.bigdata.mdi;
+package com.bigdata.btree;
 
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.btree.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.IDataService;
 
 /**
  * Interface for a metadata index. The metadata index stores the
- * {@link PartitionLocator}s that specify which {@link IDataService} has data
+ * {@link com.bigdata.mdi.PartitionLocator}s that specify which {@link IDataService} has data
  * for each index partition in a scale-out index.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>

@@ -31,7 +31,6 @@ package com.bigdata.btree;
 import java.io.File;
 
 import com.bigdata.io.BytesUtil;
-import com.bigdata.mdi.LocalPartitionMetadata;
 
 /**
  * Exception thrown when a key is before the start of the half-open range of an

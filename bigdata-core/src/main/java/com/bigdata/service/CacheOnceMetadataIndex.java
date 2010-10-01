@@ -28,17 +28,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service;
 
+import com.bigdata.btree.*;
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleIterator;
-import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.filter.IFilterConstructor;
-import com.bigdata.mdi.IMetadataIndex;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.btree.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
 /**

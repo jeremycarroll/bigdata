@@ -36,13 +36,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.IIndex;
-import com.bigdata.btree.ILocalBTreeView;
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.btree.IndexSegmentStore;
+import com.bigdata.btree.*;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.ConcurrencyManager;
@@ -52,8 +46,8 @@ import com.bigdata.journal.NoSuchIndexException;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.IndexPartitionCause;
-import com.bigdata.mdi.LocalPartitionMetadata;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.LocalPartitionMetadata;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.mdi.SegmentMetadata;
 import com.bigdata.service.DataService;
@@ -1371,7 +1365,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                             // Historical writes from the source DS.
                             historySegmentMetadata//
                         },
-                        IndexPartitionCause.move(rsrcManager)
+                        rsrcManager.partitionCause(IndexPartitionCause.CauseEnum.Move)
 //                        // history line.
 //                        ,oldpmd.getHistory() + summary + " "
                 ));

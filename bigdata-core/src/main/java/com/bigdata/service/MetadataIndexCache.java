@@ -2,10 +2,10 @@ package com.bigdata.service;
 
 import java.util.concurrent.ExecutionException;
 
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.NoSuchIndexException;
-import com.bigdata.mdi.IMetadataIndex;
-import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.btree.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.util.InnerCause;
 
 /**

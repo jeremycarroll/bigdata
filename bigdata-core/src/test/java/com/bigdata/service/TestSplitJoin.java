@@ -44,7 +44,7 @@ import com.bigdata.io.SerializerUtil;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.TemporaryRawStore;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.ResourceManager.Options;

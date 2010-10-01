@@ -26,17 +26,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Mar 15, 2009
  */
 
-package com.bigdata.service;
+package com.bigdata.event;
 
 import java.util.Map;
 
 /**
- * An interface designed to expose select fields for {@link Event} reporting.
+ * An interface designed to expose select fields for {@link com.bigdata.service.Event} reporting.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface Params {
+public interface IEventParams {
 
     /**
      * Return the fields of interest as an set of (name,value) pairs.

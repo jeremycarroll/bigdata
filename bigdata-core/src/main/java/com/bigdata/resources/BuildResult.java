@@ -10,7 +10,7 @@ import com.bigdata.btree.IndexSegment;
 import com.bigdata.btree.IndexSegmentBuilder;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.SegmentMetadata;
-import com.bigdata.service.Params;
+import com.bigdata.event.IEventParams;
 
 /**
  * The result of an {@link CompactingMergeTask}.
@@ -18,7 +18,7 @@ import com.bigdata.service.Params;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class BuildResult extends AbstractResult implements Params {
+public class BuildResult extends AbstractResult implements IEventParams {
 
     /**
      * The #of sources in the view from which the {@link IndexSegment} was

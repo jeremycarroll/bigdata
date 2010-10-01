@@ -39,7 +39,7 @@ import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.btree.MetadataIndex.MetadataIndexMetadata;
 
 /**
  * Implementation caches all locators and then updates them on demand as stale

@@ -33,19 +33,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Future;
 
+import com.bigdata.btree.*;
 import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.IIndex;
-import com.bigdata.btree.ILocalBTreeView;
-import com.bigdata.btree.ISimpleSplitHandler;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.btree.Leaf;
-import com.bigdata.btree.Node;
 import com.bigdata.journal.TimestampUtility;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 import com.bigdata.service.Event;
 import com.bigdata.service.Split;
 import com.bigdata.util.concurrent.ExecutionExceptions;

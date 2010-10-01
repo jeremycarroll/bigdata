@@ -26,19 +26,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Feb 20, 2008
  */
 
-package com.bigdata.mdi;
+package com.bigdata.btree;
 
+import com.bigdata.mdi.PartitionLocator;
 import org.apache.log4j.Logger;
 
-import com.bigdata.btree.AbstractBTree;
-import com.bigdata.btree.DelegateIndex;
-import com.bigdata.btree.ILinearList;
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleIterator;
-import com.bigdata.btree.IndexMetadata;
 import com.bigdata.cache.LRUCache;
-import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.btree.MetadataIndex.MetadataIndexMetadata;
 
 /**
  * The extension semantics for the {@link IMetadataIndex} are implemented by

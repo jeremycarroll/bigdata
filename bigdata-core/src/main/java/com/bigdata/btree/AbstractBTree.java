@@ -81,7 +81,6 @@ import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.Journal;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.resources.IndexManager;
 import com.bigdata.resources.OverflowManager;

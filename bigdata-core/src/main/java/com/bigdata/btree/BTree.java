@@ -41,8 +41,6 @@ import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.Name2Addr;
 import com.bigdata.journal.Name2Addr.Entry;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.mdi.JournalMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.rawstore.IRawStore;
 
 /**

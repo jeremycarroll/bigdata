@@ -51,7 +51,7 @@ import com.bigdata.btree.filter.TupleFilter;
 import com.bigdata.btree.proc.AbstractKeyRangeIndexProcedure;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.TimestampUtility;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 import com.bigdata.relation.AbstractResource;
 import com.bigdata.relation.IRelation;
 import com.bigdata.relation.rule.IPredicate;

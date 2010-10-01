@@ -42,7 +42,7 @@ import com.bigdata.btree.BTree;
 import com.bigdata.btree.IndexSegment;
 import com.bigdata.journal.Journal;
 import com.bigdata.resources.IndexManager;
-import com.bigdata.service.Params;
+import com.bigdata.event.IEventParams;
 
 /**
  * Base class for {@link IResourceMetadata} implementations.
@@ -51,7 +51,7 @@ import com.bigdata.service.Params;
  * @version $Id$
  */
 abstract public class AbstractResourceMetadata implements IResourceMetadata,
-        Externalizable, Params {
+        Externalizable, IEventParams {
 
     static final protected Logger log = Logger
             .getLogger(AbstractResourceMetadata.class);

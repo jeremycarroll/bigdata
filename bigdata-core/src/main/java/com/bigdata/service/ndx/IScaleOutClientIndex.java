@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.bigdata.btree.ITuple;
 import com.bigdata.journal.ITx;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.service.AbstractScaleOutFederation;

@@ -40,7 +40,6 @@ import com.bigdata.io.IStreamSerializer;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.ConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
-import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.relation.AbstractResource;
 import com.bigdata.relation.IMutableRelation;
@@ -484,7 +483,7 @@ public interface IJoinNexus {
      *            The predicate, with whatever bindings already applied.
      * @param fed
      *            The federation, which is required in order to access the
-     *            {@link IMetadataIndex} for a scale-out index.
+     *            {@link com.bigdata.btree.IMetadataIndex} for a scale-out index.
      * @param joinNexus
      *            The {@link IJoinNexus}.
      * 

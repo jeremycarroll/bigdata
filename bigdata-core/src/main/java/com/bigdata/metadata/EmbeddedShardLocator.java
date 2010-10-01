@@ -34,12 +34,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import com.bigdata.btree.*;
 import com.bigdata.counters.httpd.AbstractStatisticsCollector;
 import com.bigdata.io.BytesUtil;
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleIterator;
-import com.bigdata.btree.IndexMetadata;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.ConcurrencyManager;
@@ -48,13 +45,11 @@ import com.bigdata.journal.IResourceManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.IndexExistsException;
 import com.bigdata.journal.NoSuchIndexException;
-import com.bigdata.mdi.LocalPartitionMetadata;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.ResourceManager;
 
 //BTM - added because of new package
-import com.bigdata.btree.ResultSet;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.jini.lookup.entry.Hostname;
@@ -936,7 +931,7 @@ embeddedDataServiceMap,
     }
 
     /**
-     * Updates the {@link MetadataIndex} to reflect the join of 2 or more index
+     * Updates the {@link com.bigdata.btree.MetadataIndex} to reflect the join of 2 or more index
      * partitions.
      */
     static protected class JoinIndexPartitionTask extends AbstractTask {

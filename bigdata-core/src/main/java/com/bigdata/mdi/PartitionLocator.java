@@ -37,7 +37,7 @@ import com.bigdata.service.ndx.ClientIndexView;
 
 /**
  * An immutable object that may be used to locate an index partition. Instances
- * of this class are stored as the values in the {@link MetadataIndex}.
+ * of this class are stored as the values in the {@link com.bigdata.btree.MetadataIndex}.
  * <p>
  * Note: The {@link ISeparatorKeys#getLeftSeparatorKey()} is always equal to the
  * key under which the {@link PartitionLocator} is stored in the metadata index.
@@ -51,7 +51,7 @@ import com.bigdata.service.ndx.ClientIndexView;
  * various contexts within which the {@link ClientIndexView} requires that
  * information.
  * 
- * @todo write a custom serializer for the {@link MetadataIndex} that factors
+ * @todo write a custom serializer for the {@link com.bigdata.btree.MetadataIndex} that factors
  *       out the left separator key and which uses prefix compression to only
  *       write the delta for the right separator key over the left separator
  *       key? this would require de-serialization of the partition locator and
@@ -98,7 +98,7 @@ o     */
      * 
      * @param partitionId
      *            The unique partition identifier assigned by the
-     *            {@link MetadataIndex}.
+     *            {@link com.bigdata.btree.MetadataIndex}.
      * @param logicalDataServiceUUID
      *            The ordered array of data service identifiers on which data
      *            for this partition will be written and from which data for

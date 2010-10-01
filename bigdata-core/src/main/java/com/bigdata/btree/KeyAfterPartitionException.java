@@ -31,7 +31,6 @@ package com.bigdata.btree;
 import java.io.File;
 
 import com.bigdata.io.BytesUtil;
-import com.bigdata.mdi.LocalPartitionMetadata;
 
 /**
  * An exception thrown when a key lies after the half-open range of an index

@@ -51,7 +51,6 @@ import com.bigdata.io.SerializerUtil;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.RootBlockException;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.SegmentMetadata;
 import com.bigdata.rawstore.AbstractRawStore;
 import com.bigdata.resources.StoreManager;

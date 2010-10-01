@@ -59,7 +59,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.journal.WriteExecutorService;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.ResourceManager.IResourceManagerCounters;
 import com.bigdata.service.AbstractFederation;

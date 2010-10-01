@@ -26,15 +26,9 @@ package com.bigdata.service;
 
 import java.io.IOException;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.ResultSet;
-import com.bigdata.btree.filter.IFilterConstructor;
-import com.bigdata.btree.proc.IIndexProcedure;
-import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 
 /**
@@ -62,10 +56,10 @@ public interface ShardLocator {
             throws IOException, InterruptedException, ExecutionException;
 
     /**
-     * Updates the {@link MetadataIndex} for the named scale-out index
+     * Updates the {@link com.bigdata.btree.MetadataIndex} for the named scale-out index
      * to reflect the split of an index partition into N new index
      * partitions. The old index partition locator is removed from the
-     * {@link MetadataIndex} and the new index partition locators are
+     * {@link com.bigdata.btree.MetadataIndex} and the new index partition locators are
      * inserted in a single atomic operation.
      * 
      * @param name        The name of the scale-out index.
@@ -86,10 +80,10 @@ public interface ShardLocator {
              throws IOException, InterruptedException, ExecutionException;
 
     /**
-     * Updates the {@link MetadataIndex} for the named scale-out index to
+     * Updates the {@link com.bigdata.btree.MetadataIndex} for the named scale-out index to
      * reflect the join of N index partitions (which must be siblings) into
      * a single index partition. The old index partition locators are removed
-     * from the {@link MetadataIndex} and the new index partition locator
+     * from the {@link com.bigdata.btree.MetadataIndex} and the new index partition locator
      * is inserted in a single atomic operation.
      * 
      * @param name        The name of the scale-out index.
@@ -110,10 +104,10 @@ public interface ShardLocator {
              throws IOException, InterruptedException, ExecutionException;
 
     /**
-     * Updates the {@link MetadataIndex} for the named scale-out index
+     * Updates the {@link com.bigdata.btree.MetadataIndex} for the named scale-out index
      * to reflect the move of an index partition from one data service
      * to another. The old index partition locator is removed from the
-     * {@link MetadataIndex} and the new index partition locator is
+     * {@link com.bigdata.btree.MetadataIndex} and the new index partition locator is
      * inserted in a single atomic operation.
      * 
      * @param name       The name of the scale-out index.

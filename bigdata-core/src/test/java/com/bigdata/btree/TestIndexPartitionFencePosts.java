@@ -30,7 +30,6 @@ package com.bigdata.btree;
 
 import java.util.UUID;
 
-import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 
 /**

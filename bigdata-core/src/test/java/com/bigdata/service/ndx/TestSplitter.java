@@ -30,9 +30,10 @@ package com.bigdata.service.ndx;
 
 import java.util.Iterator;
 import java.util.UUID;
+
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.btree.IndexMetadata;
-import com.bigdata.mdi.IMetadataIndex;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.service.Split;

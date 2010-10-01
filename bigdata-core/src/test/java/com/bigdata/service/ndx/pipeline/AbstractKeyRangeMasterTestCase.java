@@ -28,25 +28,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.ndx.pipeline;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.btree.keys.KVO;
-import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.IPartitionMetadata;
-import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.relation.accesspath.BlockingBuffer;

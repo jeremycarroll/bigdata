@@ -21,7 +21,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-package com.bigdata.mdi;
+package com.bigdata.btree;
 
 import java.io.File;
 import java.util.UUID;
@@ -29,6 +29,7 @@ import java.util.UUID;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.IJournal;
 import com.bigdata.journal.Journal;
+import com.bigdata.mdi.AbstractResourceMetadata;
 
 /**
  * Metadata required to locate a {@link Journal} resource.

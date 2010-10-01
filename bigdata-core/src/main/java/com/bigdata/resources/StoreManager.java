@@ -50,18 +50,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.bigdata.btree.*;
 import com.bigdata.journal.*;
 import org.apache.log4j.Logger;
 
 import com.bigdata.bfs.BigdataFileSystem;
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.Checkpoint;
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleIterator;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.cache.ConcurrentWeakValueCacheWithTimeout;
 import com.bigdata.cache.HardReferenceQueue;
 import com.bigdata.cache.IGlobalLRU.ILRUCache;
@@ -72,8 +65,8 @@ import com.bigdata.journal.WORMStrategy.StoreCounters;
 import com.bigdata.mdi.IPartitionMetadata;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.IndexPartitionCause;
-import com.bigdata.mdi.JournalMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.JournalMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 import com.bigdata.mdi.SegmentMetadata;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.relation.locator.DefaultResourceLocator;
@@ -2640,7 +2633,7 @@ if(discoveredTxnSrvc) {
                                 getResourceMetadata() //
                                 },
                                 // cause
-                                IndexPartitionCause.register(resourceManager)
+                                resourceManager.partitionCause(IndexPartitionCause.CauseEnum.Register)
 //                                /*
 //                                 * Note: Retains whatever history given by the
 //                                 * caller.

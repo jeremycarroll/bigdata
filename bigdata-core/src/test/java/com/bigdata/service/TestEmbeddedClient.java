@@ -34,7 +34,7 @@ import java.util.UUID;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.IIndex;
 import com.bigdata.journal.ITx;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.ndx.ClientIndexView;
 import org.junit.Test;

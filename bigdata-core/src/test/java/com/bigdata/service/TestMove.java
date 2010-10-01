@@ -33,12 +33,9 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
+import com.bigdata.btree.*;
 import org.apache.log4j.Level;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITupleIterator;
-import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.KV;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.btree.proc.BatchInsert.BatchInsertConstructor;
@@ -47,7 +44,7 @@ import com.bigdata.io.SerializerUtil;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.TemporaryRawStore;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.ResourceManager;

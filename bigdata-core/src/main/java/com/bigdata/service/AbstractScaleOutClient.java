@@ -30,7 +30,7 @@ package com.bigdata.service;
 
 import java.util.Properties;
 
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 
 /**
@@ -77,7 +77,7 @@ public abstract class AbstractScaleOutClient<T> extends AbstractClient<T> {
 
     /**
      * Policy options for caching {@link PartitionLocator}s for an
-     * {@link IMetadataIndex}.
+     * {@link com.bigdata.btree.IMetadataIndex}.
      * 
      * <strong>Warning: This feature is expected to evolve.</strong>
      * 

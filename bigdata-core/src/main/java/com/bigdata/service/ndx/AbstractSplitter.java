@@ -35,14 +35,14 @@ import com.bigdata.io.BytesUtil;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.keys.KVO;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.Split;
 
 /**
  * Basic implementation - you only need to provide resolution for the
- * {@link IMetadataIndex}.
+ * {@link com.bigdata.btree.IMetadataIndex}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -52,13 +52,13 @@ abstract public class AbstractSplitter implements ISplitter {
     protected static final transient Logger log = Logger.getLogger(AbstractSplitter.class);
 
     /**
-     * Return the {@link IMetadataIndex} that will be used to compute the
+     * Return the {@link com.bigdata.btree.IMetadataIndex} that will be used to compute the
      * {@link Split}s
      * 
      * @param ts
-     *            The timestamp of the {@link IMetadataIndex} view.
+     *            The timestamp of the {@link com.bigdata.btree.IMetadataIndex} view.
      *            
-     * @return The {@link IMetadataIndex}.
+     * @return The {@link com.bigdata.btree.IMetadataIndex}.
      */
     protected abstract IMetadataIndex getMetadataIndex(long ts);
 
@@ -98,7 +98,7 @@ abstract public class AbstractSplitter implements ISplitter {
      * @see BytesUtil#compareBytes(byte[], byte[])
      * 
      * @todo Caching? This procedure performs the minimum #of lookups using
-     *       {@link IMetadataIndex#find(byte[])} since that operation will be an
+     *       {@link com.bigdata.btree.IMetadataIndex#find(byte[])} since that operation will be an
      *       RMI in a distributed federation. The find(byte[] key) operation is
      *       difficult to cache since it locates the index partition that would
      *       span the key and many, many different keys could fit into that same
