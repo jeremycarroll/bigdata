@@ -45,8 +45,7 @@ import org.junit.runners.Suite.SuiteClasses;
         // Test suite for the lock manager.
         TestLockManager.class,
 
-        // Test suite for the non-blocking lock manager.
-        TestNonBlockingLockManager.class,
+        // Test suite for the non-blocking lock manager.       
         TestNonBlockingLockManagerWithNewDesign.class,
         StressTestNonBlockingLockManagerWithTxDag.class,
         StressTestNonBlockingLockManagerWithPredeclaredLocks.class

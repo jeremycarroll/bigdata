@@ -60,7 +60,6 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.view.FusedView;
 import com.bigdata.concurrent.LockManager;
 import com.bigdata.concurrent.LockManagerTask;
-import com.bigdata.concurrent.NonBlockingLockManager;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.relation.locator.DefaultResourceLocator;
@@ -2043,7 +2042,7 @@ log.warn("\n*** AbstractTask#DelegateTask.getIndex: delegate.getIndex [name="+na
      * prevent tasks from progressing. If there is strong lock contention then
      * writers will be more or less serialized.
      * 
-     * FIXME javadoc update to reflect the {@link NonBlockingLockManager}
+     * FIXME javadoc update to reflect the {@link com.bigdata.concurrent.NonBlockingLockManagerWithNewDesign}
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
