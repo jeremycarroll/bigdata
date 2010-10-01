@@ -248,6 +248,7 @@
             </activation>
             <properties>
                 <integ.testOutputDirectory>${project.build.directory}/clover/test-classes</integ.testOutputDirectory>
+                <integ.deploy.dir>${integ.deploy.root.dir}/${integ.bigdata.dependency}-${project.version}-clover</integ.deploy.dir>
             </properties>
             <build>
                 <plugins>
