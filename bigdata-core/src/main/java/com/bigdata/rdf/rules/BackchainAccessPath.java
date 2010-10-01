@@ -92,7 +92,7 @@ public class BackchainAccessPath implements IAccessPath<ISPO> {
      * itself, but I wanted to run it past you anyway. -bryan
      * <p>
      * The only way that could happen is if there were a property that was a
-     * subproperty of owl:sameAs and that subproperty was used in the data. I’ve
+     * subproperty of owl:sameAs and that subproperty was used in the data. I've
      * never seen anything like that, but it is technically possible. -mike
      * <p>
      * Ok. But still, it is not a problem since we are not using the backchainer
