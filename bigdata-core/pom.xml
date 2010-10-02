@@ -15,10 +15,40 @@
     <name>Bigdata Core</name>
     <url>http://www.bigdata.com</url>
 
-    <properties>
-        <thirdParty.groupId>com.bigdata.thirdparty</thirdParty.groupId><!-- group ID for non-public bigdata dependencies. -->
+    <properties>   
+        <!-- group ID for non-public bigdata dependencies. -->     
+        <thirdParty.groupId>com.bigdata.thirdparty</thirdParty.groupId>
+        
+        <!-- These properties are used to set system properties that are required by the unit
+             tests. See the surefire plugin configuration below. Any of these can be overridden on 
+             the command-line by adding -D<property-name>=<propert-value>.
+         -->
+                  
+        <!-- Skip running unit tests by default until we get the kinks worked out. Can be overridden
+             by adding '-DskipTests=false' to the command-line -->
+        <skipTests>true</skipTests>
+        
+        <!-- This directory is created when the deployment tarball is created
+             during the 'package' phase by the maven assembly plugin. If the naming
+             convention as defined in src/main/assembly/deploy.xml changes, this property
+             needs to change as well. -->
+        <deploy.root.dir>${project.build.directory}/${project.artifactId}-${project.version}-deploy</deploy.root.dir>
+        
+        <deploy.dir>${deploy.root.dir}/${project.artifactId}-${project.version}</deploy.dir>
+        <app.home>${deploy.dir}</app.home>
+        <test.dir>${deploy.dir}/testing</test.dir>
+        <deploy.conf.dir>${test.dir}/conf</deploy.conf.dir>
+        <deploy.lib>${deploy.dir}/lib</deploy.lib>
+        <test.codebase.dir>${deploy.lib.dl}</test.codebase.dir>
+        <test.codebase.port>23333</test.codebase.port>
+        <java.security.policy>${deploy.conf.dir}/policy.all</java.security.policy>
+        <log4j.configuration>${deploy.dir}/var/config/logging/log4j.properties</log4j.configuration>
+        <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
+        <default.nic>eth0</default.nic>
+        
+        <!--  Set to empty string to indicate "unset." Application code will set a reasonable default -->
+        <federation.name></federation.name>
     </properties>
-
 
     <build>
         <plugins>
@@ -26,10 +56,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArguments>
-                        <!--
-                            Apparently Javac may compile java source files inside jars put on the classpath. Weird. Zookeeper 3.2.1 jar contained classes and sources, and under some circumstances, the
-                            java files were getting recompiled and put into the bigdata jar. This setting forces javac to only look for source in the current maven source directory.
-                        -->
+                        <!-- Apparently Javac may compile java source files inside jars put on the classpath. Weird. Zookeeper 3.2.1 jar contained classes and sources, and under some circumstances, the 
+                            java files were getting recompiled and put into the bigdata jar. This setting forces javac to only look for source in the current maven source directory. -->
                         <sourcepath>${project.build.sourceDirectory}</sourcepath>
                     </compilerArguments>
                 </configuration>
@@ -82,48 +110,65 @@
                 </executions>
             </plugin>
 
+            <!-- Configure the surefire plugin to run in the 'integration-test' phase rather than the 'test' phase.
+                 This allows us to run the unit tests after packaging has been done, but before the build artifacts 
+                 are installed during the 'install' phase -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!--
-                        TODO: BLECH! All the tests are excluded from the regular unit test phase. TODO: Need to split out the unit tests and the heavier integration tests, plus TODO: get all the unit
-                        tests passing so regressions can properly fail the build.
-                    -->
-                    <testFailureIgnore>true</testFailureIgnore>
-                    <includes />
-                    <excludes>
-                        <exclude>**/*</exclude>
-                    </excludes>
+                    <skip>true</skip>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <!--
-                    These are where the heavier tests can be run. Right now failsafe looks for tests starting or ending with IT, aka FooIT.java or ITFoo.java, which don't exist yet, so nothing runs.
-                -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>integration-test</id>
+                        <id>unit-tests</id>
+                        <phase>integration-test</phase>
                         <goals>
-                            <goal>integration-test</goal>
+                            <goal>test</goal>
                         </goals>
-                    </execution>
-                    <execution>
-                        <id>verify</id>
-                        <goals>
-                            <goal>verify</goal>
-                        </goals>
+                        <configuration>
+                            <skip>false</skip>
+                            <!-- Run only the top-level suite which in turn runs the other suites and tests -->
+                            <test>com.bigdata.TestAll</test>
+                            
+                            <!-- These system properties are required by the unit tests. -->
+                            <systemPropertyVariables>
+                                <java.security.policy>${java.security.policy}</java.security.policy>
+                                <java.net.preferIPv4Stack>{java.net.preferIPv4Stack}"</java.net.preferIPv4Stack>
+                                <log4j.configuration>${log4j.configuration}</log4j.configuration>
+
+                                <app.home>${app.home}</app.home> <!-- This is the deployment directory, easily accessed by the DataFinder class. -->
+                                <log4j.path>${log4j.configuration}</log4j.path>
+                                <default.nic>${default.nic}</default.nic>
+                                <federation.name>${federation.name}</federation.name>
+                                
+                                <classserver.jar>${deploy.lib}/classserver.jar</classserver.jar>
+                                <colt.jar>${deploy.lib}/colt.jar</colt.jar>
+                                <ctc_utils.jar>${deploy.lib}/ctc_utils.jar</ctc_utils.jar>
+                                <cweb-commons.jar>${deploy.lib}/cweb-commons.jar</cweb-commons.jar>
+                                <cweb-extser.jar>${deploy.lib}/cweb-extser.jar</cweb-extser.jar>
+                                <highscalelib.jar>${deploy.lib}/highscalelib.jar</highscalelib.jar>
+                                <dsiutils.jar>${deploy.lib}/dsiutils.jar</dsiutils.jar>
+                                <lgplutils.jar>${deploy.lib}/lgplutils.jar</lgplutils.jar>
+                                <fastutil.jar>${deploy.lib}/fastutil.jar</fastutil.jar>
+                                <icu4j.jar>${deploy.lib}/icu4j.jar</icu4j.jar>
+                                <jsk-lib.jar>${deploy.lib}/jsk-lib.jar</jsk-lib.jar>
+                                <jsk-platform.jar>${deploy.lib}jsk-platform.jar</jsk-platform.jar>
+                                <log4j.jar>${deploy.lib}/log4j.jar</log4j.jar>
+                                <iris.jar>${deploy.lib}/iris.jar</iris.jar>
+                                <jgrapht.jar>${deploy.lib}/jgrapht.jar</jgrapht.jar>
+                                <openrdf-sesame.jar>${deploy.lib}/openrdf-sesame.jar</openrdf-sesame.jar>
+                                <slf4j.jar>${deploy.lib}/slf4j.jar</slf4j.jar>
+                                <nxparser.jar>${deploy.lib}/nxparser.jar</nxparser.jar>
+                                <zookeeper.jar>${deploy.lib}/zookeeper.jar</zookeeper.jar>
+                            </systemPropertyVariables>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
 
             <plugin>
-                <!-- Workaround assembly issue for nicely organized libs in the deployment tarball.  For more info
-                     see src/main/assemblies/deploy.xml
-                -->
+                <!-- Workaround assembly issue for nicely organized libs in the deployment tarball. For more info see src/main/assemblies/deploy.xml -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
@@ -189,12 +234,8 @@
                     </execution>
                 </executions>
             </plugin>
-
-
         </plugins>
-
     </build>
-
 
     <dependencies>
 
@@ -204,7 +245,7 @@
         <!-- ************************ Start of non-public dependencies ************************ -->
         <!-- ************************ Start of non-public dependencies ************************ -->
 
-        <!-- TODO: look at maven-bundle-plugin from felix to provide osgi support.  bndlib version 0.0.357 in central. -->
+        <!-- TODO: look at maven-bundle-plugin from felix to provide osgi support. bndlib version 0.0.357 in central. -->
 
         <dependency>
             <groupId>${thirdParty.groupId}</groupId>
@@ -259,7 +300,7 @@
             <version>[3.2.1,3.3)</version>  <!-- TODO: This artifact is older, but the new 3.3.1 artifact in central is incompatible -->
         </dependency>
 
-        <!--  Apache River -->
+        <!-- Apache River -->
         <dependency>
             <groupId>org.apache.river</groupId>
             <artifactId>tools</artifactId>
@@ -388,10 +429,8 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.15</version>
-            <!--
-                These exclusions are to address the fact that 1.2.15 added new features that depends on Sun specific jars, but these jars cannot be made available due to Sun's click-through
-                requirement on them. We aren't using the new features anyway, so they are safe to exclude. log4j should have made these optional in their POM.
-            -->
+            <!-- These exclusions are to address the fact that 1.2.15 added new features that depends on Sun specific jars, but these jars cannot be made available due to Sun's click-through requirement 
+                on them. We aren't using the new features anyway, so they are safe to exclude. log4j should have made these optional in their POM. -->
             <exclusions>
                 <exclusion>
                     <groupId>javax.mail</groupId>
@@ -584,9 +623,7 @@
                         <groupId>com.atlassian.maven.plugins</groupId>
                         <artifactId>maven-clover2-plugin</artifactId>
                         <configuration>
-                            <!--
-                                Details on configuring clover are in the parent pom.
-                            -->
+                            <!-- Details on configuring clover are in the parent pom. -->
                             <excludes><!-- These are stuffed into the lookup starter jar, which uses a stripped classpath without clover. -->
                                 <exclude>**/LookupStarter*.java</exclude>
                                 <exclude>**/LogUtil.java</exclude>
