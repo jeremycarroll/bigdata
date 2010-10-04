@@ -97,13 +97,15 @@ import com.bigdata.mdi.SegmentMetadata;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.relation.locator.DefaultResourceLocator;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.EventType;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.MetadataService;
+//BTM import com.bigdata.service.MetadataService;
 import com.bigdata.service.ResourceService;
+import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardService;
 import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 
@@ -172,8 +174,8 @@ abstract public class StoreManager extends ResourceEvents implements
          * read from a given resource MUST correspond to its relative location
          * within the {@link #DATA_DIR}.
          * <p>
-         * Note: Each {@link DataService} or {@link MetadataService} MUST have
-         * its own {@link #DATA_DIR}.
+         * Note: Each {@link shardService} or {@link ShardLocator} service
+         *       MUST have its own {@link #DATA_DIR}.
          */
         String DATA_DIR = StoreManager.class.getName()+".dataDir";
 
@@ -645,7 +647,7 @@ abstract public class StoreManager extends ResourceEvents implements
     /**
      * The port at which you can connect to the {@link ResourceService}. This
      * service provides remote access to resources hosted by the owning
-     * {@link DataService}. This is used for moving resources to other data
+     * {@link ShardService}. This is used for moving resources to other data
      * services in the federation, including supporting service failover.
      * 
      * @return The port used to connect to that service.
@@ -1212,10 +1214,13 @@ abstract public class StoreManager extends ResourceEvents implements
                     log.info("Creating: " + dataDir);
 
                 if (!dataDir.mkdirs()) {
-
+//BTM - workaround for http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4742723
+if (!dataDir.exists()) {//still does not exist, try again
+    if (!dataDir.mkdirs()) {
                     throw new RuntimeException("Could not create directory: "
                             + dataDir.getAbsolutePath());
-
+    }
+}
                 }
 
             }
@@ -1226,10 +1231,13 @@ abstract public class StoreManager extends ResourceEvents implements
                     log.info("Creating: " + journalsDir);
 
                 if (!journalsDir.mkdirs()) {
-
+//BTM - workaround for http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4742723
+if (!journalsDir.exists()) {//still does not exist, try again
+    if (!journalsDir.mkdirs()) {
                     throw new RuntimeException("Could not create directory: "
                             + journalsDir.getAbsolutePath());
-
+    }
+}
                 }
 
             }
@@ -1240,10 +1248,13 @@ abstract public class StoreManager extends ResourceEvents implements
                     log.info("Creating: " + segmentsDir);
 
                 if (!segmentsDir.mkdirs()) {
-
+//BTM - workaround for http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4742723
+if (!segmentsDir.exists()) {//still does not exist, try again
+    if (!segmentsDir.mkdirs()) {
                     throw new RuntimeException("Could not create directory: "
                             + segmentsDir.getAbsolutePath());
-
+    }
+}
                 }
 
             }
@@ -1301,10 +1312,13 @@ abstract public class StoreManager extends ResourceEvents implements
                     log.info("Creating temp directory: " + tmpDir);
 
                 if (!tmpDir.mkdirs()) {
-
+//BTM - workaround for http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4742723
+if (!tmpDir.exists()) {//still does not exist, try again
+    if (!tmpDir.mkdirs()) {
                     throw new RuntimeException("Could not create directory: "
                             + tmpDir.getAbsolutePath());
-
+    }
+}
                 }
 
             }
@@ -1343,17 +1357,21 @@ abstract public class StoreManager extends ResourceEvents implements
 
                 try {
 
+System.out.println("\nStoreManager#Startup >>> start()");
                     start();
 
                     // successful startup
+System.out.println("StoreManager#Startup >>> set isStarting to FALSE");
                     starting.set(false);
                     
                     // Purge any resources that we no longer require.
+System.out.println("StoreManager#Startup >>> PURGE old resources during startup");
                     if(purgeOldResourcesDuringStartup)
                         purgeOldResources();
                     
                 } catch (Throwable ex) {
 
+System.out.println("StoreManager#Startup >>> EXCEPTION >>> "+ex);
                     // avoid possibility that isRunning() could become true.
                     open.set(false);
 
@@ -1373,6 +1391,7 @@ abstract public class StoreManager extends ResourceEvents implements
                  * flag is turned off.
                  */
 
+System.out.println("StoreManager#Startup >>> FINALLY >>> set isStarting to FALSE");
                 starting.set(false);
 
                 if (log.isInfoEnabled())
@@ -1438,8 +1457,8 @@ abstract public class StoreManager extends ResourceEvents implements
 				if (fed == null) {
 					/*
 					 * Some of the unit tests do not start the txs until after
-					 * the DataService. For those unit tests getFederation()
-					 * will return null during startup() of the DataService. To
+					 * the shard service. For those unit tests getFederation()
+					 * will return null during startup() of the shard service. To
 					 * have a common code path, we throw the exception here
 					 * which is caught below.
 					 */
@@ -1758,7 +1777,7 @@ if(discoveredTxnSrvc) {
 //         * indices registered on the live journal. If an index has
 //         * <code>sourcePartitionId != -1</code> in its
 //         * {@link LocalPartitionMetadata} then the index was being moved onto
-//         * this {@link IDataService} when the service was shutdown. The index
+//         * this {@link ShardService} when the service was shutdown. The index
 //         * (together with any {@link IndexSegment} resources that are identified
 //         * in its {@link LocalPartitionMetadata}) is deleted.
 //         * 
@@ -2048,6 +2067,7 @@ if(discoveredTxnSrvc) {
     private void scanDataDirectory(File dir, Stats stats)
             throws InterruptedException {
 
+System.out.println("\nStoreManager.scanDataDirectory >>> dir="+dir);
         if (dir == null)
             throw new IllegalArgumentException();
 
@@ -2063,10 +2083,11 @@ if(discoveredTxnSrvc) {
 
             if (file.isDirectory()) {
 
+System.out.println("\nStoreManager.scanDataDirectory >>> dir="+file);
                 scanDataDirectory(file, stats);
 
             } else {
-
+System.out.println("\nStoreManager.scanDataDirectory >>> scanFile: "+file);
                 scanFile(file, stats);
 
             }
@@ -2076,6 +2097,7 @@ if(discoveredTxnSrvc) {
     }
 
     private void scanFile(File file, Stats stats) throws InterruptedException {
+System.out.println("\nStoreManager.scanFile >>> "+file);
 
         if (Thread.interrupted())
             throw new InterruptedException();
@@ -2102,8 +2124,10 @@ if(discoveredTxnSrvc) {
             properties.setProperty(Options.READ_ONLY, "true");
 
             final AbstractJournal tmp;
+
             try {
 
+System.out.println("\nStoreManager.scanFile >>> NEW ManagedJournal: "+file);
                 tmp = new ManagedJournal(properties);
 
             } catch (Exception ex) {
@@ -2143,6 +2167,7 @@ if(discoveredTxnSrvc) {
             final IndexSegmentStore segStore;
             try {
 
+System.out.println("\nStoreManager.scanFile >>> NEW IndexSegmentStore: "+file);
                 segStore = new IndexSegmentStore(file);
 
             } catch (Exception ex) {
@@ -2190,6 +2215,7 @@ if(discoveredTxnSrvc) {
                     && (name.endsWith(Options.JNL) || name
                             .endsWith(Options.SEG))) {
 
+System.out.println("\nStoreManager.scanFile >>> Ignoring empty file: "+file);
                 log.warn("Ignoring empty file: " + file);
 
             } else {
@@ -2198,6 +2224,7 @@ if(discoveredTxnSrvc) {
                  * This file is not relevant to the resource manager.
                  */
 
+System.out.println("\nStoreManager.scanFile >>> Ignoring irrelevant file: "+file);
                 log.warn("Ignoring file: " + file);
 
             }
@@ -2223,6 +2250,7 @@ if(discoveredTxnSrvc) {
 //        }
 
 //        addResource(resource, file.getAbsoluteFile());
+System.out.println("\nStoreManager.scanFile >>> addResource: file="+file);
         addResource(resource, file);
 
     }
@@ -2470,7 +2498,7 @@ if(discoveredTxnSrvc) {
      * <p>
      * Note: This implementation is designed to use a shared
      * {@link ConcurrencyManager} across all open journal instances for a
-     * {@link DataService}.
+     * {@link ShardService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
@@ -2534,7 +2562,7 @@ if(discoveredTxnSrvc) {
         }
         
         /**
-         * Note: Exposed for the {@link DataService} which needs this for its
+         * Note: Exposed for the {@link ShardService} which needs this for its
          * 2-phase commit protocol.
          */
         public long commitNow(final long commitTime) {
@@ -3334,8 +3362,14 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
 //            log.warn("nstores=" + nstores + ", nindices=" + nindices);
 //        }
 
-        final Event e = new Event(getFederation(), new EventResource(),
-                EventType.PurgeResources).start();
+//BTM        final Event e = new Event(getFederation(), new EventResource(),
+//BTM                EventType.PurgeResources).start();
+final Event e = new Event( getFederation().getEventQueue(),
+                           getFederation().getServiceIface(),
+                           getFederation().getServiceName(),
+                           getFederation().getServiceUUID(),
+                           new EventResource(),
+                           EventType.PurgeResources).start();
         
         /*
          * Prevent concurrent access to the index cache.
@@ -4615,7 +4649,14 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
                 + indexUUID.toString());
 
         // make sure that directory exists.
+//BTM        indexDir.mkdirs();
+//BTM - workaround for http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4742723
+if (!indexDir.exists()) {
+    indexDir.mkdirs();
+    if (!indexDir.exists()) {//still does not exist, try again
         indexDir.mkdirs();
+    }
+}
 
         final String partitionStr = (partitionId == -1 ? "" : "_shardId"
                 + leadingZeros.format(partitionId));
@@ -4660,7 +4701,7 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
      *            When <code>true</code>, the live journal will be truncated to
      *            its minimum extent (all writes will be preserved but there
      *            will be no free space left in the journal). This may be used
-     *            to force the {@link DataService} to its minimum possible
+     *            to force the {@link ShardService} to its minimum possible
      *            footprint for the configured history retention policy.
      * 
      * @return <code>true</code> if successful and <code>false</code> if the
@@ -4689,8 +4730,14 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
 
             try {
 
-                final Event event = new Event(getFederation(),
-                        new EventResource(), EventType.PurgeResources).start();
+//BTM                final Event event = new Event(getFederation(),
+//BTM                        new EventResource(), EventType.PurgeResources).start();
+final Event event = new Event( getFederation().getEventQueue(),
+                               getFederation().getServiceIface(),
+                               getFederation().getServiceName(),
+                               getFederation().getServiceUUID(),
+                               new EventResource(),
+                               EventType.PurgeResources).start();
 
                 try {
 

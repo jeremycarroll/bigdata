@@ -68,9 +68,9 @@ public class TestEventParser extends TestCase2 {
     
     public void test_parser() throws ClassNotFoundException {
 
-        final Event e = new MyEvent(new TestEventReceiver.MockFederation(
-                new MockEventReceivingService()),
-                new EventResource("testIndex"), "testEventType");
+//BTM        final Event e = new MyEvent(new TestEventReceiver.MockFederation(new MockEventReceivingService()), new EventResource("testIndex"), "testEventType");
+IBigdataFederation fed = new TestEventReceiver.MockFederation(new MockEventReceivingService());
+final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(), new EventResource("testIndex"), "testEventType");
 
         assertSameEvent(e, Event.fromString(e.toString()));
         

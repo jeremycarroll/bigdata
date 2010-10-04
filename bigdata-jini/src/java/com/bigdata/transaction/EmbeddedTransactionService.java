@@ -27,7 +27,7 @@ package com.bigdata.transaction;
 
 //BTM
 import static com.bigdata.transaction.Constants.*;
-import static com.bigdata.service.TxState.*;
+import static com.bigdata.journal.TxState.*;
 
 //BTM - original imports from DistributedTransactionService
 import java.io.BufferedInputStream;
@@ -73,13 +73,13 @@ import com.bigdata.util.concurrent.ExecutionExceptions;
 import com.bigdata.config.LongValidator;
 import com.bigdata.jini.util.JiniUtil;
 import com.bigdata.journal.TransactionService;
+import com.bigdata.journal.TxState;
 import com.bigdata.journal.ValidationError;
 import com.bigdata.service.CommitTimeIndex;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.IServiceShutdown.ShutdownType;
 import com.bigdata.service.ITxCommitProtocol;
 import com.bigdata.service.Service;
-import com.bigdata.service.TxState;
 import com.bigdata.service.TxServiceRunState;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.MillisecondTimestampFactory;
@@ -111,10 +111,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-//BTM - replace with ShardService and ShardLocator
-import com.bigdata.service.DataService;
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
+//BTM - replace with ShardService
+//BTM import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IMetadataService;
+import com.bigdata.service.ShardService;
 
 public class EmbeddedTransactionService implements TransactionService,
                                                    Service
@@ -128,7 +129,7 @@ private String hostname;
 
 private ServiceDiscoveryManager sdm;
 private LookupCache shardCache;
-private Map<UUID, IDataService> embeddedDataServiceMap;//change to ShardService
+private Map<UUID, ShardService> embeddedDataServiceMap;//change to ShardService
 
     public interface Options {
 
@@ -165,7 +166,8 @@ private Map<UUID, IDataService> embeddedDataServiceMap;//change to ShardService
 
 //BTM - BEGIN - added options
     String THREAD_POOL_SIZE = "threadPoolSize";
-    String DEFAULT_THREAD_POOL_SIZE = "20";
+    String DEFAULT_THREAD_POOL_SIZE = 
+           new Integer(Constants.DEFAULT_THREAD_POOL_SIZE).toString();
 //BTM - END   - added options
 
 //BTM - BEGIN - from AbstractTransactionService -------------------------------------
@@ -258,7 +260,7 @@ private Map<UUID, IDataService> embeddedDataServiceMap;//change to ShardService
 
     /**
      * The {@link LockManager} used to impose a partial ordering on the commit
-     * phase of distributed transaction commits using {@link IDataService}
+     * phase of distributed transaction commits using {@link ShardService}
      * {@link UUID}s as the named resources for which the tasks must contend.
      */
     private final LockManager<UUID> dataServiceLockManager = 
@@ -405,7 +407,7 @@ private Map<UUID, IDataService> embeddedDataServiceMap;//change to ShardService
                (final UUID serviceUUID,
                 final String hostname,
                 final ServiceDiscoveryManager sdm,
-                final Map<UUID, IDataService> embeddedDataServiceMap,
+                final Map<UUID, ShardService> embeddedDataServiceMap,
                 final String persistenceDir,
                 final int threadPoolSize,
                 final Properties properties)
@@ -489,9 +491,9 @@ this.dataDir = new File(persistenceDir);
 //BTM - BEGIN
 this.embeddedDataServiceMap = embeddedDataServiceMap;
 if(sdm != null) {
-    Class[] shardType = new Class[] {IDataService.class};//BTM - change to ShardService
+    Class[] shardType = new Class[] {ShardService.class};
     ServiceTemplate shardTmpl = new ServiceTemplate(null, shardType, null);
-    ServiceItemFilter shardFilter = new IDataServiceOnlyFilter();//BTM - change to null
+    ServiceItemFilter shardFilter = null;//new IDataServiceOnlyFilter();//BTM - change to null
     try {
         this.shardCache = sdm.createLookupCache
                                      ( shardTmpl, 
@@ -1202,7 +1204,7 @@ logger.warn("YYYYY TRANSACTION SERVICE EmbeddedTransactionService.destroy >>> DE
 //BTM - BEGIN
 if(uuids == null) return null;
 ArrayList<ITxCommitProtocol> retList = new ArrayList<ITxCommitProtocol>();
-Map<UUID, IDataService> serviceMap = getDiscoveredDataServices();//change to ShardService
+Map<UUID, ShardService> serviceMap = getDiscoveredDataServices();
 for(int i=0; i<uuids.length; i++) {
     ITxCommitProtocol serviceRef = serviceMap.get(uuids[i]);
     if(serviceRef == null) continue;
@@ -1214,36 +1216,36 @@ return retList.toArray(new ITxCommitProtocol[retList.size()]);
 
 //BTM - BEGIN
 //BTM - change all IDataServices to ShardServices
-    private IDataService getDataService(UUID uuid) {
-        Map<UUID, IDataService> serviceMap = getDiscoveredDataServices();
+    private ShardService getDataService(UUID uuid) {
+        Map<UUID, ShardService> serviceMap = getDiscoveredDataServices();
         return serviceMap.get(uuid);
     }
 
-    private IDataService[] getDataServices() {
-        Map<UUID, IDataService> serviceMap = getDiscoveredDataServices();
-        Collection<IDataService> serviceRefs = serviceMap.values();
-        return serviceRefs.toArray(new IDataService[serviceRefs.size()]);
+    private ShardService[] getDataServices() {
+        Map<UUID, ShardService> serviceMap = getDiscoveredDataServices();
+        Collection<ShardService> serviceRefs = serviceMap.values();
+        return serviceRefs.toArray(new ShardService[serviceRefs.size()]);
     }
 
-    private Map<UUID, IDataService> getDiscoveredDataServices() {
-        Map<UUID, IDataService> serviceMap = new HashMap<UUID, IDataService>();
+    private Map<UUID, ShardService> getDiscoveredDataServices() {
+        Map<UUID, ShardService> serviceMap = new HashMap<UUID, ShardService>();
         if(shardCache != null) {
             ServiceItem[] shardItems = shardCache.lookup(null, Integer.MAX_VALUE);
             for(int i=0; i<shardItems.length; i++) {
                 ServiceItem item = shardItems[i];
                 if( (item == null) || (item.service == null) ) continue;
                 UUID uuid = JiniUtil.serviceID2UUID(item.serviceID);
-                IDataService serviceRef = (IDataService)(item.service);
+                ShardService serviceRef = (ShardService)(item.service);
                 serviceMap.put(uuid, serviceRef);
             }
         } else {
-            Set<Map.Entry<UUID, IDataService>> entrySet =
+            Set<Map.Entry<UUID, ShardService>> entrySet =
                                        embeddedDataServiceMap.entrySet();
-            Iterator<Map.Entry<UUID, IDataService>> itr = entrySet.iterator();
+            Iterator<Map.Entry<UUID, ShardService>> itr = entrySet.iterator();
             for(int i=0; itr.hasNext(); i++ ) {
-                Map.Entry<UUID, IDataService> pair = itr.next();
+                Map.Entry<UUID, ShardService> pair = itr.next();
                 UUID uuid = pair.getKey();
-                IDataService serviceRef = pair.getValue();
+                ShardService serviceRef = pair.getValue();
                 serviceMap.put(uuid, serviceRef);
             }
         }
@@ -1367,23 +1369,23 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
     /**
      * There are two distinct commit protocols depending on whether the
      * transaction write set is distributed across more than one
-     * {@link IDataService}. When write set of the transaction lies entirely on
-     * a single {@link IDataService}, an optimized commit protocol is used.
+     * {@link ShardService}. When write set of the transaction lies entirely on
+     * a single {@link ShardService}, an optimized commit protocol is used.
      * When the write set of the transaction is distributed, a 3-phase commit is
      * used with most of the work occurring during the "prepare" phase and a
      * very rapid "commit" phase. If a distributed commit fails, even during the
      * "commit", then the transaction will be rolled back on all participating
-     * {@link IDataService}s.
+     * {@link ShardService}s.
      * 
      * <h3>Single phase commits</h3>
      * 
      * A simple commit protocol is used when the write set of the transaction
-     * resides entirely on a single {@link IDataService}. Such commits DO NOT
+     * resides entirely on a single {@link ShardService}. Such commits DO NOT
      * contend for named resource locks (either on the index names or on the
-     * {@link IDataService} {@link UUID}s). Since such transactions DO NOT have
-     * dependencies outside of the specific {@link IDataService}, a necessary
+     * {@link ShardService} {@link UUID}s). Since such transactions DO NOT have
+     * dependencies outside of the specific {@link ShardService}, a necessary
      * and sufficient partial order will be imposed on the executing tasks
-     * locally by the {@link IDataService} on which they are executing based
+     * locally by the {@link ShardService} on which they are executing based
      * solely on the named resources which they declare. Without dependencies on
      * distributed resources, this can not deadlock.
      * 
@@ -1403,12 +1405,12 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
      * possible when the locks are pre-declared.
      * <p>
      * A secondary partial ordering is established based on the
-     * {@link IDataService} {@link UUID}s during the commit phase. This partial
+     * {@link ShardService} {@link UUID}s during the commit phase. This partial
      * order is necessary to avoid deadlocks for concurrently executing commit
      * phases of distributed transactions that DO NOT share named index locks.
-     * Without a partial order over the participating {@link IDataService}s,
+     * Without a partial order over the participating {@link ShardService}s,
      * deadlocks could arise because each transaction will grab an exclusive
-     * lock on the write service for each participating {@link IDataService}.
+     * lock on the write service for each participating {@link ShardService}.
      * By ordering those lock requests, we again ensure that deadlocks can not
      * occur.
      * <p>
@@ -1499,7 +1501,7 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
         final UUID serviceUUID = uuids[0];
 
 //BTM        final IDataService dataService = getFederation().getDataService(serviceUUID);
-final IDataService dataService = getDataService(serviceUUID);//BTM - change to ShardService
+final ShardService dataService = getDataService(serviceUUID);//BTM - change to ShardService
 
         try {
 
@@ -1703,7 +1705,7 @@ final IDataService dataService = getDataService(serviceUUID);//BTM - change to S
          * fact serialized. The transaction services MUST enforce that
          * assumption by serializing distributed commits (at least those which
          * touch the same index partitions (necessary constraint), the same
-         * indices (sufficient constraint) or the same {@link IDataService}s
+         * indices (sufficient constraint) or the same {@link ShardService}s
          * (sufficient constraint)). If it did not serialize distributed commits
          * then <strong>deadlocks</strong> could arise where two distributed
          * commits were each seeking the exclusive write lock on resources, one
@@ -1751,7 +1753,7 @@ final IDataService dataService = getDataService(serviceUUID);//BTM - change to S
          * <p>
          * Post-conditions: {@link TxState#isComplete()} will be true. The
          * transaction will either have been aborted or committed on all
-         * {@link IDataService}s.
+         * {@link ShardService}s.
          * 
          * @return The assigned commit time.
          * 
@@ -1966,7 +1968,7 @@ futures = threadPool.invokeAll(tasks);
          * runs it will change {@link RunState} to {@link RunState#Prepared} and
          * assign a <em>commitTime</em> to the transaction. When the barrier
          * breaks, the assigned <i>commitTime</i> will be reported back to the
-         * {@link IDataService}s waiting in
+         * {@link ShardService}s waiting in
          * {@link ITransactionService#prepared(long, UUID)} as the return value
          * for that method.
          */
@@ -2069,7 +2071,7 @@ futures = threadPool.invokeAll(tasks);
         
         /**
          * Task issues {@link ITxCommitProtocol#prepare(long, long)} to an
-         * {@link IDataService} participating in a distributed commit.
+         * {@link ShardService} participating in a distributed commit.
          */
         protected class PrepareTask implements Callable<Void> {
 
@@ -2345,11 +2347,11 @@ updateReleaseTimeForBareCommit(commitTime);//BTM - from AbstractTransactionServi
      */
     private static class SetReleaseTimeTask implements Callable<Void> {
 
-        final IDataService dataService;
+        final ShardService dataService;
 
         final long releaseTime;
 
-        public SetReleaseTimeTask(final IDataService dataService, final long releaseTime) {
+        public SetReleaseTimeTask(final ShardService dataService, final long releaseTime) {
 
             if (dataService == null)
                 throw new IllegalArgumentException();
@@ -2374,7 +2376,7 @@ updateReleaseTimeForBareCommit(commitTime);//BTM - from AbstractTransactionServi
     }
 
     /**
-     * Task periodically notifies the discovered {@link IDataService}s of the
+     * Task periodically notifies the discovered {@link ShardService}s of the
      * new release time.
      * <p>
      * Note: Running a concurrent instance of this could cause release times to
@@ -2397,9 +2399,9 @@ updateReleaseTimeForBareCommit(commitTime);//BTM - from AbstractTransactionServi
         private long lastReleaseTime = 0L;
         
         /**
-         * Notifies all {@link IDataService}s of the current release time.
+         * Notifies all {@link ShardService}s of the current release time.
          * <p>
-         * Note: An {@link IDataService} WILL NOT release its most current
+         * Note: An {@link ShardService} WILL NOT release its most current
          * commit point, regardless of the releaseTime that is sent to that
          * service.
          * <p>
@@ -2424,12 +2426,12 @@ updateReleaseTimeForBareCommit(commitTime);//BTM - from AbstractTransactionServi
 //BTM                final UUID[] a = fed.getDataServiceUUIDs(0/* maxCount */);
 //BTM
 //BTM                final IDataService[] services = getFederation().getDataServices(a);
-final IDataService[] services = getDataServices();
+final ShardService[] services = getDataServices();
 
 //BTM                final List<Callable<Void>> tasks = new ArrayList<Callable<Void>>(a.length);
 final List<Callable<Void>> tasks = new ArrayList<Callable<Void>>(services.length);
 
-                for (IDataService dataService : services) {
+                for (ShardService dataService : services) {
 
                     tasks.add(new SetReleaseTimeTask(dataService, releaseTime));
 
@@ -2572,7 +2574,7 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
              * of distributed transaction commits using the data service UUIDs
              * as the named resources.
              */
-            countersRoot.makePath("DataService Lock Manager").attach(
+            countersRoot.makePath("ShardService Lock Manager").attach(
                     ((EmbeddedTransactionService) this).dataServiceLockManager
                                     .getCounters());
 
@@ -2638,22 +2640,23 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
         MDC.remove("this.hostname");
     }
 
-    private class IDataServiceOnlyFilter 
-                  implements ServiceItemFilter
-    {
-	public boolean check(ServiceItem item) {
-            if((item == null) || (item.service == null)) {
-                return false;
-            }
-            Class serviceType = (item.service).getClass();
-            boolean isIDataService = 
-             (IDataService.class).isAssignableFrom(serviceType);
-            if( !isIDataService ) return false;
-            boolean isIMetadataService = 
-             (IMetadataService.class).isAssignableFrom(serviceType);
-            return (isIDataService && !isIMetadataService);
-        }
-    }
+//BTM - NO LONGER NEEDED ???
+//BTM    private class IDataServiceOnlyFilter 
+//BTM                  implements ServiceItemFilter
+//BTM    {
+//BTM	public boolean check(ServiceItem item) {
+//BTM            if((item == null) || (item.service == null)) {
+//BTM                return false;
+//BTM            }
+//BTM            Class serviceType = (item.service).getClass();
+//BTM            boolean isIDataService = 
+//BTM             (IDataService.class).isAssignableFrom(serviceType);
+//BTM            if( !isIDataService ) return false;
+//BTM            boolean isIMetadataService = 
+//BTM             (IMetadataService.class).isAssignableFrom(serviceType);
+//BTM            return (isIDataService && !isIMetadataService);
+//BTM        }
+//BTM    }
 
 //BTM - from AbstractTransactionService
 

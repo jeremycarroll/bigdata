@@ -39,7 +39,6 @@ import org.apache.zookeeper.data.ACL;
 
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.jini.start.config.ServiceConfiguration;
-import com.bigdata.service.IDataService;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.RemoteDestroyAdmin;
 import com.bigdata.zookeeper.ZLock;
@@ -162,7 +161,7 @@ System.out.println("\nEEEE ManageLogicalServiceTask.constructor: configZPath="+t
      * <p>
      * Note that this does not find the "best" host for the new service since
      * there is no global consideration of host scores. However, the load
-     * balancer will adjust the load on the {@link IDataService}s which are the
+     * balancer will adjust the load on the shard services which are the
      * most heavily loaded part of the system.
      * <p>
      * Note: The {@link ServicesManagerServer} is responsible for watching the

@@ -38,10 +38,15 @@ import com.bigdata.btree.BTree;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.relation.RelationSchema;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.util.NV;
+
+//BTM
+import com.bigdata.service.IService;
+import com.bigdata.service.Service;
+import com.bigdata.service.ShardService;
 
 /**
  * Base class for managing the initial configuration metadata for indices and
@@ -317,7 +322,7 @@ public class Configuration {
 //    }
     
     /**
-     * Resolve the value to a {@link DataService} {@link UUID}.
+     * Resolve the value to a {@link ShardService} {@link UUID}.
      * 
      * @param indexManager
      *            The index manager (optional).
@@ -365,14 +370,19 @@ public class Configuration {
          */
         {
          
-            final IDataService dataService = fed.getDataServiceByName(val);
+//BTM            final IDataService dataService = fed.getDataServiceByName(val);
+final ShardService dataService = fed.getDataServiceByName(val);
 
             if (dataService != null) {
 
                 try {
 
-                    return dataService.getServiceUUID();
-                    
+//BTM                    return dataService.getServiceUUID();
+if(dataService instanceof IService) {
+    return ((IService)dataService).getServiceUUID();
+} else {
+    return ((Service)dataService).getServiceUUID();
+}
                 } catch (IOException ex) {
                     
                     throw new RuntimeException(ex);

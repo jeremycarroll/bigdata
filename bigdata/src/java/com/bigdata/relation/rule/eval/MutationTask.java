@@ -44,7 +44,12 @@ import com.bigdata.relation.accesspath.IBuffer;
 import com.bigdata.relation.rule.IProgram;
 import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.IStep;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
+
+//BTM
+import com.bigdata.resources.ResourceManager;
+import com.bigdata.journal.ConcurrencyManager;
+import com.bigdata.service.Session;
 
 /**
  * A task that executes a mutation operation.
@@ -59,11 +64,36 @@ public class MutationTask extends AbstractStepTask {
      */
     private static final long serialVersionUID = 6503299789509746764L;
 
+//BTM    protected MutationTask(ActionEnum action,
+//BTM            IJoinNexusFactory joinNexusFactory, IStep step,
+//BTM            IIndexManager indexManager, DataService dataService) {
+//BTM
+//BTM        super(action, joinNexusFactory, step, indexManager, dataService);
+
+//BTM - PRE_FRED_3481 protected MutationTask(ActionEnum action,
+//BTM - PRE_FRED_3481         IJoinNexusFactory joinNexusFactory, IStep step,
+//BTM - PRE_FRED_3481         IIndexManager indexManager,
+//BTM - PRE_FRED_3481         ResourceManager dataServiceResourceMgr,
+//BTM - PRE_FRED_3481         ConcurrencyManager dataServiceConcurrencyMgr,
+//BTM - PRE_FRED_3481         IIndexManager dataServiceIndexMgr,
+//BTM - PRE_FRED_3481         Session dataServiceSession,
+//BTM - PRE_FRED_3481         String dataServiceHost,
+//BTM - PRE_FRED_3481         String dataServiceName) {
+//BTM - PRE_FRED_3481
+//BTM - PRE_FRED_3481 super(action, joinNexusFactory, step, indexManager,
+//BTM - PRE_FRED_3481       dataServiceResourceMgr,
+//BTM - PRE_FRED_3481       dataServiceConcurrencyMgr,
+//BTM - PRE_FRED_3481       dataServiceIndexMgr,
+//BTM - PRE_FRED_3481       dataServiceSession,
+//BTM - PRE_FRED_3481       dataServiceHost,
+//BTM - PRE_FRED_3481       dataServiceName);
+
     protected MutationTask(ActionEnum action,
             IJoinNexusFactory joinNexusFactory, IStep step,
-            IIndexManager indexManager, DataService dataService) {
+            IIndexManager indexManager)
+    {
 
-        super(action, joinNexusFactory, step, indexManager, dataService);
+        super(action, joinNexusFactory, step, indexManager);
         
     }
 

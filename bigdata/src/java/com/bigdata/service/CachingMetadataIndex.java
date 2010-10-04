@@ -79,7 +79,8 @@ public class CachingMetadataIndex extends CacheOnceMetadataIndex {
      * @return The cached partition metadata -or- <code>null</code> iff there
      *         is no such scale-out index.
      */
-    public CachingMetadataIndex(AbstractScaleOutFederation fed, String name,
+//BTM    public CachingMetadataIndex(AbstractScaleOutFederation fed, String name,
+public CachingMetadataIndex(IBigdataFederation fed, String name,
             long timestamp, MetadataIndexMetadata mdmd) {
 
         super(fed, name, timestamp, mdmd);

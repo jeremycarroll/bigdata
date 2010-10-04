@@ -29,15 +29,13 @@ package com.bigdata.mdi;
 
 import com.bigdata.btree.ICounter;
 import com.bigdata.btree.IndexMetadata;
-import com.bigdata.service.DataService;
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
+import com.bigdata.util.Util;
 
 /**
  * A description of the metadata state for a partition of a scale-out index.
  * <p>
  * Each index partition has a distinct partitionId. This partitionId is assigned
- * by a centralized service - the {@link IMetadataService} for the scale-out
+ * by a centralized service - the shard locator service for the scale-out
  * index for that index partition. A centralized service is required in order to
  * obtain distinct int32 partition identifiers because those partition
  * identifiers are used in turn to support scale-out partition local
@@ -48,14 +46,14 @@ import com.bigdata.service.IMetadataService;
  * identifier for an index partition - any two index partitions which share
  * those three properties MUST be the same index partition. However, access to
  * index partitions is generally in terms of the name of the scale-out index and
- * the partitionId.  See {@link DataService#getIndexPartitionName(String, int)}
+ * the partitionId.  See {@link Util#getIndexPartitionName(String, int)}
  * which returns the name under which an index partition will be registered and
  * the name that must be used when requesting operations on that index partition
- * using an {@link IDataService}.
+ * using a shard service.
  * <p>
  * An index partition has additional state, including:
  * <ul>
- * <li>the {@link IDataService} on which it resides.</li>
+ * <li>the shard service on which it resides.</li>
  * <li>the {@link IResourceMetadata}[] describing the resources required to
  * materialize a view of the index partition.</li>
  * <li>those resources themselves, which contain the index partition data.</li>
@@ -70,11 +68,10 @@ import com.bigdata.service.IMetadataService;
  * <p>
  * If the client knows a key or key range of interest for a scale-out index then
  * they can obtain the relevant index partition descriptions and a data service
- * locator either either by flooding the query to the {@link IDataService}s or
+ * locator either either by flooding the query to the shard services or
  * from the {@link MetadataIndex}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public interface IPartitionMetadata extends ISeparatorKeys {
 

@@ -75,9 +75,9 @@ import com.bigdata.rawstore.IRawStore;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StoreManager;
 import com.bigdata.resources.StoreManager.ManagedJournal;
-import com.bigdata.service.DataService;
-import com.bigdata.service.DataServiceCallable;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.DataService;
+//BTM - PRE_FRED_3481 import com.bigdata.service.DataServiceCallable;
+//BTM import com.bigdata.service.IDataService;
 //BTM import com.bigdata.service.IMetadataService;
 import com.bigdata.service.ListIndicesTask;
 import com.bigdata.service.MetadataService;
@@ -88,6 +88,14 @@ import com.bigdata.util.InnerCause;
 //BTM
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
+import com.bigdata.util.Util;
+
+//BTM - PRE_FRED_3481
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.service.IDataServiceCallable;
+import com.bigdata.service.Session;
 
 /**
  * A client utility that connects to and dumps various interesting aspects of a
@@ -148,7 +156,7 @@ public class DumpFederation {
      * @throws ExecutionException
      * @throws IOException
      * @throws TimeoutException
-     *             if no {@link DataService} can be discovered.
+     *             if no {@link ShardService} can be discovered.
      * @throws ConfigurationException 
      */
     static public void main(final String[] args) throws InterruptedException,
@@ -532,7 +540,8 @@ public class DumpFederation {
             final StringBuilder sb = new StringBuilder();
             sb.append(rec.ts);//new Date(ts));
             sb.append("\t" + rec.indexName);
-            sb.append("\t" + DataService.getIndexPartitionName(rec.indexName,rec.locator.getPartitionId()));
+//BTM            sb.append("\t" + DataService.getIndexPartitionName(rec.indexName,rec.locator.getPartitionId()));
+sb.append("\t" + Util.getIndexPartitionName(rec.indexName,rec.locator.getPartitionId()));
             sb.append("\t" + rec.locator.getPartitionId());
             sb.append("\t" + rec.locator.getDataServiceUUID());
             sb.append("\t" + rec.smd.getName());
@@ -724,7 +733,8 @@ public class DumpFederation {
             final StringBuilder sb = new StringBuilder();
             sb.append(rec.ts);//new Date(ts));
             sb.append("," + rec.indexName);
-            sb.append("," + DataService.getIndexPartitionName(rec.indexName,rec.locator.getPartitionId()));
+//BTM            sb.append("," + DataService.getIndexPartitionName(rec.indexName,rec.locator.getPartitionId()));
+sb.append("," + Util.getIndexPartitionName(rec.indexName,rec.locator.getPartitionId()));
             sb.append("," + rec.locator.getPartitionId());
             sb.append("," + rec.locator.getDataServiceUUID());
             sb.append("," + rec.smd.getName());
@@ -893,13 +903,18 @@ final ShardLocator mds = fed.getMetadataService();
         
 //BTM        return (String[]) mds.submit(new ListIndicesTask(ts, namespace)).get();
 //BTM
-if(mds instanceof IDataService) {
-    return (String[]) ((IDataService)mds).submit(new ListIndicesTask(ts, namespace)).get();
-} else if(mds instanceof ShardManagement) {
-    return (String[]) ((ShardManagement)mds).submit(new ListIndicesTask(ts, namespace)).get();
-} else {
-    throw new RuntimeException("DumpFederation.getIndexNames: shard locator (metadata) service is not a shard manager [type="+mds.getClass()+"]");
-}
+//BTM - BEGIN CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
+//BTM if(mds instanceof IDataService) {
+//BTM     return (String[]) ((IDataService)mds).submit(new ListIndicesTask(ts, namespace)).get();
+//BTM } else if(mds instanceof ShardManagement) {
+//BTM     return (String[]) ((ShardManagement)mds).submit(new ListIndicesTask(ts, namespace)).get();
+//BTM } else {
+//BTM     throw new RuntimeException("DumpFederation.getIndexNames: shard locator (metadata) service is not a shard manager [type="+mds.getClass()+"]");
+//BTM }
+
+return (String[]) ((ShardManagement)mds).submit(new ListIndicesTask(ts, namespace)).get();
+
+//BTM - END CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
 
     }
 
@@ -1001,11 +1016,10 @@ if(mds instanceof IDataService) {
 
             this.locator = locator;
             
-            smd = ServiceMetadata.getServiceMetadata(fed, locator
-                    .getDataServiceUUID());
+            smd = ServiceMetadata.getServiceMetadata(fed, locator.getDataServiceUUID());
             
-            final IDataService dataService = fed.getDataService(locator
-                    .getDataServiceUUID());
+//BTM            final IDataService dataService = fed.getDataService(locator.getDataServiceUUID());
+final ShardService dataService = fed.getDataService(locator.getDataServiceUUID());
 
             if (dataService == null) {
 
@@ -1022,10 +1036,11 @@ if(mds instanceof IDataService) {
             IndexPartitionDetailRecord detailRec = null;
             try {
 
-                detailRec = (IndexPartitionDetailRecord) dataService
-                        .submit(new FetchIndexPartitionByteCountRecordTask(ts,
-                                DataService.getIndexPartitionName(indexName,
-                                        locator.getPartitionId()))).get(); 
+//BTM                detailRec = (IndexPartitionDetailRecord) dataService
+//BTM                        .submit(new FetchIndexPartitionByteCountRecordTask(ts,
+//BTM                                DataService.getIndexPartitionName(indexName,
+//BTM                                        locator.getPartitionId()))).get(); 
+detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(new FetchIndexPartitionByteCountRecordTask(ts, Util.getIndexPartitionName(indexName, locator.getPartitionId()))).get(); 
                 
             } catch(InterruptedException t) {
                 
@@ -1068,7 +1083,7 @@ if(mds instanceof IDataService) {
          * Note: views generally have data on the live and possibly one (or
          * more) historical journals. However, there is no way to accurately
          * allocate the bytes on those journals to the indices on those
-         * journals. The #of bytes under management for a {@link DataService}
+         * journals. The #of bytes under management for a {@link ShardService}
          * may be examined using the performance counters reported for its
          * {@link StoreManager}.
          */
@@ -1547,8 +1562,11 @@ if(mds instanceof IDataService) {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    static public class FetchIndexPartitionByteCountRecordTask extends
-            DataServiceCallable<IndexPartitionDetailRecord> {
+//BTM - PRE_FRED_3481    static public class FetchIndexPartitionByteCountRecordTask extends
+//BTM - PRE_FRED_3481            DataServiceCallable<IndexPartitionDetailRecord> {
+    static public class FetchIndexPartitionByteCountRecordTask
+            implements IDataServiceCallable<IndexPartitionDetailRecord>
+    {
 
         /**
          * 
@@ -1580,10 +1598,17 @@ if(mds instanceof IDataService) {
             
         }
 
-        public IndexPartitionDetailRecord call() throws Exception {
+//BTM - PRE_FRED_3481        public IndexPartitionDetailRecord call() throws Exception {
+        public IndexPartitionDetailRecord startDataTask(IIndexManager indexManager,
+                                                        final ResourceManager resourceManager,
+                                                        IConcurrencyManager concurrencyManager,
+                                                        Session session,
+                                                        String hostname,
+                                                        String serviceName)
+                throws Exception {
 
-            final ResourceManager resourceManager = getDataService()
-                    .getResourceManager();
+//BTM            final ResourceManager resourceManager = getDataService().getResourceManager();
+//BTM - PRE_FRED_3481 final ResourceManager resourceManager = getResourceManager();
 
             return new IndexPartitionDetailRecord(resourceManager, timestamp,
                     name);
@@ -1752,7 +1777,7 @@ if(mds instanceof IDataService) {
         private final int code;
         
         /**
-         * Extract some useful metadata for an {@link IDataService}.
+         * Extract some useful metadata for an {@link ShardService}.
          */
         static public ServiceMetadata getServiceMetadata(
                 final JiniFederation<?> fed, final UUID uuid) {
@@ -1767,9 +1792,8 @@ if(mds instanceof IDataService) {
              * @todo restricted to (meta)data services by use of type specific
              * cache!
              */
-//BTM            final ServiceItem serviceItem = fed.getDataServicesClient()
-ServiceItem serviceItem = fed.getDataServicesClient()
-                    .getServiceItem(uuid);
+//BTM            final ServiceItem serviceItem = fed.getDataServicesClient().getServiceItem(uuid);
+ServiceItem serviceItem = fed.getDataServicesClient().getServiceItem(uuid);
 
             if (serviceItem == null) {
 

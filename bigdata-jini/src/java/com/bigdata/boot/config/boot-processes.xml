@@ -131,7 +131,7 @@
     <javaprop name="java.util.logging.config.file"
         value="${bigdata.configDir}/logging/logging.properties"/>
 
-    <property name="java.classpath" value="${bootLauncherClasspath}"/>
+    <property name="java.classpath" value="${bootLauncherClasspath}${:}lib/fastutil.jar${:}lib/dsiutils.jar${:}lib/cweb-extser.jar${:}lib/icu4j.jar${:}lib/ctc_utils.jar"/>
     <property name="java.app.mainclass"
         value="com.bigdata.boot.starter.SingleNonActivatableServiceStarter"/>
     <arg value="${bigdata.configDir}/policy/service.policy"/>

@@ -13,16 +13,21 @@ import com.bigdata.btree.proc.IResultHandler;
 import com.bigdata.btree.proc.ISimpleIndexProcedure;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.DataService;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.Split;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.TaskCounters;
 
+//BTM
+import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
+import com.bigdata.util.Util;
+
 /**
  * Helper class for submitting an {@link IIndexProcedure} to run on an
- * {@link IDataService}. The class traps {@link StaleLocatorException}s and
- * handles the redirection of requests to the appropriate {@link IDataService}.
+ * {@link ShardService}. The class traps {@link StaleLocatorException}s and
+ * handles the redirection of requests to the appropriate {@link ShardService}.
  * When necessary, the data for an {@link IKeyArrayIndexProcedure} will be
  * re-split in order to distribute the requests to the new index partitions
  * following a split of the target index partition.
@@ -38,11 +43,12 @@ import com.bigdata.util.concurrent.TaskCounters;
  * submitting one request to the new index partition for each index partition
  * that we knew about at the time that the procedure was first mapped across the
  * index partitions.
- * 
- * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 abstract class AbstractDataServiceProcedureTask implements Callable<Void> {
+
+//BTM
+protected String dbgFlnm="EmbeddedShardService.out";
+//protected String dbgFlnm="DataService.out";
 
     /**
      * Note: Invocations of the non-batch API are logged at the WARN level since
@@ -212,6 +218,7 @@ abstract class AbstractDataServiceProcedureTask implements Callable<Void> {
 
         try {
 
+Util.printStr(dbgFlnm, "AbstractDataService.call >>> submit(locator="+locator+")");
             submit(locator);
 
             taskCounters.taskSuccessCount.incrementAndGet();
@@ -219,6 +226,7 @@ abstract class AbstractDataServiceProcedureTask implements Callable<Void> {
             taskCountersByIndex.taskSuccessCount.incrementAndGet();
 
         } catch (Exception ex) {
+Util.printStr(dbgFlnm, "AbstractDataService.call >>> Exception = "+ex);
 
             taskCounters.taskFailCount.incrementAndGet();
             //                taskCountersByProc.taskFailCount.incrementAndGet();
@@ -250,12 +258,13 @@ abstract class AbstractDataServiceProcedureTask implements Callable<Void> {
 
         }
 
+Util.printStr(dbgFlnm, "AbstractDataService.call >>> RETURN");
         return null;
 
     }
 
     /**
-     * Submit the procedure to the {@link IDataService} identified by the
+     * Submit the procedure to the {@link ShardService} identified by the
      * locator.
      * 
      * @param locator
@@ -273,13 +282,15 @@ abstract class AbstractDataServiceProcedureTask implements Callable<Void> {
             throw new InterruptedException();
 
         // resolve service UUID to data service.
-        final IDataService dataService = ndx.getDataService(locator);
+//BTM        final IDataService dataService = ndx.getDataService(locator);
+final ShardService dataService = ndx.getDataService(locator);
 
         if (dataService == null)
-            throw new RuntimeException("DataService not found: " + locator);
+            throw new RuntimeException("ShardService not found: " + locator);
 
         // the name of the index partition.
-        final String name = DataService.getIndexPartitionName(//
+//BTM        final String name = DataService.getIndexPartitionName(//
+final String name = Util.getIndexPartitionName(//
                 ndx.getName(), // the name of the scale-out index.
                 split.pmd.getPartitionId() // the index partition identifier.
                 );
@@ -289,7 +300,9 @@ abstract class AbstractDataServiceProcedureTask implements Callable<Void> {
 
         try {
 
-            submit(dataService, name);
+//BTM            submit(dataService, name);
+Util.printStr(dbgFlnm, "AbstractDataService.call >>> submit(ShardManagement, name="+name+")");
+submit( (ShardManagement)dataService, name );
 
         } catch (Exception ex) {
 
@@ -320,7 +333,7 @@ abstract class AbstractDataServiceProcedureTask implements Callable<Void> {
     }
 
     /**
-     * Submit the procedure to the {@link IDataService} and aggregate the
+     * Submit the procedure to the {@link ShardService} and aggregate the
      * result with the caller's {@link IResultHandler} (if specified).
      * 
      * @param dataService
@@ -335,7 +348,8 @@ abstract class AbstractDataServiceProcedureTask implements Callable<Void> {
      *       {@link ISimpleIndexProcedure}.
      */
     @SuppressWarnings("unchecked")
-    final private void submit(final IDataService dataService, final String name)
+//BTM    final private void submit(final IDataService dataService, final String name)
+final private void submit(final ShardManagement dataService, final String name)
             throws Exception {
 
         /*
@@ -345,10 +359,12 @@ abstract class AbstractDataServiceProcedureTask implements Callable<Void> {
          * federation for the procedure.
          */
 
+Util.printStr(dbgFlnm, "AbstractDataService.call >>> DataService.submit(ts="+ts+", name="+name+", proc="+proc+")");
         final Object result = dataService.submit(ts, name, proc).get();
 
         if (resultHandler != null) {
 
+Util.printStr(dbgFlnm, "AbstractDataService.call >>> resultHandler.aggregate(result="+result+", split="+split+")");
             resultHandler.aggregate(result, split);
 
         }

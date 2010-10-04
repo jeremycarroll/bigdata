@@ -13,11 +13,14 @@ import com.bigdata.btree.IndexSegment;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.resources.SplitIndexPartitionTask.AtomicUpdateSplitIndexPartitionTask;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.Split;
 import com.bigdata.sparse.SparseRowStore;
+
+//BTM
+import com.bigdata.util.Util;
 
 /**
  * Task splits an index partition into N equal sized index partitions and
@@ -169,13 +172,24 @@ public class ScatterSplitTask extends
     @Override
     protected AbstractResult doTask() throws Exception {
 
-        final Event e = new Event(resourceManager.getFederation(),
-                new EventResource(vmd.indexMetadata), OverflowActionEnum.ScatterSplit,
-                vmd.getParams()).addDetail(
-                "summary",
-                OverflowActionEnum.ScatterSplit + "+" + OverflowActionEnum.Move + "("
-                        + vmd.name + ", nsplits=" + nsplits + ")").addDetail(
-                "moveTargets", Arrays.toString(moveTargets)).start();
+//BTM        final Event e = new Event(resourceManager.getFederation(),
+//BTM                new EventResource(vmd.indexMetadata), OverflowActionEnum.ScatterSplit,
+//BTM                vmd.getParams()).addDetail(
+//BTM                "summary",
+//BTM                OverflowActionEnum.ScatterSplit + "+" + OverflowActionEnum.Move + "("
+//BTM                        + vmd.name + ", nsplits=" + nsplits + ")").addDetail(
+//BTM                "moveTargets", Arrays.toString(moveTargets)).start();
+final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+                           (resourceManager.getFederation()).getServiceIface(),
+                           (resourceManager.getFederation()).getServiceName(),
+                           (resourceManager.getFederation()).getServiceUUID(),
+                           new EventResource(vmd.indexMetadata),
+                           OverflowActionEnum.ScatterSplit,
+                           vmd.getParams()).addDetail("summary",
+                                                      OverflowActionEnum.ScatterSplit +
+                                                      "+" + OverflowActionEnum.Move + "("
+                                                      + vmd.name + ", nsplits=" + nsplits + ")").addDetail("moveTargets",
+                                                                                                            Arrays.toString(moveTargets)).start();
 
         SplitResult splitResult = null;
         try {
@@ -346,9 +360,10 @@ public class ScatterSplitTask extends
                      * The name of the post-split index partition that is the
                      * source for the move operation.
                      */
-                    final String nameOfPartitionToMove = DataService
-                            .getIndexPartitionName(vmd.indexMetadata.getName(),
-                                    splitResult.splits[i].pmd.getPartitionId());
+//BTM                    final String nameOfPartitionToMove = DataService
+//BTM                            .getIndexPartitionName(vmd.indexMetadata.getName(),
+//BTM                                    splitResult.splits[i].pmd.getPartitionId());
+final String nameOfPartitionToMove = Util.getIndexPartitionName(vmd.indexMetadata.getName(), splitResult.splits[i].pmd.getPartitionId());
 
                     /*
                      * Create a move task.

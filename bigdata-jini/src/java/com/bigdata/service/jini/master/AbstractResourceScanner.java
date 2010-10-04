@@ -132,6 +132,15 @@ public abstract class AbstractResourceScanner<V> implements Callable<Long> {
     protected abstract void runScanner() throws Exception;
     
     /**
+     * Stop the scanner, releasing resources as needed.
+     *
+     * @throws Exception
+     */
+    protected void stopScanner() throws Exception {
+        // Do nothing by default.
+    }
+
+    /**
      * Accept a resource for processing.
      * 
      * @param resource

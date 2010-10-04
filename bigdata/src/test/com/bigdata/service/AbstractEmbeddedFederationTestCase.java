@@ -82,8 +82,10 @@ abstract public class AbstractEmbeddedFederationTestCase extends AbstractBTreeTe
     protected IBigdataFederation<?> fed;
 //BTM    protected IMetadataService metadataService;
 protected ShardLocator metadataService;
-    protected IDataService dataService0;
-    protected IDataService dataService1;
+//BTM    protected IDataService dataService0;
+//BTM    protected IDataService dataService1;
+protected ShardService dataService0;
+protected ShardService dataService1;
 
     public Properties getProperties() {
         
@@ -161,15 +163,36 @@ if (log.isInfoEnabled()) {
 }
 
         dataService0 = ((EmbeddedFederation<?>) fed).getDataService(0);
-        if (log.isInfoEnabled())
-            log.info("dataService0   : " + dataService0.getServiceUUID());
+//BTM
+UUID tmpDataService0UUID = null;
+if(dataService0 != null) {
+    if(dataService0 instanceof IService) {
+        tmpDataService0UUID = ((IService)dataService0).getServiceUUID();
+    } else if(dataService1 instanceof Service) {
+        tmpDataService0UUID = ((Service)dataService0).getServiceUUID();
+    }
+}
+        if (log.isInfoEnabled()) {
+//BTM            log.info("dataService0   : " + dataService0.getServiceUUID());
+log.info("dataService0   : " + tmpDataService0UUID);
+        }
 
         if (((EmbeddedFederation<?>) fed).getDataServiceCount() > 1) {
 
             dataService1 = ((EmbeddedFederation<?>) fed).getDataService(1);
-            if (log.isInfoEnabled())
-                log.info("dataService1   : " + dataService1.getServiceUUID());
-            
+//BTM
+UUID tmpDataService1UUID = null;
+if(dataService1 != null) {
+    if(dataService1 instanceof IService) {
+        tmpDataService1UUID = ((IService)dataService1).getServiceUUID();
+    } else if(dataService1 instanceof Service) {
+        tmpDataService1UUID = ((Service)dataService1).getServiceUUID();
+    }
+}
+            if (log.isInfoEnabled()) {
+//BTM                log.info("dataService1   : " + dataService1.getServiceUUID());
+log.info("dataService1   : " + tmpDataService1UUID);
+            }
         }
         
 
@@ -249,7 +272,7 @@ if (log.isInfoEnabled()) {
     }
     
     /**
-     * Verify that a named index is registered on a specific {@link DataService}
+     * Verify that a named index is registered on a specific {@link ShardService}
      * with the specified indexUUID.
      * 
      * @param dataService
@@ -259,10 +282,11 @@ if (log.isInfoEnabled()) {
      * @param indexUUID
      *            The unique identifier assigned to all instances of that index.
      */
-    final protected void assertIndexRegistered(IDataService dataService, String name,
-            UUID indexUUID) throws Exception {
+//BTM    final protected void assertIndexRegistered(IDataService dataService, String name, UUID indexUUID) throws Exception {
+final protected void assertIndexRegistered(ShardService dataService, String name, UUID indexUUID) throws Exception {
 
-        IndexMetadata metadata = dataService.getIndexMetadata(name,ITx.UNISOLATED);
+//BTM        IndexMetadata metadata = dataService.getIndexMetadata(name,ITx.UNISOLATED);
+IndexMetadata metadata = ((ShardManagement)dataService).getIndexMetadata(name,ITx.UNISOLATED);
         
         assertNotNull("metadata",metadata);
         
@@ -326,8 +350,8 @@ if (log.isInfoEnabled()) {
      * <p>
      * Note: Normally you use bring the data service to the brink of the desired
      * overflow event, note the current overflow counter using
-     * {@link IDataService#getAsynchronousOverflowCounter()}, use
-     * {@link IDataService#forceOverflow()} to set the forceOverflow flag, do
+     * {@link OverflowAdmin#getAsynchronousOverflowCounter()}, use
+     * {@link OverflowAdmin#forceOverflow()} to set the forceOverflow flag, do
      * one more write to trigger group commit and overflow processing, and then
      * invoke this method to await the end of overflow post-processing.
      * 
@@ -340,8 +364,8 @@ if (log.isInfoEnabled()) {
      * 
      * @throws IOException
      */
-    protected long awaitAsynchronousOverflow(final IDataService dataService,
-            final long priorOverflowCounter) throws IOException {
+//BTM    protected long awaitAsynchronousOverflow(final IDataService dataService, final long priorOverflowCounter) throws IOException {
+protected long awaitAsynchronousOverflow(final OverflowAdmin dataService, final long priorOverflowCounter) throws IOException {
 
         final long begin = System.currentTimeMillis();
 

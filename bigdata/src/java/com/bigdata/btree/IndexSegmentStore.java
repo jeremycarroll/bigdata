@@ -447,8 +447,11 @@ public class IndexSegmentStore extends AbstractRawStore {
                 
                 if (fed != null) {
 
-                    openCloseEvent = new Event(fed, new EventResource(
-                            indexMetadata, file),
+//BTM                    openCloseEvent = new Event(fed, new EventResource(
+//BTM                            indexMetadata, file),
+//BTM                            EventType.IndexSegmentStoreOpenClose).start();
+openCloseEvent = new Event( fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(),
+                            new EventResource(indexMetadata, file),
                             EventType.IndexSegmentStoreOpenClose).start();
                     
                 }

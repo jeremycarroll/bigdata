@@ -54,12 +54,10 @@ import com.bigdata.service.ndx.PartitionedTupleIterator;
  * Test suite for the {@link IRangeQuery} API.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
 
     public TestRangeQuery() {
-
     }
 
     public TestRangeQuery(String name) {
@@ -68,6 +66,29 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
         
     }
     
+//BTM - BEGIN ------------------------------------------------------------
+private UUID getDataService0UUID() throws IOException {
+    if(dataService0 != null) {
+        if(dataService0 instanceof IService) {
+            return ((IService)dataService0).getServiceUUID();
+        } else {
+            return ((Service)dataService0).getServiceUUID();
+        }
+    }
+    return null;
+}
+private UUID getDataService1UUID() throws IOException {
+    if(dataService1 != null) {
+        if(dataService1 instanceof IService) {
+            return ((IService)dataService1).getServiceUUID();
+        } else {
+            return ((Service)dataService1).getServiceUUID();
+        }
+    }
+    return null;
+}
+//BTM - END --------------------------------------------------------------
+
     /*
      * Range query tests with static partitions.
      */
@@ -92,8 +113,10 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
                 new byte[]{}, // keys less than 5...
                 new byte[]{5} // keys GTE 5....
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+getDataService0UUID(),
+getDataService1UUID()
         });
         
         /*
@@ -159,8 +182,10 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
                 new byte[]{},
                 new byte[]{5}
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+getDataService0UUID(),
+getDataService1UUID()
         });
         
         final IIndex ndx = fed.getIndex(name,ITx.UNISOLATED);
@@ -208,8 +233,10 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
                 new byte[]{},
                 new byte[]{5}
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+getDataService0UUID(),
+getDataService1UUID()
         });
         
         final IIndex ndx = fed.getIndex(name,ITx.UNISOLATED);
@@ -254,8 +281,10 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
                 new byte[]{},
                 new byte[]{5}
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+getDataService0UUID(),
+getDataService1UUID()
         });
         
         IIndex ndx = fed.getIndex(name,ITx.UNISOLATED);
@@ -300,8 +329,10 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
                 new byte[]{},
                 new byte[]{5}
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+getDataService0UUID(),
+getDataService1UUID()
         });
         
         final IIndex ndx = fed.getIndex(name,ITx.UNISOLATED);
@@ -357,8 +388,10 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
                 new byte[]{},
                 new byte[]{5}
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+getDataService0UUID(),
+getDataService1UUID()
         });
         
         final IIndex ndx = fed.getIndex(name, ITx.UNISOLATED);
@@ -418,8 +451,10 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
                 new byte[]{},
                 TestKeyBuilder.asSortKey(5) // the half-way point.
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+getDataService0UUID(),
+getDataService1UUID()
         });
         
         final IIndex ndx = fed.getIndex(name,ITx.UNISOLATED);
@@ -543,8 +578,10 @@ public class TestRangeQuery extends AbstractEmbeddedFederationTestCase {
                 new byte[]{},
                 TestKeyBuilder.asSortKey(5) // the half-way point.
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+getDataService0UUID(),
+getDataService1UUID()
         });
         
         IIndex ndx = fed.getIndex(name,ITx.UNISOLATED);

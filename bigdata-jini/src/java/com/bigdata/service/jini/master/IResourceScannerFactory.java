@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.master;
 
-import java.io.Serializable;
-
 import com.bigdata.relation.accesspath.BlockingBuffer;
+import java.io.IOException;
+import java.io.Serializable;
 
 /**
  * Factory for {@link AbstractResourceScanner} implementations.
@@ -48,6 +48,7 @@ public interface IResourceScannerFactory<V> extends Serializable {
      * 
      * @return The scanner.
      */
-    public AbstractResourceScanner<V> newScanner(BlockingBuffer<V[]> buffer);
+    public AbstractResourceScanner<V> newScanner(BlockingBuffer<V[]> buffer)
+            throws IOException;
 
 }

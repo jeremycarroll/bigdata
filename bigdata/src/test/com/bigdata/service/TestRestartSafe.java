@@ -77,6 +77,54 @@ public class TestRestartSafe extends AbstractEmbeddedFederationTestCase {
 
     }
     
+
+    
+//BTM - BEGIN ------------------------------------------------------------
+private UUID getMetadataServiceUUID() throws IOException {
+    ShardLocator mds = fed.getMetadataService();
+    if(mds != null) {
+        if(mds instanceof IService) {
+            return ((IService)mds).getServiceUUID();
+        } else {
+            return ((Service)mds).getServiceUUID();
+        }
+    }
+    return null;
+}
+private UUID getDataServiceUUID(int dsIndx) throws IOException {
+    ShardService ds = ((EmbeddedFederation) fed).getDataService(dsIndx);
+    if(ds != null) {
+        if(ds instanceof IService) {
+            return ((IService)ds).getServiceUUID();
+        } else {
+            return ((Service)ds).getServiceUUID();
+        }
+    }
+    return null;
+}
+
+private UUID getDataService0UUID() throws IOException {
+    if(dataService0 != null) {
+        if(dataService0 instanceof IService) {
+            return ((IService)dataService0).getServiceUUID();
+        } else {
+            return ((Service)dataService0).getServiceUUID();
+        }
+    }
+    return null;
+}
+private UUID getDataService1UUID() throws IOException {
+    if(dataService1 != null) {
+        if(dataService1 instanceof IService) {
+            return ((IService)dataService1).getServiceUUID();
+        } else {
+            return ((Service)dataService1).getServiceUUID();
+        }
+    }
+    return null;
+}
+//BTM - END --------------------------------------------------------------
+
     /**
      * Test creates a new embedded federation (this is done in setUp() by the
      * super class), registers a scale-out index with the metadata service
@@ -102,20 +150,12 @@ public class TestRestartSafe extends AbstractEmbeddedFederationTestCase {
                 ((EmbeddedFederation) fed).getDataServiceCount());
         
 //BTM        final UUID metadataServiceUUID = fed.getMetadataService().getServiceUUID();
-ShardLocator mds = fed.getMetadataService();
-UUID metadataServiceUUID = null;
-if(mds != null) {
-    if(mds instanceof IService) {
-        metadataServiceUUID = ((IService)mds).getServiceUUID();
-    } else if(mds instanceof Service) {
-        metadataServiceUUID = ((Service)mds).getServiceUUID();
-    }
-}
-        final UUID dataService0UUID = ((EmbeddedFederation) fed)
-                .getDataService(0).getServiceUUID();
-        
-        final UUID dataService1UUID = ((EmbeddedFederation) fed)
-                .getDataService(1).getServiceUUID();
+final UUID metadataServiceUUID = getMetadataServiceUUID();
+
+//BTM        final UUID dataService0UUID = ((EmbeddedFederation) fed).getDataService(0).getServiceUUID();
+//BTM        final UUID dataService1UUID = ((EmbeddedFederation) fed).getDataService(1).getServiceUUID();
+final UUID dataService0UUID = getDataServiceUUID(0);
+final UUID dataService1UUID = getDataServiceUUID(1);
 
         /*
          * Register a scale-out index with data on each of the data services.
@@ -131,8 +171,10 @@ if(mds != null) {
                 new byte[]{},
                 new byte[]{5}
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID() });
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID() });
+                getDataService0UUID(),
+                getDataService1UUID() });
 
         /*
          * Setup the data to write on the scale-out index. The keys are choosen
@@ -251,35 +293,27 @@ if(mds != null) {
          */
         
 //BTM        assertEquals("metadataService UUID", metadataServiceUUID, fed.getMetadataService().getServiceUUID());
-UUID mdsUUID = null;
-if(mds != null) {
-    if(mds instanceof IService) {
-        mdsUUID = ((IService)mds).getServiceUUID();
-    } else if(mds instanceof Service) {
-        mdsUUID = ((Service)mds).getServiceUUID();
-    }
-}
-assertEquals("metadataService UUID", metadataServiceUUID, mdsUUID);
+assertEquals("metadataService UUID", metadataServiceUUID, getMetadataServiceUUID());
 
         // verify services have distinct UUIDs.
-        assertNotSame(dataService0.getServiceUUID(), dataService1
-                .getServiceUUID());
-        
-        // verify dataService[0] has one of the expected data service UUIDs.
-        if (!dataService0.getServiceUUID().equals(dataService0UUID)
-                && !dataService0.getServiceUUID().equals(dataService1UUID)) {
+//BTM        assertNotSame(dataService0.getServiceUUID(), dataService1.getServiceUUID());
+assertNotSame(getDataService0UUID(), getDataService1UUID());
 
-            fail("Not expecting data service with UUID: "
-                    + dataService0.getServiceUUID());
+        // verify dataService[0] has one of the expected data service UUIDs.
+//BTM        if (!dataService0.getServiceUUID().equals(dataService0UUID) && !dataService0.getServiceUUID().equals(dataService1UUID)) {
+if (!getDataService0UUID().equals(dataService0UUID) && !getDataService0UUID().equals(dataService1UUID)) {
+
+//BTM            fail("Not expecting data service with UUID: "+ dataService0.getServiceUUID());
+fail("Not expecting data service with UUID: "+ getDataService0UUID());
 
         }
         
         // verify dataService[1] has one of the expected data service UUIDs.
-        if (!dataService1.getServiceUUID().equals(dataService0UUID)
-                && !dataService1.getServiceUUID().equals(dataService1UUID)) {
+//BTM        if (!dataService1.getServiceUUID().equals(dataService0UUID) && !dataService1.getServiceUUID().equals(dataService1UUID)) {
+if (!getDataService1UUID().equals(dataService0UUID) && !getDataService1UUID().equals(dataService1UUID)) {
 
-            fail("Not expecting data service with UUID: "
-                    + dataService1.getServiceUUID());
+//BTM            fail("Not expecting data service with UUID: " + dataService1.getServiceUUID());
+fail("Not expecting data service with UUID: " + getDataService1UUID());
 
         }
 

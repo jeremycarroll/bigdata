@@ -31,7 +31,6 @@ package com.bigdata.journal;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
-import com.bigdata.service.IDataService;
 
 /**
  * Extended to allow direct registration of a named {@link BTree}.
@@ -72,13 +71,13 @@ public interface IBTreeManager extends IIndexManager {
      * <p>
      * Note: This variant is generally by the {@link IMetadataService} when it
      * needs to register a index partition of some scale-out index on a
-     * {@link IDataService}. In this case the <i>name</i> is the name of the
+     * shard service. In this case the <i>name</i> is the name of the
      * index partition while the value reported by
      * {@link IndexMetadata#getName()} is the name of the scale-out index. In
      * nearly all other cases you can use {@link #registerIndex(IndexMetadata)}
-     * instead. The same method signature is also declared by
-     * {@link IDataService#registerIndex(String, IndexMetadata)} in order to
-     * support registration of index partitions.
+     * instead. The same method signature is also declared by the
+     * <code>registerIndex</code> method on the <code>ShardService</code>
+     * interface in order to support registration of index partitions.
      * 
      * @param name
      *            The name that can be used to recover the index.

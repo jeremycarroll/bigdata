@@ -120,25 +120,28 @@ public interface ShardManagement {
                             int capacity,
                             int flags,
                             IFilterConstructor filter)
-                  throws InterruptedException, ExecutionException, IOException;
+                  throws IOException, InterruptedException, ExecutionException;
 
     /**
-     * Submit a {@link Callable} and return its {@link Future}. The
-     * {@link Callable} will execute on the
-     * {@link IBigdataFederation#getExecutorService()}.
+     * Submit an {@link IDataServiceCallable} and return its {@link Future}.
+     * <p>
+     * Note: This method is specialized by the shard (data) service for tasks
+     * which need to gain access to the shard (data) service in order to gain
+     * local access to index partitions, etc. Such tasks declare the
+     * {@link IDataServiceCallable}. For example, scale-out joins use
+     * this mechanism.
      * 
-     * @return The {@link Future} for that task.
+     * @return The {@link Future} for the given <code>task</code>.
      * 
      * @throws RejectedExecutionException
      *             if the task can not be accepted for execution.
      * @throws IOException
      *             if there is an RMI problem.
      * 
-     * @todo change API to <T> Future<T> submit(Callable<T> proc). This will
-     *       break existing code but reflects the correct use of generics.
+     * @see IDataServiceCallable
      */
-    Future<? extends Object> submit(Callable<? extends Object> proc)
-                                 throws IOException;
+//BTM - PRE_FRED_3481    Future<? extends Object> submit(Callable<? extends Object> task) throws IOException;
+    <T> Future<T> submit(IDataServiceCallable<T> task) throws IOException;
 
     /**
      * Submits a procedure.

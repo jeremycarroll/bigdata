@@ -36,7 +36,6 @@ import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.filter.ITupleFilter;
 import com.bigdata.btree.filter.TupleRemover;
 import com.bigdata.service.IBigdataClient;
-import com.bigdata.service.IDataService;
 import com.bigdata.service.ndx.IClientIndex;
 
 import cutthecrap.utils.striterators.Striterator;
@@ -190,9 +189,9 @@ public interface IRangeQuery {
      * <p>
      * Note: This semantics of this flag require that the entries are atomically
      * removed within the isolation level of the operation. In particular, if
-     * the iterator is running against an {@link IDataService} using an
-     * unisolated view then the entries MUST be buffered and removed as the
-     * {@link ResultSet} is populated.
+     * the iterator is running against a shard service using an unisolated view
+     * then the entries MUST be buffered and removed as the {@link ResultSet}
+     * is populated.
      * <p>
      * Note: The {@link BigdataFileSystem#deleteHead(String, int)} relies on
      * this atomic guarantee.
@@ -274,8 +273,7 @@ public interface IRangeQuery {
      * processing which benefits from order effects can exploit the within chunk
      * ordering of the tuples. The semantics of this flag are realized by the
      * {@link IClientIndex} implementation. This flag has no effect on an
-     * {@link ILocalBTreeView} and is not passed through to the
-     * {@link IDataService}.
+     * {@link ILocalBTreeView} and is not passed through to the shard service.
      * 
      * @todo This flag is not supported in combination with {@link #CURSOR}?
      * @todo This flag is not supported in combination with {@link #REVERSE}?

@@ -3,16 +3,14 @@ package com.bigdata.service.ndx;
 import com.bigdata.btree.proc.IResultHandler;
 import com.bigdata.btree.proc.ISimpleIndexProcedure;
 import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.service.IDataService;
 import com.bigdata.service.Split;
 
 /**
  * Class handles stale locators by finding the current locator for the
  * <i>key</i> and redirecting the request to execute the procedure on the
- * {@link IDataService} identified by that locator.
+ * shard service identified by that locator.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 class SimpleDataServiceProcedureTask extends AbstractDataServiceProcedureTask {
 

@@ -42,9 +42,12 @@ import com.bigdata.mdi.IndexPartitionCause;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
+
+//BTM
+import com.bigdata.util.Util;
 
 /**
  * Task joins one or more index partitions and should be invoked when their is
@@ -110,10 +113,17 @@ public class JoinIndexPartitionTask extends AbstractPrepareTask<JoinResult> {
     @Override
     protected JoinResult doTask() throws Exception {
 
-        final Event e = new Event(resourceManager.getFederation(),
-                // Note: using the leftSibling for the event resource.
-                new EventResource(vmd[0].indexMetadata),
-                OverflowActionEnum.Join).start();
+//BTM        final Event e = new Event(resourceManager.getFederation(),
+//BTM                // Note: using the leftSibling for the event resource.
+//BTM                new EventResource(vmd[0].indexMetadata),
+//BTM                OverflowActionEnum.Join).start();
+final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+                           (resourceManager.getFederation()).getServiceIface(),
+                           (resourceManager.getFederation()).getServiceName(),
+                           (resourceManager.getFederation()).getServiceUUID(),
+                           // Note: using the leftSibling for the event resource.
+                           new EventResource(vmd[0].indexMetadata),
+                           OverflowActionEnum.Join).start();
         
         e.addDetail("summary", OverflowActionEnum.Join + "("
                 + Arrays.toString(getResource()) + ")");
@@ -310,9 +320,10 @@ public class JoinIndexPartitionTask extends AbstractPrepareTask<JoinResult> {
                  */
                 checkpointAddr = btree.writeCheckpoint();
 
-                result = new JoinResult(DataService.getIndexPartitionName(
-                        scaleOutIndexName, partitionId), newMetadata,
-                        checkpointAddr, resources);
+//BTM                result = new JoinResult(DataService.getIndexPartitionName(
+//BTM                        scaleOutIndexName, partitionId), newMetadata,
+//BTM                        checkpointAddr, resources);
+result = new JoinResult(Util.getIndexPartitionName(scaleOutIndexName, partitionId), newMetadata, checkpointAddr, resources);
 
             } finally {
 

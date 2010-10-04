@@ -42,10 +42,13 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+//BTM - PRE_FRED_3481
+import com.bigdata.service.IDataServiceCallable;
+
 interface PrivateInterface extends Remote, Administrable,
                                    DestroyAdmin, JoinAdmin
 {
-    //Related to ShardLocator (metadata)
+    //Related to ShardLocator
 
     int nextPartitionId(String name)
             throws RemoteException, IOException,
@@ -80,16 +83,18 @@ interface PrivateInterface extends Remote, Administrable,
                     InterruptedException, ExecutionException;
 
     PartitionLocator get(String name, long timestamp, byte[] key)
-           throws RemoteException, IOException,
-                  InterruptedException, ExecutionException;
+                         throws RemoteException, IOException,
+                                InterruptedException, ExecutionException;
 
     PartitionLocator find(String name, long timestamp, byte[] key)
-           throws RemoteException, IOException,
-                  InterruptedException, ExecutionException;
+                         throws RemoteException, IOException,
+                                InterruptedException, ExecutionException;
+
+    //Related to ShardManagement
 
     IndexMetadata getIndexMetadata(String name, long timestamp)
-            throws RemoteException, IOException,
-                   InterruptedException, ExecutionException;
+                      throws RemoteException, IOException,
+                             InterruptedException, ExecutionException;
 
     public ResultSet rangeIterator(long tx,
                                    String name,
@@ -98,10 +103,11 @@ interface PrivateInterface extends Remote, Administrable,
                                    int capacity,
                                    int flags,
                                    IFilterConstructor filter)
-           throws RemoteException, IOException,
-                  InterruptedException, ExecutionException;
+                         throws RemoteException, IOException,
+                                InterruptedException, ExecutionException;
 
-    Future<? extends Object> submit(Callable<? extends Object> proc)
+//BTM - PRE_FRED_3481    Future<? extends Object> submit(Callable<? extends Object> proc)
+    <T> Future<T> submit(IDataServiceCallable<T> task)
                                  throws RemoteException;
 
     Future submit(long tx, String name, IIndexProcedure proc)

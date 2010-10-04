@@ -34,9 +34,13 @@ import com.bigdata.zookeeper.ZLock;
  *         lock0000000000 (Ephemeral) 
  *       com.bigdata.service.jini.TransactionServer 
  *         lock0000000000 (Ephemeral) 
+ *      com.bigdata.shard.ServiceImpl 
+ *         lock0000000000 (Ephemeral) 
  *      com.bigdata.loadbalancer.ServiceImpl 
  *         lock0000000000 (Ephemeral) 
  *      com.bigdata.metadata.ServiceImpl 
+ *         lock0000000000 (Ephemeral) 
+ *      com.bigdata.transaction.ServiceImpl 
  *         lock0000000000 (Ephemeral) 
  *     createPhysicalService 
  *   config 
@@ -59,11 +63,19 @@ import com.bigdata.zookeeper.ZLock;
  *       logicalService0000000000 
  *         election 
  *         physicalService87522080-2da6-42be-84a8-4a863b420042 (Ephemeral) {UUID}
+ *     com.bigdata.shard.ServiceImpl {DataServicConfiguration}
+ *       logicalService0000000000 
+ *         election 
+ *         physicalService2bf8b98-da0c-42f5-ac65-027bf3304430 (Ephemeral) {UUID}
  *     com.bigdata.loadbalancer.ServiceImpl {LoadBalancerConfiguration}
  *       logicalService0000000000 
  *         election 
  *         physicalService911a9b28-7396-4932-ab80-77078119e7e3 (Ephemeral) {UUID}
  *     com.bigdata.metadata.ServiceImpl {MetadataServiceConfiguration}
+ *       logicalService0000000000 
+ *         election 
+ *         physicalServicec0f35d2e-0a20-40c4-bb76-c97e7cb72eb4 (Ephemeral) {UUID}
+ *     com.bigdata.transaction.ServiceImpl {TransactionServiceConfiguration}
  *       logicalService0000000000 
  *         election 
  *         physicalServicec0f35d2e-0a20-40c4-bb76-c97e7cb72eb4 (Ephemeral) {UUID}
@@ -76,9 +88,13 @@ import com.bigdata.zookeeper.ZLock;
  *          instances (persistent znodes) 
  *       com.bigdata.service.jini.DataServerServer
  *          instances (persistent znodes) 
+ *       com.bigdata.transaction.ServiceImpl
+ *           instances (persistent znodes)
  *       com.bigdata.loadbalancer.ServiceImpl
  *           instances (persistent znodes)
  *       com.bigdata.metadata.ServiceImpl
+ *           instances (persistent znodes)
+ *       com.bigdata.shard.ServiceImpl
  *           instances (persistent znodes)
  * </pre>
  * 

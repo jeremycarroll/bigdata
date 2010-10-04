@@ -22,7 +22,8 @@ import com.bigdata.service.ndx.RawDataServiceTupleIterator;
  */
 public class NoCacheMetadataIndexView implements IMetadataIndex {
 
-    final private AbstractScaleOutFederation fed;
+//BTM    final private AbstractScaleOutFederation fed;
+final private IBigdataFederation fed;
 
     final private String name;
 
@@ -30,9 +31,10 @@ public class NoCacheMetadataIndexView implements IMetadataIndex {
 
     final private MetadataIndexMetadata mdmd;
 
-//BTM
-private IDataService remoteShardMgr = null;
+//BTM - BEGIN IDATA_SERVICE TO SHARD_SERVICE
+//BTM private IDataService remoteShardMgr = null;
 private ShardManagement shardMgr = null;
+//BTM - END IDATA_SERVICE TO SHARD_SERVICE
 
     public MetadataIndexMetadata getIndexMetadata() {
 
@@ -53,7 +55,8 @@ protected ShardLocator getMetadataService() {
      *            The name of the scale-out index.
      * @param timestamp
      */
-    public NoCacheMetadataIndexView(AbstractScaleOutFederation fed,
+//BTM    public NoCacheMetadataIndexView(AbstractScaleOutFederation fed,
+public NoCacheMetadataIndexView(IBigdataFederation fed,
             String name, long timestamp, MetadataIndexMetadata mdmd) {
 
         if (fed == null)
@@ -70,16 +73,18 @@ protected ShardLocator getMetadataService() {
         this.timestamp = timestamp;
 
         this.mdmd = mdmd;
-        
+//BTM
 ShardLocator mds = getMetadataService();
-if(mds == null) {
-    return;
-}
-if(mds instanceof IDataService) {
-    this.remoteShardMgr = (IDataService)mds;
-} else if(mds instanceof ShardManagement) {
-    this.shardMgr = (ShardManagement)mds;
-}
+if(mds == null) return;
+
+//BTM - BEGIN IDATA_SERVICE TO SHARD_SERVICE
+//BTM if(mds instanceof IDataService) {
+//BTM     this.remoteShardMgr = (IDataService)mds;
+//BTM } else if(mds instanceof ShardManagement) {
+//BTM     this.shardMgr = (ShardManagement)mds;
+//BTM }
+this.shardMgr = (ShardManagement)mds;
+//BTM - END IDATA_SERVICE TO SHARD_SERVICE
     }
     
     // @todo re-fetch if READ_COMMITTED or UNISOLATED? it's very unlikely to change.
@@ -137,14 +142,17 @@ Long rangeCount = null;
 
 //BTM            rangeCount = (Long) getMetadataService().submit(timestamp,
 //BTM                    MetadataService.getMetadataIndexName(name), proc).get();
-
 String indexName = MetadataService.getMetadataIndexName(name);
-if(remoteShardMgr != null) {
-    rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
-} else if(shardMgr != null) {
-    rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
-}
+
+//BTM - BEGIN IDATA_SERVICE TO SHARD_SERVICE
+//BTM if(remoteShardMgr != null) {
+//BTM     rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
+//BTM } else if(shardMgr != null) {
+//BTM     rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
+//BTM }
+rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
 if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.rangeCount: null range count");
+//BTM - END IDATA_SERVICE TO SHARD_SERVICE
 
         } catch (Exception e) {
 
@@ -168,12 +176,16 @@ Long rangeCount = null;
 //BTM            rangeCount = (Long) getMetadataService().submit(timestamp,
 //BTM                    MetadataService.getMetadataIndexName(name), proc).get();
 String indexName = MetadataService.getMetadataIndexName(name);
-if(remoteShardMgr != null) {
-    rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
-} else if(shardMgr != null) {
-    rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
-}
+
+//BTM - BEGIN IDATA_SERVICE TO SHARD_SERVICE
+//BTM if(remoteShardMgr != null) {
+//BTM     rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
+//BTM } else if(shardMgr != null) {
+//BTM     rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
+//BTM }
+rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
 if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.rangeCountExact: null range count");
+//BTM - END IDATA_SERVICE TO SHARD_SERVICE
 
         } catch (Exception e) {
 
@@ -197,12 +209,16 @@ Long rangeCount = null;
 //BTM            rangeCount = (Long) getMetadataService().submit(timestamp,
 //BTM                    MetadataService.getMetadataIndexName(name), proc).get();
 String indexName = MetadataService.getMetadataIndexName(name);
-if(remoteShardMgr != null) {
-    rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
-} else if(shardMgr != null) {
-    rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
-}
+
+//BTM - BEGIN IDATA_SERVICE TO SHARD_SERVICE
+//BTM if(remoteShardMgr != null) {
+//BTM     rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
+//BTM } else if(shardMgr != null) {
+//BTM     rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
+//BTM }
+rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
 if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.rangeCountExactWithDeleted: null range count");
+//BTM - END IDATA_SERVICE TO SHARD_SERVICE
 
         } catch (Exception e) {
 

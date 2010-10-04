@@ -24,7 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.shard;
 
-import com.sun.jini.admin.DestroyAdmin;
+import com.bigdata.service.OverflowAdmin;
+import com.bigdata.service.ShutdownAdmin;
+
 import net.jini.admin.JoinAdmin;
 import net.jini.core.discovery.LookupLocator;
 import net.jini.core.entry.Entry;
@@ -39,8 +41,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
-class AdminProxy implements DestroyAdmin, JoinAdmin, TestAdmin, Serializable {
-
+class AdminProxy 
+          implements JoinAdmin, ShutdownAdmin, OverflowAdmin, Serializable
+{
     private static final long serialVersionUID = 1L;
 
     final PrivateInterface innerProxy;
@@ -58,13 +61,8 @@ class AdminProxy implements DestroyAdmin, JoinAdmin, TestAdmin, Serializable {
         this.proxyId    = proxyId;
     }
 
-    // Required by com.sun.jini.admin.DestroyAdmin
+    // Required by net.jini.admin.JoinAdmin
 
-    public void destroy() throws RemoteException {
-        innerProxy.destroy();
-    }
-
-    // Rrequired by net.jini.admin.JoinAdmin
     public Entry[] getLookupAttributes() throws RemoteException {
         return innerProxy.getLookupAttributes();
     }
@@ -118,35 +116,41 @@ class AdminProxy implements DestroyAdmin, JoinAdmin, TestAdmin, Serializable {
         innerProxy.setLookupLocators(locators);
     }
 
+    // Required by ShutdownAdmin
 
-    // Required by TestAdmin
+    public void shutdown() throws IOException {
+        innerProxy.shutdown();
+    }
+
+    public void shutdownNow() throws IOException {
+        innerProxy.shutdownNow();
+    }
 
     public void kill(int status) throws IOException {
         innerProxy.kill(status);
     }
 
+    // Required by com.sun.jini.admin.DestroyAdmin (from ShutdownAdmin)
+
+    public void destroy() throws RemoteException {
+        innerProxy.destroy();
+    }
+
+    // Required by OverflowAdmin
+
     public void forceOverflow(boolean immediate, boolean compactingMerge)
-            throws IOException, InterruptedException, ExecutionException
+                throws IOException, InterruptedException, ExecutionException
     {
-//TODO
+        innerProxy.forceOverflow(immediate, compactingMerge);
     }
 
-    public boolean purgeOldResources(long timeout, boolean truncateJournal)
-            throws IOException, InterruptedException
-    {
-return false;//TODO
-    }
-    
-    public long getAsynchronousOverflowCounter() throws IOException
-    {
-return 0L;//TODO
+    public long getAsynchronousOverflowCounter() throws IOException {
+        return innerProxy.getAsynchronousOverflowCounter();
     }
 
-    public boolean isOverflowActive() throws IOException
-    {
-return false;//TODO
+    public boolean isOverflowActive() throws IOException {
+        return innerProxy.isOverflowActive();
     }
-
 
     //Methods for good proxy behavior: hashCode, equals, readObject, etc.
 

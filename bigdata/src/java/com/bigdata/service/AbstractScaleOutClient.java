@@ -84,18 +84,19 @@ public abstract class AbstractScaleOutClient<T> extends AbstractClient<T> {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    public static enum MetadataIndexCachePolicy {
-        
+//BTM - BEGIN
+//BTM    public static enum MetadataIndexCachePolicy {
+//BTM        
         /**
          * Cache the entire {@link IMetadataIndex}.
          */
-        CacheAll,
-        
+//BTM        CacheAll,
+//BTM        
         /**
          * Do not cache anything.
          */
-        NoCache;
-        
-    }
+//BTM        NoCache;
+//BTM        
+//BTM    }
     
 }

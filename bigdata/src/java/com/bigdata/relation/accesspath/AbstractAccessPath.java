@@ -57,7 +57,6 @@ import com.bigdata.relation.IRelation;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.IVariable;
 import com.bigdata.relation.rule.IVariableOrConstant;
-import com.bigdata.service.IDataService;
 import com.bigdata.striterator.ChunkedArrayIterator;
 import com.bigdata.striterator.ChunkedWrappedIterator;
 import com.bigdata.striterator.EmptyChunkedIterator;
@@ -80,7 +79,7 @@ import cutthecrap.utils.striterators.Striterator;
  *       best without being optimal by specifying a low-level filter to be
  *       applied to the index. That requires a means to dynamically filter out
  *       the elements we do not want from the key-range scan - the filtering
- *       should of course be done at the {@link IDataService}.
+ *       should of course be done at the shard service.
  */
 abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
@@ -1224,7 +1223,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
 
     /**
      * Note: the range count is cached for a historical read to reduce round
-     * trips to the DataService.
+     * trips to the shard service.
      */
     final private long historicalRangeCount(final byte[] fromKey,
             final byte[] toKey) {

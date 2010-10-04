@@ -15,11 +15,10 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 import com.bigdata.io.SerializerUtil;
-import com.bigdata.service.DataServiceCallable;
+import com.bigdata.service.ClientService;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IClientService;
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IRemoteExecutor;
+import com.bigdata.service.IClientServiceCallable;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.master.TaskMaster.JobState;
 import com.bigdata.zookeeper.ZLock;
@@ -37,12 +36,6 @@ import com.bigdata.zookeeper.ZLockImpl;
  * left off. One way to handle that is to write the state of the client into the
  * client's znode and to update that from time to time as the client makes
  * progress on its task. You can invoke {@link #setupClientState()} to do that.
- * <p>
- * Note: This class DOES NOT have to be submitted to an {@link IDataService} for
- * execution. Most client tasks will in fact run on {@link IClientService}s
- * rather than {@link IDataService}s. This class extends
- * {@link DataServiceCallable} for the convienence of subclasses which MAY
- * introduce a requirement to execute on an {@link IDataService}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -53,8 +46,9 @@ import com.bigdata.zookeeper.ZLockImpl;
  * @param <V>
  *            The generic type of the client state (stored in zookeeper).
  */
-abstract public class AbstractClientTask<S extends TaskMaster.JobState, U, V extends Serializable>
-        extends DataServiceCallable<U> implements Callable<U> {
+abstract public class AbstractClientTask<S extends TaskMaster.JobState, 
+                                         U, V extends Serializable>
+        implements IClientServiceCallable<U> {
 
     final protected static Logger log = Logger
             .getLogger(AbstractClientTask.class);
@@ -83,45 +77,7 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState, U, V ext
         
     }
 
-    /**
-     * The zpath for this client (set once the client starts executing on the
-     * target {@link IRemoteExecutor}). The data of this znode is the client's
-     * state (if it saves its state in zookeeper).
-     */
-    private transient String clientZPath;
-
-    /**
-     * The ACL to use with zookeeper.
-     */
-    private transient List<ACL> acl;
-
-    /**
-     * The zpath for the {@link ZLock} node. Only the instance of this task
-     * holding the {@link ZLock} is allowed to run. This makes it safe to
-     * run multiple instances of this task for the same {@link #clientNum}.
-     * If one instance dies, the instance that gains the {@link ZLock} will
-     * read the client's state from zookeeper and continue processing.
-     * <p>
-     * This is <code>null</code> until {@link #call()}.
-     */
-    protected transient ZLockImpl zlock;
-
-    public void setFederation(final IBigdataFederation fed) {
-
-        super.setFederation(fed);
-
-        this.clientZPath = jobState.getClientZPath(getFederation(), clientNum);
-
-        this.acl = getFederation().getZooConfig().acl;
-
-    }
-
-    public JiniFederation getFederation() {
-
-        return (JiniFederation) super.getFederation();
-
-    }
-
+    @Override
     public String toString() {
 
         return getClass().getName() + "{clientNum=" + clientNum + "}";
@@ -139,23 +95,40 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState, U, V ext
     /**
      * Runs the generator.
      */
-    public U call() throws Exception {
+    public U startClientTask(IBigdataFederation federation,
+                             ClientService clientService) throws Exception {
 
         if (log.isInfoEnabled())
             log.info("Running: client#=" + clientNum + ", " + jobState);
 
-        final V clientState = setupClientState();
+        JiniFederation jiniFederation = (JiniFederation) federation;
+        final V clientState = setupClientState(jiniFederation);
         
         while (true) {
 
-            zlock = ZLockImpl.getLock(getFederation().getZookeeper(), jobState
-                    .getLockNodeZPath(getFederation(), clientNum), acl);
+            /**
+             * The zpath for this client (set once the client starts executing
+             * on the target {@link IClientService}). The data of this znode
+             * is the client's state (if it saves its state in zookeeper).
+             */
+            String clientZPath =
+                    jobState.getClientZPath(jiniFederation, clientNum);
+            List<ACL> acl = jiniFederation.getZooConfig().acl;
 
+            /**
+             * The zpath for the {@link ZLock} node. Only the instance of
+             * this task holding the {@link ZLock} is allowed to run. This
+             * makes it safe to run multiple instances of this task for the
+             * same {@link #clientNum}. If one instance dies, the instance
+             * that gains the {@link ZLock} will read the client's state
+             * from zookeeper and continue processing.
+             */
+            ZLockImpl zlock = ZLockImpl.getLock(jiniFederation.getZookeeper(),
+                    jobState.getLockNodeZPath(jiniFederation, clientNum), acl);
             zlock.lock();
             try {
-
-                final U ret = runWithZLock(clientState);
-
+                final U ret = runWithZLock(clientState, jiniFederation,
+                                           zlock, clientZPath);
                 if (log.isInfoEnabled())
                     log.info("Finished: client#=" + clientNum + ", "
                             + jobState);
@@ -194,8 +167,11 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState, U, V ext
      * @throws KeeperException
      * @throws InterruptedException
      */
-    abstract protected U runWithZLock(V clientState) throws Exception,
-            KeeperException, InterruptedException;
+    abstract protected U runWithZLock(V clientState,
+                                      JiniFederation jiniFederation,
+                                      final ZLockImpl zlock,
+                                      final String clientZPath)
+            throws Exception, KeeperException, InterruptedException;
 
     /**
      * The method invoked {@link #newClientState()} and attempts to create the
@@ -221,12 +197,13 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState, U, V ext
      * @see JobState#getClientZPath(JiniFederation, int)
      */
     @SuppressWarnings("unchecked")
-    protected V setupClientState() throws InterruptedException, KeeperException {
+    protected V setupClientState(JiniFederation jiniFederation)
+            throws InterruptedException, KeeperException {
 
-        final ZooKeeper zookeeper = getFederation().getZookeeperAccessor()
-                .getZookeeper();
+        final ZooKeeper zookeeper =
+                jiniFederation.getZookeeperAccessor().getZookeeper();
 
-        final String clientZPath = jobState.getClientZPath(getFederation(),
+        final String clientZPath = jobState.getClientZPath(jiniFederation,
                 clientNum);
 
         V clientState;
@@ -236,7 +213,7 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState, U, V ext
 
             zookeeper.create(clientZPath,
                     SerializerUtil
-                    .serialize(clientState), getFederation().getZooConfig().acl,
+                    .serialize(clientState), jiniFederation.getZooConfig().acl,
                     CreateMode.PERSISTENT);
 
             if (log.isInfoEnabled())
@@ -269,7 +246,8 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState, U, V ext
      * @throws InterruptedException
      * @throws KeeperException
      */
-    protected void writeClientState(final V clientState)
+    protected void writeClientState(final V clientState, ZLockImpl zlock,
+                                    String clientZPath)
             throws KeeperException, InterruptedException {
 
         if (clientState == null)

@@ -22,17 +22,25 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-package com.bigdata.transaction;
+package com.bigdata.journal;
 
-import java.io.IOException;
+import com.bigdata.btree.IndexMetadata;
 
 /**
- * Methods for supporting testing this implementation of the load balancer.
+ * Task class that can be used to retrieve the {@link IndexMetadata}
+ * for the named index as of the specified timestamp.
  */
-public interface TestAdmin {
+public class GetIndexMetadataTask extends AbstractTask {
 
-    /** 
-     * Can be used to simulates a service crash.
-     */
-    void kill(int status) throws IOException;
+    public GetIndexMetadataTask(ConcurrencyManager concurrencyManager,
+                                long startTime,
+                                String name)
+    {
+        super(concurrencyManager, startTime, name);
+    }
+
+    @Override
+    protected IndexMetadata doTask() throws Exception {
+        return getIndex(getOnlyResource()).getIndexMetadata();
+    }
 }

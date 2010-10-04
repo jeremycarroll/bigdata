@@ -36,23 +36,24 @@ import net.jini.core.lookup.ServiceTemplate;
 import net.jini.lookup.ServiceItemFilter;
 import net.jini.lookup.entry.Name;
 
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
+//BTM import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IMetadataService;
 import com.bigdata.service.jini.JiniFederation;
 
+//BTM
+import com.bigdata.service.ShardService;
+
 /**
- * Class handles discovery, caching, and local lookup of {@link IDataService}s
- * and {@link IMetadataService}s.
- * <p>
- * Note: Since {@link IMetadataService} extends {@link IDataService} this class
- * uses {@link ServiceItemFilter}s as necessary to exclude {@link IDataService}s
- * or {@link IMetadataService}s from responses.
+ * Class handles discovery, caching, and local lookup of 
+ * {@link ServiceService}s.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class DataServicesClient extends
-        BigdataCachingServiceClient<IDataService> {
+//BTM        BigdataCachingServiceClient<IDataService> {
+BigdataCachingServiceClient<ShardService> {
+
+//BTM - NOTE: an IMetadataService IS a ShardService, so IMetadataService must be filtered below
 
     /**
      * {@inheritDoc}
@@ -62,22 +63,27 @@ public class DataServicesClient extends
 
         /*
          * Note: No filter is imposed here. Instead there are type specific
-         * methods if you want an IDataService vs an IMetadataService.
+         * methods if you want ShardService vs an IMetadataService.
          */
-        super(fed, IDataService.class, new ServiceTemplate(null,
-                new Class[] { IDataService.class }, null), null/* filter */,
-                timeout);
-
+//BTM        super(fed, IDataService.class, new ServiceTemplate(null,
+//BTM                new Class[] { IDataService.class }, null), null/* filter */,
+//BTM                timeout);
+super(fed, 
+      ShardService.class, 
+      new ServiceTemplate(null, new Class[] { ShardService.class }, null), 
+      null, //filter 
+      timeout);
     }
 
     /**
-     * Return an arbitrary {@link IDataService} instance from the cache -or-
+     * Return an arbitrary {@link ShardService} instance from the cache -or-
      * <code>null</code> if there is none in the cache and a remote lookup
-     * times out. This method will NOT return an {@link IMetadataService}.
+     * times out.
      * 
      * @return The service.
      */
-    final public IDataService getDataService() {
+//BTM    final public IDataService getDataService() {
+final public ShardService getDataService() {
 
         return getService(DataServiceFilter.INSTANCE);
         
@@ -86,7 +92,7 @@ public class DataServicesClient extends
     /**
      * Return an arbitrary {@link IMetadataService} from the cache -or-
      * <code>null</code> if there is none in the cache and a remote lookup
-     * times out. This method will NOT return an {@link IDataService} unless it
+     * times out. This method will NOT return a {@link ShardService} unless it
      * also implements {@link IMetadataService}.
      * 
      * @todo handle more than one metadata service. right now registering more
@@ -95,29 +101,30 @@ public class DataServicesClient extends
      *       arranging themselves into a failover chain or a hash partitioned
      *       service.
      */
-    final public IMetadataService getMetadataService() {
-
-        return (IMetadataService) getService(MetadataServiceFilter.INSTANCE);
-
-    }
+//BTM    final public IMetadataService getMetadataService() {
+//BTM
+//BTM        return (IMetadataService) getService(MetadataServiceFilter.INSTANCE);
+//BTM
+//BTM    }
 
     /**
-     * Return the proxy for an {@link IDataService} from the local cache -or-
+     * Return the proxy for an {@link ShardService} from the local cache -or-
      * the reference to this service if the {@link UUID} identifies this service
      * (this avoids RMI requests from a service to itself).
      * 
      * @param serviceUUID
-     *            The {@link UUID} for the {@link IDataService}.
+     *            The {@link UUID} for the {@link ShardService}.
      * 
      * @return The proxy or <code>null</code> if the {@link UUID} does not
-     *         identify a known {@link IDataService}.
+     *         identify a known {@link ShardService}.
      * 
      * @throws IllegalArgumentException
      *             if <i>serviceUUID</i> is <code>null</code>.
      * @throws RuntimeException
      *             if <i>serviceUUID</i> identifies an {@link IMetadataService}.
      */
-    public IDataService getDataService(final UUID serviceUUID) {
+//BTM    public IDataService getDataService(final UUID serviceUUID) {
+public ShardService getDataService(final UUID serviceUUID) {
 
         /*
          * Note: I have backed out this optimization as it raises concerns that
@@ -149,12 +156,13 @@ public class DataServicesClient extends
 
         if (!DataServiceFilter.INSTANCE.check(serviceItem)) {
 
-            throw new RuntimeException("Not a data service: " + serviceItem);
+            throw new RuntimeException("Not a shard service: " + serviceItem);
 
         }
         
         // return the data service.
-        return (IDataService) serviceItem.service;
+//BTM        return (IDataService) serviceItem.service;
+return (ShardService) serviceItem.service;
         
     }
     
@@ -170,33 +178,33 @@ public class DataServicesClient extends
      * @throws IllegalArgumentException
      *             if <i>serviceUUID</i> is <code>null</code>.
      * @throws RuntimeException
-     *             if <i>serviceUUID</i> identifies a {@link IDataService}.
+     *             if <i>serviceUUID</i> identifies a {@link ShardService}.
      */
-    public IMetadataService getMetadataService(final UUID serviceUUID) {
-
-        final ServiceItem serviceItem = getServiceItem(serviceUUID);
-        
-        if (serviceItem == null) {
-
-            log.warn("No such service: uuid=" + serviceUUID);
-
-            return null;
-
-        }
-
-        if (!MetadataServiceFilter.INSTANCE.check(serviceItem)) {
-
-            throw new RuntimeException("Not a metadata service: " + serviceItem);
-
-        }
-
-        // return the metadata service.
-        return (IMetadataService) serviceItem.service;
-
-    }
+//BTM    public IMetadataService getMetadataService(final UUID serviceUUID) {
+//BTM
+//BTM        final ServiceItem serviceItem = getServiceItem(serviceUUID);
+//BTM        
+//BTM        if (serviceItem == null) {
+//BTM
+//BTM            log.warn("No such service: uuid=" + serviceUUID);
+//BTM
+//BTM            return null;
+//BTM
+//BTM        }
+//BTM
+//BTM        if (!MetadataServiceFilter.INSTANCE.check(serviceItem)) {
+//BTM
+//BTM            throw new RuntimeException("Not a metadata service: " + serviceItem);
+//BTM
+//BTM        }
+//BTM
+//BTM        // return the metadata service.
+//BTM        return (IMetadataService) serviceItem.service;
+//BTM
+//BTM    }
    
     /**
-     * Return an array {@link UUID}s for {@link IDataService}s.
+     * Return an array {@link UUID}s for {@link ShardService}s.
      * 
      * @param maxCount
      *            The maximum #of data services whose {@link UUID} will be
@@ -229,19 +237,20 @@ public class DataServicesClient extends
     }
 
     /**
-     * Return an arbitrary {@link IDataService} having the specified service
+     * Return an arbitrary {@link ShardService} having the specified service
      * name on an {@link Entry} for that service.
      * 
      * @param name
      *            The service name.
      * 
-     * @return The {@link IDataService} -or- <code>null</code> if there is
+     * @return The {@link ShardService} -or- <code>null</code> if there is
      *         none in the cache and a remote lookup times out.
      * 
      * @todo refactor into the base class but keep semantics of only matching
      *       data services (vs metadata services) in this class.
      */
-    public IDataService getDataServiceByName(final String name) {
+//BTM    public IDataService getDataServiceByName(final String name) {
+public ShardService getDataServiceByName(final String name) {
 
         if (name == null)
             throw new IllegalArgumentException();

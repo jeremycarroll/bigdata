@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 import net.jini.core.lookup.ServiceItem;
 import net.jini.core.lookup.ServiceRegistrar;
 
-import com.bigdata.service.IRemoteExecutor;
+import com.bigdata.service.IClientService;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.lookup.BigdataCachingServiceClient;
 import com.bigdata.service.jini.master.TaskMaster.JobState;
@@ -17,7 +17,7 @@ import com.bigdata.service.jini.master.TaskMaster.JobState;
  * Class discovers and returns services matching a {@link ServicesTemplate}.
  * A number of instances of this class are submitted in parallel to verify
  * that the pre-conditions for the {@link JobState} are satisified and to
- * return the {@link ServiceItem}s for the {@link IRemoteExecutor}s to
+ * return the {@link ServiceItem}s for the {@link IClientService}s to
  * which the client tasks will be distributed.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>

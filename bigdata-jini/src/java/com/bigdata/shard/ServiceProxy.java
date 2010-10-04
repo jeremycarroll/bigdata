@@ -32,6 +32,10 @@ import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.IBlock;
+import com.bigdata.service.ISession;
+import com.bigdata.service.Service;
+import com.bigdata.service.Session;
+import com.bigdata.service.ShardManagement;
 import com.bigdata.service.ShardService;
 
 import net.jini.admin.Administrable;
@@ -46,13 +50,22 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-class ServiceProxy implements ShardService, Administrable, Serializable
+//BTM - PRE_FRED_3481
+import com.bigdata.service.IDataServiceCallable;
+
+class ServiceProxy implements ShardService,
+                              ShardManagement,
+                              Service,
+                              ISession,
+                              Administrable, Serializable
 {
     private static final long serialVersionUID = 1L;
 
     final PrivateInterface innerProxy;
     final UUID             proxyId;
     final String           hostname;
+
+    transient Session session = null;//Session not Serializable
 
     public static ServiceProxy createProxy(PrivateInterface innerProxy,
                                            UUID             proxyId,
@@ -86,6 +99,12 @@ class ServiceProxy implements ShardService, Administrable, Serializable
         return hostname;
     }
 
+    // Methods required by the ISession interface
+
+    public Session getSession() {
+        if(session == null) session = new Session();
+        return session;
+    }
 
     // Remote methods required by the ShardService interface
 
@@ -95,16 +114,24 @@ class ServiceProxy implements ShardService, Administrable, Serializable
         innerProxy.registerIndex(name, metadata);
     }
 
-    public IndexMetadata getIndexMetadata(String name, long timestamp)
-            throws IOException, InterruptedException, ExecutionException
-    {
-        return innerProxy.getIndexMetadata(name, timestamp);
-    }
-
     public void dropIndex(String name) throws IOException,
             InterruptedException, ExecutionException
     {
         innerProxy.dropIndex(name);
+    }
+
+    public IBlock readBlock(IResourceMetadata resource, long addr)
+            throws IOException
+    {
+        return innerProxy.readBlock(resource, addr);
+    }
+
+    // Remote methods required by the ShardManagement interface
+
+    public IndexMetadata getIndexMetadata(String name, long timestamp)
+            throws IOException, InterruptedException, ExecutionException
+    {
+        return innerProxy.getIndexMetadata(name, timestamp);
     }
 
     public ResultSet rangeIterator(long               tx,
@@ -120,10 +147,11 @@ class ServiceProxy implements ShardService, Administrable, Serializable
                    (tx, name, fromKey, toKey, capacity, flags, filter);
     }
 
-    public IBlock readBlock(IResourceMetadata resource, long addr)
-            throws IOException
+//BTM - PRE_FRED_3481    public Future<? extends Object> submit(Callable<? extends Object> proc)
+    public <T> Future<T> submit(IDataServiceCallable<T> task)
+            throws RemoteException
     {
-        return innerProxy.readBlock(resource, addr);
+        return innerProxy.submit(task);
     }
 
     public Future submit(long tx, String name, IIndexProcedure proc)
@@ -132,17 +160,33 @@ class ServiceProxy implements ShardService, Administrable, Serializable
         return innerProxy.submit(tx, name, proc);
     }
 
-    public Future<? extends Object> submit(Callable<? extends Object> proc)
-            throws RemoteException
+    public boolean purgeOldResources(long timeout, boolean truncateJournal)
+                throws IOException, InterruptedException
     {
-        return innerProxy.submit(proc);
+        return innerProxy.purgeOldResources(timeout, truncateJournal);
     }
 
+    // Remote methods required by the ITxCommitProtocol interface
 
-    // Remote methods required by the TxCommitProtocol interface
+    public void setReleaseTime(long releaseTime) throws IOException {
+        innerProxy.setReleaseTime(releaseTime);
+    }
 
-    // Remote methods required by the RemoteExecutor interface
+    public void abort(long tx) throws IOException {
+        innerProxy.abort(tx);
+    }
 
+    public long singlePhaseCommit(long tx)
+            throws InterruptedException, ExecutionException, IOException
+    {
+        return innerProxy.singlePhaseCommit(tx);
+    }
+
+    public void prepare(long tx, long revisionTime)
+                    throws IOException, Throwable
+    {
+        innerProxy.prepare(tx, revisionTime);
+    }
 
     // Required by net.jini.admin.Administrable
 

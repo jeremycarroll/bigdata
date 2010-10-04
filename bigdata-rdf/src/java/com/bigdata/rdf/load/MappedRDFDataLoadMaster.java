@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.rdf.load;
 
-import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -57,9 +56,11 @@ import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.master.AbstractAsynchronousClientTask;
 import com.bigdata.service.jini.master.ClientLocator;
+import com.bigdata.service.jini.master.FileServer;
 import com.bigdata.service.jini.master.INotifyOutcome;
 import com.bigdata.service.jini.master.MappedTaskMaster;
 import com.bigdata.service.jini.master.TaskMaster;
+import java.net.URL;
 
 /**
  * Distributed bulk loader for RDF data. Creates/(re-)opens the
@@ -69,7 +70,6 @@ import com.bigdata.service.jini.master.TaskMaster;
  * they have been successfully loaded. Closure may be optionally computed.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @todo Support loading files from URLs, BFS, etc. This can be achieved via
  *       subclassing and overriding {@link #newClientTask(int)} and
@@ -84,14 +84,13 @@ V extends Serializable//
 >//
         extends MappedTaskMaster<S, T, L, U, V> {
 
-    final protected static Logger log = Logger
+    final private static Logger log = Logger
             .getLogger(MappedRDFDataLoadMaster.class);
 
     /**
      * {@link Configuration} options for the {@link MappedRDFDataLoadMaster}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public interface ConfigurationOptions extends MappedTaskMaster.ConfigurationOptions {
 
@@ -263,7 +262,7 @@ V extends Serializable//
          */
         String RDF_FORMAT = "rdfFormat";
 
-        String DEFAULT_RDF_FORMAT = RDFFormat.RDFXML.toString();
+        String DEFAULT_RDF_FORMAT = RDFFormat.RDFXML.getName();
 
 //        /**
 //         * The maximum #of times an attempt will be made to load any given file.
@@ -279,7 +278,6 @@ V extends Serializable//
      * The job description for an {@link MappedRDFDataLoadMaster}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class JobState extends MappedTaskMaster.JobState {
 
@@ -297,7 +295,7 @@ V extends Serializable//
          * 
          * @see ConfigurationOptions#ONTOLOGY
          */
-        public final File ontology;
+        public final URL ontology;
 
         /**
          * Only files matched by the filter will be processed (optional, but
@@ -514,9 +512,34 @@ V extends Serializable//
             namespace = (String) config.getEntry(component,
                     ConfigurationOptions.NAMESPACE, String.class);
 
-            ontology = (File) config
-                    .getEntry(component, ConfigurationOptions.ONTOLOGY,
-                            File.class, null/* defaultValue */);
+//BTM - PRE_FRED_3481            ontology = (URL) config
+//BTM - PRE_FRED_3481                    .getEntry(component, ConfigurationOptions.ONTOLOGY,
+//BTM - PRE_FRED_3481                            URL.class, null/* defaultValue */);
+//BTM - PRE_FRED_3481
+//BTM - PRE_FRED_3481 - NOTE: when merging this class to the maven_scaleout
+//BTM - PRE_FRED_3481 -       branch, the lines below (along with this note) should be removed
+//BTM - PRE_FRED_3481 -       and the code above should be un-commented. This is because in the
+//BTM - PRE_FRED_3481 -       maven_scaleout branch, the config file (TestMappedRDFDataLoadMaster.config)
+//BTM - PRE_FRED_3481 -       used by the test for this class (TestMappedRDFDataLoadMaster.java)
+//BTM - PRE_FRED_3481 -       employs the DataFinder utility to set the ontology entry to a
+//BTM - PRE_FRED_3481 -       URL instead of a File. When the modifications from changeset 3481
+//BTM - PRE_FRED_3481 -       were applied, TestMappedRDFDataLoadMaster failed because the code
+//BTM - PRE_FRED_3481 -       above was changed to retrieve a URL from the config, but the config
+//BTM - PRE_FRED_3481 -       set the ontology entry to a File object; resulting in a ConfigurationException.
+//BTM - PRE_FRED_3481 -       The config file was then moified as part of changeset 3482 to 
+//BTM - PRE_FRED_3481 -       set the ontology entry to a URL to address this failure. Unfortunately,
+//BTM - PRE_FRED_3481 -       the jini configuration mechanism does not allow one to invoke
+//BTM - PRE_FRED_3481 -       non-static methods; thus, calls toURI().toURL() on the File object
+//BTM - PRE_FRED_3481 -       created in the config file (as was done in changeset 3482) also
+//BTM - PRE_FRED_3481 -       caused the test to fail. To address this failure, either a utility
+//BTM - PRE_FRED_3481 -       such as the DataFinder in the maven_scaleout branch must be used
+//BTM - PRE_FRED_3481 -       in the config file, or the code in this class must be changed to
+//BTM - PRE_FRED_3481 -       use the work around below.
+try {
+    ontology = ((java.io.File) config.getEntry(component, ConfigurationOptions.ONTOLOGY, java.io.File.class, null)).toURI().toURL();
+} catch(java.net.MalformedURLException e) {
+    throw new ConfigurationException("while retrieving "+ConfigurationOptions.ONTOLOGY, e);
+}
 
             ontologyFileFilter = (FilenameFilter) config.getEntry(component,
                     ConfigurationOptions.ONTOLOGY_FILE_FILTER,
@@ -583,7 +606,7 @@ V extends Serializable//
 
                 final String tmp = (String) config.getEntry(component,
                         ConfigurationOptions.RDF_FORMAT, String.class,
-                        ConfigurationOptions.DEFAULT_RDF_FORMAT.toString());
+                        ConfigurationOptions.DEFAULT_RDF_FORMAT);
 
                 if (tmp != null) {
 
@@ -639,13 +662,14 @@ V extends Serializable//
 
             // execute master wait for it to finish.
             task.execute();
-
+        } catch (Throwable e) {
+            e.printStackTrace();
         } finally {
-
+            FileServer.stopAll();
             fed.shutdown();
 
         }
-        
+
     }
     
     public MappedRDFDataLoadMaster(final JiniFederation fed)
@@ -658,6 +682,7 @@ V extends Serializable//
     /**
      * Extended to support optional load, closure, and reporting.
      */
+    @Override
     protected void runJob() throws Exception {
 
         final S jobState = getJobState();
@@ -851,6 +876,7 @@ V extends Serializable//
     /**
      * Extended to open/create the KB.
      */
+    @Override
     protected void beginJob(final S jobState) throws Exception {
 
         super.beginJob(jobState);
@@ -900,7 +926,7 @@ V extends Serializable//
                 loadOntology(tripleStore);
 
             } catch (Exception ex) {
-
+                tripleStore.destroy(); // Don't leave badly configured store.
                 throw new RuntimeException("Could not load: "
                         + jobState.ontology, ex);
 

@@ -33,7 +33,6 @@ import java.util.concurrent.BrokenBarrierException;
 
 import com.bigdata.btree.isolation.IConflictResolver;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
 import com.bigdata.service.ITxCommitProtocol;
 
 //BTM
@@ -76,10 +75,10 @@ import com.bigdata.service.IService;
  * When deployed as a distributed database there will be a centralized service
  * implementing this interface and clients will discover and talk with that
  * service. The centralized service in turn will coordinate the distributed
- * transactions with the various {@link IDataService}s using their local
+ * transactions with the various shard services using their local
  * implementations of this same interface. The centralized transaction service
- * SHOULD invoke the corresponding methods on a {@link IDataService} IFF it
- * knows that the {@link IDataService} is buffering writes for the transaction.
+ * SHOULD invoke the corresponding methods on a shard service IFF it
+ * knows that the shard service is buffering writes for the transaction.
  * </p>
  * <h2>Timestamps</h2>
  * <p>

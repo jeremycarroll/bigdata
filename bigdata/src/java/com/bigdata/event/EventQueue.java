@@ -1,6 +1,6 @@
-/**
+/*
 
-Copyright (C) SYSTAP, LLC 2006-2007.  All rights reserved.
+Copyright (C) SYSTAP, LLC 2006-2008.  All rights reserved.
 
 Contact:
      SYSTAP, LLC
@@ -20,20 +20,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 */
 
-package com.bigdata.metadata;
+package com.bigdata.event;
 
-import java.io.IOException;
+import com.bigdata.service.Event;
 
-/**
- * Methods for supporting testing this implementation of the shard 
- * locator (metadata) service.
- */
-public interface TestAdmin {
+public interface EventQueue {
 
-    /** 
-     * Can be used to simulates a service crash.
-     */
-    void kill(int status) throws IOException;
+    void queueEvent(Event e);
 }

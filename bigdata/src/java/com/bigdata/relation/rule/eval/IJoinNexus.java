@@ -64,7 +64,6 @@ import com.bigdata.relation.rule.Rule;
 import com.bigdata.relation.rule.Var;
 import com.bigdata.relation.rule.eval.pipeline.JoinTask;
 import com.bigdata.service.AbstractScaleOutFederation;
-import com.bigdata.service.IDataService;
 import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
@@ -476,7 +475,7 @@ public interface IJoinNexus {
      * materialize all elements which would be visited for that predicate.
      * <p>
      * Note: You can use an {@link IDataServiceCallable} to obtain the
-     * reference of the {@link IDataService} and pass that into your
+     * reference of the shard service and pass that into your
      * {@link AbstractTask} in order to have the federation reference available
      * when running under the {@link ConcurrencyManager}.
      * 

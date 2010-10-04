@@ -85,6 +85,7 @@ import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 
 //BTM
 import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+import com.bigdata.shard.EmbeddedShardService;
 
 /**
  * Test suite for concurrent operations on a {@link DataService}. A federation
@@ -586,12 +587,20 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
              */
             final OverflowCounters overflowCounters = new OverflowCounters();
             if (dataService0 != null) {
-                overflowCounters.add(((DataService) dataService0).getResourceManager()
-                        .getOverflowCounters());
+//BTM
+if(dataService0 instanceof DataService) {
+                overflowCounters.add(((DataService) dataService0).getResourceManager().getOverflowCounters());
+} else {
+                overflowCounters.add(((EmbeddedShardService) dataService0).getResourceManager().getOverflowCounters());
+}
             }
             if (dataService1 != null) {
-                overflowCounters.add(((DataService) dataService1).getResourceManager()
-                        .getOverflowCounters());
+//BTM
+if(dataService1 instanceof DataService) {
+                overflowCounters.add(((DataService) dataService1).getResourceManager().getOverflowCounters());
+} else {
+                overflowCounters.add(((EmbeddedShardService) dataService1).getResourceManager().getOverflowCounters());
+}
             }
 
             final Result ret = new Result();
@@ -781,8 +790,8 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
      * 
      * @throws IOException
      */
-    private void setupLBSForMove(final IDataService targetService)
-            throws IOException {
+//BTM    private void setupLBSForMove(final IDataService targetService) throws IOException {
+private void setupLBSForMove(final ShardService targetService) throws IOException {
 
         // explicitly set the log level for the load balancer.
         LoadBalancerService.log.setLevel(Level.INFO);
@@ -793,40 +802,64 @@ EmbeddedLoadBalancer.logger.setLevel(Level.INFO);
 //final EmbeddedLoadBalancer lbs = ((EmbeddedLoadBalancer)((EmbeddedFederation)fed).getLoadBalancerService());
 final LoadBalancer lbs = ((EmbeddedFederation)fed).getLoadBalancerService();
 
+//BTM
+UUID dataService0UUID = null;
+if(dataService0 instanceof IService) {
+    dataService0UUID = ((IService)dataService0).getServiceUUID();
+} else {
+    dataService0UUID = ((Service)dataService0).getServiceUUID();
+}
+UUID dataService1UUID = null;
+if(dataService1 instanceof IService) {
+    dataService1UUID = ((IService)dataService1).getServiceUUID();
+} else {
+    dataService1UUID = ((Service)dataService1).getServiceUUID();
+}
         final ServiceScore[] fakeServiceScores = new ServiceScore[2];
 
         if (targetService == null) {
 
             System.err.println("Spamming LBS: services have equal load.");
 
-            fakeServiceScores[0] = new ServiceScore(
-                    AbstractStatisticsCollector.fullyQualifiedHostName,
-                    dataService0.getServiceUUID(), "dataService0", 0.5// rawScore
+            fakeServiceScores[0] = new ServiceScore(AbstractStatisticsCollector.fullyQualifiedHostName,
+//BTM                    dataService0.getServiceUUID(),
+dataService0UUID,
+                    "dataService0", 0.5// rawScore
             );
 
-            fakeServiceScores[1] = new ServiceScore(
-                    AbstractStatisticsCollector.fullyQualifiedHostName,
-                    dataService1.getServiceUUID(), "dataService1", 0.5// rawScore
+            fakeServiceScores[1] = new ServiceScore(AbstractStatisticsCollector.fullyQualifiedHostName,
+//BTM                    dataService1.getServiceUUID(),
+dataService1UUID,
+                    "dataService1", 0.5// rawScore
             );
 
         } else {
 
             System.err
                     .println("Spamming LBS: one service will appear heavily loaded.");
+//BTM
+UUID targetServiceUUID = null;
+if(targetService instanceof IService) {
+    targetServiceUUID = ((IService)targetService).getServiceUUID();
+} else {
+    targetServiceUUID = ((Service)targetService).getServiceUUID();
+}
 
-            fakeServiceScores[0] = new ServiceScore(
-                    AbstractStatisticsCollector.fullyQualifiedHostName,
-                    dataService0.getServiceUUID(), "dataService0",
+            fakeServiceScores[0] = new ServiceScore(AbstractStatisticsCollector.fullyQualifiedHostName,
+//BTM                    dataService0.getServiceUUID(),
+dataService0UUID,
+                    "dataService0",
                     // rawScore
-                    targetService.getServiceUUID().equals(
-                            dataService0.getServiceUUID()) ? 1.0 : 0.0);
+//BTM                    targetService.getServiceUUID().equals(dataService0.getServiceUUID()) ? 1.0 : 0.0);
+targetServiceUUID.equals(dataService0UUID) ? 1.0 : 0.0);
 
-            fakeServiceScores[1] = new ServiceScore(
-                    AbstractStatisticsCollector.fullyQualifiedHostName,
-                    dataService1.getServiceUUID(), "dataService1",
+            fakeServiceScores[1] = new ServiceScore(AbstractStatisticsCollector.fullyQualifiedHostName,
+//BTM                    dataService1.getServiceUUID(),
+dataService1UUID,
+                    "dataService1",
                     // rawScore
-                    targetService.getServiceUUID().equals(
-                            dataService0.getServiceUUID()) ? 1.0 : 0.0);
+//BTM                    targetService.getServiceUUID().equals(dataService0.getServiceUUID()) ? 1.0 : 0.0);
+targetServiceUUID.equals(dataService0UUID) ? 1.0 : 0.0);
 
         }
 

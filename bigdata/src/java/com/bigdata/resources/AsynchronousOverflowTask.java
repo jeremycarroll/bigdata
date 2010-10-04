@@ -56,11 +56,11 @@ import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.OverflowManager.ResourceScores;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.EventType;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 //BTM import com.bigdata.service.MetadataService;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
@@ -68,10 +68,13 @@ import com.bigdata.util.concurrent.LatchedExecutor;
 
 //BTM
 import com.bigdata.metadata.EmbeddedShardLocator;
-import com.bigdata.service.IDataService;
+import com.bigdata.service.IService;
 import com.bigdata.service.LoadBalancer;
+import com.bigdata.service.Service;
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
+import com.bigdata.util.Util;
 
 /**
  * This class examines the named indices defined on the journal identified by
@@ -1207,24 +1210,34 @@ if(mds == null) {
     log.error("AsynchronousOverflowTask.chooseJoins: null shard locator (metadata) service - could not locate rightSiblings [index="+scaleOutIndexName+"]");
     continue;
 }
-if(mds instanceof IDataService) {
-    IDataService remoteShardMgr = (IDataService)mds;
-    resultBuffer = 
-        (ResultBuffer) remoteShardMgr.submit
+//BTM - BEGIN CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
+
+//BTMif(mds instanceof IDataService) {
+//BTM    IDataService remoteShardMgr = (IDataService)mds;
+//BTM    resultBuffer = 
+//BTM        (ResultBuffer) remoteShardMgr.submit
+//BTM                           (TimestampUtility.asHistoricalRead(lastCommitTime),
+//BTM                            EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
+//BTM                            op).get();
+//BTM} else if(mds instanceof ShardManagement) {
+//BTM    ShardManagement shardMgr = (ShardManagement)mds;
+//BTM    resultBuffer = 
+//BTM        (ResultBuffer) shardMgr.submit
+//BTM                           (TimestampUtility.asHistoricalRead(lastCommitTime),
+//BTM                            EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
+//BTM                            op).get();
+//BTM} else {
+//BTM    log.error("AsynchronousOverflowTask.chooseJoins: shard locator (metadata) service wrong type [type="+mds.getClass()+"] - could not locate rightSiblings [index="+scaleOutIndexName+"]");
+//BTM    continue;
+//BTM}
+
+resultBuffer = 
+        (ResultBuffer) ((ShardManagement)mds).submit
                            (TimestampUtility.asHistoricalRead(lastCommitTime),
                             EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
                             op).get();
-} else if(mds instanceof ShardManagement) {
-    ShardManagement shardMgr = (ShardManagement)mds;
-    resultBuffer = 
-        (ResultBuffer) shardMgr.submit
-                           (TimestampUtility.asHistoricalRead(lastCommitTime),
-                            EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
-                            op).get();
-} else {
-    log.error("AsynchronousOverflowTask.chooseJoins: shard locator (metadata) service wrong type [type="+mds.getClass()+"] - could not locate rightSiblings [index="+scaleOutIndexName+"]");
-    continue;
-}
+
+//BTM - END CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
 
                 } catch (Exception e) {
                     
@@ -1247,9 +1260,10 @@ if(mds instanceof IDataService) {
                     // an underutilized index partition on this data service.
                     final LocalPartitionMetadata pmd = underUtilizedPartitions[i];
 
-                    final ViewMetadata vmd = overflowMetadata
-                            .getViewMetadata(DataService.getIndexPartitionName(
-                                    scaleOutIndexName, pmd.getPartitionId()));
+//BTM                    final ViewMetadata vmd = overflowMetadata
+//BTM                            .getViewMetadata(DataService.getIndexPartitionName(
+//BTM                                    scaleOutIndexName, pmd.getPartitionId()));
+final ViewMetadata vmd = overflowMetadata.getViewMetadata(Util.getIndexPartitionName(scaleOutIndexName, pmd.getPartitionId()));
 
                     // the locator for the rightSibling.
                     final PartitionLocator rightSiblingLocator = (PartitionLocator) SerializerUtil
@@ -1261,12 +1275,14 @@ if(mds instanceof IDataService) {
                     final String[] resources = new String[2];
 
                     // the underutilized index partition.
-                    resources[0] = DataService.getIndexPartitionName(
-                           scaleOutIndexName, pmd.getPartitionId());
+//BTM                    resources[0] = DataService.getIndexPartitionName(
+//BTM                           scaleOutIndexName, pmd.getPartitionId());
+resources[0] = Util.getIndexPartitionName(scaleOutIndexName, pmd.getPartitionId());
                     
                     // its right sibling (may be local or remote).
-                    resources[1] = DataService.getIndexPartitionName(
-                            scaleOutIndexName, rightSiblingLocator.getPartitionId());
+//BTM                    resources[1] = DataService.getIndexPartitionName(
+//BTM                            scaleOutIndexName, rightSiblingLocator.getPartitionId());
+resources[1] = Util.getIndexPartitionName(scaleOutIndexName, rightSiblingLocator.getPartitionId());
                     
                     if (sourceDataService.equals(targetDataServiceUUID)) {
 
@@ -1292,12 +1308,13 @@ if(mds instanceof IDataService) {
                         if(log.isInfoEnabled())
                             log.info("Will JOIN: " + Arrays.toString(resources));
                         
-                        final ViewMetadata vmd2 = overflowMetadata
-                                .getViewMetadata(DataService
-                                        .getIndexPartitionName(
-                                                scaleOutIndexName,
-                                                rightSiblingLocator
-                                                        .getPartitionId()));
+//BTM                        final ViewMetadata vmd2 = overflowMetadata
+//BTM                                .getViewMetadata(DataService
+//BTM                                        .getIndexPartitionName(
+//BTM                                                scaleOutIndexName,
+//BTM                                                rightSiblingLocator
+//BTM                                                        .getPartitionId()));
+final ViewMetadata vmd2 = overflowMetadata.getViewMetadata(Util.getIndexPartitionName(scaleOutIndexName,rightSiblingLocator.getPartitionId()));
 
                         final AbstractTask task = new JoinIndexPartitionTask(
                                 resourceManager, lastCommitTime, resources,
@@ -1327,9 +1344,10 @@ if(mds instanceof IDataService) {
                         // other index partition on this data service.
                         if(isUsed(resources[0])) continue;
                         
-                        final String sourceIndexName = DataService
-                                .getIndexPartitionName(scaleOutIndexName, pmd
-                                        .getPartitionId());
+//BTM                        final String sourceIndexName = DataService
+//BTM                                .getIndexPartitionName(scaleOutIndexName, pmd
+//BTM                                        .getPartitionId());
+final String sourceIndexName = Util.getIndexPartitionName(scaleOutIndexName, pmd.getPartitionId());
 
                         final AbstractTask task = new MoveTask(vmd,
                                 targetDataServiceUUID);
@@ -1337,9 +1355,14 @@ if(mds instanceof IDataService) {
                         // get the target service name.
                         String targetDataServiceName;
                         try {
-                            targetDataServiceName = resourceManager.getFederation()
-                                    .getDataService(targetDataServiceUUID)
-                                    .getServiceName();
+//BTM                            targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
+ShardService shardService =  resourceManager.getFederation().getDataService(targetDataServiceUUID);
+if(shardService instanceof IService) {
+    targetDataServiceName = ((IService)shardService).getServiceName();
+} else {
+    targetDataServiceName = ((Service)shardService).getServiceName();
+}
+
                         } catch (Throwable t) {
                             targetDataServiceName = targetDataServiceUUID.toString();
                         }
@@ -1983,8 +2006,13 @@ if(mds instanceof IDataService) {
             // get the target service name.
             String targetDataServiceName;
             try {
-                targetDataServiceName = resourceManager.getFederation()
-                        .getDataService(targetDataServiceUUID).getServiceName();
+//BTM                targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
+ShardService shardService =  resourceManager.getFederation().getDataService(targetDataServiceUUID);
+if(shardService instanceof IService) {
+    targetDataServiceName = ((IService)shardService).getServiceName();
+} else {
+    targetDataServiceName = ((Service)shardService).getServiceName();
+}
             } catch (Throwable t) {
                 targetDataServiceName = targetDataServiceUUID.toString();
             }
@@ -2380,7 +2408,7 @@ if(mds instanceof IDataService) {
      * the rightSibling of an index partition in the {@link MetadataIndex}. If
      * that rightSibling is local (same {@link ResourceManager}) then we will
      * JOIN the index partitions. Otherwise we will MOVE the undercapacity index
-     * partition to the {@link IDataService} on which its rightSibling was
+     * partition to the {@link ShardService} on which its rightSibling was
      * found.
      * 
      * <h2>Move</h2>
@@ -2905,10 +2933,17 @@ if(mds instanceof IDataService) {
         
         resourceManager.overflowCounters.asynchronousOverflowStartMillis.set(begin);
         
-        final Event e = new Event(resourceManager.getFederation(),
-                new EventResource(), EventType.AsynchronousOverflow).addDetail(
-                "asynchronousOverflowCounter",
-                resourceManager.overflowCounters.asynchronousOverflowCounter.get()).start();
+//BTM        final Event e = new Event(resourceManager.getFederation(),
+//BTM                new EventResource(), EventType.AsynchronousOverflow).addDetail(
+//BTM                "asynchronousOverflowCounter",
+//BTM                resourceManager.overflowCounters.asynchronousOverflowCounter.get()).start();
+final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+                           (resourceManager.getFederation()).getServiceIface(),
+                           (resourceManager.getFederation()).getServiceName(),
+                           (resourceManager.getFederation()).getServiceUUID(),
+                           new EventResource(),
+                           EventType.AsynchronousOverflow).addDetail("asynchronousOverflowCounter",
+                                                                     resourceManager.overflowCounters.asynchronousOverflowCounter.get()).start();
         
         try {
 

@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Inet4Address;
 import java.net.InterfaceAddress;
-import java.net.MalformedURLException;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -38,39 +37,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Enumeration;
 import java.util.Collections;
-import java.util.logging.LogRecord;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-
-import net.jini.config.Configuration;
-import net.jini.config.ConfigurationException;
-import com.sun.jini.config.Config;
-import com.sun.jini.logging.Levels;
 
 /**
  * Utility class that provides a set of static convenience methods
  * related to processing information about the current node's Network
  * Interface Card(s) (NICs) and associated IP address(es) and hostname.
- * Although useful in general, the methods in this utility class may
- * be particularly useful when employed from within a Jini configuration
- * file.
  * <p>
  * This class cannot be instantiated.
  */
 public class NicUtil {
 
-    private static final org.apache.log4j.Logger utilLogger = 
-                                     LogUtil.getLog4jLogger( NicUtil.class );
-
-    private static final java.util.logging.Logger jiniConfigLogger = 
-                       java.util.logging.Logger.getLogger("net.jini.config");
-    private static final java.util.logging.Level WARNING = 
-                                             java.util.logging.Level.WARNING;
-    private static final java.util.logging.Level INFO = 
-                                              java.util.logging.Level.INFO;
-    private static final java.util.logging.Level CONFIG = 
-                                              java.util.logging.Level.CONFIG;
+    private static final Logger logger = LogUtil.getLog4jLogger(NicUtil.class);
 
     // This class cannot be instantiated.
     private NicUtil() {
@@ -311,12 +291,9 @@ public class NicUtil {
                         Inet4Address inet4Addr = (Inet4Address)inetAddr;
                         String hostAddr = inet4Addr.getHostAddress();
                         String hostName = inet4Addr.getCanonicalHostName();
-                        jiniConfigLogger.log(CONFIG, 
-                                             "Inet4: address = "+hostAddr
-                                             +", name = "+hostName);
-                        utilLogger.log(Level.TRACE, 
-                                       "Inet4: address = "+hostAddr
-                                       +", name = "+hostName);
+                        logger.log(Level.TRACE, 
+                                   "Inet4: address = "+hostAddr
+                                   +", name = "+hostName);
                         return inetAddr;
                     } else {
                         inet4AddrIndex = inet4AddrIndex+1;//next index
@@ -334,8 +311,7 @@ public class NicUtil {
 		fallback = InetAddress.getByName(host);
             } catch(Exception e) {/* swallow and try fallback */}
             if(fallback != null) {
-                jiniConfigLogger.log(CONFIG, "fallback host = "+fallback);
-                utilLogger.log(Level.TRACE, "fallback host = "+fallback);
+                logger.log(Level.TRACE, "fallback host = "+fallback);
                 return fallback;
             }
         }
@@ -345,8 +321,7 @@ public class NicUtil {
             try {
                 fallback = InetAddress.getLocalHost();
             } catch(Exception e) {/* swallow and return null */}
-            jiniConfigLogger.log(CONFIG, "fallback local host = "+fallback);
-            utilLogger.log(Level.TRACE, "fallback local host = "+fallback);
+            logger.log(Level.TRACE, "fallback local host = "+fallback);
         }
 
         return fallback;
@@ -398,35 +373,6 @@ public class NicUtil {
             macAddr = strBuf.toString();
         }
         return macAddr;
-    }
-
-    /**
-     * Three-argument version of <code>getInetAddress</code> that retrieves
-     * the desired interface name from the given <code>Configuration</code>
-     * parameter.
-     */
-    public static InetAddress getInetAddress(Configuration config,
-                                             String        componentName,
-                                             String        nicNameEntry)
-    {
-        String nicName = "NoNetworkInterfaceName";
-        try {
-            nicName = (String)Config.getNonNullEntry(config,
-                                                     componentName,
-                                                     nicNameEntry,
-                                                     String.class,
-                                                     "eth0");
-        } catch(ConfigurationException e) {
-            jiniConfigLogger.log(WARNING, e
-                                 +" - [componentName="+componentName
-                                 +", nicNameEntry="+nicNameEntry+"]");
-            utilLogger.log(Level.WARN, e
-                           +" - [componentName="+componentName
-                           +", nicNameEntry="+nicNameEntry+"]");
-            e.printStackTrace();
-            return null;
-        }
-        return ( getInetAddress(nicName, 0, null, false) );
     }
 
     // What follows are a number of versions of the getIpAddress method
@@ -538,13 +484,10 @@ public class NicUtil {
      * above.
      * <p>
      * Note that in all cases, if <code>true</code> is input
-     * for the <code>loopOk</code> parameter, then upon failing
+     * for the <code>loopbackOk</code> parameter, then upon failing
      * to find a valid ip address using the specified search
      * mechanism, this method will return the <i>loop back</i>
      * address; otherwise, <code>null</code> is returned.
-     * <p>
-     * This method can be called from within a configuration
-     * as well as from within program control.
      *
      * @param systemPropertyName <code>String</code> value containing
      *                           the name of a system property whose
@@ -684,11 +627,7 @@ public class NicUtil {
                     boolean isReachable = inetAddr.isReachable(3*1000);
                     Inet4Address inet4Addr = (Inet4Address)inetAddr;
                     String retVal = inet4Addr.getHostAddress();
-
-                    jiniConfigLogger.log
-                        (CONFIG, "default IPv4 address: "+retVal);
-                    utilLogger.log
-                        (Level.TRACE, "default IPv4 address: "+retVal);
+                    logger.log(Level.TRACE, "default IPv4 address: "+retVal);
                     return retVal;
                 }
             }
@@ -710,11 +649,7 @@ public class NicUtil {
                     boolean isReachable = inetAddr.isReachable(3*1000);
                     Inet4Address inet4Addr = (Inet4Address)inetAddr;
                     String retVal = inet4Addr.getHostAddress();
-
-                    jiniConfigLogger.log
-                        (CONFIG, "default IPv4 address: "+retVal);
-                    utilLogger.log
-                        (Level.TRACE, "default IPv4 address: "+retVal);
+                    logger.log(Level.TRACE, "default IPv4 address: "+retVal);
                     return retVal;
                 }
             }

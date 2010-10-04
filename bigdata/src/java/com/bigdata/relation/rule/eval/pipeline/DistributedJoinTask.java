@@ -31,18 +31,24 @@ import com.bigdata.relation.rule.eval.IRuleState;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.service.AbstractDistributedFederation;
 import com.bigdata.service.AbstractScaleOutFederation;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.Session;
 import com.bigdata.striterator.IKeyOrder;
 
+//BTM
+import com.bigdata.service.ISession;
+import com.bigdata.service.IService;
+import com.bigdata.service.Service;
+import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
 
 /**
  * Implementation used by scale-out deployments. There will be one instance
  * of this task per index partition on which the rule will read. Those
- * instances will be in-process on the {@link DataService} hosting that
- * index partition. Instances are created on the {@link DataService} using
+ * instances will be in-process on the {@link ShardService} hosting that
+ * index partition. Instances are created on the {@link ShardService} using
  * the {@link JoinTaskFactoryTask} helper class.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
@@ -110,10 +116,13 @@ public class DistributedJoinTask extends JoinTask {
     private boolean sourcesExhausted = false;
     
     /**
-     * The {@link DataService} on which this task is executing. This is used to
-     * remove the entry for the task from {@link DataService#getSession()}.
+     * The {@link ShardService} on which this task is executing. This is used to
+     * remove the entry for the task from {@link ShardService#getSession()}.
      */
-    private final DataService dataService;
+//BTM    private final DataService dataService;
+private final Session dataServiceSession;
+private final String dataServiceHostname;
+private final String dataServiceName;
     
     /**
      * The {@link JoinTaskSink}s for the downstream
@@ -139,12 +148,15 @@ public class DistributedJoinTask extends JoinTask {
             final UUID masterUUID,//
             final IAsynchronousIterator<IBindingSet[]> src,//
             final IKeyOrder[] keyOrders,//
-            final DataService dataService,//
+//BTM            final DataService dataService,//
+final Session dataServiceSession,
+final String dataServiceHostname,
+final String dataServiceName,
             final IVariable[][] requiredVars//
             ) {
 
         super(
-                /*DataService.getIndexPartitionName(scaleOutIndexName,
+                /*com.bigdata.util.Util.getIndexPartitionName(scaleOutIndexName,
                         partitionId),*/ rule, joinNexus, order, orderIndex,
                 partitionId, master, masterUUID, requiredVars);
 
@@ -154,8 +166,11 @@ public class DistributedJoinTask extends JoinTask {
         if (src == null)
             throw new IllegalArgumentException();
 
-        if (dataService == null)
-            throw new IllegalArgumentException();
+//BTM        if (dataService == null)
+//BTM            throw new IllegalArgumentException();
+if (dataServiceSession == null) {
+    throw new IllegalArgumentException("null dataServiceSession");
+}
 
         // Note: This MUST be the index manager for the local data service.
         if(joinNexus instanceof IBigdataFederation)
@@ -165,7 +180,10 @@ public class DistributedJoinTask extends JoinTask {
 
         this.keyOrders = keyOrders;
 
-        this.dataService = dataService;
+//BTM        this.dataService = dataService;
+this.dataServiceSession = dataServiceSession;
+this.dataServiceHostname = (dataServiceHostname == null ? "UNKNOWN" : dataServiceHostname);
+this.dataServiceName = (dataServiceName == null ? "UNKNOWN" : dataServiceName);
         
         // This is the index manager for the federation (scale-out indices).
         this.fedJoinNexus = joinNexus.getJoinNexusFactory().newInstance(fed);
@@ -379,7 +397,8 @@ public class DistributedJoinTask extends JoinTask {
              * Ok, but we need to make sure that we don't remove it by accident!
              */
 
-            dataService.getSession().remove(namespace, this);
+//BTM            dataService.getSession().remove(namespace, this);
+dataServiceSession.remove(namespace, this);
             
         } finally {
 
@@ -737,7 +756,7 @@ public class DistributedJoinTask extends JoinTask {
              * generated access path for that bindingSet will have to read.
              * There will be a JoinTask associated with each such index
              * partition. That JoinTask will execute locally on the
-             * DataService which hosts that index partition.
+             * shard service which hosts that index partition.
              */
 
             unsyncOutputBuffer = new UnsyncDistributedOutputBuffer<IBindingSet>(
@@ -976,7 +995,7 @@ public class DistributedJoinTask extends JoinTask {
      * Return the sink on which we will write {@link IBindingSet} for the
      * index partition associated with the specified locator. The sink will
      * be backed by a {@link DistributedJoinTask} running on the
-     * {@link IDataService} that is host to that index partition. The
+     * {@link ShardService} that is host to that index partition. The
      * scale-out index will be the scale-out index for the next
      * {@link IPredicate} in the evaluation order.
      * 
@@ -1074,14 +1093,16 @@ public class DistributedJoinTask extends JoinTask {
 
                 final UUID sinkUUID = locator.getDataServiceUUID();
 
-                final IDataService dataService;
+//BTM                final IDataService dataService;
+final ShardService dataService;
                 if (sinkUUID.equals(fed.getServiceUUID())) {
 
 				/*
 				 * As an optimization, special case when the downstream
 				 * data service is _this_ data service.
 				 */
-                	dataService = (IDataService)fed.getService();
+//BTM                	dataService = (IDataService)fed.getService();
+dataService = (ShardService)fed.getService();
                     
                 } else {
                 
@@ -1122,7 +1143,8 @@ public class DistributedJoinTask extends JoinTask {
                         sourceItrProxy, keyOrders, requiredVars);
 
                     // submit the factory task, obtain its future.
-                    factoryFuture = dataService.submit(factoryTask);
+//BTM                    factoryFuture = dataService.submit(factoryTask);
+factoryFuture = ((ShardManagement)dataService).submit(factoryTask);
 
                 } catch (IOException ex) {
 
@@ -1169,10 +1191,38 @@ public class DistributedJoinTask extends JoinTask {
     @Override
     protected void logCallError(final Throwable t) {
 
-        log.error("hostname=" + dataService.getHostname() + ", serviceName="
-                + dataService.getServiceName() + ", joinTask=" + toString()
-                + ", rule=" + rule, t);
-        
+//BTM        log.error("hostname=" + dataService.getHostname() + ", serviceName="
+//BTM                + dataService.getServiceName() + ", joinTask=" + toString()
+//BTM                + ", rule=" + rule, t);
+
+/* ***********************************************************************
+** BTM - try #1: REPLACED if-block below with the line that follows,
+**               after getDataService method removed from 
+**               IDataServiceCallable and DataServiceCallable
+
+if(dataService != null) {
+    String hostname = null;
+    String serviceName = null;
+    if(dataService instanceof IService) {
+        try {
+            hostname = ((IService)dataService).getHostname();
+            serviceName = ((IService)dataService).getServiceName();
+        } catch(IOException e) {
+            log.error("hostname=UNKNOWN, serviceName=UNKNOWN, joinTask=" + toString() + ", rule=" + rule, t);
+        }
+    } else {
+        hostname = ((Service)dataService).getHostname();
+        serviceName = ((Service)dataService).getServiceName();
+    }
+    log.error("hostname=" + hostname + ", serviceName=" + serviceName + ", joinTask=" + toString() + ", rule=" + rule, t);
+} else {
+    log.error("null shard service reference");
+}  
+END REPLACE *********************************************************** */
+
+//BTM - try #2
+log.error("hostname=" + dataServiceHostname + ", serviceName=" + dataServiceName + ", joinTask=" + toString() + ", rule=" + rule, t);
+
     }
     
 }

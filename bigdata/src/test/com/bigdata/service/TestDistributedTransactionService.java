@@ -135,7 +135,8 @@ public class TestDistributedTransactionService extends
         final long tx = fed.getTransactionService().newTx(ITx.UNISOLATED);
         
         // submit write operation to the ds.
-        dataService1.submit(tx, name1, new IIndexProcedure(){
+//BTM        dataService1.submit(tx, name1, new IIndexProcedure(){
+((ShardManagement)dataService1).submit(tx, name1, new IIndexProcedure(){
 
             public Object apply(IIndex ndx) {
                 
@@ -150,7 +151,8 @@ public class TestDistributedTransactionService extends
             }}).get();
         
         // verify write not visible to unisolated operation.
-        dataService1.submit(ITx.UNISOLATED, name1, new IIndexProcedure(){
+//BTM        dataService1.submit(ITx.UNISOLATED, name1, new IIndexProcedure(){
+((ShardManagement)dataService1).submit(ITx.UNISOLATED, name1, new IIndexProcedure(){
 
             public Object apply(IIndex ndx) {
                 
@@ -168,7 +170,8 @@ public class TestDistributedTransactionService extends
         fed.getTransactionService().abort(tx);
 
         // verify write still not visible.
-        dataService1.submit(ITx.UNISOLATED, name1, new IIndexProcedure(){
+//BTM        dataService1.submit(ITx.UNISOLATED, name1, new IIndexProcedure(){
+((ShardManagement)dataService1).submit(ITx.UNISOLATED, name1, new IIndexProcedure(){
 
             public Object apply(IIndex ndx) {
                 
@@ -184,7 +187,8 @@ public class TestDistributedTransactionService extends
 
         // verify operation rejected for aborted read-write tx.
         try {
-        dataService1.submit(tx, name1, new IIndexProcedure(){
+//BTM        dataService1.submit(tx, name1, new IIndexProcedure(){
+((ShardManagement)dataService1).submit(tx, name1, new IIndexProcedure(){
 
             public Object apply(IIndex ndx) {
                 // NOP

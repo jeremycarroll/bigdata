@@ -18,18 +18,25 @@ import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.IVariable;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
-import com.bigdata.relation.rule.eval.IRuleState;
+//BTM - PRE_FRED_3481 import com.bigdata.relation.rule.eval.IRuleState;
 import com.bigdata.resources.IndexManager;
 import com.bigdata.resources.StoreManager.ManagedJournal;
 import com.bigdata.service.AbstractDistributedFederation;
 import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.DataService;
-import com.bigdata.service.DataServiceCallable;
+//BTM - PRE_FRED_3481 import com.bigdata.service.DataServiceCallable;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.Session;
 import com.bigdata.service.proxy.ClientAsynchronousIterator;
 import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.striterator.IKeyOrder;
+
+//BTM
+import com.bigdata.resources.ResourceManager;
+
+//BTM - PRE_FRED_3481
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.service.IDataServiceCallable;
 
 /**
  * A factory for {@link DistributedJoinTask}s. The factory either creates a new
@@ -82,9 +89,9 @@ import com.bigdata.striterator.IKeyOrder;
  *       redundant writes on an index still lead to the same fixed point.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
+//BTM - PRE_FRED_3481 public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
+public class JoinTaskFactoryTask implements IDataServiceCallable<Future> {
 
     /**
      * 
@@ -140,6 +147,7 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
      */
     private transient AbstractScaleOutFederation fed;
     
+    @Override
     public String toString() {
 
         return getClass().getSimpleName() + "{ orderIndex=" + orderIndex
@@ -220,12 +228,20 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
      * @return (A proxy for) the {@link Future} of the
      *         {@link DistributedJoinTask}.
      */
-    public Future call() throws Exception {
+//BTM - PRE_FRED_3481    public Future call() throws Exception {
+    public Future startDataTask(IIndexManager indexManager,
+                                ResourceManager resourceManager,
+                                IConcurrencyManager concurrencyManager,
+                                final Session session,
+                                String hostname,
+                                String serviceName) {
+
         
 //        if (dataService == null)
 //            throw new IllegalStateException();
 
-        this.fed = (AbstractScaleOutFederation) getFederation();
+//BTM - PRE_FRED_3481        this.fed = (AbstractScaleOutFederation) getFederation();
+        this.fed = (AbstractScaleOutFederation) indexManager;
 
         /*
          * Start the iterator using our local thread pool in order to avoid
@@ -246,7 +262,8 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
         
         final Future<Void> joinTaskFuture;
 
-        final Session session = getDataService().getSession();
+//BTM        final Session session = getDataService().getSession();
+//BTM - PRE_FRED_3481 final Session session = getSession();
         
         /*
          * @todo this serializes all requests for a new join task on this data
@@ -280,13 +297,15 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
                      */
 
                     // new task.
-                    joinTask = newJoinTask();
+//BTM - PRE_FRED_3481                    joinTask = newJoinTask();
+                    joinTask = newJoinTask(indexManager, resourceManager, session, hostname, serviceName);
 
                     // put into the session.
                     session.put(namespace, joinTask);
 
                     // submit task and note its future.
-                    joinTaskFuture = submit(joinTask);
+//BTM - PRE_FRED_3481                    joinTaskFuture = submit(joinTask);
+                    joinTaskFuture = submit(joinTask, fed);
 
                 }
 
@@ -297,13 +316,15 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
                  */
                 
                 // new task.
-                joinTask = newJoinTask();
+//BTM - PRE_FRED_3481                joinTask = newJoinTask();
+                joinTask = newJoinTask(indexManager, resourceManager, session, hostname, serviceName);
 
                 // put into the session.
                 session.put(namespace, joinTask);
 
                 // submit task and note its future.
-                joinTaskFuture = submit(joinTask);
+//BTM - PRE_FRED_3481                joinTaskFuture = submit(joinTask);
+                joinTaskFuture = submit(joinTask, fed);
                 
             }
             
@@ -313,7 +334,12 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
         
     }
 
-    protected DistributedJoinTask newJoinTask() {
+//BTM - PRE_FRED_3481    protected DistributedJoinTask newJoinTask() {
+    protected DistributedJoinTask newJoinTask(IIndexManager indexManager,
+                                              ResourceManager resourceManager,
+                                              Session session,
+                                              String hostname,
+                                              String serviceName) {
 
         final DistributedJoinTask task;
         {
@@ -323,13 +349,19 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
              * IndexManager for the DataService, which is the class that knows
              * how to assemble the index partition view.
              */
-            final IIndexManager indexManager = new DelegateIndexManager(
-                    getDataService());
+//BTM            final IIndexManager indexManager = new DelegateIndexManager(getDataService());
+//BTM - PRE_FRED_3481 final IIndexManager indexManager = new DelegateIndexManager(getIndexManager(), getResourceManager());
+                 final IIndexManager delegateIndexManager = new DelegateIndexManager(indexManager, resourceManager);
 
+//BTM - PRE_FRED_3481            task = new DistributedJoinTask(/*scaleOutIndexName,*/ rule,
+//BTM - PRE_FRED_3481                    joinNexusFactory.newInstance(indexManager), order,
+//BTM - PRE_FRED_3481                    orderIndex, partitionId, fed, masterProxy, masterUUID,
+//BTM - PRE_FRED_3481 //BTM                    sourceItrProxy, keyOrders, getDataService(), requiredVars);
+//BTM - PRE_FRED_3481 sourceItrProxy, keyOrders, getSession(), getHostname(), getServiceName(), requiredVars);
             task = new DistributedJoinTask(/*scaleOutIndexName,*/ rule,
-                    joinNexusFactory.newInstance(indexManager), order,
+                    joinNexusFactory.newInstance(delegateIndexManager), order,
                     orderIndex, partitionId, fed, masterProxy, masterUUID,
-                    sourceItrProxy, keyOrders, getDataService(), requiredVars);
+                    sourceItrProxy, keyOrders, session, hostname, serviceName, requiredVars);
             
         }
 
@@ -337,15 +369,17 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
 
     }
    
-    protected Future<Void> submit(final DistributedJoinTask task) {
+//BTM - PRE_FRED_3481    protected Future<Void> submit(final DistributedJoinTask task) {
+    protected Future<Void> submit(final DistributedJoinTask task,
+                                  IBigdataFederation federation) {
 
         if (log.isDebugEnabled())
             log.debug("Submitting new JoinTask: orderIndex=" + orderIndex
                     + ", partitionId=" + partitionId + ", indexName="
                     + scaleOutIndexName);
 
-        Future<Void> joinTaskFuture = getFederation()
-                .getExecutorService().submit(task);
+//BTM - PRE_FRED_3481        Future<Void> joinTaskFuture = getFederation().getExecutorService().submit(task);
+        Future<Void> joinTaskFuture = federation.getExecutorService().submit(task);
 
         if (fed.isDistributed()) {
 
@@ -389,7 +423,6 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
      * method that knows how to create the index partition view.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      * 
      * @todo While this class solves our problem I do not know whether or not
      *       this class should this class have more visibility? The downside is
@@ -401,23 +434,36 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
      */
     static class DelegateIndexManager implements IIndexManager {
         
-        private final DataService dataService;
-        
-        public DelegateIndexManager(final DataService dataService) {
-            
-            if (dataService == null)
-                throw new IllegalArgumentException();
-            
-            this.dataService = dataService;
-            
-        }
-        
+//BTM        private final DataService dataService;
+//BTM        
+//BTM        public DelegateIndexManager(final DataService dataService) {
+//BTM            
+//BTM            if (dataService == null)
+//BTM                throw new IllegalArgumentException();
+//BTM            
+//BTM            this.dataService = dataService;
+//BTM            
+//BTM        }
+private final IIndexManager indexManager;
+private final ResourceManager resourceManager;
+public DelegateIndexManager(final IIndexManager indexManager, ResourceManager resourceManager) {
+    if (indexManager == null) {
+        throw new IllegalArgumentException("null indexManager");
+    }
+    if (resourceManager == null) {
+        throw new IllegalArgumentException("null resourceManager");
+    }
+    this.indexManager = indexManager;
+    this.resourceManager = resourceManager;
+}
+
         /**
          * Delegates to the {@link IndexManager}.
          */
         public IIndex getIndex(final String name, final long timestamp) {
 
-            return dataService.getResourceManager().getIndex(name, timestamp);
+//BTM            return dataService.getResourceManager().getIndex(name, timestamp);
+return resourceManager.getIndex(name, timestamp);
             
         }
 
@@ -447,43 +493,50 @@ public class JoinTaskFactoryTask extends DataServiceCallable<Future> {
 
         public ExecutorService getExecutorService() {
             
-            return dataService.getFederation().getExecutorService();
+//BTM            return dataService.getFederation().getExecutorService();
+return ((IIndexStore)indexManager).getExecutorService();
             
         }
 
         public BigdataFileSystem getGlobalFileSystem() {
 
-            return dataService.getFederation().getGlobalFileSystem();
+//BTM            return dataService.getFederation().getGlobalFileSystem();
+return ((IIndexStore)indexManager).getGlobalFileSystem();
             
         }
 
         public SparseRowStore getGlobalRowStore() {
 
-            return dataService.getFederation().getGlobalRowStore();
+//BTM            return dataService.getFederation().getGlobalRowStore();
+return ((IIndexStore)indexManager).getGlobalRowStore();
             
         }
 
         public long getLastCommitTime() {
 
-            return dataService.getFederation().getLastCommitTime();
+//BTM            return dataService.getFederation().getLastCommitTime();
+return ((IIndexStore)indexManager).getLastCommitTime();
             
         }
 
         public IResourceLocator getResourceLocator() {
 
-            return dataService.getFederation().getResourceLocator();
+//BTM            return dataService.getFederation().getResourceLocator();
+return ((IIndexStore)indexManager).getResourceLocator();
             
         }
 
         public IResourceLockService getResourceLockService() {
 
-            return dataService.getFederation().getResourceLockService();
+//BTM            return dataService.getFederation().getResourceLockService();
+return ((IIndexStore)indexManager).getResourceLockService();
             
         }
 
         public TemporaryStore getTempStore() {
 
-            return dataService.getFederation().getTempStore();
+//BTM            return dataService.getFederation().getTempStore();
+return ((IIndexStore)indexManager).getTempStore();
 
         }
 

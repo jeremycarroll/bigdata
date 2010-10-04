@@ -53,11 +53,13 @@ import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.ResourceManager;
 
+//BTM
+import com.bigdata.util.Util;
+
 /**
  * Implementation of a metadata service for a named scale-out index.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 abstract public class MetadataService extends DataService implements
         IMetadataService {
@@ -77,7 +79,7 @@ abstract public class MetadataService extends DataService implements
      * @return The name of the corresponding {@link MetadataIndex} that is used
      *         to manage the partitions in the named scale-out index.
      * 
-     * @see DataService#getIndexPartitionName(String, int)
+     * @see Util#getIndexPartitionName(String, int)
      */
     public static String getMetadataIndexName(String name) {
         
@@ -94,7 +96,6 @@ abstract public class MetadataService extends DataService implements
      * Options for the {@link MetadataService}.
      *  
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static interface Options extends DataService.Options {
         
@@ -124,7 +125,8 @@ abstract public class MetadataService extends DataService implements
      * @throws InterruptedException 
      */
     @Override
-    public Future<? extends Object> submit(Callable<? extends Object> task) {
+//BTM - PRE_FRED_3481     public Future<? extends Object> submit(Callable<? extends Object> task) {
+    public <T> Future<T> submit(IDataServiceCallable<T> task) {
 
         // throw new UnsupportedOperationException();
         return super.submit(task);
@@ -192,7 +194,6 @@ abstract public class MetadataService extends DataService implements
      * Task for {@link MetadataService#get(String, long, byte[])}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static private final class GetTask extends AbstractTask {
 
@@ -253,7 +254,6 @@ abstract public class MetadataService extends DataService implements
      * Task for {@link MetadataService#find(String, long, byte[])}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static private final class FindTask extends AbstractTask {
 
@@ -472,7 +472,6 @@ abstract public class MetadataService extends DataService implements
      * N new index partitions created when that index partition was split.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static protected class SplitIndexPartitionTask extends AbstractTask {
 
@@ -654,7 +653,6 @@ abstract public class MetadataService extends DataService implements
      * partitions.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static protected class JoinIndexPartitionTask extends AbstractTask {
 
@@ -774,7 +772,6 @@ abstract public class MetadataService extends DataService implements
      * partition.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static protected class MoveIndexPartitionTask extends AbstractTask {
 
@@ -875,7 +872,6 @@ abstract public class MetadataService extends DataService implements
      *       bottom-up index rebuild followed by dropping the rebuilt index).
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static protected class RegisterScaleOutIndexTask extends AbstractTask {
 
@@ -892,7 +888,8 @@ abstract public class MetadataService extends DataService implements
         /** The service UUIDs of the data services on which to create those index partitions. */
         final private UUID[] dataServiceUUIDs;
         /** The data services on which to create those index partitions. */
-        final private IDataService[] dataServices;
+//BTM        final private IDataService[] dataServices;
+final private ShardService[] dataServices;
         
         /**
          * Create and statically partition a scale-out index.
@@ -954,11 +951,21 @@ abstract public class MetadataService extends DataService implements
                 try {
 
                     // discover under-utilized data service UUIDs.
-                    dataServiceUUIDs = fed.getLoadBalancerService().getUnderUtilizedDataServices(
-                            separatorKeys.length, // minCount
-                            separatorKeys.length, // maxCount
-                            null// exclude
-                            );
+LoadBalancer lbs = fed.getLoadBalancerService();
+dataServiceUUIDs = lbs.getUnderUtilizedDataServices(separatorKeys.length, separatorKeys.length, null);
+if(lbs instanceof IService) {
+    System.out.println("*\n$$$$ MetadataService: REMOTE load balancer");
+} else {
+    System.out.println("*\n$$$$ MetadataService: SMART_PROXY load balancer");
+}
+for(int k=0; k<dataServiceUUIDs.length; k++) {
+    System.out.println("\n$$$$ MetadataService:   dataServiceUUIDs["+k+"] = "+dataServiceUUIDs[k]);
+}
+//                    dataServiceUUIDs = fed.getLoadBalancerService().getUnderUtilizedDataServices(
+//                            separatorKeys.length, // minCount
+//                            separatorKeys.length, // maxCount
+//                            null// exclude
+//                            );
                     
                 } catch(Exception ex) {
                     
@@ -980,7 +987,8 @@ abstract public class MetadataService extends DataService implements
             
             this.dataServiceUUIDs = dataServiceUUIDs;
 
-            this.dataServices = new IDataService[dataServiceUUIDs.length];
+//BTM            this.dataServices = new IDataService[dataServiceUUIDs.length];
+this.dataServices = new ShardService[dataServiceUUIDs.length];
 
             if( separatorKeys[0] == null )
                 throw new IllegalArgumentException();
@@ -1018,7 +1026,8 @@ abstract public class MetadataService extends DataService implements
 
                 }
 
-                final IDataService dataService = fed.getDataService(uuid);
+//BTM                final IDataService dataService = fed.getDataService(uuid);
+final ShardService dataService = fed.getDataService(uuid);
 
                 if (dataService == null) {
 
@@ -1082,6 +1091,16 @@ abstract public class MetadataService extends DataService implements
             
             final PartitionLocator[] partitions = new PartitionLocator[npartitions];
             
+LoadBalancer lbs = fed.getLoadBalancerService();
+if(lbs instanceof IService) {
+    System.out.println("*\n$$$$ MetadataService: REMOTE load balancer");
+} else {
+    System.out.println("*\n$$$$ MetadataService: SMART_PROXY load balancer");
+}
+for(int k=0; k<dataServices.length; k++) {
+    System.out.println("\n$$$$ MetadataService:   dataServices["+k+"] = "+dataServices[k]);
+}
+
             for (int i = 0; i < npartitions; i++) {
                 
                 final byte[] leftSeparator = separatorKeys[i];
@@ -1130,8 +1149,9 @@ abstract public class MetadataService extends DataService implements
 //                         ,"createScaleOutIndex(name="+scaleOutIndexName+") "
                     ));
                 
-                dataServices[i].registerIndex(DataService
-                        .getIndexPartitionName(scaleOutIndexName, pmd.getPartitionId()), md);
+//BTM                dataServices[i].registerIndex(DataService
+//BTM                        .getIndexPartitionName(scaleOutIndexName, pmd.getPartitionId()), md);
+dataServices[i].registerIndex(Util.getIndexPartitionName(scaleOutIndexName, pmd.getPartitionId()), md);
 
                 partitions[i] = pmd;
                 
@@ -1178,7 +1198,7 @@ abstract public class MetadataService extends DataService implements
      * <p>
      * The data comprising the scale-out index will remain available for
      * historical reads until it is released by whatever policy is in effect for
-     * the {@link ResourceManager}s for the {@link DataService}s on which that
+     * the {@link ResourceManager}s for the {@link ShardService}s on which that
      * data resides.
      * 
      * @todo This does not try to handle errors gracefully. E.g., if there is a
@@ -1260,15 +1280,16 @@ abstract public class MetadataService extends DataService implements
                     
                     final UUID serviceUUID = pmd.getDataServiceUUID();
                     
-                    final IDataService dataService = fed
-                            .getDataService(serviceUUID);
+//BTM                    final IDataService dataService = fed.getDataService(serviceUUID);
+final ShardService dataService = fed.getDataService(serviceUUID);
 
                     if (log.isInfoEnabled())
                         log.info("Dropping index partition: partitionId="
                                 + partitionId + ", dataService=" + dataService);
 
-                    dataService.dropIndex(DataService.getIndexPartitionName(
-                            name, partitionId));
+//BTM                    dataService.dropIndex(DataService.getIndexPartitionName(
+//BTM                            name, partitionId));
+dataService.dropIndex(Util.getIndexPartitionName(name, partitionId));
 
                 }
                 

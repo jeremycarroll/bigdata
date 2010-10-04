@@ -50,6 +50,9 @@ import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.ndx.ClientIndexView;
 
+//BTM
+import com.bigdata.service.OverflowAdmin;
+
 /**
  * Test suite verifies that inserts eventually split an index and that deletes
  * eventually cause the index partitions to be joined.
@@ -138,7 +141,15 @@ public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
      */
     public void test_splitJoin() throws IOException, InterruptedException,
             ExecutionException {
-        
+//BTM
+UUID dataService0UUID = null;
+if(dataService0 instanceof IService) {
+    dataService0UUID = ((IService)dataService0).getServiceUUID();
+} else {
+    dataService0UUID = ((Service)dataService0).getServiceUUID();
+}
+OverflowAdmin overflowAdmin0 = (OverflowAdmin)dataService0;
+
         /*
          * Register the index.
          */
@@ -165,7 +176,8 @@ public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
             indexMetadata.setDeleteMarkers(true);
 
             // register the scale-out index, creating a single index partition.
-            fed.registerIndex(indexMetadata, dataService0.getServiceUUID());
+//BTM            fed.registerIndex(indexMetadata, dataService0.getServiceUUID());
+fed.registerIndex(indexMetadata, dataService0UUID);
             
         }
 
@@ -187,8 +199,8 @@ public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
 
             assertEquals("partitionId", 0L, pmd0.getPartitionId());
 
-            assertEquals("dataServiceUUIDs", dataService0.getServiceUUID(),
-                    pmd0.getDataServiceUUID());
+//BTM            assertEquals("dataServiceUUIDs", dataService0.getServiceUUID(), pmd0.getDataServiceUUID());
+assertEquals("dataServiceUUIDs", dataService0UUID, pmd0.getDataServiceUUID());
             
         }
         assertEquals("partitionCount", 1, getPartitionCount(name));
@@ -229,7 +241,8 @@ public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
         long nwritten = 0L;
 //        boolean done = false;
         int npartitions = -1;
-        final long overflowCounter0 = dataService0.getAsynchronousOverflowCounter();
+//BTM        final long overflowCounter0 = dataService0.getAsynchronousOverflowCounter();
+final long overflowCounter0 = overflowAdmin0.getAsynchronousOverflowCounter();
         long overflowCounter = overflowCounter0;
         while (npartitions < 2) {
 
@@ -256,7 +269,8 @@ public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
              */
 //            if (groundTruth.getEntryCount() >= overCapacityMultiplier * entryCountPerSplit) {
                 
-                dataService0.forceOverflow(false/*immediate*/,false/*compactingMerge*/);
+//BTM                dataService0.forceOverflow(false/*immediate*/,false/*compactingMerge*/);
+overflowAdmin0.forceOverflow(false/*immediate*/,false/*compactingMerge*/);
 
 //                done = true;
 //                
@@ -278,8 +292,8 @@ public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
 //                    .getIndex(name, ITx.UNISOLATED).rangeCount(null, null));
             
             // wait until asynchronous overflow processing is done.
-            overflowCounter = awaitAsynchronousOverflow(dataService0,
-                    overflowCounter/* oldValue */);
+//BTM            overflowCounter = awaitAsynchronousOverflow(dataService0, overflowCounter/* oldValue */);
+overflowCounter = awaitAsynchronousOverflow(overflowAdmin0, overflowCounter/* oldValue */);
 
             nrounds++;
 
@@ -374,8 +388,8 @@ public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
                     null/* handler */);
 
             // data service will overflow at the next group commit.
-            dataService0
-                    .forceOverflow(false/* immediate */, false/* compactingMerge */);
+//BTM            dataService0.forceOverflow(false/* immediate */, false/* compactingMerge */);
+overflowAdmin0.forceOverflow(false/* immediate */, false/* compactingMerge */);
 
             // delete those tuples, triggering overflow.
             fed.getIndex(name, ITx.UNISOLATED).submit(0/* fromIndex */,
@@ -383,8 +397,8 @@ public class TestSplitJoin extends AbstractEmbeddedFederationTestCase {
                     BatchRemoveConstructor.RETURN_MUTATION_COUNT, null/* handler */);
             
             // wait until asynchronous overflow processing is done.
-            overflowCounter = awaitAsynchronousOverflow(dataService0,
-                    overflowCounter/* oldValue */);
+//BTM            overflowCounter = awaitAsynchronousOverflow(dataService0, overflowCounter/* oldValue */);
+overflowCounter = awaitAsynchronousOverflow(overflowAdmin0, overflowCounter/* oldValue */);
 
             // #of partitions afterwards.
             npartitions = getPartitionCount(name);

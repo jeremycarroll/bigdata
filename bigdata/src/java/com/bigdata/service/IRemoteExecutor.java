@@ -39,13 +39,12 @@ import java.util.concurrent.RejectedExecutionException;
  * Interface for running procedures on a remote service. In general,
  * applications SHOULD restrict their discovery of {@link IRemoteExecutor} to
  * {@link IClientService}s. Applications SHOULD NOT run arbitrary
- * {@link Callable}s against an {@link IDataService} or an
- * {@link IMetadataService} unless it is necessary to access the index objects
- * locally on the service (index partition moves, scale-out joins, and rule
+ * {@link Callable}s against a {@link ShardService} unless it is
+ * necessary to access the index objects locally on the service
+ * (index partition moves, scale-out joins, and rule
  * execution all do this).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public interface IRemoteExecutor extends Remote {
 

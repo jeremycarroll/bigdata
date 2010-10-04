@@ -29,6 +29,7 @@ import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.IBlock;
+import com.bigdata.util.Util;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
@@ -52,7 +53,7 @@ import java.util.concurrent.Future;
  * Indices are identified by name. Scale-out indices are broken into index
  * partitions, each of which is a named index hosted on a instance of
  * this service. The name of an index partition is given by
- * {@link DataService#getIndexPartitionName(String, int)}. Clients are
+ * {@link Util#getIndexPartitionName(String, int)}. Clients are
  * <em>strongly</em> encouraged to use the {@link ClientIndexView} which
  * encapsulates lookup and distribution of operations on range partitioned
  * scale-out indices.
@@ -157,12 +158,12 @@ import java.util.concurrent.Future;
  * <p>
  * 
  * Note that each index partitions is just an {@link IIndex} registered under
- * the name assigned by {@link DataService#getIndexPartitionName(String, int)}
+ * the name assigned by {@link Util#getIndexPartitionName(String, int)}
  * and whose {@link IndexMetadata#getPartitionMetadata()} returns a description
  * of the resources required to compose a view of that index partition from the
- * resources located on a {@link DataService}. The {@link IDataService} will
+ * resources located on a shard service. The shard service will
  * respond for that index partition IFF there is an index under that name
- * registered on the {@link IDataService} as of the <i>timestamp</i> associated
+ * registered on the shard service as of the <i>timestamp</i> associated
  * with the request. If the index is not registered then a
  * {@link NoSuchIndexException} will be thrown. If the index was registered and
  * has since been split, joined or moved then a {@link StaleLocatorException}
@@ -181,9 +182,9 @@ import java.util.concurrent.Future;
  * assigned by the shard locator service to each of the new index partitions
  * and the old index partition is retired in an atomic operation. A similar
  * operation can <em>move</em> an index partition to a different
- * {@link IDataService} in order to load balance a federation. Finally,
+ * shard service in order to load balance a federation. Finally,
  * when two index partitions shrink in size, they maybe moved to the same
- * {@link IDataService} and an atomic <i>join</i> operation may re-combine
+ * shard service and an atomic <i>join</i> operation may re-combine
  * them into a single index partition spanning the same key range.
  * 
  * </p>
@@ -191,7 +192,7 @@ import java.util.concurrent.Future;
  * <p>
  * 
  * Split, join, and move operations all result in the old index partition being
- * dropped on the {@link IDataService}. Clients having a stale
+ * dropped on the shard service. Clients having a stale
  * {@link PartitionLocator} record will attempt to reach the now defunct index
  * partition after it has been dropped and will receive a
  * {@link StaleLocatorException}.
@@ -203,15 +204,15 @@ import java.util.concurrent.Future;
  * 
  * <p>
  * 
- * {@link IDataService} clients MUST handle this exception by refreshing their
+ * Clients of the shard service MUST handle this exception by refreshing their
  * cached {@link PartitionLocator} for the key range associated with the index
  * partition which they wish to query and then re-issuing their request. By
  * following this simple rule the client will automatically handle index
  * partition splits, joins, and moves without error and in a manner which is
- * completely transparent to the application. Note that splits, joins, and moves
- * DO NOT alter the {@link PartitionLocator} for historical reads, only for
- * ongoing writes. This exception is generally (but not always) wrapped.
- * Applications typically DO NOT write directly to the {@link IDataService}
+ * completely transparent to the application. Note that splits, joins, and
+ * moves DO NOT alter the {@link PartitionLocator} for historical reads, only
+ * for ongoing writes. This exception is generally (but not always) wrapped.
+ * Applications typically DO NOT write directly to this shard service
  * interface and therefore DO NOT need to worry about this. See
  * {@link ClientIndexView}, which automatically handles this exception.
  * 
@@ -234,7 +235,7 @@ import java.util.concurrent.Future;
  * 
  * An <em>unwrapped</em> {@link ExecutionException} or
  * {@link InterruptedException} indicates a problem when running the request as
- * a task in the {@link IConcurrencyManager} on the {@link IDataService}. The
+ * a task in the {@link IConcurrencyManager} on the shard service. The
  * exception always wraps a root cause which may indicate the underlying
  * problem. Methods which do not declare these exceptions are not run under the
  * {@link IConcurrencyManager}.
@@ -246,7 +247,7 @@ import java.util.concurrent.Future;
  *       can have more flexibility since they are under less of a latency
  *       constraint.
  */
-public interface ShardService extends Service {
+public interface ShardService extends ITxCommitProtocol {
 
     /**
      * Register a named mutable index on this shard service.
@@ -262,9 +263,9 @@ public interface ShardService extends Service {
      *            The name that can be used to recover the index. In order to
      *            create a partition of an index you must form the name of the
      *            index partition using
-     *            {@link DataService#getIndexPartitionName(String, int)} (this
-     *            operation is generally performed by the
-     *            {@link IMetadataService} which manages scale-out indices).
+     *            {@link Util#getIndexPartitionName(String, int)} (this
+     *            operation is generally performed by the {@link ShardLocator}
+     *            service which manages scale-out indices).
      * 
      * @param metadata The metadata describing the index. The
      *                 {@link LocalPartitionMetadata#getResources()} property
@@ -285,29 +286,11 @@ public interface ShardService extends Service {
              throws IOException, InterruptedException, ExecutionException;
 
     /**
-     * Return the metadata for the named index.
-     * 
-     * @param name
-     *            The index name.
-     * @param timestamp
-     *            A transaction identifier, {@link ITx#UNISOLATED} for the
-     *            unisolated index view, {@link ITx#READ_COMMITTED}, or
-     *            <code>timestamp</code> for a historical view no later than
-     *            the specified timestamp.
-     *            
-     * @return The metadata for the named index.
-     * 
-     * @throws IOException
-     */
-    IndexMetadata getIndexMetadata(String name, long timestamp)
-                  throws IOException, InterruptedException, ExecutionException;
-
-    /**
      * Drops the named index.
      * <p>
      * Note: In order to drop a partition of an index you must form
      *       the name of the index partition using
-     *       {@link DataService#getIndexPartitionName(String, int)}
+     *       {@link Util#getIndexPartitionName(String, int)}
      *       (this operation is generally performed by the
      *       {@link ShardLocator} service which manages scale-out indices).
      * 
@@ -319,64 +302,6 @@ public interface ShardService extends Service {
     void dropIndex(String name) 
              throws IOException, InterruptedException, ExecutionException;
 
-    /**
-     * Streaming traversal of keys and/or values in a key range.
-     * <p>
-     * Note: In order to visit all keys in a range, clients are expected to
-     * issue repeated calls in which the <i>fromKey</i> is incremented to the
-     * successor of the last key visited until either an empty
-     * {@link ResultSet} is returned or the {@link ResultSet#isLast()}
-     * flag is set, indicating that all keys up to (but not including)
-     * the <i>startKey</i> have been visited. See {@link ClientIndexView}
-     * (scale-out indices) and {@link DataServiceTupleIterator}
-     * (unpartitioned indices), both of which encapsulate this method.
-     * <p>
-     * Note: If the iterator can be determined to be read-only and it is
-     * submitted as {@link ITx#UNISOLATED} then it will be run as
-     * {@link ITx#READ_COMMITTED} to improve concurrency.
-     * </p>
-     * 
-     * @param tx       The transaction identifier -or- {@link ITx#UNISOLATED}
-     *                 IFF the operation is NOT isolated by a transaction -or-
-     *                 <code> - tx </code> to read from the most recent commit
-     *                 point not later than the absolute value of <i>tx</i>
-     *                 (a fully isolated read-only transaction using a
-     *                 historical start time).
-     *
-     * @param name     The index name (required).
-     *
-     * @param fromKey  The starting key for the scan (or <code>null</code> iff
-     *                 there is no lower bound).
-     *
-     * @param toKey    The first key that will not be visited (or
-     *                 <code>null</code> iff there is no upper bound).
-     *
-     * @param capacity When non-zero, this is the maximum #of entries to
-     *                 process.
-     *
-     * @param flags    One or more flags formed by bitwise OR of zero or
-     *                 more of the constants defined by {@link IRangeQuery}.
-     * @param filter   An optional object that may be used to layer additional
-     *                 semantics onto the iterator. The filter will be
-     *                 constructed on the server and in the execution
-     *                 context for the iterator, so it will execute directly
-     *                 against the index for the maximum efficiency.
-     * 
-     * @exception InterruptedException if the operation was interrupted.
-     *
-     * @exception ExecutionException If the operation caused an error. See
-     *            {@link ExecutionException#getCause()} for the underlying
-     *            error.
-     */
-    ResultSet rangeIterator(long               tx,
-                            String             name,
-                            byte[]             fromKey,
-                            byte[]             toKey,
-                            int                capacity,
-                            int                flags,
-                            IFilterConstructor filter)
-                  throws InterruptedException, ExecutionException, IOException;
-    
     /**
      * Read a low-level record from the {@link IRawStore} described by
      * the {@link IResourceMetadata}.
@@ -409,67 +334,4 @@ public interface ShardService extends Service {
      *       address).
      */
     IBlock readBlock(IResourceMetadata resource, long addr) throws IOException;
-
-    /**
-     * Submits a procedure.
-     * <p>
-     * Unisolated operations SHOULD be used to achieve "auto-commit" semantics.
-     * Fully isolated transactions are useful IFF multiple operations must be
-     * composed into a ACID unit.
-     * </p>
-     * <p>
-     * While unisolated batch operations on a single data service are ACID,
-     * clients are required to locate all index partitions for the logical
-     * operation and distribute their operation across the distinct data 
-     * service instances holding the affected index partitions. In practice,
-     * this means that contract for ACID unisolated operations is limited
-     * to operations where the data is located on a single data service
-     * instance. For ACID operations that cross multiple data service
-     * instances the client MUST use a fully isolated transaction. While
-     * read-committed transactions impose low system overhead, clients
-     * interested in the higher possible total throughput SHOULD choose
-     * unisolated read operations in preference to a read-committed
-     * transaction.
-     * </p>
-     * 
-     * @param tx   The transaction identifier, {@link ITx#UNISOLATED} for
-     *             an ACID operation NOT isolated by a transaction,
-     *             {@link ITx#READ_COMMITTED} for a read-committed operation
-     *             not protected by a transaction (no global read lock),
-     *             or any valid commit time for a read-historical operation
-     *             not protected by a transaction (no global read lock).
-     *
-     * @param name The name of the index partition.
-     *
-     * @param proc The procedure to be executed.
-     * 
-     * @return The {@link Future} from which the outcome of the procedure
-     *         may be obtained.
-     * 
-     * @throws RejectedExecutionException if the task can not be accepted
-     *         for execution.
-     *
-     * @throws IOException if there is a communication failure between
-     *                     this shard service and the entity that calls
-     *                     this method.
-     * 
-     * @todo change API to <T> Future<T> submit(tx,name,IIndexProcedure<T>).
-     *       Existing code will need to be recompiled after this API change.
-     */
-    Future submit(long tx, String name, IIndexProcedure proc)
-               throws IOException;
-
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Note: specialized interface of this method for tasks which need to
-     *       interact with this shard service in order to gain local
-     *       access to index partitions, etc. Such tasks declare the
-     *       {@link IDataServiceCallable}. For example, scale-out joins
-     *       use this mechanism.
-     * 
-     * @see IDataServiceCallable
-     */
-    Future<? extends Object> submit(Callable<? extends Object> proc)
-                                 throws RemoteException;
 }

@@ -44,10 +44,9 @@ import com.bigdata.rawstore.IRawStore;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.resources.StaleLocatorReason;
-import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
 import com.bigdata.service.IServiceShutdown;
+import com.bigdata.service.ShardService;
 
 /**
  * Interface manging the resources on which indices are stored. The resources
@@ -186,7 +185,7 @@ public interface IResourceManager extends IServiceShutdown {
     /**
      * Return non-<code>null</code> iff <i>name</i> is the name of an
      * {@link ITx#UNISOLATED} index partition that was located on the associated
-     * {@link DataService} but which is now gone.
+     * {@link ShardService} but which is now gone.
      * 
      * @param name
      *            The name of an index partition.
@@ -264,19 +263,19 @@ public interface IResourceManager extends IServiceShutdown {
     public File getIndexSegmentFile(IndexMetadata indexMetadata);
 
     /**
-     * Return the {@link UUID} of the {@link IDataService} whose resources are
+     * Return the {@link UUID} of the {@link ShardService} whose resources are
      * being managed.
      */
     public UUID getDataServiceUUID();
     
     /**
-     * The local {@link DataService} whose resources are being managed.
+     * The local {@link ShardService} whose resources are being managed.
      * 
      * @throws UnsupportedOperationException
      *             if the {@link IResourceManager} is not part of an
      *             {@link IBigdataFederation}.
      */
-    public DataService getDataService();
+    public ShardService getDataService();
     
     /**
      * The federation whose resources are being managed.

@@ -41,13 +41,17 @@ import com.bigdata.btree.proc.AbstractKeyRangeIndexProcedure;
 import com.bigdata.journal.ITx;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.DataService;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.util.InnerCause;
+
+//BTM
+import com.bigdata.service.ShardService;
+import com.bigdata.util.Util;
 
 /**
  * Class supports range query across one or more index partitions. Each
- * partition is mapped onto a single {@link DataServiceTupleIterator} query. In
+ * partition is mapped onto a single {@link ShardServiceTupleIterator} query. In
  * turn, the {@link DataServiceTupleIterator} may make several queries to the
  * data service per partition. The actual #of queries made to the data service
  * depends on the #of index entries that are visited per partition and the
@@ -551,7 +555,8 @@ public class PartitionedTupleIterator<E> implements ITupleIterator<E> {
              * 
              * @todo this should failover.
              */
-            final IDataService dataService = ndx.getDataService(locator);
+//BTM            final IDataService dataService = ndx.getDataService(locator);
+final ShardService dataService = ndx.getDataService(locator);
             
             /*
              * Iterator will visit all data on that index partition.
@@ -561,13 +566,14 @@ public class PartitionedTupleIterator<E> implements ITupleIterator<E> {
              * happen until you call [src.hasNext()].
              */
             
-            src = new DataServiceTupleIterator<E>(ndx, dataService, DataService
-                    .getIndexPartitionName(ndx.getName(), partitionId),
-                    ts, _fromKey, _toKey, capacity, flags, filter) {
+//BTM            src = new DataServiceTupleIterator<E>(ndx, dataService, DataService
+//BTM                    .getIndexPartitionName(ndx.getName(), partitionId),
+//BTM                    ts, _fromKey, _toKey, capacity, flags, filter) {
+src = new DataServiceTupleIterator<E>(ndx, dataService, Util.getIndexPartitionName(ndx.getName(), partitionId), ts, _fromKey, _toKey, capacity, flags, filter) {
                 
                 /**
                  * Overridden so that we observe each distinct result set
-                 * obtained from the DataService.
+                 * obtained from the ShardService.
                  */
                 protected ResultSet getResultSet(final long timestamp,
                         final byte[] fromKey, final byte[] toKey,

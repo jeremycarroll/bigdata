@@ -41,7 +41,6 @@ import com.bigdata.Banner;
  * {@link IBigdataFederation}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 abstract public class ClientService extends AbstractService implements
         IClientService, ISession {
@@ -52,7 +51,6 @@ abstract public class ClientService extends AbstractService implements
      * Configuration options.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public interface Options extends IBigdataClient.Options {
         
@@ -74,6 +72,7 @@ abstract public class ClientService extends AbstractService implements
         
     }
 
+    @Override
     public synchronized void shutdown() {
 
         if (!isOpen())
@@ -83,6 +82,7 @@ abstract public class ClientService extends AbstractService implements
 
     }
 
+    @Override
     public synchronized void shutdownNow() {
 
         if (!isOpen())
@@ -157,7 +157,7 @@ abstract public class ClientService extends AbstractService implements
      *       for example, if they use {@link AbstractFederation#shutdownNow()}
      *       then the {@link DataService} itself would be shutdown.
      */
-    public Future<? extends Object> submit(final Callable<? extends Object> task) {
+    public <T> Future<T> submit(final IClientServiceCallable<T> task) {
 
         setupLoggingContext();
 
@@ -166,14 +166,9 @@ abstract public class ClientService extends AbstractService implements
             if (task == null)
                 throw new IllegalArgumentException();
 
-            if (task instanceof IFederationCallable) {
-
-                ((IFederationCallable) task).setFederation(getFederation());
-
-            }
-
             // submit the task and return its Future.
-            return getFederation().getExecutorService().submit(task);
+            return getFederation().getExecutorService().submit(
+                    new ClientTaskWrapper(getFederation(), this, task));
 
         } finally {
 
@@ -183,12 +178,27 @@ abstract public class ClientService extends AbstractService implements
 
     }
 
+    private static class ClientTaskWrapper<T> implements Callable<T> {
+        private IBigdataFederation federation;
+        private ClientService clientService;
+        private IClientServiceCallable<T> task;
+        private ClientTaskWrapper(IBigdataFederation federation,
+                                  ClientService clientService,
+                                  IClientServiceCallable<T> task) {
+            this.federation = federation;
+            this.clientService = clientService;
+            this.task = task;
+        }
+        public T call() throws Exception {
+            return task.startClientTask(federation, clientService);
+        }
+    }
+
     /**
      * Extended to attach the various performance counters reported by the
      * {@link DistributedTransactionService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static public class ClientServiceFederationDelegate extends
             DefaultServiceFederationDelegate<ClientService> {

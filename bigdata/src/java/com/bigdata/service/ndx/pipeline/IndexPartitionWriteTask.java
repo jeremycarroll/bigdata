@@ -38,10 +38,15 @@ import com.bigdata.btree.proc.IKeyArrayIndexProcedure;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.DataService;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.Split;
 import com.bigdata.util.InnerCause;
+
+//BTM
+import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
+import com.bigdata.util.Util;
 
 /**
  * Class drains a {@link BlockingBuffer} writing on a specific index
@@ -64,9 +69,10 @@ A//
 > extends AbstractSubtask<HS, M, E, L> {
 
     /**
-     * The data service on which the index partition resides.
+     * The shard service on which the index partition resides.
      */
-    public final IDataService dataService;
+//BTM    public final IDataService dataService;
+public final ShardService dataService;
 
     /**
      * The timestamp associated with the index view.
@@ -91,7 +97,8 @@ A//
     }
 
     public IndexPartitionWriteTask(final M master,
-            final L locator, final IDataService dataService,
+//BTM            final L locator, final IDataService dataService,
+final L locator, final ShardService dataService,
             final BlockingBuffer<E[]> buffer) {
 
         super(master,locator,buffer);
@@ -105,8 +112,9 @@ A//
 
         this.partitionId = locator.getPartitionId();
 
-        this.indexPartitionName = DataService.getIndexPartitionName(master.ndx
-                .getName(), partitionId);
+//BTM        this.indexPartitionName = DataService.getIndexPartitionName(master.ndx
+//BTM                .getName(), partitionId);
+this.indexPartitionName = Util.getIndexPartitionName(master.ndx.getName(), partitionId);
 
     }
 
@@ -190,7 +198,7 @@ A//
 
         /*
          * Instantiate the procedure using the data from the chunk and submit it
-         * to be executed on the DataService using an RMI call.
+         * to be executed on the ShardService using an RMI call.
          */
         final long beginNanos = System.nanoTime();
         try {
@@ -213,8 +221,8 @@ A//
                 // submit and await Future
                 try {
 
-                    result = ((Future<R>) dataService.submit(timestamp,
-                            indexPartitionName, proc)).get();
+//BTM                    result = ((Future<R>) dataService.submit(timestamp, indexPartitionName, proc)).get();
+result = ((Future<R>) ((ShardManagement)dataService).submit(timestamp, indexPartitionName, proc)).get();
                     done = true;
                     break;
                 } catch (ExecutionException ex) {

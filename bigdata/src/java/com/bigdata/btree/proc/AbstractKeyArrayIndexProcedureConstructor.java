@@ -5,14 +5,12 @@ import com.bigdata.btree.IIndex;
 import com.bigdata.btree.ITupleSerializer;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.raba.codec.IRabaCoder;
-import com.bigdata.service.IDataService;
 
 /**
  * A factory for {@link IKeyArrayIndexProcedure}s so that their data may be key
  * range partitions and mapped against each relevant index partition.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public abstract class AbstractKeyArrayIndexProcedureConstructor<T extends IKeyArrayIndexProcedure> {
 
@@ -29,7 +27,8 @@ public abstract class AbstractKeyArrayIndexProcedureConstructor<T extends IKeyAr
      * 
      * @param ndx
      *            The index - this is used to determine the serializers for the
-     *            keys and/or values to be sent to a remote {@link IDataService}.
+     *            keys and/or values to be sent to the backend of the shard
+     *            service.
      * @param fromIndex
      *            The index of the first key to be used (inclusive).
      * @param toIndex

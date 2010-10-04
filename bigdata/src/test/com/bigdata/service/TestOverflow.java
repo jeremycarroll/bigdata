@@ -41,6 +41,9 @@ import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.ndx.ClientIndexView;
 
+//BTM
+import com.bigdata.service.OverflowAdmin;
+
 /**
  * Simple test verifies that a scale-out index is preserved across both
  * synchronous and asynchronous overflow events.
@@ -86,6 +89,14 @@ public class TestOverflow extends AbstractEmbeddedFederationTestCase {
      */
     public void test_register1ThenOverflow() throws IOException,
             InterruptedException, ExecutionException {
+//BTM
+UUID dataService0UUID = null;
+if(dataService0 instanceof IService) {
+    dataService0UUID = ((IService)dataService0).getServiceUUID();
+} else {
+    dataService0UUID = ((Service)dataService0).getServiceUUID();
+}
+OverflowAdmin overflowAdmin0 = (OverflowAdmin)dataService0;
 
         /*
          * Register the index.
@@ -101,16 +112,20 @@ public class TestOverflow extends AbstractEmbeddedFederationTestCase {
             // must support delete markers
             indexMetadata.setDeleteMarkers(true);
 
-            overflowCounter0 = dataService0.getAsynchronousOverflowCounter();
+//BTM            overflowCounter0 = dataService0.getAsynchronousOverflowCounter();
+overflowCounter0 = overflowAdmin0.getAsynchronousOverflowCounter();
             
             assertEquals(0,overflowCounter0);
             
-            dataService0.forceOverflow(false/*immediate*/,false/*compactingMerge*/);
+//BTM            dataService0.forceOverflow(false/*immediate*/,false/*compactingMerge*/);
+overflowAdmin0.forceOverflow(false/*immediate*/,false/*compactingMerge*/);
             
             // register the scale-out index, creating a single index partition.
-            fed.registerIndex(indexMetadata,dataService0.getServiceUUID());
+//BTM            fed.registerIndex(indexMetadata,dataService0.getServiceUUID());
+fed.registerIndex(indexMetadata,dataService0UUID);
 
-            overflowCounter1 = dataService0.getAsynchronousOverflowCounter();
+//BTM            overflowCounter1 = dataService0.getAsynchronousOverflowCounter();
+overflowCounter1 = overflowAdmin0.getAsynchronousOverflowCounter();
             
             assertEquals(1,overflowCounter1);
 
@@ -133,8 +148,8 @@ public class TestOverflow extends AbstractEmbeddedFederationTestCase {
 
             assertEquals("partitionId", 0L, pmd0.getPartitionId());
 
-            assertEquals("dataServiceUUID", dataService0.getServiceUUID(), pmd0
-                    .getDataServiceUUID());
+//BTM            assertEquals("dataServiceUUID", dataService0.getServiceUUID(), pmd0.getDataServiceUUID());
+assertEquals("dataServiceUUID", dataService0UUID, pmd0.getDataServiceUUID());
             
         }
 

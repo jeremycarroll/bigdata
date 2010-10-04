@@ -87,7 +87,8 @@ import com.bigdata.rawstore.IRawStore;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventType;
 import com.bigdata.service.IBigdataClient;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
+import com.bigdata.service.ShardService;
 import com.bigdata.service.jini.util.DumpFederation;
 import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.util.NT;
@@ -1333,8 +1334,8 @@ abstract public class IndexManager extends StoreManager {
      * {@link IBigdataClient}, the view acquires its read-committed semantics
      * because an {@link IClientIndex} generates {@link AbstractTask}(s) for
      * each {@link IIndex} operation and submits those task(s) to the
-     * appropriate {@link IDataService}(s) for evaluation. The
-     * {@link IDataService} will resolve the index using this method, and it
+     * appropriate {@link ShardService}(s) for evaluation. The
+     * {@link ShardService} will resolve the index using this method, and it
      * will always see the then-current read-committed view and the
      * {@link IClientIndex} will appear to have read-committed semantics.
      * 

@@ -26,12 +26,6 @@ package com.bigdata.loadbalancer;
 
 import static com.bigdata.loadbalancer.Constants.*;
 
-//BTM*** - replace with ShardService after DataService smart proxy conversion?
-//BTM*** - replace with EmbeddedShardService.IDataServiceCounters?
-//BTM*** - replace with ShardLocator after smart proxy conversion?
-import com.bigdata.service.DataService;
-import com.bigdata.service.DataService.IDataServiceCounters;
-
 import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.DefaultInstrumentFactory;
@@ -40,6 +34,7 @@ import com.bigdata.counters.HistoryInstrument;
 import com.bigdata.counters.ICounter;
 import com.bigdata.counters.ICounterSet;
 import com.bigdata.counters.ICounterSet.IInstrumentFactory;
+import com.bigdata.counters.IDataServiceCounters;
 import com.bigdata.counters.IHostCounters;
 import com.bigdata.counters.IRequiredHostCounters;
 import com.bigdata.counters.PeriodEnum;
@@ -77,6 +72,7 @@ import com.bigdata.service.ServiceScore;
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardService;
 import com.bigdata.util.EntryUtil;
+import com.bigdata.util.Util;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.IQueueCounters.IThreadPoolExecutorTaskCounters;
 import com.bigdata.util.config.LogUtil;
@@ -138,11 +134,9 @@ public class EmbeddedLoadBalancer implements LoadBalancer,
 
 //BTM***    private IBigdataFederation federation;
 private CounterSet countersRoot;
-private CounterSet serviceRoot;
 private AbstractStatisticsCollector statisticsCollector;
 private Map<UUID, String> serviceNameMap = new ConcurrentHashMap<UUID, String>();
 private ServiceDiscoveryManager sdm;
-private Map<UUID, IDataService> embeddedDataServiceMap;
 
 private LookupCache remoteShardLocatorCache;
 private LookupCache shardLocatorCache;
@@ -330,8 +324,7 @@ private LookupCache serviceCache;
      * @todo The loadbalancer needs to support a 'transient' option in which it
      *       (a) does not log counters; and (b) keeps the events in a transient
      *       B+Tree (not backed by a file on the disk). Without this we can not
-     *       have a transient {@link EmbeddedFederation} or
-     *       {@link LocalDataServiceFederation} instances.
+     *       have a transient {@link EmbeddedFederation}.
      */
     public interface Options {
 
@@ -472,7 +465,7 @@ private LookupCache serviceCache;
 final UUID serviceUUID,
 final String hostname,
 final ServiceDiscoveryManager sdm,
-final Map<UUID, IDataService> embeddedDataServiceMap,//BTM  ShardService
+final Map<UUID, ShardService> embeddedDataServiceMap,//BTM  ShardService
 final String persistenceDir,
                                 final Properties         properties)
     {
@@ -487,6 +480,7 @@ final String persistenceDir,
         this.hostname = hostname;
 
 //BTM - BEGIN
+this.countersRoot = Util.getCounterSet(statisticsCollector);
 if (sdm != null) {
     this.sdm = sdm;
 
@@ -523,7 +517,7 @@ if (sdm != null) {
     ServiceItemFilter serviceFilter = null;
 
     //for remote implementation of any services
-    Class[] remoteServiceType = new Class[] {IDataService.class};
+    Class[] remoteServiceType = new Class[] {IService.class};
     ServiceTemplate remoteServiceTmpl = 
                             new ServiceTemplate(null, remoteServiceType, null);
     ServiceItemFilter remoteServiceFilter = null;
@@ -565,7 +559,6 @@ if (sdm != null) {
 //BTM***            throw new IllegalArgumentException("null federation");
 //BTM***        }   
 //BTM***        this.federation = federation;
-this.embeddedDataServiceMap = embeddedDataServiceMap;
 
         if (properties == null) {
             throw new NullPointerException("null properties");
@@ -784,7 +777,7 @@ this.roundRobinServiceLoadHelper =
 //BTM***                            new ByteArrayInputStream(data), instrumentFactory,
 //BTM***                            null/* filter */);
 
-getCounterSet().readXML(new ByteArrayInputStream(data), instrumentFactory, null/* filter */);
+countersRoot.readXML(new ByteArrayInputStream(data), instrumentFactory, null/* filter */);
                 } catch (Exception e) {
                     logger.warn(e.getMessage(), e);
 
@@ -1085,17 +1078,25 @@ BTM     * Notify the {@link LoadBalancerService} that a new service is available
      * @see IFederationDelegate#serviceJoin(IService, UUID)
      * @see #leave(String, UUID)
      */
-    public void join(final UUID serviceUUID,
-                     final Class serviceIface,
-final String serviceName,
-                     final String hostname)
-    {  
+//BTM    public void join(final UUID serviceUUID,
+//BTM                     final Class serviceIface,
+//BTMfinal String serviceName,
+//BTM                     final String hostname)
+    public void join(final Service service) {  
+
 System.err.println("\n*** ENTERED EmbeddedLoadBalancer.join ***"); 
-        if (serviceUUID == null) throw new IllegalArgumentException("null serviceUUID");
-        if (serviceIface == null) throw new IllegalArgumentException("null serviceIface");
-//BTM***
-if (serviceName == null) throw new IllegalArgumentException("null serviceName");
-        if (hostname == null) throw new IllegalArgumentException("null hostname");
+        if (service == null) {
+            throw new IllegalArgumentException("null service");
+        }
+        UUID serviceUUID = service.getServiceUUID();
+        Class serviceIface = service.getServiceIface();
+        String serviceName = service.getServiceName();
+        String hostname = service.getHostname();
+
+//BTM        if (serviceUUID == null) throw new IllegalArgumentException("null serviceUUID");
+//BTM        if (serviceIface == null) throw new IllegalArgumentException("null serviceIface");
+//BTMif (serviceName == null) throw new IllegalArgumentException("null serviceName");
+//BTM        if (hostname == null) throw new IllegalArgumentException("null hostname");
 
         if (logger.isInfoEnabled()) {
             logger.info("serviceUUID=" + serviceUUID + ", serviceIface="
@@ -1131,7 +1132,10 @@ serviceNameMap.put(serviceUUID, serviceName);
                     logger.info("New host joined: hostname=" + hostname);
                 }
             }
-            if (IDataService.class == serviceIface) {
+//BTM            if (IDataService.class == serviceIface) {
+if( (ShardService.class).isAssignableFrom(serviceIface) ) {
+    (roundRobinServiceLoadHelper.embeddedDataServiceMap).put
+                         (serviceUUID, (ShardService)service);
                 /*
                  * Add to set of known services.
                  * 
@@ -1163,7 +1167,7 @@ serviceNameMap.put(serviceUUID, serviceName);
 //BTM***                federation.getCounterSet().makePath(
 //BTM***                        AbstractFederation.getServiceCounterPathPrefix(
 //BTM***                                serviceUUID, serviceIface, hostname));
-getCounterSet().makePath( AbstractFederation.getServiceCounterPathPrefix(serviceUUID, serviceIface, hostname) );
+countersRoot.makePath( Util.getServiceCounterPathPrefix(serviceUUID, serviceIface, hostname) );
             }
             joined.signal();
         } finally {
@@ -1197,9 +1201,9 @@ System.err.println("\n*** ENTERED EmbeddedLoadBalancer.leave ***");
         try {
             lock.lock();
             /*
-             * Note: [activeServices] only contains the DataServices so a null
-             * return means either that this is not a data service -or- that we
-             * do not have a score for that data service yet.
+             * Note: [activeServices] only contains the shard services so a null
+             * return means either that this is not a shard service -or- that we
+             * do not have a score for that shard service yet.
              */
             final ServiceScore info = activeDataServices.remove(serviceUUID);
 
@@ -1411,7 +1415,7 @@ if( (serviceUUID != null) && (serviceNameMap != null) ) {
         try {
             os = new BufferedOutputStream( new FileOutputStream(file) );
 //BTM***            federation.getCounterSet().asXML(os, "UTF-8", null/* filter */);
-getCounterSet().asXML(os, "UTF-8", null/* filter */);
+countersRoot.asXML(os, "UTF-8", null/* filter */);
         } catch(Exception ex) {
             logger.error(ex.getMessage(), ex);
         } finally {
@@ -1579,32 +1583,32 @@ getCounterSet().asXML(os, "UTF-8", null/* filter */);
         MDC.remove("hostname");
     }
 
-//BTM***
-    synchronized private CounterSet getCounterSet() {
-        if (countersRoot == null) {
-            countersRoot = new CounterSet();
-            if (statisticsCollector != null) {
-                countersRoot.attach(statisticsCollector.getCounters());
-            }
+//BTM*** BEGIN - From AbstractFederation
+//BTM    synchronized private CounterSet getCounterSet() {
+//BTM        if (countersRoot == null) {
+//BTM            countersRoot = new CounterSet();
+//BTM            if (statisticsCollector != null) {
+//BTM                countersRoot.attach(statisticsCollector.getCounters());
+//BTM            }
+//BTM//BTM
+//BTMString serviceCounterPathPrefix = Util.getServiceCounterPathPrefix(thisServiceUUID, SERVICE_TYPE, hostname);
+//BTMthis.serviceRoot = countersRoot.makePath(serviceCounterPathPrefix);
+//BTM//BTM            serviceRoot = countersRoot.makePath(getServiceCounterPathPrefix());
+//BTM            // Basic counters.
+//BTM            AbstractStatisticsCollector.addBasicServiceOrClientCounters(
+//BTMthis.serviceRoot, SERVICE_NAME, SERVICE_TYPE, this.getProperties());
+//BTM//BTM                    serviceRoot, getServiceName(), getServiceIface(), client
+//BTM//BTM                            .getProperties());
+//BTM        }
+//BTM        return countersRoot;
+//BTM    }
 //BTM
-String serviceCounterPathPrefix = AbstractFederation.getServiceCounterPathPrefix(thisServiceUUID, SERVICE_TYPE, hostname);
-this.serviceRoot = countersRoot.makePath(serviceCounterPathPrefix);
-//BTM            serviceRoot = countersRoot.makePath(getServiceCounterPathPrefix());
-            /* Basic counters. */
-            AbstractStatisticsCollector.addBasicServiceOrClientCounters(
-this.serviceRoot, SERVICE_NAME, SERVICE_TYPE, this.getProperties());
-//BTM                    serviceRoot, getServiceName(), getServiceIface(), client
-//BTM                            .getProperties());
-        }
-        return countersRoot;
-    }
-
-    public CounterSet getServiceCounterSet() {
-        getCounterSet();// defines [serviceRoot] as side effect.
-        return this.serviceRoot;
-        
-    }
-//BTM***
+//BTM    public CounterSet getServiceCounterSet() {
+//BTM        getCounterSet();// defines [serviceRoot] as side effect.
+//BTM        return this.serviceRoot;
+//BTM        
+//BTM    }
+//BTM*** END - From AbstractFederation
 
 
 
@@ -1682,7 +1686,7 @@ this.serviceRoot, SERVICE_NAME, SERVICE_TYPE, this.getProperties());
             
             // For each host
             final Iterator<ICounterSet> itrh = 
-getCounterSet().counterSetIterator();
+countersRoot.counterSetIterator();
 //BTM***                federation.getCounterSet().counterSetIterator();
             
             while(itrh.hasNext()) {
@@ -1749,7 +1753,7 @@ getCounterSet().counterSetIterator();
          * (Re-)compute the utilization score for each active service.
          * <p>
          * Note: There is a dependency on
-         * {@link AbstractFederation#getServiceCounterPathPrefix(UUID, Class, String)}.
+         * {@link Util#getServiceCounterPathPrefix(UUID, Class, String)}.
          * This method assumes that the service {@link UUID} is found in a
          * specific place in the constructed path.
          */
@@ -1771,7 +1775,7 @@ getCounterSet().counterSetIterator();
             
             // For each host
             final Iterator<ICounterSet> itrh = 
-getCounterSet().counterSetIterator();
+countersRoot.counterSetIterator();
 //BTM***                federation.getCounterSet().counterSetIterator();
 
             while(itrh.hasNext()) {
@@ -1825,7 +1829,7 @@ getCounterSet().counterSetIterator();
                          * Note: [name] on serviceCounterSet is the serviceUUID.
                          * 
                          * Note: This creates a dependency on
-                         * AbstractFederation#getServiceCounterPathPrefix(...)
+                         * Util#getServiceCounterPathPrefix(...)
                          */
                         final String serviceName = serviceCounterSet.getName();
                         final UUID serviceUUID;
@@ -2350,7 +2354,7 @@ String serviceName = serviceNameMap.get(serviceUUID);
         protected void setupCounters() {
             
             final CounterSet serviceRoot = 
-getServiceCounterSet();
+Util.getServiceCounterSet(thisServiceUUID, SERVICE_TYPE, SERVICE_NAME, hostname, countersRoot, statisticsCollector, properties, true);//add basic counters
 //BTM***                                 federation.getServiceCounterSet();
 
             final long now = System.currentTimeMillis();
@@ -2533,21 +2537,21 @@ getServiceCounterSet();
         private LookupCache remoteShardLocatorCache;
         private LookupCache shardCache;
         private LookupCache remoteShardCache;
-        private Map<UUID, IDataService> embeddedDataServiceMap;
+
+        public Map<UUID, ShardService> embeddedDataServiceMap;//embedded tests
 
         RoundRobinServiceLoadHelper
                         (final LookupCache shardLocatorCache,
                          final LookupCache remoteShardLocatorCache,
                          final LookupCache shardCache,
                          final LookupCache remoteShardCache,
-                         final Map<UUID, IDataService> embeddedDataServiceMap)
+                         final Map<UUID, ShardService> embeddedDataServiceMap)
         {
             this.shardLocatorCache = shardLocatorCache;
             this.remoteShardLocatorCache = remoteShardLocatorCache;
             this.shardCache = shardCache;
             this.remoteShardCache = remoteShardCache;
 
-            //BTM*** - remove when DataService converted to smart proxy?
             this.embeddedDataServiceMap = embeddedDataServiceMap;
     }
 //BTM - END
@@ -2608,6 +2612,7 @@ getServiceCounterSet();
                                            +"shard services ["+uuids.size()
                                            +" discovered but "+minCount
                                            +" required");
+
             } else {
                 Set<UUID> uuidSet = embeddedDataServiceMap.keySet();
                 return uuidSet.toArray(new UUID[uuidSet.size()]);
@@ -2968,8 +2973,8 @@ getServiceCounterSet();
 
             // Create a node for the discovered service's history in
             // this load balancer's counter set.
-            getCounterSet().makePath
-                ( AbstractFederation.getServiceCounterPathPrefix
+            countersRoot.makePath
+                ( Util.getServiceCounterPathPrefix
                       (serviceUUID, serviceIface, hostname) );
 	}
 
@@ -2999,8 +3004,8 @@ getServiceCounterSet();
                             serviceUUID = 
                             ((IService)service).getServiceUUID();
                         } catch(IOException e) {
-                            if(logger.isDebugEnabled()) {
-                                logger.log(Level.DEBUG, 
+                            if(logger.isTraceEnabled()) {
+                                logger.log(Level.TRACE, 
                                            "failed to retrieve "
                                            +"serviceUUID "
                                            +"[service="+serviceType+", "
@@ -3105,8 +3110,8 @@ getServiceCounterSet();
                             serviceUUID = 
                             ((IService)service).getServiceUUID();
                         } catch(IOException e) {
-                            if(logger.isDebugEnabled()) {
-                                logger.log(Level.DEBUG, 
+                            if(logger.isTraceEnabled()) {
+                                logger.log(Level.TRACE, 
                                            "failed to retrieve "
                                            +"serviceUUID "
                                            +"[service="+serviceType+", "
@@ -3170,36 +3175,6 @@ getServiceCounterSet();
                 logger.log(Level.DEBUG, "serviceChanged [service="
                            +serviceIface+", ID="+serviceId+"]");
             }
-
-            for(int i=0; i<preAttrs.length; i++) {
-                Entry pre = preAttrs[i];
-                Class preType = pre.getClass();
-                for(int j=0; j<postAttrs.length; j++) {
-                    Entry post = postAttrs[j];
-                    Class postType = post.getClass();
-                    /* If same attribute type, test for and display change */
-                    if(    (preType.isAssignableFrom(postType))
-                        && (postType.isAssignableFrom(preType)) )
-                    {
-                        if(!EntryUtil.compareEntries(pre,post,logger)) {
-                            if( logger.isTraceEnabled() ) {//display change
-                                logger.log(Level.TRACE,
-                                       ": attribute changed ["+pre+"]" );
-                                logger.log(Level.TRACE,
-                                       ": ===============================");
-                                logger.log(Level.TRACE,
-                                       ": --- PRE Change Event ---- ");
-                                EntryUtil.displayEntry(pre, logger);
-                                logger.log(Level.TRACE,
-                                       ": ===============================");
-                                logger.log(Level.TRACE,
-                                       ": --- POST Change Event --- ");
-                                EntryUtil.displayEntry(post, logger);
-                            }
-                        }
-                    }
-                }//end loop(post:j)
-            }//end loop(pre:i)
         }
     }
 

@@ -785,6 +785,8 @@ public class CounterSet extends AbstractCounterSet implements ICounterSet {
                 
                     // counter exists for that path.
                     log.error("Exists: path=" + getPath() + ", name=" + name);
+//BTM
+System.out.println("\n"+com.bigdata.util.Util.getCurrentStackTrace());
                 
                     // return existing counter for path @todo vs replace.
                     return (ICounter)counter;

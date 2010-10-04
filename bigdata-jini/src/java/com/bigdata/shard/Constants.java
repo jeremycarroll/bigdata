@@ -37,4 +37,34 @@ public interface Constants {
     /* Name of this component; used in config entry retrieval and the logger.*/
     String COMPONENT_NAME = ((Constants.class).getPackage()).getName();
     String F_SEP          = System.getProperty("file.separator");
+
+    int  LOWER_BOUND_THREAD_POOL_SIZE = 1;
+    int  UPPER_BOUND_THREAD_POOL_SIZE = 100;
+    int  DEFAULT_THREAD_POOL_SIZE     = 30;
+
+    int  DEFAULT_INDEX_CACHE_SIZE     = 20; 
+    int  LOWER_BOUND_INDEX_CACHE_SIZE = 1;
+    int  UPPER_BOUND_INDEX_CACHE_SIZE = 1000;
+
+    long DEFAULT_INDEX_CACHE_TIMEOUT     = 60L*1000L;//1 minute
+    long LOWER_BOUND_INDEX_CACHE_TIMEOUT = 1L*1000L; //1 second
+    long UPPER_BOUND_INDEX_CACHE_TIMEOUT = Long.MAX_VALUE;//forever
+
+    int  DEFAULT_RESOURCE_LOCATOR_CACHE_SIZE     = 20; 
+    int  LOWER_BOUND_RESOURCE_LOCATOR_CACHE_SIZE = 1;
+    int  UPPER_BOUND_RESOURCE_LOCATOR_CACHE_SIZE = 1000;
+
+    long DEFAULT_RESOURCE_LOCATOR_CACHE_TIMEOUT     = 60L*1000L;//1 minute
+    long LOWER_BOUND_RESOURCE_LOCATOR_CACHE_TIMEOUT = 1L*1000L; //1 second
+    long UPPER_BOUND_RESOURCE_LOCATOR_CACHE_TIMEOUT = Long.MAX_VALUE;//forever
+
+    long DEFAULT_LOAD_BALANCER_REPORTING_PERIOD     = 60L*1000L;//1 minute
+    long LOWER_BOUND_LOAD_BALANCER_REPORTING_PERIOD = 10L*1000L; //10 seconds
+    long UPPER_BOUND_LOAD_BALANCER_REPORTING_PERIOD = Long.MAX_VALUE;
+
+    int  DEFAULT_HTTPD_PORT     =  0;//random
+    int  LOWER_BOUND_HTTPD_PORT = -1;//disable the daemon
+    int  UPPER_BOUND_HTTPD_PORT = Integer.MAX_VALUE;
+
+    long EXECUTOR_TERMINATION_TIMEOUT = 1L*60L*1000L;
 }

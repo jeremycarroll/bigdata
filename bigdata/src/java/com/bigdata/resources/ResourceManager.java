@@ -43,13 +43,15 @@ import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.service.AbstractFederation;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 //BTM import com.bigdata.service.IMetadataService;
-import com.bigdata.service.MetadataService;
+//BTM import com.bigdata.service.MetadataService;
 import com.bigdata.util.ReverseLongComparator;
 
 //BTM
 import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardService;
+import com.bigdata.util.Util;
 
 /**
  * The {@link ResourceManager} has broad responsibility for journal files, index
@@ -139,7 +141,7 @@ abstract public class ResourceManager extends OverflowManager implements
     }
 
     /**
-     * <strong>WARNING: The {@link DataService} transfers all of the children
+     * <strong>WARNING: The shard service transfers all of the children
      * from this object into the hierarchy reported by
      * {@link AbstractFederation#getServiceCounterSet()} and this object will be
      * empty thereafter.</strong>
@@ -165,7 +167,7 @@ abstract public class ResourceManager extends OverflowManager implements
                  * live journal during overflow processing.
                  * 
                  * @todo This assumes that the StoreManager is running.
-                 * Normally, this will be true since the DataService does not
+                 * Normally, this will be true since the shard service does not
                  * setup its counter set until the store manager is running and
                  * the service UUID has been assigned. However, eagerly
                  * requesting the counters set would violate that assumption and
@@ -310,9 +312,8 @@ abstract public class ResourceManager extends OverflowManager implements
                                         final String cause = (pmd == null ? "N/A"
                                                 : pmd.getIndexPartitionCause()
                                                         .toString());
-                                        final String indexPartitionName = DataService
-                                                .getIndexPartitionName(name,
-                                                        partitionId);
+//BTM                                        final String indexPartitionName = DataService.getIndexPartitionName(name, partitionId);
+final String indexPartitionName = Util.getIndexPartitionName(name, partitionId);
                                         sb.append(indexPartitionName
                                                 + "{elapsed=" + elapsed
                                                 + "ms, cause=" + cause

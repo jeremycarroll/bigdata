@@ -55,7 +55,6 @@ import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.io.FixedByteArrayBuffer;
 import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.service.IDataService;
 
 /**
  * An object used to stream key scan results back to the client.
@@ -283,7 +282,7 @@ public class ResultSet implements ILeafData, Externalizable {
      * The values returned by {@link ITuple#getSourceIndex()} may be used to
      * identify the resource from which a given tuple was read. That information
      * is used to direct {@link ITuple#readBlock(long)} requests to the correct
-     * resource on the {@link IDataService}.
+     * resource on the shard service.
      */
     final public IResourceMetadata[] getSources() {
         

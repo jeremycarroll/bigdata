@@ -55,74 +55,85 @@ import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.mdi.SegmentMetadata;
-import com.bigdata.service.DataService;
-import com.bigdata.service.DataServiceCallable;
+//BTM import com.bigdata.service.DataService;
+//BTM - PRE_FRED_3481 import com.bigdata.service.DataServiceCallable;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.ResourceService;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 
+//BTM
+import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
+import com.bigdata.util.Util;
+
+//BTM - PRE_FRED_3481
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.service.IDataServiceCallable;
+import com.bigdata.service.Session;
+
 /**
- * Task moves an index partition to another {@link IDataService}.
+ * Task moves an index partition to another {@link ShardService}.
  * <p>
  * This task runs as a historical read operation and copy the view of the index
  * partition as of the lastCommitTime of old journal to another
- * {@link IDataService}. Once that historical view has been copied, this task
+ * {@link ShardService}. Once that historical view has been copied, this task
  * then submits an {@link AtomicUpdateMoveIndexPartitionTask}. The atomic
  * update is an {@link ITx#UNISOLATED} operation. It is responsible copying any
  * writes buffered for the index partition on the live journal to the target
- * {@link IDataService} and then updating the {@link MetadataIndex}. Once the
+ * {@link ShardService} and then updating the {@link MetadataIndex}. Once the
  * atomic update task is finished, clients will discover that the source index
  * partition does not exist. When they query the {@link MetadataService} they
  * will discover that the key(-range) is now handled by the new index partition
- * on the target {@link IDataService}.
+ * on the target {@link ShardService}.
  * <p>
- * Note: This task is run on the target {@link IDataService} and it copies the
- * data from the source {@link IDataService}. This allows us to use standard
+ * Note: This task is run on the target {@link ShardService} and it copies the
+ * data from the source {@link ShardService}. This allows us to use standard
  * {@link IRangeQuery} operations to copy the historical view. However, the
  * {@link AtomicUpdateMoveIndexPartitionTask} is run on the source
- * {@link IDataService} since it needs to obtain an exclusive lock on the index
+ * {@link ShardService} since it needs to obtain an exclusive lock on the index
  * partition that is being moved in order to prevent concurrent writes during
  * the atomic cutover. For the same reason, the
  * {@link AtomicUpdateMoveIndexPartitionTask} can not use standard
  * {@link IRangeQuery} operations. Instead, it initiates a series of data
  * transfers while holding onto the exclusive lock until the target
- * {@link IDataService} has the current state of the index partition. At that
+ * {@link ShardService} has the current state of the index partition. At that
  * point it notifies the {@link IMetadataService} to perform the atomic cutover
  * to the new index partition.
  * <p>
  * Note: This task does NOT cause any resources associated with the current view
- * of the index partition to be released on the source {@link IDataService}.
+ * of the index partition to be released on the source {@link ShardService}.
  * The reason is two-fold. First, the {@link IndexSegment}(s) associated with
  * that view MAY be in used by historical views. Second, there MAY be historical
  * commit points for the index partition on the live journal before the atomic
- * cutover to the new {@link IDataService} - those historical commit points MUST
+ * cutover to the new {@link ShardService} - those historical commit points MUST
  * be preserved until the release policy for those views has been satisfied.
  * <p>
  * Note: The MOVE task MUST be explicitly coordinated with the target
- * {@link IDataService}. Failure to coordinate the move results in an error
+ * {@link ShardService}. Failure to coordinate the move results in an error
  * message reported by the {@link MetadataService} indicating that the wrong
  * partition locator was found under the key. The cause is a MOVE operation
  * during which the target data service undergoes concurrent synchronous (and
  * then asynchronous) overflow. What happens is the {@link MoveTask} registers
  * the new index partition on the target data service. One registered on the
- * {@link IDataService}, the index partition it is visible during synchronous
+ * {@link ShardService}, the index partition it is visible during synchronous
  * overflow BEFORE the MOVE is complete and BEFORE the index is registered with
  * the {@link MetadataService} and hence discoverable to clients. If the target
- * {@link IDataService} then undergoes synchronous and asynchronous overflow and
+ * {@link ShardService} then undergoes synchronous and asynchronous overflow and
  * chooses an action which would change the index partition definition (split,
  * join, or move) WHILE the index partition is still being moved onto the target
- * {@link IDataService} THEN the MOVE is not atomic and the definition of the
+ * {@link ShardService} THEN the MOVE is not atomic and the definition of the
  * index partition in the {@link MetadataService} will not coherently reflect
- * either the MOVE or the action chosen by the target {@link IDataService},
+ * either the MOVE or the action chosen by the target {@link ShardService},
  * depending on which one makes its atomic update first.
  * <p>
- * The target {@link IDataService} MAY undergo both synchronous and asynchronous
- * overflow as {@link IDataService}s are designed to allow continued writes
+ * The target {@link ShardService} MAY undergo both synchronous and asynchronous
+ * overflow as {@link ShardService}s are designed to allow continued writes
  * during those operations. Further, it MAY choose to copy, build, or compact
  * the index partition while it is being moved. However, it MUST NOT choose any
  * action (split, join, or move) that would change the index partition
@@ -134,17 +145,17 @@ import com.bigdata.util.config.NicUtil;
  * 
  * <li>The {@link MoveTask} set the <code>sourcePartitionId</code> on the
  * {@link LocalPartitionMetadata} when it registers the index partition on the
- * target {@link IDataService}. When <code>sourcePartitionId != -1</code>.
- * the target {@link IDataService} is restricted to for that index partition to
+ * target {@link ShardService}. When <code>sourcePartitionId != -1</code>.
+ * the target {@link ShardService} is restricted to for that index partition to
  * overflows actions which do not change the index partition definition (copy,
  * build, or merge). Further, any index partition found on restart whose by the
- * target {@link IDataService} whose <code>sourcePartitionId != -1</code> is
+ * target {@link ShardService} whose <code>sourcePartitionId != -1</code> is
  * deleted as it was never successfully put into play (this prevents partial
  * moves from accumulating state which could not otherwise be released.)</li>
  * 
  * <li>The atomic update task causes the <code>sourcePartitionId</code> to be
  * set to <code>-1</code> as one of its last actions, thereby allowing the
- * target {@link IDataService} to use operations that could re-define the index
+ * target {@link ShardService} to use operations that could re-define the index
  * partition (split, join, move) and also preventing the target index partition
  * from being deleted on restart. </li>
  * 
@@ -163,7 +174,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
     private final ViewMetadata vmd;
     
     /**
-     * {@link UUID} of the target {@link IDataService} (the one to which the index
+     * {@link UUID} of the target {@link ShardService} (the one to which the index
      * partition will be moved).
      */
     private final UUID targetDataServiceUUID;
@@ -196,7 +207,8 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
      * @param targetDataServiceUUID
      *            The UUID for the target data service.
      */
-    public MoveTask(//
+//BTM - PRE_FRED_3481    public MoveTask(//
+    MoveTask(//
             final ViewMetadata vmd,//
             final UUID targetDataServiceUUID//
             ) {
@@ -221,8 +233,9 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
         this.newPartitionId = resourceManager.nextPartitionId(vmd.indexMetadata
                 .getName());
 
-        this.targetIndexName = DataService.getIndexPartitionName(
-                vmd.indexMetadata.getName(), newPartitionId);
+//BTM        this.targetIndexName = DataService.getIndexPartitionName(
+//BTM                vmd.indexMetadata.getName(), newPartitionId);
+this.targetIndexName = Util.getIndexPartitionName(vmd.indexMetadata.getName(), newPartitionId);
 
         this.summary = OverflowActionEnum.Move + "(" + vmd.name + "->"
                 + targetIndexName + ")";
@@ -231,9 +244,15 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
 
         params.put("summary", summary);
 
-        this.e = new Event(resourceManager.getFederation(), new EventResource(
-                vmd.indexMetadata), OverflowActionEnum.Move, params);
-
+//BTM        this.e = new Event(resourceManager.getFederation(), new EventResource(
+//BTM                vmd.indexMetadata), OverflowActionEnum.Move, params);
+this.e = new Event( (resourceManager.getFederation()).getEventQueue(),
+                    (resourceManager.getFederation()).getServiceIface(),
+                    (resourceManager.getFederation()).getServiceName(),
+                    (resourceManager.getFederation()).getServiceUUID(),
+                    new EventResource(vmd.indexMetadata),
+                    OverflowActionEnum.Move,
+                    params);
     }
 
     @Override
@@ -428,7 +447,8 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
      */
     protected static class AtomicUpdate extends AbstractAtomicUpdateTask<MoveResult> {
         
-        private final ResourceManager resourceManager;
+//BTM - PRE_FRED_3481 - changed all resourceManager refs in this nested class to rsrcManager; as was done in 3481
+        private final ResourceManager rsrcManager;
         private final String sourceIndexName;
         private final BuildResult historicalWritesBuildResult;
         private final UUID targetDataServiceUUID;
@@ -475,7 +495,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
             if (parentEvent == null)
                 throw new IllegalArgumentException();
 
-            this.resourceManager = resourceManager;
+            this.rsrcManager = resourceManager;
             this.sourceIndexName = sourceIndexName;
             this.historicalWritesBuildResult = historicalWritesBuildResult;
             this.targetDataServiceUUID = targetDataServiceUUID;
@@ -514,9 +534,10 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                 final String scaleOutIndexName = indexMetadata.getName();
 
                 // The name of the target index partition.
-                final String targetIndexName = DataService
-                        .getIndexPartitionName(scaleOutIndexName,
-                                targetIndexPartitionId);
+//BTM                final String targetIndexName = DataService
+//BTM                        .getIndexPartitionName(scaleOutIndexName,
+//BTM                                targetIndexPartitionId);
+final String targetIndexName = Util.getIndexPartitionName(scaleOutIndexName, targetIndexPartitionId);
 
                 // The current metadata for the source index partition view.
                 final LocalPartitionMetadata pmd = indexMetadata
@@ -525,7 +546,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                 // The current locator for the source index partition.
                 final PartitionLocator oldLocator = new PartitionLocator(//
                         pmd.getPartitionId(),//
-                        resourceManager.getDataServiceUUID(),//
+                        rsrcManager.getDataServiceUUID(),//
                         pmd.getLeftSeparatorKey(),//
                         pmd.getRightSeparatorKey()//
                 );
@@ -558,16 +579,16 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
 
                 final long sourceCommitTime = src.getLastCommitTime();
 
-                bufferedWritesBuildResult = resourceManager.buildIndexSegment(
+                bufferedWritesBuildResult = rsrcManager.buildIndexSegment(
                         sourceIndexName, src, false/* compactingMerge */,
                         sourceCommitTime, null/* fromKey */, null/* toKey */,
                         parentEvent);
 
                 {
 
-                    final IDataService targetDataService = resourceManager
-                            .getFederation().getDataService(
-                                    targetDataServiceUUID);
+//BTM                    final IDataService targetDataService = resourceManager.getFederation().getDataService(targetDataServiceUUID);
+//BTM - PRE_FRED_3481 final ShardService targetDataService = resourceManager.getFederation().getDataService(targetDataServiceUUID);
+                         final ShardService targetDataService = rsrcManager.getFederation().getDataService(targetDataServiceUUID);
 
                     if (targetDataService == null)
                         throw new Exception("No such data service: "
@@ -588,17 +609,17 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
 
                         try {
 
-                            targetDataService
-                                    .submit(
+//BTM                            targetDataService.submit(
+((ShardManagement)targetDataService).submit(
                                             new ReceiveIndexPartitionTask(
                                                     indexMetadata,//
-                                                    resourceManager
+                                                    rsrcManager
                                                             .getDataServiceUUID(),//
                                                     targetIndexPartitionId,//
                                                     historicalWritesBuildResult.segmentMetadata,//
                                                     bufferedWritesBuildResult.segmentMetadata,//
                                                     thisInetAddr,
-                                                    resourceManager
+                                                    rsrcManager
                                                             .getResourceServicePort()//
                                             )).get();
 
@@ -646,7 +667,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                      * then clients will still be notified that the source index
                      * partition was moved. That is Ok since it WAS moved.
                      */
-                    resourceManager.setIndexPartitionGone(getOnlyResource(),
+                    rsrcManager.setIndexPartitionGone(getOnlyResource(),
                             StaleLocatorReason.Move);
 
                     /*
@@ -666,7 +687,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                     getJournal().dropIndex(getOnlyResource());
 
                     // notify successful index partition move.
-                    resourceManager.overflowCounters.indexPartitionMoveCounter.incrementAndGet();
+                    rsrcManager.overflowCounters.indexPartitionMoveCounter.incrementAndGet();
 
                 }
                 
@@ -685,7 +706,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                      * retentionSet so it will be subject to the release policy
                      * of the StoreManager.
                      */
-                    resourceManager
+                    rsrcManager
                             .retentionSetRemove(bufferedWritesBuildResult.segmentMetadata
                                     .getUUID());
 
@@ -693,7 +714,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                      * Delete the index segment containing the buffer writes
                      * since it no longer required by this data service.
                      */
-                    resourceManager
+                    rsrcManager
                             .deleteResource(
                                     bufferedWritesBuildResult.segmentMetadata
                                             .getUUID(), false/* isJournal */);
@@ -726,7 +747,8 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                 final Throwable t,//
                 final String scaleOutIndexName,//
                 final String targetIndexName,//
-                final IDataService targetDataService,//
+//BTM                final IDataService targetDataService,//
+final ShardService targetDataService,//
                 final PartitionLocator oldLocator,//
                 final PartitionLocator newLocator//
                 ) throws Exception {
@@ -758,10 +780,8 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                  * completed in the odd case where it is running asynchronously
                  * but we lack its Future.
                  */
-                final IndexMetadata tmp = (IndexMetadata) targetDataService
-                        .submit(ITx.UNISOLATED, targetIndexName,
-                                new IsIndexRegistered_UsingWriteService())
-                        .get();
+//BTM                final IndexMetadata tmp = (IndexMetadata) targetDataService.submit(ITx.UNISOLATED, targetIndexName, new IsIndexRegistered_UsingWriteService()).get();
+                final IndexMetadata tmp = (IndexMetadata) ((ShardManagement)targetDataService).submit(ITx.UNISOLATED, targetIndexName, new IsIndexRegistered_UsingWriteService()).get();
 
                 if (tmp == null) {
                 
@@ -808,7 +828,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
             
             try {
                 
-                final PartitionLocator current = resourceManager
+                final PartitionLocator current = rsrcManager
                         .getFederation().getMetadataService().get(
                                 scaleOutIndexName, ITx.UNISOLATED,
                                 oldLocator.getLeftSeparatorKey());
@@ -823,7 +843,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                      */
                     try {
 
-                        resourceManager.getFederation().getMetadataService()
+                        rsrcManager.getFederation().getMetadataService()
                                 .moveIndexPartition(scaleOutIndexName,
                                         newLocator, oldLocator);
                         
@@ -902,7 +922,9 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      */
-    protected static class ReceiveIndexPartitionTask extends DataServiceCallable<Void> {
+//BTM - PRE_FRED_3481    protected static class ReceiveIndexPartitionTask extends DataServiceCallable<Void> {
+    protected static class ReceiveIndexPartitionTask 
+            implements IDataServiceCallable<Void> {
 
         /**
          * 
@@ -973,7 +995,13 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
 //            
 //        }
 
-        public Void call() throws Exception {
+//BTM - PRE_FRED_3481        public Void call() throws Exception {
+        public Void startDataTask(IIndexManager indexManager,
+                                  final ResourceManager resourceManager,
+                                  IConcurrencyManager concurrencyManager,
+                                  Session session,
+                                  String hostName,
+                                  String serviceName) throws Exception {
             
             /*
              * The name of the target index partition on the target data
@@ -981,18 +1009,21 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
              * the partition identifier that was assigned to the new index
              * partition.
              */
-            final String targetIndexName = DataService.getIndexPartitionName(
-                    sourceIndexMetadata.getName(), targetIndexPartitionId);
+//BTM            final String targetIndexName = DataService.getIndexPartitionName(
+//BTM                    sourceIndexMetadata.getName(), targetIndexPartitionId);
+final String targetIndexName = Util.getIndexPartitionName(sourceIndexMetadata.getName(), targetIndexPartitionId);
 
             /*
              * Run the inner task on the write service of the target data
              * service.
              */
-            final ResourceManager resourceManager = getDataService()
-                    .getResourceManager();
+//BTM            final ResourceManager resourceManager = getDataService().getResourceManager();
+//BTM - PRE_FRED_3481 final ResourceManager resourceManager = getResourceManager();
             try {
 
-                getDataService().getConcurrencyManager().submit(
+//BTM                getDataService().getConcurrencyManager().submit(
+//BTM - PRE_FRED_3481 getConcurrencyManager().submit(
+                concurrencyManager.submit(
                         new InnerReceiveIndexPartitionTask(//
                                 resourceManager,//
                                 targetIndexName,//
@@ -1046,7 +1077,8 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
      */
     private static class InnerReceiveIndexPartitionTask extends AbstractTask<Void> {
         
-        final private ResourceManager resourceManager;
+//BTM - PRE_FRED_3481 - changed all resourceManager refs in this nested class to rsrcManager; as was done in 3481
+        final private ResourceManager rsrcManager;
         final private String scaleOutIndexName;
         final private String sourceIndexName;
         final private String targetIndexName;
@@ -1111,12 +1143,13 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
             if (addr == null)
                 throw new IllegalArgumentException();
             
-            this.resourceManager = resourceManager;
+            this.rsrcManager = resourceManager;
             this.scaleOutIndexName = sourceIndexMetadata.getName();
             this.sourceIndexPartitionId = sourceIndexMetadata
                     .getPartitionMetadata().getPartitionId();
-            this.sourceIndexName = DataService.getIndexPartitionName(
-                    scaleOutIndexName, sourceIndexPartitionId);
+//BTM            this.sourceIndexName = DataService.getIndexPartitionName(
+//BTM                    scaleOutIndexName, sourceIndexPartitionId);
+this.sourceIndexName = Util.getIndexPartitionName(scaleOutIndexName, sourceIndexPartitionId);
             this.targetIndexName = targetIndexName;
             this.sourceIndexMetadata = sourceIndexMetadata;
             this.sourceDataServiceUUID = sourceDataServiceUUID;
@@ -1130,9 +1163,16 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
             this.summary = OverflowActionEnum.Move + "(" + sourceIndexName
                     + "->" + targetIndexName + ")";
 
-            this.parentEvent = new Event(resourceManager.getFederation(),
-                    new EventResource(sourceIndexMetadata.getName(),
-                            sourceIndexPartitionId), OverflowActionEnum.Move);
+//BTM            this.parentEvent = new Event(resourceManager.getFederation(),
+//BTM                    new EventResource(sourceIndexMetadata.getName(),
+//BTM                            sourceIndexPartitionId), OverflowActionEnum.Move);
+this.parentEvent = new Event( (resourceManager.getFederation()).getEventQueue(),
+                              (resourceManager.getFederation()).getServiceIface(),
+                              (resourceManager.getFederation()).getServiceName(),
+                              (resourceManager.getFederation()).getServiceUUID(),
+                              new EventResource(sourceIndexMetadata.getName(),
+                              sourceIndexPartitionId),
+                              OverflowActionEnum.Move);
 
             this.parentEvent.addDetail("summary", this.summary);
 
@@ -1181,10 +1221,10 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
 
                 if (targetHistorySegmentMetadata != null) {
                     try {
-                        resourceManager
+                        rsrcManager
                                 .retentionSetRemove(targetHistorySegmentMetadata
                                         .getUUID());
-                        resourceManager
+                        rsrcManager
                                 .deleteResource(targetHistorySegmentMetadata
                                         .getUUID(), false/* isJournal */);
                     } catch (Throwable t2) {
@@ -1194,10 +1234,10 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
 
                 if (targetBufferedWritesSegmentMetadata != null) {
                     try {
-                        resourceManager
+                        rsrcManager
                                 .retentionSetRemove(targetBufferedWritesSegmentMetadata
                                         .getUUID());
-                        resourceManager.deleteResource(
+                        rsrcManager.deleteResource(
                                 targetBufferedWritesSegmentMetadata.getUUID(),
                                 false/* isJournal */);
                     } catch (Throwable t2) {
@@ -1250,7 +1290,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                 final long begin = System.currentTimeMillis();
 
                 // name for the segFile on this data service.
-                final File file = resourceManager.getIndexSegmentFile(
+                final File file = rsrcManager.getIndexSegmentFile(
                         scaleOutIndexName, sourceIndexMetadata.getIndexUUID(),
                         targetIndexPartitionId);
 
@@ -1287,10 +1327,10 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                 }
 
                 // put on the retentionSet first!
-                resourceManager.retentionSetAdd(sourceSegmentMetadata.getUUID());
+                rsrcManager.retentionSetAdd(sourceSegmentMetadata.getUUID());
                 
                 // add the resource to those managed by this service.
-                resourceManager.addResource(sourceSegmentMetadata, file);
+                rsrcManager.addResource(sourceSegmentMetadata, file);
 
                 if (INFO) {
 
@@ -1368,7 +1408,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                             // Historical writes from the source DS.
                             historySegmentMetadata//
                         },
-                        IndexPartitionCause.move(resourceManager)
+                        IndexPartitionCause.move(rsrcManager)
 //                        // history line.
 //                        ,oldpmd.getHistory() + summary + " "
                 ));
@@ -1447,7 +1487,7 @@ public class MoveTask extends AbstractPrepareTask<MoveResult> {
                         + ", newLocator=" + moveResult.newLocator);
 
             // atomic update on the metadata server.
-            resourceManager.getFederation().getMetadataService()
+            rsrcManager.getFederation().getMetadataService()
                     .moveIndexPartition(scaleOutIndexName,
                             moveResult.oldLocator, moveResult.newLocator);
 

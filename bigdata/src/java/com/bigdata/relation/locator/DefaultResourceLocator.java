@@ -104,7 +104,6 @@ import com.bigdata.sparse.SparseRowStore;
  * </dl>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * @param <T>
  *            The generic type of the [R]elation.
  */
@@ -239,7 +238,8 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
             final Properties properties = locateResource(namespace, timestamp,
                     foundOn);
             
-            if (properties == null) {
+            // Empty properties may refer to deleted resource.
+            if (properties == null || properties.isEmpty()) {
 
                 // Not found by this locator.
                 
@@ -426,7 +426,8 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
         final Properties properties = locateResourceOn(indexManager, namespace,
                 timestamp);
 
-        if (properties != null) {
+        // Empty properties may refer to deleted resource.
+        if (properties != null && !properties.isEmpty()) {
 
             if (INFO) {
 

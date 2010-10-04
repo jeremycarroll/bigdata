@@ -8,14 +8,13 @@ import net.jini.lookup.LookupCache;
 import com.bigdata.jini.lookup.entry.Hostname;
 import com.bigdata.jini.lookup.entry.HostnameFilter;
 import com.bigdata.jini.lookup.entry.ServiceItemFilterChain;
-import com.bigdata.service.IDataService;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.lookup.DataServiceFilter;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 
 /**
- * Constraint on the #of {@link IDataService}s on the same host.
+ * Constraint on the #of shard services on the same host.
  */
 public class MaxDataServicesPerHostConstraint extends
         MaxServicesPerHostConstraint {

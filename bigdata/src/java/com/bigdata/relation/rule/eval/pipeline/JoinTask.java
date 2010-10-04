@@ -52,8 +52,6 @@ import com.bigdata.relation.rule.IStarJoin.IStarConstraint;
 import com.bigdata.relation.rule.eval.ChunkTrace;
 import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.ISolution;
-import com.bigdata.service.DataService;
-import com.bigdata.service.IDataService;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
 import com.bigdata.util.InnerCause;
@@ -62,7 +60,7 @@ import com.bigdata.util.concurrent.LatchedExecutor;
 /**
  * Consumes {@link IBindingSet} chunks from the previous join dimension.
  * <p>
- * Note: Instances of this class MUST be created on the {@link IDataService}
+ * Note: Instances of this class MUST be created on the shard service
  * that is host to the index partition on the task will read and they MUST run
  * inside of an {@link AbstractTask} on the {@link ConcurrencyManager} in order
  * to have access to the local index object for the index partition.
@@ -567,7 +565,7 @@ abstract public class JoinTask implements Callable<Void> {
 
     /**
      * Instances of this class MUST be created in the appropriate execution
-     * context of the target {@link DataService} so that the federation and
+     * context of the target shard service so that the federation and
      * the joinNexus references are both correct and so that it has access
      * to the local index object for the specified index partition.
      * 
@@ -745,7 +743,7 @@ abstract public class JoinTask implements Callable<Void> {
      * The default implementation does nothing and the exception will be logged
      * by the {@link JoinMasterTask}. However, this method is overridden by
      * {@link DistributedJoinTask} so that the exception can be logged on the
-     * host and {@link DataService} where it originates. This appears to be
+     * host and shard service where it originates. This appears to be
      * necessary in order to trace back the cause of an exception which can
      * otherwise be obscured (or even lost?) in a deeply nested RMI stack trace.
      * 

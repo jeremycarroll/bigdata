@@ -31,7 +31,6 @@ import java.net.InetAddress;
 import java.rmi.RemoteException;
 import java.rmi.server.ServerNotActiveException;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 import net.jini.config.Configuration;
@@ -45,6 +44,7 @@ import org.apache.log4j.MDC;
 import com.bigdata.service.ClientService;
 import com.bigdata.service.DataService;
 import com.bigdata.service.ClientService.ClientServiceFederationDelegate;
+import com.bigdata.service.IClientServiceCallable;
 import com.sun.jini.start.LifeCycle;
 import com.sun.jini.start.ServiceDescriptor;
 import com.sun.jini.start.ServiceStarter;
@@ -288,8 +288,7 @@ public class ClientServer extends AbstractServer {
          * {@link Future}.
          */
         @Override
-        public Future<? extends Object> submit(
-                final Callable<? extends Object> task) {
+        public <T> Future<T> submit(final IClientServiceCallable<T> task) {
 
             return getFederation().getProxy(super.submit(task));
 

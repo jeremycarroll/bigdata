@@ -26,7 +26,7 @@ import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.mdi.SegmentMetadata;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.OverflowManager.ResourceScores;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.MetadataService;
@@ -34,10 +34,13 @@ import com.bigdata.service.ndx.ClientIndexView;
 
 //BTM
 import com.bigdata.metadata.EmbeddedShardLocator;
-import com.bigdata.service.IDataService;
+import com.bigdata.service.IService;
 import com.bigdata.service.LoadBalancer;
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
+import com.bigdata.service.Service;
+import com.bigdata.util.Util;
 
 /**
  * Task builds an {@link IndexSegment} from the fused view of an index partition
@@ -92,9 +95,21 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
      */
     protected BuildResult doTask() throws Exception {
 
-        final Event e = new Event(resourceManager.getFederation(), 
-                new EventResource(vmd.indexMetadata),
-                OverflowActionEnum.Merge, vmd.getParams()).start();
+//BTM        final Event e = new Event(resourceManager.getFederation(), 
+//BTM                new EventResource(vmd.indexMetadata),
+//BTM                OverflowActionEnum.Merge, vmd.getParams()).start();
+com.bigdata.service.IBigdataFederation fed = resourceManager.getFederation();
+System.out.println("\n$$$$ CompactingMergeTask: eventQueue = "+fed.getEventQueue());
+System.out.println("$$$$ CompactingMergeTask: serviceIface = "+fed.getServiceIface());
+System.out.println("$$$$ CompactingMergeTask: serviceName  = "+fed.getServiceName());
+System.out.println("$$$$ CompactingMergeTask: serviceUUID  = "+fed.getServiceUUID());
+final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+                           (resourceManager.getFederation()).getServiceIface(),
+                           (resourceManager.getFederation()).getServiceName(),
+                           (resourceManager.getFederation()).getServiceUUID(),
+                           new EventResource(vmd.indexMetadata),
+                           OverflowActionEnum.Merge,
+                           vmd.getParams()).start();
 
         BuildResult buildResult = null;
         try {
@@ -420,13 +435,15 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
                 final String[] resources = new String[2];
 
                 // the underutilized index partition.
-                resources[0] = DataService.getIndexPartitionName(
-                        scaleOutIndexName, vmd.pmd.getPartitionId());
+//BTM                resources[0] = DataService.getIndexPartitionName(
+//BTM                        scaleOutIndexName, vmd.pmd.getPartitionId());
+resources[0] = Util.getIndexPartitionName(scaleOutIndexName, vmd.pmd.getPartitionId());
 
                 // its right sibling (may be local or remote).
-                resources[1] = DataService
-                        .getIndexPartitionName(scaleOutIndexName,
-                                rightSiblingLocator.getPartitionId());
+//BTM                resources[1] = DataService
+//BTM                        .getIndexPartitionName(scaleOutIndexName,
+//BTM                                rightSiblingLocator.getPartitionId());
+resources[1] = Util.getIndexPartitionName(scaleOutIndexName, rightSiblingLocator.getPartitionId());
 
                 if (resourceManager.getDataServiceUUID().equals(
                         targetDataServiceUUID)) {
@@ -445,9 +462,10 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
                     if (log.isInfoEnabled())
                         log.info("Will JOIN: " + Arrays.toString(resources));
 
-                    final String rightSiblingName = DataService
-                            .getIndexPartitionName(scaleOutIndexName,
-                                    rightSiblingLocator.getPartitionId());
+//BTM                    final String rightSiblingName = DataService
+//BTM                            .getIndexPartitionName(scaleOutIndexName,
+//BTM                                    rightSiblingLocator.getPartitionId());
+final String rightSiblingName = Util.getIndexPartitionName(scaleOutIndexName, rightSiblingLocator.getPartitionId());
 
                     final ViewMetadata vmd2 = new ViewMetadata(resourceManager,
                             vmd.commitTime, rightSiblingName, resourceManager
@@ -478,10 +496,13 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
                         // get the target service name.
                         String targetDataServiceName;
                         try {
-                            targetDataServiceName = resourceManager
-                                    .getFederation().getDataService(
-                                            targetDataServiceUUID)
-                                    .getServiceName();
+//BTM                            targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
+ShardService shardService = resourceManager.getFederation().getDataService(targetDataServiceUUID);
+if(shardService instanceof IService) {
+    targetDataServiceName = ((IService)shardService).getServiceName();
+} else {
+    targetDataServiceName = ((Service)shardService).getServiceName();
+}
                         } catch (Throwable t) {
                             targetDataServiceName = targetDataServiceUUID
                                     .toString();
@@ -537,10 +558,13 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
                     // get the target service name.
                     String targetDataServiceName;
                     try {
-                        targetDataServiceName = resourceManager
-                                .getFederation().getDataService(
-                                        targetDataServiceUUID)
-                                .getServiceName();
+//BTM                        targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
+ShardService shardService = resourceManager.getFederation().getDataService(targetDataServiceUUID);
+if(shardService instanceof IService) {
+    targetDataServiceName = ((IService)shardService).getServiceName();
+} else {
+    targetDataServiceName = ((Service)shardService).getServiceName();
+}
                     } catch (Throwable t) {
                         targetDataServiceName = targetDataServiceUUID
                                 .toString();
@@ -761,28 +785,38 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
 //BTM                            op).get();
             
 ShardLocator mds = (resourceManager.getFederation()).getMetadataService();
-if(mds == null) {
-    log.error("CompactingMergeTask.getRightSiblingLocator: null shard locator (metadata) service - could not locate rightSiblings [index="+scaleOutIndexName+"]");
-    return null;
-}
-if(mds instanceof IDataService) {
-    IDataService remoteShardMgr = (IDataService)mds;
-    resultBuffer = 
-        (ResultBuffer) remoteShardMgr.submit
+
+//BTM - BEGIN CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
+//BTMif(mds == null) {
+//BTM    log.error("CompactingMergeTask.getRightSiblingLocator: null shard locator (metadata) service - could not locate rightSiblings [index="+scaleOutIndexName+"]");
+//BTM    return null;
+//BTM}
+//BTMif(mds instanceof IDataService) {
+//BTM    IDataService remoteShardMgr = (IDataService)mds;
+//BTM    resultBuffer = 
+//BTM        (ResultBuffer) remoteShardMgr.submit
+//BTM                           (TimestampUtility.asHistoricalRead(lastCommitTime),
+//BTM                            EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
+//BTM                            op).get();
+//BTM} else if(mds instanceof ShardManagement) {
+//BTM    ShardManagement shardMgr = (ShardManagement)mds;
+//BTM    resultBuffer = 
+//BTM        (ResultBuffer) shardMgr.submit
+//BTM                           (TimestampUtility.asHistoricalRead(lastCommitTime),
+//BTM                            EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
+//BTM                            op).get();
+//BTM} else {
+//BTM    log.error("CompactingMergeTask.getRightSiblingLocator: shard locator (metadata) service wrong type [type="+mds.getClass()+"] - could not locate rightSiblings [index="+scaleOutIndexName+"]");
+//BTM    return null;
+//BTM}
+
+resultBuffer = 
+        (ResultBuffer) ((ShardManagement)mds).submit
                            (TimestampUtility.asHistoricalRead(lastCommitTime),
                             EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
                             op).get();
-} else if(mds instanceof ShardManagement) {
-    ShardManagement shardMgr = (ShardManagement)mds;
-    resultBuffer = 
-        (ResultBuffer) shardMgr.submit
-                           (TimestampUtility.asHistoricalRead(lastCommitTime),
-                            EmbeddedShardLocator.getMetadataIndexName(scaleOutIndexName),
-                            op).get();
-} else {
-    log.error("CompactingMergeTask.getRightSiblingLocator: shard locator (metadata) service wrong type [type="+mds.getClass()+"] - could not locate rightSiblings [index="+scaleOutIndexName+"]");
-    return null;
-}
+
+//BTM - CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
 
         } catch (Exception e) {
 

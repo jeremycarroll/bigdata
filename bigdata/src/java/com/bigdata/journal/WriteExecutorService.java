@@ -56,9 +56,14 @@ import com.bigdata.rawstore.IRawStore;
 import com.bigdata.resources.OverflowManager;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.WriteTaskCounters;
+
+//BTM
+import com.bigdata.service.IService;
+import com.bigdata.service.Service;
+import com.bigdata.service.ShardService;
 
 /**
  * A custom {@link ThreadPoolExecutor} used by the {@link ConcurrencyManager} to
@@ -363,8 +368,18 @@ public class WriteExecutorService extends ThreadPoolExecutor {
          */
         String serviceName;
         try {
-            final DataService dataService = resourceManager.getDataService();
-            serviceName = dataService.getServiceName();
+//BTM            final DataService dataService = resourceManager.getDataService();
+final ShardService dataService = resourceManager.getDataService();
+if(dataService instanceof IService) {
+    try {
+            serviceName = ((IService)dataService).getServiceName();
+    } catch(java.io.IOException e) {
+        log.warn("IOException on call to getServiceName", e);
+        serviceName = "UNKNOWN";//avoid NullPointerExceptions
+    }
+} else {
+    serviceName = ((Service)dataService).getServiceName();
+}
         } catch(UnsupportedOperationException ex) {
             serviceName = "";
         }

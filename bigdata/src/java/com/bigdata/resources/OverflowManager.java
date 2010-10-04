@@ -50,6 +50,7 @@ import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounter;
 import com.bigdata.counters.ICounterSet;
+import com.bigdata.counters.IDataServiceCounters;
 import com.bigdata.counters.IRequiredHostCounters;
 import com.bigdata.io.DirectBufferPool;
 import com.bigdata.journal.AbstractJournal;
@@ -62,15 +63,21 @@ import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.ResourceManager.IResourceManagerCounters;
-import com.bigdata.service.AbstractFederation;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.AbstractFederation;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.EventType;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.IServiceShutdown;
-import com.bigdata.service.DataService.IDataServiceCounters;
+//BTM import com.bigdata.service.DataService.IDataServiceCounters;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
+
+//BTM
+import com.bigdata.service.IBigdataFederation;
+import com.bigdata.service.IService;
+import com.bigdata.service.ShardService;
+import com.bigdata.service.Service;
 
 /**
  * Class encapsulates logic for handling journal overflow events. Overflow is
@@ -89,7 +96,7 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * partitions overflow (resulting in a split into two or more index partitions),
  * index partition underflow (resulting in the join of the under-capacity index
  * partition with its rightSibling), index partition moves (the index partition
- * is moved to a different {@link DataService}), and index partition builds (an
+ * is moved to a different shard service, and index partition builds (an
  * {@link IndexSegment} is created from the current view in what is effectively
  * a compacting merge). Overflow processing is suspended during asynchronous
  * post-processing, but is automatically re-enabled once post-processing
@@ -291,7 +298,7 @@ abstract public class OverflowManager extends IndexManager {
 	 * Flag may be set to force overflow processing during the next group
 	 * commit. The flag is cleared by {@link #overflow()}.
 	 * 
-	 * @see DataService#forceOverflow(boolean, boolean)
+	 * @see OverflowAdmin#forceOverflow(boolean, boolean)
 	 */
     public final AtomicBoolean forceOverflow = new AtomicBoolean(false);
 
@@ -304,7 +311,7 @@ abstract public class OverflowManager extends IndexManager {
      * The state of the flag is cleared each time asynchronous overflow
      * processing begins.
      * 
-	 * @see DataService#forceOverflow(boolean, boolean)
+	 * @see OverflowAdmin#forceOverflow(boolean, boolean)
      */
     public final AtomicBoolean compactingMerge = new AtomicBoolean(false);
 
@@ -531,7 +538,7 @@ abstract public class OverflowManager extends IndexManager {
          * to split an index partition (default
          * {@value #DEFAULT_ACCELERATE_SPLIT_THRESHOLD}). When a new scale-out
          * index is created there is by default only a single index partition on
-         * a single {@link IDataService}. Since each index (partition) is
+         * a single shard service. Since each index (partition) is
          * single threaded for writes, we can increase the potential concurrency
          * if we split the initial index partition. We accelerate decisions to
          * split index partitions by reducing the minimum and target #of tuples
@@ -1696,9 +1703,18 @@ abstract public class OverflowManager extends IndexManager {
             String serviceName = null;
             
             try {
+
+//BTM                serviceName = ((Service)getDataService()).getServiceName();
                 
-                serviceName = getDataService().getServiceName();
-                
+Object dataService = getDataService();
+if(dataService instanceof IService) {
+    try {
+        serviceName = ((IService)dataService).getServiceName();
+    } catch(IOException e) { /* swallow */ }
+} else {
+    Service srvc = (Service)getDataService();
+    if(srvc != null) serviceName = srvc.getServiceName();
+}
             } catch (UnsupportedOperationException ex) {
                 
                 // ignore.
@@ -1994,10 +2010,17 @@ abstract public class OverflowManager extends IndexManager {
 		 */
     	final boolean forceOverflow = this.forceOverflow.getAndSet(false/* newValue */);
     	
-        final Event e = new Event(getFederation(), new EventResource(),
-                EventType.SynchronousOverflow).addDetail(
-                "synchronousOverflowCounter",
-                overflowCounters.synchronousOverflowCounter.get()).start();
+//BTM        final Event e = new Event(getFederation(), new EventResource(),
+//BTM                EventType.SynchronousOverflow).addDetail(
+//BTM                "synchronousOverflowCounter",
+//BTM                overflowCounters.synchronousOverflowCounter.get()).start();
+final Event e = new Event(getFederation().getEventQueue(),
+                          getFederation().getServiceIface(),
+                          getFederation().getServiceName(),
+                          getFederation().getServiceUUID(),
+                          new EventResource(),
+                          EventType.SynchronousOverflow).addDetail("synchronousOverflowCounter",
+                                                                   overflowCounters.synchronousOverflowCounter.get()).start();
 
         try {
 
@@ -2257,7 +2280,7 @@ abstract public class OverflowManager extends IndexManager {
          * their declarations!
          * 
          * Note: getCounters() on this class gets attached to the serviceRoot by
-         * the DataService so that is where we need to go to detach and then
+         * the shard service so that is where we need to go to detach and then
          * re-attach the counters.
          */
         try {
@@ -2807,7 +2830,8 @@ abstract public class OverflowManager extends IndexManager {
      */
     protected double getHostCounter(final String path, final double defaultValue) {
 
-        final AbstractFederation<?> fed = (AbstractFederation<?>) getFederation();
+//BTM        final AbstractFederation<?> fed = (AbstractFederation<?>) getFederation();
+final IBigdataFederation fed = getFederation();
 
         final ICounterSet hostRoot = fed.getHostCounterSet();
 
@@ -2855,7 +2879,8 @@ abstract public class OverflowManager extends IndexManager {
     protected double getServiceCounter(final String path,
             final double defaultValue) {
 
-        final AbstractFederation<?> fed = (AbstractFederation<?>) getFederation();
+//BTM        final AbstractFederation<?> fed = (AbstractFederation<?>) getFederation();
+final IBigdataFederation fed = getFederation();
 
         final ICounterSet serviceRoot = fed.getServiceCounterSet();
 

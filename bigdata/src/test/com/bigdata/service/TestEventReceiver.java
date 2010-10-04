@@ -59,6 +59,13 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.httpd.AbstractHTTPD;
 import com.ibm.icu.impl.LinkedHashMap;
 
+//BTM
+import com.bigdata.event.EventQueue;
+import com.bigdata.service.Event;
+
+import java.util.LinkedList;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Unit tests for the {@link EventReceiver}.
@@ -86,7 +93,6 @@ public class TestEventReceiver extends TestCase2 {
      * {@link EventReceiver} on the {@link MockFederation}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static class MyEvent extends Event {
 
@@ -95,30 +101,37 @@ public class TestEventReceiver extends TestCase2 {
          */
         private static final long serialVersionUID = 3987546249519888387L;
 
+//BTM
+private transient IBigdataFederation fed;
+
         /**
          * @param fed
          * @param resource
          * @param majorEventType
          */
-        public MyEvent(IBigdataFederation fed, EventResource resource, Object majorEventType) {
+//BTM        public MyEvent(IBigdataFederation fed, EventResource resource, Object majorEventType) {
+public MyEvent(IBigdataFederation fed, EventQueue eventQueue, Class serviceIface, String serviceName, UUID serviceUUID, EventResource resource, Object majorEventType) {
             
-            super(fed, resource, majorEventType);
+//BTM            super(fed, resource, majorEventType);
+super(eventQueue, serviceIface, serviceName, serviceUUID, resource, majorEventType);
+this.fed = fed;
 
         }
 
-        protected MyEvent(final IBigdataFederation fed,
-                final EventResource resource, final Object majorEventType,
-                final Object minorEventType, final Map<String, Object> details) {
+//BTM        protected MyEvent(final IBigdataFederation fed, final EventResource resource, final Object majorEventType, final Object minorEventType, final Map<String, Object> details) {
+protected MyEvent(final IBigdataFederation fed, final EventQueue eventQueue, final Class serviceIface, final String serviceName, final UUID serviceUUID, final EventResource resource, final Object majorEventType, final Object minorEventType, final Map<String, Object> details) {
 
-            super(fed, resource, majorEventType, minorEventType, details);
+//BTM            super(fed, resource, majorEventType, minorEventType, details);
+super(eventQueue, serviceIface, serviceName, serviceUUID, resource, majorEventType, minorEventType, details);
+this.fed = fed;
 
         }
 
         @Override
         public MyEvent newSubEvent(Object minorEventType) {
 
-            return new MyEvent(this.fed, this.resource, this.majorEventType,
-                    minorEventType, this.details);
+//BTM            return new MyEvent(this.fed, this.resource, this.majorEventType, minorEventType, this.details);
+return new MyEvent(this.fed, this.eventQueue, this.serviceIface, this.serviceName, this.serviceUUID, this.resource, this.majorEventType, minorEventType, this.details);
 
         }
         
@@ -154,8 +167,8 @@ public class TestEventReceiver extends TestCase2 {
 
         final IBigdataFederation fed = new MockFederation(eventReceiver);
         
-        final Event e = new MyEvent(fed, new EventResource("testIndex"),
-                "testEventType");
+//BTM        final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
+final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(), new EventResource("testIndex"), "testEventType");
 
         assertEquals(0, eventReceiver.eventCache.size());
 
@@ -235,8 +248,8 @@ public class TestEventReceiver extends TestCase2 {
 
         final IBigdataFederation fed = new MockFederation(eventReceiver);
         
-        final Event e = new MyEvent(fed, new EventResource("testIndex"),
-                "testEventType");
+//BTM        final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
+final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(), new EventResource("testIndex"), "testEventType");
 
         assertEquals(0, eventReceiver.eventCache.size());
 
@@ -318,8 +331,8 @@ public class TestEventReceiver extends TestCase2 {
         int nevents = 0;
         while ((elapsed = System.currentTimeMillis() - begin) < eventHistoryMillis / 2) {
             
-            final Event e = new MyEvent(fed, new EventResource("testIndex"),
-                    "testEventType");
+//BTM            final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
+final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(), new EventResource("testIndex"), "testEventType");
 
             if (r.nextDouble() < .2) {
 
@@ -441,8 +454,8 @@ public class TestEventReceiver extends TestCase2 {
 
             for (int i = 0; i < nevents; i++) {
 
-                final Event e = new MyEvent(fed,
-                        new EventResource("testIndex"), "testEventType");
+//BTM                final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
+final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(), new EventResource("testIndex"), "testEventType");
 
                 if (r.nextDouble() < .2) {
 
@@ -485,7 +498,6 @@ public class TestEventReceiver extends TestCase2 {
      * the events are stored).
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static private class EventConsumer implements Callable<Void> {
        
@@ -526,13 +538,14 @@ public class TestEventReceiver extends TestCase2 {
      * Mock federation to support the unit tests in the outer class.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static class MockFederation implements IBigdataFederation<IEventReceivingService> {
 
         private final IEventReceivingService eventReceiver;
         private final UUID serviceUUID = UUID.randomUUID();
-        
+//BTM
+private final MockSendEventsTask mockSendEventsTask = new MockSendEventsTask();
+
         MockFederation(final IEventReceivingService eventReceiver) {
             
             this.eventReceiver = eventReceiver;
@@ -578,7 +591,8 @@ public class TestEventReceiver extends TestCase2 {
             
         }
 
-        public IDataService getAnyDataService() {
+//BTM        public IDataService getAnyDataService() {
+public ShardService getAnyDataService() {
             return null;
         }
 
@@ -590,11 +604,13 @@ public class TestEventReceiver extends TestCase2 {
             return null;
         }
 
-        public IDataService getDataService(UUID serviceUUID) {
+//BTM        public IDataService getDataService(UUID serviceUUID) {
+public ShardService getDataService(UUID serviceUUID) {
             return null;
         }
 
-        public IDataService getDataServiceByName(String name) {
+//BTM        public IDataService getDataServiceByName(String name) {
+public ShardService getDataServiceByName(String name) {
             return null;
         }
 
@@ -602,7 +618,8 @@ public class TestEventReceiver extends TestCase2 {
             return null;
         }
 
-        public IDataService[] getDataServices(UUID[] uuid) {
+//BTM        public IDataService[] getDataServices(UUID[] uuid) {
+public ShardService[] getDataServices(UUID[] uuid) {
             return null;
         }
 
@@ -709,9 +726,7 @@ public class TestEventReceiver extends TestCase2 {
         public void serviceJoin(IService service, UUID serviceUUID) {
             
         }
-//BTM - BEGIN
-        public void serviceJoin(Service service, UUID serviceUUID) { }
-//BTM - END
+
         public void serviceLeave(UUID serviceUUID) {
             
         }
@@ -719,7 +734,38 @@ public class TestEventReceiver extends TestCase2 {
         public CounterSet getHostCounterSet() {
             return null;
         }
+
+//BTM - BEGIN -----------------------------------------------------------------
+        public void serviceJoin(Service service, UUID serviceUUID) { }
+
+        public EventQueue getEventQueue() {
+            return mockSendEventsTask;
+        }
+//BTM - END -------------------------------------------------------------------
+
         
     }
-    
+
+//BTM - BEGIN -----------------------------------------------------------------
+    static class MockSendEventsTask implements EventQueue, Runnable {
+        final private BlockingQueue<Event> eventQueue = 
+                          new LinkedBlockingQueue<Event>();
+        public MockSendEventsTask() { }
+        public void queueEvent(Event e) {
+            eventQueue.add(e);
+        }
+        public void run() {
+            try {
+                final LinkedList<Event> c = new LinkedList<Event>();
+                eventQueue.drainTo(c);
+                for (Event e : c) {
+                    log.debug("sent event to load balancer");
+                }
+            } catch (Throwable t) {
+                log.warn(IEventReceivingService.class.getName(), t);
+            }
+        }
+    }
+//BTM - END -------------------------------------------------------------------
+
 }

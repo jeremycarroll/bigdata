@@ -43,7 +43,7 @@ import com.bigdata.service.TxServiceRunState;
 import com.bigdata.util.MillisecondTimestampFactory;
 
 //BTM
-import com.bigdata.service.TxState;
+import com.bigdata.journal.TxState;
 
 /**
  * Unit tests of the {@link AbstractTransactionService} using a mock client.

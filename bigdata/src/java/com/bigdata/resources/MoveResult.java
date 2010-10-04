@@ -5,7 +5,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
+
+//BTM
+import com.bigdata.util.Util;
 
 /**
  * The object returned by {@link MoveIndexPartitionTask}.
@@ -75,8 +78,9 @@ public class MoveResult extends AbstractResult {
 
         this.newPartitionId = newPartitionId;
 
-        this.targetIndexName = DataService.getIndexPartitionName(indexMetadata
-                .getName(), newPartitionId);
+//BTM        this.targetIndexName = DataService.getIndexPartitionName(indexMetadata
+//BTM                .getName(), newPartitionId);
+this.targetIndexName = Util.getIndexPartitionName(indexMetadata.getName(), newPartitionId);
         
         this.oldLocator = oldLocator;
 

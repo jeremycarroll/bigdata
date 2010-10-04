@@ -46,12 +46,15 @@ import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.service.DataService;
-import com.bigdata.service.IDataService;
-import com.bigdata.service.MetadataService;
+//BTM import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.MetadataService;
 import com.bigdata.service.jini.AbstractServer;
 import com.bigdata.util.config.NicUtil;
 import com.sun.jini.tool.ClassServer;
+
+//BTM
+import com.bigdata.service.ShardService;
 
 /**
  * Abstract base class for tests of remote services.
@@ -349,7 +352,7 @@ public abstract class AbstractServerTestCase extends TestCase2 {
     }
     
     /**
-     * Lookup a {@link DataService} by its {@link ServiceID} using unicast
+     * Lookup a shard service by its {@link ServiceID} using unicast
      * discovery on localhost.
      * 
      * @param serviceID
@@ -359,12 +362,13 @@ public abstract class AbstractServerTestCase extends TestCase2 {
      * 
      * @todo Modify to return the service item?
      * 
-     * @todo Modify to not be specific to {@link DataService} vs
-     *       {@link MetadataService} (we need a common base interface for both
+     * @todo Modify to not be specific to shard service vs shard locator
+     *       service (we need a common base interface for both
      *       that carries most of the functionality but allows us to make
      *       distinctions easily during discovery).
      */
-    public IDataService lookupDataService(ServiceID serviceID)
+//BTM    public IDataService lookupDataService(ServiceID serviceID)
+public ShardService lookupDataService(ServiceID serviceID)
             throws IOException, ClassNotFoundException, InterruptedException {
 
         /* 
@@ -396,7 +400,8 @@ public abstract class AbstractServerTestCase extends TestCase2 {
                 /*
                  * Use this to filter services by an interface that they expose.
                  */
-//                new Class[] { IDataService.class },
+//BTM //                new Class[] { IDataService.class },
+// new Class[] { ShardService.class },
                 null,
                 /*
                  * use this to filter for services by Entry attributes.
@@ -413,12 +418,13 @@ public abstract class AbstractServerTestCase extends TestCase2 {
          * wait state).
          */
         
-        IDataService service = null;
+//BTM        IDataService service = null;
+ShardService service = null;
         
         for (int i = 0; i < 10 && service == null; i++) {
         
-            service = (IDataService) serviceRegistrar
-                    .lookup(template /* , maxMatches */);
+//BTM            service = (IDataService) serviceRegistrar.lookup(template /* , maxMatches */);
+service = (ShardService) serviceRegistrar.lookup(template /* , maxMatches */);
             
             if (service == null) {
             

@@ -211,10 +211,13 @@ public class TestBuildTask2 extends AbstractResourceManagerTestCase {
         int npasses = 0;
         while (npasses++ < 50) {
 
-            final Event e = new Event(resourceManager.getFederation(),
-                    new EventResource(name), "test").addDetail("pass", ""
-                    + npasses).start();
-
+//BTM            final Event e = new Event(resourceManager.getFederation(), new EventResource(name), "test").addDetail("pass", "" + npasses).start();
+final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+                           (resourceManager.getFederation()).getServiceIface(),
+                           (resourceManager.getFederation()).getServiceName(),
+                           (resourceManager.getFederation()).getServiceUUID(),
+                           new EventResource(name),
+                           "test" ).addDetail("pass", "" + npasses).start();
             try {
 
                 /*

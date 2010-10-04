@@ -37,7 +37,9 @@ import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.service.AbstractScaleOutFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
+
+import com.bigdata.service.ShardService;
 
 /**
  * A client-side view of a scale-out index.
@@ -60,7 +62,8 @@ public interface IScaleOutClientIndex extends IClientIndex, ISplitter,
      *             if none of the data services identified in the index
      *             partition locator record could be discovered.
      */
-    IDataService getDataService(final PartitionLocator pmd);
+//BTM    IDataService getDataService(final PartitionLocator pmd);
+ShardService getDataService(final PartitionLocator pmd);
 
     /**
      * Returns an iterator that will visit the {@link PartitionLocator}s for

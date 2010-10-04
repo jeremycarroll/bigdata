@@ -41,6 +41,9 @@ import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
+//BTM
+import com.bigdata.journal.IIndexStore;
+
 /**
  * Implementation caches all locators but does not allow stale locators. This is
  * useful for read-historical index views since locators can not become stale
@@ -61,7 +64,8 @@ public class CacheOnceMetadataIndex implements IMetadataIndex {
     /**
      * The federation.
      */
-    protected final AbstractScaleOutFederation fed;
+//BTM    protected final AbstractScaleOutFederation fed;
+protected final IBigdataFederation fed;
 
     /**
      * Name of the scale-out index.
@@ -89,7 +93,8 @@ public class CacheOnceMetadataIndex implements IMetadataIndex {
      * @param name
      *            The name of the scale-out index.
      */
-    public CacheOnceMetadataIndex(AbstractScaleOutFederation fed, String name,
+//BTM    public CacheOnceMetadataIndex(AbstractScaleOutFederation fed, String name,
+public CacheOnceMetadataIndex(IBigdataFederation fed, String name,
             long timestamp, MetadataIndexMetadata mdmd) {
 
         this.fed = fed;
@@ -102,7 +107,8 @@ public class CacheOnceMetadataIndex implements IMetadataIndex {
          * Allocate a cache for the defined index partitions.
          */
         this.mdi = MetadataIndex.create(//
-                fed.getTempStore(),//
+//BTM                fed.getTempStore(),//
+((IIndexStore)fed).getTempStore(),
                 mdmd.getIndexUUID(),// UUID of the metadata index.
                 mdmd.getManagedIndexMetadata()// the managed index's metadata.
                 );

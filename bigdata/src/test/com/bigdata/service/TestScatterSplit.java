@@ -54,6 +54,7 @@ import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
 //BTM
 import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+import com.bigdata.service.OverflowAdmin;
 
 /**
  * Some unit tests for moving an index partition.
@@ -142,7 +143,21 @@ public class TestScatterSplit extends AbstractEmbeddedFederationTestCase {
 
         final int dataServiceCount = 2;
         final int expectedIndexPartitionCount = 4;
-        
+//BTM
+UUID dataService0UUID = null;
+if(dataService0 instanceof IService) {
+    dataService0UUID = ((IService)dataService0).getServiceUUID();
+} else {
+    dataService0UUID = ((Service)dataService0).getServiceUUID();
+}
+OverflowAdmin overflowAdmin0 = (OverflowAdmin)dataService0;
+
+UUID dataService1UUID = null;
+if(dataService1 instanceof IService) {
+    dataService1UUID = ((IService)dataService1).getServiceUUID();
+} else {
+    dataService1UUID = ((Service)dataService1).getServiceUUID();
+}
         /*
          * Register the index.
          */
@@ -169,7 +184,8 @@ public class TestScatterSplit extends AbstractEmbeddedFederationTestCase {
                     ));
 
             // register the scale-out index, creating a single index partition.
-            fed.registerIndex(indexMetadata, dataService0.getServiceUUID());
+//BTM            fed.registerIndex(indexMetadata, dataService0.getServiceUUID());
+fed.registerIndex(indexMetadata, dataService0UUID);
 
         }
 
@@ -191,8 +207,8 @@ public class TestScatterSplit extends AbstractEmbeddedFederationTestCase {
 
             assertEquals("partitionId", 0L, pmd0.getPartitionId());
 
-            assertEquals("dataServiceUUID", dataService0
-                    .getServiceUUID(), pmd0.getDataServiceUUID());
+//BTM            assertEquals("dataServiceUUID", dataService0.getServiceUUID(), pmd0.getDataServiceUUID());
+assertEquals("dataServiceUUID", dataService0UUID, pmd0.getDataServiceUUID());
             
         }
         assertEquals("partitionCount", 1, getPartitionCount(name));
@@ -224,7 +240,8 @@ public class TestScatterSplit extends AbstractEmbeddedFederationTestCase {
          * partition count has increased and exit this loop.
          */
         final int batchSize = 5000;
-        long overflowCounter = dataService0.getAsynchronousOverflowCounter();
+//BTM        long overflowCounter = dataService0.getAsynchronousOverflowCounter();
+long overflowCounter = overflowAdmin0.getAsynchronousOverflowCounter();
         int npartitions = -1;
         {
 
@@ -253,8 +270,8 @@ public class TestScatterSplit extends AbstractEmbeddedFederationTestCase {
                                 null/* handler */);
 
                 // Set flag to force overflow on group commit.
-                dataService0
-                        .forceOverflow(false/* immediate */, false/* compactingMerge */);
+//BTM                dataService0.forceOverflow(false/* immediate */, false/* compactingMerge */);
+overflowAdmin0.forceOverflow(false/* immediate */, false/* compactingMerge */);
 
                 // insert the data into the scale-out index.
                 fed.getIndex(name, ITx.UNISOLATED)
@@ -262,8 +279,8 @@ public class TestScatterSplit extends AbstractEmbeddedFederationTestCase {
                                 vals, BatchInsertConstructor.RETURN_NO_VALUES,
                                 null/* handler */);
 
-                overflowCounter = awaitAsynchronousOverflow(dataService0,
-                        overflowCounter);
+//BTM                overflowCounter = awaitAsynchronousOverflow(dataService0, overflowCounter);
+overflowCounter = awaitAsynchronousOverflow(overflowAdmin0, overflowCounter);
                 
                 assertEquals("rangeCount", groundTruth.getEntryCount(), fed
                         .getIndex(name, ITx.UNISOLATED).rangeCount());
@@ -327,13 +344,13 @@ public class TestScatterSplit extends AbstractEmbeddedFederationTestCase {
 
                 System.err.println("locators["+n+"]="+locator);
                 
-                if (locator.getDataServiceUUID().equals(dataService0
-                        .getServiceUUID())) {
+//BTM                if (locator.getDataServiceUUID().equals(dataService0.getServiceUUID())) {
+if (locator.getDataServiceUUID().equals(dataService0UUID)) {
 
                     ndataService0++;
 
-                } else if (locator.getDataServiceUUID().equals(
-                        dataService1.getServiceUUID())) {
+//BTM                } else if (locator.getDataServiceUUID().equals(dataService1.getServiceUUID())) {
+} else if (locator.getDataServiceUUID().equals(dataService1UUID)) {
 
                     ndataService1++;
 

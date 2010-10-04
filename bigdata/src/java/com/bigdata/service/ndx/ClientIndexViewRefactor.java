@@ -41,7 +41,6 @@ import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.service.AbstractScaleOutFederation;
-import com.bigdata.service.IDataService;
 
 /**
  * <p>
@@ -49,7 +48,7 @@ import com.bigdata.service.IDataService;
  * </p>
  * <p>
  * This view automatically handles the split, join, or move of index partitions
- * within the federation. The {@link IDataService} throws back a (sometimes
+ * within the federation. The shard service throws back a (sometimes
  * wrapped) {@link StaleLocatorException} when it does not have a registered
  * index as of some timestamp. If this exception is observed when the client
  * makes a request using a cached {@link PartitionLocator} record then the

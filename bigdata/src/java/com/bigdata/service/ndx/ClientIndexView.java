@@ -87,7 +87,7 @@ import com.bigdata.relation.accesspath.UnsynchronizedArrayBuffer;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 //BTM import com.bigdata.service.IMetadataService;
 import com.bigdata.service.Split;
 import com.bigdata.service.IBigdataClient.Options;
@@ -101,6 +101,7 @@ import com.bigdata.util.concurrent.MappedTaskExecutor;
 
 //BTM
 import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardService;
 
 /**
  * <p>
@@ -108,7 +109,7 @@ import com.bigdata.service.ShardLocator;
  * </p>
  * <p>
  * This view automatically handles the split, join, or move of index partitions
- * within the federation. The {@link IDataService} throws back a (sometimes
+ * within the federation. The {@link ShardService} throws back a (sometimes
  * wrapped) {@link StaleLocatorException} when it does not have a registered
  * index as of some timestamp. If this exception is observed when the client
  * makes a request using a cached {@link PartitionLocator} record then the
@@ -211,7 +212,7 @@ public class ClientIndexView implements IScaleOutClientIndex {
     }
 
     /**
-     * The timeout in milliseconds for tasks run on an {@link IDataService}.
+     * The timeout in milliseconds for tasks run on an {@link ShardService}.
      * 
      * @see Options#CLIENT_TASK_TIMEOUT
      */
@@ -439,7 +440,7 @@ final protected ShardLocator getMetadataService() {
      * The metadata for the managed scale-out index. Among other things, this
      * gets used to determine how we serialize keys and values for
      * {@link IKeyArrayIndexProcedure}s when we serialize a procedure to be
-     * sent to a remote {@link IDataService}.
+     * sent to a remote {@link ShardService}.
      */
     public IndexMetadata getIndexMetadata() {
 
@@ -2133,7 +2134,8 @@ final protected ShardLocator getMetadataService() {
 //        
 //    }
     
-    public IDataService getDataService(final PartitionLocator pmd) {
+//BTM    public IDataService getDataService(final PartitionLocator pmd) {
+public ShardService getDataService(final PartitionLocator pmd) {
 
         return fed.getDataService(pmd.getDataServiceUUID());
 

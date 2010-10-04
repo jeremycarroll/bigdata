@@ -47,6 +47,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+//BTM - PRE_FRED_3481
+import com.bigdata.service.IDataServiceCallable;
+
 class ServiceProxy implements ShardLocator, ShardManagement, Service,
                               Administrable, Serializable
 {
@@ -169,10 +172,11 @@ class ServiceProxy implements ShardLocator, ShardManagement, Service,
                    (tx, name, fromKey, toKey, capacity, flags, filter);
     }
 
-    public Future<? extends Object> submit(Callable<? extends Object> proc)
+//BTM - PRE_FRED_3481    public Future<? extends Object> submit(Callable<? extends Object> proc)
+    public <T> Future<T> submit(IDataServiceCallable<T> task)
                                         throws IOException
     {
-        return innerProxy.submit(proc);
+        return innerProxy.submit(task);
     }
 
     public Future submit(long tx, String name, IIndexProcedure proc)

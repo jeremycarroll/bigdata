@@ -56,17 +56,22 @@ import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.IProgram;
 import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.IStep;
-import com.bigdata.service.DataService;
-import com.bigdata.service.DataServiceCallable;
+//BTM import com.bigdata.service.DataService;
+//BTM - PRE_FRED_3481 import com.bigdata.service.DataServiceCallable;
 import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.service.ndx.ClientIndexView;
 import com.bigdata.service.ndx.IClientIndex;
 
+//BTM
+//BTM - PRE_FRED_3481import com.bigdata.resources.ResourceManager;
+//BTM - PRE_FRED_3481import com.bigdata.journal.ConcurrencyManager;
+//BTM - PRE_FRED_3481import com.bigdata.service.Session;
+
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
+//BTM - PRE_FRED_3481 abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
+abstract public class AbstractStepTask
         implements IStepTask, Cloneable {
 
     protected static final transient Logger log = Logger.getLogger(AbstractStepTask.class);
@@ -87,7 +92,7 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
      * notices this case and causes <i>this</i> task to be {@link #clone()}ed,
      * the {@link ExecutorService} set on the clone, and the clone is then
      * submitted to the {@link ConcurrencyManager} for the {@link DataService}.
-     * 
+     *
      * @param action
      *            Indicate whether this is a query or a mutation operation.
      * @param joinNexusFactory
@@ -98,7 +103,7 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
      * @param dataService
      *            non-<code>null</code> iff the caller is already running on
      *            a {@link DataService}.
-     * 
+     *
      * @throws IllegalArgumentException
      *             if <i>action</i> is <code>null</code>.
      * @throws IllegalArgumentException
@@ -108,49 +113,71 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
      */
 //    * @throws IllegalArgumentException
 //    *             if <i>indexManager</i> is <code>null</code>.
+//BTM    protected AbstractStepTask(final ActionEnum action,
+//BTM            final IJoinNexusFactory joinNexusFactory, final IStep step,
+//BTM            final IIndexManager indexManager, final DataService dataService) {
+
+//BTM - PRE_FRED_3481 protected AbstractStepTask(final ActionEnum action,
+//BTM - PRE_FRED_3481         final IJoinNexusFactory joinNexusFactory, final IStep step,
+//BTM - PRE_FRED_3481         final IIndexManager indexManager,
+//BTM - PRE_FRED_3481         final ResourceManager dataServiceResourceMgr,
+//BTM - PRE_FRED_3481         final ConcurrencyManager dataServiceConcurrencyMgr,
+//BTM - PRE_FRED_3481         final IIndexManager dataServiceIndexMgr,
+//BTM - PRE_FRED_3481         final Session dataServiceSession,
+//BTM - PRE_FRED_3481         final String dataServiceHost,
+//BTM - PRE_FRED_3481         final String dataServiceName) {
+
     protected AbstractStepTask(final ActionEnum action,
-            final IJoinNexusFactory joinNexusFactory, final IStep step,
-            final IIndexManager indexManager, final DataService dataService) {
+                final IJoinNexusFactory joinNexusFactory, final IStep step,
+                final IIndexManager indexManager)
+    {
 
         if (action == null)
             throw new IllegalArgumentException();
 
         if (joinNexusFactory == null)
             throw new IllegalArgumentException();
-        
+
         if (step == null)
             throw new IllegalArgumentException();
 
         this.action = action;
-        
+
         this.joinNexusFactory = joinNexusFactory;
-        
+
         this.step = step;
-        
+
         this.indexManager = indexManager; // @todo MAY be null?
-        
-        if (dataService != null)
-            setDataService(dataService);
+
+//BTM        if (dataService != null)
+//BTM            setDataService(dataService);
+//BTM - PRE_FRED_3481 
+//BTM - PRE_FRED_3481 this.dsResourceManager = dataServiceResourceMgr;
+//BTM - PRE_FRED_3481 this.dsConcurrencyManager = dataServiceConcurrencyMgr;
+//BTM - PRE_FRED_3481 this.dsIndexManager = dataServiceIndexMgr;
+//BTM - PRE_FRED_3481 this.dsSession = dataServiceSession;
+//BTM - PRE_FRED_3481 this.dsHost = dataServiceHost;
+//BTM - PRE_FRED_3481 this.dsServiceName = dataServiceName;
         
     }
 
     public String toString() {
-        
+
         return "{" + getClass().getSimpleName() + ", action=" + action
                 + ", step=" + step.getName() + ", joinNexusFactory="
-                + joinNexusFactory + ", indexManager=" + indexManager+"}"; 
-        
+                + joinNexusFactory + ", indexManager=" + indexManager+"}";
+
     }
-    
+
     /**
      * Run program steps in parallel.
-     * 
+     *
      * @param program
      * @param tasks
-     * 
+     *
      * @throws InterruptedException
      * @throws ExecutionException
-     * 
+     *
      * @todo adapt the {@link ClientIndexView} code so that we notice all
      *       errors, log them all, and report them all in a single thrown
      *       exception. note that we may be running asynchronously inside of a
@@ -164,84 +191,84 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
     protected RuleStats runParallel(final IJoinNexus joinNexus, final IStep program,
             final List<Callable<RuleStats>> tasks) throws InterruptedException,
             ExecutionException {
-    
+
         if (log.isInfoEnabled())
             log.info("program=" + program.getName() + ", #tasks="
                     + tasks.size());
-        
+
         if (indexManager == null)
             throw new IllegalStateException();
-        
+
         final RuleStats totals = joinNexus.getRuleStatisticsFactory().newInstance(program);
-        
+
         final ExecutorService service = indexManager.getExecutorService();
-        
+
         // submit tasks and await their completion.
         final List<Future<RuleStats>> futures = service.invokeAll(tasks);
-    
+
         // verify no problems with tasks.
         for (Future<RuleStats> f : futures) {
-    
+
             final RuleStats tmp = f.get();
-            
+
             totals.add(tmp);
-    
+
         }
-    
+
         if (log.isInfoEnabled())
             log.info("program=" + program.getName() + ", #tasks="
                     + tasks.size() + " - done");
-    
+
         return totals;
-    
+
     }
 
     /**
      * Run program steps in sequence.
-     * 
+     *
      * @param program
      * @param tasks
-     * 
-     * @return 
+     *
+     * @return
      * @throws InterruptedException
      * @throws ExecutionException
      */
     protected RuleStats runSequential(final IJoinNexus joinNexus,
             final IStep program, final List<Callable<RuleStats>> tasks)
             throws InterruptedException, ExecutionException {
-    
+
         final int ntasks = tasks.size();
-        
+
         if (log.isInfoEnabled())
             log.info("program=" + program.getName() + ", #tasks=" + ntasks);
-    
+
         if (indexManager == null)
             throw new IllegalStateException();
-        
+
         final ExecutorService service = indexManager.getExecutorService();
-        
+
         final RuleStats totals = joinNexus.getRuleStatisticsFactory().newInstance(program);
-        
+
         final Iterator<Callable<RuleStats>> itr = tasks.iterator();
-    
+
         int n = 0;
-        
+
         while (itr.hasNext()) {
-    
+
             final Callable<RuleStats> task = itr.next();
-    
+
             /*
              * Submit and wait for the future.
-             * 
+             *
              * Note: tasks that are run in a sequential program are required to
              * flush the buffer so that all solutions are available for the next
              * step of the program. This is critical for programs that have
              * dependencies between their steps.
-//             * 
+//             *
 //             * Note: This is handled by the task factory.
              */
             final RuleStats tmp = service.submit(task).get();
-    
+
             totals.add(tmp);
 
             n++;
@@ -258,9 +285,9 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
         if (log.isInfoEnabled())
             log.info("program=" + program.getName() + ", #tasks=" + ntasks
                     + " - done");
-    
+
         return totals;
-    
+
     }
 
     /**
@@ -272,10 +299,10 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
      * layering of the {@link RuleStats} (this is due to a coupling between the
      * {@link RuleStats} reporting structure and the control structure for
      * executing the tasks).
-     * 
+     *
      * @param program
      * @param tasks
-     * 
+     *
      * @return
      * @throws InterruptedException
      * @throws ExecutionException
@@ -283,21 +310,21 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
     protected RuleStats runOne(final IJoinNexus joinNexus, final IStep program,
             final Callable<RuleStats> task) throws InterruptedException,
             ExecutionException {
-    
+
         if (log.isInfoEnabled())
             log.info("program=" + program.getName());
-    
+
         if (indexManager == null)
             throw new IllegalStateException();
-        
+
         /*
          * Submit and wait for the future.
-         * 
+         *
          * Note: tasks that are run in a sequential (or as a single task)
          * program are required to flush the buffer so that all solutions are
          * available for the next step of the program. This is critical for
          * programs that have dependencies between their steps.
-         * 
+         *
          * Note: This is handled by the task factory.
          */
 //        final ExecutorService service = indexManager.getExecutorService();
@@ -311,9 +338,9 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
 
         if (log.isInfoEnabled())
             log.info("program=" + program.getName() + " - done");
-    
+
         return stats;
-    
+
     }
 
     /**
@@ -337,22 +364,30 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
      * {@link AbstractTask} will wind up using an {@link IClientIndex} view and
      * lose the benefits of access to unisolated indices.
      */
-    public Future<RuleStats> submit() {
+//BTM - PRE_FRED_3481    public Future<RuleStats> submit() {
+//BTM - PRE_FRED_3481
+//BTM - PRE_FRED_3481        if (!isDataService()) {
+    public Future<RuleStats> submit(IConcurrencyManager concurrencyManager) {
 
-        if (!isDataService()) {
+        if (concurrencyManager == null) {
 
             return indexManager.getExecutorService().submit(this);
 
         }
 
-        return submitToConcurrencyManager();
+//BTM - PRE_FRED_3481        return submitToConcurrencyManager();
+        return submitToConcurrencyManager(concurrencyManager);
         
     }
     
-    private Future<RuleStats> submitToConcurrencyManager() {
-        
-        if (!isDataService())
-            throw new IllegalStateException();
+//BTM - PRE_FRED_3481    private Future<RuleStats> submitToConcurrencyManager() {
+//BTM - PRE_FRED_3481        
+//BTM - PRE_FRED_3481        if (!isDataService())
+//BTM - PRE_FRED_3481            throw new IllegalStateException();
+    private Future<RuleStats> submitToConcurrencyManager(IConcurrencyManager concurrencyManager) {
+        if (concurrencyManager == null) {
+            throw new IllegalStateException("null concurrency manager");
+        }
 
         final ProgramUtility util = new ProgramUtility();
 
@@ -374,40 +409,40 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
             }
 
         }
-        
+
         if(log.isInfoEnabled()) {
 
             log.info("running w/ concurrency control: " + this);
-            
+
         }
 
         /*
          * The index names must be gathered from each relation on which the task
          * will write so that they can be declared.
-         * 
+         *
          * Note: We can't just pick and choose using the access paths since we
          * do not know how the propagation of bindings will effect access path
          * selection so we need a lock on all of the indices before the task can
          * run (at least, before it can run if it is a writer - no locks are
          * required for query).
-         * 
+         *
          * 1. Find the distinct relations that are used by the rules.
-         * 
+         *
          * 2. Collect the names of the indices maintained by those relations.
-         * 
+         *
          * 3. Declare the indices since the task will need an exclusive lock on
          * them (mutation) or at least the ability to read from those indices
          * (query).
-         * 
+         *
          * Note: if an index is not found on the live journal then it will be
          * resolved against the federation (if running in a federation). This
          * means that the task will run with the live index objects when they
          * are local and with IClientIndex objects when the index is remote.
-         * 
+         *
          * Note: In general, mixtures of live and remote index objects do not
          * occur since indices are either partitioned (a federation) or
          * monolithic (a Journal).
-         * 
+         *
          * Note: You CAN place indices onto specific data services running on a
          * set of machines and set [enableOverflow := false] such that the
          * indices never become partitioned. In that case you can have optimized
@@ -421,34 +456,34 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
 
 //        final long timestamp;
 //        {
-//         
+//
 //            // flyweight instance.
 //            IJoinNexus joinNexus = joinNexusFactory.newInstance(indexManager);
-//            
+//
 //            // choose timestamp based on more recent view required.
 //            timestamp = action.isMutation() ? joinNexus.getWriteTimestamp()
 //                    : joinNexus.getReadTimestamp();
-//            
+//
 //        }
 //
 //        if(log.isInfoEnabled()) {
-//         
+//
 //            log.info("timestamp="+timestamp+", task="+this);
-//            
+//
 //        }
 
         /*
          * The set of indices that we need to declare for the task.
          */
         final Set<String> indexNames = new HashSet<String>();
-        
+
         if(action.isMutation()) {
-         
+
             /*
              * Obtain the name of each index for which we want write access.
              * These are the indices for the relations named in the head of each
              * rule.
-             * 
+             *
              * Note: We are not actually issuing any tasks here, just
              * materializing relation views so that we can obtain the names of
              * the indices required for those views in order to declare them to
@@ -459,11 +494,11 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
              */
             final Map<String, IRelation> tmpRelations = getWriteRelations(
                 indexManager, step, ITx.UNISOLATED);
-            
+
             // Collect names of the required indices.
             final Set<String> writeIndexNames = getIndexNames(tmpRelations
                     .values());
-            
+
             indexNames.addAll(writeIndexNames);
 
         }
@@ -474,7 +509,7 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
              * Obtain the name of each index for which we want read access.
              * These are the indices for the relation view(s) named in the tails
              * of each rule.
-             * 
+             *
              * Note: We are not actually issuing any tasks here, just
              * materializing relation views so that we can obtain the names of
              * the indices required for those views. UNISOLATED is always safe
@@ -483,18 +518,18 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
              */
             final Map<String, IRelation> tmpRelations = getReadRelations(
                     indexManager, step, ITx.UNISOLATED);
-                
+
             // Collect names of the required indices.
             final Set<String> readIndexNames = getIndexNames(tmpRelations
                     .values());
-                
+
             indexNames.addAll(readIndexNames);
-            
+
         }
-        
+
         final String[] resource;
         {
-            
+
              // The set of indices that the task will declare.
             resource = indexNames.toArray(new String[] {});
 
@@ -511,18 +546,18 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
          * choice is whether or not the task is UNISOLATED (an unisolated task
          * will obtain exclusive locks on the live indices declared by the
          * task).
-         * 
+         *
          * A mutation task runs with the writeTimestamp.
-         * 
+         *
          * A query task runs with the readTimestamp.
-         * 
+         *
          * @todo handle transactions in this context.
          */
         final long timestamp;
         {
-            
+
 //            final IJoinNexus joinNexus = joinNexusFactory.newInstance(indexManager);
-            
+
             if (action.isMutation()) {
 
                 timestamp = joinNexusFactory.getWriteTimestamp();
@@ -531,7 +566,7 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
 
                 timestamp = joinNexusFactory.getReadTimestamp();
 //                timestamp = ITx.READ_COMMITTED;
-                
+
             }
 
             if (log.isInfoEnabled()) {
@@ -539,21 +574,21 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
                 log.info("timestamp=" + timestamp + ", task=" + this);
 
             }
-            
+
         }
-        
+
         /*
          * Create the inner task. A clone is used to prevent possible side
          * effects on the original task.
-         * 
+         *
          * Note: The [timestamp] was choosen above. The writeTimestamp iff this
          * is a mutation operation and the [readTimestamp] otherwise.
          */
         final AbstractStepTask innerTask = this.clone();
 
-        final IConcurrencyManager concurrencyManager = getDataService()
-                .getConcurrencyManager();
-        
+//BTM        final IConcurrencyManager concurrencyManager = getDataService().getConcurrencyManager();
+//BTM - PRE_FRED_3481 final IConcurrencyManager concurrencyManager = getConcurrencyManager();
+
         final AbstractTask task = new AbstractTask(concurrencyManager,
                 timestamp, resource) {
 
@@ -570,7 +605,7 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
                  * them and are running an UNISOLATED AbstractTask).
                  */
                 innerTask.indexManager = getJournal();
-                
+
                 return innerTask.call();
 
             }
@@ -580,9 +615,9 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
         if(log.isInfoEnabled()) {
 
             log.info("running on concurrencyManager: " + this);
-            
+
         }
-        
+
         /*
          * Run on the concurrency manager.
          */
@@ -618,20 +653,20 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
     protected Set<String> getWriteRelationNames(IStep step) {
 
         final Set<String> c = new HashSet<String>();
-        
+
         getWriteRelationNames(step, c);
 
         if(log.isDebugEnabled()) {
-            
+
             log.debug("Found " + c.size() + " relations, program="
                     + step.getName());
-            
+
         }
 
         return c;
-        
+
     }
-    
+
     private void getWriteRelationNames(IStep p, Set<String> c) {
 
         if (p.isRule()) {
@@ -641,11 +676,11 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
             if (r.getHead() == null)
                 throw new IllegalArgumentException(
                         "No head for this rule: rule=" + p);
-            
+
             c.add(r.getHead().getOnlyRelationName());
 
         } else {
-            
+
             final Iterator<IStep> itr = ((IProgram)p).steps();
 
             while (itr.hasNext()) {
@@ -657,15 +692,15 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
         }
 
     }
-    
+
     /**
      * Locate the distinct relation identifiers corresponding to the head of
      * each rule and resolve them to their relations.
-     * 
+     *
      * @param timestamp
      *            The timestamp associated with the relation views on which the
      *            rule(s) will write.
-     * 
+     *
      * @throws RuntimeException
      *             if any relation can not be resolved.
      */
@@ -711,7 +746,7 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
             }
 
         } else {
-            
+
             final Iterator<IStep> itr = ((IProgram)p).steps();
 
             while (itr.hasNext()) {
@@ -723,12 +758,12 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
         }
 
     }
-    
+
     /**
      * Locate the distinct relation identifiers corresponding to the tail(s) of
      * each rule and resolve them to their relations. Note that a tail predicate
      * can read on a fused view of more than one relation.
-     * 
+     *
      * @throws RuntimeException
      *             if any relation can not be resolved.
      */
@@ -784,11 +819,11 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
                     }
 
                 }
-                
+
             }
 
         } else {
-            
+
             final Iterator<IStep> itr = ((IProgram)p).steps();
 
             while (itr.hasNext()) {
@@ -800,13 +835,13 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
         }
 
     }
-    
+
     /**
      * Create the appropriate buffers to absorb writes by the rules in the
      * program that target an {@link IMutableRelation}.
-     * 
+     *
      * @return the map from relation identifier to the corresponding buffer.
-     * 
+     *
      * @throws IllegalStateException
      *             if the program is being executed as mutation.
      * @throws RuntimeException
@@ -820,13 +855,13 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
         if (!action.isMutation()) {
 
             throw new IllegalStateException();
-            
+
         }
 
         if(log.isDebugEnabled()) {
-            
+
             log.debug("");
-            
+
         }
 
         final Map<String, IBuffer<ISolution[]>> c = new HashMap<String, IBuffer<ISolution[]>>(
@@ -846,45 +881,45 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
             final IBuffer<ISolution[]> buffer;
 
             switch (action) {
-            
+
             case Insert:
-                
+
                 buffer = joinNexus.newInsertBuffer((IMutableRelation)relation);
-                
+
                 break;
-                
+
             case Delete:
-                
+
                 buffer = joinNexus.newDeleteBuffer((IMutableRelation)relation);
-                
+
                 break;
-                
+
             default:
-                
+
                 throw new AssertionError("action=" + action);
-            
+
             }
 
             c.put(relationIdentifier, buffer);
-            
+
         }
 
         if(log.isDebugEnabled()) {
-            
+
             log.debug("Created "+c.size()+" mutation buffers: action="+action);
-            
+
         }
 
         return c;
-        
+
     }
-    
+
     /**
      * Returns the names of the indices maintained by the relations.
-     * 
+     *
      * @param c
      *            A collection of {@link IRelation}s.
-     * 
+     *
      * @return The names of the indices maintained by those relations.
      */
     @SuppressWarnings("unchecked")
@@ -897,19 +932,19 @@ abstract public class AbstractStepTask extends DataServiceCallable<RuleStats>
             return Collections.EMPTY_SET;
 
         final Set<String> set = new HashSet<String>();
-        
+
         final Iterator<IRelation> itr = c.iterator();
-        
+
         while(itr.hasNext()) {
-            
+
             final IRelation relation = itr.next();
-            
+
             set.addAll(relation.getIndexNames());
-            
+
         }
 
         return set;
-        
+
     }
 
 }

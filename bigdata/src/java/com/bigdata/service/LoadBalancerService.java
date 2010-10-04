@@ -42,30 +42,34 @@ import com.bigdata.journal.ConcurrencyManager.IConcurrencyManagerCounters;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.ResourceManager.IResourceManagerCounters;
 import com.bigdata.resources.StoreManager.IStoreManagerCounters;
-import com.bigdata.service.DataService.IDataServiceCounters;
+//BTM import com.bigdata.service.DataService.IDataServiceCounters;
 import com.bigdata.service.EventReceiver.EventBTree;
+import com.bigdata.util.Util;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 import com.bigdata.util.concurrent.IQueueCounters.IThreadPoolExecutorTaskCounters;
 
+//BTM
+import com.bigdata.counters.IDataServiceCounters;
+
 /**
  * The {@link LoadBalancerService} collects a variety of performance counters
  * from hosts and services, identifies over- and under- utilized hosts and
- * services based on the collected data and reports those to {@link DataService}
- * s so that they can auto-balance, and acts as a clearing house for WARN and
- * URGENT alerts for hosts and services.
+ * services based on the collected data and reports those to
+ * {@link ShardService}s so that they can auto-balance, and acts as a clearing
+ * house for WARN and URGENT alerts for hosts and services.
  * <p>
  * While the {@link LoadBalancerService} MAY observe service start/stop events,
  * it does NOT get directly informed of actions that change the load
  * distribution, such as index partition moves or reading from a failover
- * service. Instead, {@link DataService}s determine whether or not they are
- * overloaded and, if so, query the {@link LoadBalancerService} for the identity
- * of under-utilized services. If under-utilized {@link DataService}s are
- * reported by the {@link LoadBalancerService} then the {@link DataService} will
- * self-identify index partitions to be shed and move them onto the identified
- * under-utilized {@link DataService}s. The {@link LoadBalancerService} learns
- * of these actions solely through their effect on host and service load as
- * self- reported by various services.
+ * service. Instead, {@link ShardService}s determine whether or not they are
+ * overloaded and, if so, query the {@link LoadBalancerService} for the
+ * identity of under-utilized services. If under-utilized {@link ShardService}s
+ * are reported by the {@link LoadBalancerService} then the
+ * {@link ShardService} will self-identify index partitions to be shed and
+ * move them onto the identified under-utilized {@link ShardService}s. The
+ * {@link LoadBalancerService} learns of these actions solely through their
+ 8 effect on host and service load as self- reported by various services.
  * <p>
  * Note: utilization should be defined in terms of transient system resources :
  * CPU, IO (DISK and NET), RAM. DISK exhaustion on the other hand is the basis
@@ -76,7 +80,7 @@ import com.bigdata.util.concurrent.IQueueCounters.IThreadPoolExecutorTaskCounter
  * existing hardware, and service utilization discrepancies should become
  * rapidly apparent (within a few minutes). Once we have collected performance
  * counters for the new hosts / services, a subsequent overflow event(s) on
- * existing {@link DataService}(s) will cause index partition moves to be
+ * existing {@link ShardService}(s) will cause index partition moves to be
  * nominated targeting the new hosts and services. The amount of time that it
  * takes to re-balance the load on the services will depend in part on the write
  * rate, since writes drive overflow events and index partition splits, both of
@@ -99,7 +103,7 @@ import com.bigdata.util.concurrent.IQueueCounters.IThreadPoolExecutorTaskCounter
  *       maintain QOS on individual machines, indices, and across the
  *       federation.
  * 
- * @todo All clients ({@link IBigdataClient}, {@link DataService}, etc) should
+ * @todo All clients ({@link IBigdataClient}, {@link ShardService}, etc) should
  *       issue WARN and URGENT notices. The client-side rules for those alerts
  *       should be configurable / pluggable / declarative. It would be great if
  *       the WARN and URGENT notices were able to carry some information about
@@ -316,15 +320,10 @@ abstract public class LoadBalancerService extends AbstractService
     /**
      * Options understood by the {@link LoadBalancerService}.
      * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
-     *         Thompson</a>
-     * @version $Id$
-     * 
      * @todo The LBS needs to support a 'transient' option in which it (a) does
      *       not log counters; and (b) keeps the events in a transient B+Tree
      *       (not backed by a file on the disk). Without this we can not have a
-     *       transient {@link EmbeddedFederation} or
-     *       {@link LocalDataServiceFederation} instances.
+     *       transient {@link EmbeddedFederation} instance.
      */
     public interface Options {
 
@@ -1076,7 +1075,7 @@ abstract public class LoadBalancerService extends AbstractService
          * (Re-)compute the utilization score for each active service.
          * <p>
          * Note: There is a dependency on
-         * {@link AbstractFederation#getServiceCounterPathPrefix(UUID, Class, String)}.
+         * {@link Util#getServiceCounterPathPrefix(UUID, Class, String)}.
          * This method assumes that the service {@link UUID} is found in a
          * specific place in the constructed path.
          */
@@ -1159,7 +1158,7 @@ abstract public class LoadBalancerService extends AbstractService
                          * Note: [name] on serviceCounterSet is the serviceUUID.
                          * 
                          * Note: This creates a dependency on
-                         * AbstractFederation#getServiceCounterPathPrefix(...)
+                         * Util#getServiceCounterPathPrefix(...)
                          */
                         final String serviceName = serviceCounterSet.getName();
                         final UUID serviceUUID;
@@ -1484,8 +1483,13 @@ abstract public class LoadBalancerService extends AbstractService
             // resolve the service name : @todo refactor RMI out of this method.
             String serviceName = "N/A";
             try {
-                serviceName = getFederation().getDataService(serviceUUID)
-                        .getServiceName();
+//BTM                serviceName = getFederation().getDataService(serviceUUID).getServiceName();
+ShardService shardService = getFederation().getDataService(serviceUUID);
+if(shardService instanceof IService) {
+    serviceName = ((IService)shardService).getServiceName();
+} else {
+    serviceName = ((Service)shardService).getServiceName();
+}
             } catch (Throwable t) {
                 log.warn(t.getMessage(), t);
             }
@@ -2090,10 +2094,23 @@ abstract public class LoadBalancerService extends AbstractService
          * case the serviceName can be cached here.
          */
         String serviceName;
-        if (IDataService.class == serviceIface) {
+//BTM - BEGIN -----------------------------------------------------------------
+//BTM        if (IDataService.class == serviceIface) {
+        if (  (ShardService.class).isAssignableFrom(serviceIface) &&
+              !((IMetadataService.class).isAssignableFrom(serviceIface)) )
+        {
             try {
-                serviceName = getFederation().getDataService(serviceUUID)
-                        .getServiceName();
+//BTM               serviceName = getFederation().getDataService(serviceUUID).getServiceName();
+                ShardService shardService = 
+                    getFederation().getDataService(serviceUUID);
+                if(shardService instanceof IService) {
+                    serviceName =
+                        ((IService)shardService).getServiceName();
+                } else {
+                    serviceName =
+                        ((Service)shardService).getServiceName();
+                }
+//BTM - END -------------------------------------------------------------------
             } catch (Throwable t) {
                 log.warn(t.getMessage(), t);
                 serviceName = serviceUUID.toString();
@@ -2113,7 +2130,10 @@ abstract public class LoadBalancerService extends AbstractService
 
             }
 
-            if (IDataService.class == serviceIface) {
+//BTM            if (IDataService.class == serviceIface) {
+            if (  (ShardService.class).isAssignableFrom(serviceIface) &&
+                 !((IMetadataService.class).isAssignableFrom(serviceIface)) )
+            {
 
                 /*
                  * Add to set of known services.
@@ -2147,7 +2167,7 @@ abstract public class LoadBalancerService extends AbstractService
                  */
 
                 getFederation().getCounterSet().makePath(
-                        AbstractFederation.getServiceCounterPathPrefix(
+                        Util.getServiceCounterPathPrefix(
                                 serviceUUID, serviceIface, hostname));
                 
             }
@@ -2190,9 +2210,9 @@ abstract public class LoadBalancerService extends AbstractService
             lock.lock();
 
             /*
-             * Note: [activeServices] only contains the DataServices so a null
-             * return means either that this is not a data service -or- that we
-             * do not have a score for that data service yet.
+             * Note: [activeServices] only contains the shard services so a
+             * null return means either that this is not a shard service
+             * -or- that we do not have a score for that shard service yet.
              */
             final ServiceScore info = activeDataServices.remove(serviceUUID);
 

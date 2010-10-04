@@ -43,6 +43,7 @@ import com.bigdata.sparse.SparseRowStore;
 
 //BTM
 import com.bigdata.journal.TransactionService;
+import com.bigdata.event.EventQueue;
 
 /**
  * The client-facing interface to a bigdata federation. Note that each bigdata
@@ -140,7 +141,7 @@ public ShardLocator getMetadataService();
     public String getServiceCounterPathPrefix();
     
     /**
-     * Return an array UUIDs for {@link IDataService}s.
+     * Return an array UUIDs for {@link ShardService}s.
      * 
      * @param maxCount
      *            The maximum #of data services whose UUIDs will be returned.
@@ -152,8 +153,8 @@ public ShardLocator getMetadataService();
     public UUID[] getDataServiceUUIDs(int maxCount);
     
     /**
-     * Return an array of {@link IDataService} references that is correlated
-     * with the given array of {@link IDataService} {@link UUID}s.
+     * Return an array of {@link ShardService} references that is correlated
+     * with the given array of {@link ShardService} {@link UUID}s.
      * <p>
      * Note: This method will also resolve the {@link UUID} of an
      * {@link IMetadataService}.
@@ -163,44 +164,47 @@ public ShardLocator getMetadataService();
      * 
      * @return The (meta)data service proxies.
      */
-    public IDataService[] getDataServices(UUID[] uuid);
+//BTM    public IDataService[] getDataServices(UUID[] uuid);
+public ShardService[] getDataServices(UUID[] uuid);
     
     /**
-     * Resolve the service identifier to an {@link IDataService}.
+     * Resolve the service identifier to an {@link ShardService}.
      * <p>
      * Note: Whether the returned object is a proxy or the service
      * implementation depends on whether the federation is embedded (in process)
      * or distributed (networked).
      * 
      * @param serviceUUID
-     *            The identifier for a {@link IDataService}.
+     *            The identifier for a {@link ShardService}.
      * 
-     * @return The {@link IDataService} or <code>null</code> iff the
-     *         {@link IDataService} could not be discovered from its identifier.
+     * @return The {@link ShardService} or <code>null</code> iff the
+     *         {@link ShardService} could not be discovered from its identifier.
      */
-    public IDataService getDataService(UUID serviceUUID);
+//BTM    public IDataService getDataService(UUID serviceUUID);
+public ShardService getDataService(UUID serviceUUID);
 
     /**
-     * Return ANY {@link IDataService} which has been (or could be) discovered
+     * Return ANY {@link ShardService} which has been (or could be) discovered
      * and which is part of the connected federation.
      * <p>
      * Note: This method is here as a failsafe when the
      * load balancer service is not available.
      * 
-     * @return <code>null</code> if there are NO known {@link IDataService}s.
+     * @return <code>null</code> if there are NO known {@link ShardService}s.
      */
-    public IDataService getAnyDataService();
+//BTM    public IDataService getAnyDataService();
+public ShardService getAnyDataService();
     
     /**
-     * Return an {@link IDataService} joined with this
+     * Return an {@link ShardService} joined with this
      * {@link IBigdataFederation} and having the specified service name.
      * Services that are not joined will not be discovered.
      * <p>
      * Note: At least some service fabrics (such as jini) do not enforce a
      * uniqueness constraint on the service name(s). In such cases an arbitrary
-     * {@link IDataService} method the other requirements will be returned. It
+     * {@link ShardService} method the other requirements will be returned. It
      * is the responsibility of the administrator to ensure that each
-     * {@link IDataService} is assigned a distinct service name.
+     * {@link ShardService} is assigned a distinct service name.
      * 
      * @param name
      *            The service name.
@@ -211,7 +215,8 @@ public ShardLocator getMetadataService();
      * @throws IllegalArgumentException
      *             if <i>name</i> is <code>null</code>.
      */
-    public IDataService getDataServiceByName(String name);
+//BTM    public IDataService getDataServiceByName(String name);
+public ShardService getDataServiceByName(String name);
      
     /**
      * Return a read-only view of the index partitions for the named scale-out
@@ -335,8 +340,8 @@ public ShardLocator getMetadataService();
      * transient) storage. Most federation deployments are stable in this sense,
      * but it is possible to create federation instances backed solely by
      * transient storage and those instances will report <code>false</code>
-     * here. This is most typically done for testing purposes using a
-     * {@link LocalDataServiceFederation} or an {@link EmbeddedFederation}.
+     * here. This is most typically done for testing purposes using an
+     * {@link EmbeddedFederation}.
      */
     public boolean isStable();
     
@@ -356,13 +361,21 @@ public ShardLocator getMetadataService();
 
     /**
      * Return the last commit time for the federation (the timestamp of the most
-     * recent commit point across all {@link IDataService}s).
+     * recent commit point across all {@link ShardService}s).
      * <p>
      * This is useful for {@link ITx#READ_COMMITTED} operations that need to use
-     * a consistent timestamp across a series of {@link DataService}s or a
-     * series of requests against a single {@link DataService} that must use a
+     * a consistent timestamp across a series of {@link ShardService}s or a
+     * series of requests against a single {@link ShardService} that must use a
      * consistent view.
      */
     public long getLastCommitTime();
 
+
+//BTM
+    /**
+     * Returns the class that manages the queue in which events are
+     * cached, and from which events are retrieved and sent to the
+     * load balancer service.
+     */
+    EventQueue getEventQueue();
 }

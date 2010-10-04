@@ -32,7 +32,6 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.server.ServerNotActiveException;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 import net.jini.config.Configuration;
@@ -43,10 +42,9 @@ import net.jini.lookup.entry.Name;
 
 import org.apache.log4j.MDC;
 
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.DataService.DataServiceFederationDelegate;
+import com.bigdata.service.IDataServiceCallable;
 import com.sun.jini.start.LifeCycle;
 import com.sun.jini.start.ServiceDescriptor;
 import com.sun.jini.start.ServiceStarter;
@@ -57,7 +55,7 @@ import com.sun.jini.start.ServiceStarter;
  * The metadata server is used to manage the life cycles of scale-out indices
  * and exposes proxies for read and write operations on indices to clients.
  * Clients use index proxies, which automatically direct reads and writes to the
- * {@link IDataService} on which specific index partitions are located.
+ * shard service on which specific index partitions are located.
  * <p>
  * On startup, the metadata service discovers active data services configured in
  * the same group. While running, it tracks when data services start and stop so
@@ -95,13 +93,12 @@ public class MetadataServer extends DataServer {
     public MetadataServer(final String[] args, final LifeCycle lifeCycle) {
 
         super(args, lifeCycle);
-             
+//BTM
 System.err.println("\n>>>> MetadataServer -----------------------------------------");
 for(int i=0; i<args.length; i++) {
     System.err.println(">>>> MetadataServer args["+i+"] = "+args[i]);
 }
 System.err.println(">>>> MetadataServer -----------------------------------------\n");
-
     }
 
     /**
@@ -124,6 +121,7 @@ System.err.println(">>>> MetadataServer ----------------------------------------
 
     }
 
+    @Override
     protected MetadataService newService(Properties properties) {
 
         properties = new Properties(properties);
@@ -299,7 +297,7 @@ System.err.println(">>>> MetadataServer ----------------------------------------
          * Extends the base behavior to return an RMI compatible proxy.
          */
         @Override
-        public Future<? extends Object> submit(Callable<? extends Object> task) {
+        public <T> Future<T> submit(IDataServiceCallable<T> task) {
 
             return getFederation().getProxy(super.submit(task));
             

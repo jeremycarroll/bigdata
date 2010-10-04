@@ -35,7 +35,6 @@ import com.bigdata.relation.IRelation;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.IQueryOptions;
 import com.bigdata.relation.rule.IRule;
-import com.bigdata.service.IDataService;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
 
@@ -118,8 +117,8 @@ public interface IAccessPath<R> extends Iterable<R> {
      * whatever is the default capacity.
      * <p>
      * Note: Filters should be specified when the {@link IAccessPath} is
-     * constructed so that they will be evaluated on the {@link IDataService}
-     * rather than materializing the elements and then filtering then. This can
+     * constructed so that they will be evaluated on the shard service
+     * rather than materializing the elements and then filtering them. This can
      * be accomplished by adding the filter as an {@link IElementFilter} on the
      * {@link IPredicate} when requesting {@link IAccessPath}.
      * 

@@ -70,14 +70,13 @@ import com.bigdata.service.jini.JiniFederation;
  * @param <V>
  *            The generic type of the resources to be tasked.
  */
-public abstract class MappedTaskMaster<//
-S extends MappedTaskMaster.JobState,//
-T extends AbstractAsynchronousClientTask<U, V, L>, //
-L extends ClientLocator, //
-U, //
-V extends Serializable//
->//
-        extends TaskMaster<S, T, U> {
+public abstract class MappedTaskMaster<
+        S extends MappedTaskMaster.JobState,
+        T extends AbstractAsynchronousClientTask<U, V, L>,
+        L extends ClientLocator,
+        U,
+        V extends Serializable>
+    extends TaskMaster<S, T, U> {
 
     /**
      * {@link Configuration} options for the {@link MappedTaskMaster}.
@@ -169,7 +168,7 @@ V extends Serializable//
          * 
          * @see ConfigurationOptions#RESOURCE_SCANNER_FACTORY
          */
-        protected final IResourceScannerFactory<?> scannerFactory;
+        protected final transient IResourceScannerFactory<?> scannerFactory;
 
         /**
          * @see ConfigurationOptions#PENDING_SET_MASTER_INITIAL_CAPACITY
@@ -308,10 +307,11 @@ V extends Serializable//
          */
         final BlockingBuffer<V[]> resourceBuffer = newResourceBuffer();
 
+        AbstractResourceScanner<?> scanner = null;
         try {
 
             // instantiate scanner backed by the resource buffer.
-            final AbstractResourceScanner<?> scanner = getJobState().scannerFactory
+            scanner = getJobState().scannerFactory
                     .newScanner((BlockingBuffer) resourceBuffer);
 
             // start scanner.
@@ -340,6 +340,10 @@ V extends Serializable//
             // rethrow exception.
             throw new RuntimeException(t);
             
+        } finally {
+            if (scanner != null) {
+                scanner.stopScanner();
+            }
         }
         
     }

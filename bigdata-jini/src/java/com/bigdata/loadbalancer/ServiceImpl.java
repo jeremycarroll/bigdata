@@ -524,7 +524,7 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
      * The ServicesConfiguration mechanism may involve the use of the
      * ServicesManagerService directly to execute this service, or it may
      * involve the use of the junit framework to start this service. In
-     * either case, a command line is constructed from information at 
+     * either case, a command line is constructed from information that is
      * specified at each of the various ServiceConfiguration levels, and
      * is ultimately executed in a ProcessBuilder instance (in the
      * ProcessHelper class).
@@ -582,7 +582,7 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
      * section with component name, "com.bigdata.service.jini.JiniClient";
      * which contains among its configuration entries, an array whose elements
      * are each instances of <code>net.jini.core.entry.Entry</code>, where
-     * those elements are generated in the following order:
+     * those elements are specified in the following order:
      * <p>
      * <ul>
      *   <li> net.jini.lookup.entry.Name
@@ -593,7 +593,7 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
      * </ul>
      * </p>
      * Note that the item at index 3 (<code>ServiceUUID</code>) means
-     * that a service is generated for the service being started; as 
+     * that a service id is generated for the service being started; as 
      * opposed to the service generating its own service id. Thus, if
      * the ServiceConfiguration mechanism is being used, then this
      * method retrieves the pre-generated service id from the entries

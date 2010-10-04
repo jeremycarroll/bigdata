@@ -10,13 +10,12 @@ import net.jini.core.lookup.ServiceTemplate;
 
 import com.bigdata.jini.util.JiniUtil;
 import com.bigdata.service.IClientService;
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IRemoteExecutor;
+//BTM - PRE_FRED_3481 //BTM import com.bigdata.service.IDataService;
+//BTM - PRE_FRED_3481 import com.bigdata.service.IRemoteExecutor;
 import com.bigdata.service.jini.JiniFederation;
 
 //BTM
 import net.jini.lookup.ServiceDiscoveryManager;
-import com.bigdata.service.ShardLocator;
 
 /**
  * An ordered mapping of indices in <code>[0:N-1]</code> onto the services on
@@ -44,12 +43,12 @@ public class ServiceMap implements Serializable {
     /**
      * The #of tasks to be mapped over the services.
      */
-    public final int ntasks;
+    private final int ntasks;
 
     /**
-     * The mapping of tasks onto the {@link IRemoteExecutor}s on which that
+     * The mapping of tasks onto the {@link IClientService}s on which that
      * task will execute. The index is the task#. The value is the
-     * {@link ServiceItem} for the {@link IRemoteExecutor} on which that
+     * {@link ServiceItem} for the {@link IClientService} on which that
      * client will execute.
      * <p>
      * This provides richer information than the {@link #serviceUUIDs}, but
@@ -63,11 +62,11 @@ public class ServiceMap implements Serializable {
     private transient ServiceItem[] serviceItems;
     
     /**
-     * The mapping of tasks onto the {@link IRemoteExecutor}s on which
+     * The mapping of tasks onto the {@link IClientService}s on which
      * that task will execute. The index is the task#. The value is the
-     * {@link IRemoteExecutor} {@link UUID service UUID}.
+     * {@link IClientService} {@link UUID service UUID}.
      */
-    public final UUID serviceUUIDs[];
+    private final UUID serviceUUIDs[];
 
     /**
      * 
@@ -90,9 +89,12 @@ public class ServiceMap implements Serializable {
     /**
      * Populates the elements of the {@link #serviceItems} array by
      * resolving the {@link #serviceUUIDs} to the corresponding
-     * {@link ServiceItem}s. For each service, this tests the service cache
-     * for {@link IClientService}s and {@link IDataService}s and only then
-     * does a lookup with a timeout for the service.
+     * {@link ServiceItem}s. For each service, this tests the service
+     * cache for each of the desired service types; that is, callable
+     * executor (client) service, shard (data) service, and
+     * shard locator (metadata) service (in that order). If the 
+     * caches do not produce a result, then an explicit service id
+     * based lookup -- with a timeout -- is performed.
      * 
      * @throws InterruptedException
      *             If interrupted during service lookup.
@@ -103,11 +105,6 @@ public class ServiceMap implements Serializable {
             throws RemoteException, InterruptedException {
 
 //BTM
-//BTM - replace IRemoteExecutor with CallableExecutor & ShardService
-//BTM   when those services have been converted
-Class[] executorType = new Class[] { IRemoteExecutor.class };
-Class[] shardType = new Class[] { IRemoteExecutor.class };
-Class[] shardLocatorType = new Class[] { ShardLocator.class };
 ServiceDiscoveryManager sdm = fed.getServiceDiscoveryManager();
 long timeoutMillis = 1000L;
 
@@ -150,30 +147,54 @@ long timeoutMillis = 1000L;
 //BTM                }
 //BTM
 //BTM            }
-//BTM - BEGIN
-if (serviceItem == null) {//no callable executor service, try shard service
+//BTM - BEGIN ------------------------------------------------------------------
+//BTM - PRE_FRED_3481
+//BTM - NOTE: the code below is different than the corresponding code changes
+//BTM -       made by fkoliver in changeset 3481. The code in 3481 seems to
+//BTM -       focus on the ClientService (discover by ClientServicesClient, 
+//BTM -       discover by serviceID AND IClientService.class type), whereas
+//BTM -       the code below attempts to duplicate the original logic; that is,
+//BTM -       discovers ONLY by serviceID, and after failing to discover using
+//BTM -       the cache of the ClientServicesClient, tries the cache of the 
+//BTM -       DataServicesClient, then the cache of the ShardLocatorClient,
+//BTM -       and finally a remote lookup (by serviceID ONLY) through the sdm.
+//BTM -       When merging to maven_scaleout, it should probably be discussed
+//BTM -       whether this code should be taken or the code from 3481.
 
-    // test data service cache.
-    serviceItem = fed.getDataServicesClient().getServiceCache()
-                        .getServiceItemByID(serviceID);
+                if (serviceItem == null) {
 
-    if (serviceItem == null) {//no shard service, try shard locator service
+                    //no callable executor (client) service, try shard service
 
-        // test shard locator service cache.
-        serviceItem = fed.getShardLocatorClient().getServiceCache()
-                        .getServiceItemByID(serviceID);
+                    serviceItem = 
+                        fed.getDataServicesClient()
+                           .getServiceCache()
+                           .getServiceItemByID(serviceID);
 
-        if (serviceItem == null) {//no callable executor service, no shard service, no shard locator service, try direct lookup
-            ServiceTemplate tmpl = new ServiceTemplate(serviceID, null, null); 
-            serviceItem = sdm.lookup(tmpl, null, timeoutMillis);
-            if (serviceItem == null) {
-                throw new RuntimeException
-                    ("Could not discover service ["+serviceUUID+"]");
-            }
-        }
-    }
-}
-//BTM - END
+                    if (serviceItem == null) {
+
+                        //no shard service, try shard locator service
+
+                        serviceItem = fed.getShardLocatorClient()
+                                         .getServiceCache()
+                                         .getServiceItemByID(serviceID);
+
+                        //no callable executor (client) service, no shard
+                        //service, no shard locator service, try direct lookup
+
+                        if (serviceItem == null) {
+                            ServiceTemplate tmpl = 
+                                new ServiceTemplate(serviceID, null, null); 
+                            serviceItem = sdm.lookup(tmpl, null, timeoutMillis);
+                            if (serviceItem == null) {
+                                throw new RuntimeException
+                                              ("Could not discover "
+                                               +"service ["+serviceUUID+"]");
+                            }
+                        }
+                    }
+                }
+//BTM - END --------------------------------------------------------------------
+
             if (serviceItems == null) {
 
                 /*
@@ -224,22 +245,6 @@ if (serviceItem == null) {//no callable executor service, try shard service
     }
 
     /**
-     * Return the {@link UUID} of the service to which the Nth client was
-     * assigned.
-     * 
-     * @param clientNum
-     *            The client number in [0:N-1].
-     *            
-     * @return The {@link UUID} of the service on which that client should
-     *         execute.
-     */
-    public UUID getServiceUUID(final int clientNum) {
-        
-        return serviceUUIDs[clientNum];
-        
-    }
-
-    /**
      * Return the {@link ServiceItem} of the service to which the Nth client
      * was assigned.
      * 
@@ -249,10 +254,23 @@ if (serviceItem == null) {//no callable executor service, try shard service
      * @return The {@link ServiceItem} of the service on which that client
      *         should execute.
      */
-    public ServiceItem getServiceItem(final int clientNum) {
-        
-        return serviceItems[clientNum];
-        
+    public IClientService getService(final int clientNum) {
+        ServiceItem serviceItem = serviceItems[clientNum];
+        if (serviceItem == null) {
+            /*
+             * Note: The ServiceItem should have been resolved when we
+             * setup the JobState, even if the JobState was read from
+             * zookeeper.
+             */
+            throw new RuntimeException(
+                    "ServiceItem not resolved? client#=" + clientNum);
+        }
+        if (!(serviceItem.service instanceof IClientService)) {
+                throw new RuntimeException("Service does not implement "
+                            + IClientService.class + ", serviceItem="
+                            + serviceItem);
+        }
+        return (IClientService) serviceItems[clientNum].service;
     }
 
 }

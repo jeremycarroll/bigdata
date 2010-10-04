@@ -19,7 +19,6 @@ import org.apache.log4j.Logger;
  * stateful behavior to be observed.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 abstract public class AbstractRoundRobinServiceLoadHelper implements
         IServiceLoadHelper {
@@ -41,14 +40,14 @@ abstract public class AbstractRoundRobinServiceLoadHelper implements
     }
     
     /**
-     * Await the availability of at least the specified #of {@link IDataService}s.
+     * Await the availability of at least the specified #of {@link ShardService}s.
      * 
      * @param minCount
      *            The minimum #of data services.
      * @param timeout
      *            The timeout (ms).
      * 
-     * @return An array #of the {@link UUID}s of the {@link IDataService}s
+     * @return An array #of the {@link UUID}s of the {@link ShardService}s
      *         that have been discovered. Note that at least <i>minDataServices</i>
      *         elements will be present in this array but that ALL discovered
      *         data services may be reported.
@@ -60,7 +59,7 @@ abstract public class AbstractRoundRobinServiceLoadHelper implements
 
     /**
      * Issues {@link UUID}s using a round-robin over those that are joined. For
-     * this purpose, the joined {@link DataService}s are appended to an ordered
+     * this purpose, the joined shard services are appended to an ordered
      * set. The index of the most recently assigned service is maintained in a
      * counter. Services that leave are removed from the set, but we do not
      * bother to adjust the counter. We always return the {@link UUID} of the

@@ -1203,7 +1203,7 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
         // load file/directory of files.
         try {
 
-            dataLoader.loadFiles(dataDir, null/* baseURI */,
+            dataLoader.loadFiles(dataDir.toURI().toURL(), null/* baseURI */,
                     null/* rdfFormat */, filter);
 
         } catch (IOException ex) {

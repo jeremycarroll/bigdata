@@ -17,10 +17,13 @@ import com.bigdata.mdi.IndexPartitionCause;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.Split;
+
+//BTM
+import com.bigdata.util.Util;
 
 /**
  * Task splits an index partition which is a compact view (no more than one
@@ -166,11 +169,20 @@ public class SplitIndexPartitionTask extends
     @Override
     protected AbstractResult doTask() throws Exception {
 
-        final Event e = new Event(resourceManager.getFederation(),
-                new EventResource(vmd.indexMetadata), OverflowActionEnum.Split,
-                vmd.getParams()).addDetail("summary", OverflowActionEnum.Split
-                + (moveTargets != null ? "+" + OverflowActionEnum.Move : "")
-                + "(" + vmd.name + ")");
+//BTM        final Event e = new Event(resourceManager.getFederation(),
+//BTM                new EventResource(vmd.indexMetadata), OverflowActionEnum.Split,
+//BTM                vmd.getParams()).addDetail("summary", OverflowActionEnum.Split
+//BTM                + (moveTargets != null ? "+" + OverflowActionEnum.Move : "")
+//BTM                + "(" + vmd.name + ")");
+final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+                           (resourceManager.getFederation()).getServiceIface(),
+                           (resourceManager.getFederation()).getServiceName(),
+                           (resourceManager.getFederation()).getServiceUUID(),
+                           new EventResource(vmd.indexMetadata),
+                           OverflowActionEnum.Split,
+                           vmd.getParams()).addDetail("summary", OverflowActionEnum.Split
+                                                      + (moveTargets != null ? "+" + OverflowActionEnum.Move : "")
+                                                      + "(" + vmd.name + ")");
         if (moveTargets != null) {
             e.addDetail("moveTargets", Arrays.toString(moveTargets));
         }
@@ -424,10 +436,11 @@ public class SplitIndexPartitionTask extends
                      * The name of the post-split index partition that is the
                      * source for the move operation.
                      */
-                    final String nameOfPartitionToMove = DataService
-                            .getIndexPartitionName(vmd.indexMetadata.getName(),
-                                    splitResult.splits[bestMoveIndex].pmd
-                                            .getPartitionId());
+//BTM                    final String nameOfPartitionToMove = DataService
+//BTM                            .getIndexPartitionName(vmd.indexMetadata.getName(),
+//BTM                                    splitResult.splits[bestMoveIndex].pmd
+//BTM                                            .getPartitionId());
+final String nameOfPartitionToMove = Util.getIndexPartitionName(vmd.indexMetadata.getName(), splitResult.splits[bestMoveIndex].pmd.getPartitionId());
 
                     /*
                      * Move.
@@ -482,10 +495,11 @@ public class SplitIndexPartitionTask extends
                          * The name of the post-split index partition that is
                          * the source for the move operation.
                          */
-                        final String nameOfPartitionToMove = DataService
-                                .getIndexPartitionName(vmd.indexMetadata
-                                        .getName(), splitResult.splits[i].pmd
-                                        .getPartitionId());
+//BTM                        final String nameOfPartitionToMove = DataService
+//BTM                                .getIndexPartitionName(vmd.indexMetadata
+//BTM                                        .getName(), splitResult.splits[i].pmd
+//BTM                                        .getPartitionId());
+final String nameOfPartitionToMove = Util.getIndexPartitionName(vmd.indexMetadata.getName(), splitResult.splits[i].pmd.getPartitionId());
 
                         /*
                          * Move.
@@ -589,8 +603,9 @@ public class SplitIndexPartitionTask extends
 
                     final int partitionId = split.pmd.getPartitionId();
 
-                    resources[i + 1] = DataService.getIndexPartitionName(
-                            vmd.indexMetadata.getName(), partitionId);
+//BTM                    resources[i + 1] = DataService.getIndexPartitionName(
+//BTM                            vmd.indexMetadata.getName(), partitionId);
+resources[i + 1] = Util.getIndexPartitionName(vmd.indexMetadata.getName(), partitionId);
 
                     i++;
 
@@ -797,8 +812,9 @@ public class SplitIndexPartitionTask extends
                     final int partitionId = pmd.getPartitionId();
 
                     // name of the new index partition.
-                    final String name2 = DataService.getIndexPartitionName(
-                            scaleOutIndexName, partitionId);
+//BTM                    final String name2 = DataService.getIndexPartitionName(
+//BTM                            scaleOutIndexName, partitionId);
+final String name2 = Util.getIndexPartitionName(scaleOutIndexName, partitionId);
 
                     /*
                      * form locator for the new index partition for this split..

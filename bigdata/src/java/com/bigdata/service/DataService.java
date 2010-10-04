@@ -41,15 +41,16 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 import com.bigdata.Banner;
-import com.bigdata.btree.IIndex;
+//BTM import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITupleIterator;
+//BTM import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.ResultSet;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
+import com.bigdata.counters.IDataServiceCounters;
 import com.bigdata.counters.Instrument;
 import com.bigdata.io.ByteBufferInputStream;
 import com.bigdata.journal.AbstractJournal;
@@ -84,16 +85,22 @@ import com.bigdata.resources.StoreManager.ManagedJournal;
 import com.bigdata.service.jini.DataServer;
 
 //BTM
+import com.bigdata.counters.ReadBlockCounters;
+import com.bigdata.journal.DistributedCommitTask;
+import com.bigdata.journal.GetIndexMetadataTask;
+import com.bigdata.journal.RangeIteratorTask;
 import com.bigdata.journal.TransactionService;
 
+//BTM - PRE_FRED_3481
+import com.bigdata.journal.IIndexManager;
+
 /**
- * An implementation of a network-capable {@link IDataService}. The service is
+ * An implementation of a network-capable {@link ShardService}. The service is
  * started using the {@link DataServer} class. Operations are submitted using an
  * {@link IConcurrencyManager#submit(AbstractTask)} and will run with the
  * appropriate concurrency controls as imposed by that method.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @see DataServer, which is used to start this service.
  * 
@@ -114,7 +121,7 @@ import com.bigdata.journal.TransactionService;
  *       bidirectional. Can that rate be sustained with a fully connected
  *       bi-directional transfer?
  * 
- * FIXME Probably ALL of the methods {@link IDataService} should be subsumed
+ * FIXME Probably ALL of the methods {@link ShardService} should be subsumed
  * under {@link #submit(Callable)} or
  * {@link #submit(long, String, IIndexProcedure)} so they do not block on the
  * {@link DataService} and thereby absorb a thread.
@@ -134,7 +141,6 @@ abstract public class DataService extends AbstractService
      * Options understood by the {@link DataService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static interface Options extends com.bigdata.journal.Options,
             com.bigdata.journal.ConcurrencyManager.Options,
@@ -151,18 +157,17 @@ abstract public class DataService extends AbstractService
      *       unisolated tasks at the present).
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
-    protected static class ReadBlockCounters {
-        
-        /** #of block read requests. */
-        long readBlockCount, readBlockErrorCount, readBlockBytes, readBlockNanos;
-        
-        public ReadBlockCounters() {
-        
-        }
-        
-    }
+//BTM    protected static class ReadBlockCounters {
+//BTM        
+//BTM        /** #of block read requests. */
+//BTM        long readBlockCount, readBlockErrorCount, readBlockBytes, readBlockNanos;
+//BTM        
+//BTM        public ReadBlockCounters() {
+//BTM        
+//BTM        }
+//BTM        
+//BTM    }
     
     /**
      * Counters for the block read API.
@@ -328,7 +333,6 @@ abstract public class DataService extends AbstractService
      * on a {@link DataService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public class DataServiceTransactionManager extends
             AbstractLocalTransactionManager {
@@ -341,7 +345,7 @@ public TransactionService getTransactionService() {
         }
 
         /**
-         * Exposed to {@link DataService#singlePhaseCommit(long)}
+         * Exposed to {@link ITxCommitProtocol#singlePhaseCommit(long)}
          */
         public void deactivateTx(final Tx localState) {
 
@@ -398,7 +402,6 @@ System.err.println("---------- END DataService --------------\n");
      * {@link AbstractClient} for those additional features to work.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static public class DataServiceFederationDelegate extends
             DefaultServiceFederationDelegate<DataService> {
@@ -739,30 +742,31 @@ System.err.println("---------- END DataService --------------\n");
      * uses.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
-    public static interface IDataServiceCounters extends
-            ConcurrencyManager.IConcurrencyManagerCounters,
-//            ...TransactionManager.XXXCounters,
-            ResourceManager.IResourceManagerCounters
-            {
-       
+//BTM - BEGIN
+//BTM    public static interface IDataServiceCounters extends
+//BTM            ConcurrencyManager.IConcurrencyManagerCounters,
+//BTM//            ...TransactionManager.XXXCounters,
+//BTM            ResourceManager.IResourceManagerCounters
+//BTM            {
+//BTM       
         /**
          * The namespace for the counters pertaining to the {@link ConcurrencyManager}.
          */
-        String concurrencyManager = "Concurrency Manager";
+//BTM        String concurrencyManager = "Concurrency Manager";
 
         /**
          * The namespace for the counters pertaining to the {@link ILocalTransactionService}.
          */
-        String transactionManager = "Transaction Manager";
-        
+//BTM        String transactionManager = "Transaction Manager";
+//BTM        
         /**
          * The namespace for the counters pertaining to the {@link ResourceManager}.
          */
-        String resourceManager = "Resource Manager";
-        
-    }
+//BTM        String resourceManager = "Resource Manager";
+//BTM        
+//BTM    }
+//BTM - END
         
     /*
      * ITxCommitProtocol.
@@ -1024,22 +1028,22 @@ System.err.println("---------- END DataService --------------\n");
 
     /**
      * Task handling the distributed commit protocol for the
-     * {@link IDataService}.
+     * {@link ShardService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
-    private static class DistributedCommitTask extends AbstractTask<Void> {
-
-        // ctor arg.
-        private final ResourceManager resourceManager;
-        private UUID dataServiceUUID;
-        private final Tx state;
-        private final long revisionTime;
-        
-        // derived.
-        private final long tx;
-        
+//BTM - BEGIN
+//BTM    private static class DistributedCommitTask extends AbstractTask<Void> {
+//BTM
+//BTM        // ctor arg.
+//BTM        private final ResourceManager resourceManager;
+//BTM        private UUID dataServiceUUID;
+//BTM        private final Tx state;
+//BTM        private final long revisionTime;
+//BTM        
+//BTM        // derived.
+//BTM        private final long tx;
+//BTM        
         /**
          * @param concurrencyManager
          * @param resourceManager
@@ -1047,94 +1051,94 @@ System.err.println("---------- END DataService --------------\n");
          * @param localState
          * @param revisionTime
          */
-        public DistributedCommitTask(
-                final ConcurrencyManager concurrencyManager,//
-                final ResourceManager resourceManager,//
-                final UUID dataServiceUUID,//
-                final Tx localState,//
-                final long revisionTime//
-        ) {
-
-            super(concurrencyManager, ITx.UNISOLATED, localState
-                    .getDirtyResource());
-
-            if (resourceManager == null)
-                throw new IllegalArgumentException();
-
-            if (localState == null)
-                throw new IllegalArgumentException();
-            
-            if (revisionTime == 0L)
-                throw new IllegalArgumentException();
-            
-            if (revisionTime <= localState.getStartTimestamp())
-                throw new IllegalArgumentException();
-
-            this.resourceManager = resourceManager;
-
-            this.dataServiceUUID = dataServiceUUID;
-
-            this.state = localState;
-
-            this.revisionTime = revisionTime;
-
-            this.tx = localState.getStartTimestamp();
-
-        }
-
+//BTM        public DistributedCommitTask(
+//BTM                final ConcurrencyManager concurrencyManager,//
+//BTM                final ResourceManager resourceManager,//
+//BTM                final UUID dataServiceUUID,//
+//BTM                final Tx localState,//
+//BTM                final long revisionTime//
+//BTM        ) {
+//BTM
+//BTM            super(concurrencyManager, ITx.UNISOLATED, localState
+//BTM                    .getDirtyResource());
+//BTM
+//BTM            if (resourceManager == null)
+//BTM                throw new IllegalArgumentException();
+//BTM
+//BTM            if (localState == null)
+//BTM                throw new IllegalArgumentException();
+//BTM            
+//BTM            if (revisionTime == 0L)
+//BTM                throw new IllegalArgumentException();
+//BTM            
+//BTM            if (revisionTime <= localState.getStartTimestamp())
+//BTM                throw new IllegalArgumentException();
+//BTM
+//BTM            this.resourceManager = resourceManager;
+//BTM
+//BTM            this.dataServiceUUID = dataServiceUUID;
+//BTM
+//BTM            this.state = localState;
+//BTM
+//BTM            this.revisionTime = revisionTime;
+//BTM
+//BTM            this.tx = localState.getStartTimestamp();
+//BTM
+//BTM        }
+//BTM
         /**
          * FIXME Finish, write tests and debug.
          */
-        @Override
-        protected Void doTask() throws Exception {
-
-//BTM            final ITransactionService txService = resourceManager
-final TransactionService txService = resourceManager
-                    .getLiveJournal().getLocalTransactionManager()
-                    .getTransactionService();
-
-            prepare();
-
-            final long commitTime = txService.prepared(tx, dataServiceUUID);
-
-            // obtain the exclusive write lock on journal.
-            lockJournal();
-            try {
-
-                // Commit using the specified commit time.
-                commit(commitTime);
-
-                boolean success = false;
-                try {
-
+//BTM        @Override
+//BTM        protected Void doTask() throws Exception {
+//BTM
+//BTM//BTM            final ITransactionService txService = resourceManager
+//BTMfinal TransactionService txService = resourceManager
+//BTM                    .getLiveJournal().getLocalTransactionManager()
+//BTM                    .getTransactionService();
+//BTM
+//BTM            prepare();
+//BTM
+//BTM            final long commitTime = txService.prepared(tx, dataServiceUUID);
+//BTM
+//BTM            // obtain the exclusive write lock on journal.
+//BTM            lockJournal();
+//BTM            try {
+//BTM
+//BTM                // Commit using the specified commit time.
+//BTM                commit(commitTime);
+//BTM
+//BTM                boolean success = false;
+//BTM                try {
+//BTM
                     /*
                      * Wait until the entire distributed transaction is
                      * committed.
                      */
-                    success = txService.committed(tx, dataServiceUUID);
-
-                } finally {
-
-                    if (!success) {
-
-                        // Rollback the journal.
-                        rollback();
-
-                    }
-
-                }
-                
-            } finally {
-
-                // release the exclusive write lock on journal.
-                unlockJournal();
-
-            }
-
-            return null;
-
-        }
-
+//BTM                    success = txService.committed(tx, dataServiceUUID);
+//BTM
+//BTM                } finally {
+//BTM
+//BTM                    if (!success) {
+//BTM
+//BTM                        // Rollback the journal.
+//BTM                        rollback();
+//BTM
+//BTM                    }
+//BTM
+//BTM                }
+//BTM                
+//BTM            } finally {
+//BTM
+//BTM                // release the exclusive write lock on journal.
+//BTM                unlockJournal();
+//BTM
+//BTM            }
+//BTM
+//BTM            return null;
+//BTM
+//BTM        }
+//BTM
         /**
          * Prepare the transaction (validate and merge down onto the unisolated
          * indices and then checkpoints those indices).
@@ -1161,28 +1165,28 @@ final TransactionService txService = resourceManager
          * passing it on the task and ensuring that there is no other tx ready
          * in the commit group) or abort (just throw an exception).
          */
-        protected void prepare() {
-            
-            state.prepare(revisionTime);
-            
-        }
-
+//BTM        protected void prepare() {
+//BTM            
+//BTM            state.prepare(revisionTime);
+//BTM            
+//BTM        }
+//BTM
         /**
          * Obtain the exclusive lock on the write service. This will prevent any
          * other tasks using the concurrency API from writing on the journal.
          */
-        protected void lockJournal() {
-
-            throw new UnsupportedOperationException();
-            
-        }
-        
-        protected void unlockJournal() {
-            
-            throw new UnsupportedOperationException();
-            
-        }
-        
+//BTM        protected void lockJournal() {
+//BTM
+//BTM            throw new UnsupportedOperationException();
+//BTM            
+//BTM        }
+//BTM        
+//BTM        protected void unlockJournal() {
+//BTM            
+//BTM            throw new UnsupportedOperationException();
+//BTM            
+//BTM        }
+//BTM        
         /**
          * Commit the transaction using the specified <i>commitTime</i>.
          * <p>
@@ -1192,37 +1196,38 @@ final TransactionService txService = resourceManager
          * @param commitTime
          *            The commit time that must be used.
          */
-        protected void commit(final long commitTime) {
-
+//BTM        protected void commit(final long commitTime) {
+//BTM
             /*
              * @todo enroll the named indices onto Name2Addr's commitList (this
              * basically requires breaking the isolation imposed by the
              * AbstractTask).
              */
-
-            if (true)
-                throw new UnsupportedOperationException();
-
-            final ManagedJournal journal = resourceManager.getLiveJournal();
-            
-            // atomic commit.
-            journal.commitNow(commitTime);
-
-        }
-        
+//BTM
+//BTM            if (true)
+//BTM                throw new UnsupportedOperationException();
+//BTM
+//BTM            final ManagedJournal journal = resourceManager.getLiveJournal();
+//BTM            
+//BTM            // atomic commit.
+//BTM            journal.commitNow(commitTime);
+//BTM
+//BTM        }
+//BTM        
         /**
          * Discard the last commit, restoring the journal to the previous commit
          * point.
          */
-        protected void rollback() {
-            
-            final ManagedJournal journal = resourceManager.getLiveJournal();
-            
-            journal.rollback();
-            
-        }
-        
-    }
+//BTM        protected void rollback() {
+//BTM            
+//BTM            final ManagedJournal journal = resourceManager.getLiveJournal();
+//BTM            
+//BTM            journal.rollback();
+//BTM            
+//BTM        }
+//BTM        
+//BTM    }
+//BTM - END
 
     public void abort(final long tx) throws IOException {
 
@@ -1255,10 +1260,6 @@ final TransactionService txService = resourceManager
         
     }
 
-    /*
-     * IDataService.
-     */
-    
     /**
      * Forms the name of the index corresponding to a partition of a named
      * scale-out index as <i>name</i>#<i>partitionId</i>.
@@ -1272,25 +1273,26 @@ final TransactionService txService = resourceManager
      * 
      * @return The name of the index partition.
      */
-    public static final String getIndexPartitionName(final String name,
-            final int partitionId) {
-
-        if (name == null) {
-
-            throw new IllegalArgumentException();
-            
-        }
-
-        if (partitionId == -1) {
-
-            // Not a partitioned index.
-            return name;
-            
-        }
-        
-        return name + "#" + partitionId;
-
-    }
+//BTM - MOVED to bigdata-jini/src/java/com/bigdata/util/Util.java
+//BTM    public static final String getIndexPartitionName(final String name,
+//BTM            final int partitionId) {
+//BTM
+//BTM        if (name == null) {
+//BTM
+//BTM            throw new IllegalArgumentException();
+//BTM            
+//BTM        }
+//BTM
+//BTM        if (partitionId == -1) {
+//BTM
+//BTM            // Not a partitioned index.
+//BTM            return name;
+//BTM            
+//BTM        }
+//BTM        
+//BTM        return name + "#" + partitionId;
+//BTM
+//BTM    }
 
     /**
      * Returns either {@link IDataService} or {@link IMetadataService} as
@@ -1387,25 +1389,24 @@ final TransactionService txService = resourceManager
      * specified timestamp.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
-    public static class GetIndexMetadataTask extends AbstractTask {
-
-        public GetIndexMetadataTask(ConcurrencyManager concurrencyManager,
-                long startTime, String name) {
-
-            super(concurrencyManager, startTime, name);
-            
-        }
-
-        @Override
-        protected IndexMetadata doTask() throws Exception {
-            
-            return getIndex(getOnlyResource()).getIndexMetadata();
-            
-        }
-        
-    }
+//BTM    public static class GetIndexMetadataTask extends AbstractTask {
+//BTM
+//BTM        public GetIndexMetadataTask(ConcurrencyManager concurrencyManager,
+//BTM                long startTime, String name) {
+//BTM
+//BTM            super(concurrencyManager, startTime, name);
+//BTM            
+//BTM        }
+//BTM
+//BTM        @Override
+//BTM        protected IndexMetadata doTask() throws Exception {
+//BTM            
+//BTM            return getIndex(getOnlyResource()).getIndexMetadata();
+//BTM            
+//BTM        }
+//BTM        
+//BTM    }
     
     /**
      * Note: This chooses {@link ITx#READ_COMMITTED} if the the index has
@@ -1439,18 +1440,6 @@ final TransactionService txService = resourceManager
             final AbstractTask task = new IndexProcedureTask(
                     concurrencyManager, timestamp, name, proc);
             
-            if (task instanceof IFederationCallable) {
-
-                ((IFederationCallable) task).setFederation(getFederation());
-
-            }
-
-            if (task instanceof IDataServiceCallable) {
-
-                ((IDataServiceCallable) task).setDataService(this);
-
-            }
-            
             // submit the procedure and await its completion.
             return concurrencyManager.submit(task);
         
@@ -1475,7 +1464,7 @@ final TransactionService txService = resourceManager
      *       for example, if they use {@link AbstractFederation#shutdownNow()}
      *       then the {@link DataService} itself would be shutdown.
      */
-    public Future<? extends Object> submit(final Callable<? extends Object> task) {
+    public <T> Future<T> submit(final IDataServiceCallable<T> task) {
 
         setupLoggingContext();
 
@@ -1484,26 +1473,9 @@ final TransactionService txService = resourceManager
             if (task == null)
                 throw new IllegalArgumentException();
 
-            /*
-             * Submit to the ExecutorService for the DataService's federation
-             * object. This is used for tasks which are not associated with a
-             * timestamp and hence not linked to any specific view of the named
-             * indices.
-             */
-
-            if (task instanceof IFederationCallable) {
-
-                ((IFederationCallable) task).setFederation(getFederation());
-
-            }
-            if (task instanceof IDataServiceCallable) {
-
-                ((IDataServiceCallable) task).setDataService(this);
-
-            }
-
             // submit the task and return its Future.
-            return getFederation().getExecutorService().submit(task);
+            return getFederation().getExecutorService().submit(
+                    new DataTaskWrapper(getFederation(), this, task));
 
         } finally {
 
@@ -1679,35 +1651,34 @@ final TransactionService txService = resourceManager
      * Task for running a rangeIterator operation.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
-//BTM    static protected class RangeIteratorTask extends AbstractTask {
-static public class RangeIteratorTask extends AbstractTask {
-
-        private final byte[] fromKey;
-        private final byte[] toKey;
-        private final int capacity;
-        private final int flags;
-        private final IFilterConstructor filter;
-        
-        public RangeIteratorTask(ConcurrencyManager concurrencyManager,
-                long startTime, String name, byte[] fromKey, byte[] toKey,
-                int capacity, int flags, IFilterConstructor filter) {
-
-            super(concurrencyManager, startTime, name);
-
-            this.fromKey = fromKey;
-            this.toKey = toKey;
-            this.capacity = capacity;
-            this.flags = flags;
-            this.filter = filter; // MAY be null.
-
-        }
-
-        public ResultSet doTask() throws Exception {
-
-            final IIndex ndx = getIndex(getOnlyResource());
-            
+//BTM//BTM    static protected class RangeIteratorTask extends AbstractTask {
+//BTMstatic public class RangeIteratorTask extends AbstractTask {
+//BTM
+//BTM        private final byte[] fromKey;
+//BTM        private final byte[] toKey;
+//BTM        private final int capacity;
+//BTM        private final int flags;
+//BTM        private final IFilterConstructor filter;
+//BTM        
+//BTM        public RangeIteratorTask(ConcurrencyManager concurrencyManager,
+//BTM                long startTime, String name, byte[] fromKey, byte[] toKey,
+//BTM                int capacity, int flags, IFilterConstructor filter) {
+//BTM
+//BTM            super(concurrencyManager, startTime, name);
+//BTM
+//BTM            this.fromKey = fromKey;
+//BTM            this.toKey = toKey;
+//BTM            this.capacity = capacity;
+//BTM            this.flags = flags;
+//BTM            this.filter = filter; // MAY be null.
+//BTM
+//BTM        }
+//BTM
+//BTM        public ResultSet doTask() throws Exception {
+//BTM
+//BTM            final IIndex ndx = getIndex(getOnlyResource());
+//BTM            
             /*
              * Figure out the upper bound on the #of tuples that could be
              * materialized.
@@ -1715,11 +1686,11 @@ static public class RangeIteratorTask extends AbstractTask {
              * Note: the upper bound on the #of key-value pairs in the range is
              * truncated to an [int].
              */
-            
-            final int rangeCount = (int) ndx.rangeCount(fromKey, toKey);
-
-            final int limit = (rangeCount > capacity ? capacity : rangeCount);
-
+//BTM            
+//BTM            final int rangeCount = (int) ndx.rangeCount(fromKey, toKey);
+//BTM
+//BTM            final int limit = (rangeCount > capacity ? capacity : rangeCount);
+//BTM
             /*
              * Iterator that will visit the key range.
              * 
@@ -1728,19 +1699,19 @@ static public class RangeIteratorTask extends AbstractTask {
              * [lastKey] field on the result set and that is necessary to
              * support continuation queries.
              */
-            
-            final ITupleIterator itr = ndx.rangeIterator(fromKey, toKey, limit,
-                    flags | IRangeQuery.KEYS, filter);
-            
+//BTM            
+//BTM            final ITupleIterator itr = ndx.rangeIterator(fromKey, toKey, limit,
+//BTM                    flags | IRangeQuery.KEYS, filter);
+//BTM            
             /*
              * Populate the result set from the iterator.
              */
-
-            return new ResultSet(ndx, capacity, flags, itr);
-
-        }
-        
-    }
+//BTM
+//BTM            return new ResultSet(ndx, capacity, flags, itr);
+//BTM
+//BTM        }
+//BTM        
+//BTM    }
 
     /*
      * Overflow processing API 
@@ -1840,7 +1811,6 @@ static public class RangeIteratorTask extends AbstractTask {
      * the next group commit.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private class ForceOverflowTask implements Callable<Void> {
 

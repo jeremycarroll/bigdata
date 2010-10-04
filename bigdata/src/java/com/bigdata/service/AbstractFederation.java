@@ -74,6 +74,10 @@ import com.bigdata.util.concurrent.TaskCounters;
 import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 import com.bigdata.util.httpd.AbstractHTTPD;
 
+//BTM
+import com.bigdata.event.EventQueue;
+import com.bigdata.util.Util;
+
 /**
  * Abstract base class for {@link IBigdataFederation} implementations.
  * 
@@ -188,7 +192,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
         }
 
         // drain any events in one last report.
-        new SendEventsTask().run();
+//BTM        new SendEventsTask().run();
+new SendEventsTask(events).run();
 
         // optional httpd service for the local counters.
         if (httpd != null) {
@@ -382,7 +387,7 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      * @todo A hard reference map is used to prevent the counters from being
      *       finalized so that they will reflect the use by the client over the
      *       life of its operations. However, this could be a problem for an
-     *       {@link IDataService} or {@link IClientService} since any number of
+     *       {@link ShardService} or {@link IClientService} since any number of
      *       clients could run over time. If there were a large #of distinct
      *       scale-out indices then this would effectively represent a memory
      *       leak. The other way to handle this would be a
@@ -550,8 +555,9 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
 
         final String hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
 
-        return getServiceCounterPathPrefix(getServiceUUID(), getServiceIface(),
-                hostname);
+        return Util.getServiceCounterPathPrefix(getServiceUUID(),
+                                                getServiceIface(),
+                                                hostname);
 
     }
 
@@ -568,26 +574,27 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
      *            The fully qualified name of the host on which the service is
      *            running.
      */
-    static public String getServiceCounterPathPrefix(final UUID serviceUUID,
-            final Class serviceIface, final String hostname) {
-
-        if (serviceUUID == null)
-            throw new IllegalArgumentException();
-        
-        if (serviceIface == null)
-            throw new IllegalArgumentException();
-        
-        if (hostname == null)
-            throw new IllegalArgumentException();
-        
-        final String ps = ICounterSet.pathSeparator;
-
-        final String pathPrefix = ps + hostname + ps + "service" + ps
-                + serviceIface.getName() + ps + serviceUUID + ps;
-
-        return pathPrefix;
-
-    }
+//BTM - MOVED to bigdata-jini/src/java/com/bigdata/util/Util.java
+//BTM  static public String getServiceCounterPathPrefix(final UUID serviceUUID,
+//BTM            final Class serviceIface, final String hostname) {
+//BTM
+//BTM        if (serviceUUID == null)
+//BTM            throw new IllegalArgumentException();
+//BTM        
+//BTM        if (serviceIface == null)
+//BTM            throw new IllegalArgumentException();
+//BTM        
+//BTM        if (hostname == null)
+//BTM            throw new IllegalArgumentException();
+//BTM        
+//BTM        final String ps = ICounterSet.pathSeparator;
+//BTM
+//BTM        final String pathPrefix = ps + hostname + ps + "service" + ps
+//BTM                + serviceIface.getName() + ps + serviceUUID + ps;
+//BTM
+//BTM        return pathPrefix;
+//BTM
+//BTM    }
     
     public ExecutorService getExecutorService() {
         
@@ -639,8 +646,12 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
 //        tempStoreFactory = new TemporaryStoreFactory(this.client
 //                .getTempStoreMaxExtent());
 
+//BTM
+this.sendEventsTask = new SendEventsTask(events);
+
         addScheduledTask(
-                new SendEventsTask(),// task to run.
+//BTM                new SendEventsTask(),// task to run.
+(Runnable)(this.sendEventsTask),// task to run.
                 100, // initialDelay (ms)
                 2000, // delay
                 TimeUnit.MILLISECONDS // unit
@@ -690,8 +701,17 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
                          * through.
                          */
 
-                        dataServiceUUID = getAnyDataService().getServiceUUID();
-
+//BTM                        dataServiceUUID = getAnyDataService().getServiceUUID();
+ShardService shardService = getAnyDataService();
+if(shardService != null) {
+    if(shardService instanceof IService) {
+        dataServiceUUID = ((IService)shardService).getServiceUUID();
+    } else {
+        dataServiceUUID = ((Service)shardService).getServiceUUID();
+    }
+} else {
+    log.warn("no shard service available for index registration");
+}
                     } catch (Exception ex) {
 
                         log.error(ex);
@@ -1079,7 +1099,7 @@ return (IClientIndex)index;
          * is known.
          * 
          * @throws IOException
-         *             if {@link IDataService#getServiceUUID()} throws this
+         *             if {@link IService#getServiceUUID()} throws this
          *             exception (it never should since it is a local method
          *             call).
          */
@@ -1429,9 +1449,11 @@ System.out.println(">>>>> AbstractFederation.reportPerformanceCounters: DONE CAL
     /**
      * @todo it may be possible to optimize this for the jini case.
      */
-    public IDataService[] getDataServices(final UUID[] uuids) {
+//BTM    public IDataService[] getDataServices(final UUID[] uuids) {
+public ShardService[] getDataServices(final UUID[] uuids) {
         
-        final IDataService[] services = new IDataService[uuids.length];
+//BTM        final IDataService[] services = new IDataService[uuids.length];
+final ShardService[] services = new ShardService[uuids.length];
 
         final IBigdataFederation fed = this;
         
@@ -1442,7 +1464,8 @@ System.out.println(">>>>> AbstractFederation.reportPerformanceCounters: DONE CAL
 
         for (UUID uuid : uuids) {
 
-            IDataService service = fed.getDataService(uuid);
+//BTM            IDataService service = fed.getDataService(uuid);
+ShardService service = fed.getDataService(uuid);
 
             if (service == null) {
 
@@ -1480,7 +1503,8 @@ if( mds instanceof IService ) {
                      */
 
 //BTM                    service = fed.getMetadataService();
-if( (mds != null) && (mds instanceof IDataService) ) service = (IDataService)mds;
+//BTM if( (mds != null) && (mds instanceof IDataService) ) service = (IDataService)mds;
+if( (mds != null) && (mds instanceof ShardService) ) service = (ShardService)mds;
 
                 }
                 
@@ -1501,6 +1525,7 @@ if( (mds != null) && (mds instanceof IDataService) ) service = (IDataService)mds
 
     }
 
+//BTM - BEGIN - REMOVAL OF NEED FOR ABSTRACT_FEDERATION IN EVENT SENDING MECHANISM
     /**
      * Queues up an event to be sent to the load balancer service.
      * Events are maintained on a non-blocking queue (no fixed capacity) and
@@ -1510,20 +1535,23 @@ if( (mds != null) && (mds instanceof IDataService) ) service = (IDataService)mds
      * 
      * @see SendEventsTask
      */
-    protected void sendEvent(final Event e) {
-
-        if (isOpen()) {
-
-            events.add(e);
-
-        }
-        
-    }
+//BTM    protected void sendEvent(final Event e) {
+//BTM
+//BTM        if (isOpen()) {
+//BTM
+//BTM            events.add(e);
+//BTM
+//BTM        }
+//BTM        
+//BTM    }
     
     /**
      * Queue of events sent periodically to the load balancer service.
      */
     final private BlockingQueue<Event> events = new LinkedBlockingQueue<Event>();
+
+//BTM
+final private EventQueue sendEventsTask;
     
     /**
      * Sends events to the load balancer service.
@@ -1533,11 +1561,22 @@ if( (mds != null) && (mds instanceof IDataService) ) service = (IDataService)mds
      * 
      * FIXME should discard events if too many build up on the client.
      */
-    private class SendEventsTask implements Runnable {
+//BTM    private class SendEventsTask implements Runnable {
+private class SendEventsTask implements EventQueue, Runnable {
 
-        public SendEventsTask() {
-            
+final private BlockingQueue<Event> eventQueue;
+
+//BTM        public SendEventsTask() {
+public SendEventsTask(BlockingQueue<Event> eventQueue) {
+    this.eventQueue = eventQueue;
         }
+
+//BTM
+public void queueEvent(Event e) {
+    if (isOpen()) {
+        eventQueue.add(e);
+    }
+}
         
         /**
          * Note: Don't throw anything - it will cancel the scheduled task.
@@ -1559,7 +1598,8 @@ if( (mds != null) && (mds instanceof IDataService) ) service = (IDataService)mds
                 
                 final LinkedList<Event> c = new LinkedList<Event>();
 
-                events.drainTo(c);
+//BTM                events.drainTo(c);
+eventQueue.drainTo(c);
 
                 /*
                  * @todo since there is a delay before events are sent along it
@@ -1604,5 +1644,12 @@ if( (mds != null) && (mds instanceof IDataService) ) service = (IDataService)mds
         }
 
     }
+
+
+public EventQueue getEventQueue() {
+    return this.sendEventsTask;
+}
+//BTM - END - REMOVAL OF NEED FOR ABSTRACT_FEDERATION IN EVENT SENDING MECHANISM
+
 
 }

@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.service;
 
 import java.io.IOException;
-import java.rmi.Remote;
+//BTM import java.rmi.Remote;
 import java.util.concurrent.ExecutionException;
 
 import com.bigdata.btree.ITuple;
@@ -36,13 +36,11 @@ import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ValidationError;
 
 /**
- * Remote interface by which the {@link ITransactionService} manages the state
- * of transactions on the distributed {@link IDataService}s.
- * 
- * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
+ * Interface by which the {@link ITransactionService} manages the state
+ * of transactions on the shard service.
  */
-public interface ITxCommitProtocol extends Remote {
+//BTM public interface ITxCommitProtocol extends Remote {
+public interface ITxCommitProtocol {
 
     /**
      * Notify a data service that it MAY release data required to support views
@@ -68,9 +66,9 @@ public interface ITxCommitProtocol extends Remote {
     /**
      * Request abort of the transaction by the data service. This message is
      * sent in response to {@link ITransactionService#abort(long)} to each
-     * {@link IDataService} on which the transaction has written. It is NOT sent
+     * {@link ShardService} on which the transaction has written. It is NOT sent
      * for read-only transactions since they have no local state on the
-     * {@link IDataService}s.
+     * {@link ShardService}s.
      * 
      * @param tx
      *            The transaction identifier.
@@ -109,9 +107,9 @@ public interface ITxCommitProtocol extends Remote {
             ExecutionException, IOException;
 
     /**
-     * Request that the {@link IDataService} participate in a 3-phase commit.
+     * Request that the {@link ShardService} participate in a 3-phase commit.
      * <p>
-     * When the {@link IDataService} is sent the {@link #prepare(long, long)}
+     * When the {@link ShardService} is sent the {@link #prepare(long, long)}
      * message it executes a task which will handle commit processing for the
      * transaction. That task MUST hold exclusive locks for the unisolated
      * indices to which the transaction write sets will be applied. While
@@ -119,9 +117,9 @@ public interface ITxCommitProtocol extends Remote {
      * set and then merge down the write set onto the corresponding unisolated
      * indices using the specified <i>revisionTime</i> and checkpoint the
      * indices in order to reduce all possible sources of latency. Note that
-     * each {@link IDataService} is able to independently prepare exactly those
+     * each {@link ShardService} is able to independently prepare exactly those
      * parts of the transaction's write set which are mapped onto index
-     * partitions hosted by a given {@link IDataService}.
+     * partitions hosted by a given {@link ShardService}.
      * <p>
      * Once validation is complete and all possible steps have been taken to
      * reduce sources of latency (e.g., checkpoint the indices and pre-extending
@@ -132,10 +130,10 @@ public interface ITxCommitProtocol extends Remote {
      * task CAN NOT prepare the transaction, then it MUST throw an exception out
      * of its {@link #prepare(long, long)} method.
      * <p>
-     * Once all tasks have send an {@link ITransactionService#prepared(long)}
+     * Once all tasks have sent an {@link ITransactionService#prepared(long)}
      * message to the {@link ITransactionService}, it will assign a commitTime
      * to the transaction and permit those methods to return that commitTime to
-     * the {@link IDataService}s. Once the task receives the assigned commit
+     * the {@link ShardService}s. Once the task receives the assigned commit
      * time, it must obtain an exclusive write lock for the live journal (this
      * is a higher requirement than just an exclusive lock on the necessary
      * indices and will lock out all other write requests for the journal),
@@ -148,7 +146,7 @@ public interface ITxCommitProtocol extends Remote {
      * an exception out of {@link #prepare(long, long)}.
      * <p>
      * A sample flow for successful a distributed transaction commit is shown
-     * below. This example shows two {@link IDataService}s on which the client
+     * below. This example shows two {@link ShardService}s on which the client
      * has written. (If the client only writes on a single data service then we
      * use a single-phase commit protocol).
      * 
@@ -193,42 +191,42 @@ public interface ITxCommitProtocol extends Remote {
      * request, in which it specifies the transaction identifier (tx). </li>
      * <li> [2,3] The transaction service issues concurrent
      * {@link #prepare(long, long)} requests to the participating
-     * {@link IDataService}s, specifying the transaction identifier (tx) and
+     * {@link ShardService}s, specifying the transaction identifier (tx) and
      * the revision timestamp (rev) to be used and then waits at a barrier until
      * it receives {@link ITransactionService#prepared(long)} messages from
-     * those {@link IDataService}s.</li>
+     * those {@link ShardService}s.</li>
      * <li> [4] When all participants have prepared, the barrier breaks and the
      * {@link ITransactionService} assigns a <i>commitTime</i> and returns that
      * commitTime as the return value for the prepared messages.</li>
-     * <li> [5,6] Once the {@link IDataService} obtains that commitTime, it
+     * <li> [5,6] Once the {@link ShardService} obtains that commitTime, it
      * proceeds with its atomic commit using the specified commitTime and then
      * sends an {@link ITransactionService#committed(long)} message to the
      * {@link ITransactionService}.</li>
      * <li> [7] The {@link ITransactionService} waits at another barrier.</li>
      * <li> [8,10] Once it has received an
      * {@link ITransactionService#committed(long)} message from each
-     * participating {@link IDataService} the transaction has been successfully
+     * participating {@link ShardService} the transaction has been successfully
      * committed and the barrier breaks. The {@link ITransactionService} now
      * lets the {@link ITransactionService#committed(long)} messages return
      * <code>true</code>, indicating success.</li>
-     * <li> [9,11] The {@link IDataService}s return (void) from their
+     * <li> [9,11] The {@link ShardService}s return (void) from their
      * {@link #prepare(long, long)} message and the threads running their side
      * of the commit protocol halt.</li>
      * <li> [12] The {@link ITransactionService} returns the commit time which
-     * it assigned and which was used by each participating {@link IDataService}
+     * it assigned and which was used by each participating {@link ShardService}
      * to the client.
      * </ul>
      * There are many points in the protocol where commit processing can fail.
      * However, there are two primary failure classifications that are of
      * interest for error handling. Up until the first barrier is satisified,
      * there is no side-effect on the persistent state so error handling need
-     * only halt processing on the {@link IDataService}s and discard any local
+     * only halt processing on the {@link ShardService}s and discard any local
      * state associated with the transaction and throw an exception out of
      * {@link #prepare(long, long)}. Once the first barrier has been
      * satisfied, persistent side-effects MAY occur. Error handling in this
      * case must rollback the state of the live journal for each of the
-     * participating {@link IDataService}s. If error handling was performed in
-     * response to a local error, then the {@link IDataService} must throw that
+     * participating {@link ShardService}s. If error handling was performed in
+     * response to a local error, then the {@link ShardService} must throw that
      * error out of {@link #prepare(long, long)}. However, if error handling
      * was initiated because {@link ITransactionService#committed(long)}
      * returned <code>false</code> then it should return normally (after
@@ -243,7 +241,7 @@ public interface ITxCommitProtocol extends Remote {
      * 
      * @throws Throwable
      *             if there is a problem during the execution of the commit
-     *             protocol by the {@link IDataService}.
+     *             protocol by the {@link ShardService}.
      * @throws IOException
      *             if there is an RMI problem.
      * 

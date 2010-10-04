@@ -25,11 +25,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.util;
 
-import com.bigdata.util.config.ConfigDeployUtil;
-import com.bigdata.util.config.LogUtil;
+import com.bigdata.counters.AbstractStatisticsCollector;
+import com.bigdata.counters.CounterSet;
+import com.bigdata.counters.ICounterSet;
+import com.bigdata.counters.IStatisticsCollector;
 import com.bigdata.service.proxy.ClientFuture;
 import com.bigdata.service.proxy.RemoteFuture;
 import com.bigdata.service.proxy.RemoteFutureImpl;
+import com.bigdata.util.config.ConfigDeployUtil;
+import com.bigdata.util.config.LogUtil;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -58,10 +62,14 @@ import net.jini.lookup.ServiceDiscoveryManager;
 import java.io.IOException;
 import java.rmi.server.ExportException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Miscellaneous, convenient utility methods.
@@ -149,21 +157,18 @@ public class Util {
         }
 
         if(futureExporters != null) {
-            for(Exporter exporter : futureExporters) {
-                if(exporter != null) {
-                    try {
-                        exporter.unexport(true);
-                        exporter = null;
-                    } catch(Throwable t) { }
-                }
-            }
+            Set<Exporter> removeSet = new HashSet<Exporter>();
             synchronized(futureExporters) {
-                for(Iterator<Exporter> itr = futureExporters.iterator();
-                        itr.hasNext(); )
-                {
-                    itr.next();
-                    itr.remove();
+                for(Exporter exporter : futureExporters) {
+                    if(exporter != null) {
+                        try {
+                            exporter.unexport(true);
+                            exporter = null;
+                            removeSet.add(exporter);
+                        } catch(Throwable t) { }
+                    }
                 }
+                futureExporters.removeAll(removeSet);
             }
         }
 
@@ -475,10 +480,46 @@ public class Util {
         return exporter;
     }
 
-   public static <E> Future<E> wrapFuture(Exporter exporter,
-                                          Future<E> future) 
-                               throws ExportException
-   {
+    public static void shutdownExecutorService
+                           (ExecutorService executorService,
+                            long timeoutMs,
+                            String executorName,
+                            Logger logger)
+    {
+        String logStr = (executorName == null ?
+            (executorService.getClass()).getName() : executorName);
+        executorService.shutdown();//no new tasks
+        try {
+            // Wait for existing tasks to terminate
+            if( !executorService.awaitTermination
+                                       (timeoutMs,
+                                        TimeUnit.MILLISECONDS) )
+            {
+                //cancel current tasks
+                executorService.shutdownNow();
+                // Wait for tasks to respond to being cancelled
+                if( !executorService.awaitTermination
+                                         (timeoutMs,
+                                          TimeUnit.MILLISECONDS) )
+                {
+                    if(logger != null) {
+                        logger.log(Level.WARN, "shutdown "
+                                   +logStr+" [FAILURE]");
+                    }
+                }
+            }
+        } catch (InterruptedException ie) {
+            //(Re-)Cancel if current thread also interrupted
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();//preserve interrupt
+        }
+        if(logger != null) logger.log(Level.DEBUG, "shutdown "+logStr);
+    }
+
+    public static <E> Future<E> wrapFuture(Exporter exporter,
+                                           Future<E> future) 
+                                throws ExportException
+    {
         if(exporter == null) {
             throw new NullPointerException("null exporter");
         }
@@ -497,6 +538,162 @@ public class Util {
 
         return new ClientFuture<E>(stub);
     }
+
+    /**
+     * Forms the name of the index corresponding to a partition of a named
+     * scale-out index as <i>name</i>#<i>partitionId</i>.
+     * <p>
+     * One advantage of this naming scheme is that index partitions are
+     * just named indices and all of the mechanisms for operating on
+     * named indices and for concurrency control for named indices apply
+     * automatically. Among other things, this means that different tasks
+     * can write concurrently on different partitions of the same named
+     * index on a given shard service.
+     * 
+     * @return The name of the index partition.
+     */
+    public static String getIndexPartitionName(final String name,
+                                               final int partitionId)
+    {
+        if (name == null) {
+            throw new IllegalArgumentException("null name");            
+        }
+
+        if (partitionId == -1) {// Not a partitioned index.
+            return name;
+        }
+        return name + "#" + partitionId;
+    }
+
+    public static CounterSet getServiceCounterSet
+                                 (UUID serviceUUID,
+                                  Class serviceType,
+                                  String serviceName,
+                                  String hostname,
+                                  CounterSet countersRoot,
+                                  IStatisticsCollector statisticsCollector,
+                                  Properties serviceProps)
+    {
+        return getServiceCounterSet
+                   (serviceUUID, serviceType, serviceName, hostname,
+                    countersRoot, statisticsCollector, serviceProps,
+                    false);
+    }
+
+    public static CounterSet getServiceCounterSet
+                                 (UUID serviceUUID,
+                                  Class serviceType,
+                                  String serviceName,
+                                  String hostname,
+                                  CounterSet countersRoot,
+                                  IStatisticsCollector statisticsCollector,
+                                  Properties serviceProps,
+                                  boolean addCounters)
+    {
+        if (countersRoot == null) {
+            countersRoot = getCounterSet(statisticsCollector);
+        }
+        String serviceCounterPathPrefix = 
+                   Util.getServiceCounterPathPrefix
+                       (serviceUUID, serviceType, hostname);
+        CounterSet serviceRoot = 
+                       countersRoot.makePath(serviceCounterPathPrefix);
+        if(addCounters) {
+            AbstractStatisticsCollector.addBasicServiceOrClientCounters
+                (serviceRoot, serviceName, serviceType, serviceProps);
+        }
+        return serviceRoot;        
+    }
+
+    public static CounterSet getHostCounterSet
+                                 (IStatisticsCollector statisticsCollector)
+    {
+        String pathPrefix = 
+               ICounterSet.pathSeparator
+               + AbstractStatisticsCollector.fullyQualifiedHostName;
+        CounterSet countersRoot = getCounterSet(statisticsCollector);
+        return (CounterSet) countersRoot.getPath(pathPrefix);
+    }
+    
+    public static CounterSet getCounterSet
+                                 (IStatisticsCollector statisticsCollector)
+    {
+        CounterSet countersRoot = new CounterSet();
+        if (statisticsCollector != null) {
+            countersRoot.attach(statisticsCollector.getCounters());
+        }
+        return countersRoot;
+    }
+
+    /**
+     * The path prefix under which all of the counters associated with
+     * a client or service are located. The returned path prefix is
+     * terminated by an {@link ICounterSet#pathSeparator}.
+     * 
+     * @param serviceUUID
+     *            The service {@link UUID}.
+     * @param serviceIface
+     *            The primary interface or class for the service.
+     * @param hostname
+     *            The fully qualified name of the host on which the service is
+     *            running.
+     */
+    public static String getServiceCounterPathPrefix
+                             (final UUID serviceUUID,
+                              final Class serviceIface,
+                              final String hostname)
+    {
+        if (serviceUUID == null) {
+            throw new IllegalArgumentException("null serviceUUID");
+        }
+
+        if (serviceIface == null) {
+            throw new IllegalArgumentException("null serviceIface");
+        }
+
+        if (hostname == null) {
+            throw new IllegalArgumentException("null hostname");
+        }
+
+        final String ps = ICounterSet.pathSeparator;
+        final String pathPrefix = ps+hostname+ps+"service"
+                                  +ps+serviceIface.getName()
+                                  +ps+serviceUUID
+                                  +ps;
+        return pathPrefix;
+    }
+
+//BTM - temporary methods used for debugging; to be removed during code cleanup
+
+public static synchronized String getCurrentStackTrace() {
+    StackTraceElement[] e = (Thread.currentThread()).getStackTrace();
+    StringBuffer buf = new StringBuffer("    "+(e[0]).toString()+"\n");
+    for(int i=1;i<e.length;i++) {
+        buf.append("    "+(e[i]).toString()+"\n");
+    }
+    return buf.toString();
+}
+public static synchronized void printStr(String flnm, String str) {
+    printStr(flnm, str, true);
+}
+public static synchronized void printStr(String flnm, String str, boolean append) {
+    java.io.File fd = new java.io.File(System.getProperty("java.io.tmpdir"), flnm);
+    java.io.PrintWriter pw = null;
+    try {
+        pw = new java.io.PrintWriter
+                 (new java.io.BufferedOutputStream
+                          (new java.io.FileOutputStream(fd, append)));
+        pw.println(str);
+        pw.flush();
+    } catch(Throwable t) {
+        /* swallow */
+    } finally {
+        if(pw != null) {
+            pw.flush();
+            pw.close();
+        }
+    }
+}
 
     public static class WaitOnInterruptThread extends InterruptedStatusThread {
         private Logger logger;

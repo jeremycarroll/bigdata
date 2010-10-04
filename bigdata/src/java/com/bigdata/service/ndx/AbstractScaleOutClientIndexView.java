@@ -80,7 +80,7 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 //BTM import com.bigdata.service.IMetadataService;
 import com.bigdata.service.Split;
 import com.bigdata.service.IBigdataClient.Options;
@@ -90,6 +90,7 @@ import com.bigdata.service.ndx.pipeline.IndexWriteTask;
 
 //BTM
 import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardService;
 
 /**
  * Abstract base class for the {@link IScaleOutClientIndex} implementation(s).
@@ -170,7 +171,7 @@ abstract public class AbstractScaleOutClientIndexView implements IScaleOutClient
     }
 
     /**
-     * The timeout in milliseconds for tasks run on an {@link IDataService}.
+     * The timeout in milliseconds for tasks run on an {@link ShardService}.
      * 
      * @see Options#CLIENT_TASK_TIMEOUT
      */
@@ -357,7 +358,7 @@ final protected ShardLocator getMetadataService() {
      * The metadata for the managed scale-out index. Among other things, this
      * gets used to determine how we serialize keys and values for
      * {@link IKeyArrayIndexProcedure}s when we serialize a procedure to be
-     * sent to a remote {@link IDataService}.
+     * sent to a remote {@link ShardService}.
      */
     public IndexMetadata getIndexMetadata() {
 
@@ -365,7 +366,8 @@ final protected ShardLocator getMetadataService() {
 
     }
 
-    public IDataService getDataService(final PartitionLocator pmd) {
+//BTM    public IDataService getDataService(final PartitionLocator pmd) {
+public ShardService getDataService(final PartitionLocator pmd) {
 
         return fed.getDataService(pmd.getDataServiceUUID());
 

@@ -42,9 +42,12 @@ import com.bigdata.btree.proc.IResultHandler;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.accesspath.IAsynchronousIterator;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.Split;
 import com.bigdata.service.ndx.IScaleOutClientIndex;
+
+//BTM
+import com.bigdata.service.ShardService;
 
 /**
  * Task drains a {@link BlockingBuffer} containing {@link KVO}[] chunks, splits
@@ -259,10 +262,11 @@ A//
     @Override
     protected S newSubtask(final L locator, final BlockingBuffer<E[]> out) {
 
-        final IDataService dataService = ndx.getDataService(locator);
+//BTM        final IDataService dataService = ndx.getDataService(locator);
+final ShardService dataService = ndx.getDataService(locator);
         
         if (dataService == null)
-            throw new RuntimeException("DataService not found: "
+            throw new RuntimeException("ShardService not found: "
                     + locator.getDataServiceUUID());
         
         return (S) new IndexPartitionWriteTask(this, locator, dataService, out);

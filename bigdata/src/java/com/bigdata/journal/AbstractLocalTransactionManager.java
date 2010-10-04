@@ -9,15 +9,13 @@ import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.resources.StoreManager;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
 
 /**
  * Manages the client side of a transaction either for a standalone
- * {@link Journal} or for an {@link IDataService} in an
+ * {@link Journal} or for a shard service in an
  * {@link IBigdataFederation}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 abstract public class AbstractLocalTransactionManager implements
         ILocalTransactionManager {

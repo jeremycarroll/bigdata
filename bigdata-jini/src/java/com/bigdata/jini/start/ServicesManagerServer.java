@@ -51,12 +51,7 @@ import com.bigdata.jini.start.config.JiniCoreServicesConfiguration;
 import com.bigdata.jini.start.config.ServiceConfiguration;
 import com.bigdata.jini.start.config.ServicesManagerConfiguration;
 import com.bigdata.jini.start.config.ZookeeperServerConfiguration;
-import com.bigdata.journal.ITransactionService;
-import com.bigdata.service.DataService;
 import com.bigdata.service.DefaultServiceFederationDelegate;
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
-import com.bigdata.service.MetadataService;
 import com.bigdata.service.jini.AbstractServer;
 import com.bigdata.service.jini.FakeLifeCycle;
 import com.bigdata.service.jini.JiniFederation;
@@ -208,11 +203,9 @@ import com.sun.jini.start.ServiceStarter;
  * loss of all physical instances of a logical service will result in the loss
  * of the persistent state for the logical service as a whole.
  * <p>
- * The two main services which require failover are the
- * {@link ITransactionService} and the {@link IDataService} (which includes the
- * {@link IMetadataService} as a special case). The loss of the
- * load balancer service is normally not critical as only history about
- * the system load over time is lost.
+ * The two main services which require failover are the transaction service
+ * and the shard service. The loss of the load balancer service is normally
+ * not critical as only history about the system load over time is lost.
  * 
  * <h4>Transaction service</h4>
  * 
@@ -220,7 +213,7 @@ import com.sun.jini.start.ServiceStarter;
  * 
  * <h4>(Meta)data services</h4>
  * 
- * The basic design is for {@link IDataService} is to pipeline state changes
+ * The basic design is of the shard service is to pipeline state changes
  * from a master through a failover chain of secondaries. Write can proceed
  * asynchronously on the pipeline until the next commit, at which point the
  * secondaries must be synched with the master. Since all instances have the
@@ -291,10 +284,10 @@ import com.sun.jini.start.ServiceStarter;
  *       and supports transactions over operations on the space. Gigaspaces has
  *       defined a variety of extensions that provide FIFO queues.
  * 
- * @todo The {@link MetadataService}, the load balancer service, and
- *       the {@link ITransactionService} MUST NOT have more than one logical
+ * @todo The shard locator service, the load balancer service, and the
+ *       transaction service MUST NOT have more than one logical
  *       instance in a federation. They can (eventually) have failover
- *       instances, but not peers. The {@link DataService} is the only one that
+ *       instances, but not peers. The shard service is the only one that
  *       already supports multiple logical service instances (lots!) (but not
  *       failover).
  * 

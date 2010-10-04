@@ -57,6 +57,8 @@ import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
 //BTM
 import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
+import com.bigdata.service.OverflowAdmin;
+import com.bigdata.util.Util;
 
 /**
  * Some unit tests for moving an index partition.
@@ -65,6 +67,10 @@ import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
  * @version $Id$
  */
 public class TestMove extends AbstractEmbeddedFederationTestCase {
+
+//BTM
+protected String dbgFlnm="EmbeddedShardService.out";
+//protected String dbgFlnm="DataService.out";
 
     public TestMove() {
         super();
@@ -138,7 +144,24 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
      * @throws InterruptedException
      */
     public void test_move() throws IOException, InterruptedException, ExecutionException {
-        
+//BTM
+Util.printStr(dbgFlnm, "\nTestMove.test_move >>> BEGIN\n", false);
+int maxInserts = 6;
+
+UUID dataService0UUID = null;
+if(dataService0 instanceof IService) {
+    dataService0UUID = ((IService)dataService0).getServiceUUID();
+} else {
+    dataService0UUID = ((Service)dataService0).getServiceUUID();
+}
+OverflowAdmin overflowAdmin0 = (OverflowAdmin)dataService0;
+
+UUID dataService1UUID = null;
+if(dataService1 instanceof IService) {
+    dataService1UUID = ((IService)dataService1).getServiceUUID();
+} else {
+    dataService1UUID = ((Service)dataService1).getServiceUUID();
+}
         /*
          * Register the index.
          */
@@ -152,7 +175,8 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
             indexMetadata.setDeleteMarkers(true);
 
             // register the scale-out index, creating a single index partition.
-            fed.registerIndex(indexMetadata, dataService0.getServiceUUID());
+//BTM            fed.registerIndex(indexMetadata, dataService0.getServiceUUID());
+fed.registerIndex(indexMetadata, dataService0UUID);
 
         }
 
@@ -174,8 +198,8 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
 
             assertEquals("partitionId", 0L, pmd0.getPartitionId());
 
-            assertEquals("dataServiceUUID", dataService0
-                    .getServiceUUID(), pmd0.getDataServiceUUID());
+//BTM            assertEquals("dataServiceUUID", dataService0.getServiceUUID(), pmd0.getDataServiceUUID());
+assertEquals("dataServiceUUID", dataService0UUID, pmd0.getDataServiceUUID());
             
         }
         assertEquals("partitionCount", 1, getPartitionCount(name));
@@ -207,7 +231,8 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
          * partition count has increased and exit this loop.
          */
         final int batchSize = 5000;
-        long overflowCounter = dataService0.getAsynchronousOverflowCounter();
+//BTM        long overflowCounter = dataService0.getAsynchronousOverflowCounter();
+long overflowCounter = overflowAdmin0.getAsynchronousOverflowCounter();
         int npartitions = -1;
         {
 
@@ -230,23 +255,27 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
                 }
 
                 // insert the data into the ground truth index.
+Util.printStr(dbgFlnm, "TestMove.test_move >>> INSERT GROUND TRUTH [npartitions="+npartitions+"]");
                 groundTruth
                         .submit(0/* fromIndex */, batchSize/* toIndex */, keys,
                                 vals, BatchInsertConstructor.RETURN_NO_VALUES,
                                 null/* handler */);
 
                 // Set flag to force overflow on group commit.
-                dataService0
-                        .forceOverflow(false/* immediate */, false/* compactingMerge */);
+//BTM                dataService0.forceOverflow(false/* immediate */, false/* compactingMerge */);
+Util.printStr(dbgFlnm, "TestMove.test_move >>> FORCE OVERFLOW [npartitions="+npartitions+"]");
+overflowAdmin0.forceOverflow(false/* immediate */, false/* compactingMerge */);
 
                 // insert the data into the scale-out index.
+Util.printStr(dbgFlnm, "TestMove.test_move >>> INSERT DATA [npartitions="+npartitions+"]");
                 fed.getIndex(name, ITx.UNISOLATED)
                         .submit(0/* fromIndex */, batchSize/* toIndex */, keys,
                                 vals, BatchInsertConstructor.RETURN_NO_VALUES,
                                 null/* handler */);
 
-                overflowCounter = awaitAsynchronousOverflow(dataService0,
-                        overflowCounter);
+//BTM                overflowCounter = awaitAsynchronousOverflow(dataService0, overflowCounter);
+Util.printStr(dbgFlnm, "TestMove.test_move >>> AWAIT OVERFLOW [npartitions="+npartitions+"]");
+overflowCounter = awaitAsynchronousOverflow(overflowAdmin0, overflowCounter);
                 
                 assertEquals("rangeCount", groundTruth.getEntryCount(), fed
                         .getIndex(name, ITx.UNISOLATED).rangeCount());
@@ -256,6 +285,7 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
                 nwritten += batchSize;
 
                 npartitions = getPartitionCount(name);
+Util.printStr(dbgFlnm, "TestMove.test_move >>> [nrounds="+nrounds+", nwritten="+nwritten+", npartitions="+npartitions+"]");
 
 //                if (log.isInfoEnabled())
 //                    log.info
@@ -276,9 +306,12 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
                 assertSameEntryIterator(groundTruth, fed.getIndex(name,
                         ITx.UNISOLATED));
 
+Util.printStr(dbgFlnm, "    ");
+assertTrue("no split after [max="+nrounds+"] inserts", (nrounds < maxInserts));
             }
 
         }
+Util.printStr(dbgFlnm, "\nTestMove.test_move >>> EXITED LOOP!!!\n");
 
         npartitions = getPartitionCount(name);
 
@@ -305,13 +338,13 @@ final LoadBalancer lbs = ((EmbeddedFederation)fed).getLoadBalancerService();
 
             final ServiceScore[] fakeServiceScores = new ServiceScore[2];
 
-            fakeServiceScores[0] = new ServiceScore(
-                    AbstractStatisticsCollector.fullyQualifiedHostName,
-                    dataService0.getServiceUUID(), "dataService0", 1.0/* rawScore */);
+            fakeServiceScores[0] = new ServiceScore(AbstractStatisticsCollector.fullyQualifiedHostName,
+//BTM                    dataService0.getServiceUUID(), "dataService0", 1.0/* rawScore */);
+dataService0UUID, "dataService0", 1.0/* rawScore */);
 
-            fakeServiceScores[1] = new ServiceScore(
-                    AbstractStatisticsCollector.fullyQualifiedHostName,
-                    dataService1.getServiceUUID(), "dataService1", 0.0/* rawScore */);
+            fakeServiceScores[1] = new ServiceScore(AbstractStatisticsCollector.fullyQualifiedHostName,
+//BTM                    dataService1.getServiceUUID(), "dataService1", 0.0/* rawScore */);
+dataService1UUID, "dataService1", 0.0/* rawScore */);
 
             // set the fake scores on the load balancer.
 //BTM
@@ -373,8 +406,8 @@ System.out.println("*** serviceImpl (TestMove) >>> EmbeddedLoadBalancer [NON-rem
                 /*
                  * Set flag to force overflow on group commit.
                  */
-                dataService0
-                        .forceOverflow(false/* immediate */, true/* compactingMerge */);
+//BTM                dataService0.forceOverflow(false/* immediate */, true/* compactingMerge */);
+overflowAdmin0.forceOverflow(false/* immediate */, true/* compactingMerge */);
 
                 // insert the data into the scale-out index.
                 fed.getIndex(name, ITx.UNISOLATED)
@@ -383,8 +416,8 @@ System.out.println("*** serviceImpl (TestMove) >>> EmbeddedLoadBalancer [NON-rem
                                 null/* handler */);
 
                 // wait until overflow processing is done.
-                overflowCounter = awaitAsynchronousOverflow(dataService0,
-                        overflowCounter);
+//BTM                overflowCounter = awaitAsynchronousOverflow(dataService0, overflowCounter);
+overflowCounter = awaitAsynchronousOverflow(overflowAdmin0, overflowCounter);
 
                 /*
                  * Compare the index against ground truth after overflow.
@@ -430,13 +463,13 @@ System.out.println("*** serviceImpl (TestMove) >>> EmbeddedLoadBalancer [NON-rem
 
                 System.err.println("locators["+n+"]="+locator);
                 
-                if (locator.getDataServiceUUID().equals(dataService0
-                        .getServiceUUID())) {
+//BTM                if (locator.getDataServiceUUID().equals(dataService0.getServiceUUID())) {
+if (locator.getDataServiceUUID().equals(dataService0UUID)) {
 
                     ndataService0++;
 
-                } else if (locator.getDataServiceUUID().equals(
-                        dataService1.getServiceUUID())) {
+//BTM                } else if (locator.getDataServiceUUID().equals(dataService1.getServiceUUID())) {
+} else if (locator.getDataServiceUUID().equals(dataService1UUID)) {
 
                     ndataService1++;
 
@@ -455,7 +488,8 @@ System.out.println("*** serviceImpl (TestMove) >>> EmbeddedLoadBalancer [NON-rem
             System.err.println("npartitions(ds0)=" + ndataService0);
             System.err.println("npartitions(ds1)=" + ndataService1);
             assertEquals("#dataService0=" + ndataService0, 1, ndataService0);
-            assertEquals("#dataService1=" + ndataService0, 1, ndataService1);
+//BTM - bug?           assertEquals("#dataService1=" + ndataService0, 1, ndataService1);
+assertEquals("#dataService1=" + ndataService1, 1, ndataService1);
 
         }
 

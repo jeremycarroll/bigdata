@@ -476,7 +476,15 @@ System.out.println("*** JiniServiceConfiguration: constructor");
 
             final ServiceDir serviceDir = new ServiceDir(this.serviceDir);
 
-            String serviceIpAddr = NicUtil.getIpAddress ( "default.nic", "default", false ) ;
+            String serviceNetwork = "default";
+            try {
+                serviceNetwork = ConfigDeployUtil.getString("node.serviceNetwork");
+            } catch(ConfigurationException e) {
+                log.warn("failed to retrieve service network name "
+                         +"from configuration", e);
+            }
+            String serviceIpAddr = 
+                NicUtil.getIpAddress("default.nic", serviceNetwork, false);
             if ( null == serviceIpAddr )
                 throw new IOException ( "Can't get a host ip address" ) ;
             final Hostname hostName = new Hostname(serviceIpAddr);

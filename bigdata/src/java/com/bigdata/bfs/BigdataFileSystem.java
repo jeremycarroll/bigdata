@@ -44,7 +44,6 @@ import com.bigdata.relation.RelationSchema;
 import com.bigdata.relation.locator.DefaultResourceLocator;
 import com.bigdata.search.FullTextIndex;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
 import com.bigdata.sparse.AutoIncIntegerCounter;
 import com.bigdata.sparse.IRowStoreConstants;
 import com.bigdata.sparse.ITPS;
@@ -259,12 +258,12 @@ public class BigdataFileSystem extends
      * <p>
      * Note: The {@link BigdataFileSystem} makes the <strong>assumption</strong>
      * that the {@link com.bigdata.journal.Options#OFFSET_BITS} is the #of
-     * offset bits configured for the {@link IDataService}s in the connected
+     * offset bits configured for the shard services in the connected
      * {@link IBigdataFederation} and computes the
      * {@link BigdataFileSystem#getBlockSize()} based on that assumption. It is
      * NOT possible to write blocks on the {@link BigdataFileSystem} whose size
      * is greater than the maximum block size actually configured for the
-     * {@link IDataService}s in the connected {@link IBigdataFederation}.
+     * shard services in the connected {@link IBigdataFederation}.
      * 
      * @see com.bigdata.journal.Options#OFFSET_BITS
      * @see #getOffsetBits()

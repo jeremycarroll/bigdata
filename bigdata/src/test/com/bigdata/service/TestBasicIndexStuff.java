@@ -41,6 +41,9 @@ import com.bigdata.journal.NoSuchIndexException;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StaleLocatorException;
 
+//BTM
+import com.bigdata.util.Util;
+
 /**
  * Test of basic index operations.
  * 
@@ -268,12 +271,27 @@ public class TestBasicIndexStuff extends
         final int partitionId0 = 0;
         final int partitionId1 = 1;
 
+//BTM
+UUID dataService0UUID = null;
+if(dataService0 instanceof IService) {
+    dataService0UUID = ((IService)dataService0).getServiceUUID();
+} else {
+    dataService0UUID = ((Service)dataService0).getServiceUUID();
+}
+UUID dataService1UUID = null;
+if(dataService1 instanceof IService) {
+    dataService1UUID = ((IService)dataService1).getServiceUUID();
+} else {
+    dataService1UUID = ((Service)dataService1).getServiceUUID();
+}
         fed.registerIndex(metadata, new byte[][]{//
                 new byte[]{},
                 new byte[]{5}
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+dataService0UUID,
+dataService1UUID
         });
         
         IIndex ndx = fed.getIndex(name,ITx.UNISOLATED);
@@ -299,9 +317,11 @@ public class TestBasicIndexStuff extends
         assertEquals(new byte[]{5}, ndx.lookup(new byte[]{5}));
 
         // verify correct value in the index on the correct data service.
-        assertEquals(new byte[] { 1 }, ((ResultBuffer) dataService0.submit(
+//BTM        assertEquals(new byte[] { 1 }, ((ResultBuffer) dataService0.submit(
+assertEquals(new byte[] { 1 }, ((ResultBuffer) ((ShardManagement)dataService0).submit(
                 ITx.UNISOLATED,//
-                DataService.getIndexPartitionName(name, partitionId0),//
+//BTM                DataService.getIndexPartitionName(name, partitionId0),//
+Util.getIndexPartitionName(name, partitionId0),//
                 BatchLookupConstructor.INSTANCE.newInstance(//
                         metadata, //
                         0,// fromIndex
@@ -310,9 +330,11 @@ public class TestBasicIndexStuff extends
                         null //vals
                 )).get()).getResult(0));
         //
-        assertEquals(new byte[] { 5 }, ((ResultBuffer) dataService1.submit(
+//BTM        assertEquals(new byte[] { 5 }, ((ResultBuffer) dataService1.submit(
+assertEquals(new byte[] { 5 }, ((ResultBuffer) ((ShardManagement)dataService1).submit(
                 ITx.UNISOLATED,//
-                DataService.getIndexPartitionName(name, partitionId1),//
+//BTM                DataService.getIndexPartitionName(name, partitionId1),//
+Util.getIndexPartitionName(name, partitionId1),//
                 BatchLookupConstructor.INSTANCE.newInstance(//
                         metadata,//
                         0,// fromIndex

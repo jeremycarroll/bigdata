@@ -28,15 +28,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service;
 
+import java.rmi.RemoteException;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 /**
  * A service for distributing client {@link Callable}s across the resources of
  * an {@link IBigdataFederation}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public interface IClientService extends IService, IRemoteExecutor {
+public interface IClientService extends IService {
 
+    /**
+     * Submit a {@link Callable} and return its {@link Future}. The
+     * {@link Callable} will execute on the
+     * {@link IBigdataFederation#getExecutorService()}.
+     *
+     * @return The {@link Future} for that task.
+     *
+     * @throws RejectedExecutionException
+     *             if the task can not be accepted for execution.
+     * @throws IOException
+     *             if there is an RMI problem.
+     *
+     * @todo change API to <T> Future<T> submit(Callable<T> proc). This will
+     *       break existing code but reflects the correct use of generics.
+     */
+    public <T> Future<T> submit(IClientServiceCallable<T> task)
+            throws RemoteException;
 }

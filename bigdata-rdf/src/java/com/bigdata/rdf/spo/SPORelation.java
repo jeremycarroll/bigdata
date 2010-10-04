@@ -91,7 +91,7 @@ import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.relation.rule.Var;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.relation.rule.eval.AbstractSolutionBuffer.InsertSolutionBuffer;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.ChunkedWrappedIterator;
 import com.bigdata.striterator.EmptyChunkedIterator;
@@ -102,6 +102,9 @@ import com.bigdata.striterator.IKeyOrder;
 
 import cutthecrap.utils.striterators.Resolver;
 import cutthecrap.utils.striterators.Striterator;
+
+//BTM
+import com.bigdata.util.Util;
 
 /**
  * The {@link SPORelation} handles all things related to the indices
@@ -1151,8 +1154,9 @@ public class SPORelation extends AbstractRelation<ISPO> {
                 keyArity);
 
         // The name of the desired index partition.
-        final String name = DataService.getIndexPartitionName(namespace + "."
-                + keyOrder.getIndexName(), predicate.getPartitionId());
+//BTM        final String name = DataService.getIndexPartitionName(namespace + "."
+//BTM                + keyOrder.getIndexName(), predicate.getPartitionId());
+final String name = Util.getIndexPartitionName(namespace + "." + keyOrder.getIndexName(), predicate.getPartitionId());
 
         /*
          * Note: whether or not we need both keys and values depends on the

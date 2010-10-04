@@ -36,6 +36,7 @@ import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.jini.util.ConfigMath;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.IServiceShutdown.ShutdownType;
+import com.bigdata.service.MetadataIndexCachePolicy;
 import com.bigdata.util.BootStateUtil;
 import com.bigdata.util.Util;
 import com.bigdata.util.config.ConfigDeployUtil;
@@ -45,7 +46,6 @@ import com.bigdata.util.config.NicUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 
 import com.sun.jini.config.Config;
@@ -84,6 +84,9 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+//BTM - PRE_FRED_3481
+import com.bigdata.service.IDataServiceCallable;
 
 /**
  * Backend implementation of the shard locator service.
@@ -131,7 +134,6 @@ class ServiceImpl implements PrivateInterface {
 
     /* Constructor used by Service Starter Framework to start this service */
     public ServiceImpl(String[] args, LifeCycle lifeCycle) throws Exception {
-logger.log(Level.DEBUG, "ZZZZZ SHARD LOCATOR ServiceImpl: constructor");
 System.out.println("\nZZZZZ SHARD LOCATOR ServiceImpl: constructor");
 if(args == null) {
     System.out.println("ZZZZZ SHARD LOCATOR ServiceImpl: args = NULL ****");
@@ -154,8 +156,8 @@ if(args == null) {
     // Remote method(s) required by PrivateInterface
 
     public int nextPartitionId(String name)
-             throws RemoteException, IOException,
-                    InterruptedException, ExecutionException
+                   throws RemoteException, IOException,
+                          InterruptedException, ExecutionException
     {
 	readyState.check();
         return embeddedShardLocator.nextPartitionId(name);
@@ -164,8 +166,8 @@ if(args == null) {
     public void splitIndexPartition(String             name,
                                     PartitionLocator   oldLocator,
                                     PartitionLocator[] newLocators)
-             throws RemoteException, IOException,
-                    InterruptedException, ExecutionException
+                    throws RemoteException, IOException,
+                           InterruptedException, ExecutionException
     {
 	readyState.check();
         embeddedShardLocator.splitIndexPartition(name,oldLocator,newLocators);
@@ -174,8 +176,8 @@ if(args == null) {
     public void joinIndexPartition(String             name,
                                    PartitionLocator[] oldLocators,
                                    PartitionLocator   newLocator)
-             throws RemoteException, IOException,
-                    InterruptedException, ExecutionException
+                    throws RemoteException, IOException,
+                           InterruptedException, ExecutionException
     {
 	readyState.check();
         embeddedShardLocator.joinIndexPartition(name, oldLocators, newLocator);
@@ -184,8 +186,8 @@ if(args == null) {
     public void moveIndexPartition(String           name,
                                    PartitionLocator oldLocator,
                                    PartitionLocator newLocator)
-             throws RemoteException, IOException,
-                    InterruptedException, ExecutionException
+                    throws RemoteException, IOException,
+                           InterruptedException, ExecutionException
     {
 	readyState.check();
         embeddedShardLocator.moveIndexPartition(name, oldLocator, newLocator);
@@ -194,8 +196,8 @@ if(args == null) {
     public UUID registerScaleOutIndex(IndexMetadata metadata,
                                       byte[][]      separatorKeys,
                                       UUID[]        dataServices)
-             throws RemoteException, IOException,
-                    InterruptedException, ExecutionException
+                    throws RemoteException, IOException,
+                           InterruptedException, ExecutionException
     {
 	readyState.check();
         return embeddedShardLocator.registerScaleOutIndex
@@ -203,32 +205,32 @@ if(args == null) {
     }
 
     public void dropScaleOutIndex(String name)
-             throws RemoteException, IOException,
-                    InterruptedException, ExecutionException
+                    throws RemoteException, IOException,
+                           InterruptedException, ExecutionException
     {
 	readyState.check();
         embeddedShardLocator.dropScaleOutIndex(name);
     }
 
     public PartitionLocator get(String name, long timestamp, byte[] key)
-           throws RemoteException, IOException,
-                  InterruptedException, ExecutionException
+                                throws RemoteException, IOException,
+                                       InterruptedException, ExecutionException
     {
 	readyState.check();
         return embeddedShardLocator.get(name, timestamp, key);
     }
 
     public PartitionLocator find(String name, long timestamp, byte[] key)
-           throws RemoteException, IOException,
-                  InterruptedException, ExecutionException
+                                throws RemoteException, IOException,
+                                       InterruptedException, ExecutionException
     {
 	readyState.check();
         return embeddedShardLocator.find(name, timestamp, key);
     }
 
     public IndexMetadata getIndexMetadata(String name, long timestamp)
-            throws RemoteException, IOException,
-                   InterruptedException, ExecutionException
+                             throws RemoteException, IOException,
+                                    InterruptedException, ExecutionException
     {
         readyState.check();
         return embeddedShardLocator.getIndexMetadata(name, timestamp);
@@ -241,15 +243,16 @@ if(args == null) {
                                    int capacity,
                                    int flags,
                                    IFilterConstructor filter)
-           throws RemoteException, IOException,
-                  InterruptedException, ExecutionException
+                         throws RemoteException, IOException,
+                                InterruptedException, ExecutionException
     {
         readyState.check();
         return embeddedShardLocator.rangeIterator
                    (tx, name, fromKey, toKey, capacity, flags, filter);
     }
 
-    public Future<? extends Object> submit(Callable<? extends Object> proc)
+//BTM - PRE_FRED_3481    public Future<? extends Object> submit(Callable<? extends Object> proc)
+    public <T> Future<T> submit(IDataServiceCallable<T> task)
                                         throws RemoteException
     {
         readyState.check();
@@ -268,7 +271,7 @@ if(args == null) {
                                        +"future from service configuration",
                                        e);
         }
-        return Util.wrapFuture( exporter, embeddedShardLocator.submit(proc) );
+        return Util.wrapFuture( exporter, embeddedShardLocator.submit(task) );
     }
 
     public Future submit(long tx, String name, IIndexProcedure proc)
@@ -478,6 +481,55 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                                                 DEFAULT_THREAD_POOL_SIZE, 
                                                 LOWER_BOUND_THREAD_POOL_SIZE,
                                                 UPPER_BOUND_THREAD_POOL_SIZE);
+        int indexCacheSize = 
+                Config.getIntEntry(config,
+                                   COMPONENT_NAME,
+                                   "indexCacheSize",
+                                   DEFAULT_INDEX_CACHE_SIZE, 
+                                   LOWER_BOUND_INDEX_CACHE_SIZE,
+                                   UPPER_BOUND_INDEX_CACHE_SIZE);
+        long indexCacheTimeout = 
+               Config.getLongEntry(config,
+                                   COMPONENT_NAME,
+                                   "indexCacheTimeout",
+                                   DEFAULT_INDEX_CACHE_TIMEOUT, 
+                                   LOWER_BOUND_INDEX_CACHE_TIMEOUT,
+                                   UPPER_BOUND_INDEX_CACHE_TIMEOUT);
+
+        MetadataIndexCachePolicy metadataIndexCachePolicy =
+            (MetadataIndexCachePolicy)config.getEntry
+                                      (COMPONENT_NAME,
+                                       "metadataIndexCachePolicy",
+                                       MetadataIndexCachePolicy.class,
+                                       MetadataIndexCachePolicy.CacheAll);
+        if(metadataIndexCachePolicy == null) {
+            throw new ConfigurationException("null metadataIndexCachePolicy");
+        }
+
+        int resourceLocatorCacheSize = 
+                Config.getIntEntry(config,
+                                   COMPONENT_NAME,
+                                   "resourceLocatorCacheSize",
+                                   DEFAULT_RESOURCE_LOCATOR_CACHE_SIZE, 
+                                   LOWER_BOUND_RESOURCE_LOCATOR_CACHE_SIZE,
+                                   UPPER_BOUND_RESOURCE_LOCATOR_CACHE_SIZE);
+
+        long resourceLocatorCacheTimeout = 
+               Config.getLongEntry(config,
+                                   COMPONENT_NAME,
+                                   "resourceLocatorCacheTimeout",
+                                   DEFAULT_RESOURCE_LOCATOR_CACHE_TIMEOUT, 
+                                   LOWER_BOUND_RESOURCE_LOCATOR_CACHE_TIMEOUT,
+                                   UPPER_BOUND_RESOURCE_LOCATOR_CACHE_TIMEOUT);
+
+        long lbsReportingPeriod = 
+               Config.getLongEntry(config,
+                                   COMPONENT_NAME,
+                                   "loadBalancerReportingPeriod",
+                                   DEFAULT_LOAD_BALANCER_REPORTING_PERIOD, 
+                                   LOWER_BOUND_LOAD_BALANCER_REPORTING_PERIOD,
+                                   UPPER_BOUND_LOAD_BALANCER_REPORTING_PERIOD);
+
         this.sdm = new ServiceDiscoveryManager(ldm, null, config);
         embeddedShardLocator = 
             new EmbeddedShardLocator
@@ -487,6 +539,12 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                      null,//embedded lbs service   - for embedded fed testing
                      null,//embedded data services - for embedded fed testing
                      threadPoolSize,
+                     indexCacheSize,
+                     indexCacheTimeout,
+                     metadataIndexCachePolicy,
+                     resourceLocatorCacheSize,
+                     resourceLocatorCacheTimeout,
+                     lbsReportingPeriod,
                      props);
 
         //advertise this service
@@ -556,13 +614,15 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                 serverExporter = null;
             }
 
-            for(Exporter exporter : futureExporters) {
-                if( Util.unexportRemoteObject(exporter) ) {
-                    synchronized(futureExporters) {
-                        futureExporters.remove(exporter);
+            Set<Exporter> removeSet = new HashSet<Exporter>();
+            synchronized(futureExporters) {
+                for(Exporter exporter : futureExporters) {
+                    if( Util.unexportRemoteObject(exporter) ) {
                         exporter = null;
+                        removeSet.add(exporter);
                     }
                 }
+                futureExporters.removeAll(removeSet);
             }
 
             waitThread.interrupt();
@@ -620,7 +680,7 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
      * The ServicesConfiguration mechanism may involve the use of the
      * ServicesManagerService directly to execute this service, or it may
      * involve the use of the junit framework to start this service. In
-     * either case, a command line is constructed from information at 
+     * either case, a command line is constructed from information that is 
      * specified at each of the various ServiceConfiguration levels, and
      * is ultimately executed in a ProcessBuilder instance (in the
      * ProcessHelper class).
@@ -678,7 +738,7 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
      * section with component name, "com.bigdata.service.jini.JiniClient";
      * which contains among its configuration entries, an array whose elements
      * are each instances of <code>net.jini.core.entry.Entry</code>, where
-     * those elements are generated in the following order:
+     * those elements are specified in the following order:
      * <p>
      * <ul>
      *   <li> net.jini.lookup.entry.Name
@@ -689,7 +749,7 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
      * </ul>
      * </p>
      * Note that the item at index 3 (<code>ServiceUUID</code>) means
-     * that a service is generated for the service being started; as 
+     * that a service id is generated for the service being started; as 
      * opposed to the service generating its own service id. Thus, if
      * the ServiceConfiguration mechanism is being used, then this
      * method retrieves the pre-generated service id from the entries

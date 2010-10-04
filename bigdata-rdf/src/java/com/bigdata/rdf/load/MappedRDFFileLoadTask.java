@@ -20,8 +20,9 @@ import com.bigdata.rdf.rio.AsynchronousStatementBufferFactory;
 import com.bigdata.rdf.rio.RDFParserOptions;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
-import com.bigdata.service.IRemoteExecutor;
-import com.bigdata.service.jini.JiniFederation;
+import com.bigdata.service.ClientService;
+import com.bigdata.service.IBigdataFederation;
+import com.bigdata.service.IClientService;
 import com.bigdata.service.jini.master.AbstractAsynchronousClientTask;
 import com.bigdata.service.jini.master.ClientLocator;
 import com.bigdata.service.jini.master.INotifyOutcome;
@@ -40,19 +41,17 @@ import com.bigdata.service.jini.master.INotifyOutcome;
  * not handle the death of the service on which it is running.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @param <S>
  *            The generic for the {@link JobState}.
  * @param <V>
  *            The generic type of the client state (stored in zookeeper).
  */
-public class MappedRDFFileLoadTask<//
-S extends JobState,//
-V extends Serializable,//
-L extends ClientLocator//
-> extends AbstractAsynchronousClientTask<Void,V,L>//
-implements Serializable {
+public class MappedRDFFileLoadTask<S extends JobState,
+                                   V extends Serializable,
+                                   L extends ClientLocator>
+    extends AbstractAsynchronousClientTask<Void,V,L>//
+    implements Serializable {
 
     final protected transient static Logger log = Logger
             .getLogger(MappedRDFFileLoadTask.class);
@@ -73,7 +72,7 @@ implements Serializable {
     protected final L locator;
 
     /**
-     * Instantiated by {@link #call()} on the {@link IRemoteExecutor} service.
+     * Instantiated by {@link #startClientTask()} on the {@link IClientService} service.
      * This is volatile because it is used by some methods which do not obtain
      * the {@link #lock}.
      */
@@ -125,7 +124,7 @@ implements Serializable {
      *       to the load balancer).
      */
     private transient volatile CounterSet counters;
-    
+
     private void readObject(final ObjectInputStream in) throws IOException,
             ClassNotFoundException {
         in.defaultReadObject();
@@ -136,6 +135,7 @@ implements Serializable {
         isDone = false;
     }
 
+    @Override
     public String toString() {
 
         return getClass().getName() + //
@@ -165,17 +165,8 @@ implements Serializable {
         
     }
 
-    /**
-     * The federation object used by the {@link IRemoteExecutor} on which this
-     * task is executing.
-     */
-    public JiniFederation<?> getFederation() {
-
-        return (JiniFederation<?>) super.getFederation();
-
-    }
-
-    protected void setUp() throws InterruptedException {
+    protected void setUp(IBigdataFederation federation)
+            throws InterruptedException {
 
         // set transient fields.
 //        lock = new ReentrantLock();
@@ -188,9 +179,9 @@ implements Serializable {
             if (log.isInfoEnabled())
                 log.info(toString());
             
-            final AbstractTripleStore tripleStore = (AbstractTripleStore) getFederation()
-                    .getResourceLocator().locate(jobState.namespace,
-                            ITx.UNISOLATED);
+            final AbstractTripleStore tripleStore = (AbstractTripleStore)
+                    federation.getResourceLocator().locate(jobState.namespace,
+                                                           ITx.UNISOLATED);
 
             if (tripleStore == null) {
 
@@ -297,15 +288,14 @@ implements Serializable {
              */
             {
 
-                final CounterSet serviceRoot = getFederation()
-                        .getServiceCounterSet();
+                final CounterSet serviceRoot = federation.getServiceCounterSet();
 
                 final String relPath = jobState.jobName;
 
                 // Create path to counter set.
                 final CounterSet tmp = serviceRoot.makePath(relPath);
 
-                final CounterSet counters = statementBufferFactory
+                final CounterSet tmpCounters = statementBufferFactory
                         .getCounters();
 
 //                if (log.isDebugEnabled())
@@ -313,7 +303,7 @@ implements Serializable {
 //                            + counters);
 
                 // Attach counters [the counters are MOVEd to tmp].
-                tmp.attach(counters, true/* replace */);
+                tmp.attach(tmpCounters, true/* replace */);
 
                 // Note reference to the current counters for log messages.
                 this.counters = tmp;
@@ -347,11 +337,12 @@ implements Serializable {
         
     }
     
-    public Void call() throws Exception {
+    public Void startClientTask(IBigdataFederation federation,
+            ClientService clientService) throws Exception {
 
         try {
 
-            setUp();
+            setUp(federation);
             
             /*
              * Wait until either (a) interrupted by the master using
@@ -422,8 +413,8 @@ implements Serializable {
 //    }
 
     /**
-     * Block until {@link #call()} has fully initialized the instance of this
-     * class running on the {@link IRemoteExecutor}. This method should be used
+     * Block until {@link #startClientTask()} has fully initialized the instance of this
+     * class running on the {@link IClientService}. This method should be used
      * to guard methods on this or derived classes which can be invoked by RMI
      * and which depend on {@link #setUp()}.
      */

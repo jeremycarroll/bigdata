@@ -44,9 +44,7 @@ import com.bigdata.btree.isolation.IsolatedFusedView;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StoreManager;
-import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
 
 /**
  * <p>
@@ -130,7 +128,7 @@ public class Tx implements ITx {
      * of a named index. Exclusive access is required since multiple concurrent
      * operations MAY execute for the same transaction.
      * <p>
-     * Note: This is exposed to the {@link DataService}.
+     * Note: This is exposed to the {@link com.bigdata.service.DataService}.
      */
     final public ReentrantLock lock = new ReentrantLock();
     
@@ -198,10 +196,10 @@ public class Tx implements ITx {
      * later than the specified startTime.
      * <p>
      * Note: For an {@link IBigdataFederation}, a transaction does not start
-     * execution on all {@link IDataService}s at the same moment. Instead, the
+     * execution on all shard services at the same moment. Instead, the
      * transaction startTime is assigned by the {@link ITransactionService} and
      * then provided each time an {@link ITx} must be created for isolatation of
-     * resources accessible on a {@link IDataService}.
+     * resources accessible on a shard service.
      * 
      * @param transactionManager
      *            The local (client-side) transaction manager.
@@ -435,7 +433,7 @@ public class Tx implements ITx {
      * unisolated indices on which this operation will write.
      * <p>
      * For a distributed transaction, the caller MUST hold a lock on the
-     * {@link WriteExecutorService} for each {@link IDataService} on which the
+     * {@link WriteExecutorService} for each shard service on which the
      * transaction has written.
      * 
      * @param revisionTime

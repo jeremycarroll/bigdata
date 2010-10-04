@@ -32,18 +32,16 @@ import org.apache.log4j.Logger;
 
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.ITx;
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
 
 /**
  * Abstract base class for tasks run during post-processing of a journal by the
  * {@link ResourceManager}. These tasks are designed with a historical read
  * that handles history up to some specified commitTime and the submits an
  * {@link ITx#UNISOLATED} task that brings things up to date and coordinates an
- * atomic update between the {@link IDataService}(s) and the
- * {@link IMetadataService}. You SHOULD be able to run any task at any time as
- * long as overflow is disabled while these tasks are running (this is a
- * pre-condition for all of these tasks).
+ * atomic update between the shard service(s) and the shard locator service.
+ * You SHOULD be able to run any task at any time as long as overflow is
+ * disabled while these tasks are running (this is a pre-condition for all
+ * of these tasks).
  * 
  * FIXME There is a potential failure point once we notify the metadata service
  * of the change in the index partitions since this is done before the task has

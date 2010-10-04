@@ -31,7 +31,6 @@ import java.net.InetAddress;
 import java.rmi.RemoteException;
 import java.rmi.server.ServerNotActiveException;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 import net.jini.config.Configuration;
@@ -43,9 +42,9 @@ import net.jini.lookup.entry.Name;
 import org.apache.log4j.MDC;
 
 import com.bigdata.btree.proc.IIndexProcedure;
-import com.bigdata.journal.ITx;
 import com.bigdata.service.DataService;
 import com.bigdata.service.DataService.DataServiceFederationDelegate;
+import com.bigdata.service.IDataServiceCallable;
 import com.sun.jini.start.LifeCycle;
 import com.sun.jini.start.ServiceDescriptor;
 import com.sun.jini.start.ServiceStarter;
@@ -95,7 +94,12 @@ public class DataServer extends AbstractServer {
     public DataServer(final String[] args, final LifeCycle lifeCycle) {
 
         super(args, lifeCycle);
-
+//BTM
+System.err.println("\n>>>> DataServer -----------------------------------------");
+for(int i=0; i<args.length; i++) {
+    System.err.println(">>>> DataServer args["+i+"] = "+args[i]);
+}
+System.err.println(">>>> DataServer -----------------------------------------\n");
     }
 
     /**
@@ -365,8 +369,7 @@ public class DataServer extends AbstractServer {
          * {@link Future}.
          */
         @Override
-        public Future<? extends Object> submit(
-                final Callable<? extends Object> task) {
+        public <T> Future<T> submit(final IDataServiceCallable<T> task) {
 
             return getFederation().getProxy(super.submit(task));
 

@@ -46,6 +46,9 @@ import org.apache.log4j.Logger;
 import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.journal.ITransactionService;
 
+//BTM
+import com.bigdata.event.EventQueue;
+
 /**
  * An event. Events are queued by the {@link IBigdataClient} and self-reported
  * periodically to the load balancer service. The event is assigned a
@@ -74,7 +77,9 @@ public class Event implements Serializable {
      */
     private static final long serialVersionUID = 2651293369056916231L;
 
-    protected transient IBigdataFederation fed;
+//BTM - BEGIN - REMOVAL OF NEED FOR ABSTRACT_FEDERATION IN EVENT SENDING MECHANISM
+//BTM    protected transient IBigdataFederation fed;
+protected transient EventQueue eventQueue;
 
     /**
      * Unique event identifier.
@@ -254,10 +259,18 @@ public class Event implements Serializable {
         
     }
     
-    public Event(final IBigdataFederation fed, final EventResource resource,
-            final Object majorEventType) {
+//BTM    public Event(final IBigdataFederation fed, final EventResource resource,
+//BTM            final Object majorEventType) {
+public Event(final EventQueue eventQueue,
+             final Class serviceIface,
+             final String serviceName,
+             final UUID serviceUUID,
+             final EventResource resource,
+             final Object majorEventType)
+{
         
-        this(fed, resource, majorEventType, (Map<String,Object>) null/* details */);
+//BTM        this(fed, resource, majorEventType, (Map<String,Object>) null/* details */);
+this(eventQueue, serviceIface, serviceName, serviceUUID, resource, majorEventType, (Map<String,Object>) null/* details */);
         
     }
 
@@ -275,10 +288,20 @@ public class Event implements Serializable {
      * @param details
      *            Optional details for the event.
      */
-    public Event(final IBigdataFederation fed, final EventResource resource,
-            final Object majorEventType, final Map<String,Object> details) {
+//BTM    public Event(final IBigdataFederation fed, final EventResource resource,
+//BTM            final Object majorEventType, final Map<String,Object> details) {
 
-        this(fed, resource, majorEventType, ""/* minorEventType */, details);
+public Event(final EventQueue eventQueue,
+             final Class serviceIface,
+             final String serviceName,
+             final UUID serviceUUID,
+             final EventResource resource,
+             final Object majorEventType,
+             final Map<String,Object> details)
+{
+
+//BTM        this(fed, resource, majorEventType, ""/* minorEventType */, details);
+    this(eventQueue, serviceIface, serviceName, serviceUUID, resource, majorEventType, ""/* minorEventType */, details);
         
     }
     
@@ -301,13 +324,25 @@ public class Event implements Serializable {
      * @todo consider passing along the {@link UUID} of the parent event but
      *       then must correlate that {@link UUID} when the event is received.
      */
-    protected Event(final IBigdataFederation fed, final EventResource resource,
-            final Object majorEventType, final Object minorEventType,
-            final Map<String,Object> details) {
+//BTM    protected Event(final IBigdataFederation fed, final EventResource resource,
+//BTM            final Object majorEventType, final Object minorEventType,
+//BTM            final Map<String,Object> details) {
+//BTM
+//BTM        if (fed == null)
+//BTM            throw new IllegalArgumentException();
 
-        if (fed == null)
-            throw new IllegalArgumentException();
-
+protected Event(final EventQueue eventQueue,
+                final Class serviceIface,
+                final String serviceName,
+                final UUID serviceUUID,
+                final EventResource resource,
+                final Object majorEventType,
+                final Object minorEventType,
+                final Map<String,Object> details)
+{
+    if (eventQueue == null) {
+            throw new IllegalArgumentException("null eventQueue");
+    }
         if (resource == null)
             throw new IllegalArgumentException();
 
@@ -317,17 +352,21 @@ public class Event implements Serializable {
         if (minorEventType == null)
             throw new IllegalArgumentException();
 
-        this.fed = fed;
+//BTM        this.fed = fed;
+this.eventQueue = eventQueue;
 
         this.eventUUID = UUID.randomUUID();
 
         this.hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
 
-        this.serviceIface = this.fed.getServiceIface();
-
-        this.serviceName = this.fed.getServiceName();
-
-        this.serviceUUID = this.fed.getServiceUUID();
+//BTM        this.serviceIface = this.fed.getServiceIface();
+//BTM
+//BTM        this.serviceName = this.fed.getServiceName();
+//BTM
+//BTM        this.serviceUUID = this.fed.getServiceUUID();
+this.serviceIface = serviceIface;
+this.serviceName = serviceName;
+this.serviceUUID = serviceUUID;
 
         this.resource = resource;
         
@@ -364,8 +403,9 @@ public class Event implements Serializable {
      */
     public Event newSubEvent(final Object minorEventType) {
 
-        return new Event(fed, this.resource, this.majorEventType,
-                minorEventType, this.details);
+//BTM        return new Event(fed, this.resource, this.majorEventType,
+//BTM                minorEventType, this.details);
+return new Event(this.eventQueue, this.serviceIface, this.serviceName, this.serviceUUID, this.resource, this.majorEventType, minorEventType, this.details);
         
     }
 
@@ -481,17 +521,17 @@ public class Event implements Serializable {
      */
     protected void sendEvent() throws IOException {
 
-        if(fed instanceof AbstractFederation) {
-
-            ((AbstractFederation) fed).sendEvent(this);
-            
-        } else {
-            
-            if (log.isInfoEnabled())
-                log.info(this);
-            
-        }
-
+//BTM        if(fed instanceof AbstractFederation) {
+//BTM
+//BTM            ((AbstractFederation) fed).sendEvent(this);
+//BTM            
+//BTM        } else {
+//BTM            
+//BTM            if (log.isInfoEnabled())
+//BTM                log.info(this);
+//BTM            
+//BTM        }
+eventQueue.queueEvent(this);
     }
     
     /**

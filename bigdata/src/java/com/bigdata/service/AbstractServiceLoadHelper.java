@@ -41,7 +41,7 @@ abstract public class AbstractServiceLoadHelper implements IServiceLoadHelper {
     
     /**
      * Return <code>true</code> iff the given serviceUUID identifies an
-     * active {@link IDataService}.
+     * active {@link ShardService}.
      * 
      * @param serviceUUID
      *            The service UUID.
@@ -49,7 +49,7 @@ abstract public class AbstractServiceLoadHelper implements IServiceLoadHelper {
     abstract protected boolean isActiveDataService(UUID serviceUUID);
 
     /**
-     * Await the join of an {@link IDataService}.
+     * Await the join of an {@link ShardService}.
      * 
      * @param timeout
      *            The timeout.
@@ -61,7 +61,7 @@ abstract public class AbstractServiceLoadHelper implements IServiceLoadHelper {
 
     /**
      * Return an array of service UUIDs for all of the active
-     * {@link IDataService}s that we know about right now (snapshot).
+     * {@link ShardService}s that we know about right now (snapshot).
      * 
      * @return The array and never <code>null</code>.
      */

@@ -65,11 +65,16 @@ import com.bigdata.relation.accesspath.IAsynchronousIterator;
 import com.bigdata.resources.OverflowManager;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.service.AbstractFederation;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.ndx.pipeline.AbstractSubtask;
 import com.bigdata.sparse.SparseRowStore;
+
+//BTM
+import com.bigdata.service.IService;
+import com.bigdata.service.Service;
+import com.bigdata.service.ShardService;
 
 /**
  * <p>
@@ -904,7 +909,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
          * Boolean option indicates whether or not scatter splits are performed
          * (default {@value #SCATTER_SPLIT_ENABLED}). Scatter splits only apply
          * for scale-out indices where they "scatter" the initial index
-         * partition across the {@link IDataService}s in the federation. This
+         * partition across the {@link ShardService}s in the federation. This
          * is normally very useful.
          * <P>
          * Sometimes a scatter split is not the "right" thing for an index. An
@@ -1012,7 +1017,7 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
     }
     
     /**
-     * The {@link UUID} of the {@link DataService} on which the first partition
+     * The {@link UUID} of the {@link ShardService} on which the first partition
      * of the scale-out index should be created. This is a purely transient
      * property and will be <code>null</code> unless either explicitly set or
      * set using {@value Options#INITIAL_DATA_SERVICE}. This property is only
@@ -1928,14 +1933,19 @@ public class IndexMetadata implements Serializable, Externalizable, Cloneable,
 
                     final IBigdataFederation<?> fed = (IBigdataFederation<?>) indexManager;
 
-                    final IDataService dataService = fed
-                            .getDataServiceByName(val);
+//BTM                    final IDataService dataService = fed.getDataServiceByName(val);
+final ShardService dataService = fed.getDataServiceByName(val);
 
                     if (dataService != null) {
 
                         try {
 
-                            uuid = dataService.getServiceUUID();
+//BTM                            uuid = dataService.getServiceUUID();
+if(dataService instanceof IService) {
+    uuid = ((IService)dataService).getServiceUUID();
+} else {
+    uuid = ((Service)dataService).getServiceUUID();
+}
 
                         } catch (IOException ex) {
 

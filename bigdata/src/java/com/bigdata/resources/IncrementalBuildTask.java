@@ -92,9 +92,16 @@ public class IncrementalBuildTask extends AbstractPrepareTask<BuildResult> {
      */
     protected BuildResult doTask() throws Exception {
 
-        final Event e = new Event(resourceManager.getFederation(),
-                new EventResource(vmd.indexMetadata), OverflowActionEnum.Build,
-                vmd.getParams()).start();
+//BTM        final Event e = new Event(resourceManager.getFederation(),
+//BTM                new EventResource(vmd.indexMetadata), OverflowActionEnum.Build,
+//BTM                vmd.getParams()).start();
+final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+                           (resourceManager.getFederation()).getServiceIface(),
+                           (resourceManager.getFederation()).getServiceName(),
+                           (resourceManager.getFederation()).getServiceUUID(),
+                           new EventResource(vmd.indexMetadata),
+                           OverflowActionEnum.Build,
+                           vmd.getParams()).start();
 
         BuildResult buildResult = null;
         try {

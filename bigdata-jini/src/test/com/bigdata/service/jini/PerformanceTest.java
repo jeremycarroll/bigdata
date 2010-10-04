@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.Callable;
+//BTM - PRE_FRED_3481 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -49,16 +49,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.log4j.Logger;
 
 import com.bigdata.journal.Journal.Options;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataClient;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.jini.util.JiniServicesHelper;
 import com.bigdata.test.ExperimentDriver;
 import com.bigdata.test.ExperimentDriver.IComparisonTest;
 import com.bigdata.test.ExperimentDriver.Result;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.NV;
+
+//BTM
+import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
+
+//BTM - PRE_FRED_3481
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.resources.ResourceManager;
+import com.bigdata.service.IDataServiceCallable;
+import com.bigdata.service.Session;
 
 /**
  * A harness for performance tests for a jini-federation.
@@ -402,8 +413,8 @@ public class PerformanceTest //extends ProxyTestCase<AbstractScaleOutFederation>
                     final UUID serviceUUID = dataServiceUUIDs[r
                             .nextInt(dataServiceUUIDs.length)];
 
-                    final IDataService service = fed
-                            .getDataService(serviceUUID);
+//BTM                    final IDataService service = fed.getDataService(serviceUUID);
+final ShardService service = fed.getDataService(serviceUUID);
 
 //                    System.out.print("s"); // submit to client's service.
 
@@ -413,8 +424,8 @@ public class PerformanceTest //extends ProxyTestCase<AbstractScaleOutFederation>
 
                             try {
 
-                                futuresQueue.add(service
-                                        .submit(new WorkloadTask(data)));
+//BTM                                futuresQueue.add(service.submit(new WorkloadTask(data)));
+futuresQueue.add(((ShardManagement)service).submit(new WorkloadTask(data)));
 
                                 nsubmitted.incrementAndGet();
 
@@ -491,13 +502,14 @@ public class PerformanceTest //extends ProxyTestCase<AbstractScaleOutFederation>
     }
     
     /**
-     * Task submitted to the remote {@link DataService}s.
+     * Task submitted to the remote shard services.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
-    private static class WorkloadTask implements Callable<Object>, Serializable {
-
+//BTM - PRE_FRED_3481    private static class WorkloadTask implements Callable<Object>, Serializable {
+    private static class WorkloadTask
+            implements IDataServiceCallable<Object>, Serializable
+    {
         /**
          * 
          */
@@ -511,7 +523,15 @@ public class PerformanceTest //extends ProxyTestCase<AbstractScaleOutFederation>
             
         }
 
-        public Object call() throws Exception {
+//BTM - PRE_FRED_3481        public Object call() throws Exception {
+        public Object startDataTask(IIndexManager indexManager,
+                                    ResourceManager resourceManager,
+                                    IConcurrencyManager concurrencyManager,
+                                    Session session,
+                                    String hostname,
+                                    String serviceName)
+                          throws Exception
+        {
 
 //            System.err.print("r"); // run.
             

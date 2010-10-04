@@ -65,11 +65,12 @@ import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Name2Addr;
 import com.bigdata.journal.RunState;
+import com.bigdata.journal.TxState;
 import com.bigdata.util.concurrent.ExecutionExceptions;
 
 /**
  * Implementation for an {@link IBigdataFederation} supporting both single-phase
- * commits (for transactions that execute on a single {@link IDataService}) and
+ * commits (for transactions that execute on a single {@link ShardService}) and
  * distributed commits.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
@@ -137,7 +138,7 @@ String DEFAULT_SNAPSHOT_INTERVAL = ""
 
     /**
      * The {@link LockManager} used to impose a partial ordering on the commit
-     * phase of distributed transaction commits using {@link IDataService}
+     * phase of distributed transaction commits using {@link ShardService}
      * {@link UUID}s as the named resources for which the tasks must contend.
      */
     private final LockManager<UUID> dataServiceLockManager = new LockManager<UUID>(
@@ -935,23 +936,23 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
     /**
      * There are two distinct commit protocols depending on whether the
      * transaction write set is distributed across more than one
-     * {@link IDataService}. When write set of the transaction lies entirely on
-     * a single {@link IDataService}, an optimized commit protocol is used.
+     * {@link ShardService}. When write set of the transaction lies entirely on
+     * a single {@link ShardService}, an optimized commit protocol is used.
      * When the write set of the transaction is distributed, a 3-phase commit is
      * used with most of the work occurring during the "prepare" phase and a
      * very rapid "commit" phase. If a distributed commit fails, even during the
      * "commit", then the transaction will be rolled back on all participating
-     * {@link IDataService}s.
+     * {@link ShardService}s.
      * 
      * <h3>Single phase commits</h3>
      * 
      * A simple commit protocol is used when the write set of the transaction
-     * resides entirely on a single {@link IDataService}. Such commits DO NOT
+     * resides entirely on a single {@link ShardService}. Such commits DO NOT
      * contend for named resource locks (either on the index names or on the
-     * {@link IDataService} {@link UUID}s). Since such transactions DO NOT have
-     * dependencies outside of the specific {@link IDataService}, a necessary
+     * {@link ShardService} {@link UUID}s). Since such transactions DO NOT have
+     * dependencies outside of the specific {@link ShardService}, a necessary
      * and sufficient partial order will be imposed on the executing tasks
-     * locally by the {@link IDataService} on which they are executing based
+     * locally by the {@link ShardService} on which they are executing based
      * solely on the named resources which they declare. Without dependencies on
      * distributed resources, this can not deadlock.
      * 
@@ -971,12 +972,12 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
      * possible when the locks are pre-declared.
      * <p>
      * A secondary partial ordering is established based on the
-     * {@link IDataService} {@link UUID}s during the commit phase. This partial
+     * {@link ShardService} {@link UUID}s during the commit phase. This partial
      * order is necessary to avoid deadlocks for concurrently executing commit
      * phases of distributed transactions that DO NOT share named index locks.
-     * Without a partial order over the participating {@link IDataService}s,
+     * Without a partial order over the participating {@link ShardService}s,
      * deadlocks could arise because each transaction will grab an exclusive
-     * lock on the write service for each participating {@link IDataService}.
+     * lock on the write service for each participating {@link ShardService}.
      * By ordering those lock requests, we again ensure that deadlocks can not
      * occur.
      * <p>
@@ -1067,8 +1068,8 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
 
         final UUID serviceUUID = uuids[0];
 
-        final IDataService dataService = getFederation().getDataService(
-                serviceUUID);
+//BTM        final IDataService dataService = getFederation().getDataService(serviceUUID);
+final ShardService dataService = getFederation().getDataService(serviceUUID);
 
         try {
 
@@ -1133,17 +1134,17 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
         private final TxState state;
 
         /**
-         * The {@link UUID}s of the participating {@link IDataService}s.
+         * The {@link UUID}s of the participating {@link ShardService}s.
          */
         private final UUID[] uuids;
 
         /**
-         * The proxies for the participating {@link IDataService}s.
+         * The proxies for the participating {@link ShardService}s.
          */
         private final ITxCommitProtocol[] services;
 
         /**
-         * The #of participating {@link IDataService}s.
+         * The #of participating {@link ShardService}s.
          */
         private final int nservices;
 
@@ -1179,7 +1180,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
         
         /**
          * Condition is signaled when the necessary locks are held for the
-         * participating {@link IDataService}s.
+         * participating {@link ShardService}s.
          * 
          * @see DistributedTransactionService#dataServiceLockManager
          */
@@ -1276,7 +1277,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
          * fact serialized. The transaction services MUST enforce that
          * assumption by serializing distributed commits (at least those which
          * touch the same index partitions (necessary constraint), the same
-         * indices (sufficient constraint) or the same {@link IDataService}s
+         * indices (sufficient constraint) or the same {@link ShardService}s
          * (sufficient constraint)). If it did not serialize distributed commits
          * then <strong>deadlocks</strong> could arise where two distributed
          * commits were each seeking the exclusive write lock on resources, one
@@ -1324,7 +1325,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
          * <p>
          * Post-conditions: {@link TxState#isComplete()} will be true. The
          * transaction will either have been aborted or committed on all
-         * {@link IDataService}s.
+         * {@link ShardService}s.
          * 
          * @return The assigned commit time.
          * 
@@ -1543,7 +1544,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
          * runs it will change {@link RunState} to {@link RunState#Prepared} and
          * assign a <em>commitTime</em> to the transaction. When the barrier
          * breaks, the assigned <i>commitTime</i> will be reported back to the
-         * {@link IDataService}s waiting in
+         * {@link ShardService}s waiting in
          * {@link ITransactionService#prepared(long, UUID)} as the return value
          * for that method.
          */
@@ -1646,7 +1647,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
         
         /**
          * Task issues {@link ITxCommitProtocol#prepare(long, long)} to an
-         * {@link IDataService} participating in a distributed commit.
+         * {@link ShardService} participating in a distributed commit.
          * 
          * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
          *         Thompson</a>
@@ -1931,18 +1932,17 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
     
     /**
      * Invokes {@link ITxCommitProtocol#setReleaseTime(long)} for a specific
-     * {@link IDataService}.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
+     * {@link ShardService}.
      */
     private static class SetReleaseTimeTask implements Callable<Void> {
 
-        final IDataService dataService;
+//BTM        final IDataService dataService;
+final ShardService dataService;
 
         final long releaseTime;
 
-        public SetReleaseTimeTask(final IDataService dataService, final long releaseTime) {
+//BTM        public SetReleaseTimeTask(final IDataService dataService, final long releaseTime) {
+public SetReleaseTimeTask(final ShardService dataService, final long releaseTime) {
 
             if (dataService == null)
                 throw new IllegalArgumentException();
@@ -1967,7 +1967,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
     }
 
     /**
-     * Task periodically notifies the discovered {@link IDataService}s of the
+     * Task periodically notifies the discovered {@link ShardService}s of the
      * new release time.
      * <p>
      * Note: Running a concurrent instance of this could cause release times to
@@ -1993,9 +1993,9 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
         private long lastReleaseTime = 0L;
         
         /**
-         * Notifies all {@link IDataService}s of the current release time.
+         * Notifies all {@link ShardService}s of the current release time.
          * <p>
-         * Note: An {@link IDataService} WILL NOT release its most current
+         * Note: An {@link ShardService} WILL NOT release its most current
          * commit point, regardless of the releaseTime that is sent to that
          * service.
          * <p>
@@ -2019,13 +2019,14 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
 
                 final UUID[] a = fed.getDataServiceUUIDs(0/* maxCount */);
 
-                final IDataService[] services = getFederation()
-                        .getDataServices(a);
+//BTM                final IDataService[] services = getFederation().getDataServices(a);
+final ShardService[] services = getFederation().getDataServices(a);
 
                 final List<Callable<Void>> tasks = new ArrayList<Callable<Void>>(
                         a.length);
 
-                for (IDataService dataService : services) {
+//BTM                for (IDataService dataService : services) {
+for (ShardService dataService : services) {
 
                     tasks.add(new SetReleaseTimeTask(dataService, releaseTime));
 
@@ -2095,7 +2096,8 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
              * of distributed transaction commits using the data service UUIDs
              * as the named resources.
              */
-            countersRoot.makePath("DataService Lock Manager").attach(
+//BTM            countersRoot.makePath("DataService Lock Manager").attach(
+countersRoot.makePath("ShardService Lock Manager").attach(
                     ((DistributedTransactionService) this).dataServiceLockManager
                                     .getCounters());
 

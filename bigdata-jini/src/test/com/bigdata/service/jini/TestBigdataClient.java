@@ -38,23 +38,29 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.btree.proc.BatchInsert.BatchInsertConstructor;
 import com.bigdata.journal.ITx;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.jini.util.JiniServicesHelper;
+
+//BTM
+import com.bigdata.service.IService;
+import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
+import com.bigdata.service.Service;
+import com.bigdata.util.Util;
 
 /**
  * Test suite for the {@link JiniClient}.
  * <p>
  * Note: The core test suite has already verified the basic semantics of the
- * {@link IDataService} interface and partitioned indices so all we have to
+ * shard service interface and partitioned indices so all we have to
  * focus on here is the jini integration and verifying that the serialization
  * imposed by RMI goes off without a hitch (e.g., that everything implements
  * {@link Serializable} and that those {@link Serializable} implementations can
  * correctly round trip the data).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class TestBigdataClient extends AbstractServerTestCase {
 
@@ -111,7 +117,7 @@ public class TestBigdataClient extends AbstractServerTestCase {
 
     /**
      * Test ability to registers a scale-out index on one of the
-     * {@link DataService}s.
+     * shard services.
      * 
      * @throws Exception
      */
@@ -139,7 +145,7 @@ public class TestBigdataClient extends AbstractServerTestCase {
 
     /**
      * Test ability to registers a scale-out index on both of the
-     * {@link DataService}s.
+     * shard services.
      * 
      * @throws Exception
      */
@@ -152,7 +158,21 @@ public class TestBigdataClient extends AbstractServerTestCase {
         final IndexMetadata metadata = new IndexMetadata(name,UUID.randomUUID());
         
         metadata.setDeleteMarkers(true);
-
+//BTM
+ShardService dataService0 = helper.getDataService0();
+UUID dataService0UUID = null;
+if(dataService0 instanceof IService) {
+    dataService0UUID = ((IService)dataService0).getServiceUUID();
+} else {
+    dataService0UUID = ((Service)dataService0).getServiceUUID();
+}
+ShardService dataService1 = helper.getDataService1();
+UUID dataService1UUID = null;
+if(dataService1 instanceof IService) {
+    dataService1UUID = ((IService)dataService1).getServiceUUID();
+} else {
+    dataService1UUID = ((Service)dataService1).getServiceUUID();
+}
         final UUID indexUUID = fed.registerIndex( metadata, //
                 // separator keys.
                 new byte[][] {
@@ -161,22 +181,26 @@ public class TestBigdataClient extends AbstractServerTestCase {
                 },//
                 // data service assignments.
                 new UUID[] { //
-                    helper.getDataService0().getServiceUUID(),//
-                    helper.getDataService1().getServiceUUID() //
+//BTM                    helper.getDataService0().getServiceUUID(),//
+//BTM                    helper.getDataService1().getServiceUUID() //
+dataService0UUID,
+dataService1UUID
                 });
 
         final IIndex ndx = fed.getIndex(name, ITx.UNISOLATED);
 
-        assertEquals("indexUUID", indexUUID, ndx.getIndexMetadata()
-                .getIndexUUID());
+System.err.println("*** test_registerIndex2: assertEquals(indexUUID, ndx.getIndexMetadata().getIndexUUID()");
+        assertEquals("indexUUID", indexUUID, ndx.getIndexMetadata().getIndexUUID());
 
         // verify partition 0 on dataService0
-        assertNotNull(helper.getDataService0().getIndexMetadata(
-                DataService.getIndexPartitionName(name, 0), ITx.UNISOLATED));
+//BTM        assertNotNull(helper.getDataService0().getIndexMetadata(DataService.getIndexPartitionName(name, 0), ITx.UNISOLATED));
+System.err.println("*** test_registerIndex2: assertNotNull 0");
+assertNotNull(((ShardManagement)dataService0).getIndexMetadata(Util.getIndexPartitionName(name, 0), ITx.UNISOLATED));
 
         // verify partition 1 on dataService1
-        assertNotNull(helper.getDataService1().getIndexMetadata(
-                DataService.getIndexPartitionName(name, 1), ITx.UNISOLATED));
+//BTM        assertNotNull(helper.getDataService1().getIndexMetadata(DataService.getIndexPartitionName(name, 1), ITx.UNISOLATED));
+System.err.println("*** test_registerIndex2: assertNotNull 1");
+assertNotNull(((ShardManagement)dataService1).getIndexMetadata(Util.getIndexPartitionName(name, 1), ITx.UNISOLATED));
 
         doBasicIndexTests(ndx);
 

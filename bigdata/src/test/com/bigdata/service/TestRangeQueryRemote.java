@@ -33,9 +33,12 @@ import java.util.Properties;
  */
 public class TestRangeQueryRemote extends TestRangeQuery {
 
-    public TestRangeQueryRemote() { }
+//BTM - IDATA_SERVICE TO SHARD_SERVICE
+//BTM    public TestRangeQueryRemote() { }
+    public TestRangeQueryRemote() throws java.io.IOException { }
 
-    public TestRangeQueryRemote(String name) {
+//BTM    public TestRangeQueryRemote(String name) {
+    public TestRangeQueryRemote(String name) throws java.io.IOException {
         super(name);
     }
     

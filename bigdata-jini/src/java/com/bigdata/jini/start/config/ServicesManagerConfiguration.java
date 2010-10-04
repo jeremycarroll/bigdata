@@ -243,7 +243,7 @@ System.out.println("*** ServicesManagerConfiguration.getConfigurations: MetaData
             } else if (a.equals(DataServer.class.getName())) {
 
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: DataServer BEGIN");
-                v.add(new DataServerConfiguration(config));
+                v.add(new DataServerConfiguration(DataServer.class, config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: DataServer END\n");
 
             } else if (a.equals(LoadBalancerServer.class.getName())) {
@@ -273,6 +273,12 @@ System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bi
                 v.add(new MetadataServerConfiguration(com.bigdata.metadata.ServiceImpl.class, config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigdata.metadata.ServiceImpl END\n");
 
+            } else if (a.equals(com.bigdata.shard.ServiceImpl.class.getName())) {//shard (data) service
+
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bigdata.shard.ServiceImpl BEGIN");
+                v.add(new DataServerConfiguration(com.bigdata.shard.ServiceImpl.class, config));
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigdata.shard.ServiceImpl END\n");
+
             } else if (a.equals(com.bigdata.loadbalancer.ServiceImpl.class.getName())) {//load balancer service
 
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bigdata.loadbalancer.ServiceImpl BEGIN");
@@ -282,7 +288,6 @@ System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigd
 //BTM - END: smart proxy impls ------------------------------------------------------------
 
             } else {
-System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: "+a+" BEGIN");
 
                 /*
                  * This interprets any unknown value as a java service
@@ -295,6 +300,7 @@ System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: "+a+" 
                  * service, requires additional handshaking so recognition is
                  * hacked above for known kinds of managed configurations.
                  */
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: "+a+" BEGIN");
                 v.add(new JavaServiceConfiguration(a,config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: "+a+" END\n");
                 

@@ -189,7 +189,6 @@ import com.bigdata.striterator.IKeyOrder;
  *       the rule execution layer.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 abstract public class AbstractTripleStore extends
         AbstractResource<IDatabase<AbstractTripleStore>> implements ITripleStore,
@@ -422,7 +421,6 @@ abstract public class AbstractTripleStore extends
      * @todo refactor options to/from {@link SPORelation} and {@link LexiconRelation}?
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static interface Options extends AbstractResource.Options,
             InferenceEngine.Options, com.bigdata.journal.Options,
@@ -1387,6 +1385,9 @@ abstract public class AbstractTripleStore extends
                     if (lex != null)
                         lex.destroy();
                 }
+                // Remove the triple store from the global row store.
+                getIndexManager().getGlobalRowStore().delete(
+                            RelationSchema.INSTANCE, getNamespace());
 
                 lexiconRelation = null;
                 

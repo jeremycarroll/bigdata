@@ -65,10 +65,10 @@ import com.bigdata.rawstore.IRawStore;
 import com.bigdata.relation.locator.IResourceLocator;
 import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.AbstractTransactionService;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataClient;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.IMetadataService;
 import com.bigdata.service.IService;
 import com.bigdata.service.Session;
@@ -78,14 +78,25 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.httpd.AbstractHTTPD;
 
 //BTM
+import com.bigdata.event.EventQueue;
 import com.bigdata.journal.TransactionService;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.LoadBalancer;
 import com.bigdata.service.Service;
 import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardService;
 import com.bigdata.service.ShutdownAdmin;
 import com.sun.jini.admin.DestroyAdmin;
 import net.jini.admin.Administrable;
+
+//BTM - PRE_FRED_3481
+import com.bigdata.event.EventQueue;
+import com.bigdata.service.Event;
+import com.bigdata.service.IDataServiceCallable;
+
+import java.util.LinkedList;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Base class for {@link ResourceManager} test suites that can use normal
@@ -162,7 +173,8 @@ protected ShardLocator metadataService;
             }
             
             @Override
-            public DataService getDataService() {
+//BTM            public DataService getDataService() {
+public ShardService getDataService() {
                 
                 throw new UnsupportedOperationException();
                 
@@ -372,7 +384,8 @@ protected static class MockMetadataService implements ShardLocator {
 
         }
 
-       public Future<? extends Object> submit(Callable<? extends Object> proc) {
+//BTM - PRE_FRED_3481       public Future<? extends Object> submit(Callable<? extends Object> proc) {
+       public <T> Future<T> submit(IDataServiceCallable<T> proc) {
 
             return null;
         }
@@ -438,7 +451,8 @@ protected static class MockMetadataService implements ShardLocator {
     protected class MockFederation implements IBigdataFederation<MockMetadataService> {
 
         private final MockMetadataService metadataService = new MockMetadataService();
-        
+        private final MockSendEventsTask mockSendEventsTask = new MockSendEventsTask();//BTM
+
         public MockMetadataService getService() {
             
             return metadataService;
@@ -455,7 +469,8 @@ protected static class MockMetadataService implements ShardLocator {
             
         }
 
-        public IDataService getAnyDataService() {
+//BTM        public IDataService getAnyDataService() {
+public ShardService getAnyDataService() {
 
             return null;
         }
@@ -475,7 +490,8 @@ protected static class MockMetadataService implements ShardLocator {
             return null;
         }
 
-        public IDataService getDataService(UUID serviceUUID) {
+//BTM        public IDataService getDataService(UUID serviceUUID) {
+public ShardService getDataService(UUID serviceUUID) {
 
             return null;
         }
@@ -595,12 +611,14 @@ public TransactionService getTransactionService() {
             return null;
         }
 
-        public IDataService getDataServiceByName(String name) {
+//BTM        public IDataService getDataServiceByName(String name) {
+public ShardService getDataServiceByName(String name) {
             // TODO Auto-generated method stub
             return null;
         }
 
-        public IDataService[] getDataServices(UUID[] uuid) {
+//BTM        public IDataService[] getDataServices(UUID[] uuid) {
+public ShardService[] getDataServices(UUID[] uuid) {
             // TODO Auto-generated method stub
             return null;
         }
@@ -636,10 +654,6 @@ public TransactionService getTransactionService() {
         public void serviceJoin(IService service, UUID serviceUUID) {
         }
 
-//BTM - BEGIN
-        public void serviceJoin(Service service, UUID serviceUUID) { }
-//BTM - END
-
         public void serviceLeave(UUID serviceUUID) {
         }
 
@@ -647,7 +661,36 @@ public TransactionService getTransactionService() {
             // TODO Auto-generated method stub
             return null;
         }
-        
+
+//BTM - BEGIN -----------------------------------------------------------------
+        public void serviceJoin(Service service, UUID serviceUUID) { }
+
+        private class MockSendEventsTask implements EventQueue, Runnable {
+            final private BlockingQueue<Event> eventQueue = 
+                              new LinkedBlockingQueue<Event>();
+            public MockSendEventsTask() { }
+            public void queueEvent(Event e) {
+                eventQueue.add(e);
+            }
+            public void run() {
+                try {
+                    final LinkedList<Event> c = new LinkedList<Event>();
+                    eventQueue.drainTo(c);
+                    for (Event e : c) {
+                        log.debug("sent event to load balancer");
+                    }
+                } catch (Throwable t) {
+                    log.warn(getServiceName(), t);
+
+                }
+            }
+        }
+
+        public EventQueue getEventQueue() {
+            return mockSendEventsTask;
+        }
+//BTM - END -------------------------------------------------------------------
+
     }
     
     /**

@@ -147,9 +147,14 @@ public class TestAddDeleteResource extends AbstractResourceManagerTestCase {
              */
             buildResult = resourceManager.buildIndexSegment(INDEX_NAME, btree,
                     true/* compactingMerge */, createTime, null/* fromKey */,
-                    null /* toKey */, new Event(resourceManager
-                            .getFederation(), new EventResource(INDEX_NAME),
-                            "test"));
+                    null /* toKey */, 
+//BTM                    new Event(resourceManager.getFederation(), new EventResource(INDEX_NAME), "test"));
+new Event( (resourceManager.getFederation()).getEventQueue(),
+           (resourceManager.getFederation()).getServiceIface(),
+           (resourceManager.getFederation()).getServiceName(),
+           (resourceManager.getFederation()).getServiceUUID(),
+           new EventResource(INDEX_NAME),
+           "test" ) );
 
         }
 

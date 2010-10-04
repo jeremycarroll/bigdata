@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.master;
 
+import com.bigdata.service.IClientServiceCallable;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.concurrent.Callable;
@@ -47,7 +48,8 @@ import java.util.concurrent.Future;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public interface IAsynchronousClientTask<U, V> extends Remote {
+public interface IAsynchronousClientTask<U, V>
+        extends IClientServiceCallable<U>, Remote {
 
     // Not a remote method.
 //    /**

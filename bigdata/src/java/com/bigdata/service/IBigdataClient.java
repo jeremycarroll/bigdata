@@ -173,8 +173,8 @@ public interface IBigdataClient<T> {
     public int getMaxParallelTasksPerRequest();
 
     /**
-     * The timeout in milliseconds for a task submitted to an
-     * {@link IDataService}.
+     * The timeout in milliseconds for a task submitted to a
+     * {@link ShardService}.
      * 
      * @see Options#CLIENT_TASK_TIMEOUT
      */
@@ -297,8 +297,8 @@ public interface IBigdataClient<T> {
         String DEFAULT_CLIENT_MAX_PARALLEL_TASKS_PER_REQUEST = "100";
 
         /**
-         * The timeout in milliseconds for a task submitting to an
-         * {@link IDataService} (default {@value #DEFAULT_CLIENT_TASK_TIMEOUT}).
+         * The timeout in milliseconds for a task submitting to a
+         * {@link ShardService} (default {@value #DEFAULT_CLIENT_TASK_TIMEOUT}).
          * <p>
          * Note: Use {@value Long#MAX_VALUE} for NO timeout (the maximum value
          * for a {@link Long}).

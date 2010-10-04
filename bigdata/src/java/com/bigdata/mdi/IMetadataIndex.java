@@ -31,15 +31,13 @@ package com.bigdata.mdi;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
-import com.bigdata.service.IDataService;
 
 /**
  * Interface for a metadata index. The metadata index stores the
- * {@link PartitionLocator}s that specify which {@link IDataService} has data
+ * {@link PartitionLocator}s that specify which shard service has data
  * for each index partition in a scale-out index.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public interface IMetadataIndex extends IRangeQuery { //extends IIndex {
 

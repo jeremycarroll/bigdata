@@ -310,10 +310,15 @@ public class IndexSegment extends AbstractBTree {
 
             if (fileStore.fed != null) {
 
-                openCloseEvent = new Event(fileStore.fed, new EventResource(
-                        fileStore.getIndexMetadata(), fileStore.file),
-                        EventType.IndexSegmentOpenClose);
-
+//BTM                openCloseEvent = new Event(fileStore.fed, new EventResource(
+//BTM                        fileStore.getIndexMetadata(), fileStore.file),
+//BTM                        EventType.IndexSegmentOpenClose);
+openCloseEvent = new Event( (fileStore.fed).getEventQueue(),
+                            (fileStore.fed).getServiceIface(),
+                            (fileStore.fed).getServiceName(),
+                            (fileStore.fed).getServiceUUID(),
+                            new EventResource(fileStore.getIndexMetadata(), fileStore.file),
+                            EventType.IndexSegmentOpenClose);
             }
             
             if (!fileStore.isOpen()) {

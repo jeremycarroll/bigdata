@@ -37,6 +37,9 @@ import com.bigdata.service.jini.DataServer;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.util.NV;
 
+//BTM
+import com.bigdata.shard.EmbeddedShardService;
+
 /**
  * Configuration for the {@link DataServer}.
  * 
@@ -53,17 +56,28 @@ public class DataServerConfiguration extends BigdataServiceConfiguration {
     /**
      * @param config
      */
-    public DataServerConfiguration(Configuration config)
-            throws ConfigurationException {
+//BTM - BEGIN
+//BTM    public DataServerConfiguration(Configuration config)
+//BTM            throws ConfigurationException {
+//BTM
+//BTM        super(DataServer.class, config);
+//BTM
+//BTM    }
+    public DataServerConfiguration(Class         classType,
+                                   Configuration config)
+               throws ConfigurationException
+    {
 
-        super(DataServer.class, config);
-
+        super(classType, config);
+System.out.println("*** DataServerConfiguration: constructor ***");
     }
+//BTM - END
 
     public DataServiceStarter newServiceStarter(JiniFederation fed,
             IServiceListener listener, String zpath, Entry[] attributes)
             throws Exception {
 
+System.out.println("*** DataServerConfiguration ---> newServiceStarter ***");
         return new DataServiceStarter(fed, listener, zpath, attributes);
 
     }
@@ -80,14 +94,26 @@ public class DataServerConfiguration extends BigdataServiceConfiguration {
                 IServiceListener listener, String zpath, Entry[] attributes) {
 
             super(fed, listener, zpath, attributes);
+System.out.println("*** DataServerConfiguration.DataServiceStarter: constructor ***");
 
         }
 
         @Override
         protected NV getDataDir() {
 
-            return new NV(DataServer.Options.DATA_DIR, serviceDir.toString());
-
+//BTM            return new NV(DataServer.Options.DATA_DIR, serviceDir.toString());
+//BTM - BEGIN
+            // className field defined/set in ServiceConfiguration parent
+            if( (DataServer.class.getName()).equals(className) ) {
+System.out.println("*** DataServerConfiguration.DataServiceStarter: getDataDir [DataServer.Options.DATA_DIR="+DataServer.Options.DATA_DIR+", serviceDir="+serviceDir.toString()+"] ***");
+                return new NV(DataServer.Options.DATA_DIR, serviceDir.toString());
+            } else if( (com.bigdata.shard.ServiceImpl.class.getName()).equals(className) ) {
+System.out.println("*** DataServerConfiguration.DataServiceStarter: getDataDir [EmbeddedShardService.Options.DATA_DIR="+EmbeddedShardService.Options.DATA_DIR+", serviceDir="+serviceDir.toString()+"] ***");
+                return new NV(EmbeddedShardService.Options.DATA_DIR, serviceDir.toString());
+            } else {
+                return null;
+            }
+//BTM - END
         }
 
     }

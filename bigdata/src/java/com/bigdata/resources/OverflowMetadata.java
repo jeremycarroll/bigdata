@@ -21,7 +21,6 @@ import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Name2Addr.Entry;
 import com.bigdata.journal.Name2Addr.EntrySerializer;
-import com.bigdata.service.IDataService;
 
 /**
  * Metadata on the entire synchronous and asynchronous overflow task.
@@ -472,7 +471,7 @@ public class OverflowMetadata {
      * {@link ITx#UNISOLATED} and/or {@link ITx#READ_COMMITTED} operations.
      * <p>
      * Note: This method informs the selection of index partitions that will be
-     * moved to another {@link IDataService}. The preference is always to move
+     * moved to another shard service. The preference is always to move
      * an index partition that is "warm" rather than "hot" or "cold". Moving a
      * "hot" index partition causes more latency since more writes will have
      * been buffered and unisolated access to the index partition will be

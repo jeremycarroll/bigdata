@@ -34,8 +34,6 @@ import java.util.concurrent.Callable;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ISimpleBTree;
-import com.bigdata.service.DataService;
-import com.bigdata.service.IDataService;
 import com.bigdata.service.ndx.ClientIndexView;
 import com.bigdata.sparse.SparseRowStore;
 
@@ -86,15 +84,15 @@ import com.bigdata.sparse.SparseRowStore;
  * </dl>
  * 
  * Note: this interface extends {@link Serializable}, however that provides
- * only for communicating state to the {@link IDataService}. If an instance of
+ * only for communicating state to the shard service. If an instance of
  * this procedure will cross a network interface, then the implementation class
- * MUST be available to the {@link IDataService} on which it will execute. This
+ * MUST be available to the shard service on which it will execute. This
  * can be as simple as bundling the procedure into a JAR that is part of the
- * CLASSPATH used to start a {@link DataService} or you can use downloaded code
- * with the JINI codebase mechanism (<code>java.rmi.server.codebase</code>).
+ * CLASSPATH used to start the frontend data service or backend embedded
+ * shard service, or you can use downloaded code with the JINI codebase
+ * mechanism (<code>java.rmi.server.codebase</code>).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @todo add generic type for {@link #apply(IIndex)} 's return value (much like
  *       {@link Callable}).

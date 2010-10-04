@@ -30,7 +30,6 @@ import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.LocalPartitionMetadata;
-import com.bigdata.service.IDataService;
 
 /**
  * Register a named index (unisolated write operation).
@@ -62,7 +61,7 @@ public class RegisterIndexTask extends AbstractTask<UUID> {
      *            The {@link LocalPartitionMetadata#getResources()} property on
      *            the {@link IndexMetadata#getPartitionMetadata()} SHOULD NOT be
      *            set. The correct {@link IResourceMetadata}[] will be assigned
-     *            when the index is registered on the {@link IDataService}.
+     *            when the index is registered on the shard service.
      */
     public RegisterIndexTask(IConcurrencyManager concurrencyManager,
             String name, IndexMetadata metadata) {

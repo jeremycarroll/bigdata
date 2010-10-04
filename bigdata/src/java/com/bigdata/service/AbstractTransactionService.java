@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.service;
 
 //BTM
-import static com.bigdata.service.TxState.*;
+import static com.bigdata.journal.TxState.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -54,6 +54,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.RunState;
 import com.bigdata.journal.TimestampUtility;
+import com.bigdata.journal.TxState;
 import com.bigdata.journal.ValidationError;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.util.InnerCause;
@@ -1482,7 +1483,7 @@ abstract public class AbstractTransactionService extends AbstractService
      * <ol>
      * <li>The transaction is {@link RunState#Aborted}; and</li>
      * <li>The transaction write set has been discarded by each {@link Journal}
-     * or {@link IDataService} or which it has written (applicable for
+     * or {@link ShardService} or which it has written (applicable for
      * read-write transactions only).</li>
      * </ol>
      * <p>
@@ -1515,7 +1516,7 @@ abstract public class AbstractTransactionService extends AbstractService
      * <ol>
      * <li>The transaction is {@link RunState#Committed};</li>
      * <li>The transaction write set has been made restart-safe by each
-     * {@link Journal} or {@link IDataService} or which it has written
+     * {@link Journal} or {@link ShardService} or which it has written
      * (applicable for read-write transactions only); and</li>
      * <li>The application can read exactly the data written by the transaction
      * from the commit point identified by the returned <i>commitTime</i>.</li>
@@ -1525,7 +1526,7 @@ abstract public class AbstractTransactionService extends AbstractService
      * <ol>
      * <li>The transaction is {@link RunState#Aborted}; and</li>
      * <li>The transaction write set has been discarded by each {@link Journal}
-     * or {@link IDataService} or which it has written (applicable for
+     * or {@link ShardService} or which it has written (applicable for
      * read-write transactions only).</li>
      * </ol>
      * 
@@ -1736,9 +1737,9 @@ abstract public class AbstractTransactionService extends AbstractService
     }
 
     /**
-     * Note: Only those {@link DataService}s on which a read-write transaction
+     * Note: Only those shard services on which a read-write transaction
      * has started will participate in the commit. If there is only a single
-     * such {@link IDataService}, then a single-phase commit will be used.
+     * such {@link ShardService}, then a single-phase commit will be used.
      * Otherwise a distributed transaction commit protocol will be used.
      * <p>
      * Note: The commits requests are placed into a partial order by sorting the
@@ -1935,7 +1936,7 @@ abstract public class AbstractTransactionService extends AbstractService
 //BTM        }
 //BTM        
         /**
-         * The set of {@link DataService}s on which a read-write transaction
+         * The set of shard services on which a read-write transaction
          * has been started and <code>null</code> if this is not a read-write
          * transaction.
          * <p>
@@ -1945,7 +1946,7 @@ abstract public class AbstractTransactionService extends AbstractService
 //BTM
         /**
          * The set of named resources that the transaction has declared across
-         * all {@link IDataService}s on which it has written and
+         * all {@link ShardService}s on which it has written and
          * <code>null</code> if this is not a read-write transaction.
          * <p>
          * Note: We only track this information for a distributed database.
@@ -1972,10 +1973,10 @@ abstract public class AbstractTransactionService extends AbstractService
          * {@link UUID} is one on which this transaction has been started.
          * 
          * @param dataServiceUUID
-         *            The {@link UUID} identifying an {@link IDataService}.
+         *            The {@link UUID} identifying a {@link ShardService}.
          * 
          * @return <code>true</code> if this transaction has been started on
-         *         that {@link IDataService}. <code>false</code> for
+         *         that {@link ShardService}. <code>false</code> for
          *         read-only transactions.
          */
 //BTM        public boolean isStartedOn(final UUID dataServiceUUID) {
@@ -1994,7 +1995,7 @@ abstract public class AbstractTransactionService extends AbstractService
 //BTM        }
 //BTM        
         /**
-         * The set of {@link DataService}s on which the transaction has
+         * The set of {@link shard services on which the transaction has
          * written.
          * 
          * @throws IllegalStateException
@@ -2116,7 +2117,7 @@ abstract public class AbstractTransactionService extends AbstractService
 //        /**
 //         * Return <code>true</code> if the transaction is read-only or if a
 //         * read-write transaction has not been started on any
-//         * {@link IDataService}s.
+//         * {@link ShardService}s.
 //         * <p>
 //         * <strong>WARNING: This method should only be used for distributed
 //         * databases. It will always report [false] for a standalone database
@@ -2134,10 +2135,10 @@ abstract public class AbstractTransactionService extends AbstractService
 //        }
 //BTM
         /**
-         * Return the #of {@link IDataService}s on which a read-write
+         * Return the #of {@link ShardService}s on which a read-write
          * transaction has executed an operation.
          * 
-         * @return The #of {@link IDataService}.
+         * @return The #of {@link ShardService}s.
          * 
          * @throws IllegalStateException
          *             if the transaction is read-only.
@@ -2158,7 +2159,7 @@ abstract public class AbstractTransactionService extends AbstractService
 //BTM        
         /**
          * Return <code>true</code> iff a read-write transaction has started on
-         * more than one {@link IDataService}.
+         * more than one {@link ShardService}.
          */
 //BTM        final boolean isDistributedTx() {
 //BTM

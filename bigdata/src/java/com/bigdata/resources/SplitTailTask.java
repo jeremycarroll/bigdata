@@ -31,10 +31,13 @@ package com.bigdata.resources;
 import java.util.UUID;
 
 import com.bigdata.journal.TimestampUtility;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.Split;
+
+//BTM
+import com.bigdata.util.Util;
 
 /**
  * Splits the tail of an index partition and optionally submits a task to move
@@ -118,12 +121,21 @@ public class SplitTailTask extends AbstractPrepareTask {
     @Override
     protected Object doTask() throws Exception {
         
-        final Event e = new Event(resourceManager.getFederation(),
-                new EventResource(vmd.indexMetadata),
-                OverflowActionEnum.TailSplit, vmd.getParams()).addDetail(
-                "summary", OverflowActionEnum.TailSplit
-                        + (moveTarget != null ? "+" + OverflowActionEnum.Move
-                                : "") + "(" + vmd.name + ")");
+//BTM        final Event e = new Event(resourceManager.getFederation(),
+//BTM                new EventResource(vmd.indexMetadata),
+//BTM                OverflowActionEnum.TailSplit, vmd.getParams()).addDetail(
+//BTM                "summary", OverflowActionEnum.TailSplit
+//BTM                        + (moveTarget != null ? "+" + OverflowActionEnum.Move
+//BTM                                : "") + "(" + vmd.name + ")");
+final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+                           (resourceManager.getFederation()).getServiceIface(),
+                           (resourceManager.getFederation()).getServiceName(),
+                           (resourceManager.getFederation()).getServiceUUID(),
+                           new EventResource(vmd.indexMetadata),
+                           OverflowActionEnum.TailSplit,
+                           vmd.getParams()).addDetail("summary", OverflowActionEnum.TailSplit
+                                                                 + (moveTarget != null ? "+" + OverflowActionEnum.Move
+                                                                                       : "") + "(" + vmd.name + ")");
         if (moveTarget != null) {
             e.addDetail("moveTarget", "" + moveTarget);
         }
@@ -191,9 +203,10 @@ public class SplitTailTask extends AbstractPrepareTask {
                  * The name of the post-split rightSibling (this is the source
                  * index partition for the move operation).
                  */
-                final String rightSiblingName = DataService
-                        .getIndexPartitionName(vmd.indexMetadata.getName(),
-                                splitResult.splits[1].pmd.getPartitionId());
+//BTM                final String rightSiblingName = DataService
+//BTM                        .getIndexPartitionName(vmd.indexMetadata.getName(),
+//BTM                                splitResult.splits[1].pmd.getPartitionId());
+final String rightSiblingName = Util.getIndexPartitionName(vmd.indexMetadata.getName(), splitResult.splits[1].pmd.getPartitionId());
 
                 /*
                  * Move.

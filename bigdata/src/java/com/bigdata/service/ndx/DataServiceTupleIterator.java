@@ -34,14 +34,14 @@ import com.bigdata.btree.proc.BatchRemove.BatchRemoveConstructor;
 import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.ITx;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
+
+//BTM
+import com.bigdata.service.ShardService;
 
 /**
- * Class supports range query across against an unpartitioned index on an
- * {@link IDataService}.
- * 
- * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
+ * Class supports range query across against an unpartitioned index on a
+ * {@link ShardService}.
  */
 public class DataServiceTupleIterator<E> extends RawDataServiceTupleIterator<E> {
     
@@ -74,7 +74,8 @@ public class DataServiceTupleIterator<E> extends RawDataServiceTupleIterator<E> 
      * @param filter
      */
     public DataServiceTupleIterator(final IScaleOutClientIndex ndx,
-            final IDataService dataService, final String name,
+//BTM            final IDataService dataService, final String name,
+final ShardService dataService, final String name,
             final long timestamp, final byte[] fromKey, final byte[] toKey,
             final int capacity, final int flags, final IFilterConstructor filter) {
 
@@ -111,7 +112,7 @@ public class DataServiceTupleIterator<E> extends RawDataServiceTupleIterator<E> 
      * Note: The {@link StaleLocatorException} CAN NOT arise from any other
      * method since only
      * {@link #getResultSet(byte[], byte[], int, int, IFilterConstructor)}
-     * actually reads from the {@link IDataService} and ALL calls to that method
+     * actually reads from the {@link ShardService} and ALL calls to that method
      * are driven by {@link #hasNext()}.
      * <p>
      * Note: The methods that handle delete-behind use the

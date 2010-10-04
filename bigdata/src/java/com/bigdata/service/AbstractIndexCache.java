@@ -86,7 +86,7 @@ log.warn("\nAbstractIndexCache.constructor >>> CACHE: capacity="+capacity+", TIM
      * Note: {@link ITx#READ_COMMITTED} views are cached. Read-committed
      * semantics are obtained by the indirection imposed by the
      * {@link IClientIndex}, which converts a request by the client into a
-     * request against the appropriate {@link IDataService}s via task(s)
+     * request against the appropriate {@link ShardService}s via task(s)
      * submitted against those services.
      * 
      * @param name

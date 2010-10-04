@@ -28,12 +28,16 @@ import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.service.AbstractDistributedFederation;
 import com.bigdata.service.AbstractScaleOutFederation;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.service.proxy.RemoteBuffer;
 import com.bigdata.util.concurrent.ExecutionExceptions;
+
+//BTM
+import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
 
 /**
  * Implementation for distributed join execution.
@@ -78,7 +82,7 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
 
     /**
      * For queries, the master MUST execute locally to the client. If the
-     * master were to be executed on a remote {@link DataService} then that
+     * master were to be executed on a {@link ShardService} then that
      * would cause the {@link #getSolutionBuffer()} to be created on the
      * remote service and all query results would be forced through that
      * remote JVM before being streamed back to the client.
@@ -244,7 +248,7 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
      * Create and run the {@link JoinTask}(s) that will evaluate the first
      * join dimension.
      * <p>
-     * A {@link JoinTask} is created on the {@link DataService} for each
+     * A {@link JoinTask} is created on the {@link ShardService} for each
      * index partition that is spanned by the {@link IAccessPath} for the
      * first {@link IPredicate} in the evaluation order. Those
      * {@link JoinTask} are run in parallel, so the actual parallelism for
@@ -359,8 +363,8 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
                     sourceItr, ruleState.getKeyOrder(), 
                     ruleState.getRequiredVars());
 
-            final IDataService dataService = fed.getDataService(locator
-                    .getDataServiceUUID());
+//BTM            final IDataService dataService = fed.getDataService(locator.getDataServiceUUID());
+final ShardService dataService = fed.getDataService(locator.getDataServiceUUID());
 
             /*
              * Submit the JoinTask. It will begin to execute when it is
@@ -371,7 +375,8 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
 
             try {
 
-                f = dataService.submit(factoryTask);
+//BTM                f = dataService.submit(factoryTask);
+f = ((ShardManagement)dataService).submit(factoryTask);
 
             } catch (Exception ex) {
 

@@ -36,7 +36,7 @@ import com.bigdata.jini.start.process.ZookeeperProcessHelper;
 import com.bigdata.jini.util.ConfigMath;
 import com.bigdata.jini.util.JiniUtil;
 import com.bigdata.resources.ResourceFileFilter;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.jini.AbstractServer;
 import com.bigdata.service.jini.ClientServer;
 import com.bigdata.service.jini.DataServer;
@@ -48,6 +48,12 @@ import com.bigdata.service.jini.MetadataServer;
 import com.bigdata.service.jini.TransactionServer;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.zookeeper.ZooHelper;
+
+//BTM
+import com.bigdata.service.ShardService;
+import com.bigdata.service.Service;
+import com.bigdata.shard.EmbeddedShardService;
+import java.util.UUID;
 
 /**
  * A helper class that starts all the necessary services for a Jini federation.
@@ -75,9 +81,12 @@ private boolean serviceImplRemote;
 public MetadataServer mdsRemote0;
 public ShardLocatorTask mds0;
 
-    public DataServer dataServer1;
-
-    public DataServer dataServer0;
+//BTM    public DataServer dataServer1;
+//BTM    public DataServer dataServer0;
+public DataServer dsRemote1;
+public DataServer dsRemote0;
+public ShardServiceTask ds1;
+public ShardServiceTask ds0;
 
 //BTM    public LoadBalancerServer loadBalancerServer0;
 public LoadBalancerServer lbsRemote0;
@@ -104,21 +113,47 @@ public TransactionTask txnService0;
     /**
      * Return a proxy for #dataServer0.
      */
-    public IDataService getDataService0(){
+//BTM    public IDataService getDataService0(){
+public ShardService getDataService0(){
 
-        return client.getFederation().getDataService(
-                JiniUtil.serviceID2UUID(dataServer0.getServiceID()));
-
+//BTM        return client.getFederation().getDataService( JiniUtil.serviceID2UUID(dataServer0.getServiceID()) );
+        if(dsRemote0 != null) {
+            return client.getFederation().getDataService( JiniUtil.serviceID2UUID(dsRemote0.getServiceID()) );
+        } else if( ds0 != null) {
+            for(int i=0; i<3; i++) {
+                try {
+                    ShardService shardService = client.getFederation().getDataService( ((Service)ds0).getServiceUUID() );
+                    return shardService;
+                } catch(UnsupportedOperationException e) {//service not ready
+                    try { Thread.sleep(1000L); } catch (InterruptedException ex) { }
+                }
+            }
+            return client.getFederation().getDataService( ((Service)ds0).getServiceUUID() );
+        }
+        return null;
     }
-    
+
     /**
      * Return a proxy for #dataServer1.
      */
-    public IDataService getDataService1(){
+//BTM    public IDataService getDataService1(){
+public ShardService getDataService1(){
 
-        return client.getFederation().getDataService(
-                JiniUtil.serviceID2UUID(dataServer1.getServiceID()));
-
+//BTM        return client.getFederation().getDataService( JiniUtil.serviceID2UUID(dataServer1.getServiceID()) );
+        if(dsRemote1 != null) {
+            return client.getFederation().getDataService( JiniUtil.serviceID2UUID(dsRemote1.getServiceID()) );
+        } else if (ds1 != null) {
+            for(int i=0; i<3; i++) {
+                try {
+                    ShardService shardService = client.getFederation().getDataService( ((Service)ds1).getServiceUUID() );
+                    return shardService;
+                } catch(UnsupportedOperationException e) {//service not ready
+                    try { Thread.sleep(1000L); } catch (InterruptedException ex) { }
+                }
+            }
+            return client.getFederation().getDataService( ((Service)ds1).getServiceUUID() );
+        }
+        return null;
     }
 
     /**
@@ -333,6 +368,7 @@ this(new String[] { CONFIG_STANDALONE.getPath() }, false);
 
         try {
 
+System.out.println("\nJiniServicesHelper >>> CALLING innerStart");
             innerStart();
             
         } catch (Throwable t) {
@@ -526,14 +562,77 @@ try {
             fed.createKeyZNodes(fed.getZookeeper());
             
         }
-        
-        {
+
+//BTM - BEGIN - IDATA_SERVICE TO SHARD_SERVICE
+
+        //setup configuration overrides for smart proxy impls
+
+        java.util.ArrayList<String> txnOptionsList = new java.util.ArrayList<String>();
+        java.util.ArrayList<String> lbsOptionsList = new java.util.ArrayList<String>();
+        java.util.ArrayList<String> mdsOptionsList = new java.util.ArrayList<String>();
+        java.util.ArrayList<String> ds0OptionsList = new java.util.ArrayList<String>();
+        java.util.ArrayList<String> ds1OptionsList = new java.util.ArrayList<String>();
+        for(int i=0; i<options.length; i++) {
+            txnOptionsList.add(options[i]);
+            lbsOptionsList.add(options[i]);
+            mdsOptionsList.add(options[i]);
+            ds0OptionsList.add(options[i]);
+            ds1OptionsList.add(options[i]);
+        }
+        //joinGroupsOverStr should be of the form:
+        //String joinGroupsOverrideStr = 
+        //           "com.bigdata.<config-component-name>.groupsToJoin=new String[] "
+        //           +"{"
+        //           +"\""+fedname+"\""
+        //           +"}";
+        txnOptionsList.add("com.bigdata.transaction.groupsToJoin=new String[] {"+"\""+fedname+"\""+"}");
+        lbsOptionsList.add("com.bigdata.loadbalancer.groupsToJoin=new String[] {"+"\""+fedname+"\""+"}");
+        mdsOptionsList.add("com.bigdata.metadata.groupsToJoin=new String[] {"+"\""+fedname+"\""+"}");
+        ds0OptionsList.add("com.bigdata.shard.groupsToJoin=new String[] {"+"\""+fedname+"\""+"}");
+        ds1OptionsList.add("com.bigdata.shard.groupsToJoin=new String[] {"+"\""+fedname+"\""+"}");
+
+        String txnServiceDir = ConfigMath.q(ConfigMath.getAbsolutePath(new File(fedServiceDir, "txn")));
+        String lbsServiceDir = ConfigMath.q(ConfigMath.getAbsolutePath(new File(fedServiceDir, "lbs")));
+        String mdsServiceDir = ConfigMath.q(ConfigMath.getAbsolutePath(new File(fedServiceDir, "mds")));
+
+        txnOptionsList.add("com.bigdata.transaction.persistenceDirectory=new String(" + txnServiceDir + ")");
+        lbsOptionsList.add("com.bigdata.loadbalancer.persistenceDirectory=new String(" + lbsServiceDir + ")");
+        mdsOptionsList.add("com.bigdata.metadata.persistenceDirectory=new String(" + mdsServiceDir + ")");
+
+        String[] txnServiceImplArgs = 
+         concat(args, txnOptionsList.toArray(new String[txnOptionsList.size()]) );
+        String[] lbsServiceImplArgs = 
+         concat(args, lbsOptionsList.toArray(new String[lbsOptionsList.size()]) );
+        String[] mdsServiceImplArgs = 
+         concat(args, mdsOptionsList.toArray(new String[mdsOptionsList.size()]) );
+
+//BTM - for debugging
+if(serviceImplRemote) {
+    System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> [purely remote]");
+} else {
+    System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> [NON-remote]\n");
+    for(int i=0; i<txnServiceImplArgs.length; i++) {
+        System.out.println("**** BTM - JiniServicesHelper >>> txnServiceImplArgs["+i+"] = "+txnServiceImplArgs[i]);
+    }
+    System.out.println("***");
+    for(int i=0; i<lbsServiceImplArgs.length; i++) {
+        System.out.println("**** BTM - JiniServicesHelper >>> lbsServiceImplArgs["+i+"] = "+lbsServiceImplArgs[i]);
+    }
+    System.out.println("***");
+    for(int i=0; i<mdsServiceImplArgs.length; i++) {
+        System.out.println("**** BTM - JiniServicesHelper >>> mdsServiceImplArgs["+i+"] = "+mdsServiceImplArgs[i]);
+    }
+    System.out.println("***");
+}
+
+        {//begin ds1
 
             final File serviceDir = new File(fedServiceDir, "ds1");
-
             final File dataDir = new File(serviceDir, "data");
+
 System.err.println("\n---------- JiniServicesHelper (ds1): dataDir = "+dataDir+"\n");
 
+if(serviceImplRemote) {
             final String[] overrides = new String[] {
                     /*
                      * Override the service directory.
@@ -563,17 +662,53 @@ System.err.println("\n---------- JiniServicesHelper (ds1): dataDir = "+dataDir+"
 
             System.err.println("overrides=" + Arrays.toString(overrides));
 
-            threadPool.execute(dataServer1 = new DataServer(concat(args,
-                    concat(overrides, options)), new FakeLifeCycle()));
+//BTM            threadPool.execute(dataServer1 = new DataServer(concat(args, concat(overrides, options)), new FakeLifeCycle()));
+    threadPool.execute(dsRemote1 = new DataServer(concat(args, concat(overrides, options)), new FakeLifeCycle()));
 
-        }
+} else {//smart proxy
+        String absServiceDir = ConfigMath.q(ConfigMath.getAbsolutePath(serviceDir));
+        String absDataDir = ConfigMath.q(ConfigMath.getAbsolutePath(dataDir));
+        String ds1ServiceDir = 
+                    EmbeddedShardService.class.getName()
+                            + "."
+                            + AbstractServer.ConfigurationOptions.SERVICE_DIR
+                            + "=new java.io.File(" + absServiceDir + ")";
 
-        {
+        String ds1DataDir =
+                    EmbeddedShardService.class.getName()
+                            + ".properties = new com.bigdata.util.NV[] {\n"
+                            +
+                            //
+                            " new NV(" + "EmbeddedShardService.Options.DATA_DIR" + ", "
+                            + absDataDir
+                            + ")\n" +
+                            //
+                            "}\n";
+
+        ds1OptionsList.add("com.bigdata.shard.persistenceDirectory=new String(" + absServiceDir + ")");
+        ds1OptionsList.add(ds1ServiceDir);
+        ds1OptionsList.add(ds1DataDir);
+        String[] ds1ServiceImplArgs = 
+         concat(args, ds1OptionsList.toArray(new String[ds1OptionsList.size()]) );
+
+//BTM - for debugging
+    for(int i=0; i<ds1ServiceImplArgs.length; i++) {
+        System.err.println("**** BTM - JiniServicesHelper >>> ds1 >>> ds1ServiceImplArgs["+i+"] = "+ds1ServiceImplArgs[i]);
+    }
+System.out.println("\nJiniServicesHelper >>> NEW ShardServiceTask(ds1) - BEGIN");
+    ds1 = new ShardServiceTask(ds1ServiceImplArgs);
+    threadPool.execute(ds1);
+}
+        }//end ds1
+
+        {//begin ds0
 
             final File serviceDir = new File(fedServiceDir, "ds0");
-
             final File dataDir = new File(serviceDir, "data");
+
 System.err.println("\n---------- JiniServicesHelper (ds0): dataDir = "+dataDir+"\n");
+
+if(serviceImplRemote) {
 
             final String[] overrides = new String[] {
                     /*
@@ -604,10 +739,45 @@ System.err.println("\n---------- JiniServicesHelper (ds0): dataDir = "+dataDir+"
 
             System.err.println("overrides=" + Arrays.toString(overrides));
 
-            threadPool.execute(dataServer0 = new DataServer(concat(args,
-                    concat(overrides, options)), new FakeLifeCycle()));
+//BTM            threadPool.execute(dataServer0 = new DataServer(concat(args, concat(overrides, options)), new FakeLifeCycle()));
+    threadPool.execute(dsRemote0 = new DataServer(concat(args, concat(overrides, options)), new FakeLifeCycle()));
 
-        }
+} else {//smart proxy
+        String absServiceDir = ConfigMath.q(ConfigMath.getAbsolutePath(serviceDir));
+        String absDataDir = ConfigMath.q(ConfigMath.getAbsolutePath(dataDir));
+        String ds0ServiceDir = 
+                    EmbeddedShardService.class.getName()
+                            + "."
+                            + AbstractServer.ConfigurationOptions.SERVICE_DIR
+                            + "=new java.io.File(" + absServiceDir + ")";
+
+        String ds0DataDir =
+                    EmbeddedShardService.class.getName()
+                            + ".properties = new com.bigdata.util.NV[] {\n"
+                            +
+                            //
+                            " new NV(" + "EmbeddedShardService.Options.DATA_DIR" + ", "
+                            + absDataDir
+                            + ")\n" +
+                            //
+                            "}\n";
+
+        ds0OptionsList.add("com.bigdata.shard.persistenceDirectory=new String(" + absServiceDir + ")");
+        ds0OptionsList.add(ds0ServiceDir);
+        ds0OptionsList.add(ds0DataDir);
+        String[] ds0ServiceImplArgs = 
+         concat(args, ds0OptionsList.toArray(new String[ds0OptionsList.size()]) );
+
+//BTM - for debugging
+    for(int i=0; i<ds0ServiceImplArgs.length; i++) {
+        System.err.println("**** BTM - JiniServicesHelper >>> ds0 >>> ds0ServiceImplArgs["+i+"] = "+ds0ServiceImplArgs[i]);
+    }
+System.out.println("\nJiniServicesHelper >>> NEW ShardServiceTask(ds0) - BEGIN");
+    ds0 = new ShardServiceTask(ds0ServiceImplArgs);
+    threadPool.execute(ds0);
+}
+        }//end ds0
+//BTM - END - IDATA_SERVICE TO SHARD_SERVICE
 
         threadPool.execute(clientServer0 = new ClientServer(concat(
                 args, options), new FakeLifeCycle()));
@@ -623,7 +793,7 @@ System.err.println("\n---------- JiniServicesHelper (ds0): dataDir = "+dataDir+"
 //BTM
 //BTM -----------------------------------------------------------------------
 if(serviceImplRemote) {
-System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> [purely remote]");
+//BTM System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> [purely remote]");
 
         threadPool.execute(txnServiceRemote0 = new TransactionServer(concat(
                 args, options), new FakeLifeCycle()));
@@ -634,31 +804,27 @@ System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServices
         threadPool.execute(lbsRemote0 = new LoadBalancerServer(concat(
                 args, options), new FakeLifeCycle()));
 } else {
-System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> [NON-remote]");
-    java.util.ArrayList<String> optionsList = new java.util.ArrayList<String>();
-    for(int i=0; i<options.length; i++) {
-        optionsList.add(options[i]);
-    }
-    String joinGroupsOverrideStr = 
-                   "com.bigdata.loadbalancer.groupsToJoin=new String[] "
-                   +"{"
-                   +"\""+fedname+"\""
-                   +"}";
-    optionsList.add(joinGroupsOverrideStr);
-    String[] serviceImplArgs = 
-         concat(args, optionsList.toArray(new String[optionsList.size()]) );
+//BTM - BEGIN - FOR IDATA_SERVICE TO SHARD_SERVICE
+//BTM System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> [NON-remote]");
+//BTM    java.util.ArrayList<String> optionsList = new java.util.ArrayList<String>();
+//BTM    for(int i=0; i<options.length; i++) {
+//BTM        optionsList.add(options[i]);
+//BTM    }
+//BTM    String joinGroupsOverrideStr = 
+//BTM                   "com.bigdata.loadbalancer.groupsToJoin=new String[] "
+//BTM                   +"{"
+//BTM                   +"\""+fedname+"\""
+//BTM                   +"}";
+//BTM    optionsList.add(joinGroupsOverrideStr);
+//BTM - END - FOR IDATA_SERVICE TO SHARD_SERVICE
 
-for(int i=0; i<serviceImplArgs.length; i++) {
-    System.err.println("**** BTM - JiniServicesHelper >>> serviceImplArgs["+i+"] = "+serviceImplArgs[i]);
-}
-
-    txnService0 = new TransactionTask(serviceImplArgs);
+    txnService0 = new TransactionTask(txnServiceImplArgs);
     threadPool.execute(txnService0);
 
-    mds0 = new ShardLocatorTask(serviceImplArgs);
+    mds0 = new ShardLocatorTask(mdsServiceImplArgs);
     threadPool.execute(mds0);
 
-    lbs0 = new LoadBalancerTask(serviceImplArgs);
+    lbs0 = new LoadBalancerTask(lbsServiceImplArgs);
     threadPool.execute(lbs0);
 }
 //BTM -----------------------------------------------------------------------
@@ -667,8 +833,8 @@ for(int i=0; i<serviceImplArgs.length; i++) {
         getServiceID(clientServer0);
 //BTM        getServiceID(transactionServer0);
 //BTM        getServiceID(metadataServer0);
-        getServiceID(dataServer0);
-        getServiceID(dataServer1);
+//BTM        getServiceID(dataServer0);
+//BTM        getServiceID(dataServer1);
 //BTM        getServiceID(loadBalancerServer0);
 //BTM
 //BTM -----------------------------------------------------------------------
@@ -678,6 +844,12 @@ if(txnService0 != null) getServiceID(com.bigdata.service.ShardLocator.class, sdm
 
 if(mdsRemote0 != null) getServiceID(mdsRemote0);
 if(mds0 != null) getServiceID(com.bigdata.service.ShardLocator.class, sdm);
+
+if(dsRemote0 != null) getServiceID(dsRemote0);
+if(ds0 != null) getServiceID(com.bigdata.service.ShardService.class, sdm);
+
+if(dsRemote1 != null) getServiceID(dsRemote1);
+if(ds1 != null) getServiceID(com.bigdata.service.ShardService.class, sdm);
 
 if(lbsRemote0 != null) getServiceID(lbsRemote0);
 if(lbs0 != null) getServiceID(com.bigdata.service.LoadBalancer.class, sdm);
@@ -733,23 +905,37 @@ if (mdsRemote0 != null) {
     mdsRemote0.destroy();
     mdsRemote0 = null;
 }
-
-        if (dataServer0 != null) {
-
-            dataServer0.destroy();
-
-            dataServer0 = null;
-
-        }
-
-        if (dataServer1 != null) {
-
-            dataServer1.destroy();
-
-            dataServer1 = null;
-
-        }
-
+//BTM        if (dataServer0 != null) {
+//BTM
+//BTM            dataServer0.destroy();
+//BTM
+//BTM            dataServer0 = null;
+//BTM
+//BTM        }
+//BTM
+//BTM        if (dataServer1 != null) {
+//BTM
+//BTM            dataServer1.destroy();
+//BTM
+//BTM            dataServer1 = null;
+//BTM
+//BTM        }
+if (dsRemote0 != null) {
+    dsRemote0.destroy();
+    dsRemote0 = null;
+}
+if (dsRemote1 != null) {
+    dsRemote1.destroy();
+    dsRemote1 = null;
+}
+if (ds0 != null) {
+    ds0.destroy();
+    ds0 = null;
+}
+if (ds1 != null) {
+    ds1.destroy();
+    ds1 = null;
+}
 //BTM - destroy the shard locator after the data services are destroyed; which will avoid InterruptedException from WORMStrategy.releaseCache
 //BTM - that seems to be thrown in the data service only if the shard locator is no longer available. Note that this issue 
 //BTM - does not appear to affect the remote implementation of the metadata service
@@ -1054,6 +1240,56 @@ if( (Thread.currentThread()).isInterrupted() ) {
                 this.txnService.destroy();
             } catch(Throwable t) { /* swallow */ }
             Thread.currentThread().interrupt();
+        }
+    }
+
+    // Convenience class that allows one to instantiate and run the
+    // shard service's ServiceImpl class as a task in a thread pool.
+    private class ShardServiceTask implements Runnable, Service {
+        private String[] args;
+        private com.bigdata.shard.ServiceImpl shardService;
+        private boolean ready = false;
+
+        ShardServiceTask(String[] args) {
+            this.args = args;
+        }
+        public void run() {
+            try {
+                this.shardService =
+                    new com.bigdata.shard.ServiceImpl
+                            (args,new FakeLifeCycle());
+                ready = true;
+            } catch(Throwable t) {
+                t.printStackTrace();
+                return;
+            }
+            while( !(Thread.currentThread()).isInterrupted() ) {
+                try {
+                    Thread.sleep(Long.MAX_VALUE);
+                } catch (InterruptedException e) { /*exit while loop*/ }
+            }
+        }
+        public void destroy() {
+            try {
+                this.shardService.destroy();
+            } catch(Throwable t) { /* swallow */ }
+            Thread.currentThread().interrupt();
+        }
+        public UUID getServiceUUID() {
+            if(!ready) {
+                throw new UnsupportedOperationException
+                              ("service not ready");
+            }
+            return (this.shardService).getServiceUUID();
+        }
+        public Class getServiceIface() {
+            throw new UnsupportedOperationException();
+        }
+        public String getServiceName() {
+            throw new UnsupportedOperationException();
+        }
+        public String getHostname() {
+            throw new UnsupportedOperationException();
         }
     }
 

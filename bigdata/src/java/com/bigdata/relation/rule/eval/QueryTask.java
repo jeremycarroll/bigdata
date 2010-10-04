@@ -13,7 +13,12 @@ import com.bigdata.relation.accesspath.UnsynchronizedArrayBuffer;
 import com.bigdata.relation.rule.IProgram;
 import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.IStep;
-import com.bigdata.service.DataService;
+//BTM import com.bigdata.service.DataService;
+
+//BTM
+import com.bigdata.resources.ResourceManager;
+import com.bigdata.journal.ConcurrencyManager;
+import com.bigdata.service.Session;
 
 /**
  * A task that executes a query operation.
@@ -40,13 +45,36 @@ public class QueryTask extends AbstractStepTask {
      *            The {@link IBlockingBuffer} on which the {@link ISolution}s
      *            will be written.
      */
-    public QueryTask(IStep step, IJoinNexusFactory joinNexusFactory,
-            IBlockingBuffer<ISolution[]> buffer, IIndexManager indexManager,
-            DataService dataService) {
+//BTM    public QueryTask(IStep step, IJoinNexusFactory joinNexusFactory,
+//BTM            IBlockingBuffer<ISolution[]> buffer, IIndexManager indexManager,
+//BTM            DataService dataService) {
+//BTM
+//BTM        super(ActionEnum.Query, joinNexusFactory, step, indexManager,
+//BTM                dataService);
 
-        super(ActionEnum.Query, joinNexusFactory, step, indexManager,
-                dataService);
-        
+//BTM - PRE_FRED_3481 public QueryTask(IStep step, IJoinNexusFactory joinNexusFactory,
+//BTM - PRE_FRED_3481         IBlockingBuffer<ISolution[]> buffer, IIndexManager indexManager,
+//BTM - PRE_FRED_3481         ResourceManager dataServiceResourceMgr,
+//BTM - PRE_FRED_3481         ConcurrencyManager dataServiceConcurrencyMgr,
+//BTM - PRE_FRED_3481         IIndexManager dataServiceIndexMgr,
+//BTM - PRE_FRED_3481         Session dataServiceSession,
+//BTM - PRE_FRED_3481         String dataServiceHost,
+//BTM - PRE_FRED_3481         String dataServiceName) {
+//BTM - PRE_FRED_3481
+//BTM - PRE_FRED_3481 super(ActionEnum.Query, joinNexusFactory, step, indexManager,
+//BTM - PRE_FRED_3481         dataServiceResourceMgr,
+//BTM - PRE_FRED_3481         dataServiceConcurrencyMgr,
+//BTM - PRE_FRED_3481         dataServiceIndexMgr,
+//BTM - PRE_FRED_3481         dataServiceSession,
+//BTM - PRE_FRED_3481         dataServiceHost,
+//BTM - PRE_FRED_3481         dataServiceName);
+
+    public QueryTask(IStep step, IJoinNexusFactory joinNexusFactory,
+            IBlockingBuffer<ISolution[]> buffer, IIndexManager indexManager)
+    {
+
+        super(ActionEnum.Query, joinNexusFactory, step, indexManager);
+
         if (buffer == null)
             throw new IllegalArgumentException();
         

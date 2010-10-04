@@ -81,7 +81,7 @@ import com.bigdata.relation.accesspath.IRunnableBuffer;
 import com.bigdata.service.AbstractDistributedFederation;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.IClientService;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.IService;
 import com.bigdata.service.jini.lookup.ClientServicesClient;
 import com.bigdata.service.jini.lookup.DataServiceFilter;
@@ -110,6 +110,7 @@ import com.bigdata.zookeeper.ZooResourceLockService;
 import com.bigdata.service.LoadBalancer;
 import com.bigdata.service.Service;
 import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardService;
 import com.bigdata.journal.TransactionService;
 import com.bigdata.service.jini.lookup.ShardLocatorClient;
 
@@ -271,7 +272,7 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
     }
     
     /**
-     * Cached lookup for discovered {@link IDataService}s. Will block
+     * Cached lookup for discovered {@link ShardaService}s. Will block
      * on a cache miss and attempt to discover an appropriate service
      * instance.
      */
@@ -642,7 +643,8 @@ return shardLocatorClient.getMetadataService();
 
     }
 
-    public IDataService getDataService(final UUID serviceUUID) {
+//BTM    public IDataService getDataService(final UUID serviceUUID) {
+public ShardService getDataService(final UUID serviceUUID) {
 
         // Note: return null if service not available/discovered.
         if (dataServicesClient == null) {
@@ -667,7 +669,8 @@ return shardLocatorClient.getMetadataService();
 
     }
     
-    public IDataService getAnyDataService() {
+//BTM    public IDataService getAnyDataService() {
+public ShardService getAnyDataService() {
 
         assertOpen();
 
@@ -675,7 +678,8 @@ return shardLocatorClient.getMetadataService();
         
     }
 
-    public IDataService getDataServiceByName(final String name) {
+//BTM    public IDataService getDataServiceByName(final String name) {
+public ShardService getDataServiceByName(final String name) {
         
         // Note: no services are available/discovered.
         if (dataServicesClient == null)
@@ -834,7 +838,7 @@ if (shardLocatorClient != null) {
      * The shutdown protocol is as follows:
      * <ol>
      * <li>{@link TransactionService} (blocks until shutdown).</li>
-     * <li>{@link IDataService}s (blocks until all are shutdown).</li>
+     * <li>{@link ShardService}s (blocks until all are shutdown).</li>
      * <li>{@link ShardLocator}</li>
      * <li>load balancer service</li>
      * </ol>

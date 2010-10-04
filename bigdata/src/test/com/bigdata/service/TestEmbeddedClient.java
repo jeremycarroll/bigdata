@@ -38,6 +38,9 @@ import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.ndx.ClientIndexView;
 
+//BTM
+import com.bigdata.util.Util;
+
 /**
  * Test suite for the {@link EmbeddedClient}.
  * 
@@ -131,13 +134,28 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
         final IndexMetadata metadata = new IndexMetadata(name,UUID.randomUUID());
 
         metadata.setDeleteMarkers(true);
+//BTM
+UUID dataService0UUID = null;
+if(dataService0 instanceof IService) {
+    dataService0UUID = ((IService)dataService0).getServiceUUID();
+} else {
+    dataService0UUID = ((Service)dataService0).getServiceUUID();
+}
+UUID dataService1UUID = null;
+if(dataService1 instanceof IService) {
+    dataService1UUID = ((IService)dataService1).getServiceUUID();
+} else {
+    dataService1UUID = ((Service)dataService1).getServiceUUID();
+}
 
         UUID indexUUID = fed.registerIndex(metadata, new byte[][]{//
                 new byte[]{},
                 new byte[]{5}
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+dataService0UUID,
+dataService1UUID
         });
 
         final int partitionId0 = 0;
@@ -149,11 +167,10 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
          * have the same indexUUID since they are just components of the same
          * scale-out index.
          */
-        assertIndexRegistered(dataService0, DataService.getIndexPartitionName(
-                name, partitionId0), indexUUID);
-
-        assertIndexRegistered(dataService1, DataService.getIndexPartitionName(
-                name, partitionId1), indexUUID);
+//BTM        assertIndexRegistered(dataService0, DataService.getIndexPartitionName(name, partitionId0), indexUUID);
+//BTM        assertIndexRegistered(dataService1, DataService.getIndexPartitionName(name, partitionId1), indexUUID);
+assertIndexRegistered(dataService0, Util.getIndexPartitionName(name, partitionId0), indexUUID);
+assertIndexRegistered(dataService1, Util.getIndexPartitionName(name, partitionId1), indexUUID);
 
         /*
          * Verify metadata for index partition#0 on dataService0
@@ -162,8 +179,8 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
          */
         {
 
-            IndexMetadata actual = dataService0.getIndexMetadata(DataService
-                    .getIndexPartitionName(name, partitionId0), ITx.UNISOLATED);
+//BTM            IndexMetadata actual = dataService0.getIndexMetadata(DataService.getIndexPartitionName(name, partitionId0), ITx.UNISOLATED);
+IndexMetadata actual = ((ShardManagement)dataService0).getIndexMetadata(Util.getIndexPartitionName(name, partitionId0), ITx.UNISOLATED);
 
             // verify index partition exists on that data service.
             assertNotNull(actual);
@@ -188,8 +205,8 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
          */
         {
 
-            IndexMetadata actual = dataService1.getIndexMetadata(DataService
-                    .getIndexPartitionName(name, partitionId1), ITx.UNISOLATED);
+//BTM            IndexMetadata actual = dataService1.getIndexMetadata(DataService.getIndexPartitionName(name, partitionId1), ITx.UNISOLATED);
+IndexMetadata actual = ((ShardManagement)dataService1).getIndexMetadata(Util.getIndexPartitionName(name, partitionId1), ITx.UNISOLATED);
 
             // verify index partition exists on that data service.
             assertNotNull(actual);
@@ -225,7 +242,19 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
         final IndexMetadata metadata = new IndexMetadata(name,UUID.randomUUID());
 
         metadata.setDeleteMarkers(true);
-        
+//BTM
+UUID dataService0UUID = null;
+if(dataService0 instanceof IService) {
+    dataService0UUID = ((IService)dataService0).getServiceUUID();
+} else {
+    dataService0UUID = ((Service)dataService0).getServiceUUID();
+}
+UUID dataService1UUID = null;
+if(dataService1 instanceof IService) {
+    dataService1UUID = ((IService)dataService1).getServiceUUID();
+} else {
+    dataService1UUID = ((Service)dataService1).getServiceUUID();
+}
         /*
          * Register and statically partition an index.
          */
@@ -233,8 +262,10 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
                 new byte[]{}, // keys less than 5...
                 new byte[]{5} // keys GTE 5....
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+dataService0UUID,
+dataService1UUID
         });
         
         /*
@@ -355,7 +386,19 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
         final IndexMetadata metadata = new IndexMetadata(name,UUID.randomUUID());
 
         metadata.setDeleteMarkers(true);
-        
+//BTM
+UUID dataService0UUID = null;
+if(dataService0 instanceof IService) {
+    dataService0UUID = ((IService)dataService0).getServiceUUID();
+} else {
+    dataService0UUID = ((Service)dataService0).getServiceUUID();
+}
+UUID dataService1UUID = null;
+if(dataService1 instanceof IService) {
+    dataService1UUID = ((IService)dataService1).getServiceUUID();
+} else {
+    dataService1UUID = ((Service)dataService1).getServiceUUID();
+}
         /*
          * Register and statically partition an index.
          */
@@ -363,8 +406,10 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
                 new byte[]{}, // keys less than 5...
                 new byte[]{5} // keys GTE 5....
         }, new UUID[]{//
-                dataService0.getServiceUUID(),
-                dataService1.getServiceUUID()
+//BTM                dataService0.getServiceUUID(),
+//BTM                dataService1.getServiceUUID()
+dataService0UUID,
+dataService1UUID
         });
 
         // view of that index.

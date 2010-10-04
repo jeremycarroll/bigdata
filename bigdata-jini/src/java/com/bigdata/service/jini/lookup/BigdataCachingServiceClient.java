@@ -37,13 +37,11 @@ import net.jini.lookup.ServiceDiscoveryListener;
 import net.jini.lookup.ServiceDiscoveryManager;
 import net.jini.lookup.ServiceItemFilter;
 
-import com.bigdata.service.IDataService;
 import com.bigdata.service.jini.JiniFederation;
 
 /**
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class BigdataCachingServiceClient<S extends Object> extends
         AbstractCachingServiceClient<S> {
@@ -54,8 +52,7 @@ public class BigdataCachingServiceClient<S extends Object> extends
     protected final UUID thisServiceUUID;
     
     /**
-     * The service owning this cache instance. For standard bigdata services
-     * this will be the {@link IDataService}, etc.
+     * The service owning this cache instance.
      */
     protected final Object thisService;
     

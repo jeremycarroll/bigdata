@@ -14,6 +14,11 @@ import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.Name2Addr;
 import com.bigdata.journal.Name2Addr.EntrySerializer;
 
+//BTM - PRE_FRED_3481
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.resources.ResourceManager;
+
 /**
  * Task returns an array of the named indices on the {@link DataService} to
  * which it is submitted. The array is in the visitation order for the index
@@ -28,9 +33,9 @@ import com.bigdata.journal.Name2Addr.EntrySerializer;
  * @see MetadataService#METADATA_INDEX_NAMESPACE
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class ListIndicesTask extends DataServiceCallable<String[]> {
+//BTM - PRE_FRED_3481 public class ListIndicesTask extends DataServiceCallable<String[]> {
+public class ListIndicesTask implements IDataServiceCallable<String[]> {
 
     /**
      * 
@@ -75,13 +80,21 @@ public class ListIndicesTask extends DataServiceCallable<String[]> {
 //
 //    }
 
-    public String[] call() throws Exception {
+//BTM - PRE_FRED_3481    public String[] call() throws Exception {
+    public String[] startDataTask(IIndexManager indexManager,
+                                  ResourceManager resourceManager,
+                                  IConcurrencyManager concurrencyManager,
+                                  Session session,
+                                  String hostName,
+                                  String serviceName) throws Exception {
+
 
 //        if (dataService == null)
 //            throw new IllegalStateException("DataService not set.");
 
-        final AbstractJournal journal = getDataService().getResourceManager()
-                .getJournal(ts);
+//BTM        final AbstractJournal journal = getDataService().getResourceManager().getJournal(ts);
+//BTM - PRE_FRED_3481 final AbstractJournal journal = getResourceManager().getJournal(ts);
+          final AbstractJournal journal = resourceManager.getJournal(ts);
 
         // @todo possible problem if [ts] is a read-write tx.
         final IIndex name2Addr = journal.getName2Addr(ts);
@@ -159,7 +172,9 @@ fromKey=[65, 49, 79, 41, 47, 41, 79, 41, 7, 144, 81, 38, 124, 38, 122, 1, 16, 1,
         if (INFO)
             log.info("Will read " + n + " index names within namespace="
                     + namespace + " from "
-                    + getDataService().getClass().getSimpleName());
+//BTM                    + getDataService().getClass().getSimpleName());
+//BTM - PRE_FRED_3481 + getIndexManager().getClass().getSimpleName());
+                      + indexManager.getClass().getSimpleName());
 
         final List<String> names = new ArrayList<String>(n);
 

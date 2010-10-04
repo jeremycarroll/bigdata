@@ -48,23 +48,24 @@ import com.bigdata.service.EmbeddedClient.Options;
 import com.bigdata.journal.TransactionService;
 import com.bigdata.loadbalancer.EmbeddedLoadBalancer;
 import com.bigdata.metadata.EmbeddedShardLocator;
+import com.bigdata.shard.EmbeddedShardService;
 import com.bigdata.transaction.EmbeddedTransactionService;
 import net.jini.lookup.ServiceDiscoveryManager;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * An implementation that uses an embedded database rather than a distributed
  * database. An embedded federation runs entirely in process, but uses the same
- * {@link DataService} and shard locator service implementations as a
+ * {@link ShardService} and shard locator service implementations as a
  * distributed federation. All services reference the {@link EmbeddedFederation}
  * and use the same thread pool for most operations. However, the
- * {@link EmbeddedDataServiceImpl} has its own {@link WriteExecutorService}.
- * Unlike a distributed federation, an embedded federation starts and stops with
- * the client. An embedded federation may be used to assess or remove the
- * overhead of network operations, to simplify testing of client code, or to
- * deploy a scale-up (vs scale-out) solution.
- * 
- * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
+ * the implementatin of the embedded shard service has its own
+ * {@link WriteExecutorService}. Unlike a distributed federation, an embedded
+ * federation starts and stops with the client. An embedded federation may be
+ * used to assess or remove the overhead of network operations, to simplify
+ * testing of client code, or to deploy a scale-up (vs scale-out) solution.
  * 
  * @todo Put the services into directories named by the service class, e.g.,
  *       MetadataService, just like scale-out.
@@ -132,7 +133,7 @@ private final EmbeddedTxnServiceImpl txnSrvc;
      * The (in process) load balancer service.
      */
 //BTM    private final LoadBalancerService loadBalancerService;
-private final LoadBalancer loadBalancerService;
+private LoadBalancer loadBalancerService = null;
 private final EmbeddedLoadBalancerImplRemote remoteLbs;
 private final EmbeddedLoadBalancerImpl lbs;
     
@@ -147,18 +148,21 @@ private EmbeddedMetadataService remoteMds;
 private EmbeddedShardLocatorImpl mds;
 
     /**
-     * The (in process) {@link DataService}s.
+     * The (in process) {@link ShardService}s.
      * <p>
      * Note: Not final because not initialized in the constructor.
      */
-    private DataService[] dataService;
+//BTM    private DataService[] dataService;
+private ShardService[] dataService;
+private List<EmbeddedDataServiceImpl> remoteDsList = new ArrayList<EmbeddedDataServiceImpl>();
+private List<EmbeddedShardServiceImpl> dsList = new ArrayList<EmbeddedShardServiceImpl>();
     
     /**
-     * Map providing lookup of the (in process) {@link DataService}s by service
-     * UUID.
+     * Map providing lookup of the (in process) {@link ShardService}s
+     * by service UUID.
      */
 //BTM    private Map<UUID,DataService> dataServiceByUUID = new HashMap<UUID,DataService>();
-private Map<UUID,IDataService> dataServiceByUUID = new HashMap<UUID,IDataService>();
+private Map<UUID, ShardService> dataServiceByUUID = new HashMap<UUID, ShardService>();
 
     /**
      * Return true if the federation is not backed by disk.
@@ -226,10 +230,11 @@ final public ShardLocator getMetadataService() {
      * 
      * @param serviceUUID
      * 
-     * @return The {@link DataService} for that UUID or <code>null</code> if
-     *         there is no data service instance with that service UUID.
+     * @return The {@link ShardService} for that UUID or <code>null</code>
+     *         if there is no data service instance with that service UUID.
      */
-    final public IDataService getDataService(final UUID serviceUUID) {
+//BTM    final public IDataService getDataService(final UUID serviceUUID) {
+final public ShardService getDataService(final UUID serviceUUID) {
 
         // Note: return null if service not available/discovered.
 
@@ -247,15 +252,17 @@ final public ShardLocator getMetadataService() {
     }
     
     /**
-     * There are {@link #getDataServiceCount()} data services defined in the
-     * federation. This returns the data service with that index.
+     * There are {@link #getDataServiceCount()} data services defined
+     * in the federation. This returns the data service with that
+     * index.
      * 
      * @param index
      *            The index.
      * 
      * @return The data service at that index.
      */
-    final public DataService getDataService(final int index) {
+//BTm    final public DataService getDataService(final int index) {
+final public ShardService getDataService(final int index) {
         
         assertOpen();
 
@@ -277,15 +284,25 @@ final public ShardLocator getMetadataService() {
         
         for(int i=0; i<n; i++) {
             
-            uuids[i] = getDataService( i ).getServiceUUID();
-            
+//BTM            uuids[i] = getDataService( i ).getServiceUUID();
+ShardService shardService = getDataService(i);
+if(shardService instanceof IService) {
+    try {
+        uuids[i] = ((IService)shardService).getServiceUUID();
+    } catch(IOException e) {
+        log.warn("failed to retrieve service UUID for shardService["+i+"]", e);
+    }
+} else {
+    uuids[i] = ((Service)shardService).getServiceUUID();
+}            
         }
         
         return uuids;
         
     }
 
-    final public IDataService getAnyDataService() {
+//BTM    final public IDataService getAnyDataService() {
+final public ShardService getAnyDataService() {
         
         return getDataService(0);
         
@@ -408,9 +425,8 @@ final String hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
         /*
          * Start the transaction service.
          */
-        {
+        {//BEGIN transaction service -------------------------------------
 
-//BTM*** ------------------------------------------------------------------------------
             final Properties p = new Properties(properties);
             
             if (isTransient) {
@@ -447,8 +463,8 @@ p.setProperty(EmbeddedTxnServiceImpl.Options.THREAD_POOL_SIZE, EmbeddedTxnServic
                     new EmbeddedTxnServiceImpl
                             (UUID.randomUUID(),
                              hostname,
-                             null,//SDM - replace with real SDM after conversion to smart proxy?
-                             dataServiceByUUID,
+                             null,
+                             dataServiceByUUID,//not needed ???
                              p);
 
                 remoteTxnSrvc = null;
@@ -456,24 +472,14 @@ p.setProperty(EmbeddedTxnServiceImpl.Options.THREAD_POOL_SIZE, EmbeddedTxnServic
             }
 System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> remoteTxnSrvc = "+remoteTxnSrvc);
 System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> txnSrvc       = "+txnSrvc);
-//BTM*** ------------------------------------------------------------------------------
-        }
+
+        }//END transaction service ---------------------------------------
 
         /*
          * Start the lock manager.
          */
         resourceLockManager = new ResourceLockService();
-        
-//BTM*** For now, move the creation of the loadBalancerService to a
-//BTM*** point below AFTER the creation of the dataServices, so that the
-//BTM*** dataServiceByUUID map, when passed into the EmbeddedLoadBalancer,
-//BTM*** is populated with those created dataServices, and the
-//BTM*** EmbeddedLoadBalancer can then "discover" those DataServices.
-//BTM*** But once the DataService is converted to a smart proxy model
-//BTM*** and the shard.ServiceImpl/EmbeddedDataService instantiated below
-//BTM*** registers with the lookup service, the dataServiceByUUID map
-//BTM*** can be removed and a non-null SDM can be used by the
-//BTM*** loadBalancerService to actually discover that DataService.
+
 
 //BTM        {
 //BTM
@@ -493,13 +499,9 @@ System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> txnSrvc   
 //BTM                
 //BTM            }
 //BTM
-            /*
-             * Start the load balancer.
-             */
-//BTM            try {
+//BTM            try {//Start the load balancer
 //BTM         
-//BTM                loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID
-//BTM                        .randomUUID(), p).start();
+//BTM                loadBalancerService = new EmbeddedLoadBalancerServiceImpl(UUID.randomUUID(), p).start();
 //BTM            
 //BTM            } catch (Throwable t) {
 //BTM            
@@ -511,11 +513,67 @@ System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> txnSrvc   
 //BTM
 //BTM        }
 
+        {//BEGIN load balancer (remote and smart proxy) -----------------------
+//BTM            final String hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
 
-//BTM
-UUID mdsServiceUUID = null;
-Properties mdsProperties = null;
-File mdsServiceDir = null;
+            final Properties p = new Properties(properties);
+
+            if (isTransient) {
+
+                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
+                p.setProperty(EmbeddedLoadBalancer.Options.TRANSIENT, "true");
+                p.setProperty
+                    (EmbeddedLoadBalancerImpl.Options.LOG_DIR,
+                new File
+                (EmbeddedLoadBalancerImpl.Options.DEFAULT_LOG_DIR).toString());
+
+            } else {//specify the data directory for the load balancer
+               
+                p.setProperty
+                    (EmbeddedLoadBalancerImplRemote.Options.LOG_DIR,
+                     new File(dataDir, "lbs").toString());
+                p.setProperty
+                    (EmbeddedLoadBalancerImpl.Options.LOG_DIR,
+                     new File(dataDir, "lbs").toString());
+            }
+
+            if(serviceImplRemote) {//remote load balancer ---------------------
+                try {
+                    loadBalancerService = 
+                        new EmbeddedLoadBalancerImplRemote
+                                (UUID.randomUUID(), p).start();
+                } catch (Throwable t) {
+                    log.error(t, t);
+                    throw new RuntimeException(t);
+                }
+                remoteLbs = 
+                    (EmbeddedLoadBalancerImplRemote)loadBalancerService;
+                lbs = null;
+
+            } else {//smart proxy load balancer -------------------------------
+
+                loadBalancerService = 
+                    new EmbeddedLoadBalancerImpl
+                            (UUID.randomUUID(),
+                             hostname,
+                             null,//SDM ==> using embedded federation
+                             dataServiceByUUID,//must be set after ds started
+                             p);
+                remoteLbs = null;
+                lbs = (EmbeddedLoadBalancerImpl)loadBalancerService;
+            }
+System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> remoteLbs = "+remoteLbs);
+System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> lbs       = "+lbs);
+
+        }//END load balancer (remote and smart proxy) -------------------------
+
+
+        //BEGIN shard service (remote & smart proxy) and remote metadata ------
+
+        UUID mdsServiceUUID = null;
+        Properties mdsProperties = null;
+        File mdsServiceDir = null;
+
         /*
          * The directory in which the data files will reside.
          */
@@ -525,9 +583,13 @@ File mdsServiceDir = null;
              * Always do first time startup since there is no persistent state.
              */
 //BTM            ndataServices = createFederation(properties, isTransient);
-ndataServices = createFederation(properties, isTransient, serviceImplRemote);//BTM - create metadata only if remote
-
-        } else {
+            //Note: createFederation creates only the remote metadata service,
+            //      the shard locator service is created after the shard
+            //      (data) services are created (either smart proxy or remote)
+            ndataServices = 
+                createFederation(properties, isTransient,
+                                 hostname, serviceImplRemote);
+        } else {//!isTransient
 
             /*
              * Persistent (re-)start.
@@ -584,16 +646,22 @@ ndataServices = createFederation(properties, isTransient, serviceImplRemote);//B
                  * First time startup.
                  */
 //BTM                ndataServices = createFederation(properties,isTransient);
-ndataServices = createFederation(properties, isTransient, serviceImplRemote);//BTM - create metadata only if remote
+                //Note: createFederation creates only the remote metadata
+                //      service, the shard locator service is created
+                //      after the shard (data) services are created
+                //      (either smart proxy or remote)
+                ndataServices = 
+                    createFederation(properties, isTransient,
+                                     hostname, serviceImplRemote);
 
-            } else {
-
+            } else {//serviceDirs.length != 0 ==> restart
                 /*
                  * Reload services from disk.
                  */
 
                 // expected #of data services.
-                dataService = new DataService[serviceDirs.length - 1];
+//BTM              dataService = new DataService[serviceDirs.length - 1];
+                dataService = new ShardService[serviceDirs.length - 1];
 
                 int ndataServices = 0;
                 int nmetadataServices = 0;
@@ -614,174 +682,211 @@ ndataServices = createFederation(properties, isTransient, serviceImplRemote);//B
 
                     if(new File(serviceDir,MDS).exists()) {
                         
-                        /*`
+                        /*
                          * metadata service.
                          */
-
-if(serviceImplRemote) {//BTM - BEGIN --------------------------------------------------------------
-                        metadataService = new EmbeddedMetadataService(this, serviceUUID, p).start();
 //BTM
-remoteMds = (EmbeddedMetadataService)metadataService;
-mds = null;
+                        if(serviceImplRemote) {// remote metadata -------------
+                            metadataService = 
+                                new EmbeddedMetadataService
+                                        (this, serviceUUID, p).start();
+                            remoteMds = 
+                                (EmbeddedMetadataService)metadataService;
+                            mds = null;
                         
-                        nmetadataServices++;
+                            nmetadataServices++;
                         
-                        if (nmetadataServices > 1) {
-
-                            throw new RuntimeException(
-                                    "Not expecting more than one metadata service");
-                            
-                        }
-} else {// !serviceImplRemote - BTM
-    mdsServiceUUID = serviceUUID;
-    mdsProperties  = p;
-    mdsServiceDir  = serviceDir;
-}//srviceImplRemote: BTM - END -------------------------------------------------------------------
+                            if (nmetadataServices > 1) {
+                                throw new RuntimeException(
+                                    "Not expecting more than one metadata "
+                                    +"service");
+                            }
+                        } else {// smart proxy shard locator (started later)
+                            mdsServiceUUID = serviceUUID;
+                            mdsProperties  = p;
+                            mdsServiceDir  = serviceDir;
+                        }//srviceImplRemote -----------------------------------
                         
-                    } else {
-                        
+                    } else {//MDS service dir does NOT exist ==> shard services
+ 
                         /*
                          * data service.
                          */
                         
-                        final DataService dataService = new EmbeddedDataServiceImpl(
-                                serviceUUID, p).start();
+                        if(serviceImplRemote) {// remote data service ---------
 
-                        if (ndataServices == this.dataService.length) {
+//BTM                        final DataService dataService = new EmbeddedDataServiceImpl(serviceUUID, p).start();
 
-                            throw new RuntimeException(
-                                    "Too many data services?");
-                            
-                        }
+                            p.setProperty(DataService.Options.DATA_DIR,
+                                          serviceDir.toString());//added by BTM
+                            ShardService shardService = 
+                                             new EmbeddedDataServiceImpl
+                                                 (serviceUUID, p).start();
+                            EmbeddedDataServiceImpl remoteDs = 
+                                (EmbeddedDataServiceImpl)shardService;
+                            EmbeddedShardServiceImpl ds = null;
 
-                        this.dataService[ndataServices++] = dataService;
-                     
-                        dataServiceByUUID.put(serviceUUID, dataService);
-                        
-                    }
+                            if (ndataServices == this.dataService.length) {
+                                throw new RuntimeException(
+                                        "Too many data services?");
+                            }
+
+//BTM                       this.dataService[ndataServices++] = dataService;
+//BTM                       dataServiceByUUID.put(serviceUUID, dataService);
+
+                            this.dataService[ndataServices++] = shardService;
+                            this.remoteDsList.add(remoteDs);
+                            this.dsList.add(ds);
+                            dataServiceByUUID.put(serviceUUID, shardService);
+
+                        } else {// !srviceImplRemote: smart proxy shard -------
+
+                            p.setProperty
+                                (EmbeddedShardServiceImpl.Options.DATA_DIR,
+                                 serviceDir.toString());
+                            p.setProperty
+                   (EmbeddedShardServiceImpl.Options.THREAD_POOL_SIZE,
+                    EmbeddedShardServiceImpl.Options.DEFAULT_THREAD_POOL_SIZE);
+                            ShardService shardService = 
+                                new EmbeddedShardServiceImpl
+                                    (serviceUUID,
+                                     hostname,
+                                     null,//SDM ==> testing with embedded fed
+                                     transactionService,
+                                     loadBalancerService,
+                                     p);
+                            EmbeddedDataServiceImpl remoteDs = null;
+                            EmbeddedShardServiceImpl ds = 
+                                (EmbeddedShardServiceImpl)shardService;
+
+                            dataService[ndataServices++] = shardService;
+                            this.remoteDsList.add(remoteDs);
+                            this.dsList.add(ds);
+                            dataServiceByUUID.put(serviceUUID, shardService);
+
+                        }//serviceImplRemote ----------------------------------
+
+                    }//endif(MDS serviceDir exists or not)
                     
-                }
+                }//end loop(serviceDirs)
 
                 assert ndataServices == this.dataService.length;
-                
                 this.ndataServices = ndataServices;
 
+            }//endif(serviceDirs.length == or != 0) ==> 1st start or restart
+
+        }//endif(isTransient)
+        //END shard service (remote & smart proxy) and remote metadata --------
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+//BTM*** ----------------------------------------------------------------------
+//BTM - BEGIN - start metadata (shard locator) service after the
+//BTM -         dataServiceByUUID map has been populated and the
+//BTM -         LBS has been created
+
+        //BEGIN - smart proxy shard locator service ---------------------------
+        if(!serviceImplRemote) {
+
+            //Note: if mdsServiceUUID, mdsProperties, mdsServiceDir == null,
+            //      then this means that it's the 1st time starting the shard
+            //      locator, else the shard locator is being re-started
+
+            if(mdsServiceUUID == null) {
+                mdsServiceUUID = UUID.randomUUID();
             }
 
-        }
-
-//BTM - BEGIN LoadBalancer BLOCK ------------------------------------------------------------
-        {
-//BTM            final String hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
-
-            final Properties p = new Properties(properties);
-            
-            if (isTransient) {
-
-                p.setProperty(LoadBalancerService.Options.TRANSIENT, "true");
-                p.setProperty(EmbeddedLoadBalancer.Options.TRANSIENT, "true");
-
-                p.setProperty(EmbeddedLoadBalancerImpl.Options.LOG_DIR,
-                              new File
-                    (EmbeddedLoadBalancerImpl.Options.DEFAULT_LOG_DIR).toString());
-            } else {
-                // specify the data directory for the load balancer.
-                p.setProperty(EmbeddedLoadBalancerImplRemote.Options.LOG_DIR,
-                        new File(dataDir, "lbs").toString());
-                p.setProperty(EmbeddedLoadBalancerImpl.Options.LOG_DIR,
-                        new File(dataDir, "lbs").toString());
+            if(mdsProperties == null) {
+                mdsProperties = new Properties(properties);
             }
 
-            if(serviceImplRemote) {
-                try {
-                    loadBalancerService = 
-                        new EmbeddedLoadBalancerImplRemote
-                                (UUID.randomUUID(), p).start();
-                } catch (Throwable t) {
-                    log.error(t, t);
-                    throw new RuntimeException(t);
+            if(mdsServiceDir == null) {
+                if (!isTransient) {
+                    mdsServiceDir = 
+                        new File(dataDir, mdsServiceUUID.toString());
+                    mdsServiceDir.mkdirs();
+                    try {
+                        new RandomAccessFile
+                                (new File(mdsServiceDir, MDS), "rw").close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    mdsProperties.setProperty
+                        (EmbeddedShardLocatorImpl.Options.DATA_DIR,
+                         mdsServiceDir.toString());
                 }
-                remoteLbs = (EmbeddedLoadBalancerImplRemote)loadBalancerService;
-                lbs = null;
-            } else {
-                loadBalancerService = 
-                    new EmbeddedLoadBalancerImpl
-                            (UUID.randomUUID(),
-                             hostname,
-                             null,//SDM - replace with real SDM after conversion to smart proxy?
-//BTM*** EmbeddedDataService.this,
-//BTM*** remove after EmbeddedDataService is converted to smart proxy
-                             dataServiceByUUID,
-                             p);
-                remoteLbs = null;
-                lbs = (EmbeddedLoadBalancerImpl)loadBalancerService;
             }
-System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> remoteLbs = "+remoteLbs);
-System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> lbs       = "+lbs);
 
+            mdsProperties.setProperty
+                (EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE,
+                 EmbeddedShardLocatorImpl.Options.DEFAULT_THREAD_POOL_SIZE);
 
-//BTM*** ------------------------------------------------------------------------------
-//BTM - BEGIN - start metadata (shard locator) service after the dataServiceByUUID map has been populated and the LBS has been created
-if(!serviceImplRemote) {//BTM - BEGIN --------------------------------------------------------------
-    if(mdsServiceUUID == null) {
-        mdsServiceUUID = UUID.randomUUID();
-    }
-    if(mdsProperties == null) {
-        mdsProperties = new Properties(properties);
-    }
-    if(mdsServiceDir == null) {
-        if (!isTransient) {
-            mdsServiceDir = new File(dataDir, mdsServiceUUID.toString());
-            mdsServiceDir.mkdirs();
-            try {
-                new RandomAccessFile(new File(mdsServiceDir, MDS), "rw").close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            mdsProperties.setProperty(EmbeddedShardLocatorImpl.Options.DATA_DIR, mdsServiceDir.toString());
-        }
-    }
-    mdsProperties.setProperty(EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE, EmbeddedShardLocatorImpl.Options.DEFAULT_THREAD_POOL_SIZE);
-    metadataService = new EmbeddedShardLocatorImpl
+            metadataService =
+                new EmbeddedShardLocatorImpl
                             (mdsServiceUUID,
                              hostname,
-                             null,//SDM - replace with real SDM after conversion to smart proxy?
+                             null,//SDM ==> testing with embedded federation
                              transactionService,
                              loadBalancerService,
                              dataServiceByUUID,
                              mdsProperties);
-    remoteMds = null;
-    mds = (EmbeddedShardLocatorImpl)metadataService;
-}//!srviceImplRemote: BTM - END -------------------------------------------------------------------
+            remoteMds = null;
+            mds = (EmbeddedShardLocatorImpl)metadataService;
+        }//endif(!srviceImplRemote)
+        //END - smart proxy shard locator service -----------------------------
+//////////////////////////////////////////////////////////////////////////
 
-//BTM - END   - start metadata (shard locator) service after the dataServiceByUUID map has been populated
-//BTM*** ------------------------------------------------------------------------------
+        // EmbeddedIndexStore of EmbeddedShardService depends on the
+        // EmbeddedShardLocator that is created AFTER EmbeddedShardService
+        // was created; therefore, set it on the EmbeddedShardService
+        for(EmbeddedShardServiceImpl ds : this.dsList) {
+            if(ds != null) {
+                ds.setEmbeddedMds(metadataService);
+                ds.setEmbeddedDsMap(dataServiceByUUID);
+            }
+        }
 
+        {//BEGIN - service join with load balancer ----------------------------
 
-            /*
-             * Have the data services join the load balancer.
-             */
-            for (IDataService ds : this.dataService) {
-                try {
-                    if(remoteLbs != null) {
-                        remoteLbs.join(ds.getServiceUUID(), 
-                                       ds.getServiceIface(),
-                                       hostname);
-                    } else {
-                        lbs.join(ds.getServiceUUID(),
-                                 ds.getServiceIface(), 
-                                 ds.getServiceName(),
-                                 hostname);
-                    }
-                } catch (IOException e) {
-                    // Should never be thrown for an embedded service.
-                    log.warn(e.getMessage(), e);
+//BTM            for (IDataService ds : this.dataService) {
+//BTM
+//BTM - BEGIN CHANGE DATA_SERVICE TO SHARD_SERVICE
+
+            //shard (data) service joins
+
+            if(remoteLbs != null) {// ==> use remote form
+                for (EmbeddedDataServiceImpl remoteDs : remoteDsList) {
+                    remoteLbs.join(remoteDs.getServiceUUID(),
+                                   remoteDs.getServiceIface(),
+                                   hostname);
+                }
+            } else {//remoteLbs == null ==> use smart proxy form
+                for (EmbeddedShardServiceImpl ds : dsList) {
+                    lbs.join(ds);
                 }
             }
+//BTM for (ShardService ds : this.dataService) {
+//BTM                try {
+//BTM                    if(remoteLbs != null) {
+//BTM                        remoteLbs.join(ds.getServiceUUID(),
+//BTM                                       ds.getServiceIface(),
+//BTM                                       hostname);
+//BTM                    } else {
+//BTM                        lbs.join(ds.getServiceUUID(),
+//BTM                                 ds.getServiceIface(),
+//BTM                                 ds.getServiceName(),
+//BTM                                 hostname);
+//BTM                    }
+//BTM                } catch (IOException e) {
+//BTM                    // Should never be thrown for an embedded service.
+//BTM                    log.warn(e.getMessage(), e);
+//BTM                }
+//BTM            }
+//BTM - END CHANGE DATA_SERVICE TO SHARD_SERVICE
 
-            /*
-             * Other service joins.
-             */
+            //other service joins
+
             if(remoteLbs != null) {
                 remoteLbs.join
                     (remoteTxnSrvc.getServiceUUID(),
@@ -794,24 +899,12 @@ if(!serviceImplRemote) {//BTM - BEGIN ------------------------------------------
                                remoteMds.getServiceIface(), 
                                hostname);
             } else {//smart proxy
-                lbs.join
-                    (txnSrvc.getServiceUUID(),
-                     txnSrvc.getServiceIface(), 
-                     (txnSrvc.getServiceUUID()).toString(),
-                     hostname);
-                lbs.join(lbs.getServiceUUID(),
-                         lbs.getServiceIface(), 
-                         (lbs.getServiceUUID()).toString(),
-                         hostname);
-                lbs.join(mds.getServiceUUID(),
-                         mds.getServiceIface(), 
-                         (mds.getServiceUUID()).toString(),
-                         hostname);
+                lbs.join(txnSrvc);
+                lbs.join(lbs);
+                lbs.join(mds);
             }
 
-        }
-//BTM - END LoadBalancer BLOCK ------------------------------------------------------------
-
+        }//END - service join with load balancer ------------------------------
     }
 
     /**
@@ -830,6 +923,7 @@ if(!serviceImplRemote) {//BTM - BEGIN ------------------------------------------
     private int createFederation(final Properties properties,
                                  final boolean isTransient,
 //BTM
+                                 final String  hostname,
                                  final boolean serviceImplRemote)
     {
 
@@ -896,14 +990,15 @@ remoteMds = (EmbeddedMetadataService)metadataService;
 mds = null;
             
         }
-}//srviceImplRemote: BTM - END -------------------------------------------------------------------
+}//serviceImplRemote: BTM - END -------------------------------------------------------------------
+
         
         /*
          * Start the data services.
          */
         {
-
-            dataService = new DataService[ndataServices];
+//BTM            dataService = new DataService[ndataServices];
+dataService = new ShardService[ndataServices];
 
             for (int i = 0; i < ndataServices; i++) {
 
@@ -912,29 +1007,80 @@ mds = null;
                 final UUID serviceUUID = UUID.randomUUID();
 
                 if (!isTransient) {
-
-                    final File serviceDir = new File(dataDir, serviceUUID
-                            .toString());
-
+                    final File serviceDir = new File(dataDir, serviceUUID.toString());
                     serviceDir.mkdirs();
-
-                    p.setProperty(DataService.Options.DATA_DIR, serviceDir
-                            .toString());
-
+                    p.setProperty(DataService.Options.DATA_DIR, serviceDir.toString());
+p.setProperty(EmbeddedShardServiceImpl.Options.DATA_DIR, serviceDir.toString());
                 }
 
-                dataService[i] = new EmbeddedDataServiceImpl(serviceUUID, p)
-                        .start();
+if(serviceImplRemote) {//BTM - BEGIN --------------------------------------------------------------
+//BTM                dataService[i] = new EmbeddedDataServiceImpl(serviceUUID, p)
+//BTM                        .start();
+//BTM
+//BTM                dataServiceByUUID.put(serviceUUID, dataService[i]);
 
-                dataServiceByUUID.put(serviceUUID, dataService[i]);
+    ShardService shardService = new EmbeddedDataServiceImpl(serviceUUID, p).start();
+    EmbeddedDataServiceImpl remoteDs = (EmbeddedDataServiceImpl)shardService;
+    EmbeddedShardServiceImpl ds = null;
 
-            }
+    dataService[i] = shardService;
+    this.remoteDsList.add(remoteDs);
+    this.dsList.add(ds);
+    dataServiceByUUID.put(serviceUUID, shardService);
 
-        }
+} else {// !serviceImplRemote: BTM - START SMART PROXY SHARD_SERVICE
 
-//BTM - BEGIN - start metadata (shard locator) service after the dataServiceByUUID map has been populated
-/* *********************************************************************************************************************
-//BTM - DON'T START META_DATA SERVICE HERE? Do it outside of this method?
+    p.setProperty(EmbeddedShardServiceImpl.Options.THREAD_POOL_SIZE, EmbeddedShardServiceImpl.Options.DEFAULT_THREAD_POOL_SIZE);
+System.out.println("\nEmbeddedFederation CREATE_FEDERATION: embeddedMds = "+metadataService+"\n");
+    ShardService shardService = new EmbeddedShardServiceImpl
+                            (serviceUUID,
+                             hostname,
+                             null,//SDM ==> testing with embedded federation
+                             transactionService,
+                             loadBalancerService,
+                             p);
+    EmbeddedDataServiceImpl remoteDs = null;
+    EmbeddedShardServiceImpl ds = (EmbeddedShardServiceImpl)shardService;
+
+    dataService[i] = shardService;
+    this.remoteDsList.add(remoteDs);
+    this.dsList.add(ds);
+    dataServiceByUUID.put(serviceUUID, shardService);
+
+}//srviceImplRemote: BTM - END -------------------------------------------------------------------
+
+            }//end loop(i)
+
+        }//end start shard services
+
+
+//BTM - Note that although the purely remote impl of the metadata service does
+//BTM   not require that the data service be started before it, the smart proxy
+//BTM   impl of the shard locator does require that the data service be started
+//BTM   prior to starting the shard locator. This is so that the dataServiceByUUID
+//BTM   map can be populated with references to those data services. The purely
+//BTM   impl doesn't need that map since it is passed the federation which the
+//BTM   metadata service can query for the data services that were started.
+//BTM   Because of this requirement, this method was originally changed below
+//BTM   to start both the metadata service and the shard locator only after the
+//BTM   data services have been started above. But after doing some testing and
+//BTM   a little analysis, it was determined that because the shard locator service
+//BTM   is no longer implemented to also be a data service (as the metadata
+//BTM   service is), the shard locator service doesn't have to be started
+//BTM   in this method; that is, the code that starts the shard locator 
+//BTM   service can be executed in this class's constructor (which invokes
+//BTM   this method when it's a first-time start as opposed to a restart).
+//BTM   Once this was realized, the code below was commented out and the
+//BTM   code above that starts the metadata service for the first time was
+//BTM   un-commented so that the original logic and behavior that bigdata
+//BTM   had placed in this method regarding the metadata service would be
+//BTM   maintained. The code that starts the shard locator for the first
+//BTM   was then moved out of this method into the constructor. The code
+//BTM   below that is commented out, is currently left in place for reference,
+//BTM   and will eventually be removed during the 2nd phase -- the cleanup
+//BTM   phase.
+/* COMMENTED OUT *******************************************************************************************************
+//BTM - DON'T START META_DATA SERVICE HERE? Do it outside of this method?????
         {// BEGIN - Start the shard locator (metadata) service AFTER the data services so the dataServiceByUUID is populated
             final Properties p = new Properties(properties);
             final UUID serviceUUID = UUID.randomUUID();
@@ -971,7 +1117,7 @@ p.setProperty(EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE, EmbeddedShardLo
             }
         }// END - Start the shard locator (metadata) service AFTER the data services so the dataServiceByUUID is populated
 //BTM - END   - start metadata (shard locator) service after the dataServiceByUUID map has been populated
-******************************************************************************************************************** */
+COMMENTED OUT ************************************************************************************************************ */
 
         return ndataServices;
 
@@ -979,9 +1125,6 @@ p.setProperty(EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE, EmbeddedShardLo
     
     /**
      * Concrete implementation.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class EmbeddedDataServiceImpl extends AbstractEmbeddedDataService {
 
@@ -1003,7 +1146,34 @@ p.setProperty(EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE, EmbeddedShardLo
         }
 
     }
-    
+
+//BTM*** ------------------------------------------------------------------------------
+    protected class EmbeddedShardServiceImpl extends EmbeddedShardService {
+        public EmbeddedShardServiceImpl(UUID serviceUUID, 
+                                        String hostname,
+                                        ServiceDiscoveryManager sdm,
+                                        TransactionService embeddedTxnService,
+                                        LoadBalancer embeddedLoadBalancer,
+                                        Properties properties)
+        {
+            super(serviceUUID,
+                  hostname,
+                  sdm,
+                  embeddedTxnService,
+                  embeddedLoadBalancer,
+                  Integer.parseInt(properties.getProperty(EmbeddedShardServiceImpl.Options.THREAD_POOL_SIZE)),
+                  com.bigdata.shard.Constants.DEFAULT_INDEX_CACHE_SIZE,
+                  com.bigdata.shard.Constants.DEFAULT_INDEX_CACHE_TIMEOUT,
+                  com.bigdata.service.MetadataIndexCachePolicy.CacheAll,
+                  com.bigdata.shard.Constants.DEFAULT_RESOURCE_LOCATOR_CACHE_SIZE,
+                  com.bigdata.shard.Constants.DEFAULT_RESOURCE_LOCATOR_CACHE_TIMEOUT,
+                  true,//collectQueueStatistics
+                  Long.parseLong(IBigdataClient.Options.DEFAULT_REPORT_DELAY),
+                  Integer.parseInt(IBigdataClient.Options.DEFAULT_HTTPD_PORT),
+                  properties);
+        }
+    }
+//BTM*** ------------------------------------------------------------------------------
 
 //BTM*** ------------------------------------------------------------------------------
     protected class EmbeddedShardLocatorImpl extends EmbeddedShardLocator {
@@ -1012,7 +1182,7 @@ p.setProperty(EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE, EmbeddedShardLo
                                         ServiceDiscoveryManager sdm,
                                         TransactionService embeddedTxnService,
                                         LoadBalancer embeddedLbs,
-                                        Map<UUID, IDataService> embeddedDataServiceMap,
+                                        Map<UUID, ShardService> embeddedDataServiceMap,
                                         Properties properties)
         {
             super(serviceUUID,
@@ -1022,6 +1192,12 @@ p.setProperty(EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE, EmbeddedShardLo
                   embeddedLbs,
                   embeddedDataServiceMap,
                   Integer.parseInt(properties.getProperty(EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE)),
+                  com.bigdata.metadata.Constants.DEFAULT_INDEX_CACHE_SIZE,
+                  com.bigdata.metadata.Constants.DEFAULT_INDEX_CACHE_TIMEOUT,
+                  com.bigdata.service.MetadataIndexCachePolicy.CacheAll,
+                  com.bigdata.metadata.Constants.DEFAULT_RESOURCE_LOCATOR_CACHE_SIZE,
+                  com.bigdata.metadata.Constants.DEFAULT_RESOURCE_LOCATOR_CACHE_TIMEOUT,
+                  Long.parseLong(IBigdataClient.Options.DEFAULT_REPORT_DELAY),
                   properties);
         }
     }
@@ -1050,11 +1226,12 @@ p.setProperty(EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE, EmbeddedShardLo
         public EmbeddedLoadBalancerImpl(UUID serviceUUID, 
                                         String hostname,
                                         ServiceDiscoveryManager sdm,
-                                        Map<UUID, IDataService> dataServiceMap,//BTM - remove once EmbeddedDataService converted?
+                                        Map<UUID, ShardService> dataServiceMap,
                                         Properties properties)
         {
             super(serviceUUID, hostname,
-                  sdm, dataServiceMap,//BTM*** - remove after DataService smart proxy?
+                  sdm, 
+                  dataServiceMap,
                   properties.getProperty(EmbeddedLoadBalancerImpl.Options.LOG_DIR),
                   properties);
         }
@@ -1100,7 +1277,7 @@ public EmbeddedTxnServiceImplRemote(UUID serviceUUID, Properties properties) {
         public EmbeddedTxnServiceImpl(UUID serviceUUID, 
                                       String hostname,
                                       ServiceDiscoveryManager sdm,
-                                      Map<UUID, IDataService> dataServiceMap,//BTM - change to ShardService?
+                                      Map<UUID, ShardService> dataServiceMap,
                                       Properties properties)
         {
             super(serviceUUID,
@@ -1135,15 +1312,18 @@ if(remoteTxnSrvc != null) {
 
         }
 
-        for (int i = 0; i < dataService.length; i++) {
+//BTM        for (int i = 0; i < dataService.length; i++) {
+//BTM            if (dataService[i] != null) {
+//BTM                dataService[i].shutdown();
+//BTM            }
+//BTM        }
+for(EmbeddedDataServiceImpl remoteDs : remoteDsList) {
+    if(remoteDs != null) remoteDs.shutdown();
+}
 
-            if (dataService[i] != null) {
-
-                dataService[i].shutdown();
-
-            }
-            
-        }
+for(EmbeddedShardServiceImpl ds : dsList) {
+    if(ds != null) ds.shutdown();
+}
 
         if (metadataService != null) {
 
@@ -1187,25 +1367,26 @@ if(remoteMds != null) {
         super.shutdownNow();
 
         if (transactionService != null) {
-
 //BTM            transactionService.shutdownNow();
 if(remoteTxnSrvc != null) {
     remoteTxnSrvc.shutdownNow();
 } else {
     txnSrvc.shutdownNow();
 }
-
         }
 
-        for (int i = 0; i < dataService.length; i++) {
+//BTM        for (int i = 0; i < dataService.length; i++) {
+//BTM            if (dataService[i] != null) {
+//BTM                dataService[i].shutdownNow();
+//BTM            }
+//BTM        }
+for(EmbeddedDataServiceImpl remoteDs : remoteDsList) {
+    if(remoteDs != null) remoteDs.shutdownNow();
+}
 
-            if (dataService[i] != null) {
-
-                dataService[i].shutdownNow();
-
-            }
-
-        }
+for(EmbeddedShardServiceImpl ds : dsList) {
+    if(ds != null) ds.shutdownNow();
+}
 
 //BTM        metadataService.shutdownNow();
 if(remoteMds != null) {
@@ -1245,15 +1426,18 @@ if(remoteTxnSrvc != null) {
     txnSrvc.destroy();
 }
         
-        for (int i = 0; i < dataService.length; i++) {
+//BTM        for (int i = 0; i < dataService.length; i++) {
+//BTM            if (dataService[i] != null) {
+//BTM                dataService[i].destroy();
+//BTM            }
+//BTM        }
+for(EmbeddedDataServiceImpl remoteDs : remoteDsList) {
+    if(remoteDs != null) remoteDs.destroy();
+}
 
-            if (dataService[i] != null) {
-
-                dataService[i].destroy();
-                
-            }
- 
-        }
+for(EmbeddedShardServiceImpl ds : dsList) {
+    if(ds != null) ds.destroy();
+}
 
         if (metadataService != null) {
 
@@ -1313,7 +1497,7 @@ if(remoteMds != null) {
     }
     
     /**
-     * This scans the {@link DataService}s and reports the most recent value.
+     * This scans the {@link ShardService}s and reports the most recent value.
      */
     public long getLastCommitTime() {
 
@@ -1322,19 +1506,31 @@ if(remoteMds != null) {
         long maxValue = 0;
 
         // check each of the data services.
-        for(int i=0; i<dataService.length; i++) {
-
-            final long commitTime = dataService[i].getResourceManager()
-                    .getLiveJournal().getRootBlockView().getLastCommitTime();
-
-            if (commitTime > maxValue) {
-
-                maxValue = commitTime;
-                
-            }
-            
+//BTM        for(int i=0; i<dataService.length; i++) {
+//BTM            final long commitTime = dataService[i].getResourceManager()
+//BTM                    .getLiveJournal().getRootBlockView().getLastCommitTime();
+//BTM
+//BTM            if (commitTime > maxValue) {
+//BTM                maxValue = commitTime;
+//BTM            }
+//BTM        }
+for(EmbeddedDataServiceImpl remoteDs : remoteDsList) {
+    if(remoteDs != null) {
+        long commitTime = remoteDs.getResourceManager().getLiveJournal().getRootBlockView().getLastCommitTime();
+        if (commitTime > maxValue) {
+            maxValue = commitTime;
         }
-        
+    }
+}
+for(EmbeddedShardServiceImpl ds : dsList) {
+    if(ds != null) {
+        long commitTime = ds.getResourceManager().getLiveJournal().getRootBlockView().getLastCommitTime();
+        if (commitTime > maxValue) {
+            maxValue = commitTime;
+        }
+    }
+}
+
         // and also check the metadata service
         {
 
@@ -1358,14 +1554,21 @@ if(remoteMds != null) {
         
     }
 
-    public IDataService getDataServiceByName(final String name) {
+//BTM    public IDataService getDataServiceByName(final String name) {
+public ShardService getDataServiceByName(final String name) {
 
-        for (IDataService ds : dataService) {
+//BTM        for (IDataService ds : dataService) {
+for (ShardService ds : dataService) {
 
             final String serviceName;
             try {
+if(ds instanceof IService) {
+//BTM                serviceName = ds.getServiceName();
+    serviceName = ((IService)ds).getServiceName();
+} else {
+    serviceName = ((Service)ds).getServiceName();
 
-                serviceName = ds.getServiceName();
+}
                 
             } catch (IOException e) {
                 

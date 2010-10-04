@@ -41,24 +41,22 @@ import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.IBlock;
 import com.bigdata.service.AbstractDistributedFederation;
-import com.bigdata.service.IDataService;
+//BTM import com.bigdata.service.IDataService;
 
 //BTM
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardManagement;
+import com.bigdata.service.ShardService;
 
 /**
  * Class supports range query across against an unpartitioned index on an
- * {@link IDataService} but DOES NOT handle index partition splits, moves or
+ * {@link ShardService} but DOES NOT handle index partition splits, moves or
  * joins.
  * <p>
  * Note: This class supports caching of the remote metadata index, which does
  * not use index partitions, by the {@link AbstractDistributedFederation}.
  * 
  * @todo write tests for read-consistent.
- * 
- * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class RawDataServiceTupleIterator<E> extends AbstractChunkedTupleIterator<E> {
     
@@ -92,10 +90,16 @@ public class RawDataServiceTupleIterator<E> extends AbstractChunkedTupleIterator
      */
 //BTM    protected final IDataService dataService;
 //BTM
-protected IDataService dataService = null;
+
+//BTM - BEGIN IDATA_SERVICE CHANGED TO SHARD_SERVICE
+//BTM protected IDataService dataService = null;
+//BTM private IDataService remoteShardMgr = null;
+
+protected ShardService dataService = null;
 protected ShardLocator metadataService = null;
-private IDataService remoteShardMgr = null;
 private ShardManagement shardMgr = null;
+//BTM - END IDATA_SERVICE CHANGED TO SHARD_SERVICE
+
     
     /**
      * The name of the index partition on which the range query is being
@@ -148,7 +152,8 @@ private ShardManagement shardMgr = null;
      * @param flags
      * @param filter
      */
-    public RawDataServiceTupleIterator(final IDataService dataService,
+//BTM    public RawDataServiceTupleIterator(final IDataService dataService,
+public RawDataServiceTupleIterator(final ShardService dataService,
             final String name, final long timestamp,
             final boolean readConsistent, final byte[] fromKey,
             final byte[] toKey, final int capacity, final int flags,
@@ -156,22 +161,19 @@ private ShardManagement shardMgr = null;
 
         super(fromKey, toKey, capacity, flags, filter);
         
+System.out.println("\n>>>> RawDataServiceTupleIterator: dataService = "+dataService);
         if (dataService == null) {
-
-            throw new IllegalArgumentException();
-
+System.out.println("\n"+com.bigdata.util.Util.getCurrentStackTrace());
+            throw new IllegalArgumentException("null shard service");
         }
 
         if (name == null) {
-
-            throw new IllegalArgumentException();
-            
+            throw new IllegalArgumentException("null name");
         }
         
         if (capacity < 0) {
-
-            throw new IllegalArgumentException();
-            
+            throw new IllegalArgumentException
+                          ("capacity < 0"+" ["+capacity+"]");
         }
 
 //        if (timestamp == ITx.UNISOLATED && readConsistent) {
@@ -182,17 +184,16 @@ private ShardManagement shardMgr = null;
 //        }
 
         this.dataService = dataService;
-        
         this.name = name;
-        
         this.timestamp = timestamp;
-        
         this.readConsistent = readConsistent;
 
+//BTM
+this.shardMgr = (ShardManagement)(this.dataService);
     }
 
-//BTM - BEGIN
-    public RawDataServiceTupleIterator(final ShardLocator metadataService,
+//BTM - BEGIN ADDED NEW CONSTRUCTOR FOR SHARD_LOCATOR
+public RawDataServiceTupleIterator(final ShardLocator metadataService,
             final String name, final long timestamp,
             final boolean readConsistent, final byte[] fromKey,
             final byte[] toKey, final int capacity, final int flags,
@@ -216,16 +217,22 @@ private ShardManagement shardMgr = null;
         this.name = name;
         this.timestamp = timestamp;
         this.readConsistent = readConsistent;
-if(this.metadataService instanceof IDataService) {
-    remoteShardMgr = (IDataService)(this.metadataService);
-} else if(this.metadataService instanceof ShardManagement) {
-    shardMgr = (ShardManagement)(this.metadataService);
-}
+
+//BTM - BEGIN IDATA_SERVICE CHANGED TO SHARD_SERVICE
+//BTM if(this.metadataService instanceof IDataService) {
+//BTM     remoteShardMgr = (IDataService)(this.metadataService);
+//BTM } else if(this.metadataService instanceof ShardManagement) {
+//BTM     shardMgr = (ShardManagement)(this.metadataService);
+//BTM }
+
+this.shardMgr = (ShardManagement)(this.metadataService);
+//BTM - END IDATA_SERVICE CHANGED TO SHARD_SERVICE
+
     }
-//BTM - END
+//BTM - END ADDED NEW CONSTRUCTOR FOR SHARD_LOCATOR
 
     /**
-     * Atomic operation caches a chunk of results from an {@link IDataService}.
+     * Atomic operation caches a chunk of results from an {@link ShardService}.
      * <P>
      * Note: This uses the <i>timestamp</i> specified by the caller NOT the
      * {@link #timestamp} value stored by this class. This allows us to have
@@ -256,18 +263,20 @@ if(metadataService != null) {
         try {
 
 //BTM - BEGIN
-if(metadataService != null) {
-    if(remoteShardMgr != null) {
-        return remoteShardMgr.rangeIterator(timestamp, name, fromKey, toKey, capacity, flags, filter);
-    } else if(shardMgr != null) {
-        return shardMgr.rangeIterator(timestamp, name, fromKey, toKey, capacity, flags, filter);
-    } else {
-        throw new RuntimeException("RawDataServiceTupleIterator.getResultSet: shard locator (metadata) service is not a shard manager [type="+metadataService.getClass()+"]");
-    }
-} else {
-            return dataService.rangeIterator(timestamp, name, fromKey, toKey,
-                    capacity, flags, filter);
-}
+//BTM - BEGIN IDATA_SERVICE CHANGED TO SHARD_SERVICE
+//BTM if(metadataService != null) {
+//BTM     if(remoteShardMgr != null) {
+//BTM         return remoteShardMgr.rangeIterator(timestamp, name, fromKey, toKey, capacity, flags, filter);
+//BTM     } else if(shardMgr != null) {
+//BTM         return shardMgr.rangeIterator(timestamp, name, fromKey, toKey, capacity, flags, filter);
+//BTM     } else {
+//BTM         throw new RuntimeException("RawDataServiceTupleIterator.getResultSet: shard locator (metadata) service is not a shard manager [type="+metadataService.getClass()+"]");
+//BTM     }
+
+//BTM            return dataService.rangeIterator(timestamp, name, fromKey, toKey, capacity, flags, filter);
+return shardMgr.rangeIterator(timestamp, name, fromKey, toKey, capacity, flags, filter);
+
+//BTM - END IDATA_SERVICE CHANGED TO SHARD_SERVICE
 //BTM - END
             
         } catch (Exception e) {
@@ -297,10 +306,8 @@ if(metadataService != null) {
              * Note: default key serializer is used : @todo why? because the
              * IndexMetadata is not on hand locally?
              */
-            dataService.submit(timestamp, name,
-                    BatchRemoveConstructor.RETURN_MUTATION_COUNT
-                            .newInstance(0/* fromIndex */, n/* toIndex */, keys,
-                                    null/*vals*/)).get();
+//BTM            dataService.submit(timestamp, name, BatchRemoveConstructor.RETURN_MUTATION_COUNT.newInstance(0/* fromIndex */, n/* toIndex */, keys, null/*vals*/)).get();
+((ShardManagement)dataService).submit(timestamp, name, BatchRemoveConstructor.RETURN_MUTATION_COUNT.newInstance(0/* fromIndex */, n/* toIndex */, keys, null/*vals*/)).get();
 
         } catch (Exception e) {
             
@@ -316,10 +323,8 @@ if(metadataService != null) {
         try {
             
             // Note: default key serializer is used.
-            dataService.submit(timestamp, name,
-                    BatchRemoveConstructor.RETURN_MUTATION_COUNT.newInstance(
-                            0/* fromIndex */, 1/* toIndex */,
-                            new byte[][] { key }, null/*vals*/)).get();
+//BTM            dataService.submit(timestamp, name, BatchRemoveConstructor.RETURN_MUTATION_COUNT.newInstance(0/* fromIndex */, 1/* toIndex */, new byte[][] { key }, null/*vals*/)).get();
+((ShardManagement)dataService).submit(timestamp, name, BatchRemoveConstructor.RETURN_MUTATION_COUNT.newInstance(0/* fromIndex */, 1/* toIndex */, new byte[][] { key }, null/*vals*/)).get();
 
         } catch (Exception e) {
             

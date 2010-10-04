@@ -35,6 +35,7 @@ import com.sun.jini.admin.DestroyAdmin;
 import net.jini.admin.Administrable;
 import net.jini.admin.JoinAdmin;
 
+import java.io.IOException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.UUID;
@@ -42,46 +43,79 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+//BTM - PRE_FRED_3481
+import com.bigdata.service.IDataServiceCallable;
+
 interface PrivateInterface extends Remote, Administrable,
                                    DestroyAdmin, JoinAdmin
 {
     //Related to ShardService
 
     void registerIndex(String name, IndexMetadata metadata)
-            throws RemoteException, InterruptedException, ExecutionException;
+             throws RemoteException, IOException,
+                    InterruptedException, ExecutionException;
 
-    IndexMetadata getIndexMetadata(String name, long timestamp)
-            throws RemoteException, InterruptedException, ExecutionException;
-
-    void dropIndex(String name) throws RemoteException,
-            InterruptedException, ExecutionException;
-
-    ResultSet rangeIterator(long tx, String name, byte[] fromKey,
-            byte[] toKey, int capacity, int flags, IFilterConstructor filter)
-            throws InterruptedException, ExecutionException, RemoteException;
+    void dropIndex(String name) 
+             throws RemoteException, IOException,
+                    InterruptedException, ExecutionException;
 
     IBlock readBlock(IResourceMetadata resource, long addr)
-            throws RemoteException;
+               throws RemoteException, IOException;
+
+    //Related to ShardManagement
+
+    IndexMetadata getIndexMetadata(String name, long timestamp)
+                      throws RemoteException, IOException,
+                             InterruptedException, ExecutionException;
+
+    ResultSet rangeIterator(long tx,
+                            String name,
+                            byte[] fromKey,
+                            byte[] toKey,
+                            int capacity,
+                            int flags,
+                            IFilterConstructor filter)
+                  throws RemoteException, IOException,
+                         InterruptedException, ExecutionException;
+
+//BTM - PRE_FRED_3481    Future<? extends Object> submit(Callable<? extends Object> proc)
+     <T> Future<T> submit(IDataServiceCallable<T> task)
+                                 throws RemoteException;
 
     Future submit(long tx, String name, IIndexProcedure proc)
-            throws RemoteException;
+               throws RemoteException;
 
-    Future<? extends Object> submit(Callable<? extends Object> proc)
-            throws RemoteException;
+    boolean purgeOldResources(long timeout, boolean truncateJournal)
+                throws RemoteException, InterruptedException;
 
+    //Related to ITxCommitProtocol
 
-    //Related to TestAdmin
+    void setReleaseTime(long releaseTime) throws RemoteException, IOException;
 
-    void kill(int status) throws RemoteException;
+    void abort(long tx) throws RemoteException, IOException;
+
+    long singlePhaseCommit(long tx)
+             throws RemoteException, IOException,
+                    InterruptedException, ExecutionException;
+
+    void prepare(long tx, long revisionTime)
+             throws RemoteException, IOException, Throwable;
+
+    //Related to OverflowAdmin (for testing & benchmarking)
 
     void forceOverflow(boolean immediate, boolean compactingMerge)
-            throws RemoteException, InterruptedException, ExecutionException;
-    
-    boolean purgeOldResources(long timeout, boolean truncateJournal)
-            throws RemoteException, InterruptedException;
-    
-    long getAsynchronousOverflowCounter() throws RemoteException;
-    
-    boolean isOverflowActive() throws RemoteException;
+            throws RemoteException, IOException,
+                   InterruptedException, ExecutionException;
 
+    long getAsynchronousOverflowCounter() throws RemoteException, IOException;
+
+    boolean isOverflowActive() throws RemoteException, IOException;
+
+    //Related to ShutdownAdmin
+
+    void shutdown() throws RemoteException;
+
+    void shutdownNow() throws RemoteException;
+
+    void kill(int status) throws RemoteException;
 }

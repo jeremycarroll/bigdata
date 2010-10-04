@@ -37,7 +37,7 @@ import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.AbstractTransactionService;
 
 //BTM
-import com.bigdata.service.TxState;
+import com.bigdata.journal.TxState;
 
 /**
  * Mock implementation supporting only those features required to bootstrap the

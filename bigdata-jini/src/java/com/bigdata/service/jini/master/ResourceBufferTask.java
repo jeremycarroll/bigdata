@@ -39,11 +39,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
-import net.jini.core.lookup.ServiceItem;
 
 import com.bigdata.relation.accesspath.BlockingBuffer;
-import com.bigdata.service.FederationCallable;
-import com.bigdata.service.IRemoteExecutor;
+import com.bigdata.service.ClientService;
+import com.bigdata.service.IBigdataFederation;
+import com.bigdata.service.IClientService;
+import com.bigdata.service.IClientServiceCallable;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.ndx.pipeline.AbstractPendingSetMasterTask;
 import com.bigdata.service.ndx.pipeline.AbstractSubtask;
@@ -56,10 +57,10 @@ import com.bigdata.service.ndx.pipeline.AbstractSubtask;
  * If the task is interrupted, it will refuse additional writes by closing its
  * {@link BlockingBuffer} and will cancel any sub-tasks and discard any buffered
  * writes.
- * 
+ *
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
- * 
+ *
  * @param <H>
  *            The generic type of the value returned by {@link Callable#call()}
  *            for the master.
@@ -75,7 +76,7 @@ import com.bigdata.service.ndx.pipeline.AbstractSubtask;
  * @param <HS>
  *            The generic type of the value returned by {@link Callable#call()}
  *            for the subtask.
- * 
+ *
  * @todo Isolate the pending set buffer logic and write unit tests for it. This
  *       should also cover the acceleration of the final tasks during normal
  *       shutdown.
@@ -107,11 +108,12 @@ HS extends ResourceBufferSubtaskStatistics //
     final private Map<E, Collection<L>> pendingMap;
 
     protected Map<E,Collection<L>> getPendingMap() {
-        
+
         return pendingMap;
-        
+
     }
 
+    @Override
     public String toString() {
 
         return getClass().getName() + "{jobName="
@@ -122,7 +124,7 @@ HS extends ResourceBufferSubtaskStatistics //
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @param sinkQueueCapacity
      *            The capacity of the internal queue for the per-sink output
      *            buffer.
@@ -165,7 +167,7 @@ HS extends ResourceBufferSubtaskStatistics //
         this.sinkChunkTimeoutNanos = sinkChunkTimeoutNanos;
 
         this.pendingMap = newPendingMap();
-        
+
     }
 
     /**
@@ -173,10 +175,11 @@ HS extends ResourceBufferSubtaskStatistics //
      * remaining clients. Each resource in the pending set is assigned to
      * multiple clients. The assignments are made in random orderings to
      * minimize the likelihood that each client will perform the same work.
-     * 
+     *
      * FIXME Finish up should use round robin multiple assignment of resources
      * to clients to get done faster.
      */
+    @Override
     protected void willShutdown() throws InterruptedException {
         /*
          * TODO visit the sinks and determine which are fast and which are slow.
@@ -227,10 +230,10 @@ HS extends ResourceBufferSubtaskStatistics //
             for (E e : chunk) {
 
                 final int h = hashFunction.hashFunction(e);
-                
+
                 // note: hash function can be negative, but we want a non-neg index.
                 final int i = Math.abs(h % N);
-                
+
 //                assert i >= 0 && i < N : "hashFunction out of range: e=" + e
 //                        + ", h(e)=" + h + ", N=" + N + ", i=" + i
 //                        + ", hashFunction=" + hashFunction;
@@ -309,13 +312,8 @@ HS extends ResourceBufferSubtaskStatistics //
     @Override
     protected S newSubtask(final L locator, final BlockingBuffer<E[]> out) {
 
-        final ServiceItem serviceItem = taskMaster.getJobState().clientServiceMap
-                .getServiceItem(locator.getClientNo());
-
-        assert serviceItem != null;
-
-        final IRemoteExecutor service = (IRemoteExecutor) serviceItem.service;
-
+        IClientService service = taskMaster.getJobState().clientServiceMap
+                .getService(locator.getClientNo());
         assert service != null;
 
         try {
@@ -324,7 +322,7 @@ HS extends ResourceBufferSubtaskStatistics //
              * Submit a factory task whose Future evaluates to the proxy for the
              * client task running on the remote service. The factory task ctor
              * accepts the Serializable client task object. The factory task is
-             * executed on the IRemoteExecutor and returns the proxy for the
+             * executed on the ClientService and returns the proxy for the
              * client task from that machine.
              */
             final IAsynchronousClientTask<?, E> clientTask = (IAsynchronousClientTask<?, E>) service
@@ -358,19 +356,19 @@ HS extends ResourceBufferSubtaskStatistics //
 
     /**
      * Factory object used to start a {@link AbstractAsynchronousClientTask} on
-     * an {@link IRemoteExecutor} service. The factory returns the proxy for the
+     * an {@link IClientService} service. The factory returns the proxy for the
      * {@link AbstractAsynchronousClientTask}. By using
      * {@link AbstractAsynchronousClientTask#getFuture()}, the caller can also
      * obtain the proxy for the task's {@link Future}.
-     * 
+     *
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    private static class ClientTaskFactory extends
-            FederationCallable<IAsynchronousClientTask> {
+    private static class ClientTaskFactory
+        implements IClientServiceCallable<IAsynchronousClientTask> {
 
         /**
-         * 
+         *
          */
         private static final long serialVersionUID = -5106901692329093593L;
 
@@ -392,26 +390,18 @@ HS extends ResourceBufferSubtaskStatistics //
          * {@link Future} is available from the {@link IAsynchronousClientTask}
          * proxy.
          */
-        @SuppressWarnings("unchecked")
-        public IAsynchronousClientTask call() throws Exception {
+        public IAsynchronousClientTask startClientTask(
+                IBigdataFederation federation,
+                ClientService clientService)
+            throws Exception {
 
-            /*
-             * @todo This is being done explicitly because the task is not being
-             * submitted against the client's IRemoteExecutor service directly,
-             * but instead against the ExecutorService for its internal
-             * Federation reference. It would be better to obtain the
-             * non-proxied IRemoteExecutor and run against that.  I think that
-             * I fixed this before...
-             */
-            task.setFederation(getFederation());
-            
-            final Future future = getFederation().getExecutorService().submit(
-                    task);
-
+            JiniFederation jiniFederation = (JiniFederation) federation;
+            final Future future =
+                jiniFederation.getProxy(clientService.submit(task));
             task.setFuture(future);
 
-            return (IAsynchronousClientTask) ((JiniFederation) getFederation())
-                    .getProxy(task, true/* enableDGC */);
+            return (IAsynchronousClientTask)
+                    jiniFederation.getProxy(task, true/* enableDGC */);
 
         }
 
@@ -427,7 +417,7 @@ HS extends ResourceBufferSubtaskStatistics //
 
         return new BlockingBuffer<E[]>(//
                 new LinkedBlockingDeque<E[]>(sinkQueueCapacity),//
-                sinkChunkSize,// 
+                sinkChunkSize,//
                 sinkChunkTimeoutNanos,//
                 TimeUnit.NANOSECONDS,//
                 buffer.isOrdered());
@@ -459,9 +449,9 @@ HS extends ResourceBufferSubtaskStatistics //
              * consistent to ensure that we recognize the resource as initially
              * queued and when its success/failure event comes along.
              */
-            
+
             throw new UnsupportedOperationException();
-            
+
 //            final IRawStore store = getFederation().getTempStore();
 //
 //            // anonymous index (unnamed).
@@ -482,7 +472,7 @@ HS extends ResourceBufferSubtaskStatistics //
     /**
      * Concrete master hides most of the generic types leaving you with only
      * those that are meaningful to parameterize.
-     * 
+     *
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */

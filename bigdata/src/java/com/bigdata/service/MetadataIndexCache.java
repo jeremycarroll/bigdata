@@ -8,6 +8,9 @@ import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.util.InnerCause;
 
+//BTM
+import com.bigdata.journal.IIndexStore;
+
 /**
  * Concrete implementation for {@link IMetadataIndex} views.
  * 
@@ -23,19 +26,49 @@ public class MetadataIndexCache extends AbstractIndexCache<IMetadataIndex>{
      */
     protected static transient final String ERR_NO_METADATA_SERVICE = "Metadata service";
     
-    private final AbstractScaleOutFederation fed;
+//BTM - BEGIN
+//BTM    private final AbstractScaleOutFederation fed;
+//BTM    public MetadataIndexCache(final AbstractScaleOutFederation fed,
+//BTM            final int capacity, final long timeout) {
+//BTM        
+//BTM        super(capacity, timeout);
+//BTM
+//BTM        if (fed == null)
+//BTM            throw new IllegalArgumentException();
+//BTM        
+//BTM        this.fed = fed;
+//BTM
+//BTM    }
 
-    public MetadataIndexCache(final AbstractScaleOutFederation fed,
-            final int capacity, final long timeout) {
-        
+    private final IBigdataFederation fed;
+    private final MetadataIndexCachePolicy metadataIndexCachePolicy;
+
+    public MetadataIndexCache
+               (final IBigdataFederation fed,
+                final MetadataIndexCachePolicy metadataIndexCachePolicy,
+                final int capacity,
+                final long timeout)
+    {
         super(capacity, timeout);
-
-        if (fed == null)
-            throw new IllegalArgumentException();
-        
+        if (fed == null) {
+            throw new IllegalArgumentException("null federation");
+        }
         this.fed = fed;
-
+        this.metadataIndexCachePolicy = 
+            (metadataIndexCachePolicy == null ? 
+                 MetadataIndexCachePolicy.CacheAll 
+                 : metadataIndexCachePolicy);
     }
+
+    public MetadataIndexCache
+               (final AbstractScaleOutFederation fed,
+                final int capacity,
+                final long timeout)
+    {
+        this((IBigdataFederation)fed, fed.metadataIndexCachePolicy,
+             capacity, timeout);
+    }
+//BTM - END
 
     @Override
     protected IMetadataIndex newView(String name, long timestamp) {
@@ -50,7 +83,8 @@ log.warn("\nMetadataIndexCache.newView >>>> META_DATA INDEX META_DATA = NULL\n")
             return null;
         }
                 
-        switch (fed.metadataIndexCachePolicy) {
+//BTM        switch (fed.metadataIndexCachePolicy) {
+switch (metadataIndexCachePolicy) {
 
         case NoCache: { 
         
@@ -83,8 +117,8 @@ log.warn("\nMetadataIndexCache.newView >>>> META_DATA INDEX META_DATA = NULL\n")
         }
 
         default:
-            throw new AssertionError("Unknown option: "
-                    + fed.metadataIndexCachePolicy);
+//BTM            throw new AssertionError("Unknown option: " + fed.metadataIndexCachePolicy);
+throw new AssertionError("Unknown option: " + metadataIndexCachePolicy);
         }
         
     }
@@ -108,18 +142,21 @@ log.warn("\nMetadataIndexCache.newView >>>> META_DATA INDEX META_DATA = NULL\n")
 
 //BTM        final IMetadataService mds = fed.getMetadataService();
 final ShardLocator mds = fed.getMetadataService();
-IDataService remoteShardMgr = null;
-ShardManagement shardMgr = null;
-if(mds instanceof IDataService) {
-log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds INSTANCE OF IDataService ["+mds+"]\n");
-    remoteShardMgr = (IDataService)mds;
-} else if(mds instanceof ShardManagement) {
-log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds IS INSTANCE OF ShardManagement ["+mds+"]\n");
-    shardMgr = (ShardManagement)mds;
-}else {
-log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds NOT instance of ShardManagement or IDataService ["+mds+"]\n");
-}
-log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: remoteShardMgr="+remoteShardMgr+", shardMgr="+shardMgr+"\n");
+
+//BTM - BEGIN - IDATA_SERVICE TO SHARD_SERVICE
+//BTM IDataService remoteShardMgr = null;
+//BTM ShardManagement shardMgr = null;
+//BTM if(mds instanceof IDataService) {
+//BTM log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds INSTANCE OF IDataService ["+mds+"]\n");
+//BTM     remoteShardMgr = (IDataService)mds;
+//BTM } else if(mds instanceof ShardManagement) {
+//BTM log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds IS INSTANCE OF ShardManagement ["+mds+"]\n");
+//BTM     shardMgr = (ShardManagement)mds;
+//BTM }else {
+//BTM log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds NOT instance of ShardManagement or IDataService ["+mds+"]\n");
+//BTM }
+//BTM log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: remoteShardMgr="+remoteShardMgr+", shardMgr="+shardMgr+"\n");
+//BTM - END - IDATA_SERVICE TO SHARD_SERVICE
 
         if (mds == null)
             throw new NoSuchService(ERR_NO_METADATA_SERVICE);
@@ -128,17 +165,22 @@ log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: remoteShardMgr="+remote
         try {
 
             // @todo test cache for this object as of that timestamp?
-if(remoteShardMgr != null) {
-            mdmd = (MetadataIndexMetadata) remoteShardMgr.getIndexMetadata(
-                            MetadataService.getMetadataIndexName(name),
-                            timestamp);
-} else if(shardMgr != null) {
-log.warn("\nMetadataIndexCache.getMetadataIndexMetadata >>>> CALLING shardMgr.getIndexMetadata <<<<\n");
-            mdmd = (MetadataIndexMetadata) shardMgr.getIndexMetadata(
-                            MetadataService.getMetadataIndexName(name),
-                            timestamp);
-}
-            
+//BTM - BEGIN - IDATA_SERVICE TO SHARD_SERVICE
+//BTM if(remoteShardMgr != null) {
+//BTM             mdmd = (MetadataIndexMetadata) remoteShardMgr.getIndexMetadata(
+//BTM                             MetadataService.getMetadataIndexName(name),
+//BTM                             timestamp);
+//BTM } else if(shardMgr != null) {
+//BTM log.warn("\nMetadataIndexCache.getMetadataIndexMetadata >>>> CALLING shardMgr.getIndexMetadata <<<<\n");
+//BTM             mdmd = (MetadataIndexMetadata) shardMgr.getIndexMetadata(
+//BTM                             MetadataService.getMetadataIndexName(name),
+//BTM                             timestamp);
+//BTM }
+
+mdmd = (MetadataIndexMetadata) ((ShardManagement)mds).getIndexMetadata(MetadataService.getMetadataIndexName(name), timestamp);
+
+//BTM - END - IDATA_SERVICE TO SHARD_SERVICE
+
             assert mdmd != null;
 
         } catch( NoSuchIndexException ex ) {
