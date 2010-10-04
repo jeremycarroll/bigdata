@@ -34,6 +34,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.SocketException;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -57,7 +59,9 @@ public class ConfigDeployUtil {
     private static final String TYPE = ".type";
     
     private static final String FALLBACK_FEDNAME_FORMAT = "bigdata.test.group-%s";
-    private static final String TEMPLATE_TOKEN_PATTERN = "@.*@";
+    
+    //use current locale
+    private static final NumberFormat numberFormat = NumberFormat.getInstance();
 
     public static String getString(String parameter) 
                              throws ConfigurationException
@@ -88,23 +92,24 @@ public class ConfigDeployUtil {
         return value;
     }
 
-    public static boolean getBoolean(String parameter) 
+    public static boolean getBoolean(String parameter) throws ConfigurationException
+    {
+        boolean value;
+        value = validateBoolean(parameter, get(parameter));
+        return value;
+    }
+
+    private static boolean validateBoolean(String parameter, String value) 
                               throws ConfigurationException {
         boolean boolValue = false;
-        String value;
-        try {
-            value = get(parameter);
-        } catch (Exception ex) {
-            throw new ConfigurationException("parameter value ["+parameter+"] "
-                                             +"neither 'true' nor 'false'");
-        }
-        if( value != null && value.equalsIgnoreCase("true")
-           || value.equalsIgnoreCase("false") )
+
+        if( value != null && (value.equalsIgnoreCase("true")
+           || value.equalsIgnoreCase("false")) )
         {
             boolValue = Boolean.parseBoolean(value);
         } else {
             throw new ConfigurationException("parameter value ["+parameter+"] "
-                                             +"neither 'true' nor 'false'");
+                                             +"is neither 'true' nor 'false'");
         }
         return boolValue;
     }
@@ -113,11 +118,7 @@ public class ConfigDeployUtil {
                              throws ConfigurationException
     {
         String value;
-        if(deploymentProps == null) {
-            deploymentProps = new Properties();
-            loadDeployProps(deploymentProps);
-        }
-        value = deploymentProps.getProperty(parameter + DESCRIPTION);
+        value = getDeploymentProperties().getProperty(parameter + DESCRIPTION);
         return value;
     }
 
@@ -125,11 +126,7 @@ public class ConfigDeployUtil {
                              throws ConfigurationException
     {
         String value;
-        if (deploymentProps == null) {
-            deploymentProps = new Properties();
-            loadDeployProps(deploymentProps);
-        }
-        value = deploymentProps.getProperty(parameter + TYPE);
+        value = getDeploymentProperties().getProperty(parameter + TYPE);
         return value;
     }
 
@@ -137,11 +134,7 @@ public class ConfigDeployUtil {
                              throws ConfigurationException
     {
         String value;
-        if (deploymentProps == null) {
-            deploymentProps = new Properties();
-            loadDeployProps(deploymentProps);
-        }
-        value = deploymentProps.getProperty(parameter + DEFAULT);
+        value = getDeploymentProperties().getProperty(parameter + DEFAULT);
         if (value == null) {
             throw new ConfigurationException
                           ("deployment parameter not found ["+parameter+"]");
@@ -150,7 +143,7 @@ public class ConfigDeployUtil {
     }
 
     /**
-     * Returns a <code>String</code> array whose elments represent the
+     * Returns a <code>String</code> array whose elements represent the
      * lookup service groups to discover. If the system property named
      * "federation.name" is set then that value be used; otherwise,
      * the deployment properties files will be consulted.
@@ -164,7 +157,7 @@ public class ConfigDeployUtil {
     }
     
     /**
-     * Retrieve the federation name (also used as Jini group name) via this pecking pecking order:
+     * Retrieve the federation name (also used as Jini group name) via this pecking order:
      * <ol>
      * <li>From the Java system property: <code>federation.name</code></li>
      * <li>From the deployment properties file. Note that a value from the deployment
@@ -254,11 +247,7 @@ public class ConfigDeployUtil {
 
     private static String get(String parameter) throws ConfigurationException {
         String value;
-        if (deploymentProps == null) {
-            deploymentProps = new Properties();
-            loadDeployProps(deploymentProps);
-        }
-        value = deploymentProps.getProperty(parameter);
+        value = getDeploymentProperties().getProperty(parameter);
         if (value == null) value = getDefault(parameter);
         return value;
     }
@@ -267,7 +256,7 @@ public class ConfigDeployUtil {
                             throws ConfigurationException
     {
         String validValuesStr = 
-            (String) deploymentProps.get(parameter + STRINGVALS);
+            (String) getDeploymentProperties().get(parameter + STRINGVALS);
 
         if (validValuesStr != null) {
             String[] validValues = validValuesStr.split(",");
@@ -284,7 +273,7 @@ public class ConfigDeployUtil {
                                 throws ConfigurationException
     {
         String validValuesStr = 
-            (String)(deploymentProps.get(parameter + STRINGVALS));
+            (String)(getDeploymentProperties().get(parameter + STRINGVALS));
         String[] values = value.split(",");
 
         if (validValuesStr != null) {
@@ -304,47 +293,76 @@ public class ConfigDeployUtil {
     private static int validateInt(String parameter, String strvalue)
                            throws ConfigurationException
     {
-        String maxString = (String)(deploymentProps.get(parameter + MAX));
-        String minString = (String)(deploymentProps.get(parameter + MIN));
+        String maxString = (String)(getDeploymentProperties().get(parameter + MAX));
+        String minString = (String)(getDeploymentProperties().get(parameter + MIN));
 
         int value = str2int(strvalue);
 
         if (maxString != null) {
-            int max = Integer.parseInt(maxString);
-            if (value > max) {
-                throw new ConfigurationException("parameter ["+parameter+"] "
-                                                 +"exceeds maximum ["+max+"]");
+            try {
+            	int max = numberFormat.parse(maxString).intValue();          
+	            if (value > max) {
+	                throw new ConfigurationException("parameter ["+parameter+"] "
+	                                                 +"exceeds maximum ["+max+"]");
+	            }
+            } catch (ParseException e) {
+            	throw new NumberFormatException(
+            		"Invalid maximum integer for parameter: " + parameter);
+         	
             }
         }
+        
+        if (minString != null) {
+            try {
+            	int min = numberFormat.parse(minString).intValue();          
+	            if (value < min) {
+	                throw new ConfigurationException("parameter ["+parameter+"] "
+	                    + "is less than manimum ["+min+"]");
+	            }
+            } catch (ParseException e) {
+            	throw new NumberFormatException(
+                		"Invalid minimum integer for parameter: " + parameter);         	
+            }
+        }
+        
         return value;
     }
 
     private static long validateLong(String parameter, String strvalue) 
                             throws ConfigurationException
     {
-        String maxString = (String)(deploymentProps.get(parameter + MAX));
-        String minString = (String)(deploymentProps.get(parameter + MIN));
+        String maxString = (String)(getDeploymentProperties().get(parameter + MAX));
+        String minString = (String)(getDeploymentProperties().get(parameter + MIN));
 
         long value = str2long(strvalue);
 
         if (maxString != null) {
-            long max = Long.parseLong(maxString);
-            if (value > max) {
-                throw new ConfigurationException("parameter ["+parameter+"] "
-                                                 +"exceeds maximum ["+max+"]");
+            try {
+            	long max = numberFormat.parse(maxString).longValue();          
+	            if (value > max) {
+	                throw new ConfigurationException("parameter ["+parameter+"] "
+	                                                 +"exceeds maximum ["+max+"]");
+	            }
+            } catch (ParseException e) {
+            	throw new NumberFormatException(
+            		"Invalid maximum long for parameter: " + parameter);
+         	
             }
         }
         if (minString != null) {
-            long min = Long.parseLong(minString);
-            if (value < min) {
-                throw new ConfigurationException("parameter ["+parameter+"] "
-                                                 +"is less than manimum "
-                                                 +"["+min+"]");
-            }
+            try {
+            	long min = numberFormat.parse(minString).longValue();          
+	            if (value < min) {
+	                throw new ConfigurationException("parameter ["+parameter+"] "
+	                    + "is less than manimum ["+min+"]");
+	            }
+            } catch (ParseException e) {
+            	throw new NumberFormatException(
+                		"Invalid minimum long for parameter: " + parameter);         	
+            }            
         }
         return value;
     }
-
 
     private static File getPropertiesPath() {
         File rootDir = new File("/opt/bigdata"); //real installation
@@ -372,30 +390,23 @@ public class ConfigDeployUtil {
     }
 
     private static void loadDefaultProps(Properties deployProps) {
-        FileInputStream fis = null;
-        try {
-            File flnm = new File(getPropertiesPath(), "default-deploy.properties");
-            fis = new FileInputStream(flnm);
-            deployProps.load(fis);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException ioex) { /* swallow */ }
-            }
-        }
+    	loadPropsInternal("default-deploy.properties", deployProps, true);
     }
 
     private static void loadOverrideProps(Properties deployProps) {
+    	loadPropsInternal("deploy.properties", deployProps, false);
+    }
+    
+    private static void loadPropsInternal(String propFileName, 
+    	Properties deployProps,	boolean prtinTrace) 
+    {    
         FileInputStream fis = null;
         try {
-            File flnm = new File(getPropertiesPath(), "default-deploy.properties");
+            File flnm = new File(getPropertiesPath(), propFileName);
             fis = new FileInputStream(flnm);
             deployProps.load(fis);
         } catch (Exception ex) {
-            // using all defaults
+            if (prtinTrace) ex.printStackTrace();
         } finally {
             if (fis != null) {
                 try {
@@ -407,214 +418,52 @@ public class ConfigDeployUtil {
 
 
     private static int str2int(String argx) {
-        long l;
-
-        if( argx.trim().equals(Integer.MAX_VALUE) ) return Integer.MAX_VALUE;
-        if( argx.trim().equals(Integer.MIN_VALUE) ) return Integer.MIN_VALUE;
-
-        l = str2long(argx);
-        if (l < Integer.MAX_VALUE && l > Integer.MIN_VALUE) {
-            return (int) l;
-        } else {
-            throw new NumberFormatException("Invalid number:"+argx
-                                            +"  --number out of range");
-        }
+    	Number n = null;
+    	try {	
+    		//TODO - truncation can occur -- check for overflow
+    		n = numberFormat.parse(argx);
+    	} catch (ParseException e) {
+    		throw new NumberFormatException("Invalid integer: " + argx);
+    	}
+    	return n.intValue();
     }
 
     private static long str2long(String argx) {
-
-        int minDigitNumBetwnComma = 3;
-
-        String arg = argx.trim();
-        arg = arg.replaceAll("\"", ""); // strip all quotes
-        int sz = arg.length();
-
-        if( arg.equals("Long.MAX_VALUE") ) return Long.MAX_VALUE;
-
-        if( arg.equals("Long.MIN_VALUE") ) return Long.MIN_VALUE;
-
-        int asterPos = -1;
-        String arg1 = null;
-        String arg2 = null;
-        if( (asterPos = arg.indexOf("*")) != -1) {
-            int dotPos = -1;
-            arg1 = arg.substring(0, asterPos).trim();
-            int denom1 = 1;
-            if( (dotPos = arg1.indexOf(".")) != -1) {
-                StringBuffer tmpBuf = new StringBuffer("1");
-                int hitNumber = 0;
-                for (int i = dotPos + 1; i < (arg1.length() - dotPos); i++) {
-                    if( Character.isDigit(arg1.charAt(i)) ) {
-                        tmpBuf.append("0");
-                    } else {
-                        break;
-                    }
-                }
-                denom1 = Integer.valueOf(tmpBuf.toString());
-                arg1 = arg1.substring(0, dotPos) + arg1.substring(dotPos + 1);
-            }
-
-            arg2 = arg.substring(asterPos + 1).trim();
-            int denom2 = 1;
-            if( (dotPos = arg2.indexOf(".")) != -1) {
-                StringBuffer tmpBuf = new StringBuffer("1");
-                for(int i = dotPos + 1; i <= (arg2.length() - dotPos); i++) {
-                    tmpBuf.append("0");
-                }
-
-                denom2 = Integer.valueOf(tmpBuf.toString());
-                arg2 = arg2.substring(0, dotPos) + arg2.substring(dotPos + 1);
-            }
-
-            long numerator = str2long(arg1) * str2long(arg2);
-            long denom = (denom1 * denom2);
-
-            if (numerator % denom != 0) {
-                throw new NumberFormatException(" Bad value passed in:" +
-                                                ((double) (numerator) /
-                                                 denom) +
-                                                ", expecting a long");
-            }
-            return (numerator / denom);
-        }
-
-        char unit = arg.charAt(sz - 1);
-
-        String valScalar = arg.substring(0, (sz - 1)).trim();
-
-        long factor = 0l;
-
-        switch (Character.toUpperCase(unit)) {
-
-            case 'G':
-                factor = 1000000000l;
-                break;
-            case 'M':
-                factor = 1000000l;
-                break;
-            case 'K':
-                factor = 1000l;
-                break;
-            case 'B':
-                char unitPre = arg.charAt(sz - 2);
-                if (Character.isDigit(unitPre)) {
-                    factor = -1l;
-                } else {
-                    factor =
-                        (Character.toUpperCase(unitPre) ==
-                         'G' ? 1000000000l : (Character.toUpperCase(unitPre) ==
-                                          'M' ? 1000000l : (Character.
-                                                            toUpperCase
-                                                            (unitPre) ==
-                                                            'K' ? 1000l :
-                                                            -1l)));
-                    valScalar = arg.substring(0, (sz - 2)).trim();
-                }
-                break;
-
-            default:
-                if (Character.isDigit(unit)) {
-                    factor = 1l;
-                    valScalar = arg;
-                }
-        }
-        if (factor == -1l) {
-            throw new NumberFormatException("Invalid number:" + arg);
-        }
-
-        int comaPos = -1;
-        if( (comaPos = valScalar.indexOf(',')) != -1) {
-            if(valScalar.indexOf('.') != -1) {
-                throw new NumberFormatException("Invalid number:"+arg
-                                                +" both \",\" and decimal "
-                                                +"point are not supported");
-            }
-            if( comaPos != 0 && comaPos != (valScalar.length() - 1) ) {
-                String[]spltByComa = valScalar.split(",");
-                valScalar = "";
-                for (int i = spltByComa.length - 1; i >= 0; i--) {
-                    if(i > 0 && spltByComa[i].length() < minDigitNumBetwnComma)
-                    {
-                        throw new NumberFormatException("Invalid number:"+arg
-                                                        +"  unexpected comma "
-                                                        +"format");
-                    }
-                    valScalar = spltByComa[i] + valScalar;
-                }
-            } else {
-                throw new NumberFormatException("Invalid number:\"" +arg
-                                                +"\" -unexpected comma in "
-                                                +"position: "+comaPos);
-            }
-        }
-
-        int decimalPos = -1;
-        String valMultiplByFactor = null;
-        int numZero = 0;
-        try {
-            if( (decimalPos = valScalar.indexOf('.')) != -1) {
-                if (decimalPos != valScalar.lastIndexOf('.')) {
-                    throw new NumberFormatException("Invalid number:"
-                                                    +valScalar
-                                                    +"  --invalid decimal "
-                                                    +"number, bad value");
-                }
-
-                String facStr = String.valueOf(factor);
-                int numZeroFactor = facStr.length() - 1;
-                int numDigitsAfterDecimal =
-                    valScalar.length() - decimalPos - 1;
-                int countZero = 0;
-                for(int i = valScalar.length() - 1; i > decimalPos; i--) {
-
-                    if (valScalar.charAt(i) != '0')
-                        break;
-                    --numDigitsAfterDecimal;
-                    countZero++;
-                }
-                numZero = numZeroFactor - numDigitsAfterDecimal;
-                if (numZero == numDigitsAfterDecimal) {
-                    numZero = 0;
-                }
-                if(numZero < 0) {
-                    throw new NumberFormatException("Invalid number:"
-                                                    +valScalar
-                                                    +"  --invalid decimal "
-                                                    +"number, numzero="
-                                                    + numZero);
-                }
-
-                if(numZero >= 0) {
-                    StringBuffer tmpStrNum =
-                        new StringBuffer(20).
-                        append(valScalar.substring(0, decimalPos)).
-                        append(valScalar.substring(decimalPos + 1,
-                                                   decimalPos + 1 +
-                                                   numDigitsAfterDecimal));
-                    for(int i=0; i<numZero; i++) {
-                        tmpStrNum.append('0');
-                    }
-                    valMultiplByFactor = tmpStrNum.toString();
-                }
-
-            }
-        } catch(NumberFormatException nfe) {
-            throw new NumberFormatException("Invalid number:" +valScalar
-                                            +"  --invalid decimal number, "
-                                            +"numZero="+numZero);
-        }
-
-        long ret = -1l;
-
-        Long ll = ((decimalPos != -1) ? Long.valueOf(valMultiplByFactor)
-                   : (Long.valueOf(valScalar) * factor));
-        if( (ret = Long.valueOf(ll)) >= Long.MAX_VALUE
-            || ret <= Long.MIN_VALUE)
-        {
-            throw new NumberFormatException("Invalid number:"+arg
-                                            +"  --absolute value of number "
-                                            +"too big");
-        }
-        return ret;
+    	Number n = null;
+    	try {	
+    		//TODO - truncation can occur -- check for overflow
+    		n = numberFormat.parse(argx);
+    	} catch (ParseException e) {
+    		throw new NumberFormatException("Invalid long: " + argx);
+    	}
+    	return n.longValue();
     }
+    
+    /**
+     * Returns reference to <code>deploymenyProps</code> field. If null, then the
+     * field is populated by looking for the default and override properties files 
+     * (defined in <code>loadDefaultProps</code> and <code>loadOverrideProps</code>). 
+     * This method is synchronized in order to ensure that the returned reference is
+     * a singleton instance.
+     * Note: This method should be private, but is needed by the unit test in order
+     * to access and modify the <code>Properties</code> method.
+     * @return Properties instance containing the default and user-defined overrides 
+     *     for configuration properties.
+     */
+    synchronized static Properties getDeploymentProperties() {    
+	    if(deploymentProps == null) {
+	        deploymentProps = new Properties();
+	        loadDeployProps(deploymentProps);
+	    }
+	    return deploymentProps;
+    }
+    
+    /**
+     * Convenience method intended for use by unit tests only.
+     * @param properties Sets <code>Properties</code> object 
+     */
+    synchronized static void setDeploymentProperties(Properties properties) {    
+    	deploymentProps = properties;
+    }
+    
 }
