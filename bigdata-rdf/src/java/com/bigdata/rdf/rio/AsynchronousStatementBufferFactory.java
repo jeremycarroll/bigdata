@@ -177,7 +177,6 @@ import cutthecrap.utils.striterators.Striterator;
  * Note: This DOES NOT support SIDS.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * FIXME Modify to support SIDs. We basically need to loop in the
  * {@link #workflowLatch_bufferTerm2Id} workflow state until all SIDs have been
@@ -305,7 +304,6 @@ import cutthecrap.utils.striterators.Striterator;
  *       write API for BTree and friends).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @param <S>
  *            The generic type of the statement objects.
@@ -356,7 +354,13 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * The default {@link RDFFormat}.
      */
     private final RDFFormat defaultFormat;
-    
+
+    /**
+     * The value that will be used for the graph/context co-ordinate when
+     * loading data represented in a triple format into a quad store.
+     */
+    private final String defaultGraph;
+
     /**
      * Options for the {@link RDFParser}.
      */
@@ -1363,7 +1367,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * load and data verify is just the behavior of the {@link IStatementBuffer}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class ParserTask implements Callable<Void> {
 
@@ -1423,7 +1426,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
                     try {
                         // run the parser.
                         new PresortRioLoader(buffer).loadRdf(reader, baseURL,
-                                rdfFormat, parserOptions);
+                                rdfFormat, defaultGraph, parserOptions);
                     } finally {
                         reader.close();
                     }
@@ -1490,6 +1493,9 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      *            {@link BNode}s parsed from a single document.
      * @param defaultFormat
      *            The default {@link RDFFormat} which will be assumed.
+     * @param defaultGraph
+     *            The value that will be used for the graph/context co-ordinate when
+     *            loading data represented in a triple format into a quad store.
      * @param parserOptions
      *            Options for the {@link RDFParser}.
      * @param deleteAfter
@@ -1529,6 +1535,7 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
             final int valuesInitialCapacity,//
             final int bnodesInitialCapacity, //
             final RDFFormat defaultFormat,//
+            final String defaultGraph,//
             final RDFParserOptions parserOptions,//
             final boolean deleteAfter,//
             final int parserPoolSize,//
@@ -1565,6 +1572,8 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         this.bnodesInitialCapacity = bnodesInitialCapacity;
         
         this.defaultFormat  = defaultFormat;
+        
+        this.defaultGraph = defaultGraph;
         
         this.parserOptions = parserOptions;
         
@@ -2250,7 +2259,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * Task deletes a resource from the local file system.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class DeleteTask implements Runnable {
 
@@ -2712,7 +2720,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * the array is given by {@link Split#fromIndex}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static private class Term2IdWriteProcAsyncResultHandler
             implements
@@ -2859,7 +2866,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      * 
      * @todo something similar for the SIDs
      */
@@ -2990,7 +2996,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      */
     static class AsyncId2TermIndexWriteTask implements Callable<Void> {
 
@@ -3140,7 +3145,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      */
     static class AsyncSPOIndexWriteTask implements Callable<Void> {
 
@@ -3277,7 +3281,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      * @param <S>
      * @param <F>
      */
@@ -4083,7 +4086,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      */
     private class BufferOtherWritesTask implements Callable<Void> {
 
@@ -4153,7 +4155,6 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      */
     private class ParserThreadPoolExecutor extends ThreadPoolExecutor {
 

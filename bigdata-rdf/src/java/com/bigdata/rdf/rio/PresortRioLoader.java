@@ -23,17 +23,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 package com.bigdata.rdf.rio;
 
+import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 import org.openrdf.model.Value;
 import org.openrdf.rio.RDFHandler;
 import org.openrdf.rio.RDFHandlerException;
+
+import com.bigdata.rdf.model.BigdataURI;
 
 /**
  * Statement handler for the RIO RDF Parser that writes on a
  * {@link StatementBuffer}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class PresortRioLoader extends BasicRioLoader implements RDFHandler
 {
@@ -43,6 +45,12 @@ public class PresortRioLoader extends BasicRioLoader implements RDFHandler
      * the RDF parser (the value is supplied by the ctor). 
      */
     final protected IStatementBuffer<?> buffer;
+
+    /**
+     * The value that will be used for the graph/context co-ordinate when
+     * loading data represented in a triple format into a quad store.
+     */
+    private BigdataURI defaultGraphURI = null ;
 
     /**
      * Sets up parser to load RDF.
@@ -58,7 +66,7 @@ public class PresortRioLoader extends BasicRioLoader implements RDFHandler
         this.buffer = buffer;
         
     }
-        
+
     /**
      * bulk insert the buffered data into the store.
      */
@@ -87,8 +95,11 @@ public class PresortRioLoader extends BasicRioLoader implements RDFHandler
     
     public RDFHandler newRDFHandler() {
         
+        defaultGraphURI =   null != defaultGraph && 4 == buffer.getDatabase ().getSPOKeyArity ()
+        	              ? buffer.getDatabase ().getValueFactory ().createURI ( defaultGraph )
+        			      : null
+        			      ;
         return this;
-        
     }
 
     public void handleStatement( final Statement stmt ) {
@@ -98,9 +109,13 @@ public class PresortRioLoader extends BasicRioLoader implements RDFHandler
             log.debug(stmt);
             
         }
-        
+
+        Resource graph = stmt.getContext() ;
+        if (    null == graph
+        	 && null != defaultGraphURI ) // only true when we know we are loading a quad store
+        	graph = defaultGraphURI ;
         // buffer the write (handles overflow).
-        buffer.add( stmt.getSubject(), stmt.getPredicate(), stmt.getObject(), stmt.getContext() );
+        buffer.add( stmt.getSubject(), stmt.getPredicate(), stmt.getObject(), graph );
 
         stmtsAdded++;
         

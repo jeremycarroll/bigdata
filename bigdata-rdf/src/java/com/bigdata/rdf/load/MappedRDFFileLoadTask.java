@@ -213,7 +213,8 @@ public class MappedRDFFileLoadTask<S extends JobState,
                     jobState.producerChunkSize,//
                     jobState.valuesInitialCapacity,//
                     jobState.bnodesInitialCapacity,//
-                    jobState.getRDFFormat(), // 
+                    jobState.getRDFFormat(), //  
+                    jobState.defaultGraph,
                     parserOptions,//
                     false, // deleteAfter is handled by the master!
                     jobState.parserPoolSize, //  

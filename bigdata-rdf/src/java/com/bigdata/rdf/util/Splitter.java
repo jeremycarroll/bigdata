@@ -99,7 +99,6 @@ import com.bigdata.rdf.store.DataLoader;
  * </pre>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class Splitter {
 
@@ -606,7 +605,6 @@ public class Splitter {
      * Tasks parses an RDF document, writing a new file every N statements.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class ParserTask implements Callable<Void> {
 
@@ -714,7 +712,7 @@ public class Splitter {
                     try {
                         // run the parser.
                         new MyLoader(buffer).loadRdf(reader, baseURL,
-                                defaultRDFFormat, s.parserOptions);
+                                defaultRDFFormat, null, s.parserOptions);
                     } finally {
                         reader.close();
                     }
@@ -737,7 +735,6 @@ public class Splitter {
      * {@link StatementBuffer}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private 
     static class MyLoader extends BasicRioLoader implements RDFHandler
@@ -843,7 +840,6 @@ public class Splitter {
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      * @param <S>
      */
     private class MyStatementBuffer implements

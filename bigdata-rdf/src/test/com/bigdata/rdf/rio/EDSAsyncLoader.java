@@ -52,7 +52,6 @@ import com.bigdata.service.EmbeddedFederation;
  * </pre>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class EDSAsyncLoader {
 
@@ -161,6 +160,7 @@ public class EDSAsyncLoader {
                     valuesInitialCapacity,//
                     bnodesInitialCapacity,//
                     RDFFormat.RDFXML, // defaultFormat
+                    null, // defaultGraph
                     parserOptions, // parserOptions
                     false, // deleteAfter
                     poolSize, // parserPoolSize,

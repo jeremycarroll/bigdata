@@ -23,7 +23,6 @@ import com.bigdata.rdf.rio.RDFParserOptions;
  * load and data verify is just the behavior of the {@link IStatementBuffer}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class SingleResourceReaderTask implements Runnable {
 
@@ -186,7 +185,7 @@ public class SingleResourceReaderTask implements Runnable {
 
             // run the parser.
             // @todo reuse the same underlying parser instance?
-            loader.loadRdf(reader, baseURL, rdfFormat, parserOptions);
+            loader.loadRdf(reader, baseURL, rdfFormat, null, parserOptions);
 
             success = true;
             
