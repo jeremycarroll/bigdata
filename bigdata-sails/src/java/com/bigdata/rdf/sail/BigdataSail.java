@@ -129,8 +129,10 @@ import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.rules.BackchainAccessPath;
 import com.bigdata.rdf.rules.InferenceEngine;
+import com.bigdata.rdf.sail.changesets.ChangeRecord;
 import com.bigdata.rdf.sail.changesets.IChangeLog;
 import com.bigdata.rdf.sail.changesets.IChangeRecord;
+import com.bigdata.rdf.sail.changesets.IChangeRecord.ChangeAction;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.InferredSPOFilter;
@@ -1447,6 +1449,8 @@ public class BigdataSail extends SailBase implements Sail {
 
                 // FIXME bnodes : must also track the reverse mapping [bnodes2].
                 assertBuffer.setBNodeMap(bnodes);
+                
+                assertBuffer.setChangeLog(changeLog);
 
             }
 
@@ -2278,7 +2282,7 @@ public class BigdataSail extends SailBase implements Sail {
             }
 
             // #of explicit statements removed.
-            final long n;
+            long n = 0;
 
             if (getTruthMaintenance()) {
 
@@ -2319,12 +2323,110 @@ public class BigdataSail extends SailBase implements Sail {
                  * buffered).
                  */
                 
-                n = database.removeStatements(s, p, o, c);
+                if (changeLog == null) {
+                    
+                    n = database.removeStatements(s, p, o, c);
+                    
+                } else {
+                
+                    final IAccessPath<ISPO> ap = 
+                        database.getAccessPath(s, p, o, c);
+    
+                    final IChunkedOrderedIterator<ISPO> itr = ap.iterator();
+                    
+                    if (itr.hasNext()) {
+                        
+                        final BigdataStatementIteratorImpl itr2 = 
+                            new BigdataStatementIteratorImpl(database, bnodes2, itr)
+                                .start(database.getExecutorService()); 
+                        
+                        final BigdataStatement[] stmts = 
+                            new BigdataStatement[database.getChunkCapacity()];
+                        
+                        int i = 0;
+                        while (i < stmts.length && itr2.hasNext()) {
+                            stmts[i++] = itr2.next();
+                            if (i == stmts.length) {
+                                // process stmts[]
+                                n += removeAndNotify(stmts, i);
+                                i = 0;
+                            }
+                        }
+                        if (i > 0) {
+                            n += removeAndNotify(stmts, i);
+                        }
+                        
+                    }
+                    
+                }
 
             }
 
             // avoid overflow.
             return (int) Math.min(Integer.MAX_VALUE, n);
+            
+        }
+        
+        private long removeAndNotify(final BigdataStatement[] stmts, final int numStmts) {
+            
+            final SPO[] tmp = new SPO[numStmts];
+
+            for (int i = 0; i < tmp.length; i++) {
+
+                final BigdataStatement stmt = stmts[i];
+                
+                /*
+                 * Note: context position is not passed when statement identifiers
+                 * are in use since the statement identifier is assigned based on
+                 * the {s,p,o} triple.
+                 */
+
+                final SPO spo = new SPO(stmt);
+
+                if (log.isDebugEnabled())
+                    log.debug("adding: " + stmt.toString() + " (" + spo + ")");
+                
+                if(!spo.isFullyBound()) {
+                    
+                    throw new AssertionError("Not fully bound? : " + spo);
+                    
+                }
+                
+                tmp[i] = spo;
+
+            }
+            
+            /*
+             * Note: When handling statement identifiers, we clone tmp[] to avoid a
+             * side-effect on its order so that we can unify the assigned statement
+             * identifiers below.
+             * 
+             * Note: In order to report back the [ISPO#isModified()] flag, we also
+             * need to clone tmp[] to avoid a side effect on its order. Therefore we
+             * now always clone tmp[].
+             */
+//            final long nwritten = writeSPOs(sids ? tmp.clone() : tmp, numStmts);
+            final long nwritten = database.removeStatements(tmp.clone(), numStmts);
+
+            // Copy the state of the isModified() flag
+            {
+
+                for (int i = 0; i < numStmts; i++) {
+
+                    if (tmp[i].isModified()) {
+
+                        stmts[i].setModified(true);
+                        
+                        changeLog.changeEvent(
+                                new ChangeRecord(stmts[i], ChangeAction.REMOVED));
+
+                    }
+                    
+                }
+                
+            }
+            
+            return nwritten;
             
         }
 
@@ -2420,6 +2522,12 @@ public class BigdataSail extends SailBase implements Sail {
             // discard the write set.
             database.abort();
             
+            if (changeLog != null) {
+                
+                changeLog.transactionAborted();
+                
+            }
+            
         }
         
         /**
@@ -2443,6 +2551,12 @@ public class BigdataSail extends SailBase implements Sail {
             flushStatementBuffers(true/* assertions */, true/* retractions */);
             
             database.commit();
+            
+            if (changeLog != null) {
+                
+                changeLog.transactionCommited();
+                
+            }
             
         }
         
@@ -3327,8 +3441,18 @@ public class BigdataSail extends SailBase implements Sail {
          * @param log
          *          the change log
          */
-        public void setChangeLog(final IChangeLog log) {
+        public void setChangeLog(final IChangeLog changeLog) {
+            
+            this.changeLog = changeLog;
+            
+            if (assertBuffer != null) {
+                
+                assertBuffer.setChangeLog(changeLog);
+                
+            }
         }
+        
+        private IChangeLog changeLog;
 
     }
    

@@ -106,14 +106,14 @@ public interface IChangeRecord {
      */
     ChangeAction getChangeAction();
     
-    /**
-     * If the change action is {@link ChangeAction#TYPE_CHANGE}, this method
-     * will return the old statement type of the focus statement.  The
-     * new statement type is available on the focus statement itself.
-     * 
-     * @return
-     *          the old statement type of the focus statement
-     */
-    StatementEnum getOldStatementType();
+//    /**
+//     * If the change action is {@link ChangeAction#TYPE_CHANGE}, this method
+//     * will return the old statement type of the focus statement.  The
+//     * new statement type is available on the focus statement itself.
+//     * 
+//     * @return
+//     *          the old statement type of the focus statement
+//     */
+//    StatementEnum getOldStatementType();
     
 }

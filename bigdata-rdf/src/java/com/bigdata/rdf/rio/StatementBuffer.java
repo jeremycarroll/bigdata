@@ -48,6 +48,9 @@ import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.StatementEnum;
+import com.bigdata.rdf.sail.changesets.ChangeRecord;
+import com.bigdata.rdf.sail.changesets.IChangeLog;
+import com.bigdata.rdf.sail.changesets.IChangeRecord.ChangeAction;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -252,6 +255,16 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
     
     private boolean readOnly = false;
     
+    public void setChangeLog(final IChangeLog changeLog) {
+        
+        this.changeLog = changeLog;
+        
+    }
+    
+    protected IChangeLog changeLog;
+    
+
+    
     /**
      * Create a buffer that converts Sesame {@link Value} objects to {@link SPO}s
      * and writes on the <i>database</i> when it is {@link #flush()}ed. This
@@ -297,7 +310,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
      */
     public StatementBuffer(final TempTripleStore statementStore,
             final AbstractTripleStore database, final int capacity) {
-            
+        
         if (database == null)
             throw new IllegalArgumentException();
 
@@ -362,7 +375,7 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
      * @todo this implementation always returns ZERO (0).
      */
     public long flush() {
- 
+       
         log.info("");
 
         /*
@@ -874,6 +887,13 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
                 if (tmp[i].isModified()) {
 
                     stmts[i].setModified(true);
+                    
+                    if (changeLog != null) {
+                        
+                        changeLog.changeEvent(
+                                new ChangeRecord(stmts[i], ChangeAction.ADDED));
+                        
+                    }
 
                 }
                 
