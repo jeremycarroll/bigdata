@@ -14,38 +14,37 @@
 
     <name>Bigdata Core</name>
     <url>http://www.bigdata.com</url>
+    <description>The Bigdata Core</description>
 
-    <properties>   
-        <!-- group ID for non-public bigdata dependencies. -->     
+    <properties>
+        <!-- group ID for non-public bigdata dependencies. -->
         <thirdParty.groupId>com.bigdata.thirdparty</thirdParty.groupId>
-        
-        <!-- These properties are used to set system properties that are required by the unit
-             tests. See the surefire plugin configuration below. Any of these can be overridden on 
-             the command-line by adding -D<property-name>=<propert-value>.
-         -->
-                  
-        <!-- Skip running unit tests by default until we get the kinks worked out. Can be overridden
-             by adding '-DskipTests=false' to the command-line -->
-        <skipTests>true</skipTests>
-        
-        <!-- This directory is created when the deployment tarball is created
-             during the 'package' phase by the maven assembly plugin. If the naming
-             convention as defined in src/main/assembly/deploy.xml changes, this property
-             needs to change as well. -->
+
+        <!--
+            These properties are used to set system properties that are required by the unit tests. See the surefire plugin configuration below. Any of these can be overridden on the command-line by
+            adding -D<property-name>=<propert-value>.
+        -->
+
+        <!--
+            This directory is created when the deployment tarball is created during the 'package' phase by the maven assembly plugin. If the naming convention as defined in
+            src/main/assembly/deploy.xml changes, this property needs to change as well.
+            
+            TODO: May want to see if these can be promoted to the parent POM and shared with the bigdata-integ module
+        -->
         <deploy.root.dir>${project.build.directory}/${project.artifactId}-${project.version}-deploy</deploy.root.dir>
-        
+
         <deploy.dir>${deploy.root.dir}/${project.artifactId}-${project.version}</deploy.dir>
         <app.home>${deploy.dir}</app.home>
         <test.dir>${deploy.dir}/testing</test.dir>
-        <deploy.conf.dir>${test.dir}/conf</deploy.conf.dir>
+        <test.conf.dir>${test.dir}/conf</test.conf.dir>
         <deploy.lib>${deploy.dir}/lib</deploy.lib>
         <test.codebase.dir>${deploy.lib.dl}</test.codebase.dir>
         <test.codebase.port>23333</test.codebase.port>
-        <java.security.policy>${deploy.conf.dir}/policy.all</java.security.policy>
-        <log4j.configuration>${deploy.dir}/var/config/logging/log4j.properties</log4j.configuration>
+        <java.security.policy>${test.conf.dir}/policy.all</java.security.policy>
+        <log4j.configuration>${test.conf.dir}/log4j.properties</log4j.configuration>
         <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
         <default.nic>eth0</default.nic>
-        
+
         <!--  Set to empty string to indicate "unset." Application code will set a reasonable default -->
         <federation.name></federation.name>
     </properties>
@@ -56,8 +55,10 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArguments>
-                        <!-- Apparently Javac may compile java source files inside jars put on the classpath. Weird. Zookeeper 3.2.1 jar contained classes and sources, and under some circumstances, the 
-                            java files were getting recompiled and put into the bigdata jar. This setting forces javac to only look for source in the current maven source directory. -->
+                        <!--
+                            Apparently Javac may compile java source files inside jars put on the classpath. Weird. Zookeeper 3.2.1 jar contained classes and sources, and under some circumstances, the
+                            java files were getting recompiled and put into the bigdata jar. This setting forces javac to only look for source in the current maven source directory.
+                        -->
                         <sourcepath>${project.build.sourceDirectory}</sourcepath>
                     </compilerArguments>
                 </configuration>
@@ -110,9 +111,10 @@
                 </executions>
             </plugin>
 
-            <!-- Configure the surefire plugin to run in the 'integration-test' phase rather than the 'test' phase.
-                 This allows us to run the unit tests after packaging has been done, but before the build artifacts 
-                 are installed during the 'install' phase -->
+            <!--
+                Configure the surefire plugin to run in the 'integration-test' phase rather than the 'test' phase. This allows us to run the unit tests after packaging has been done, but before the
+                build artifacts are installed during the 'install' phase
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -127,10 +129,11 @@
                             <goal>test</goal>
                         </goals>
                         <configuration>
+                            <testFailureIgnore>true</testFailureIgnore>
                             <skip>false</skip>
                             <!-- Run only the top-level suite which in turn runs the other suites and tests -->
                             <test>com.bigdata.TestAll</test>
-                            
+
                             <!-- These system properties are required by the unit tests. -->
                             <systemPropertyVariables>
                                 <java.security.policy>${java.security.policy}</java.security.policy>
@@ -141,7 +144,7 @@
                                 <log4j.path>${log4j.configuration}</log4j.path>
                                 <default.nic>${default.nic}</default.nic>
                                 <federation.name>${federation.name}</federation.name>
-                                
+
                                 <classserver.jar>${deploy.lib}/classserver.jar</classserver.jar>
                                 <colt.jar>${deploy.lib}/colt.jar</colt.jar>
                                 <ctc_utils.jar>${deploy.lib}/ctc_utils.jar</ctc_utils.jar>
@@ -429,8 +432,10 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.15</version>
-            <!-- These exclusions are to address the fact that 1.2.15 added new features that depends on Sun specific jars, but these jars cannot be made available due to Sun's click-through requirement 
-                on them. We aren't using the new features anyway, so they are safe to exclude. log4j should have made these optional in their POM. -->
+            <!--
+                These exclusions are to address the fact that 1.2.15 added new features that depends on Sun specific jars, but these jars cannot be made available due to Sun's click-through
+                requirement on them. We aren't using the new features anyway, so they are safe to exclude. log4j should have made these optional in their POM.
+            -->
             <exclusions>
                 <exclusion>
                     <groupId>javax.mail</groupId>
@@ -590,7 +595,13 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-report-plugin</artifactId>
-                <version>2.5</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>report-only</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
             </plugin>
 
             <plugin>
