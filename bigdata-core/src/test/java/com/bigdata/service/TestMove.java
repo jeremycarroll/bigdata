@@ -289,9 +289,6 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
 
             System.err.println("Setting up LBS for move.");
 
-            // explicitly set the log level for the load balancer.
-            LoadBalancerService.log.setLevel(Level.INFO);
-EmbeddedLoadBalancer.logger.setLevel(Level.INFO);
 
 //BTM            final AbstractEmbeddedLoadBalancerService lbs = ((AbstractEmbeddedLoadBalancerService) ((EmbeddedFederation) fed)
 //BTM                    .getLoadBalancerService());
