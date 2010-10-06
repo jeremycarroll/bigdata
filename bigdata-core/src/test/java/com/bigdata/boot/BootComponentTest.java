@@ -73,9 +73,12 @@ public class BootComponentTest extends Assert {
 //    @BeforeClass public static void initAll() {
     public static void initAll() {
 
-        System.setProperty("log4j.configuration", DataFinder.bestPath("var/config/logging/log4j.properties") );
-        logger = LogUtil.getLog4jLogger
-                            ( (BootComponentTest.class).getName() );
+        String log4jConfigFile = System.getProperty("log4j.configuration");
+        
+        if (log4jConfigFile == null) {
+            System.setProperty("log4j.configuration", DataFinder.bestPath("var/config/logging/log4j.properties") );
+        }
+        logger = LogUtil.getLog4jLogger( (BootComponentTest.class).getName() );
     }
 
     // Kills any lingering processes
