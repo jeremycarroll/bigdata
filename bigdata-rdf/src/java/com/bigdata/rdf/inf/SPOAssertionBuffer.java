@@ -29,11 +29,15 @@ package com.bigdata.rdf.inf;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.bigdata.rdf.internal.IV;
+import com.bigdata.rdf.model.BigdataBNode;
+import com.bigdata.rdf.sail.changesets.IChangeLog;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.ISPOAssertionBuffer;
 import com.bigdata.rdf.spo.JustificationWriter;
@@ -101,6 +105,10 @@ public class SPOAssertionBuffer extends AbstractSPOBuffer implements ISPOAsserti
      * {@link Justification}s for entailments.
      */
     protected final boolean justify;
+    
+    protected final IChangeLog changeLog;
+    
+    protected final Map<IV, BigdataBNode> bnodes;
         
     /**
      * Create a buffer.
@@ -126,6 +134,17 @@ public class SPOAssertionBuffer extends AbstractSPOBuffer implements ISPOAsserti
             AbstractTripleStore db, IElementFilter<ISPO> filter, int capacity,
             boolean justified) {
 
+        this(focusStore, db, filter, capacity, justified,
+                null/* changeLog */, null/* bnodes */);
+        
+    }
+    
+    public SPOAssertionBuffer(AbstractTripleStore focusStore,
+            AbstractTripleStore db, IElementFilter<ISPO> filter, int capacity,
+            boolean justified,
+            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes
+            ) {        
+
         super(db, filter, capacity);
 
         if (focusStore == null)
@@ -141,6 +160,10 @@ public class SPOAssertionBuffer extends AbstractSPOBuffer implements ISPOAsserti
         this.justify = justified;
 
         justifications = justified ? new Justification[capacity] : null;
+        
+        this.changeLog = changeLog;
+        
+        this.bnodes = bnodes;
         
     }
     
@@ -180,12 +203,28 @@ public class SPOAssertionBuffer extends AbstractSPOBuffer implements ISPOAsserti
         
         if (numJustifications == 0) {
             
-            // batch insert statements into the focusStore.
-            n = db.addStatements(
+            if (changeLog == null) {
+            
+                // batch insert statements into the focusStore.
+                n = db.addStatements(
                             focusStore,
                             true/* copyOnly */,
                             new ChunkedArrayIterator<ISPO>(numStmts, stmts, null/*keyOrder*/),
                             null/*filter*/);
+                
+            } else {
+                
+                n = com.bigdata.rdf.sail.changesets.
+                        StatementWriter.addStatements(
+                                db, 
+                                focusStore, 
+                                true/* copyOnly */, 
+                                null/* filter */, 
+                                new ChunkedArrayIterator<ISPO>(numStmts, stmts, null/*keyOrder*/), 
+                                changeLog, 
+                                bnodes);
+                
+            }
 
         } else {
             
@@ -209,7 +248,8 @@ public class SPOAssertionBuffer extends AbstractSPOBuffer implements ISPOAsserti
             // task will write SPOs on the statement indices.
             tasks.add(new StatementWriter(getTermDatabase(), focusStore,
                     false/* copyOnly */, new ChunkedArrayIterator<ISPO>(
-                            numStmts, stmts, null/*keyOrder*/), nwritten));
+                            numStmts, stmts, null/*keyOrder*/), nwritten, 
+                            changeLog, bnodes));
             
             // task will write justifications on the justifications index.
             final AtomicLong nwrittenj = new AtomicLong();

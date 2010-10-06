@@ -47,21 +47,27 @@ Modifications:
 
 package com.bigdata.rdf.inf;
 
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
 import com.bigdata.journal.TemporaryStore;
+import com.bigdata.rdf.internal.IV;
+import com.bigdata.rdf.model.BigdataBNode;
+import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rio.IStatementBuffer;
 import com.bigdata.rdf.rules.InferenceEngine;
+import com.bigdata.rdf.sail.changesets.IChangeLog;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.spo.SPOArrayIterator;
 import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.rdf.store.BigdataStatementIterator;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.rdf.store.TempTripleStore;
 import com.bigdata.relation.accesspath.IElementFilter;
@@ -234,7 +240,20 @@ public class TruthMaintenance {
     static public int applyExistingStatements(
             final AbstractTripleStore focusStore,
             final AbstractTripleStore database,
-            final IElementFilter<ISPO> filter) {
+            final IElementFilter<ISPO> filter
+            ) {
+    
+        return applyExistingStatements(focusStore, database, filter,
+                null/* changeLog */, null/* bnodes */);
+        
+    }
+    
+    static public int applyExistingStatements(
+            final AbstractTripleStore focusStore,
+            final AbstractTripleStore database,
+            final IElementFilter<ISPO> filter,    
+            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes
+            ) {
         
         if(INFO) 
             log.info("Filtering statements already known to the database");
@@ -248,7 +267,7 @@ public class TruthMaintenance {
 
         final IChunkedOrderedIterator<ISPO> itr = focusStore.getAccessPath(
                 SPOKeyOrder.SPO, ExplicitSPOFilter.INSTANCE).iterator();
-
+        
         int nremoved = 0;
         
         int nupgraded = 0;
@@ -266,7 +285,8 @@ public class TruthMaintenance {
              */
 
             final SPOAssertionBuffer assertionBuffer = new SPOAssertionBuffer(
-                    database, database, filter, capacity, false/* justified */);
+                    database, database, filter, capacity, false/* justified */, 
+                    changeLog, bnodes);
 
             /*
              * This buffer will retract statements from the tempStore that are
@@ -290,7 +310,7 @@ public class TruthMaintenance {
                 for(int i=0; i<chunk.length; i++) {
                     
                     final SPO spo = (SPO)chunk[i];
-
+            
                     // Lookup the statement in the database.
                     final ISPO tmp = database.getStatement(spo.s, spo.p, spo.o);
                     
@@ -365,6 +385,13 @@ public class TruthMaintenance {
      */
     public ClosureStats assertAll(final TempTripleStore tempStore) {
 
+        return assertAll(tempStore, null/* changeLog */, null/* bnodes */);
+        
+    }
+        
+    public ClosureStats assertAll(final TempTripleStore tempStore, 
+            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes) {
+
         if (tempStore == null) {
 
             throw new IllegalArgumentException();
@@ -409,7 +436,7 @@ public class TruthMaintenance {
          * consistent if we change our mind about that practice.
          */
 
-        applyExistingStatements(tempStore, database, inferenceEngine.doNotAddFilter);
+        applyExistingStatements(tempStore, database, inferenceEngine.doNotAddFilter, changeLog, bnodes);
 
         final ClosureStats stats = inferenceEngine.computeClosure(tempStore);
 
@@ -429,7 +456,8 @@ public class TruthMaintenance {
 //        tempStore.dumpStore(database,true,true,false,true);
 
         final long ncopied = tempStore.copyStatements(database,
-                null/* filter */, true /* copyJustifications */);
+                null/* filter */, true /* copyJustifications */, 
+                changeLog, bnodes);
         
 //        database.dumpStore(database,true,true,false,true);
 
@@ -478,6 +506,13 @@ public class TruthMaintenance {
      */
     public ClosureStats retractAll(final TempTripleStore tempStore) {
 
+        return retractAll(tempStore, null/* changeLog */, null/* bnodes */);
+        
+    }
+    
+    public ClosureStats retractAll(final TempTripleStore tempStore,
+            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes) {
+            
         final long begin = System.currentTimeMillis();
         
         final ClosureStats stats = new ClosureStats();
@@ -512,7 +547,7 @@ public class TruthMaintenance {
         }
 
         // do truth maintenance.
-        retractAll(stats, tempStore, 0);
+        retractAll(stats, tempStore, 0, changeLog, bnodes);
         
         MDC.remove("depth");
         
@@ -591,7 +626,8 @@ public class TruthMaintenance {
      *            explicit statements to be retracted.
      */
     private void retractAll(final ClosureStats stats,
-            final TempTripleStore tempStore, final int depth) {
+            final TempTripleStore tempStore, final int depth,
+            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes) {
 
         MDC.put("depth", "depth=" + depth);
         
@@ -640,7 +676,9 @@ public class TruthMaintenance {
                     database, // the persistent db. 
                     null, //filter @todo was inferenceEngine.doNotAddFilter,
                     capacity,//
-                    false // justify 
+                    false,// justify
+                    changeLog,
+                    bnodes
                     );
 
             /*
@@ -657,7 +695,8 @@ public class TruthMaintenance {
              * identifiers.
              */
             final SPORetractionBuffer retractionBuffer = new SPORetractionBuffer(
-                    database, capacity, false/* computeClosureForStatementIdentifiers */);
+                    database, capacity, false/* computeClosureForStatementIdentifiers */, 
+                    changeLog, bnodes);
 
             /*
              * Note: when we enter this method recursively statements in the
@@ -964,7 +1003,7 @@ public class TruthMaintenance {
          * Recursive processing.
          */
         
-        retractAll(stats, focusStore, depth + 1);
+        retractAll(stats, focusStore, depth + 1, changeLog, bnodes);
 
     }
 

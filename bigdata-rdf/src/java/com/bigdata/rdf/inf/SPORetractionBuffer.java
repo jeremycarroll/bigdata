@@ -27,6 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.inf;
 
+import java.util.Map;
+import com.bigdata.rdf.internal.IV;
+import com.bigdata.rdf.model.BigdataBNode;
+import com.bigdata.rdf.sail.changesets.IChangeLog;
+import com.bigdata.rdf.sail.changesets.StatementWriter;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -50,6 +55,10 @@ public class SPORetractionBuffer extends AbstractSPOBuffer {
     private final AbstractTripleStore store;
     private final boolean computeClosureForStatementIdentifiers;
     
+    protected final IChangeLog changeLog;
+    
+    protected final Map<IV, BigdataBNode> bnodes;
+        
     /**
      * @param store
      *            The database from which the statement will be removed when the
@@ -63,6 +72,15 @@ public class SPORetractionBuffer extends AbstractSPOBuffer {
     public SPORetractionBuffer(AbstractTripleStore store, int capacity,
             boolean computeClosureForStatementIdentifiers) {
         
+        this(store, capacity, computeClosureForStatementIdentifiers,
+                null/* changeLog */, null/* bnodes */);
+        
+    }
+        
+    public SPORetractionBuffer(AbstractTripleStore store, int capacity,
+            boolean computeClosureForStatementIdentifiers,
+            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes) {
+        
         super(store, null/*filter*/, capacity);
         
         if (store == null)
@@ -72,14 +90,34 @@ public class SPORetractionBuffer extends AbstractSPOBuffer {
         
         this.computeClosureForStatementIdentifiers = computeClosureForStatementIdentifiers;
         
+        this.changeLog = changeLog;
+        
+        this.bnodes = bnodes;
+        
     }
 
     public int flush() {
 
         if (isEmpty()) return 0;
         
-        long n = store.removeStatements(new ChunkedArrayIterator<ISPO>(numStmts,stmts,
+        final long n;
+        
+        if (changeLog == null) {
+
+            n = store.removeStatements(new ChunkedArrayIterator<ISPO>(numStmts,stmts,
                 null/*keyOrder*/), computeClosureForStatementIdentifiers);
+            
+        } else {
+            
+            n = StatementWriter.removeStatements(
+                    store, 
+                    new ChunkedArrayIterator<ISPO>(
+                            numStmts,stmts,null/*keyOrder*/),
+                    computeClosureForStatementIdentifiers,
+                    changeLog, 
+                    bnodes);
+            
+        }
 
         // reset the counter.
         numStmts = 0;

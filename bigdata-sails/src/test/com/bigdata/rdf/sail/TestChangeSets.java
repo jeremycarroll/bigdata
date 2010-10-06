@@ -292,7 +292,7 @@ public class TestChangeSets extends ProxyBigdataSailTestCase {
 
     }
     
-    public void testTruthMaintenance() throws Exception {
+    public void testTMAdd() throws Exception {
 
         final BigdataSail sail = getSail(getTriplesWithInference());
         sail.initialize();
@@ -355,6 +355,113 @@ public class TestChangeSets extends ProxyBigdataSailTestCase {
             }
             
             compare(expected, changeLog.getChangeSet());
+            
+        } finally {
+            cxn.close();
+            sail.__tearDownUnitTest();
+        }
+
+    }
+    
+    public void testTMRetract() throws Exception {
+
+        final BigdataSail sail = getSail(getTriplesWithInference());
+        sail.initialize();
+        final BigdataSailRepository repo = new BigdataSailRepository(sail);
+        final BigdataSailRepositoryConnection cxn = 
+            (BigdataSailRepositoryConnection) repo.getConnection();
+        cxn.setAutoCommit(false);
+        
+        final TestChangeLog changeLog = new TestChangeLog();
+        cxn.setChangeLog(changeLog);
+        
+        try {
+    
+            final BigdataValueFactory vf = (BigdataValueFactory) sail.getValueFactory();
+            
+            final String ns = BD.NAMESPACE;
+            
+            final URI a = vf.createURI(ns+"A");
+            final URI b = vf.createURI(ns+"B");
+            final URI c = vf.createURI(ns+"C");
+            
+            final BigdataStatement[] explicitAdd = new BigdataStatement[] {
+                vf.createStatement(a, RDFS.SUBCLASSOF, b),
+                vf.createStatement(b, RDFS.SUBCLASSOF, c),
+            };
+
+            final BigdataStatement[] inferredAdd = new BigdataStatement[] {
+                vf.createStatement(a, RDF.TYPE, RDFS.CLASS),
+                vf.createStatement(a, RDFS.SUBCLASSOF, RDFS.RESOURCE),
+                vf.createStatement(a, RDFS.SUBCLASSOF, a),
+                vf.createStatement(a, RDFS.SUBCLASSOF, c),
+                vf.createStatement(b, RDF.TYPE, RDFS.CLASS),
+                vf.createStatement(b, RDFS.SUBCLASSOF, RDFS.RESOURCE),
+                vf.createStatement(b, RDFS.SUBCLASSOF, b),
+                vf.createStatement(c, RDF.TYPE, RDFS.CLASS),
+                vf.createStatement(c, RDFS.SUBCLASSOF, RDFS.RESOURCE),
+                vf.createStatement(c, RDFS.SUBCLASSOF, c),
+            };
+ 
+            final BigdataStatement[] explicitRemove = new BigdataStatement[] {
+                vf.createStatement(b, RDFS.SUBCLASSOF, c),
+            };
+
+            final BigdataStatement[] inferredRemove = new BigdataStatement[] {
+                vf.createStatement(a, RDFS.SUBCLASSOF, c),
+                vf.createStatement(c, RDF.TYPE, RDFS.CLASS),
+                vf.createStatement(c, RDFS.SUBCLASSOF, RDFS.RESOURCE),
+                vf.createStatement(c, RDFS.SUBCLASSOF, c),
+            };
+     
+/**/
+            cxn.setNamespace("ns", ns);
+
+            for (BigdataStatement stmt : explicitAdd) {
+                cxn.add(stmt);
+            }
+
+            cxn.commit();//
+
+            {
+                
+                final Collection<IChangeRecord> expected = 
+                    new LinkedList<IChangeRecord>();
+                for (BigdataStatement stmt : explicitAdd) {
+                    expected.add(new ChangeRecord(stmt, ChangeAction.ADDED));
+                }
+                for (BigdataStatement stmt : inferredAdd) {
+                    expected.add(new ChangeRecord(stmt, ChangeAction.ADDED));
+                }
+                
+                compare(expected, changeLog.getChangeSet());
+            
+            }
+        
+            for (BigdataStatement stmt : explicitRemove) {
+                cxn.remove(stmt);
+            }
+
+            cxn.commit();//
+
+            {
+                
+                final Collection<IChangeRecord> expected = 
+                    new LinkedList<IChangeRecord>();
+                for (BigdataStatement stmt : explicitRemove) {
+                    expected.add(new ChangeRecord(stmt, ChangeAction.REMOVED));
+                }
+                for (BigdataStatement stmt : inferredRemove) {
+                    expected.add(new ChangeRecord(stmt, ChangeAction.REMOVED));
+                }
+                
+                compare(expected, changeLog.getChangeSet());
+            
+            }
+        
+            if (log.isDebugEnabled()) {
+                log.debug("\n" + sail.getDatabase().dumpStore(true, true, false));
+            }
             
         } finally {
             cxn.close();

@@ -132,6 +132,7 @@ import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.changesets.ChangeRecord;
 import com.bigdata.rdf.sail.changesets.IChangeLog;
 import com.bigdata.rdf.sail.changesets.IChangeRecord;
+import com.bigdata.rdf.sail.changesets.StatementWriter;
 import com.bigdata.rdf.sail.changesets.IChangeRecord.ChangeAction;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
@@ -2329,34 +2330,41 @@ public class BigdataSail extends SailBase implements Sail {
                     
                 } else {
                 
-                    final IAccessPath<ISPO> ap = 
-                        database.getAccessPath(s, p, o, c);
-    
-                    final IChunkedOrderedIterator<ISPO> itr = ap.iterator();
+                    final IChunkedOrderedIterator<ISPO> itr = 
+                        database.getAccessPath(s, p, o, c).iterator();
                     
-                    if (itr.hasNext()) {
-                        
-                        final BigdataStatementIteratorImpl itr2 = 
-                            new BigdataStatementIteratorImpl(database, bnodes2, itr)
-                                .start(database.getExecutorService()); 
-                        
-                        final BigdataStatement[] stmts = 
-                            new BigdataStatement[database.getChunkCapacity()];
-                        
-                        int i = 0;
-                        while (i < stmts.length && itr2.hasNext()) {
-                            stmts[i++] = itr2.next();
-                            if (i == stmts.length) {
-                                // process stmts[]
-                                n += removeAndNotify(stmts, i);
-                                i = 0;
-                            }
-                        }
-                        if (i > 0) {
-                            n += removeAndNotify(stmts, i);
-                        }
-                        
-                    }
+                    n = StatementWriter.removeStatements(database, itr, 
+                            true/* computeClosureForStatementIdentifiers */,
+                            changeLog, bnodes2);
+                    
+//                    final IAccessPath<ISPO> ap = 
+//                        database.getAccessPath(s, p, o, c);
+//    
+//                    final IChunkedOrderedIterator<ISPO> itr = ap.iterator();
+//                    
+//                    if (itr.hasNext()) {
+//                        
+//                        final BigdataStatementIteratorImpl itr2 = 
+//                            new BigdataStatementIteratorImpl(database, bnodes2, itr)
+//                                .start(database.getExecutorService()); 
+//                        
+//                        final BigdataStatement[] stmts = 
+//                            new BigdataStatement[database.getChunkCapacity()];
+//                        
+//                        int i = 0;
+//                        while (i < stmts.length && itr2.hasNext()) {
+//                            stmts[i++] = itr2.next();
+//                            if (i == stmts.length) {
+//                                // process stmts[]
+//                                n += removeAndNotify(stmts, i);
+//                                i = 0;
+//                            }
+//                        }
+//                        if (i > 0) {
+//                            n += removeAndNotify(stmts, i);
+//                        }
+//                        
+//                    }
                     
                 }
 
@@ -2367,68 +2375,68 @@ public class BigdataSail extends SailBase implements Sail {
             
         }
         
-        private long removeAndNotify(final BigdataStatement[] stmts, final int numStmts) {
-            
-            final SPO[] tmp = new SPO[numStmts];
-
-            for (int i = 0; i < tmp.length; i++) {
-
-                final BigdataStatement stmt = stmts[i];
-                
-                /*
-                 * Note: context position is not passed when statement identifiers
-                 * are in use since the statement identifier is assigned based on
-                 * the {s,p,o} triple.
-                 */
-
-                final SPO spo = new SPO(stmt);
-
-                if (log.isDebugEnabled())
-                    log.debug("adding: " + stmt.toString() + " (" + spo + ")");
-                
-                if(!spo.isFullyBound()) {
-                    
-                    throw new AssertionError("Not fully bound? : " + spo);
-                    
-                }
-                
-                tmp[i] = spo;
-
-            }
-            
-            /*
-             * Note: When handling statement identifiers, we clone tmp[] to avoid a
-             * side-effect on its order so that we can unify the assigned statement
-             * identifiers below.
-             * 
-             * Note: In order to report back the [ISPO#isModified()] flag, we also
-             * need to clone tmp[] to avoid a side effect on its order. Therefore we
-             * now always clone tmp[].
-             */
-//            final long nwritten = writeSPOs(sids ? tmp.clone() : tmp, numStmts);
-            final long nwritten = database.removeStatements(tmp.clone(), numStmts);
-
-            // Copy the state of the isModified() flag
-            {
-
-                for (int i = 0; i < numStmts; i++) {
-
-                    if (tmp[i].isModified()) {
-
-                        stmts[i].setModified(true);
-                        
-                        changeLog.changeEvent(
-                                new ChangeRecord(stmts[i], ChangeAction.REMOVED));
-
-                    }
-                    
-                }
-                
-            }
-            
-            return nwritten;
-            
-        }
+//        private long removeAndNotify(final BigdataStatement[] stmts, final int numStmts) {
+//            
+//            final SPO[] tmp = new SPO[numStmts];
+//
+//            for (int i = 0; i < tmp.length; i++) {
+//
+//                final BigdataStatement stmt = stmts[i];
+//                
+//                /*
+//                 * Note: context position is not passed when statement identifiers
+//                 * are in use since the statement identifier is assigned based on
+//                 * the {s,p,o} triple.
+//                 */
+//
+//                final SPO spo = new SPO(stmt);
+//
+//                if (log.isDebugEnabled())
+//                    log.debug("adding: " + stmt.toString() + " (" + spo + ")");
+//                
+//                if(!spo.isFullyBound()) {
+//                    
+//                    throw new AssertionError("Not fully bound? : " + spo);
+//                    
+//                }
+//                
+//                tmp[i] = spo;
+//
+//            }
+//            
+//            /*
+//             * Note: When handling statement identifiers, we clone tmp[] to avoid a
+//             * side-effect on its order so that we can unify the assigned statement
+//             * identifiers below.
+//             * 
+//             * Note: In order to report back the [ISPO#isModified()] flag, we also
+//             * need to clone tmp[] to avoid a side effect on its order. Therefore we
+//             * now always clone tmp[].
+//             */
+////            final long nwritten = writeSPOs(sids ? tmp.clone() : tmp, numStmts);
+//            final long nwritten = database.removeStatements(tmp.clone(), numStmts);
+//
+//            // Copy the state of the isModified() flag
+//            {
+//
+//                for (int i = 0; i < numStmts; i++) {
+//
+//                    if (tmp[i].isModified()) {
+//
+//                        stmts[i].setModified(true);
+//                        
+//                        changeLog.changeEvent(
+//                                new ChangeRecord(stmts[i], ChangeAction.REMOVED));
+//
+//                    }
+//                    
+//                }
+//                
+//            }
+//            
+//            return nwritten;
+//            
+//        }
 
         public synchronized CloseableIteration<? extends Resource, SailException> getContextIDs()
                 throws SailException {
@@ -2695,7 +2703,9 @@ public class BigdataSail extends SailBase implements Sail {
                 if(getTruthMaintenance()) {
 
                     // do TM, writing on the database.
-                    tm.assertAll((TempTripleStore)assertBuffer.getStatementStore());
+                    tm.assertAll(
+                            (TempTripleStore)assertBuffer.getStatementStore(), 
+                            changeLog, bnodes2);
 
                     // must be reallocated on demand.
                     assertBuffer = null;
@@ -2712,7 +2722,8 @@ public class BigdataSail extends SailBase implements Sail {
                 if(getTruthMaintenance()) {
                 
                     // do TM, writing on the database.
-                    tm.retractAll((TempTripleStore)retractBuffer.getStatementStore());
+                    tm.retractAll((TempTripleStore)retractBuffer.getStatementStore(),
+                            changeLog, bnodes2);
 
                     // must be re-allocated on demand.
                     retractBuffer = null;
