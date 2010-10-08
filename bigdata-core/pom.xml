@@ -132,7 +132,11 @@
                             <testFailureIgnore>true</testFailureIgnore>
                             <skip>false</skip>
                             <!-- Run only the top-level suite which in turn runs the other suites and tests -->
-                            <test>com.bigdata.TestAll</test>
+                            <includes>
+                                <include>com/bigdata/TestAll.java</include>
+                            </includes>
+                            
+                            <forkMode>pertest</forkMode>
 
                             <!-- These system properties are required by the unit tests. -->
                             <systemPropertyVariables>
