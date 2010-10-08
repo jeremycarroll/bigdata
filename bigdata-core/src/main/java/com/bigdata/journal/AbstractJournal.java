@@ -127,7 +127,6 @@ import com.bigdata.resources.ResourceManager;
  * </p>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @todo Checksums and/or record compression are currently handled on a per-
  *       {@link BTree} or other persistence capable data structure basis. It is
@@ -2746,7 +2745,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
              * Reload the mutable btree from its root address.
              */
 
-            ndx = (CommitRecordIndex) BTree.load(this, addr);
+            ndx = new CommitRecordIndex(BTree.load(this, addr));
 
         }
 

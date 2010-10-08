@@ -8,7 +8,9 @@ import java.util.UUID;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.Checkpoint;
 import com.bigdata.btree.DefaultTupleSerializer;
+import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.ASCIIKeyBuilderFactory;
 import com.bigdata.btree.keys.IKeyBuilder;
@@ -16,6 +18,7 @@ import com.bigdata.btree.keys.IKeyBuilderFactory;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
+import java.util.Iterator;
 
 /**
  * {@link BTree} whose keys are commit times. No values are stored in the
@@ -31,9 +34,13 @@ import com.bigdata.rawstore.IRawStore;
  *       case there is no LTE entry (that is, in case the index is empty).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class CommitTimeIndex extends BTree {
+public class CommitTimeIndex {
+
+    /**
+     * The BTree in which the commit time index is stored.
+     */
+    private BTree btree;
 
     /**
      * Instance used to encode the timestamp into the key.
@@ -49,13 +56,17 @@ public class CommitTimeIndex extends BTree {
 
         final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
 
-        metadata.setBTreeClassName(CommitTimeIndex.class.getName());
+        metadata.setBTreeClassName(BTree.class.getName());
 
         metadata.setTupleSerializer(new TupleSerializer(
                 new ASCIIKeyBuilderFactory(Bytes.SIZEOF_LONG)));
 
-        return (CommitTimeIndex) BTree.createTransient(/* store, */metadata);
+        return new CommitTimeIndex(BTree.createTransient(/* store, */metadata));
 
+    }
+
+    private CommitTimeIndex(BTree btree) {
+        this.btree = btree;
     }
 
     /**
@@ -70,9 +81,7 @@ public class CommitTimeIndex extends BTree {
      */
     public CommitTimeIndex(final IRawStore store, final Checkpoint checkpoint,
             final IndexMetadata metadata, boolean readOnly) {
-
-        super(store, checkpoint, metadata, readOnly);
-
+       this(new BTree(store, checkpoint, metadata, readOnly));
     }
     
     /**
@@ -83,14 +92,18 @@ public class CommitTimeIndex extends BTree {
      * 
      * @return The corresponding key.
      */
-    protected byte[] encodeKey(final long commitTime) {
+    private byte[] encodeKey(final long commitTime) {
 
         return keyBuilder.reset().append(commitTime).getKey();
 
     }
 
-//BTM    protected long decodeKey(final byte[] key) {
-public long decodeKey(final byte[] key) {
+    /**
+     * Decode btree key into commit time.
+     * @param key btree key
+     * @return commit time
+     */
+    private static long decodeKey(final byte[] key) {
 
         return KeyBuilder.decodeLong(key, 0);
 
@@ -129,7 +142,7 @@ public long decodeKey(final byte[] key) {
             
         }
 
-        return decodeKey(keyAt(index));
+        return decodeKey(btree.keyAt(index));
         
     }
 
@@ -155,7 +168,7 @@ public long decodeKey(final byte[] key) {
         // find first strictly greater than.
         final int index = findIndexOf(Math.abs(timestamp)) + 1;
         
-        if (index == nentries) {
+        if (index == btree.getEntryCount()) {
 
             // No match.
 
@@ -163,7 +176,7 @@ public long decodeKey(final byte[] key) {
             
         }
         
-        return decodeKey(keyAt(index));
+        return decodeKey(btree.keyAt(index));
 
     }
 
@@ -177,7 +190,7 @@ public long decodeKey(final byte[] key) {
      */
     synchronized public int findIndexOf(final long timestamp) {
         
-        int pos = super.indexOf(encodeKey(timestamp));
+        int pos = btree.indexOf(encodeKey(timestamp));
         
         if (pos < 0) {
 
@@ -233,24 +246,99 @@ public long decodeKey(final byte[] key) {
         
         final byte[] key = encodeKey(commitTime);
         
-        if(!super.contains(key)) {
+        if(!btree.contains(key)) {
             
 //            throw new IllegalArgumentException("entry exists: timestamp="
 //                    + commitTime);
 //            
 //        }
         
-        super.insert(key, null);
+        btree.insert(key, null);
         
         }
         
     }
     
     /**
+     * Remove an entry for a commitTime.
+     * 
+     * @param commitTime A timestamp representing a commit time.
+     */
+    public void remove(long commitTime) {
+        btree.remove(commitTime);
+    }
+
+    /**
+     * Return the number of entries in the index.
+     */
+    final public int getEntryCount() {
+        return btree.getEntryCount();
+    }
+
+    /**
+     * Return the oldest commit time in the tree.
+     * @return the oldest commit time in the tree.
+     */
+    public long firstKey() {
+        return decodeKey(btree.keyAt(0));
+    }
+
+    /**
+     * Return the most recent commit time in the tree.
+     * @return the most recent commit time in the tree.
+     */
+    public long lastKey() {
+        return decodeKey(btree.keyAt(btree.getEntryCount() - 1));
+    }
+
+    /**
+     * Iterate over all of the commit times in the tree.
+     * @return an Iterator for commit times.
+     */
+    public Iterator<Long> rangeIterator() {
+        return new EntryIterator(btree.rangeIterator());
+    }
+
+    /**
+     * Iterate over commit times in the tree.
+     * @param fromKey
+     * @param toKey
+     * @return an Iterator for commit times.
+     */
+    public Iterator<Long> rangeIterator(long fromKey, long toKey) {
+        return new EntryIterator(
+                btree.rangeIterator(encodeKey(fromKey), encodeKey(toKey),
+                                    0, IRangeQuery.KEYS | IRangeQuery.CURSOR,
+                                    null));
+    }
+
+    /**
+     * An iterator mapping BTree entries to commit times.
+     */
+    private static class EntryIterator implements Iterator<Long> {
+        private ITupleIterator<byte[]> tupleIterator;
+
+        private EntryIterator(ITupleIterator<byte[]> tupleIterator) {
+            this.tupleIterator = tupleIterator;
+        }
+
+        public boolean hasNext() {
+            return tupleIterator.hasNext();
+        }
+
+        public Long next() {
+            return decodeKey(tupleIterator.next().getKey());
+        }
+
+        public void remove() {
+            tupleIterator.remove();
+        }
+    }
+
+    /**
      * Encapsulates key and value formation.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static protected class TupleSerializer extends
             DefaultTupleSerializer<Long, Void> {
@@ -304,6 +392,7 @@ public long decodeKey(final byte[] key) {
          */
         private final static transient byte VERSION = VERSION0;
 
+        @Override
         public void readExternal(final ObjectInput in) throws IOException,
                 ClassNotFoundException {
 
@@ -321,6 +410,7 @@ public long decodeKey(final byte[] key) {
 
         }
 
+        @Override
         public void writeExternal(final ObjectOutput out) throws IOException {
 
             super.writeExternal(out);

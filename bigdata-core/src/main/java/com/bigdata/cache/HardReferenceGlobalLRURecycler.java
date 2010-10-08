@@ -613,6 +613,7 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
             e.prior = last;
             last = e;
         }
+        //System.err.println("++size");
         size++;
         counters.bytesInMemory.addAndGet(e.bytesInMemory);
         counters.bytesOnDisk.addAndGet(e.bytesOnDisk);
@@ -654,6 +655,7 @@ public class HardReferenceGlobalLRURecycler<K, V> implements
         e.cache = null; // clear reference to the cache.
         e.k = null; // clear the key.
         e.v = null; // clear the value reference.
+        //System.err.println("--size");
         size--;
         counters.bytesInMemory.addAndGet(-e.bytesInMemory);
         counters.bytesOnDisk.addAndGet(-e.bytesOnDisk);

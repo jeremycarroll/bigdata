@@ -51,21 +51,15 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
 import java.util.zip.Adler32;
 
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleIterator;
 import com.bigdata.concurrent.LockManager;
 import com.bigdata.concurrent.LockManagerTask;
-import com.bigdata.config.LongValidator;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
-import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
-import com.bigdata.journal.Name2Addr;
 import com.bigdata.journal.RunState;
 import com.bigdata.util.concurrent.ExecutionExceptions;
 
@@ -75,8 +69,6 @@ import com.bigdata.jini.util.JiniUtil;
 import com.bigdata.journal.TransactionService;
 import com.bigdata.journal.ValidationError;
 import com.bigdata.service.CommitTimeIndex;
-import com.bigdata.service.IServiceShutdown;
-import com.bigdata.service.IServiceShutdown.ShutdownType;
 import com.bigdata.service.ITxCommitProtocol;
 import com.bigdata.service.Service;
 import com.bigdata.service.TxState;
@@ -92,7 +84,6 @@ import net.jini.lookup.LookupCache;
 import net.jini.lookup.ServiceDiscoveryManager;
 import net.jini.lookup.ServiceItemFilter;
 
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
@@ -112,7 +103,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 //BTM - replace with ShardService and ShardLocator
-import com.bigdata.service.DataService;
 import com.bigdata.service.IDataService;
 import com.bigdata.service.IMetadataService;
 
@@ -629,8 +619,7 @@ start();
 
             // the last commit time in the logger. @todo write unit test to
             // verify on restart.
-            lastCommitTime = commitTimeIndex.decodeKey(commitTimeIndex
-                    .keyAt(commitTimeIndex.getEntryCount() - 1));
+            lastCommitTime = commitTimeIndex.lastKey();
 
         }
     }
@@ -821,15 +810,13 @@ start();
             
             os.writeInt(entryCount);
             
-            final ITupleIterator itr = ndx.rangeIterator();
+            Iterator<Long> itr = ndx.rangeIterator();
 
             int n = 0;
             
             while (itr.hasNext()) {
 
-                final ITuple tuple = itr.next();
-
-                final long commitTime = ndx.decodeKey(tuple.getKey());
+                long commitTime = itr.next();
 
                 os.writeLong(commitTime);
 
@@ -883,14 +870,14 @@ private void start() {
             
             final long timestamp = _nextTimestamp();
 
-            final long lastCommitTime = getLastCommitTime();
+            final long tmpLastCommitTime = getLastCommitTime();
 
-            if (timestamp < lastCommitTime) {
+            if (timestamp < tmpLastCommitTime) {
 
                 throw new RuntimeException(
                         "Clock reporting timestamps before lastCommitTime: now="
                                 + new Date(timestamp) + ", lastCommitTime="
-                                + new Date(lastCommitTime));
+                                + new Date(tmpLastCommitTime));
 
             }
 
@@ -1168,9 +1155,7 @@ logger.warn("YYYYY TRANSACTION SERVICE EmbeddedTransactionService.destroy >>> DE
                  */
                 final long toKey = commitTimeIndex.find(releaseTime + 1);
 
-                final ITupleIterator itr = commitTimeIndex.rangeIterator(0L,
-                        toKey, 0/* capacity */, IRangeQuery.KEYS
-                                | IRangeQuery.CURSOR, null/* filter */);
+                Iterator<Long> itr = commitTimeIndex.rangeIterator(0L, toKey);
 
                 while (itr.hasNext()) {
 
@@ -1496,10 +1481,10 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
         if (uuids.length != 1)
             throw new AssertionError();
 
-        final UUID serviceUUID = uuids[0];
+        final UUID tmpServiceUUID = uuids[0];
 
 //BTM        final IDataService dataService = getFederation().getDataService(serviceUUID);
-final IDataService dataService = getDataService(serviceUUID);//BTM - change to ShardService
+final IDataService dataService = getDataService(tmpServiceUUID);//BTM - change to ShardService
 
         try {
 
@@ -2657,7 +2642,7 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
 
 //BTM - from AbstractTransactionService
 
-    synchronized private final long _nextTimestamp() {
+    private synchronized long _nextTimestamp() {
         return MillisecondTimestampFactory.nextMillis();
     }
 
@@ -2681,7 +2666,7 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
      *       {@link #findUnusedTimestamp(long, long)} so that it could further
      *       constrain its search within the half-open interval.
      */
-    final private void updateReleaseTime(final long timestamp) {
+    private void updateReleaseTime(final long timestamp) {
 
         if (timestamp <= 0)
             throw new IllegalArgumentException();
@@ -2742,8 +2727,7 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
                 /*
                  * The start time associated with the earliest remaining tx.
                  */
-                earliestTxStartTime = startTimeIndex.decodeKey(startTimeIndex
-                        .keyAt(0));
+                earliestTxStartTime = startTimeIndex.firstKey();
                 
             } else {
 
@@ -2766,10 +2750,10 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
         if (isEarliestTx) {
 
             // last commit time on the database.
-            final long lastCommitTime = getLastCommitTime();
+            final long tmpLastCommitTime = getLastCommitTime();
 
             // minimum milliseconds to retain history.
-            final long minReleaseAge = getMinReleaseAge();
+            final long tmpMinReleaseAge = getMinReleaseAge();
 
             /*
              * The release time will be the minimum of:
@@ -2787,8 +2771,8 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
              * above for that specific value, but other very large values could
              * also cause problems.
              */
-            final long releaseTime = Math.min(lastCommitTime - 1, Math.min(
-                    earliestTxStartTime - 1, now - minReleaseAge));
+            final long tmpReleaseTime = Math.min(tmpLastCommitTime - 1, Math.min(
+                    earliestTxStartTime - 1, now - tmpMinReleaseAge));
 
             /*
              * We only update the release time if the computed time would
@@ -2798,17 +2782,17 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
              * may have already released history for any commit point whose
              * commitTime is LTE to the existing releaseTime.
              */
-            if (this.releaseTime < releaseTime) {
+            if (this.releaseTime < tmpReleaseTime) {
 
                 if (logger.isInfoEnabled())
-                    logger.info("lastCommitTime=" + lastCommitTime
+                    logger.info("lastCommitTime=" + tmpLastCommitTime
                             + ", earliestTxStartTime=" + earliestTxStartTime
-                            + ", minReleaseAge=" + minReleaseAge + ", now="
+                            + ", minReleaseAge=" + tmpMinReleaseAge + ", now="
                             + now + ", releaseTime(" + oldReleaseTime + "->"
-                            + releaseTime + ")");
+                            + tmpReleaseTime + ")");
 
                 // update.
-                setReleaseTime(releaseTime);
+                setReleaseTime(tmpReleaseTime);
 
             }
 
@@ -2967,18 +2951,18 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
             return -nextTimestamp();
         }
 
-        final long lastCommitTime = getLastCommitTime();
+        final long tmpLastCommitTime = getLastCommitTime();
 
-        if (timestamp > lastCommitTime) {
+        if (timestamp > tmpLastCommitTime) {
             /*
              * Can't request a historical read for a timestamp which has
              * not yet been issued by the service
              */
             throw new IllegalStateException
                           ("timestamp in the future [timestamp="+timestamp
-                           + ", lastCommitTime="+lastCommitTime+"]");
+                           + ", lastCommitTime="+tmpLastCommitTime+"]");
 
-        } else if (timestamp == lastCommitTime) {
+        } else if (timestamp == tmpLastCommitTime) {
             /*
              * Special case - just return the next timestamp.
              * 
@@ -3000,9 +2984,9 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
              */
             return nextTimestamp();
         }
-        final long releaseTime = getReleaseTime();
+        final long tmpReleaseTime = getReleaseTime();
 
-        if (timestamp <= releaseTime) {
+        if (timestamp <= tmpReleaseTime) {
             /*
              * This exception is thrown if there is an attempt to start a new
              * transaction that would read from historical data which has been
@@ -3013,7 +2997,7 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
             throw new IllegalStateException
                       ("timestamp less than or equal to release time"
                        +" [timestamp="+timestamp+", "
-                       +"releaseTime="+releaseTime+"]");
+                       +"releaseTime="+tmpReleaseTime+"]");
         }
         return getStartTime(timestamp);
     }
@@ -3250,20 +3234,20 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
             if (this.releaseTime < (commitTime - 1)
                     && startTimeIndex.getEntryCount() == 0)
             {
-                final long lastCommitTime = commitTime;
+                final long tmpLastCommitTime = commitTime;
                 final long now = _nextTimestamp();
-                final long releaseTime = 
-                    Math.min(lastCommitTime - 1, now - minReleaseAge);
+                final long tmpReleaseTime =
+                    Math.min(tmpLastCommitTime - 1, now - minReleaseAge);
 
-                if (this.releaseTime < releaseTime) {
+                if (this.releaseTime < tmpReleaseTime) {
                     if (logger.isInfoEnabled()) {
                         logger.info("Advancing releaseTime (no active tx)"
-                                + ": lastCommitTime=" + lastCommitTime
+                                + ": lastCommitTime=" + tmpLastCommitTime
                                 + ", minReleaseAge=" + minReleaseAge + ", now="
                                 + now + ", releaseTime(" + this.releaseTime
-                                + "->" + releaseTime + ")");
+                                + "->" + tmpReleaseTime + ")");
                     }
-                    setReleaseTime(releaseTime);
+                    setReleaseTime(tmpReleaseTime);
                 }
             }
         }

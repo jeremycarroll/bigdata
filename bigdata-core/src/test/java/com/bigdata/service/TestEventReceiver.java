@@ -49,7 +49,6 @@ import com.bigdata.journal.IResourceLockService;
 import com.bigdata.journal.TransactionService;
 import com.bigdata.journal.TemporaryStore;
 import com.bigdata.relation.locator.IResourceLocator;
-import com.bigdata.service.EventReceiver.EventBTree;
 import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.test.Assert;
@@ -118,6 +117,7 @@ public class TestEventReceiver extends Assert {
          * RMI where the receiver always has a different instance for each
          * message received.
          */
+        @Override
         protected void sendEvent() throws IOException {
 
             final byte[] data = SerializerUtil.serialize(this);
@@ -139,9 +139,10 @@ public class TestEventReceiver extends Assert {
     public void test_start_end() throws InterruptedException {
 
         final EventBTree eventBTree = EventBTree.createTransient();
-        
-        final EventReceiver eventReceiver = new EventReceiver(
-                1000/* eventHistoryMillis */, eventBTree);
+
+        final int eventHistoryMillis = 1000;
+        final EventReceiver eventReceiver =
+                new EventReceiver(eventHistoryMillis, eventBTree);
 
         final IBigdataFederation fed = new MockFederation(eventReceiver);
         
@@ -201,7 +202,7 @@ public class TestEventReceiver extends Assert {
          */
         
         // wait until the event is old enough to be purged.
-        Thread.sleep(eventReceiver.eventHistoryMillis);
+        Thread.sleep(eventHistoryMillis);
         
         // request purge of old events.
         eventReceiver.pruneHistory(System.currentTimeMillis());
@@ -222,8 +223,9 @@ public class TestEventReceiver extends Assert {
 
         final EventBTree eventBTree = EventBTree.createTransient();
         
-        final EventReceiver eventReceiver = new EventReceiver(
-                1000/* eventHistoryMillis */, eventBTree);
+        final int eventHistoryMillis = 1000;
+        final EventReceiver eventReceiver =
+                new EventReceiver(eventHistoryMillis, eventBTree);
 
         final IBigdataFederation fed = new MockFederation(eventReceiver);
         
@@ -273,7 +275,7 @@ public class TestEventReceiver extends Assert {
          */
         
         // wait until the event is old enough to be purged.
-        Thread.sleep(eventReceiver.eventHistoryMillis);
+        Thread.sleep(eventHistoryMillis);
         
         // request purge of old events.
         eventReceiver.pruneHistory(System.currentTimeMillis());

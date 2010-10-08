@@ -60,6 +60,8 @@
                             java files were getting recompiled and put into the bigdata jar. This setting forces javac to only look for source in the current maven source directory.
                         -->
                         <sourcepath>${project.build.sourceDirectory}</sourcepath>
+                        <!-- <Xlint></Xlint> -->
+                        <!-- <Xlint:unchecked></Xlint:unchecked> -->
                     </compilerArguments>
                 </configuration>
             </plugin>
@@ -141,7 +143,7 @@
                             <!-- These system properties are required by the unit tests. -->
                             <systemPropertyVariables>
                                 <java.security.policy>${java.security.policy}</java.security.policy>
-                                <java.net.preferIPv4Stack>{java.net.preferIPv4Stack}"</java.net.preferIPv4Stack>
+                                <java.net.preferIPv4Stack>{java.net.preferIPv4Stack}</java.net.preferIPv4Stack>
                                 <log4j.configuration>${log4j.configuration}</log4j.configuration>
 
                                 <app.home>${app.home}</app.home> <!-- This is the deployment directory, easily accessed by the DataFinder class. -->
@@ -160,7 +162,7 @@
                                 <fastutil.jar>${deploy.lib}/fastutil.jar</fastutil.jar>
                                 <icu4j.jar>${deploy.lib}/icu4j.jar</icu4j.jar>
                                 <jsk-lib.jar>${deploy.lib}/jsk-lib.jar</jsk-lib.jar>
-                                <jsk-platform.jar>${deploy.lib}jsk-platform.jar</jsk-platform.jar>
+                                <jsk-platform.jar>${deploy.lib}/jsk-platform.jar</jsk-platform.jar>
                                 <log4j.jar>${deploy.lib}/log4j.jar</log4j.jar>
                                 <iris.jar>${deploy.lib}/iris.jar</iris.jar>
                                 <jgrapht.jar>${deploy.lib}/jgrapht.jar</jgrapht.jar>
@@ -168,6 +170,13 @@
                                 <slf4j.jar>${deploy.lib}/slf4j.jar</slf4j.jar>
                                 <nxparser.jar>${deploy.lib}/nxparser.jar</nxparser.jar>
                                 <zookeeper.jar>${deploy.lib}/zookeeper.jar</zookeeper.jar>
+
+
+
+				<basedir>${deploy.dir}/testing</basedir>
+
+
+
                             </systemPropertyVariables>
                         </configuration>
                     </execution>

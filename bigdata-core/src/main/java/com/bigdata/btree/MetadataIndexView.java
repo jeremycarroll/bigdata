@@ -28,27 +28,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree;
 
-import com.bigdata.mdi.PartitionLocator;
+import com.bigdata.btree.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.btree.filter.IFilterConstructor;
 import org.apache.log4j.Logger;
 
 import com.bigdata.cache.LRUCache;
-import com.bigdata.btree.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.mdi.PartitionLocator;
 
 /**
  * The extension semantics for the {@link IMetadataIndex} are implemented by
  * this class.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class MetadataIndexView extends DelegateIndex implements IMetadataIndex {
+public class MetadataIndexView implements IMetadataIndex {
 
     protected static final Logger log = Logger.getLogger(MetadataIndexView.class);
     
 //    protected static final boolean INFO = log.isInfoEnabled();
 //    protected static final boolean DEBUG = log.isDebugEnabled();
     
-    private final AbstractBTree delegate;
+    private final MetadataIndex metadataIndex;
 
     /**
      * <code>true</code> iff this is a read-only view. this is used to
@@ -58,19 +58,14 @@ public class MetadataIndexView extends DelegateIndex implements IMetadataIndex {
      */
     final private boolean readOnly; 
     
-    public MetadataIndexView(AbstractBTree delegate) {
-        
-        super(delegate);
-    
-        this.delegate = delegate;
-        
-        this.readOnly = delegate.isReadOnly();
-
+    public MetadataIndexView(MetadataIndex metadataIndex) {
+        this.metadataIndex = metadataIndex;
+        this.readOnly = metadataIndex.isReadOnly();
     }
     
     public MetadataIndexMetadata getIndexMetadata() {
         
-        return (MetadataIndexMetadata) super.getIndexMetadata();
+        return (MetadataIndexMetadata) metadataIndex.getIndexMetadata();
         
     }
     
@@ -87,7 +82,7 @@ public class MetadataIndexView extends DelegateIndex implements IMetadataIndex {
          * de-serialization using the ITupleSerializer.
          */
         
-        return (PartitionLocator) delegate.lookup((Object) key);
+        return (PartitionLocator) metadataIndex.lookup((Object) key);
 
     }
 
@@ -112,7 +107,7 @@ public class MetadataIndexView extends DelegateIndex implements IMetadataIndex {
      */
     private PartitionLocator find_with_iterator(byte[] key) {
 
-        final ITupleIterator<PartitionLocator> itr = delegate.rangeIterator(
+        final ITupleIterator<PartitionLocator> itr = metadataIndex.rangeIterator(
                 null/* fromKey */, key/* toKey */, 1/* capacity */,
                 IRangeQuery.VALS | IRangeQuery.REVERSE, null/* filter */);
         
@@ -147,7 +142,7 @@ public class MetadataIndexView extends DelegateIndex implements IMetadataIndex {
         if (key == null) {
             
             // use the index of the last partition.
-            index = delegate.getEntryCount() - 1;
+            index = metadataIndex.getEntryCount() - 1;
             
         } else {
 
@@ -212,7 +207,7 @@ public class MetadataIndexView extends DelegateIndex implements IMetadataIndex {
 
     /**
      * Remove the locator from the {@link #locatorCache}. It will be re-read on
-     * demand from the {@link #delegate}.
+     * demand from the {@link #metadataIndex}.
      */
     public void staleLocator(PartitionLocator locator) {
 
@@ -230,8 +225,8 @@ public class MetadataIndexView extends DelegateIndex implements IMetadataIndex {
      */
     private PartitionLocator getLocatorAtIndex(int index) {
 
-        final ITuple<PartitionLocator> tuple = delegate.valueAt(index,
-                delegate.getLookupTuple());
+        final ITuple<PartitionLocator> tuple = metadataIndex.valueAt(index,
+                metadataIndex.getLookupTuple());
 
         return tuple.getObject();
         
@@ -252,7 +247,7 @@ public class MetadataIndexView extends DelegateIndex implements IMetadataIndex {
      */
     private int findIndexOf(byte[] key) {
         
-        int pos = delegate.indexOf(key);
+        int pos = metadataIndex.indexOf(key);
         
         if (pos < 0) {
 
@@ -266,7 +261,7 @@ public class MetadataIndexView extends DelegateIndex implements IMetadataIndex {
 
             if(pos == 0) {
 
-                if(delegate.getEntryCount() != 0) {
+                if(metadataIndex.getEntryCount() != 0) {
                 
                     throw new IllegalStateException(
                             "Partition not defined for empty key.");
@@ -292,6 +287,36 @@ public class MetadataIndexView extends DelegateIndex implements IMetadataIndex {
             
         }
 
+    }
+
+    public long rangeCount() {
+        return metadataIndex.rangeCount();
+    }
+
+    public long rangeCount(byte[] fromKey, byte[] toKey) {
+        return metadataIndex.rangeCount(fromKey, toKey);
+    }
+
+    public long rangeCountExact(byte[] fromKey, byte[] toKey) {
+        return metadataIndex.rangeCountExact(fromKey, toKey);
+    }
+
+    public long rangeCountExactWithDeleted(byte[] fromKey, byte[] toKey) {
+        return metadataIndex.rangeCountExactWithDeleted(fromKey, toKey);
+    }
+
+    public ITupleIterator rangeIterator() {
+        return metadataIndex.rangeIterator();
+    }
+
+    public ITupleIterator rangeIterator(byte[] fromKey, byte[] toKey) {
+        return metadataIndex.rangeIterator(fromKey, toKey);
+    }
+
+    public ITupleIterator rangeIterator(byte[] fromKey, byte[] toKey,
+                                        int capacity, int flags,
+                                        IFilterConstructor filterCtor) {
+        return metadataIndex.rangeIterator(fromKey, toKey, capacity, flags, filterCtor);
     }
 
 }

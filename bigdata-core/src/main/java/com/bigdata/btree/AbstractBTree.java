@@ -128,7 +128,6 @@ import com.bigdata.util.concurrent.Memoizer;
  * </p>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @see KeyBuilder
  */
@@ -164,7 +163,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
     /**
      * Log for btree opeations.
      */
-    protected static final Logger log = Logger.getLogger(AbstractBTree.class);
+    private static final Logger log = Logger.getLogger(AbstractBTree.class);
 
     /**
      * True iff the {@link #log} level is INFO or less.
@@ -338,7 +337,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      */
     static class ChildMemoizer extends
             Memoizer<LoadChildRequest/* request */, AbstractNode<?>/* child */> {
@@ -1362,7 +1360,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * Static class since must be {@link Serializable}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static final class TransientResourceMetadata implements IResourceMetadata {
 
@@ -2588,6 +2585,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 
     }
 
+    //fko ===== needs generic type =====
     final public ITupleIterator rangeIterator() {
 
         return rangeIterator(null, null);
@@ -2602,6 +2600,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * @param toKey
      * @return
      */
+    //fko ===== needs generic type =====
     final public ITupleIterator rangeIterator(Object fromKey, Object toKey) {
 
         fromKey = fromKey == null ? null : metadata.getTupleSerializer()
@@ -2614,6 +2613,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
         
     }
     
+    //fko ===== needs generic type =====
     final public ITupleIterator rangeIterator(byte[] fromKey, byte[] toKey) {
 
         return rangeIterator(fromKey, toKey, 0/* capacity */,
@@ -2665,6 +2665,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * @param toKey
      * @return
      */
+    //fko ===== needs generic type =====
     final public ITupleIterator rangeIterator(Object fromKey, Object toKey,
             final int capacity,//
             final int flags,//
@@ -2705,207 +2706,12 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * @todo add support to the iterator construct for filtering by a tuple
      *       revision timestamp range.
      */
-    public ITupleIterator rangeIterator(//
-            final byte[] fromKey,//
-            final byte[] toKey,//
-            final int capacityIsIgnored,//
-            final int flags,//
-            final IFilterConstructor filter//
-            ) {
-
-//        btreeCounters.nrangeIterator.incrementAndGet();
-
-        /*
-         * Does the iterator declare that it will not write back on the index?
-         */
-        final boolean readOnly = ((flags & IRangeQuery.READONLY) != 0);
-
-        if (readOnly && ((flags & IRangeQuery.REMOVEALL) != 0)) {
-
-            throw new IllegalArgumentException();
-
-        }
-
-        /*
-         * Note: this does not work out since it is not so easy to determine when
-         * the iterator is a point test as toKey is the exclusive upper bound.
-         */
-//        * Note: this method will automatically apply the optional bloom filter to
-//        * reject range iterator requests that correspond to a point test. However
-//        * this can only be done when the fromKey and toKey are both non-null and
-//        * equals and further when the iterator was not requested with any options
-//        * that would permit concurrent modification of the index.
-//        if (isBloomFilter()
-//                && fromKey != null
-//                && toKey != null
-//                && (readOnly || (((flags & REMOVEALL) == 0) && ((flags & CURSOR) == 0)))
-//                && BytesUtil.bytesEqual(fromKey, toKey)) {
-//
-//            /*
-//             * Do a fast rejection test using the bloom filter.
-//             */
-//            if(!getBloomFilter().contains(fromKey)) {
-//                
-//                /*
-//                 * The key is known to not be in the index so return an empty
-//                 * iterator.
-//                 */
-//                return EmptyTupleIterator.INSTANCE;
-//                
-//            }
-//            
-//            /*
-//             * Since the bloom filter accepts the key we fall through into the
-//             * normal iterator logic. Using this code path is still possible
-//             * that the filter gave us a false positive and that the key is not
-//             * (in fact) in the index. Either way, the logic below will sort
-//             * things out.
-//             */
-//            
-//        }
-        
-        /*
-         * Figure out what base iterator implementation to use.  We will layer
-         * on the optional filter(s) below. 
-         */
-        ITupleIterator src;
-
-        if ((this instanceof BTree) && ((flags & REVERSE) == 0)
-                && ((flags & REMOVEALL) == 0) && ((flags & CURSOR) == 0)) {
-
-            /*
-             * Use the recursion-based striterator since it is faster for a
-             * BTree (but not for an IndexSegment).
-             * 
-             * Note: The recursion-based striterator does not support remove()!
-             * 
-             * @todo we could pass in the Tuple here to make the APIs a bit more
-             * consistent across the recursion-based and the cursor based
-             * iterators.
-             * 
-             * @todo when the capacity is one and REVERSE is specified then we
-             * can optimize this using a reverse traversal striterator - this
-             * will have lower overhead than the cursor for the BTree (but not
-             * for an IndexSegment).
-             */
-
-//            src = fastForwardIterator(fromKey, toKey, capacity, flags);
-
-            src = getRoot().rangeIterator(fromKey, toKey, flags);
-
-        } else {
-
-            final Tuple tuple = new Tuple(this, flags);
-
-            if (this instanceof IndexSegment) {
-                
-                final IndexSegment seg = (IndexSegment) this;
-
-                /*
-                 * @todo we could scan the list of pools and chose the best fit
-                 * pool and then allocate a buffer from that pool. Best fit
-                 * would mean either the byte range fits without "too much" slop
-                 * or the #of reads will have to perform is not too large. We
-                 * might also want to limit the maximum size of the reads.
-                 */
-
-//                final DirectBufferPool pool = DirectBufferPool.INSTANCE_10M;
-                final DirectBufferPool pool = DirectBufferPool.INSTANCE;
-                
-                if (true
-                        && ((flags & REVERSE) == 0)
-                        && ((flags & CURSOR) == 0)
-                        && (seg.getStore().getCheckpoint().maxNodeOrLeafLength <= pool
-                                .getBufferCapacity())
-                        && ((rangeCount(fromKey, toKey) / branchingFactor) > 2)) {
-
-                    src = new IndexSegmentMultiBlockIterator(seg, pool,
-                            fromKey, toKey, flags);
-
-                } else {
-
-                    src = new IndexSegmentTupleCursor(seg, tuple, fromKey,
-                            toKey);
-
-                }
-
-            } else if (this instanceof BTree) {
-
-                if (isReadOnly()) {
-
-                    // Note: this iterator does not allow removal.
-                    src = new ReadOnlyBTreeTupleCursor(((BTree) this), tuple,
-                            fromKey, toKey);
-
-                } else {
-
-                    // Note: this iterator supports traversal with concurrent
-                    // modification.
-                    src = new MutableBTreeTupleCursor(((BTree) this),
-                            new Tuple(this, flags), fromKey, toKey);
-
-                }
-
-            } else {
-
-                throw new UnsupportedOperationException(
-                        "Unknown B+Tree implementation: "
-                                + this.getClass().getName());
-
-            }
-
-            if ((flags & REVERSE) != 0) {
-
-                /*
-                 * Reverse scan iterator.
-                 * 
-                 * Note: The reverse scan MUST be layered directly over the
-                 * ITupleCursor. Most critically, REMOVEALL combined with a
-                 * REVERSE scan needs to process the tuples in reverse index
-                 * order and then delete them as it goes.
-                 */
-
-                src = new Reverserator((ITupleCursor) src);
-
-            }
-
-        }
-
-        if (filter != null) {
-
-            /*
-             * Apply the optional filter.
-             * 
-             * Note: This needs to be after the reverse scan and before
-             * REMOVEALL (those are the assumptions for the flags).
-             */
-            
-            src = filter.newInstance(src);
-            
-        }
-        
-        if ((flags & REMOVEALL) != 0) {
-            
-            assertNotReadOnly();
-            
-            /*
-             * Note: This iterator removes each tuple that it visits from the
-             * source iterator.
-             */
-            
-            src = new TupleRemover() {
-                @Override
-                protected boolean remove(ITuple e) {
-                    // remove all visited tuples.
-                    return true;
-                }
-            }.filter(src);
-
-        }
-        
-        return src;
-
-    }
+    //fko ===== needs generic type =====
+    abstract public ITupleIterator rangeIterator(final byte[] fromKey,
+                                                 final byte[] toKey,
+                                                 final int capacityIsIgnored,
+                                                 final int flags,
+                                                 final IFilterConstructor filter);
 
     /**
      * Copy all data, including deleted index entry markers and timestamps iff
@@ -3893,7 +3699,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * {@link Reference} (a runtime security manager exception will result).
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      * 
      * @param <T>
      */

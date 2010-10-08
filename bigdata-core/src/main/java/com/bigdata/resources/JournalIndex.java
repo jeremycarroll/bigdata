@@ -31,7 +31,9 @@ import java.util.UUID;
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.Checkpoint;
 import com.bigdata.btree.DefaultTupleSerializer;
+import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.ASCIIKeyBuilderFactory;
 import com.bigdata.btree.keys.IKeyBuilder;
@@ -43,6 +45,7 @@ import com.bigdata.journal.IJournal;
 import com.bigdata.btree.JournalMetadata;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
+import java.util.Iterator;
 
 /**
  * {@link BTree} mapping {@link IJournal} <em>createTimes</em> (long integers)
@@ -53,7 +56,9 @@ import com.bigdata.rawstore.IRawStore;
  * Note: This is used as a transient data structure that is populated from the
  * file system by the {@link ResourceManager}.
  */
-public class JournalIndex extends BTree {
+public class JournalIndex {
+
+    private BTree btree;
 
     /**
      * Instance used to encode the timestamp into the key.
@@ -69,13 +74,13 @@ public class JournalIndex extends BTree {
     
         final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
         
-        metadata.setBTreeClassName(JournalIndex.class.getName());
+        metadata.setBTreeClassName(BTree.class.getName());
 
         metadata.setTupleSerializer(new TupleSerializer(
                 new ASCIIKeyBuilderFactory(Bytes.SIZEOF_LONG)));
 
-        return (JournalIndex) BTree.createTransient(/*store, */metadata);
-        
+        BTree btree = BTree.createTransient(/*store, */metadata);
+        return new JournalIndex(btree);
     }
 
     /**
@@ -91,7 +96,12 @@ public class JournalIndex extends BTree {
     public JournalIndex(final IRawStore store, final Checkpoint checkpoint,
             final IndexMetadata metadata, final boolean readOnly) {
 
-        super(store, checkpoint, metadata, readOnly);
+        this(new BTree(store, checkpoint, metadata, readOnly));
+
+    }
+
+    private JournalIndex(BTree btree) {
+        this.btree = btree;
 
     }
     
@@ -155,7 +165,7 @@ public class JournalIndex extends BTree {
     private JournalMetadata valueAtIndex(final int index) {
 
         final JournalMetadata entry = (JournalMetadata) SerializerUtil
-                .deserialize(super.valueAt(index));
+                .deserialize(btree.valueAt(index));
 
         return entry;
 
@@ -184,7 +194,7 @@ public class JournalIndex extends BTree {
         // find first strictly greater than.
         final int index = findIndexOf(Math.abs(timestamp)) + 1;
         
-        if (index == nentries) {
+        if (index == btree.getEntryCount()) {
 
             // No match.
 
@@ -207,7 +217,7 @@ public class JournalIndex extends BTree {
      */
     synchronized public int findIndexOf(final long timestamp) {
         
-        int pos = super.indexOf(getKey(timestamp));
+        int pos = btree.indexOf(getKey(timestamp));
         
         if (pos < 0) {
 
@@ -273,7 +283,7 @@ public class JournalIndex extends BTree {
 
         final byte[] key = getKey(createTime);
         
-        if(super.contains(key)) {
+        if(btree.contains(key)) {
             
             throw new IllegalArgumentException("entry exists: timestamp="
                     + createTime);
@@ -281,15 +291,55 @@ public class JournalIndex extends BTree {
         }
         
         // add a serialized entry to the persistent index.
-        super.insert(key, SerializerUtil.serialize(resourceMetadata));
+        btree.insert(key, SerializerUtil.serialize(resourceMetadata));
         
     }
     
+    public int getEntryCount() {
+        return btree.getEntryCount();
+    }
+
+    /**
+     * Iterate over all of the journal metadata in the tree.
+     * @return an Iterator for journal metadata.
+     */
+    public Iterator<JournalMetadata> rangeIterator(boolean useCursor) {
+        if (useCursor) {
+            return new EntryIterator(btree.rangeIterator(null, null, 0,
+                        IRangeQuery.CURSOR | IRangeQuery.DEFAULT, null));
+        } else {
+            return new EntryIterator(btree.rangeIterator());
+        }
+    }
+
+    /**
+     * An iterator mapping
+     */
+    private static class EntryIterator implements Iterator<JournalMetadata> {
+        private ITupleIterator<byte[]> tupleIterator;
+
+        private EntryIterator(ITupleIterator<byte[]> tupleIterator) {
+            this.tupleIterator = tupleIterator;
+        }
+
+        public boolean hasNext() {
+            return tupleIterator.hasNext();
+        }
+
+        public JournalMetadata next() {
+            return (JournalMetadata) SerializerUtil
+                .deserialize(tupleIterator.next().getValue());
+        }
+
+        public void remove() {
+            tupleIterator.remove();
+        }
+    }
+
     /**
      * Encapsulates key and value formation.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     static protected class TupleSerializer extends
             DefaultTupleSerializer<Long, JournalMetadata> {
@@ -343,6 +393,7 @@ public class JournalIndex extends BTree {
          */
         private final static transient byte VERSION = VERSION0;
 
+        @Override
         public void readExternal(final ObjectInput in) throws IOException,
                 ClassNotFoundException {
 
@@ -360,6 +411,7 @@ public class JournalIndex extends BTree {
 
         }
 
+        @Override
         public void writeExternal(final ObjectOutput out) throws IOException {
 
             super.writeExternal(out);

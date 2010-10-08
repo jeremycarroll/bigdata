@@ -53,9 +53,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.zip.Adler32;
 
 import com.bigdata.btree.BTree;
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleIterator;
 import com.bigdata.concurrent.LockManager;
 import com.bigdata.concurrent.LockManagerTask;
 import com.bigdata.config.LongValidator;
@@ -66,6 +63,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.Name2Addr;
 import com.bigdata.journal.RunState;
 import com.bigdata.util.concurrent.ExecutionExceptions;
+import java.util.Iterator;
 
 /**
  * Implementation for an {@link IBigdataFederation} supporting both single-phase
@@ -73,7 +71,6 @@ import com.bigdata.util.concurrent.ExecutionExceptions;
  * distributed commits.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public abstract class DistributedTransactionService extends
         AbstractTransactionService {
@@ -82,7 +79,6 @@ public abstract class DistributedTransactionService extends
      * Options understood by this service.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public interface Options extends AbstractTransactionService.Options {
 
@@ -337,8 +333,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
 
             // the last commit time in the log. @todo write unit test to
             // verify on restart.
-            lastCommitTime = commitTimeIndex.decodeKey(commitTimeIndex
-                    .keyAt(commitTimeIndex.getEntryCount() - 1));
+            lastCommitTime = commitTimeIndex.lastKey();
 
         }
 
@@ -376,7 +371,6 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
      * the approach is less rigorous.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private class SnapshotTask implements Runnable {
       
@@ -461,7 +455,6 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
      *       a {@link ByteBuffer} or using {@link Adler32}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class SnapshotHelper {
 
@@ -536,15 +529,13 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
             
             os.writeInt(entryCount);
             
-            final ITupleIterator itr = ndx.rangeIterator();
+            Iterator<Long> itr = ndx.rangeIterator();
 
             int n = 0;
             
             while (itr.hasNext()) {
 
-                final ITuple tuple = itr.next();
-
-                final long commitTime = ndx.decodeKey(tuple.getKey());
+                final long commitTime = itr.next();
 
                 os.writeLong(commitTime);
 
@@ -569,6 +560,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
         
     }
     
+    @Override
     public DistributedTransactionService start() {
 
         /*
@@ -625,6 +617,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
     private ScheduledFuture notifyFuture = null;
     private ScheduledFuture writeFuture = null;
     
+    @Override
     public void shutdown() {
         
         lock.lock();
@@ -676,6 +669,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
 
     }
 
+    @Override
     public void shutdownNow() {
 
         lock.lock();
@@ -724,6 +718,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
 
     }
     
+    @Override
     public void destroy() {
 
         lock.lock();
@@ -756,6 +751,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
      * the commit times requires for reading on timestamps GTE to the new
      * releaseTime are retained.
      */
+    @Override
     protected void setReleaseTime(long releaseTime) {
         
         super.setReleaseTime(releaseTime);
@@ -778,9 +774,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
                  */
                 final long toKey = commitTimeIndex.find(releaseTime + 1);
 
-                final ITupleIterator itr = commitTimeIndex.rangeIterator(0L,
-                        toKey, 0/* capacity */, IRangeQuery.KEYS
-                                | IRangeQuery.CURSOR, null/* filter */);
+                Iterator<Long> itr = commitTimeIndex.rangeIterator(0L, toKey);
 
                 while (itr.hasNext()) {
 
@@ -819,7 +813,6 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
      * Task runs {@link ITxCommitProtocol#abort(long)}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private static class AbortTask implements Callable<Void> {
         
@@ -1126,7 +1119,6 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
      * </p>
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private class DistributedTxCommitTask implements Callable<Long> {
 
@@ -1442,7 +1434,6 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
          * 
          * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
          *         Thompson</a>
-         * @version $Id$
          */
         private class TaskRunner implements Callable<Void> {
 
@@ -1650,7 +1641,6 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
          * 
          * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
          *         Thompson</a>
-         * @version $Id$
          */
         protected class PrepareTask implements Callable<Void> {
 
@@ -1871,6 +1861,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
      *       as a distributed commit) might require that we catch up on the
      *       commit time notices in the queue. just thinking out loud here.
      */
+    @Override
     final public void notifyCommit(final long commitTime) {
 
         /*
@@ -1934,7 +1925,6 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
      * {@link IDataService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private static class SetReleaseTimeTask implements Callable<Void> {
 
@@ -1986,7 +1976,6 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
      * resources it can release.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class NotifyReleaseTimeTask implements Runnable {
 
@@ -2072,6 +2061,7 @@ log.info(Options.SNAPSHOT_INTERVAL + "=" + snapshotInterval);
     /**
      * Adds counters for the {@link LockManager}.
      */
+    @Override
     synchronized public CounterSet getCounters() {
 
         if (countersRoot == null) {
