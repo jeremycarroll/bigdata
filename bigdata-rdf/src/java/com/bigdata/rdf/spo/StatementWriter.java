@@ -4,12 +4,12 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.log4j.Logger;
+import com.bigdata.rdf.changesets.ChangeRecord;
+import com.bigdata.rdf.changesets.IChangeLog;
+import com.bigdata.rdf.changesets.IChangeRecord.ChangeAction;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataStatement;
-import com.bigdata.rdf.sail.changesets.ChangeRecord;
-import com.bigdata.rdf.sail.changesets.IChangeLog;
-import com.bigdata.rdf.sail.changesets.IChangeRecord.ChangeAction;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.BigdataStatementIteratorImpl;
 import com.bigdata.relation.accesspath.IElementFilter;
@@ -40,8 +40,6 @@ public class StatementWriter implements Callable<Long>{
     
     private final IChangeLog changeLog;
     
-    private final Map<IV, BigdataBNode> bnodes;
-
     /**
      * @param database
      *            The database. If statement identifiers are being generated
@@ -67,14 +65,14 @@ public class StatementWriter implements Callable<Long>{
             IChunkedOrderedIterator<ISPO> itr, AtomicLong nwritten) {
 
         this(database, statementStore, copyOnly, itr, nwritten, 
-                null/* changeLog */, null/* bnodes */);
+                null/* changeLog */);
         
     }
         
     public StatementWriter(final AbstractTripleStore database,
             final AbstractTripleStore statementStore, final boolean copyOnly,
             final IChunkedOrderedIterator<ISPO> itr, final AtomicLong nwritten,
-            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes) {
+            final IChangeLog changeLog) {
         
         if (database == null)
             throw new IllegalArgumentException();
@@ -100,8 +98,6 @@ public class StatementWriter implements Callable<Long>{
         
         this.changeLog = changeLog;
         
-        this.bnodes = bnodes;
-
     }
 
     /**
@@ -122,14 +118,13 @@ public class StatementWriter implements Callable<Long>{
             
         } else {
 
-            n = com.bigdata.rdf.sail.changesets.StatementWriter.addStatements(
+            n = com.bigdata.rdf.changesets.StatementWriter.addStatements(
                     database, 
                     statementStore, 
                     copyOnly, 
                     null/* filter */, 
                     itr, 
-                    changeLog, 
-                    bnodes);
+                    changeLog);
             
         }
         

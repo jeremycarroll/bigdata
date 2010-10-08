@@ -35,9 +35,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.bigdata.rdf.changesets.IChangeLog;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.BigdataBNode;
-import com.bigdata.rdf.sail.changesets.IChangeLog;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.ISPOAssertionBuffer;
 import com.bigdata.rdf.spo.JustificationWriter;
@@ -106,10 +106,11 @@ public class SPOAssertionBuffer extends AbstractSPOBuffer implements ISPOAsserti
      */
     protected final boolean justify;
     
+    /**
+     * Used for change set notification (optional).
+     */
     protected final IChangeLog changeLog;
     
-    protected final Map<IV, BigdataBNode> bnodes;
-        
     /**
      * Create a buffer.
      * 
@@ -135,14 +136,35 @@ public class SPOAssertionBuffer extends AbstractSPOBuffer implements ISPOAsserti
             boolean justified) {
 
         this(focusStore, db, filter, capacity, justified,
-                null/* changeLog */, null/* bnodes */);
+                null/* changeLog */);
         
     }
     
+    /**
+     * Create a buffer.
+     * 
+     * @param focusStore
+     *            The focusStore on which the entailments computed by closure
+     *            will be written (required). This is either the database or a
+     *            temporary focusStore used during incremental TM.
+     * @param db
+     *            The database in which the terms are defined (required).
+     * @param filter
+     *            Option filter. When present statements matched by the filter
+     *            are NOT retained by the {@link SPOAssertionBuffer} and will
+     *            NOT be added to the <i>focusStore</i>.
+     * @param capacity
+     *            The maximum {@link SPO}s that the buffer can hold before it
+     *            is {@link #flush()}ed.
+     * @param justified
+     *            true iff the Truth Maintenance strategy requires that we
+     *            focusStore {@link Justification}s for entailments.
+     * @param changeLog
+     *            optional change log for change notification
+     */
     public SPOAssertionBuffer(AbstractTripleStore focusStore,
             AbstractTripleStore db, IElementFilter<ISPO> filter, int capacity,
-            boolean justified,
-            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes
+            boolean justified, final IChangeLog changeLog
             ) {        
 
         super(db, filter, capacity);
@@ -162,8 +184,6 @@ public class SPOAssertionBuffer extends AbstractSPOBuffer implements ISPOAsserti
         justifications = justified ? new Justification[capacity] : null;
         
         this.changeLog = changeLog;
-        
-        this.bnodes = bnodes;
         
     }
     
@@ -214,15 +234,13 @@ public class SPOAssertionBuffer extends AbstractSPOBuffer implements ISPOAsserti
                 
             } else {
                 
-                n = com.bigdata.rdf.sail.changesets.
-                        StatementWriter.addStatements(
+                n = com.bigdata.rdf.changesets.StatementWriter.addStatements(
                                 db, 
                                 focusStore, 
                                 true/* copyOnly */, 
                                 null/* filter */, 
                                 new ChunkedArrayIterator<ISPO>(numStmts, stmts, null/*keyOrder*/), 
-                                changeLog, 
-                                bnodes);
+                                changeLog);
                 
             }
 
@@ -249,7 +267,7 @@ public class SPOAssertionBuffer extends AbstractSPOBuffer implements ISPOAsserti
             tasks.add(new StatementWriter(getTermDatabase(), focusStore,
                     false/* copyOnly */, new ChunkedArrayIterator<ISPO>(
                             numStmts, stmts, null/*keyOrder*/), nwritten, 
-                            changeLog, bnodes));
+                            changeLog));
             
             // task will write justifications on the justifications index.
             final AtomicLong nwrittenj = new AtomicLong();

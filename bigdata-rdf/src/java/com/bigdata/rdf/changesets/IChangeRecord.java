@@ -1,7 +1,8 @@
-package com.bigdata.rdf.sail.changesets;
+package com.bigdata.rdf.changesets;
 
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.StatementEnum;
+import com.bigdata.rdf.spo.ISPO;
 
 /**
  * Provides detailed information on changes made to statements in the database.
@@ -31,7 +32,7 @@ public interface IChangeRecord {
          * operation.  If the focus statement has a statement type of inferred
          * then it was added via truth maintenance.
          */
-        ADDED,
+        INSERTED,
         
         /**
          * The focus statement was in the database before and will not 
@@ -74,7 +75,7 @@ public interface IChangeRecord {
          * axiom. </li>
          * </ul>
          */
-        TYPE_CHANGE,
+        UPDATED,
         
 //        /**
 //         * This change action can occur for one of two reasons:
@@ -91,12 +92,12 @@ public interface IChangeRecord {
     }
     
     /**
-     * Return the statement that is the focus of this change record.
+     * Return the ISPO that is the focus of this change record.
      * 
      * @return
-     *          the {@link BigdataStatement}
+     *          the {@link ISPO}
      */
-    BigdataStatement getStatement();
+    ISPO getStatement();
     
     /**
      * Return the change action for this change record.

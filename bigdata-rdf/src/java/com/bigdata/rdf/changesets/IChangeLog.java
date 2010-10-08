@@ -1,4 +1,4 @@
-package com.bigdata.rdf.sail.changesets;
+package com.bigdata.rdf.changesets;
 
 /**
  * Provides detailed information on changes made to statements in the database.

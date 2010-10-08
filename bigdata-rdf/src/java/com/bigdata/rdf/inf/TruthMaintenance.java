@@ -54,13 +54,13 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
 import com.bigdata.journal.TemporaryStore;
+import com.bigdata.rdf.changesets.IChangeLog;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.model.StatementEnum;
 import com.bigdata.rdf.rio.IStatementBuffer;
 import com.bigdata.rdf.rules.InferenceEngine;
-import com.bigdata.rdf.sail.changesets.IChangeLog;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
@@ -244,15 +244,39 @@ public class TruthMaintenance {
             ) {
     
         return applyExistingStatements(focusStore, database, filter,
-                null/* changeLog */, null/* bnodes */);
+                null/* changeLog */);
         
     }
     
+    
+    /**
+     * Any statements in the <i>fousStore</i> that are already in the database
+     * are converted to explicit statements (iff they are not already explicit)
+     * and <strong>removed</strong> from the <i>focusStore</i> as a
+     * side-effect. This prevents the application of the rules to data that is
+     * already known to the database.
+     * 
+     * @param focusStore
+     *            The store whose closure is being computed.
+     * @param database
+     *            The database.
+     * @param filter
+     *            An optional filter. Statements matching the filter are NOT
+     *            written on the database, but they are still removed from the
+     *            focusStore.
+     * @param changeLog
+     *            optional change log for change notification
+     * 
+     * @return The #of statements that were removed from the focusStore.
+     * 
+     * @todo this uses some techniques that are not scaleable if the focusStore
+     *       is extremely large.
+     */
     static public int applyExistingStatements(
             final AbstractTripleStore focusStore,
             final AbstractTripleStore database,
             final IElementFilter<ISPO> filter,    
-            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes
+            final IChangeLog changeLog
             ) {
         
         if(INFO) 
@@ -286,7 +310,7 @@ public class TruthMaintenance {
 
             final SPOAssertionBuffer assertionBuffer = new SPOAssertionBuffer(
                     database, database, filter, capacity, false/* justified */, 
-                    changeLog, bnodes);
+                    changeLog);
 
             /*
              * This buffer will retract statements from the tempStore that are
@@ -385,12 +409,26 @@ public class TruthMaintenance {
      */
     public ClosureStats assertAll(final TempTripleStore tempStore) {
 
-        return assertAll(tempStore, null/* changeLog */, null/* bnodes */);
+        return assertAll(tempStore, null/* changeLog */);
         
     }
         
+    /**
+     * Perform truth maintenance for statement assertion.
+     * <p>
+     * This method computes the closure of the temporary store against the
+     * database, writing entailments into the temporary store. Once all
+     * entailments have been computed, it then copies the all statements in the
+     * temporary store into the database and deletes the temporary store.
+     * 
+     * @param tempStore
+     *            A temporary store containing statements to be asserted. The
+     *            tempStore will be closed as a post-condition.
+     * @param changeLog
+     *            optional change log for change notification
+     */
     public ClosureStats assertAll(final TempTripleStore tempStore, 
-            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes) {
+            final IChangeLog changeLog) {
 
         if (tempStore == null) {
 
@@ -436,7 +474,8 @@ public class TruthMaintenance {
          * consistent if we change our mind about that practice.
          */
 
-        applyExistingStatements(tempStore, database, inferenceEngine.doNotAddFilter, changeLog, bnodes);
+        applyExistingStatements(tempStore, database, 
+                inferenceEngine.doNotAddFilter, changeLog);
 
         final ClosureStats stats = inferenceEngine.computeClosure(tempStore);
 
@@ -457,7 +496,7 @@ public class TruthMaintenance {
 
         final long ncopied = tempStore.copyStatements(database,
                 null/* filter */, true /* copyJustifications */, 
-                changeLog, bnodes);
+                changeLog);
         
 //        database.dumpStore(database,true,true,false,true);
 
@@ -506,12 +545,35 @@ public class TruthMaintenance {
      */
     public ClosureStats retractAll(final TempTripleStore tempStore) {
 
-        return retractAll(tempStore, null/* changeLog */, null/* bnodes */);
+        return retractAll(tempStore, null/* changeLog */);
         
     }
     
+    /**
+     * Perform truth maintenance for statement retraction.
+     * <p>
+     * When the closure is computed, each statement to be retracted is examined
+     * to determine whether or not it is still entailed by the database without
+     * the support of the statements that were explicitly retracted. Statements
+     * that were explicit in the database that are still provable are converted
+     * to inferences. Statements which can no longer be proven (i.e., that are
+     * not supported by a grounded {@link Justification} chain) are retracted
+     * from the database and added into another temporary store and their
+     * justifications are deleted from the database. This process repeats with
+     * the new temporary store until no fixed point (no more ungrounded
+     * statements are identified).
+     * 
+     * @param tempStore
+     *            A temporary store containing explicit statements to be
+     *            retracted from the database. The tempStore will be closed and
+     *            as a post-condition.
+     * @param changeLog
+     *            optional change log for change notification
+     * 
+     * @return statistics about the closure operation.
+     */
     public ClosureStats retractAll(final TempTripleStore tempStore,
-            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes) {
+            final IChangeLog changeLog) {
             
         final long begin = System.currentTimeMillis();
         
@@ -547,7 +609,7 @@ public class TruthMaintenance {
         }
 
         // do truth maintenance.
-        retractAll(stats, tempStore, 0, changeLog, bnodes);
+        retractAll(stats, tempStore, 0, changeLog);
         
         MDC.remove("depth");
         
@@ -624,10 +686,12 @@ public class TruthMaintenance {
      *            Recursive depth - this is ZERO(0) the first time the method is
      *            called. At depth ZERO(0) the tempStore MUST contain only the
      *            explicit statements to be retracted.
+     * @param changeLog
+     *            optional change log for change notification
      */
     private void retractAll(final ClosureStats stats,
             final TempTripleStore tempStore, final int depth,
-            final IChangeLog changeLog, final Map<IV, BigdataBNode> bnodes) {
+            final IChangeLog changeLog) {
 
         MDC.put("depth", "depth=" + depth);
         
@@ -651,7 +715,8 @@ public class TruthMaintenance {
 //      final TempTripleStore focusStore = new TempTripleStore(database.getProperties(), database);
         
         // consider each statement in the tempStore.
-        final IChunkedOrderedIterator<ISPO> itr = tempStore.getAccessPath(SPOKeyOrder.SPO).iterator();
+        final IChunkedOrderedIterator<ISPO> itr = 
+            tempStore.getAccessPath(SPOKeyOrder.SPO).iterator();
 
         final long nretracted;
         final long ndowngraded;
@@ -677,8 +742,7 @@ public class TruthMaintenance {
                     null, //filter @todo was inferenceEngine.doNotAddFilter,
                     capacity,//
                     false,// justify
-                    changeLog,
-                    bnodes
+                    changeLog
                     );
 
             /*
@@ -696,7 +760,7 @@ public class TruthMaintenance {
              */
             final SPORetractionBuffer retractionBuffer = new SPORetractionBuffer(
                     database, capacity, false/* computeClosureForStatementIdentifiers */, 
-                    changeLog, bnodes);
+                    changeLog);
 
             /*
              * Note: when we enter this method recursively statements in the
@@ -1003,7 +1067,7 @@ public class TruthMaintenance {
          * Recursive processing.
          */
         
-        retractAll(stats, focusStore, depth + 1, changeLog, bnodes);
+        retractAll(stats, focusStore, depth + 1, changeLog);
 
     }
 

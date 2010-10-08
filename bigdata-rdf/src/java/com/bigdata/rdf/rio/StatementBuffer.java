@@ -40,6 +40,9 @@ import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 
+import com.bigdata.rdf.changesets.ChangeRecord;
+import com.bigdata.rdf.changesets.IChangeLog;
+import com.bigdata.rdf.changesets.IChangeRecord.ChangeAction;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataResource;
@@ -48,9 +51,6 @@ import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.StatementEnum;
-import com.bigdata.rdf.sail.changesets.ChangeRecord;
-import com.bigdata.rdf.sail.changesets.IChangeLog;
-import com.bigdata.rdf.sail.changesets.IChangeRecord.ChangeAction;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -879,28 +879,6 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
 //        final long nwritten = writeSPOs(sids ? tmp.clone() : tmp, numStmts);
         final long nwritten = writeSPOs(tmp.clone(), numStmts);
 
-        // Copy the state of the isModified() flag
-        {
-
-            for (int i = 0; i < numStmts; i++) {
-
-                if (tmp[i].isModified()) {
-
-                    stmts[i].setModified(true);
-                    
-                    if (changeLog != null) {
-                        
-                        changeLog.changeEvent(
-                                new ChangeRecord(stmts[i], ChangeAction.ADDED));
-                        
-                    }
-
-                }
-                
-            }
-            
-        }
-        
         if (sids) {
 
             /*
@@ -972,6 +950,34 @@ public class StatementBuffer<S extends Statement> implements IStatementBuffer<S>
                 
         }
 
+        // Copy the state of the isModified() flag
+        for (int i = 0; i < numStmts; i++) {
+
+            if (tmp[i].isModified()) {
+
+                stmts[i].setModified(tmp[i].getModified());
+                
+                if (changeLog != null) {
+                    
+                    switch(stmts[i].getModified()) {
+                    case INSERTED:
+                        changeLog.changeEvent(new ChangeRecord(stmts[i], ChangeAction.INSERTED));
+                        break;
+                    case UPDATED:
+                        changeLog.changeEvent(new ChangeRecord(stmts[i], ChangeAction.UPDATED));
+                        break;
+                    case REMOVED:
+                        throw new AssertionError();
+                    default:
+                        break;
+                    }
+                    
+                }
+
+            }
+            
+        }
+        
         return nwritten;
         
     }

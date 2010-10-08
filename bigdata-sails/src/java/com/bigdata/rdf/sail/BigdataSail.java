@@ -119,6 +119,11 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.rdf.axioms.NoAxioms;
+import com.bigdata.rdf.changesets.ChangeRecord;
+import com.bigdata.rdf.changesets.IChangeLog;
+import com.bigdata.rdf.changesets.IChangeRecord;
+import com.bigdata.rdf.changesets.StatementWriter;
+import com.bigdata.rdf.changesets.IChangeRecord.ChangeAction;
 import com.bigdata.rdf.inf.TruthMaintenance;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.BigdataBNode;
@@ -129,11 +134,6 @@ import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.rules.BackchainAccessPath;
 import com.bigdata.rdf.rules.InferenceEngine;
-import com.bigdata.rdf.sail.changesets.ChangeRecord;
-import com.bigdata.rdf.sail.changesets.IChangeLog;
-import com.bigdata.rdf.sail.changesets.IChangeRecord;
-import com.bigdata.rdf.sail.changesets.StatementWriter;
-import com.bigdata.rdf.sail.changesets.IChangeRecord.ChangeAction;
 import com.bigdata.rdf.spo.ExplicitSPOFilter;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.InferredSPOFilter;
@@ -1446,13 +1446,13 @@ public class BigdataSail extends SailBase implements Sail {
                     assertBuffer = new StatementBuffer<Statement>(database,
                             bufferCapacity);
 
+                    assertBuffer.setChangeLog(changeLog);
+
                 }
 
                 // FIXME bnodes : must also track the reverse mapping [bnodes2].
                 assertBuffer.setBNodeMap(bnodes);
                 
-                assertBuffer.setChangeLog(changeLog);
-
             }
 
             return assertBuffer;
@@ -2331,11 +2331,13 @@ public class BigdataSail extends SailBase implements Sail {
                 } else {
                 
                     final IChunkedOrderedIterator<ISPO> itr = 
-                        database.getAccessPath(s, p, o, c).iterator();
+                        database.computeClosureForStatementIdentifiers(
+                                database.getAccessPath(s, p, o, c).iterator());
                     
+                    // no need to compute closure for sids since we just did it
                     n = StatementWriter.removeStatements(database, itr, 
-                            true/* computeClosureForStatementIdentifiers */,
-                            changeLog, bnodes2);
+                            false/* computeClosureForStatementIdentifiers */,
+                            changeLog);
                     
 //                    final IAccessPath<ISPO> ap = 
 //                        database.getAccessPath(s, p, o, c);
@@ -2705,7 +2707,7 @@ public class BigdataSail extends SailBase implements Sail {
                     // do TM, writing on the database.
                     tm.assertAll(
                             (TempTripleStore)assertBuffer.getStatementStore(), 
-                            changeLog, bnodes2);
+                            changeLog);
 
                     // must be reallocated on demand.
                     assertBuffer = null;
@@ -2723,7 +2725,7 @@ public class BigdataSail extends SailBase implements Sail {
                 
                     // do TM, writing on the database.
                     tm.retractAll((TempTripleStore)retractBuffer.getStatementStore(),
-                            changeLog, bnodes2);
+                            changeLog);
 
                     // must be re-allocated on demand.
                     retractBuffer = null;
@@ -3456,7 +3458,7 @@ public class BigdataSail extends SailBase implements Sail {
             
             this.changeLog = changeLog;
             
-            if (assertBuffer != null) {
+            if (assertBuffer != null  && !getTruthMaintenance()) {
                 
                 assertBuffer.setChangeLog(changeLog);
                 
