@@ -143,7 +143,7 @@
                             <!-- These system properties are required by the unit tests. -->
                             <systemPropertyVariables>
                                 <java.security.policy>${java.security.policy}</java.security.policy>
-                                <java.net.preferIPv4Stack>{java.net.preferIPv4Stack}</java.net.preferIPv4Stack>
+                                <java.net.preferIPv4Stack>${java.net.preferIPv4Stack}</java.net.preferIPv4Stack>
                                 <log4j.configuration>${log4j.configuration}</log4j.configuration>
 
                                 <app.home>${app.home}</app.home> <!-- This is the deployment directory, easily accessed by the DataFinder class. -->
@@ -170,13 +170,9 @@
                                 <slf4j.jar>${deploy.lib}/slf4j.jar</slf4j.jar>
                                 <nxparser.jar>${deploy.lib}/nxparser.jar</nxparser.jar>
                                 <zookeeper.jar>${deploy.lib}/zookeeper.jar</zookeeper.jar>
-
-
-
-				<basedir>${deploy.dir}/testing</basedir>
-
-
-
+                                
+                                <basedir>${deploy.dir}/testing</basedir>
+                                
                             </systemPropertyVariables>
                         </configuration>
                     </execution>
