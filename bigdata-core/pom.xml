@@ -170,9 +170,6 @@
                                 <slf4j.jar>${deploy.lib}/slf4j.jar</slf4j.jar>
                                 <nxparser.jar>${deploy.lib}/nxparser.jar</nxparser.jar>
                                 <zookeeper.jar>${deploy.lib}/zookeeper.jar</zookeeper.jar>
-                                
-                                <basedir>${deploy.dir}/testing</basedir>
-                                
                             </systemPropertyVariables>
                         </configuration>
                     </execution>
