@@ -48,6 +48,12 @@ import java.util.UUID;
  * invoked from within a Jini configuration.
  */
 public class ConfigDeployUtil {
+	
+	private ConfigDeployUtil() {
+		//prevent instantiation
+		throw new AssertionError
+            ("ConfigDeployUtil cannot be instantiated");
+	}
 
     private static Properties deploymentProps = null;
 
@@ -63,6 +69,22 @@ public class ConfigDeployUtil {
     //use current locale
     private static final NumberFormat numberFormat = NumberFormat.getInstance();
 
+    /**
+     * Gets the <code>String</code> value associated with the given parameter 
+     * in the configured properties file. The value, if any, returned will be:
+     * 1) the explicitly defined value for the property, or
+     * 2) the default value for that property, if a default exists. 
+     * If the provided parameter has an associated set of valid entries in the
+     * properties files, then the value obtained, above, will be validated 
+     * against those entries. If either the value (explicit or default) can't be
+     * found or fails the validation check,
+     * a <code>ConfigurationException</code> will be thrown.
+     * @param parameter The property name to lookup
+     * @return the <code>String</code> value associated the requested parameter,
+     *     if available
+     * @throws ConfigurationException if the parameter value 
+     *     (explicit or default) was not defined.
+     */
     public static String getString(String parameter) 
                              throws ConfigurationException
     {
@@ -70,7 +92,23 @@ public class ConfigDeployUtil {
         validateString(parameter, value);
         return value;
     }
-
+    
+    /**
+     * Gets the <code>String[]</code> value associated with the given parameter 
+     * in the configured properties file. The value, if any, returned will be:
+     * 1) the explicitly defined value for the property, or
+     * 2) the default value for that property, if a default exists. 
+     * If the provided parameter has an associated set of valid entries in the
+     * properties files, then the component values obtained, above, will be validated 
+     * against those entries. If either the value (explicit or default) can't be
+     * found or fails the validation check,
+     * a <code>ConfigurationException</code> will be thrown.
+     * @param parameter The property name to lookup
+     * @return the <code>String[]</code> value associated the requested parameter,
+     *     if available
+     * @throws ConfigurationException if the parameter value 
+     *     (explicit or default) was not defined.
+     */    
     public static String[] getStringArray(String parameter)
                                throws ConfigurationException
     {
@@ -79,11 +117,45 @@ public class ConfigDeployUtil {
         return value;
     }
 
+    /**
+     * Gets the <code>int</code> value associated with the given parameter 
+     * in the configured properties file. The value, if any, returned will be:
+     * 1) the explicitly defined value for the property, or
+     * 2) the default value for that property, if a default exists. 
+     * If the provided parameter has an associated set of valid entries in the
+     * properties files, then the value obtained, above, will be validated 
+     * against those entries. If either the value (explicit or default) can't be
+     * found or fails the validation check,
+     * a <code>ConfigurationException</code> will be thrown.
+     * @param parameter The property name to lookup
+     * @return the <code>int</code> value associated the requested parameter,
+     *     if available
+     * @throws ConfigurationException if the parameter value 
+     *     (explicit or default) was not defined.
+     */    
+
     public static int getInt(String parameter) throws ConfigurationException {
         int value;
         value = validateInt(parameter, get(parameter));
         return value;
     }
+
+    /**
+     * Gets the <code>long</code> value associated with the given parameter 
+     * in the configured properties file. The value, if any, returned will be:
+     * 1) the explicitly defined value for the property, or
+     * 2) the default value for that property, if a default exists. 
+     * If the provided parameter has an associated set of valid entries in the
+     * properties files, then the value obtained, above, will be validated 
+     * against those entries. If either the value (explicit or default) can't be
+     * found or fails the validation check,
+     * a <code>ConfigurationException</code> will be thrown.
+     * @param parameter The property name to lookup
+     * @return the <code>long</code> value associated the requested parameter,
+     *     if available
+     * @throws ConfigurationException if the parameter value 
+     *     (explicit or default) was not defined.
+     */    
 
     public static long getLong(String parameter) throws ConfigurationException
     {
@@ -92,6 +164,22 @@ public class ConfigDeployUtil {
         return value;
     }
 
+    /**
+     * Gets the <code>boolean</code> value associated with the given parameter 
+     * in the configured properties file. The value, if any, returned will be:
+     * 1) the explicitly defined value for the property, or
+     * 2) the default value for that property, if a default exists. 
+     * If the provided parameter has an associated set of valid entries in the
+     * properties files, then the value obtained, above, will be validated 
+     * against those entries. If either the value (explicit or default) can't be
+     * found or fails the validation check,
+     * a <code>ConfigurationException</code> will be thrown.
+     * @param parameter The property name to lookup
+     * @return the <code>boolean</code> value associated the requested parameter,
+     *     if available
+     * @throws ConfigurationException if the parameter value 
+     *     (explicit or default) was not defined.
+     */    
     public static boolean getBoolean(String parameter) throws ConfigurationException
     {
         boolean value;
@@ -114,6 +202,17 @@ public class ConfigDeployUtil {
         return boolValue;
     }
 
+    /**
+     * Gets the description value associated with the given parameter 
+     * in the configured properties file. The method returns 
+     * <code>null</code> if the property is not found.
+     * @param parameter The property name to lookup
+     * @return the <code>String</code> value associated the requested parameter,
+     *     if available. Otherwise return <code>null</code>
+     * @throws ConfigurationException if there was a problem accessing
+     *     the parameter value.
+     */    
+
     public static String getDescription(String parameter)
                              throws ConfigurationException
     {
@@ -121,6 +220,18 @@ public class ConfigDeployUtil {
         value = getDeploymentProperties().getProperty(parameter + DESCRIPTION);
         return value;
     }
+
+    /**
+     * Gets the type value associated with the given parameter 
+     * in the configured properties file. The method returns 
+     * <code>null</code> if the property is not found.
+     * @param parameter The property name to lookup
+     * @return the <code>String</code> value of the type 
+     * associated the requested parameter,
+     *     if available. Otherwise return <code>null</code>
+     * @throws ConfigurationException if there was a problem accessing
+     *     the parameter value.
+     */    
 
     public static String getType(String parameter)
                              throws ConfigurationException
@@ -130,6 +241,15 @@ public class ConfigDeployUtil {
         return value;
     }
 
+    /**
+     * Gets the default value associated with the given parameter 
+     * in the configured properties file. 
+     * @param parameter The property name to lookup
+     * @return the <code>String</code> value of the type 
+     * associated the requested parameter,
+     *     if available. Otherwise return <code>null</code>
+     * @throws ConfigurationException if no default value was specified
+     */        
     public static String getDefault(String parameter) 
                              throws ConfigurationException
     {
@@ -445,10 +565,9 @@ public class ConfigDeployUtil {
      * (defined in <code>loadDefaultProps</code> and <code>loadOverrideProps</code>). 
      * This method is synchronized in order to ensure that the returned reference is
      * a singleton instance.
-     * Note: This method should be private, but is needed by the unit test in order
-     * to access and modify the <code>Properties</code> method.
-     * @return Properties instance containing the default and user-defined overrides 
-     *     for configuration properties.
+     * Note: This method should be private, but is needed by the unit tests in order
+     * to access and modify the underlying <code>Properties</code> object.
+     * @return Properties instance containing the configuration properties.
      */
     synchronized static Properties getDeploymentProperties() {    
 	    if(deploymentProps == null) {

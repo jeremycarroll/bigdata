@@ -115,6 +115,22 @@ public class ConfigDeployUtilTest {
 		String expected = value;
 		assertEquals(actual, expected);
 	}
+	
+	/**
+	 * Test method for {@link com.bigdata.util.config.ConfigDeployUtil#getString(java.lang.String)}.
+	 * @throws ConfigurationException 
+	 */
+	@Test
+	public void testGetString_valid_name_default() throws ConfigurationException {	
+		String key = "testGetString_valid_name";
+        String value = key + "_value";
+		Properties p = ConfigDeployUtil.getDeploymentProperties();
+		p.setProperty(key+".default", value);					
+		p.setProperty(key+".stringvals", value + ",other");							
+		String actual = ConfigDeployUtil.getString(key);
+		String expected = value;
+		assertEquals(actual, expected);
+	}
 
 	/**
 	 * Test method for {@link com.bigdata.util.config.ConfigDeployUtil#getString(java.lang.String)}.
@@ -126,6 +142,25 @@ public class ConfigDeployUtilTest {
         String value = key + "_value";
 		Properties p = ConfigDeployUtil.getDeploymentProperties();
 		p.setProperty(key, value);					
+		p.setProperty(key+".stringvals", "other1,other2");							
+		try {
+			ConfigDeployUtil.getString(key);
+			fail("Successfully called getString with bogus parameter string: [" 
+					+ key + ":" + value + "]");
+		} catch (ConfigurationException e) {
+			//ignore -- exception
+		}		
+	}
+	/**
+	 * Test method for {@link com.bigdata.util.config.ConfigDeployUtil#getString(java.lang.String)}.
+	 * @throws ConfigurationException 
+	 */
+	@Test
+	public void testGetString_invalid_name_default() throws ConfigurationException {	
+		String key = "testGetString_invalid_name";
+        String value = key + "_value";
+		Properties p = ConfigDeployUtil.getDeploymentProperties();
+		p.setProperty(key+".default", value);					
 		p.setProperty(key+".stringvals", "other1,other2");							
 		try {
 			ConfigDeployUtil.getString(key);

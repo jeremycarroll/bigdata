@@ -28,10 +28,10 @@ package com.bigdata.util.config;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import com.sun.jini.config.ConfigUtil;
 import net.jini.url.httpmd.HttpmdUtil;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 
 /**
  * Utility class that provides a set of static convenience methods
@@ -43,6 +43,11 @@ import java.io.IOException;
  * This class cannot be instantiated.
  */
 public class ConfigurationUtil {
+	
+	private ConfigurationUtil() {
+		//prevent instantiation
+		throw new AssertionError
+            ("ConfigurationUtil cannot be instantiated");	}
 
     private static final Logger logger = 
         LogUtil.getLog4jLogger( ConfigurationUtil.class );
@@ -95,7 +100,7 @@ public class ConfigurationUtil {
      * <p>
      * Note that the <code>name</code> parameter is handled specially by
      * this method. The value input to that <code>String</code> parameter
-     * is interpretted in one of two ways by this method:
+     * is interpreted in one of two ways by this method:
      * <p><ul>
      *   <li> The name of the local <i>network interface</i> over which the
      *        class server will communicate with clients requesting the
@@ -109,7 +114,7 @@ public class ConfigurationUtil {
      * This method first treats the value of the <code>name</code> parameter
      * as a network interface, attempting to determine that interface's
      * corresponding IP address. Should that attempt fail, then this method
-     * then assumes that the caller intended this parameter to be interpretted
+     * then assumes that the caller intended this parameter to be interpreted
      * as an IP address or host name; in which case, this method uses
      * the value of the parameter as the <i>address/host</i> component of
      * codebase being constructed.
@@ -181,7 +186,7 @@ public class ConfigurationUtil {
      *         any value, including <code>null</code>).
      *
      * @throws IllegalArgumentException if the value input for 
-     *         <code>port</code> is negtive.
+     *         <code>port</code> is negative.
      */
     public static String computeCodebase(String  name,
                                          String  jarFile,
@@ -219,6 +224,10 @@ public class ConfigurationUtil {
             // must be a hostname  
             logger.log(Level.TRACE, name+" - not a valid "
                            +"network interface, assuming host name");
+        }
+        if (ipAddr==null) {
+        	throw new UnknownHostException(
+        		"Could not determine IP address for given name:" + name);
         }
 
         // Construct the codebase, either httpmd or http 

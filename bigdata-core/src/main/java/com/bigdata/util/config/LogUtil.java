@@ -25,11 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.util.config;
 
-import java.io.File;
-import java.util.Set;
-import java.util.HashSet;
-
-import com.bigdata.DataFinder;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.xml.DOMConfigurator;
@@ -78,13 +73,30 @@ public class LogUtil {
         }
     }
 
+    /**
+     * Return log4j logger for the provided <code>String<code> argument.
+     * @param componentName The name of the logger to return
+     * @return log4j logger associated with the provided name
+     */
     public static Logger getLog4jLogger(String componentName) {
         return Logger.getLogger(componentName);
     }
 
+    /**
+     * Return log4j logger for the provided <code>Class<code> argument.
+     * @param componentClass The class whose name will be used to return the 
+     *     associated logger.
+     * @return log4j logger associated with the provided class' name
+     */
+
     public static Logger getLog4jLogger(Class componentClass) {
         return Logger.getLogger(componentClass);
     }
+
+	/**
+     * Return the root log4j logger.
+	 * @return the root log4j logger
+	 */
 
     public static Logger getLog4jRootLogger() {
         return Logger.getRootLogger();

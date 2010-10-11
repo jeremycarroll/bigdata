@@ -60,11 +60,12 @@ public class Log4jLoggingHandler extends Handler {
             this.log4jLogger = LogUtil.getLog4jRootLogger();
         }
 
-        // Get the handler's configuration
+        // Set the handler's configuration
         this.setLevel(java.util.logging.Level.FINEST);
         this.setFormatter(new SimpleFormatter());
     }
 
+    @Override
     public void publish(LogRecord record) {
         if(! isLoggable(record)) return;
 
@@ -79,8 +80,10 @@ public class Log4jLoggingHandler extends Handler {
             ( new XLoggingEvent(log4jLogger, record, formattedMessage) );
     }
 
+    @Override
     public void close() { /* no-op */ }
 
+    @Override
     public void flush() { /* no-op */ }
 
 
