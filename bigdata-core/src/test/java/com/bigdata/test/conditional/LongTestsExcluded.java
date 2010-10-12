@@ -32,9 +32,9 @@ package com.bigdata.test.conditional;
  */
 public class LongTestsExcluded
 {
-    private final static String INCLUDE_LONG_TESTS_PROP = "com.bigdata.test.includeLongTests";    
+    private final static String EXCLUDE_LONG_TESTS_PROP = "com.bigdata.test.excludeLongTests";    
     public final static boolean test()
     {
-        return !Boolean.getBoolean(INCLUDE_LONG_TESTS_PROP);
+        return Boolean.getBoolean(EXCLUDE_LONG_TESTS_PROP);
     }
 }
