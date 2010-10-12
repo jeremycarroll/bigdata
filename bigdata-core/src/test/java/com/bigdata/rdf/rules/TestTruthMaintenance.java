@@ -67,6 +67,10 @@ import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.striterator.ChunkedArrayIterator;
 import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+import com.bigdata.test.conditional.ConditionalParameterized;
+import com.bigdata.test.conditional.IgnoreIf;
+import com.bigdata.test.conditional.LongTestsExcluded;
+
 import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -83,8 +87,9 @@ import org.junit.runners.Parameterized.Parameters;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
-@RunWith(Parameterized.class)
+@RunWith(ConditionalParameterized.class)
 public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
+
 
     /**
      * 
@@ -928,6 +933,7 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
      * @todo use data files that we can bundle with the distribution.
      */
     @Test
+    @IgnoreIf(LongTestsExcluded.class)
     public void test_stress() {
 
 //        fail("enable test");
