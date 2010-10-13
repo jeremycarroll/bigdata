@@ -995,9 +995,14 @@ public class NicUtilTest {
 			String ip = 
 				NicUtil.getIpAddress(
 					propName, (String)arg[0], ((Boolean)arg[1]).booleanValue());
-			assertTrue(ipv4Exists(ip, true));		
+			assertTrue(ipv4LoopbackAddress(ip));		
 		}
 	}	
+
+	private boolean ipv4LoopbackAddress(String ip) {
+		//The whole 127.* range is considered loopback
+		return ip.startsWith("127.");
+	}
 
 	@Test
 	public void testGetIpAddressStringStringBoolean_unset_prop_valid_default() 
@@ -1035,7 +1040,7 @@ public class NicUtilTest {
 		String propName = UUID.randomUUID().toString();
 		String invalidDefault = propName;
 		String actual = NicUtil.getIpAddress(propName, invalidDefault, true);
-		assertTrue(ipv4Exists(actual, true));
+		assertTrue(ipv4LoopbackAddress(actual));		
 	}		
 	
 	@Test
@@ -1117,7 +1122,7 @@ public class NicUtilTest {
 		String propName = null;
 		String invalidDefault = null;
 		String actual = NicUtil.getIpAddress(propName, invalidDefault, true);
-		assertTrue(ipv4Exists(actual, true));
+		assertTrue(ipv4LoopbackAddress(actual));		
 	}		
 
 	@Test
