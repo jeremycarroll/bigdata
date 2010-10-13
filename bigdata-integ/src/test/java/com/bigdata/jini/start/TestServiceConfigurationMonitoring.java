@@ -119,7 +119,7 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
         // zpath for the service configuration znode.
         final String serviceConfigurationZPath = zconfig + BigdataZooDefs.ZSLASH + TransactionServer.class.getName();
         
-        // create monitor task that will compete for locks and start procsses.
+        // create monitor task that will compete for locks and start processes.
         MonitorCreatePhysicalServiceLocksTask task1 = new MonitorCreatePhysicalServiceLocksTask(fed, listener);
 
         final Future f1 = fed.getExecutorService().submit(task1);
@@ -160,7 +160,7 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
          */
         
         // pause a moment.
-        Thread.sleep(1000/*ms*/);
+        Thread.sleep(5000/*ms*/);
 
         System.out.println("logicalServices: " + zookeeper.getChildren(serviceConfigurationZPath, false));
         
