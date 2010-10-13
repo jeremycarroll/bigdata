@@ -4,9 +4,9 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.bigdata.event.IEventParams;
 import com.bigdata.journal.CommitRecordIndex;
 import com.bigdata.journal.ITransactionService;
-import com.bigdata.service.Params;
 
 /**
  * A class that captures the results of
@@ -15,7 +15,7 @@ import com.bigdata.service.Params;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class PurgeResult implements Serializable, Params {
+public class PurgeResult implements Serializable, IEventParams {
 
     /**
      * 

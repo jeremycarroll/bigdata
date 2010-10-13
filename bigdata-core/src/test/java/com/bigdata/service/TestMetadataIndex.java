@@ -33,7 +33,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import com.bigdata.btree.IndexMetadata;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.MetadataIndex;
 import org.junit.Test;
 
 /**

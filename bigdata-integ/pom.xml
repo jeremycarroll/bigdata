@@ -10,6 +10,7 @@
     <groupId>com.bigdata</groupId>
     <artifactId>bigdata-integration-test</artifactId>
     <name>bigdata Integration Tests</name>
+    <description>The Bigdata Integration Tests</description>
     
     <!-- 
         Note: Most properties include the "integ." prefix so that they
@@ -28,7 +29,8 @@
         <integ.deploy.dir>${integ.deploy.root.dir}/${integ.bigdata.dependency}-${project.version}</integ.deploy.dir>
         
         <integ.test.dir>${integ.deploy.dir}/testing</integ.test.dir>
-        <integ.testScript>${project.build.testOutputDirectory}/services.xml</integ.testScript>
+        <integ.testOutputDirectory>${project.build.testOutputDirectory}</integ.testOutputDirectory>
+        <integ.testScript>${integ.testOutputDirectory}/services.xml</integ.testScript>
         <integ.basedir>${integ.test.dir}</integ.basedir>
         <integ.app.home>${integ.deploy.dir}</integ.app.home>
         <integ.deploy.conf.dir>${integ.test.dir}/conf</integ.deploy.conf.dir>
@@ -220,7 +222,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-report-plugin</artifactId>
-                <version>2.6</version>
                 <reportSets>
                     <reportSet>
                         <id>integration-tests</id>
@@ -245,6 +246,10 @@
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
+            <properties>
+                <integ.testOutputDirectory>${project.build.directory}/clover/test-classes</integ.testOutputDirectory>
+                <integ.deploy.dir>${integ.deploy.root.dir}/${integ.bigdata.dependency}-${project.version}-clover</integ.deploy.dir>
+            </properties>
             <build>
                 <plugins>
                     <plugin>

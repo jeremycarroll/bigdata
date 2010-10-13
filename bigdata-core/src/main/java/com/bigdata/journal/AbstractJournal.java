@@ -41,16 +41,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
+import com.bigdata.btree.*;
 import com.bigdata.io.ChecksumUtility;
 import org.apache.log4j.Logger;
 
 import com.bigdata.BigdataStatics;
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.Checkpoint;
-import com.bigdata.btree.IIndex;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.btree.ReadOnlyIndex;
 import com.bigdata.cache.ConcurrentWeakValueCache;
 import com.bigdata.cache.ConcurrentWeakValueCacheWithTimeout;
 import com.bigdata.cache.HardReferenceQueue;
@@ -64,7 +59,7 @@ import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.journal.Name2Addr.Entry;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.mdi.JournalMetadata;
+import com.bigdata.btree.JournalMetadata;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 import com.bigdata.rawstore.WormAddressManager;
@@ -132,7 +127,6 @@ import com.bigdata.resources.ResourceManager;
  * </p>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @todo Checksums and/or record compression are currently handled on a per-
  *       {@link BTree} or other persistence capable data structure basis. It is
@@ -2751,7 +2745,7 @@ public abstract class AbstractJournal implements IJournal/*, ITimestampService*/
              * Reload the mutable btree from its root address.
              */
 
-            ndx = (CommitRecordIndex) BTree.load(this, addr);
+            ndx = new CommitRecordIndex(BTree.load(this, addr));
 
         }
 

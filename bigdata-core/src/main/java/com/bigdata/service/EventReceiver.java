@@ -37,19 +37,6 @@ import java.util.concurrent.locks.Lock;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.BTree;
-import com.bigdata.btree.Checkpoint;
-import com.bigdata.btree.DefaultTupleSerializer;
-import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleIterator;
-import com.bigdata.btree.ITupleSerializer;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.UnisolatedReadWriteIndex;
-import com.bigdata.btree.keys.ASCIIKeyBuilderFactory;
-import com.bigdata.btree.keys.IKeyBuilderFactory;
-import com.bigdata.btree.keys.KeyBuilder;
-import com.bigdata.journal.CommitRecordIndex.Entry;
-import com.bigdata.rawstore.Bytes;
-import com.bigdata.rawstore.IRawStore;
 import com.bigdata.relation.accesspath.TupleObjectResolver;
 
 import cutthecrap.utils.striterators.Striterator;
@@ -61,7 +48,6 @@ import cutthecrap.utils.striterators.Striterator;
  * reporting purposes.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class EventReceiver implements IEventReceivingService,
         IEventReportingService {
@@ -73,14 +59,14 @@ public class EventReceiver implements IEventReceivingService,
      * get mixed up with your tab-delimited events log and you may have to
      * filter it out before you can process the events log analytically.
      */
-    protected static transient final Logger log = Logger
+    private static transient final Logger log = Logger
             .getLogger(EventReceiver.class);
     
     /**
      * The maximum age of an {@link Event} that will be keep "on the books".
      * Events older than this are purged.
      */
-    protected final long eventHistoryMillis;
+    private final long eventHistoryMillis;
     
     /**
      * Basically a ring buffer of events without a capacity limit and with
@@ -94,6 +80,7 @@ public class EventReceiver implements IEventReceivingService,
      * events in temporal order, filtering for desired criteria and makes it
      * possible to prune the events in the buffer as new events arrive.
      */
+    // should be private - needed by test.
     protected final LinkedHashMap<UUID,Event> eventCache;
 
     /**
@@ -102,12 +89,7 @@ public class EventReceiver implements IEventReceivingService,
      * out of memory and onto disk and to decouple the
      * {@link IEventReceivingService} from the {@link IEventReportingService}.
      */
-    protected final UnisolatedReadWriteIndex ndx;
-    
-    /**
-     * The {@link ITupleSerializer} reference is cached.
-     */
-    private final ITupleSerializer<Long, Event> tupleSer;
+    private final EventBTree ndx;
     
     /**
      * 
@@ -122,7 +104,6 @@ public class EventReceiver implements IEventReceivingService,
      *            A {@link BTree} used to record the completed events and to
      *            implement the {@link IEventReportingService} interface.
      */
-    @SuppressWarnings("unchecked")
     public EventReceiver(final long eventHistoryMillis,
             final EventBTree eventBTree) {
 
@@ -141,10 +122,8 @@ public class EventReceiver implements IEventReceivingService,
 
         this.eventCache = new LinkedHashMap<UUID, Event>(1000/* initialCapacity */);
 
-        this.ndx = new UnisolatedReadWriteIndex(eventBTree);
+        this.ndx = eventBTree;
         
-        this.tupleSer = eventBTree.getIndexMetadata().getTupleSerializer();
-
         if (log.isInfoEnabled()) {
          
             // log the event header.
@@ -162,126 +141,6 @@ public class EventReceiver implements IEventReceivingService,
         
         return ndx.writeLock();
         
-    }
-    
-    /**
-     * A {@link BTree} whose keys are event start times and whose values are the
-     * serialized {@link Event}s. 
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class EventBTree extends BTree {
-
-        /**
-         * @param store
-         * @param checkpoint
-         * @param metadata
-         */
-        public EventBTree(IRawStore store, Checkpoint checkpoint, IndexMetadata metadata, boolean readOnly) {
-
-            super(store, checkpoint, metadata, readOnly);
-            
-        }
-        
-        /**
-         * Create a new instance.
-         * 
-         * @param store
-         *            The backing store.
-         * 
-         * @return The new instance.
-         */
-        static public EventBTree create(final IRawStore store) {
-        
-            final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
-            
-            metadata.setBTreeClassName(EventBTree.class.getName());
-            
-            metadata.setTupleSerializer(new EventBTreeTupleSerializer(
-                    new ASCIIKeyBuilderFactory(Bytes.SIZEOF_LONG)));
-            
-            return (EventBTree) BTree.create(store, metadata);
-            
-        }
-
-        static public EventBTree createTransient() {
-            
-            final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
-            
-            metadata.setBTreeClassName(EventBTree.class.getName());
-            
-            metadata.setTupleSerializer(new EventBTreeTupleSerializer(
-                    new ASCIIKeyBuilderFactory(Bytes.SIZEOF_LONG)));
-            
-            return (EventBTree) BTree.createTransient(metadata);
-            
-        }
-
-        /**
-         * Encapsulates key and value formation for the {@link EventBTree}.
-         * 
-         * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-         * @version $Id$
-         */
-        static protected class EventBTreeTupleSerializer extends
-                DefaultTupleSerializer<Long, Entry> {
-
-            /**
-             * 
-             */
-            private static final long serialVersionUID = -8429751113713375293L;
-
-            /**
-             * De-serialization ctor.
-             */
-            public EventBTreeTupleSerializer() {
-
-                super();
-                
-            }
-
-            /**
-             * Ctor when creating a new instance.
-             * 
-             * @param keyBuilderFactory
-             */
-            public EventBTreeTupleSerializer(
-                    final IKeyBuilderFactory keyBuilderFactory) {
-                
-                super(keyBuilderFactory);
-
-            }
-            
-            /**
-             * Decodes the key as a timestamp.
-             */
-            @Override
-            public Long deserializeKey(ITuple tuple) {
-
-                final byte[] key = tuple.getKeyBuffer().array();
-
-                final long id = KeyBuilder.decodeLong(key, 0);
-
-                return id;
-
-            }
-
-            /**
-             * Return the unsigned byte[] key for a timestamp.
-             * 
-             * @param obj
-             *            A timestamp.
-             */
-            @Override
-            public byte[] serializeKey(Object obj) {
-
-                return getKeyBuilder().reset().append((Long) obj).getKey();
-
-            }
-
-        }
-
     }
 
     /**
@@ -371,6 +230,7 @@ public class EventReceiver implements IEventReceivingService,
      * Any completed events which are older (LT) than the cutoff point (now -
      * {@link #eventHistoryMillis}} are discarded.
      */
+    // should be private - needed by test.
     protected void pruneHistory(final long now) {
        
         final long cutoff = now - eventHistoryMillis;
@@ -425,7 +285,7 @@ public class EventReceiver implements IEventReceivingService,
      *       a thread could migrate events from the queue to the log and the
      *       BTree.
      */
-    protected void logEvent(final Event e) {
+    private void logEvent(final Event e) {
 
         if (e == null)
             throw new IllegalArgumentException();
@@ -444,23 +304,10 @@ public class EventReceiver implements IEventReceivingService,
     }
 
     public long rangeCount(final long fromTime, final long toTime) {
-
-        return ndx.rangeCount(tupleSer.serializeKey(fromTime),
-                tupleSer.serializeKey(toTime));
-
+        return ndx.rangeCount(fromTime, toTime);
     }
 
-    @SuppressWarnings("unchecked")
     public Iterator<Event> rangeIterator(final long fromTime, final long toTime) {
-
-        final ITupleIterator<Event> tupleItr = ndx.rangeIterator(tupleSer
-                .serializeKey(fromTime), tupleSer.serializeKey(toTime));
-
-        final Iterator<Event> itr = new Striterator(tupleItr)
-                .addFilter(new TupleObjectResolver());
-
-        return itr;
-        
+        return ndx.rangeIterator(fromTime, toTime);
     }
-    
 }

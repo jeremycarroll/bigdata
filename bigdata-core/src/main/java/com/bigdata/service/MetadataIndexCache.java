@@ -2,10 +2,10 @@ package com.bigdata.service;
 
 import java.util.concurrent.ExecutionException;
 
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.NoSuchIndexException;
-import com.bigdata.mdi.IMetadataIndex;
-import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.btree.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.util.InnerCause;
 
 /**
@@ -103,7 +103,7 @@ log.warn("\nMetadataIndexCache.newView >>>> META_DATA INDEX META_DATA = NULL\n")
      *         iff no scale-out index is registered by that name at that
      *         timestamp.
      */
-    protected MetadataIndexMetadata getMetadataIndexMetadata(final String name,
+    private MetadataIndexMetadata getMetadataIndexMetadata(final String name,
             final long timestamp) {
 
 //BTM        final IMetadataService mds = fed.getMetadataService();

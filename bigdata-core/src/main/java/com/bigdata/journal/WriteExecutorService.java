@@ -238,6 +238,58 @@ public class WriteExecutorService extends ThreadPoolExecutor {
 
         }
 
+
+        @Override
+        protected <T> LockFutureTask<R, T> constructLockFutureTask(Callable<T> task, R[] a) {
+            //overriden to construct custom class that updates counters.
+            return new MyLockFutureTask<R,T>(this,a,task);
+        }
+
+        @Override
+        protected <T> LockFutureTask<R, T> constructLockFutureTask(Runnable task, T val, R[] a) {
+            //overriden to construct custom class that updates counters.
+            return new MyLockFutureTask<R,T>(this,a,task,val);
+        }
+
+        /**
+         * Extension to LockFutureTask that will update lock waiting times if provided task is extends AbstractTask.
+         * @param <R>
+         * @param <T>
+         */
+        public static class MyLockFutureTask<R extends Comparable<R>, T> extends LockFutureTask<R,T> {
+
+            private MyLockFutureTask(final MyLockManager<R> lockService, final R[] resource, final Callable<T> task) {
+                super(lockService, resource, task);
+            }
+
+            private MyLockFutureTask(final MyLockManager<R> lockService, final R[] resources, final Runnable task, final T val) {
+                super(lockService, resources, task, val);
+            }
+
+            public void run(){
+                /*
+                 * Increment by the amount of time that the task was waiting to
+                 * acquire its lock(s).
+                 *
+                 * Note: This is being measured from the time when the task was
+                 * accepted by submit() on the outer class and counts all time until
+                 * the task begins to execute with its locks held.
+                 */
+                if (callersTask instanceof AbstractTask
+                        && ((AbstractTask) callersTask).getTaskCounters() instanceof WriteTaskCounters) {
+
+                    final long lockWaitingTime = System.nanoTime() - acceptTime;
+
+                    ((WriteTaskCounters) ((AbstractTask) callersTask)
+                            .getTaskCounters()).lockWaitingNanoTime
+                            .addAndGet(lockWaitingTime);
+
+                }
+
+                super.run();
+            }
+        }
+
     }
 
     /**

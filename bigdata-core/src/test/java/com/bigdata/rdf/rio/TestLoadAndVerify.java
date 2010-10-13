@@ -39,6 +39,10 @@ import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.store.AbstractTestCase;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.ProxyTestCase;
+import com.bigdata.test.conditional.ConditionalParameterized;
+import com.bigdata.test.conditional.IgnoreIf;
+import com.bigdata.test.conditional.LongTestsExcluded;
+
 import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,7 +55,7 @@ import org.junit.runners.Parameterized.Parameters;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
-@RunWith(Parameterized.class)
+@RunWith(ConditionalParameterized.class)
 public class TestLoadAndVerify extends AbstractRIOTestCase {
 
     /**
@@ -167,6 +171,7 @@ public class TestLoadAndVerify extends AbstractRIOTestCase {
      * LUBM U(1)
      */
     @Test
+    @IgnoreIf(LongTestsExcluded.class)
     public void test_loadAndVerify_U1() throws Exception {
         
         final String file = DataFinder.bestPath("testing/data/lehigh/U1");

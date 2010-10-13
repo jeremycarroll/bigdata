@@ -43,7 +43,7 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.ITx;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.search.FullTextIndex;
 import com.bigdata.service.ndx.RawDataServiceTupleIterator;

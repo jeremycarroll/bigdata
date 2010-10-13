@@ -56,6 +56,7 @@ import cutthecrap.utils.striterators.EmptyIterator;
 import cutthecrap.utils.striterators.Expander;
 import cutthecrap.utils.striterators.SingleValueIterator;
 import cutthecrap.utils.striterators.Striterator;
+import org.apache.log4j.Logger;
 
 /**
  * <p>
@@ -82,9 +83,13 @@ import cutthecrap.utils.striterators.Striterator;
  * we can prune the search before we materialize the child.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class Node extends AbstractNode<Node> implements INodeData {
+
+    /**
+     * Log for btree opeations.
+     */
+    private static final Logger log = Logger.getLogger(Node.class);
 
     /**
      * The data record. {@link MutableNodeData} is used for all mutation
@@ -623,7 +628,7 @@ public class Node extends AbstractNode<Node> implements INodeData {
 
         btree.getBtreeCounters().rootsSplit++;
 
-        if (BTree.log.isInfoEnabled() || BigdataStatics.debug) {
+        if (log.isInfoEnabled() || BigdataStatics.debug) {
 
             // Note: nnodes and nleaves might not reflect rightSibling yet.
 
@@ -632,8 +637,8 @@ public class Node extends AbstractNode<Node> implements INodeData {
                     + ", m=" + btree.getBranchingFactor() + ", nentries="
                     + btree.nentries;
 
-            if (BTree.log.isInfoEnabled())
-                BTree.log.info(msg);
+            if (log.isInfoEnabled())
+                log.info(msg);
 
             if (BigdataStatics.debug)
                 System.err.println(msg);
@@ -2400,8 +2405,8 @@ public class Node extends AbstractNode<Node> implements INodeData {
                 // one less node in the tree.
                 btree.nnodes--;
 
-                if (BTree.INFO) {
-                    BTree.log.info("reduced tree height: height="
+                if (INFO) {
+                    log.info("reduced tree height: height="
                             + btree.height + ", newRoot=" + btree.root);
                 }
 

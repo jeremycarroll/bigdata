@@ -29,6 +29,7 @@ package com.bigdata.service.jini;
 
 import java.io.IOException;
 
+import com.bigdata.btree.LocalPartitionMetadata;
 import junit.framework.AssertionFailedError;
 
 import net.jini.core.discovery.LookupLocator;
@@ -40,7 +41,6 @@ import org.junit.Assert;
 
 import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IDataService;

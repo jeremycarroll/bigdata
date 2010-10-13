@@ -21,31 +21,21 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-/*
- * Created on Oct 14, 2006
- */
+package com.bigdata.test.conditional;
 
-package com.bigdata.counters.store;
-
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Aggregates tests in dependency order.
- * 
- * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
+ * A conditional implementation of Junit's @Ignore annotation
+ * @author blevine
+ *
  */
-@RunWith(Suite.class)
-@SuiteClasses( {
-        TestCounterSetBTree.class
-        } )
-public class TestAll {
-
-    /**
-     * 
-     */
-    public TestAll() {
-    }
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD, ElementType.TYPE})
+public @interface IgnoreIf {
+    Class<?> value();
 }
+

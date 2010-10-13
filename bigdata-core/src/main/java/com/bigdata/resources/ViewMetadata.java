@@ -4,14 +4,10 @@ import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.BTreeCounters;
-import com.bigdata.btree.ILocalBTreeView;
-import com.bigdata.btree.ISimpleSplitHandler;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.*;
+import com.bigdata.btree.IMetadataIndex;
+import com.bigdata.event.IEventParams;
 import com.bigdata.service.Event;
-import com.bigdata.service.Params;
 import com.bigdata.util.InnerCause;
 
 /**
@@ -27,7 +23,7 @@ import com.bigdata.util.InnerCause;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-class ViewMetadata extends BTreeMetadata implements Params {
+class ViewMetadata extends BTreeMetadata implements IEventParams {
 
     /**
      * Set <code>true</code> iff the index partition view is requested and the

@@ -22,7 +22,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
-package com.bigdata.mdi;
+package com.bigdata.btree;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -32,13 +32,10 @@ import java.util.Arrays;
 import java.util.UUID;
 
 import com.bigdata.io.BytesUtil;
+import com.bigdata.mdi.*;
 import org.CognitiveWeb.extser.LongPacker;
 import org.CognitiveWeb.extser.ShortPacker;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.journal.Journal;
 import com.bigdata.service.DataService;
 
@@ -46,7 +43,7 @@ import com.bigdata.service.DataService;
  * An immutable object providing metadata about a local index partition,
  * including the partition identifier, the left and right separator keys
  * defining the half-open key range of the index partition, and optionally
- * defining the {@link IResourceMetadata}[] required to materialize a view of
+ * defining the {@link com.bigdata.mdi.IResourceMetadata}[] required to materialize a view of
  * that index partition.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>

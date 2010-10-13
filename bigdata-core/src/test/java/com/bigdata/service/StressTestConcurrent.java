@@ -779,9 +779,6 @@ properties.setProperty(EmbeddedLoadBalancer.Options.INITIAL_ROUND_ROBIN_UPDATE_C
     private void setupLBSForMove(final IDataService targetService)
             throws IOException {
 
-        // explicitly set the log level for the load balancer.
-        LoadBalancerService.log.setLevel(Level.INFO);
-EmbeddedLoadBalancer.logger.setLevel(Level.INFO);
 
 //BTM        final AbstractEmbeddedLoadBalancerService lbs = ((AbstractEmbeddedLoadBalancerService) ((EmbeddedFederation<?>) fed)
 //BTM                .getLoadBalancerService());

@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import com.bigdata.resources.ResourceManager;
-
 /**
  * Encapsulate the reason why an index partition was created and the
  * synchronous overflow counter of the data service on which the index
@@ -99,58 +97,6 @@ public class IndexPartitionCause implements Externalizable {
      */
     public long getLastCommitTime() {
         return lastCommitTime;
-    }
-
-    /**
-     * Factory for {@link CauseEnum#Register}.
-     */
-    static public IndexPartitionCause register(ResourceManager resourceManager) {
-
-        return new IndexPartitionCause(
-                IndexPartitionCause.CauseEnum.Register,
-                resourceManager.getSynchronousOverflowCount(),
-                resourceManager.getLiveJournal()
-                        .getLastCommitTime());
-
-    }
-    
-    /**
-     * Factory for {@link CauseEnum#Split}.
-     */
-    static public IndexPartitionCause split(ResourceManager resourceManager) {
-
-        return new IndexPartitionCause(
-                IndexPartitionCause.CauseEnum.Split,
-                resourceManager.getSynchronousOverflowCount(),
-                resourceManager.getLiveJournal()
-                        .getLastCommitTime());
-
-    }
-
-    /**
-     * Factory for {@link CauseEnum#Join}.
-     */
-    static public IndexPartitionCause join(ResourceManager resourceManager) {
-
-        return new IndexPartitionCause(
-                IndexPartitionCause.CauseEnum.Join,
-                resourceManager.getSynchronousOverflowCount(),
-                resourceManager.getLiveJournal()
-                        .getLastCommitTime());
-
-    }
-
-    /**
-     * Factory for {@link CauseEnum#Move}.
-     */
-    static public IndexPartitionCause move(ResourceManager resourceManager) {
-
-        return new IndexPartitionCause(
-                IndexPartitionCause.CauseEnum.Move,
-                resourceManager.getSynchronousOverflowCount(),
-                resourceManager.getLiveJournal()
-                        .getLastCommitTime());
-
     }
     
     /**

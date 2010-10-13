@@ -25,7 +25,6 @@ package com.bigdata.service;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -42,7 +41,7 @@ import com.bigdata.journal.ITx;
 import com.bigdata.journal.NoSuchIndexException;
 import com.bigdata.journal.Options;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.IBlock;
 import com.bigdata.rawstore.IRawStore;
@@ -287,7 +286,7 @@ public interface IDataService extends ITxCommitProtocol, IService {
      * @param metadata
      *            The metadata describing the index.
      *            <p>
-     *            The {@link LocalPartitionMetadata#getResources()} property on
+     *            The {@link com.bigdata.btree.LocalPartitionMetadata#getResources()} property on
      *            the {@link IndexMetadata#getPartitionMetadata()} SHOULD NOT be
      *            set. The correct {@link IResourceMetadata}[] will be assigned
      *            when the index is registered on the {@link IDataService}.

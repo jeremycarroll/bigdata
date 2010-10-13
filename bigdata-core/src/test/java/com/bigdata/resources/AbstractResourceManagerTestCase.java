@@ -42,6 +42,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.bigdata.bfs.BigdataFileSystem;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.ResultSet;
 import com.bigdata.btree.filter.IFilterConstructor;
@@ -50,10 +51,9 @@ import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.journal.*;
 //BTM import com.bigdata.journal.ITransactionService;
-import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.IndexPartitionCause;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.IBlock;
 import com.bigdata.relation.locator.IResourceLocator;
@@ -663,7 +663,7 @@ public TransactionService getTransactionService() {
                     new IResourceMetadata[] {//
                             resourceManager.getLiveJournal().getResourceMetadata(), //
                     }, //
-                    IndexPartitionCause.register(resourceManager)
+                    resourceManager.partitionCause(IndexPartitionCause.CauseEnum.Register)
 //                    ,"" // history
                     ));
 

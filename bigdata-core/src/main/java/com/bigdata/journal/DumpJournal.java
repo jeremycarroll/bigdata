@@ -79,7 +79,6 @@ import com.bigdata.util.InnerCause;
  *       to have a lock at the moment that it read the root blocks...
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class DumpJournal {
 
@@ -296,13 +295,13 @@ public class DumpJournal {
                 final CommitRecordIndex commitRecordIndex = journal.getCommitRecordIndex();
 //                CommitRecordIndex commitRecordIndex = journal._commitRecordIndex;
                 
-                final ITupleIterator<CommitRecordIndex.Entry> itr = commitRecordIndex.rangeIterator();
+                final Iterator<CommitRecordIndex.Entry> itr = commitRecordIndex.rangeIterator();
                 
                 while(itr.hasNext()) {
                     
                     System.err.println("----");
 
-                    final CommitRecordIndex.Entry entry = itr.next().getObject();
+                    final CommitRecordIndex.Entry entry = itr.next();
                     
                     System.err.print("Commit Record: " + entry.commitTime
                             + ", addr=" + journal.toString(entry.addr)+", ");
@@ -547,21 +546,21 @@ public class DumpJournal {
         
         try {
 
-            sb.append("\nkey="+tupleSer.deserializeKey(tuple));
+            sb.append("\nkey=").append(tupleSer.deserializeKey(tuple));
             
         } catch(Throwable t) {
             
-            sb.append("\nkey="+BytesUtil.toString(tuple.getKey()));
+            sb.append("\nkey=").append(BytesUtil.toString(tuple.getKey()));
             
         }
 
         try {
 
-            sb.append("\nval="+tupleSer.deserialize(tuple));
+            sb.append("\nval=").append(tupleSer.deserialize(tuple));
             
         } catch(Throwable t) {
 
-            sb.append("\nval="+BytesUtil.toString(tuple.getValue()));
+            sb.append("\nval=").append(BytesUtil.toString(tuple.getValue()));
             
         }
 

@@ -29,15 +29,20 @@ import com.bigdata.btree.AbstractBTreeTupleCursor.AbstractCursorPosition;
 import com.bigdata.btree.IndexSegment.ImmutableNodeFactory.ImmutableLeaf;
 import com.bigdata.btree.data.ILeafData;
 import com.bigdata.btree.data.INodeData;
+import com.bigdata.btree.filter.IFilterConstructor;
+import com.bigdata.btree.filter.Reverserator;
+import com.bigdata.btree.filter.TupleRemover;
 import com.bigdata.btree.raba.IRaba;
 import com.bigdata.btree.raba.ReadOnlyKeysRaba;
 import com.bigdata.btree.raba.ReadOnlyValuesRaba;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
+import com.bigdata.io.DirectBufferPool;
 import com.bigdata.io.FixedByteArrayBuffer;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.EventType;
+import org.apache.log4j.Logger;
 
 /**
  * An index segment is read-only btree corresponding to some key range of a
@@ -51,9 +56,13 @@ import com.bigdata.service.EventType;
  * leaves will all refuse mutation operations).
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class IndexSegment extends AbstractBTree {
+
+    /**
+     * Log for btree opeations.
+     */
+    private static final Logger log = Logger.getLogger(IndexSegment.class);
 
     /**
      * Type safe reference to the backing store.
@@ -160,6 +169,7 @@ public class IndexSegment extends AbstractBTree {
      * {@link #getEntryCount()} uses the {@link IndexSegmentCheckpoint} and that
      * is only available while the {@link IndexSegmentStore} is open.
      */
+    @Override
     public String toString() {
 
         // make sure the fileStore will remain open.
@@ -303,7 +313,7 @@ public class IndexSegment extends AbstractBTree {
     }
     
     @Override
-    protected void _reopen() {
+    final protected void _reopen() {
         
         // prevent concurrent close.
         fileStore.lock.lock();
@@ -684,6 +694,138 @@ public class IndexSegment extends AbstractBTree {
         };
     }
 
+    /**
+     * Core implementation.
+     * <p>
+     * Note: If {@link IRangeQuery#CURSOR} is specified the returned iterator
+     * supports traversal with concurrent modification by a single-threaded
+     * process (the {@link BTree} is NOT thread-safe for writers). Write are
+     * permitted iff {@link AbstractBTree} allows writes.
+     * <p>
+     * Note: {@link IRangeQuery#REVERSE} is handled here by wrapping the
+     * underlying {@link ITupleCursor}.
+     * <p>
+     * Note: {@link IRangeQuery#REMOVEALL} is handled here by wrapping the
+     * iterator.
+     * <p>
+     * Note:
+     * {@link FusedView#rangeIterator(byte[], byte[], int, int, IFilterConstructor)}
+     * is also responsible for constructing an {@link ITupleIterator} in a
+     * manner similar to this method. If you are updating the logic here, then
+     * check the logic in that method as well!
+     * 
+     * @todo add support to the iterator construct for filtering by a tuple
+     *       revision timestamp range.
+     */
+    public ITupleIterator rangeIterator(//
+            final byte[] fromKey,//
+            final byte[] toKey,//
+            final int capacityIsIgnored,//
+            final int flags,//
+            final IFilterConstructor filter//
+            ) {
+
+        /*
+         * Does the iterator declare that it will not write back on the index?
+         */
+        final boolean readOnly = ((flags & IRangeQuery.READONLY) != 0);
+
+        if (readOnly && ((flags & IRangeQuery.REMOVEALL) != 0)) {
+
+            throw new IllegalArgumentException();
+
+        }
+
+        /*
+         * Figure out what base iterator implementation to use.  We will layer
+         * on the optional filter(s) below. 
+         */
+        ITupleIterator src;
+
+            final Tuple tuple = new Tuple(this, flags);
+
+            final IndexSegment seg = (IndexSegment) this;
+
+            /*
+             * @todo we could scan the list of pools and chose the best fit
+             * pool and then allocate a buffer from that pool. Best fit
+             * would mean either the byte range fits without "too much" slop
+             * or the #of reads will have to perform is not too large. We
+             * might also want to limit the maximum size of the reads.
+             */
+
+//                final DirectBufferPool pool = DirectBufferPool.INSTANCE_10M;
+            final DirectBufferPool pool = DirectBufferPool.INSTANCE;
+                
+            if (true
+                    && ((flags & REVERSE) == 0)
+                    && ((flags & CURSOR) == 0)
+                    && (seg.getStore().getCheckpoint().maxNodeOrLeafLength <= pool
+                            .getBufferCapacity())
+                    && ((rangeCount(fromKey, toKey) / branchingFactor) > 2)) {
+
+                src = new IndexSegmentMultiBlockIterator(seg, pool,
+                            fromKey, toKey, flags);
+
+            } else {
+
+                src = new IndexSegmentTupleCursor(seg, tuple, fromKey, toKey);
+
+            }
+
+
+            if ((flags & REVERSE) != 0) {
+
+                /*
+                 * Reverse scan iterator.
+                 * 
+                 * Note: The reverse scan MUST be layered directly over the
+                 * ITupleCursor. Most critically, REMOVEALL combined with a
+                 * REVERSE scan needs to process the tuples in reverse index
+                 * order and then delete them as it goes.
+                 */
+
+                src = new Reverserator((ITupleCursor) src);
+
+            }
+
+
+        if (filter != null) {
+
+            /*
+             * Apply the optional filter.
+             * 
+             * Note: This needs to be after the reverse scan and before
+             * REMOVEALL (those are the assumptions for the flags).
+             */
+            
+            src = filter.newInstance(src);
+            
+        }
+        
+        if ((flags & REMOVEALL) != 0) {
+            
+            assertNotReadOnly();
+            
+            /*
+             * Note: This iterator removes each tuple that it visits from the
+             * source iterator.
+             */
+            
+            src = new TupleRemover() {
+                @Override
+                protected boolean remove(ITuple e) {
+                    // remove all visited tuples.
+                    return true;
+                }
+            }.filter(src);
+
+        }
+        
+        return src;
+
+    }
+
     /*
      * INodeFactory
      */
@@ -719,7 +861,6 @@ public class IndexSegment extends AbstractBTree {
          * 
          * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
          *         Thompson</a>
-         * @version $Id$
          */
         public static class ImmutableNode extends Node {
 
@@ -768,8 +909,6 @@ public class IndexSegment extends AbstractBTree {
          * 
          * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
          *         Thompson</a>
-         * @version $Id: IndexSegment.java 2265 2009-10-26 12:51:06Z thompsonbry
-         *          $
          */
         private static class EmptyReadOnlyLeafData implements ILeafData {
 
@@ -869,7 +1008,6 @@ public class IndexSegment extends AbstractBTree {
          * 
          * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
          *         Thompson</a>
-         * @version $Id$
          */
         public static class ImmutableLeaf extends Leaf {
 
@@ -1007,7 +1145,6 @@ public class IndexSegment extends AbstractBTree {
 //         * 
 //         * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
 //         *         Thompson</a>
-//         * @version $Id$
 //         */
 //        static public class ImmutableEmptyLastLeaf extends ImmutableLeaf {
 //
@@ -1046,7 +1183,6 @@ public class IndexSegment extends AbstractBTree {
      * A position for the {@link IndexSegmentTupleCursor}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      * @param <E>
      *            The generic type for objects de-serialized from the values in
      *            the index.
@@ -1054,6 +1190,7 @@ public class IndexSegment extends AbstractBTree {
     static private class CursorPosition<E> extends AbstractCursorPosition<ImmutableLeaf,E> {
         
         @SuppressWarnings("unchecked")
+        @Override
         public IndexSegmentTupleCursor<E> getCursor() {
             
             return (IndexSegmentTupleCursor)cursor;
@@ -1102,7 +1239,6 @@ public class IndexSegment extends AbstractBTree {
      * listeners for concurrent modifications.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      * @param <E>
      *            The generic type for the objects de-serialized from the index.
      */
@@ -1265,7 +1401,6 @@ public class IndexSegment extends AbstractBTree {
      * Cursor using the double-linked leaves for efficient scans.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public class ImmutableLeafCursor implements ILeafCursor<ImmutableLeaf> {
 
@@ -1283,6 +1418,7 @@ public class IndexSegment extends AbstractBTree {
             
         }
         
+        @Override
         public ImmutableLeafCursor clone() {
             
             return new ImmutableLeafCursor(this);
@@ -1333,7 +1469,7 @@ public class IndexSegment extends AbstractBTree {
             
         }
 
-        public ImmutableLeaf seek(final byte[] key) {
+        final public ImmutableLeaf seek(final byte[] key) {
             
             leaf = findLeaf(key);
             
@@ -1363,7 +1499,7 @@ public class IndexSegment extends AbstractBTree {
             
         }
 
-        public ImmutableLeaf first() {
+        final public ImmutableLeaf first() {
             
             final long addr = getStore().getCheckpoint().addrFirstLeaf;
 
@@ -1373,7 +1509,7 @@ public class IndexSegment extends AbstractBTree {
             
         }
 
-        public ImmutableLeaf last() {
+        final public ImmutableLeaf last() {
             
             final long addr = getStore().getCheckpoint().addrLastLeaf;
 

@@ -32,7 +32,7 @@ import java.io.File;
 import java.io.Serializable;
 
 import com.bigdata.btree.IndexMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 
 /**
  * Semi-structured representation of the data service on which the event

@@ -32,10 +32,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
 
-import com.bigdata.btree.AbstractBTree;
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.IIndex;
-import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.*;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.journal.AbstractJournal;
@@ -43,7 +40,7 @@ import com.bigdata.journal.IJournal;
 import com.bigdata.journal.Journal;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.IndexPartitionCause;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 import com.bigdata.rawstore.Bytes;
 import org.junit.Test;
 
@@ -116,7 +113,7 @@ public class TestOverflow extends AbstractResourceManagerTestCase {
                     new IResourceMetadata[]{
                             journal.getResourceMetadata()
                     },//
-                    IndexPartitionCause.register(resourceManager)
+                    resourceManager.partitionCause(IndexPartitionCause.CauseEnum.Register)
 //                    ,""//history
                     ));
             

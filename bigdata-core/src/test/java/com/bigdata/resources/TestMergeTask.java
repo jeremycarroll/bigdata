@@ -33,12 +33,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
-import com.bigdata.btree.AbstractBTreeTestCase;
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.IIndex;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.btree.IndexSegmentStore;
+import com.bigdata.btree.*;
 import com.bigdata.btree.keys.TestKeyBuilder;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.btree.proc.BatchInsert.BatchInsertConstructor;
@@ -48,8 +43,8 @@ import com.bigdata.journal.IndexProcedureTask;
 import com.bigdata.journal.RegisterIndexTask;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.IndexPartitionCause;
-import com.bigdata.mdi.LocalPartitionMetadata;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.LocalPartitionMetadata;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.rawstore.SimpleMemoryRawStore;
 import org.junit.Test;
 
@@ -110,7 +105,7 @@ public class TestMergeTask extends AbstractResourceManagerTestCase {
                     new IResourceMetadata[] {//
                             resourceManager.getLiveJournal().getResourceMetadata(), //
                     }, //
-                    IndexPartitionCause.register(resourceManager)
+                    resourceManager.partitionCause(IndexPartitionCause.CauseEnum.Register)
 //                    ,"" // history
                     ));
 

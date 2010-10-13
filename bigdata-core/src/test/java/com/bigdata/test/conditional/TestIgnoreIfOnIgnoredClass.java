@@ -1,6 +1,6 @@
-/*
+/**
 
-Copyright (C) SYSTAP, LLC 2006-2008.  All rights reserved.
+Copyright (C) SYSTAP, LLC 2006-2007.  All rights reserved.
 
 Contact:
      SYSTAP, LLC
@@ -20,27 +20,39 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-*/
-/*
- * Created on Mar 15, 2009
  */
+package com.bigdata.test.conditional;
 
-package com.bigdata.service;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
-import java.util.Map;
 
 /**
- * An interface designed to expose select fields for {@link Event} reporting.
- * 
- * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
+ * @author blevine
+ *
  */
-public interface Params {
-
-    /**
-     * Return the fields of interest as an set of (name,value) pairs.
-     */
-    public Map<String, Object> getParams();
-
+@RunWith(ConditionalRunner.class)
+@IgnoreIf(TrueCondition.class)
+public class TestIgnoreIfOnIgnoredClass
+{
+    @Test
+    public void test1()
+    {
+        Assert.fail("Test should have been ignored");
+    }
+    
+    @Test
+    public void test2()
+    {
+        Assert.fail("Test should have been ignored");;
+    }
+    
+    @Test
+    @IgnoreIf(FalseCondition.class)
+    public void test3()
+    {
+        System.out.println("Test3!!");
+    }
+    
 }

@@ -27,12 +27,12 @@ package com.bigdata.metadata;
 import static com.bigdata.metadata.Constants.*;
 
 import com.bigdata.bfs.BigdataFileSystem;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.journal.IResourceLockService;
 import com.bigdata.journal.TemporaryStore;
 import com.bigdata.journal.TransactionService;
-import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.relation.locator.DefaultResourceLocator;
 import com.bigdata.relation.locator.IResourceLocator;
 import com.bigdata.service.IBigdataClient;

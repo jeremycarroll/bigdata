@@ -1,5 +1,8 @@
 package com.bigdata.service;
 
+import com.bigdata.btree.BTree;
+import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.keys.ASCIIKeyBuilderFactory;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -12,7 +15,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,10 +45,12 @@ import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.ResourceManager.IResourceManagerCounters;
 import com.bigdata.resources.StoreManager.IStoreManagerCounters;
 import com.bigdata.service.DataService.IDataServiceCounters;
-import com.bigdata.service.EventReceiver.EventBTree;
+import com.bigdata.service.EventBTree;
+import com.bigdata.service.EventBTree.EventBTreeTupleSerializer;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 import com.bigdata.util.concurrent.IQueueCounters.IThreadPoolExecutorTaskCounters;
+import java.util.ArrayList;
 
 /**
  * The {@link LoadBalancerService} collects a variety of performance counters
@@ -318,7 +322,6 @@ abstract public class LoadBalancerService extends AbstractService
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      * 
      * @todo The LBS needs to support a 'transient' option in which it (a) does
      *       not log counters; and (b) keeps the events in a transient B+Tree
@@ -640,14 +643,17 @@ abstract public class LoadBalancerService extends AbstractService
                 
             }
 
-            EventBTree eventBTree = (EventBTree) eventStore.getIndex("events");
-
-            if (eventBTree == null) {
-
-                eventStore.registerIndex("events", eventBTree = EventBTree
-                        .create(eventStore));                
-                
+            BTree btree = eventStore.getIndex("events");
+            if (btree == null) {
+                IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
+                metadata.setBTreeClassName(BTree.class.getName());
+                metadata.setTupleSerializer(
+                    new EventBTreeTupleSerializer(
+                        new ASCIIKeyBuilderFactory(Bytes.SIZEOF_LONG)));
+                btree = BTree.create(eventStore, metadata);
+                eventStore.registerIndex("events", btree);
             }
+            EventBTree eventBTree = new EventBTree(btree);
 
             eventReceiver = new EventReceiver(eventHistoryMillis, eventBTree);
 
@@ -933,7 +939,6 @@ abstract public class LoadBalancerService extends AbstractService
      *       counter for that service.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class UpdateTask implements Runnable {
 
@@ -993,7 +998,7 @@ abstract public class LoadBalancerService extends AbstractService
              * Update scores for the active hosts.
              */
 
-            final Vector<HostScore> scores = new Vector<HostScore>();
+            final ArrayList<HostScore> scores = new ArrayList<HostScore>();
             
             // For each host
             final Iterator<ICounterSet> itrh = getFederation().getCounterSet()
@@ -1097,7 +1102,7 @@ abstract public class LoadBalancerService extends AbstractService
              * Update scores for the active services.
              */
 
-            final Vector<ServiceScore> scores = new Vector<ServiceScore>();
+            final ArrayList<ServiceScore> scores = new ArrayList<ServiceScore>();
             
             // For each host
             final Iterator<ICounterSet> itrh = getFederation().getCounterSet()
@@ -2686,7 +2691,6 @@ abstract public class LoadBalancerService extends AbstractService
      * Integration with the {@link LoadBalancerService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class RoundRobinServiceLoadHelper extends
             AbstractRoundRobinServiceLoadHelper {
@@ -2705,7 +2709,6 @@ abstract public class LoadBalancerService extends AbstractService
      * Integration with the {@link LoadBalancerService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class ServiceLoadHelperWithoutScores extends
             AbstractServiceLoadHelperWithoutScores {
@@ -2753,7 +2756,6 @@ abstract public class LoadBalancerService extends AbstractService
      * Integration with the {@link LoadBalancerService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     protected class ServiceLoadHelperWithScores extends
             AbstractServiceLoadHelperWithScores {

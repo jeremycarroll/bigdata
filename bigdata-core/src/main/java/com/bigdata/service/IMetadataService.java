@@ -29,12 +29,6 @@ package com.bigdata.service;
 
 import java.io.IOException;
 import java.rmi.Remote;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.mdi.MetadataIndex;
-import com.bigdata.mdi.PartitionLocator;
 
 /**
  * A metadata service for a named index.

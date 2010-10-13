@@ -21,7 +21,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-package com.bigdata.mdi;
+package com.bigdata.btree;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -31,14 +31,11 @@ import java.util.UUID;
 
 import org.CognitiveWeb.extser.LongPacker;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.Checkpoint;
-import com.bigdata.btree.DefaultTupleSerializer;
-import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.IKeyBuilderFactory;
 import com.bigdata.btree.view.FusedView;
 import com.bigdata.journal.ICommitter;
 import com.bigdata.journal.IResourceManager;
+import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.service.MetadataService;
 
@@ -66,7 +63,6 @@ import com.bigdata.service.MetadataService;
  * taking the database offline.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @todo The {@link MetadataIndex} does NOT support either overflow (it may NOT
  *       be a {@link FusedView}) NOR key-range splits. There are several issues
@@ -100,6 +96,7 @@ public class MetadataIndex extends BTree implements IMetadataIndex {
      */
     private transient final MetadataIndexView view;
     
+    @Override
     public MetadataIndexMetadata getIndexMetadata() {
         
         return (MetadataIndexMetadata) super.getIndexMetadata();
@@ -213,6 +210,7 @@ public class MetadataIndex extends BTree implements IMetadataIndex {
      * Extended to require a checkpoint if {@link #incrementAndGetNextPartitionId()} has been
      * invoked.
      */
+    @Override
     public boolean needsCheckpoint() {
 
         if(nextPartitionId != ((MetadataIndexCheckpoint)getCheckpoint()).getNextPartitionId()) {
@@ -230,7 +228,6 @@ public class MetadataIndex extends BTree implements IMetadataIndex {
      * identifier to be assigned by the metadata index.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class MetadataIndexCheckpoint extends Checkpoint {
 
@@ -332,7 +329,6 @@ public class MetadataIndex extends BTree implements IMetadataIndex {
      * for the managed scale-out index.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class MetadataIndexMetadata extends IndexMetadata implements Externalizable {
 
@@ -384,6 +380,7 @@ public class MetadataIndex extends BTree implements IMetadataIndex {
 
         private static final transient int VERSION0 = 0x0;
 
+        @Override
         public void readExternal(ObjectInput in) throws IOException,
                 ClassNotFoundException {
 
@@ -401,6 +398,7 @@ public class MetadataIndex extends BTree implements IMetadataIndex {
 
         }
 
+        @Override
         public void writeExternal(ObjectOutput out) throws IOException {
 
             super.writeExternal(out);
@@ -433,7 +431,6 @@ public class MetadataIndex extends BTree implements IMetadataIndex {
      * {@link MetadataIndex}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class PartitionLocatorTupleSerializer extends
             DefaultTupleSerializer<byte[]/*key*/, PartitionLocator/*val*/> {
@@ -476,6 +473,7 @@ public class MetadataIndex extends BTree implements IMetadataIndex {
          */
         private final static transient byte VERSION = VERSION0;
 
+        @Override
         public void readExternal(final ObjectInput in) throws IOException,
                 ClassNotFoundException {
 
@@ -493,6 +491,7 @@ public class MetadataIndex extends BTree implements IMetadataIndex {
 
         }
 
+        @Override
         public void writeExternal(final ObjectOutput out) throws IOException {
 
             super.writeExternal(out);

@@ -980,7 +980,7 @@ public abstract class NonBlockingLockManagerWithNewDesign</* T, */R extends Comp
 
             }
 
-            return new LockFutureTask<R,T>(this, a, task).acceptTask();
+            return constructLockFutureTask(task, a).acceptTask();
 
         } finally {
 
@@ -988,6 +988,29 @@ public abstract class NonBlockingLockManagerWithNewDesign</* T, */R extends Comp
 
         }
         
+    }
+
+
+    /**
+     * Factory method that allow sub-classes to decorate the LockFutureTask.
+     * @param task
+     * @param a
+     * @param <T>
+     * @return
+     */
+    protected <T> LockFutureTask<R, T> constructLockFutureTask(Callable<T> task, R[] a) {
+        return new LockFutureTask<R,T>(this, a, task);
+    }
+
+    /**
+     * Factory method that allow sub-classes to decorate the LockFutureTask.
+     * @param task
+     * @param a
+     * @param <T>
+     * @return
+     */
+    protected <T> LockFutureTask<R, T> constructLockFutureTask(Runnable task, T val, R[] a) {
+        return new LockFutureTask<R,T>(this, a, task, val);
     }
 
     /**
@@ -1073,7 +1096,7 @@ public abstract class NonBlockingLockManagerWithNewDesign</* T, */R extends Comp
 
             }
 
-            return new LockFutureTask<R,T>(this, a, task, val).acceptTask();
+            return constructLockFutureTask(task, val, a).acceptTask();
 
         } finally {
 
@@ -1448,7 +1471,7 @@ public abstract class NonBlockingLockManagerWithNewDesign</* T, */R extends Comp
          * The timestamp in nanoseconds when this task was accepted for eventual
          * execution. This is used to determine the {@link #lockWaitingTime}.
          */
-        final private long acceptTime;
+        protected final long acceptTime;
 
         /**
          * The set of {@link ResourceQueue}s for which this task owns a lock
@@ -1466,7 +1489,7 @@ public abstract class NonBlockingLockManagerWithNewDesign</* T, */R extends Comp
         /**
          * Either a {@link Callable} or a {@link Runnable}.
          */
-        private final Object callersTask;
+        protected final Object callersTask;
 
         /**
          * The run state for the task.
@@ -1594,7 +1617,7 @@ public abstract class NonBlockingLockManagerWithNewDesign</* T, */R extends Comp
 
         }
 
-        private LockFutureTask(
+        protected LockFutureTask(
                 final NonBlockingLockManagerWithNewDesign<R> lockService,
                 final R[] resource, final Callable<T> task) {
 
@@ -1613,7 +1636,7 @@ public abstract class NonBlockingLockManagerWithNewDesign</* T, */R extends Comp
 
         }
 
-        private LockFutureTask(
+        protected LockFutureTask(
                 final NonBlockingLockManagerWithNewDesign<R> lockService,
                 final R[] resources, final Runnable task, final T val) {
 
@@ -1924,25 +1947,6 @@ public abstract class NonBlockingLockManagerWithNewDesign</* T, */R extends Comp
 
         @Override
         public void run() {
-
-            /*
-             * Increment by the amount of time that the task was waiting to
-             * acquire its lock(s).
-             * 
-             * Note: This is being measured from the time when the task was
-             * accepted by submit() on the outer class and counts all time until
-             * the task begins to execute with its locks held.
-             */
-            if (callersTask instanceof AbstractTask
-                    && ((AbstractTask) callersTask).getTaskCounters() instanceof WriteTaskCounters) {
-
-                final long lockWaitingTime = System.nanoTime() - acceptTime;
-
-                ((WriteTaskCounters) ((AbstractTask) callersTask)
-                        .getTaskCounters()).lockWaitingNanoTime
-                        .addAndGet(lockWaitingTime);
-
-            }
 
             lockService.lock.lock();
             try {

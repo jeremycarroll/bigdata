@@ -63,7 +63,7 @@ import com.bigdata.btree.proc.ISimpleIndexProcedure;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 import com.bigdata.relation.accesspath.AbstractAccessPath;
 import com.bigdata.service.MetadataService;
 import com.bigdata.service.Split;

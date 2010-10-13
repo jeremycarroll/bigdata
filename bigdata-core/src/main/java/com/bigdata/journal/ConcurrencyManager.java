@@ -23,7 +23,6 @@ import org.apache.log4j.Logger;
 
 import com.bigdata.BigdataStatics;
 import com.bigdata.btree.BTree;
-import com.bigdata.concurrent.NonBlockingLockManager;
 import com.bigdata.concurrent.NonBlockingLockManagerWithNewDesign;
 import com.bigdata.concurrent.NonBlockingLockManagerWithNewDesign.LockFutureTask;
 import com.bigdata.counters.CounterSet;
@@ -41,7 +40,7 @@ import com.bigdata.util.concurrent.WriteTaskCounters;
 /**
  * Supports concurrent operations against named indices. Historical read and
  * read-committed tasks run with full concurrency. For unisolated tasks, the
- * {@link ConcurrencyManager} uses a {@link NonBlockingLockManager} to identify
+ * {@link ConcurrencyManager} uses a {@link com.bigdata.concurrent.NonBlockingLockManagerWithNewDesign} to identify
  * a schedule of operations such that access to an unisolated named index is
  * always single threaded while access to distinct unisolated named indices MAY
  * be concurrent.

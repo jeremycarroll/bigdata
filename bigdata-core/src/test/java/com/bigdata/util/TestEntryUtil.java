@@ -20,6 +20,8 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 public class TestEntryUtil {
+    private static Level TEST_LOG_LEVEL = Level.ERROR;
+    
     @Test
 	public void testGetEntryByType_with_null_args() 
 	    throws SecurityException, NoSuchMethodException, 
@@ -75,14 +77,14 @@ public class TestEntryUtil {
 	public void testDisplayEntryEntryLogger() {
 	    EntryUtil.displayEntry(
 	    	new Address(),
-	    	getLevelLogger(Level.DEBUG));
+	    	getLevelLogger(TEST_LOG_LEVEL));
 	}
     @Test
 	public void testDisplayEntryEntryStringLogger() {
 	    EntryUtil.displayEntry(
 	    		new Location(),
 	    		"Label",
-		    	getLevelLogger(Level.DEBUG));
+		    	getLevelLogger(TEST_LOG_LEVEL));
 	}
     @Test
 	public void testDisplayEntryStringEntryStringLogger() {
@@ -90,7 +92,7 @@ public class TestEntryUtil {
 	    		"Prefix",
 	    		new Comment("This is a comment."),
                 "Label",
-    	    	getLevelLogger(Level.DEBUG));
+    	    	getLevelLogger(TEST_LOG_LEVEL));
 	}
     @Test
 	public void testDisplayEntryStringEntryStringLogger_null() {
@@ -98,7 +100,7 @@ public class TestEntryUtil {
 	    		null,
 	    		null,
                 null,
-    	    	getLevelLogger(Level.DEBUG));
+    	    	getLevelLogger(TEST_LOG_LEVEL));
 	}	
 	
 	private static void assertNotEquivalentEntries(Entry entry1, Entry entry2) {
@@ -106,7 +108,7 @@ public class TestEntryUtil {
 			EntryUtil.compareEntries(
 				entry1,
 				entry2,
-				getLevelLogger(Level.TRACE)));
+				getLevelLogger(TEST_LOG_LEVEL)));
 	}
     @Test
 	public void testCompareEntries_not_equal_null() {
@@ -135,7 +137,7 @@ public class TestEntryUtil {
 			EntryUtil.compareEntries(
 				entry1,
 				entry2,
-				getLevelLogger(Level.TRACE)));
+				getLevelLogger(TEST_LOG_LEVEL)));
 	}
     @Test
 	public void testCompareEntries_equal_null() {
@@ -196,7 +198,7 @@ public class TestEntryUtil {
 			EntryUtil.compareEntrySets("Equivalent",
 				entries1,
 				entries2,
-				getLevelLogger(Level.TRACE)));
+				getLevelLogger(TEST_LOG_LEVEL)));
 	}
 	
 	private static void assertNotEquivalentSets(Entry[] entries1, Entry[] entries2) {
@@ -204,7 +206,7 @@ public class TestEntryUtil {
 			EntryUtil.compareEntrySets("Not equivalent",
 				entries1,
 				entries2,
-				getLevelLogger(Level.TRACE)));
+				getLevelLogger(TEST_LOG_LEVEL)));
 	}
     @Test
 	public void testCompareEntrySets_unequiv_null() {

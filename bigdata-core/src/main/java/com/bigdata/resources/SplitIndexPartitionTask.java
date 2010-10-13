@@ -4,18 +4,14 @@ import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.ILocalBTreeView;
-import com.bigdata.btree.ISimpleSplitHandler;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
+import com.bigdata.btree.*;
 import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.TimestampUtility;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.IndexPartitionCause;
-import com.bigdata.mdi.LocalPartitionMetadata;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.LocalPartitionMetadata;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
@@ -844,7 +840,7 @@ public class SplitIndexPartitionTask extends
                                             resourceManager.getLiveJournal()
                                                     .getResourceMetadata(),
                                             splitResult.buildResults[i].segmentMetadata },
-                                    IndexPartitionCause.split(resourceManager)
+                                    resourceManager.partitionCause(IndexPartitionCause.CauseEnum.Split)
 //                                    /*
 //                                     * Note: history is record of the split.
 //                                     */

@@ -24,6 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.loadbalancer;
 
+import com.bigdata.btree.BTree;
+import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.keys.ASCIIKeyBuilderFactory;
 import static com.bigdata.loadbalancer.Constants.*;
 
 //BTM*** - replace with ShardService after DataService smart proxy conversion?
@@ -58,7 +61,7 @@ import com.bigdata.service.AbstractServiceLoadHelperWithScores;
 import com.bigdata.service.AbstractServiceLoadHelperWithoutScores;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventReceiver;
-import com.bigdata.service.EventReceiver.EventBTree;
+import com.bigdata.service.EventBTree;
 import com.bigdata.service.EventReceivingService;
 import com.bigdata.service.HostScore;
 import com.bigdata.service.IClientService;
@@ -733,13 +736,18 @@ this.roundRobinServiceLoadHelper =
             eventStore = new Journal(p);    
         }
 
-        EventBTree eventBTree = (EventBTree) eventStore.getIndex("events");
-
-        if (eventBTree == null) {
-            eventStore.registerIndex
-                           ("events",
-                            eventBTree = EventBTree.create(eventStore));
+        BTree btree = eventStore.getIndex("events");
+        if (btree == null) {
+            IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
+            metadata.setBTreeClassName(BTree.class.getName());
+            metadata.setTupleSerializer(
+                new EventBTree.EventBTreeTupleSerializer(
+                    new ASCIIKeyBuilderFactory(Bytes.SIZEOF_LONG)));
+            btree = BTree.create(eventStore, metadata);
+            eventStore.registerIndex("events", btree);
         }
+        EventBTree eventBTree = new EventBTree(btree);
+
         eventReceiver = new EventReceiver(eventHistoryMillis, eventBTree);
     }
 

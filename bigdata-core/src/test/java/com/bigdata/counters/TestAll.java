@@ -41,7 +41,6 @@ import org.junit.runners.Suite.SuiteClasses;
 @SuiteClasses( {
         TestCounters.class,
         TestHistoryInstrument.class,
-        com.bigdata.counters.store.TestAll.class,
         com.bigdata.counters.query.TestAll.class,
         com.bigdata.counters.linux.TestAll.class
         } )

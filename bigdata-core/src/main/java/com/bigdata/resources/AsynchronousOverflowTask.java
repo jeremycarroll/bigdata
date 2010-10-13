@@ -30,16 +30,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 
+import com.bigdata.btree.*;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.IIndex;
-import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleIterator;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.btree.ScatterSplitConfiguration;
 import com.bigdata.btree.proc.BatchLookup;
 import com.bigdata.btree.proc.AbstractKeyArrayIndexProcedure.ResultBuffer;
 import com.bigdata.btree.proc.BatchLookup.BatchLookupConstructor;
@@ -51,8 +45,8 @@ import com.bigdata.journal.ConcurrencyManager;
 import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.TimestampUtility;
-import com.bigdata.mdi.LocalPartitionMetadata;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.LocalPartitionMetadata;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.OverflowManager.ResourceScores;
@@ -68,7 +62,6 @@ import com.bigdata.util.concurrent.LatchedExecutor;
 
 //BTM
 import com.bigdata.metadata.EmbeddedShardLocator;
-import com.bigdata.service.IDataService;
 import com.bigdata.service.LoadBalancer;
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardManagement;

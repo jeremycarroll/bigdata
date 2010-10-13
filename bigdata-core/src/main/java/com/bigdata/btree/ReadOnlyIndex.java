@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.btree;
 
+import com.bigdata.btree.proc.IKeyRangeIndexProcedure;
+import com.bigdata.btree.proc.ISimpleIndexProcedure;
+import com.bigdata.counters.ICounterSet;
 import java.util.Iterator;
 
 import com.bigdata.btree.filter.IFilterConstructor;
@@ -47,20 +50,19 @@ import com.bigdata.service.Split;
  * @see {@link IResourceManager#getIndex(String, long)}
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public class ReadOnlyIndex extends DelegateIndex {
+public class ReadOnlyIndex implements IIndex {
+
+    private IIndex src;
     
     public ReadOnlyIndex(IIndex src) {
-        
-        super(src);
-        
+        this.src = src;
     }
 
     /** {@link IndexMetadata} is cloned to disallow modification. */
     final public IndexMetadata getIndexMetadata() {
 
-        return super.getIndexMetadata().clone();
+        return src.getIndexMetadata().clone();
         
     }
 
@@ -71,7 +73,7 @@ public class ReadOnlyIndex extends DelegateIndex {
      */
     final public IResourceMetadata[] getResourceMetadata() {
 
-        return super.getResourceMetadata().clone();
+        return src.getResourceMetadata().clone();
         
     }
 
@@ -80,7 +82,7 @@ public class ReadOnlyIndex extends DelegateIndex {
      */
     final public ICounter getCounter() {
 
-        return new ReadOnlyCounter(super.getCounter());
+        return new ReadOnlyCounter(src.getCounter());
         
     }
     
@@ -121,7 +123,7 @@ public class ReadOnlyIndex extends DelegateIndex {
         /*
          * Must explicitly disable Iterator#remove().
          */
-        return new ReadOnlyEntryIterator(super.rangeIterator(fromKey, toKey,
+        return new ReadOnlyEntryIterator(src.rangeIterator(fromKey, toKey,
                 capacity, flags, filter));
         
     }
@@ -171,6 +173,67 @@ public class ReadOnlyIndex extends DelegateIndex {
             
         }
         
+    }
+
+    public ICounterSet getCounters() {
+        return src.getCounters();
+    }
+
+    public Object submit(byte[] key, ISimpleIndexProcedure proc) {
+        return src.submit(key, proc);
+    }
+
+    public void submit(byte[] fromKey, byte[] toKey,
+                       IKeyRangeIndexProcedure proc, IResultHandler handler) {
+        src.submit(fromKey, toKey, proc, handler);
+    }
+
+    public byte[] lookup(byte[] key) {
+        return src.lookup(key);
+    }
+
+    public boolean contains(byte[] key) {
+        return src.contains(key);
+    }
+
+    public Object insert(Object key, Object value) {
+        return src.insert(key, value);
+    }
+
+    public Object lookup(Object key) {
+        return src.lookup(key);
+    }
+
+    public boolean contains(Object key) {
+        return src.contains(key);
+    }
+
+    public Object remove(Object key) {
+        return src.remove(key);
+    }
+
+    public long rangeCount() {
+        return src.rangeCount();
+    }
+
+    public long rangeCount(byte[] fromKey, byte[] toKey) {
+        return src.rangeCount(fromKey, toKey);
+    }
+
+    public long rangeCountExact(byte[] fromKey, byte[] toKey) {
+        return src.rangeCountExact(fromKey, toKey);
+    }
+
+    public long rangeCountExactWithDeleted(byte[] fromKey, byte[] toKey) {
+        return src.rangeCountExactWithDeleted(fromKey, toKey);
+    }
+
+    public ITupleIterator rangeIterator() {
+        return src.rangeIterator();
+    }
+
+    public ITupleIterator rangeIterator(byte[] fromKey, byte[] toKey) {
+        return src.rangeIterator(fromKey, toKey);
     }
 
 }

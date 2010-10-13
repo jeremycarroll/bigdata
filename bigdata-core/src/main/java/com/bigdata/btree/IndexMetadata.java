@@ -57,8 +57,6 @@ import com.bigdata.io.DirectBufferPool;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.io.compression.IRecordCompressorFactory;
 import com.bigdata.journal.IIndexManager;
-import com.bigdata.mdi.LocalPartitionMetadata;
-import com.bigdata.mdi.MetadataIndex;
 import com.bigdata.rawstore.IRawStore;
 import com.bigdata.relation.accesspath.IAsynchronousIterator;
 import com.bigdata.resources.OverflowManager;

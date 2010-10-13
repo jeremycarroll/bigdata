@@ -60,7 +60,7 @@ import org.junit.Assert;
 
 /**
  * Suite of stress tests of the concurrency control mechanisms (without the
- * database implementation) - See {@link NonBlockingLockManager}.
+ * database implementation) - See {@link com.bigdata.concurrent.NonBlockingLockManagerWithNewDesign}.
  * <p>
  * Goals:
  * <p>
@@ -676,7 +676,7 @@ public abstract class AbstractStressTestNonBlockingLockManager extends Assert {
         /**
          * When true, operations MUST pre-declare their locks (default true).
          * <p>
-         * Note: The {@link NonBlockingLockManager} uses this information to
+         * Note: The {@link com.bigdata.concurrent.NonBlockingLockManagerWithNewDesign} uses this information to
          * avoid deadlocks by the simple expediency of sorting the resources in
          * each lock request into a common order. With this option deadlocks are
          * NOT possible but all locks MUST be pre-declared by the operation

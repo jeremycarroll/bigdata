@@ -37,7 +37,6 @@ import com.bigdata.btree.Leaf.ILeafListener;
 import com.bigdata.btree.isolation.IsolatedFusedView;
 import com.bigdata.btree.view.FusedView;
 import com.bigdata.io.DataOutputBuffer;
-import com.bigdata.mdi.LocalPartitionMetadata;
 
 /**
  * Class supporting random access to tuples and sequential tuple-based cursor

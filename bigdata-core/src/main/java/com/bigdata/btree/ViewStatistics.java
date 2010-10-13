@@ -47,8 +47,6 @@ Modifications:
 
 package com.bigdata.btree;
 
-import com.bigdata.mdi.LocalPartitionMetadata;
-
 /**
  * Helper class collects some statistics about an {@link ILocalBTreeView}.
  * 

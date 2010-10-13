@@ -71,11 +71,11 @@ import com.bigdata.counters.ICounterSet;
 import com.bigdata.journal.IIndexStore;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.TimestampUtility;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.btree.MetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
+import com.bigdata.btree.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.service.AbstractScaleOutFederation;
@@ -344,7 +344,7 @@ final protected ShardLocator getMetadataService() {
     }
 
     /**
-     * Metadata for the {@link MetadataIndex} that manages the scale-out index
+     * Metadata for the {@link com.bigdata.btree.MetadataIndex} that manages the scale-out index
      * (cached).
      */
     public MetadataIndexMetadata getMetadataIndexMetadata() {
@@ -382,7 +382,7 @@ final protected ShardLocator getMetadataService() {
     /**
      * This operation is not supported - the resource description of a scale-out
      * index would include all "live" resources in the corresponding
-     * {@link MetadataIndex}.
+     * {@link com.bigdata.btree.MetadataIndex}.
      */
     public IResourceMetadata[] getResourceMetadata() {
         

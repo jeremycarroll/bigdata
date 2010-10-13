@@ -80,7 +80,7 @@ public class TestHardReferenceQueue extends Assert {
             new HardReferenceQueue<String>(new MyListener<String>(), 0);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expectedRefs exception: " + ex);
+            //System.err.println("Ignoring expectedRefs exception: " + ex);
         }
 
     }
@@ -100,7 +100,7 @@ public class TestHardReferenceQueue extends Assert {
             cache.add(null);
             fail("Expecting: " + IllegalArgumentException.class);
         } catch (IllegalArgumentException ex) {
-            System.err.println("Ignoring expectedRefs exception: " + ex);
+            //System.err.println("Ignoring expectedRefs exception: " + ex);
         }
         
     }

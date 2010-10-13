@@ -67,7 +67,7 @@ public class SegmentMetadata extends AbstractResourceMetadata {
 
     }
 
-    SegmentMetadata(final String filename, /* long nbytes, */final UUID uuid,
+    public SegmentMetadata(final String filename, /* long nbytes, */final UUID uuid,
             final long commitTime) {
 
         super(filename, /* nbytes, */uuid, commitTime/* createTime */,

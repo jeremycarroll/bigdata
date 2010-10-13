@@ -36,7 +36,7 @@ import java.util.concurrent.ExecutionException;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.journal.ITx;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.ndx.ClientIndexView;

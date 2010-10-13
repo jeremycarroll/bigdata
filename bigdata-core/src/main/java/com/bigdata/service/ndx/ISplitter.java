@@ -31,7 +31,7 @@ package com.bigdata.service.ndx;
 import java.util.LinkedList;
 
 import com.bigdata.btree.keys.KVO;
-import com.bigdata.mdi.IMetadataIndex;
+import com.bigdata.btree.IMetadataIndex;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.service.Split;
 

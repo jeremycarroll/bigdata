@@ -29,7 +29,7 @@ import java.io.ObjectOutput;
 
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IndexMetadata;
-import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.btree.LocalPartitionMetadata;
 
 /**
  * This procedure computes a range count on an index.

@@ -63,7 +63,7 @@ import com.bigdata.service.IMetadataService;
  * <p>
  * The left and right separator keys define the half-open key range of the index
  * partition. The separator keys are available directly as the <i>keys</i> of
- * the {@link MetadataIndex}, therefore they are not stored in the index
+ * the {@link com.bigdata.btree.MetadataIndex}, therefore they are not stored in the index
  * partition records within the metadata index. However, the separator keys are
  * stored in the index partition description within the {@link IndexMetadata}
  * records so that they are available locally with the index partition data.
@@ -71,7 +71,7 @@ import com.bigdata.service.IMetadataService;
  * If the client knows a key or key range of interest for a scale-out index then
  * they can obtain the relevant index partition descriptions and a data service
  * locator either either by flooding the query to the {@link IDataService}s or
- * from the {@link MetadataIndex}.
+ * from the {@link com.bigdata.btree.MetadataIndex}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$

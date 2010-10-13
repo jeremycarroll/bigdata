@@ -40,6 +40,10 @@ import com.bigdata.relation.rule.Program;
 import com.bigdata.relation.rule.eval.ActionEnum;
 import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IJoinNexusFactory;
+import com.bigdata.test.conditional.ConditionalParameterized;
+import com.bigdata.test.conditional.IgnoreIf;
+import com.bigdata.test.conditional.LongTestsExcluded;
+
 import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,7 +56,7 @@ import org.junit.runners.Parameterized.Parameters;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
-@RunWith(Parameterized.class)
+@RunWith(ConditionalParameterized.class)
 public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 
     /**
@@ -382,6 +386,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
      */
 
     @Test
+    @IgnoreIf(LongTestsExcluded.class)
     public void test_fixedPoint_LUBM_U1_As_Full_NestedSubquery()
             throws Exception {
 
@@ -410,6 +415,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
     }
 
     @Test
+    @IgnoreIf(LongTestsExcluded.class)
     public void test_fixedPoint_LUBM_U1_As_Full_PipelineJoins()
             throws Exception {
 
@@ -438,6 +444,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
     }
 
     @Test
+    @IgnoreIf(LongTestsExcluded.class)
     public void test_fixedPoint_LUBM_U1_As_Fast_NestedSubquery() throws Exception {
 
         final String[] resources = readFiles(new File( DataFinder.bestPath("testing/data/lehigh/U1" ) ),
@@ -464,6 +471,7 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
     }
 
     @Test
+    @IgnoreIf(LongTestsExcluded.class)
     public void test_fixedPoint_LUBM_U1_As_Fast_PipelineJoins() throws Exception {
 
         final String[] resources = readFiles(new File( DataFinder.bestPath("testing/data/lehigh/U1" ) ),
