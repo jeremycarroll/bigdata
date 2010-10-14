@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Created on Oct 14, 2006
  */
 
-package com.bigdata.counters;
+package com.bigdata.counters.store;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -39,11 +39,7 @@ import org.junit.runners.Suite.SuiteClasses;
  */
 @RunWith(Suite.class)
 @SuiteClasses( {
-        TestCounters.class,
-        TestHistoryInstrument.class,
-        com.bigdata.counters.store.TestAll.class,
-        com.bigdata.counters.query.TestAll.class,
-        com.bigdata.counters.linux.TestAll.class
+        TestCounterSetBTree.class
         } )
 public class TestAll {
 

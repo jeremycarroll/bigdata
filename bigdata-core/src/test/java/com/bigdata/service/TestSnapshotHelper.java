@@ -31,9 +31,10 @@ package com.bigdata.service;
 import java.io.File;
 import java.io.IOException;
 
+import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleIterator;
 import com.bigdata.service.DistributedTransactionService.SnapshotHelper;
 import com.bigdata.test.Assert;
-import java.util.Iterator;
 import org.junit.Test;
 
 /**
@@ -136,13 +137,15 @@ public class TestSnapshotHelper extends Assert {
             
             long[] a = new long[ndx.getEntryCount()];
             
-            Iterator<Long> itr = ndx.rangeIterator();
+            final ITupleIterator itr = ndx.rangeIterator();
             
             int i = 0;
             
             while(itr.hasNext()) {
                 
-                a[i] = itr.next();
+                final ITuple tuple = itr.next();
+                
+                a[i] = ndx.decodeKey(tuple.getKey());
                 
                 i++;
                 

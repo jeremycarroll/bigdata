@@ -47,6 +47,7 @@ import com.bigdata.rawstore.Bytes;
  * system properties defined by {@link Options}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+ * @version $Id$
  * 
  *          FIXME LRUNexus : writes MUST must be "isolated" until the commit.
  *          Isolated indices MUST have their own cache backed by the shared LRU
@@ -130,6 +131,7 @@ public class LRUNexus {
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
+     * @version $Id$
      */
     public static interface Options {
 
@@ -341,6 +343,18 @@ public class LRUNexus {
 
     }
 
+
+    /**
+     * Global instance.
+     * <p>
+     * Note: A <a href="http://bugs.sun.com/view_bug.do?bug_id=6880903">Sun G1
+     * bug in JDK 1.6.0_16</a> provides a false estimate of the available
+     * memory.
+     * 
+     * @see Options
+     */
+    public static final IGlobalLRU<Long, Object> INSTANCE;
+
     /**
      * The access policy. Not all {@link IGlobalLRU} implementations support
      * multiple access policies. Check the specific implementation to see which
@@ -348,6 +362,7 @@ public class LRUNexus {
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
+     * @version $Id$
      */
     public static enum AccessPolicyEnum {
 
@@ -380,6 +395,7 @@ public class LRUNexus {
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
+     * @version $Id$
      */
     public static class CacheSettings {
 
@@ -531,8 +547,9 @@ public class LRUNexus {
                     Options.INDEX_SEGMENT_BUILD_POPULATES_CACHE,
                     Options.DEFAULT_INDEX_SEGMENT_BUILD_POPULATES_CACHE));
 
-            cls = Class.forName(properties.getProperty(Options.CLASS,
-                      Options.DEFAULT_CLASS)).asSubclass(IGlobalLRU.class);
+            cls = (Class<? extends IGlobalLRU>) LRUNexus.class
+                        .forName(properties.getProperty(Options.CLASS,
+                                Options.DEFAULT_CLASS));
 
             final boolean validClass = IGlobalLRU.class.isAssignableFrom(cls);
             
@@ -725,10 +742,8 @@ public class LRUNexus {
                     final Constructor<?> ctor = cls
                             .getConstructor(new Class[] { CacheSettings.class });
 
-                    @SuppressWarnings("unchecked") // reflect erases types.
-                    IGlobalLRU<Long, Object> result = (IGlobalLRU<Long, Object>)
-                        ctor.newInstance(new Object[] { this });
-                    return result;
+                    return (IGlobalLRU<Long, Object>) ctor
+                            .newInstance(new Object[] { this });
 
                 }
 
@@ -739,7 +754,6 @@ public class LRUNexus {
 
         }
 
-        @Override
         public String toString() {
 
             return super.toString()
@@ -766,4 +780,52 @@ public class LRUNexus {
         }
 
     }
+
+    /**
+     * The configuration in use.
+     */
+    private static final CacheSettings settings;
+
+    static {
+
+        IGlobalLRU<Long, Object> tmp = null;
+        CacheSettings s = null;
+
+        try {
+
+            // parse the options.
+            s = new CacheSettings(System.getProperties());
+
+            if (BigdataStatics.debug || log.isInfoEnabled()) {
+
+                final String msg = s.enabled ? s.toString()
+                        : "LRUNexus is disabled";
+
+                if (BigdataStatics.debug)
+                    System.err.println(msg);
+
+                if (log.isInfoEnabled())
+                    log.info(msg);
+
+            }
+
+            // create the cache object.
+            tmp = s.newInstance();
+            
+        } catch (Throwable t) {
+
+            log.error("LRUNexus disabled", t);
+
+        } finally {
+
+            // Note: MAY be null.
+            INSTANCE = tmp;
+
+            // Note: MAY be null.
+            settings = s;
+            
+        }
+
+    }
+    
 }

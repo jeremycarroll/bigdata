@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.UUID;
 
 import com.bigdata.service.Event;
-import com.bigdata.service.EventBTree;
 import com.bigdata.service.EventReceiver;
 import com.bigdata.service.IEventReportingService;
 import com.bigdata.service.IService;
@@ -19,6 +18,7 @@ import com.bigdata.service.IService;
  * for testing the HTTP telemtry service.
  * 
  * @author <a href="mailto:mrpersonick@users.sourceforge.net">Mike Personick</a>
+ * @version $Id$
  */
 public class DummyEventReportingService extends EventReceiver implements
         IService {

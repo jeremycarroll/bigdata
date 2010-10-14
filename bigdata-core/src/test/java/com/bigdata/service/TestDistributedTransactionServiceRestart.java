@@ -30,8 +30,9 @@ package com.bigdata.service;
 
 import java.io.File;
 import java.util.Properties;
+import com.bigdata.btree.ITuple;
+import com.bigdata.btree.ITupleIterator;
 import com.bigdata.test.Assert;
-import java.util.Iterator;
 import org.junit.Test;
 
 /**
@@ -140,13 +141,15 @@ public class TestDistributedTransactionServiceRestart extends Assert {
             
             final long[] a = new long[ndx.getEntryCount()];
             
-            final Iterator<Long> itr = ndx.rangeIterator();
+            final ITupleIterator<?> itr = ndx.rangeIterator();
             
             int i = 0;
             
             while(itr.hasNext()) {
                 
-                a[i] = itr.next();
+                final ITuple<?> tuple = itr.next();
+                
+                a[i] = ndx.decodeKey(tuple.getKey());
                 
                 i++;
                 

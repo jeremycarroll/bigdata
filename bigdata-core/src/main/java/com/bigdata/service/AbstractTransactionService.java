@@ -67,6 +67,7 @@ import com.bigdata.util.MillisecondTimestampFactory;
  * points and various other purposes.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+ * @version $Id$
  * 
  * @todo failover. the service instances will need to track active/committed
  *       transactions, complain if their clocks get out of alignment, and refuse
@@ -89,6 +90,7 @@ abstract public class AbstractTransactionService extends AbstractService
      * Options understood by this service.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
     public interface Options {
 
@@ -1013,7 +1015,8 @@ abstract public class AbstractTransactionService extends AbstractService
                 /*
                  * The start time associated with the earliest remaining tx.
                  */
-                earliestTxStartTime = startTimeIndex.firstKey();
+                earliestTxStartTime = startTimeIndex.decodeKey(startTimeIndex
+                        .keyAt(0));
                 
             } else {
 
@@ -1816,6 +1819,7 @@ abstract public class AbstractTransactionService extends AbstractService
      * they are not represented here.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
 //BTM    protected class TxState {
 //BTM

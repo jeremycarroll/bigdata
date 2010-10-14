@@ -55,17 +55,11 @@ import com.bigdata.journal.*;
 import org.apache.log4j.Logger;
 
 import com.bigdata.bfs.BigdataFileSystem;
-import com.bigdata.btree.BTree;
-import com.bigdata.btree.Checkpoint;
-import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleIterator;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.btree.IndexSegment;
-import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.cache.ConcurrentWeakValueCacheWithTimeout;
 import com.bigdata.cache.HardReferenceQueue;
 import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.concurrent.NamedLock;
+import com.bigdata.io.SerializerUtil;
 //BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.WORMStrategy.StoreCounters;
 import com.bigdata.mdi.IPartitionMetadata;
@@ -110,6 +104,7 @@ import static java.util.concurrent.TimeUnit.*;
  *       {@link #getDataDirFreeSpace(File)}
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+ * @version $Id$
  */
 abstract public class StoreManager extends ResourceEvents implements
         IResourceManager {
@@ -117,12 +112,13 @@ abstract public class StoreManager extends ResourceEvents implements
     /**
      * Logger.
      */
-    private static final Logger log = Logger.getLogger(StoreManager.class);
+    protected static final Logger log = Logger.getLogger(StoreManager.class);
 
     /**
      * Options for the {@link StoreManager}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
     public static interface Options extends com.bigdata.journal.Options {
 
@@ -243,6 +239,7 @@ abstract public class StoreManager extends ResourceEvents implements
      * Performance counters for the {@link StoreManager}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
     public static interface IStoreManagerCounters {
        
@@ -1156,7 +1153,7 @@ abstract public class StoreManager extends ResourceEvents implements
              */
 
             // Note: dataDir is _canonical_
-            final File tmpDataDir;
+            final File dataDir;
             try {
                 final String val = properties.getProperty(Options.DATA_DIR);
 
@@ -1168,14 +1165,14 @@ abstract public class StoreManager extends ResourceEvents implements
                 }
 
                 // Note: stored in canonical form.
-                tmpDataDir = new File(val).getCanonicalFile();
+                dataDir = new File(val).getCanonicalFile();
 
                 if (log.isInfoEnabled())
-                    log.info(Options.DATA_DIR + "=" + tmpDataDir);
+                    log.info(Options.DATA_DIR + "=" + dataDir);
 
-                journalsDir = new File(tmpDataDir, "journals").getCanonicalFile();
+                journalsDir = new File(dataDir, "journals").getCanonicalFile();
 
-                segmentsDir = new File(tmpDataDir, "segments").getCanonicalFile();
+                segmentsDir = new File(dataDir, "segments").getCanonicalFile();
 
             } catch (IOException ex) {
 
@@ -1183,15 +1180,15 @@ abstract public class StoreManager extends ResourceEvents implements
 
             }
 
-            if (!tmpDataDir.exists()) {
+            if (!dataDir.exists()) {
 
                 if (log.isInfoEnabled())
-                    log.info("Creating: " + tmpDataDir);
+                    log.info("Creating: " + dataDir);
 
-                if (!tmpDataDir.mkdirs()) {
+                if (!dataDir.mkdirs()) {
 
                     throw new RuntimeException("Could not create directory: "
-                            + tmpDataDir.getAbsolutePath());
+                            + dataDir.getAbsolutePath());
 
                 }
 
@@ -1227,10 +1224,10 @@ abstract public class StoreManager extends ResourceEvents implements
 
             // verify all are directories vs regular files.
 
-            if (!tmpDataDir.isDirectory()) {
+            if (!dataDir.isDirectory()) {
 
                 throw new RuntimeException("Not a directory: "
-                        + tmpDataDir.getAbsolutePath());
+                        + dataDir.getAbsolutePath());
 
             }
 
@@ -1248,7 +1245,7 @@ abstract public class StoreManager extends ResourceEvents implements
 
             }
 
-            this.dataDir = tmpDataDir;
+            this.dataDir = dataDir;
 
         }
 
@@ -1256,10 +1253,10 @@ abstract public class StoreManager extends ResourceEvents implements
         {
 
             // Note: tmpDir is _canonical_
-            final File tmpTmpDir;
+            final File tmpDir;
             try {
 
-                tmpTmpDir = new File(properties.getProperty(Options.TMP_DIR,
+                tmpDir = new File(properties.getProperty(Options.TMP_DIR,
                         System.getProperty("java.io.tmpdir")))
                         .getCanonicalFile();
 
@@ -1270,30 +1267,30 @@ abstract public class StoreManager extends ResourceEvents implements
             }
 
             if(log.isInfoEnabled())
-                log.info(Options.TMP_DIR + "=" + tmpTmpDir);
+                log.info(Options.TMP_DIR + "=" + tmpDir);
 
-            if (!tmpTmpDir.exists()) {
+            if (!tmpDir.exists()) {
 
                 if(log.isInfoEnabled())
-                    log.info("Creating temp directory: " + tmpTmpDir);
+                    log.info("Creating temp directory: " + tmpDir);
 
-                if (!tmpTmpDir.mkdirs()) {
+                if (!tmpDir.mkdirs()) {
 
                     throw new RuntimeException("Could not create directory: "
-                            + tmpTmpDir.getAbsolutePath());
+                            + tmpDir.getAbsolutePath());
 
                 }
 
             }
 
-            if (!tmpTmpDir.isDirectory()) {
+            if (!tmpDir.isDirectory()) {
 
                 throw new RuntimeException("Not a directory: "
-                        + tmpTmpDir.getAbsolutePath());
+                        + tmpDir.getAbsolutePath());
 
             }
 
-            this.tmpDir = tmpTmpDir;
+            this.tmpDir = tmpDir;
 
         }
 
@@ -1310,6 +1307,7 @@ abstract public class StoreManager extends ResourceEvents implements
      * then the {@link StoreManager} will be {@link StoreManager#shutdownNow()}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
     private class Startup implements Runnable {
 
@@ -1383,7 +1381,7 @@ abstract public class StoreManager extends ResourceEvents implements
          * @throws RuntimeException
          *             if bad files are encountered, etc.
          */
-        private void start() throws InterruptedException {
+        final private void start() throws InterruptedException {
 
             if (!isStarting()) {
 
@@ -1965,6 +1963,7 @@ if(discoveredTxnSrvc) {
      * Helper class gathers statistics about files during a scan.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
     private static class Stats {
 
@@ -1994,7 +1993,6 @@ if(discoveredTxnSrvc) {
          */
         public long nbytes;
 
-        @Override
         public String toString() {
 
             return "Stats{nfiles=" + nfiles + ", njournals=" + njournals
@@ -2069,18 +2067,18 @@ if(discoveredTxnSrvc) {
 
         if (len > 0 && name.endsWith(Options.JNL)) {
 
-            final Properties tmpProperties = getProperties();
+            final Properties properties = getProperties();
 
-            tmpProperties.setProperty(Options.FILE, file.getAbsolutePath());
+            properties.setProperty(Options.FILE, file.getAbsolutePath());
 
             // Note: no writes allowed during startup.
             // Note: disables the write cache among other things.
-            tmpProperties.setProperty(Options.READ_ONLY, "true");
+            properties.setProperty(Options.READ_ONLY, "true");
 
             final AbstractJournal tmp;
             try {
 
-                tmp = new ManagedJournal(tmpProperties);
+                tmp = new ManagedJournal(properties);
 
             } catch (Exception ex) {
 
@@ -2450,6 +2448,7 @@ if(discoveredTxnSrvc) {
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
+     * @version $Id$
      */
     public class ManagedJournal extends AbstractJournal {
 
@@ -2489,7 +2488,6 @@ if(discoveredTxnSrvc) {
  
         }
 
-        @Override
         public String toString() {
             
             /*
@@ -2513,7 +2511,6 @@ if(discoveredTxnSrvc) {
          * Note: Exposed for the {@link DataService} which needs this for its
          * 2-phase commit protocol.
          */
-        @Override
         public long commitNow(final long commitTime) {
             
             return super.commitNow(commitTime);
@@ -2529,7 +2526,6 @@ if(discoveredTxnSrvc) {
          * this fact to avoid contention with the live {@link CommitRecordIndex}
          * for the live journal.
          */
-        @Override
         public CommitRecordIndex getCommitRecordIndex(final long addr) {
             
             return super.getCommitRecordIndex(addr);
@@ -2592,7 +2588,6 @@ if(discoveredTxnSrvc) {
          * is <code>null</code> since a remote caller can not have the correct
          * metadata on hand when they formulate the request.
          */
-        @Override
         protected void validateIndexMetadata(final String name,
                 final IndexMetadata metadata) {
 
@@ -2938,16 +2933,16 @@ if(discoveredTxnSrvc) {
                      * overflow (when it is replaced by a new live journal).
                      */
 
-                    final Properties tmpProperties = getProperties();
+                    final Properties properties = getProperties();
 
-                    tmpProperties.setProperty(Options.FILE, file.toString());
+                    properties.setProperty(Options.FILE, file.toString());
 
                     // All historical journals are read-only!
                     // Note: disables the write cache among other things.
-                    tmpProperties.setProperty(Options.READ_ONLY, "true");
+                    properties.setProperty(Options.READ_ONLY, "true");
 
                     final AbstractJournal journal = new ManagedJournal(
-                            tmpProperties);
+                            properties);
 
                     final long closeTime = journal.getRootBlockView()
                             .getCloseTime();
@@ -3586,12 +3581,16 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
              * journal resource, then deleteResource() will be tasked to delete
              * it from the [journalIndex] as well.
              */
-            final Iterator<JournalMetadata> itr =
-                journalIndex.rangeIterator(true);
+            final ITupleIterator itr = journalIndex.rangeIterator(
+                    null/* fromKey */, null/* toKey */, 0/* capacity */,
+                    IRangeQuery.DEFAULT | IRangeQuery.CURSOR, null/*filter*/);
 
             while (itr.hasNext()) {
 
-                final IResourceMetadata resourceMetadata = itr.next();
+                final ITuple tuple = itr.next();
+
+                final IResourceMetadata resourceMetadata = (IResourceMetadata) SerializerUtil
+                        .deserialize(tuple.getValue());
 
                 // the create timestamp for that resource.
                 final long createTime = resourceMetadata.getCreateTime();
@@ -3659,11 +3658,16 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
              * indexSegment resource, then deleteResource() will be tasked to
              * delete it from the [segmentIndex] as well.
              */
-            final Iterator<SegmentMetadata> itr = segmentIndex.rangeIterator();
+            final ITupleIterator itr = segmentIndex.rangeIterator(
+                    null/* fromKey */, null/* toKey */, 0/* capacity */,
+                    IRangeQuery.DEFAULT | IRangeQuery.CURSOR, null/* filter */);
             
             while (itr.hasNext()) {
 
-                final IResourceMetadata resourceMetadata = itr.next();
+                final ITuple tuple = itr.next();
+
+                final IResourceMetadata resourceMetadata = (IResourceMetadata) SerializerUtil
+                        .deserialize(tuple.getValue());
 
                 // the create timestamp for that resource.
                 final long createTime = resourceMetadata.getCreateTime();
@@ -3924,12 +3928,16 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
 
                 synchronized (journalIndex) {
 
-                    final Iterator<JournalMetadata> itr =
-                            journalIndex.rangeIterator(true);
+                    @SuppressWarnings("unchecked")
+                    final ITupleIterator<JournalMetadata> itr = journalIndex
+                            .rangeIterator(null/* fromKey */,
+                                    null/* toKey */, 0/* capacity */,
+                                    IRangeQuery.DEFAULT | IRangeQuery.CURSOR,
+                                    null/* filter */);
                     
                     while(itr.hasNext()) {
 
-                        final IResourceMetadata md = itr.next();
+                        final IResourceMetadata md = itr.next().getObject();
                         
                         if(md.getUUID().equals(uuid)) {
                             
@@ -3949,12 +3957,16 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
 
                 synchronized (segmentIndex) {
 
-                    final Iterator<SegmentMetadata> itr =
-                            segmentIndex.rangeIterator();
+                    @SuppressWarnings("unchecked")
+                    final ITupleIterator<SegmentMetadata> itr = segmentIndex
+                            .rangeIterator(null/* fromKey */,
+                                    null/* toKey */, 0/* capacity */,
+                                    IRangeQuery.DEFAULT | IRangeQuery.CURSOR,
+                                    null/* filter */);
 
                     while (itr.hasNext()) {
 
-                        final IResourceMetadata md = itr.next();
+                        final IResourceMetadata md = itr.next().getObject();
 
                         if (md.getUUID().equals(uuid)) {
 
@@ -4299,12 +4311,14 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
          */
         synchronized(journalIndex) {
 
-            final Iterator<JournalMetadata> itr =
-                    journalIndex.rangeIterator(false);
+            @SuppressWarnings("unchecked")
+            final ITupleIterator<JournalMetadata> itr = journalIndex.rangeIterator();
             
             while(itr.hasNext()) {
                 
-                final JournalMetadata journalMetadata = itr.next();
+                final ITuple<JournalMetadata> tuple = itr.next();
+
+                final JournalMetadata journalMetadata = tuple.getObject();
                 
                 final UUID uuid = journalMetadata.getUUID();
                 
@@ -4373,12 +4387,17 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
                      * [commitRecord]. For each commitRecord, fetch the
                      * Name2Addr index and visit its Entries.
                      */
-                    final Iterator<CommitRecordIndex.Entry> itr2 =
-                          commitRecordIndex.rangeIterator(commitTimeToPreserve);
+                    @SuppressWarnings("unchecked")
+                    final ITupleIterator<ICommitRecord> itr2 = commitRecordIndex
+                            .rangeIterator(commitTimeToPreserve/* fromKey */, null/* toKey */);
                     
                     while(itr2.hasNext()) {
                         
-                        final CommitRecordIndex.Entry entry2 = itr2.next();
+                        final ITuple tuple2 = itr2.next();
+                        
+                        final CommitRecordIndex.Entry entry2 = (CommitRecordIndex.Entry) tuple2
+                                .getObject();
+
                         /*
                          * For each distinct checkpoint, load the BTree and
                          * fetch its local partition metadata which specifies
@@ -4388,7 +4407,7 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
                          */
                         final ICommitRecord commitRecord = commitRecordIndex
                                 .fetchCommitRecord(entry2);
-
+                        
                         final Name2Addr name2addr = (Name2Addr) Name2Addr
                                 .load(
                                         journal,
@@ -4396,6 +4415,7 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
                                                 .getRootAddr(AbstractJournal.ROOT_NAME2ADDR),
                                         true/* readOnly */);
                         
+                        @SuppressWarnings("unchecked")
                         final ITupleIterator<Name2Addr.Entry> itr3 = name2addr.rangeIterator();
                         
                         while(itr3.hasNext()) {
@@ -4695,10 +4715,10 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
      */
     protected void overrideJournalExtent(final Properties p) {
 
-        final long tmpBytesUnderManagement = this.bytesUnderManagement.get();
+        final long bytesUnderManagement = this.bytesUnderManagement.get();
         
         if (accelerateOverflowThreshold == 0
-                || tmpBytesUnderManagement >= accelerateOverflowThreshold) {
+                || bytesUnderManagement >= accelerateOverflowThreshold) {
 
             /*
              * Crossed the threshold where we no longer accelerate overflow.
@@ -4708,7 +4728,7 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
 
         }
 
-        final double d = (double) tmpBytesUnderManagement
+        final double d = (double) bytesUnderManagement
                 / accelerateOverflowThreshold;
 
         final long initialExtent = Long.parseLong(p.getProperty(
@@ -4739,7 +4759,7 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
 
         if (log.isInfoEnabled())
             log.info("discount=" + d //
-                    + ", bytesUnderManagement=" + tmpBytesUnderManagement //
+                    + ", bytesUnderManagement=" + bytesUnderManagement //
                     + ", threshold=" + accelerateOverflowThreshold//
                     + ", minimimInitialExtent=" + minimumExtent//
                     + ", initialExtent=" + initialExtent //

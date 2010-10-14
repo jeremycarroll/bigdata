@@ -32,7 +32,6 @@ import com.bigdata.btree.BTree;
 import com.bigdata.btree.Checkpoint;
 import com.bigdata.btree.DefaultTupleSerializer;
 import com.bigdata.btree.ITuple;
-import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.ASCIIKeyBuilderFactory;
 import com.bigdata.btree.keys.IKeyBuilder;
@@ -44,8 +43,6 @@ import com.bigdata.io.DataInputBuffer;
 import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
-import java.util.Iterator;
-import org.apache.log4j.Logger;
 
 /**
  * BTree mapping commit times to {@link ICommitRecord}s. The keys are the long
@@ -57,14 +54,7 @@ import org.apache.log4j.Logger;
  * turn facilitates canonicalizing caches for objects loaded from that
  * {@link ICommitRecord}.
  */
-public class CommitRecordIndex {
-
-    private BTree btree;
-
-    /**
-     * Log for btree operations.
-     */
-    private static final Logger log = Logger.getLogger(CommitRecordIndex.class);
+public class CommitRecordIndex extends BTree {
 
     /**
      * Instance used to encode the timestamp into the key.
@@ -99,12 +89,12 @@ public class CommitRecordIndex {
     
         final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
         
-        metadata.setBTreeClassName(BTree.class.getName());
+        metadata.setBTreeClassName(CommitRecordIndex.class.getName());
         
         metadata.setTupleSerializer(new CommitRecordIndexTupleSerializer(
                 new ASCIIKeyBuilderFactory(Bytes.SIZEOF_LONG)));
         
-        return new CommitRecordIndex(BTree.create(store, metadata));
+        return (CommitRecordIndex) BTree.create(store, metadata);
         
     }
 
@@ -117,7 +107,7 @@ public class CommitRecordIndex {
         metadata.setTupleSerializer(new CommitRecordIndexTupleSerializer(
                 new ASCIIKeyBuilderFactory(Bytes.SIZEOF_LONG)));
         
-        return new CommitRecordIndex(BTree.createTransient(metadata));
+        return (CommitRecordIndex) BTree.createTransient(metadata);
         
     }
 
@@ -133,18 +123,18 @@ public class CommitRecordIndex {
      */
     public CommitRecordIndex(IRawStore store, Checkpoint checkpoint,
             IndexMetadata metadata, boolean readOnly) {
-        this(new BTree(store, checkpoint, metadata, readOnly));
-    }
 
-    public CommitRecordIndex(BTree btree) {
-        this.btree = btree;
+        super(store, checkpoint, metadata, readOnly);
+
         this.ser = new Entry.EntrySerializer();
+        
     }
     
     /**
      * Used to (de-)serialize {@link Entry}s (NOT thread-safe).
      */
     private final Entry.EntrySerializer ser;
+    
     /**
      * Encodes the commit time into a key.
      * 
@@ -174,7 +164,7 @@ public class CommitRecordIndex {
      */
     synchronized public boolean hasTimestamp(long commitTime) {
         
-        return btree.contains(getKey(commitTime));
+        return super.contains(getKey(commitTime));
         
     }
     
@@ -198,7 +188,7 @@ public class CommitRecordIndex {
             return commitRecord;
 
         // exact match index lookup.
-        final byte[] val = btree.lookup(getKey(commitTime));
+        final byte[] val = super.lookup(getKey(commitTime));
 
         if (val == null) {
 
@@ -208,12 +198,12 @@ public class CommitRecordIndex {
         }
         
         // deserialize the entry.
-        final Entry entry = deserializeEntry(new DataInputBuffer(val));
+        final Entry entry = ser.deserializeEntry(new DataInputBuffer(val));
 
         /*
          * re-load the commit record from the store.
          */
-        commitRecord = loadCommitRecord(btree.getStore(),entry.addr);
+        commitRecord = loadCommitRecord(store,entry.addr);
         
         /*
          * save commit time -> commit record mapping in transient cache.
@@ -298,7 +288,7 @@ public class CommitRecordIndex {
         // find first strictly greater than.
         final int index = findIndexOf(Math.abs(timestamp)) + 1;
         
-        if (index == btree.getEntryCount()) {
+        if (index == nentries) {
 
             // No match.
 
@@ -325,7 +315,7 @@ public class CommitRecordIndex {
          * Retrieve the entry for the commit record from the index.  This
          * also stores the actual commit time for the commit record.
          */
-        final Entry entry = deserializeEntry( new DataInputBuffer(btree.valueAt( index ) ));
+        final Entry entry = ser.deserializeEntry( new DataInputBuffer( super.valueAt( index ) ));
 
         return fetchCommitRecord(entry);
         
@@ -356,7 +346,7 @@ public class CommitRecordIndex {
              * the entry.
              */ 
         
-            commitRecord = loadCommitRecord(btree.getStore(),entry.addr);
+            commitRecord = loadCommitRecord(store,entry.addr);
 
             assert entry.commitTime == commitRecord.getTimestamp();
             
@@ -383,7 +373,7 @@ public class CommitRecordIndex {
      */
     synchronized public int findIndexOf(long timestamp) {
         
-        int pos = btree.indexOf(getKey(timestamp));
+        int pos = super.indexOf(getKey(timestamp));
         
         if (pos < 0) {
 
@@ -472,9 +462,9 @@ public class CommitRecordIndex {
 //                    "commit record exists: timestamp=" + commitTime);
 //            
 //        }
-        if(!btree.contains(key)) {
+        if(!super.contains(key)) {
         // add a serialized entry to the persistent index.
-        btree.insert(key,
+        super.insert(key,
                 ser.serializeEntry(new Entry(commitTime, commitRecordAddr)));
         
         // should not be an existing entry for that commit time.
@@ -487,70 +477,11 @@ public class CommitRecordIndex {
 		}
     }
 
-    public long writeCheckpoint() {
-        return btree.writeCheckpoint();
-    }
-
-    /**
-     * Return an iterator which iterates through all commit records from
-     * the specified time to the end.
-     */
-    public Iterator<Entry> rangeIterator(long fromTime) {
-        return new EntryIterator(btree.rangeIterator(fromTime, null));
-    }
-
-    /**
-     * Return an iterator which iterates through all commit records.
-     */
-    public Iterator<Entry> rangeIterator() {
-        return new EntryIterator(btree.rangeIterator());
-    }
-
-    /**
-     * An iterator mapping
-     */
-    private static class EntryIterator implements Iterator<Entry> {
-        private ITupleIterator<byte[]> tupleIterator;
-
-        private EntryIterator(ITupleIterator<byte[]> tupleIterator) {
-            this.tupleIterator = tupleIterator;
-        }
-
-        public boolean hasNext() {
-            return tupleIterator.hasNext();
-        }
-
-        public Entry next() {
-            return deserializeEntry(tupleIterator.next().getValueStream());
-        }
-
-        public void remove() {
-            tupleIterator.remove();
-        }
-    }
-
-    /**
-     * De-serialize an {@link Entry}.
-     * 
-     * @param is
-     *            The serialized data.
-     * 
-     * @return The {@link Entry}.
-     */
-    public static Entry deserializeEntry(DataInputBuffer is) {
-        try {
-            long commitTime = is.readLong();
-            long addr = is.readLong();
-            return new Entry(commitTime, addr);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-        
     /**
      * An entry in the persistent index.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
     public static class Entry {
        
@@ -577,11 +508,12 @@ public class CommitRecordIndex {
          * Used to (de-)serialize {@link Entry}s (NOT thread-safe).
          * 
          * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+         * @version $Id$
          */
         public static class EntrySerializer {
 
             /**
-             * Private buffer used within synchronized contexts to serialize
+             * Private buffer used within sychronized contexts to serialize
              * {@link Entry}s.
              */
             private final DataOutputBuffer out = new DataOutputBuffer(
@@ -616,7 +548,21 @@ public class CommitRecordIndex {
              * @return The {@link Entry}.
              */
             public Entry deserializeEntry(DataInputBuffer is) {
-                return CommitRecordIndex.deserializeEntry(is);
+
+                try {
+
+                    long commitTime = is.readLong();
+
+                    long addr = is.readLong();
+
+                    return new Entry(commitTime, addr);
+
+                } catch (IOException ex) {
+
+                    throw new RuntimeException(ex);
+
+                }
+
             }
 
         }
@@ -627,6 +573,7 @@ public class CommitRecordIndex {
      * Encapsulates key and value formation for the {@link CommitRecordIndex}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
     static public class CommitRecordIndexTupleSerializer extends
             DefaultTupleSerializer<Long, Entry> {
@@ -722,7 +669,6 @@ public class CommitRecordIndex {
          */
         private final static transient byte VERSION = VERSION0;
 
-        @Override
         public void readExternal(final ObjectInput in) throws IOException,
                 ClassNotFoundException {
 
@@ -740,7 +686,6 @@ public class CommitRecordIndex {
 
         }
 
-        @Override
         public void writeExternal(final ObjectOutput out) throws IOException {
 
             super.writeExternal(out);

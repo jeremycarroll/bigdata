@@ -103,7 +103,7 @@ log.warn("\nMetadataIndexCache.newView >>>> META_DATA INDEX META_DATA = NULL\n")
      *         iff no scale-out index is registered by that name at that
      *         timestamp.
      */
-    private MetadataIndexMetadata getMetadataIndexMetadata(final String name,
+    protected MetadataIndexMetadata getMetadataIndexMetadata(final String name,
             final long timestamp) {
 
 //BTM        final IMetadataService mds = fed.getMetadataService();

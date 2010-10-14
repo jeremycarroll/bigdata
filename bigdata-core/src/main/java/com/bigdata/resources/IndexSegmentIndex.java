@@ -27,8 +27,6 @@ import java.util.UUID;
 
 import com.bigdata.btree.BTree;
 import com.bigdata.btree.Checkpoint;
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.IndexSegmentStore;
 import com.bigdata.btree.keys.IKeyBuilder;
@@ -38,7 +36,6 @@ import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.SegmentMetadata;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
-import java.util.Iterator;
 
 /**
  * {@link BTree} mapping {@link IndexSegmentStore} <em>createTime</em>s to
@@ -52,9 +49,7 @@ import java.util.Iterator;
  * Note: This is used as a transient data structure that is populated from the
  * file system by the {@link ResourceManager}.
  */
-public class IndexSegmentIndex {
-
-    private BTree btree;
+public class IndexSegmentIndex extends BTree {
 
     /**
      * Instance used to encode the timestamp into the key.
@@ -71,9 +66,9 @@ public class IndexSegmentIndex {
         
         final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());
 
-        metadata.setBTreeClassName(BTree.class.getName());
+        metadata.setBTreeClassName(IndexSegmentIndex.class.getName());
 
-        return new IndexSegmentIndex(BTree.createTransient(metadata));
+        return (IndexSegmentIndex) BTree.createTransient(metadata);
         
     }
 
@@ -88,11 +83,9 @@ public class IndexSegmentIndex {
      *            The metadata record for the index.
      */
     public IndexSegmentIndex(IRawStore store, Checkpoint checkpoint, IndexMetadata metadata, boolean readOnly) {
-        this(new BTree(store, checkpoint, metadata, readOnly));
-    }
 
-    private IndexSegmentIndex(BTree btree) {
-        this.btree = btree;
+        super(store, checkpoint, metadata, readOnly);
+
     }
     
     /**
@@ -140,7 +133,7 @@ public class IndexSegmentIndex {
 
         final byte[] key = getKey(createTime,resourceMetadata.getUUID());
         
-        if(btree.contains(key)) {
+        if(super.contains(key)) {
             
             throw new IllegalArgumentException("entry exists: timestamp="
                     + createTime);
@@ -148,47 +141,8 @@ public class IndexSegmentIndex {
         }
         
         // add a serialized entry to the persistent index.
-        btree.insert(key, SerializerUtil.serialize(resourceMetadata));
+        super.insert(key, SerializerUtil.serialize(resourceMetadata));
         
     }
         
-    public int getEntryCount() {
-        return btree.getEntryCount();
-    }
-
-    private static SegmentMetadata deserializeValue(byte[] value) {
-        return (SegmentMetadata) SerializerUtil.deserialize(value);
-    }
-
-    /**
-     * Return an iterator which iterates through all segment metadata.
-     */
-    public Iterator<SegmentMetadata> rangeIterator() {
-        return new EntryIterator(btree.rangeIterator(null, null, 0,
-                    IRangeQuery.DEFAULT | IRangeQuery.CURSOR, null));
-    }
-
-    /**
-     * An iterator mapping
-     */
-    private static class EntryIterator implements Iterator<SegmentMetadata> {
-        private ITupleIterator<byte[]> tupleIterator;
-
-        private EntryIterator(ITupleIterator<byte[]> tupleIterator) {
-            this.tupleIterator = tupleIterator;
-        }
-
-        public boolean hasNext() {
-            return tupleIterator.hasNext();
-        }
-
-        public SegmentMetadata next() {
-            return deserializeValue(tupleIterator.next().getValue());
-        }
-
-        public void remove() {
-            tupleIterator.remove();
-        }
-    }
-
 }

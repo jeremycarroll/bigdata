@@ -32,13 +32,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.bigdata.BigdataStatics;
 import com.bigdata.btree.AbstractBTreeTupleCursor.MutableBTreeTupleCursor;
-import com.bigdata.btree.AbstractBTreeTupleCursor.ReadOnlyBTreeTupleCursor;
 import com.bigdata.btree.Leaf.ILeafListener;
 import com.bigdata.btree.data.ILeafData;
 import com.bigdata.btree.data.INodeData;
-import com.bigdata.btree.filter.IFilterConstructor;
-import com.bigdata.btree.filter.Reverserator;
-import com.bigdata.btree.filter.TupleRemover;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.ICommitter;
 import com.bigdata.journal.IIndexManager;
@@ -46,7 +42,6 @@ import com.bigdata.journal.Name2Addr;
 import com.bigdata.journal.Name2Addr.Entry;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.IRawStore;
-import org.apache.log4j.Logger;
 
 /**
  * <p>
@@ -156,14 +151,10 @@ import org.apache.log4j.Logger;
  *       several published papers.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+ * @version $Id$
  */
 public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView {
     
-    /**
-     * Log for btree operations.
-     */
-    private static final Logger log = Logger.getLogger(BTree.class);
-
     final public int getHeight() {
         
         return height;
@@ -197,7 +188,6 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
 
     }
 
-    @Override
     public final IResourceMetadata[] getResourceMetadata() {
         //override to make final so sub-classes cannot modify behavior.
         return super.getResourceMetadata();
@@ -214,23 +204,23 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
      */
     public ICounter getCounter() {
 
-        ICounter tmpCounter = new Counter(this);
+        ICounter counter = new Counter(this);
         
         final LocalPartitionMetadata pmd = metadata.getPartitionMetadata();
 
         if (pmd != null) {
 
-            tmpCounter = new PartitionedCounter(pmd.getPartitionId(), tmpCounter);
+            counter = new PartitionedCounter(pmd.getPartitionId(), counter);
 
         }
 
         if (isReadOnly()) {
 
-            return new ReadOnlyCounter(tmpCounter);
+            return new ReadOnlyCounter(counter);
 
         }
 
-        return tmpCounter;
+        return counter;
 
     }
     
@@ -403,7 +393,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
      * <p>
      * Note: The {@link #getCounter()} is NOT changed by this method.
      */
-    private void newRootLeaf() {
+    final private void newRootLeaf() {
 
         height = 0;
 
@@ -1349,7 +1339,13 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
             // view of this BTree.
             newResources[1] = new JournalMetadata((AbstractJournal) getStore(),
                     priorCommitTime);
-            System.arraycopy(oldResources, 1, newResources, 2, oldResources.length - 1);
+
+            // any other stores in the view are copied.
+            for (int i = 1; i < oldResources.length; i++) {
+
+                newResources[i + 1] = oldResources[i];
+
+            }
 
             final LocalPartitionMetadata newPmd = new LocalPartitionMetadata(
                     oldPmd.getPartitionId(), // partitionId
@@ -1571,6 +1567,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
 	 * @throws IllegalArgumentException
 	 *             if store is <code>null</code>.
 	 */
+    @SuppressWarnings("unchecked")
     public static BTree load(final IRawStore store, final long addrCheckpoint,
             final boolean readOnly) {
 
@@ -1656,147 +1653,6 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
     }
     
     /**
-     * Core implementation.
-     * <p>
-     * Note: If {@link IRangeQuery#CURSOR} is specified the returned iterator
-     * supports traversal with concurrent modification by a single-threaded
-     * process (the {@link BTree} is NOT thread-safe for writers). Write are
-     * permitted iff {@link AbstractBTree} allows writes.
-     * <p>
-     * Note: {@link IRangeQuery#REVERSE} is handled here by wrapping the
-     * underlying {@link ITupleCursor}.
-     * <p>
-     * Note: {@link IRangeQuery#REMOVEALL} is handled here by wrapping the
-     * iterator.
-     * <p>
-     * Note:
-     * {@link FusedView#rangeIterator(byte[], byte[], int, int, IFilterConstructor)}
-     * is also responsible for constructing an {@link ITupleIterator} in a
-     * manner similar to this method. If you are updating the logic here, then
-     * check the logic in that method as well!
-     * 
-     * @todo add support to the iterator construct for filtering by a tuple
-     *       revision timestamp range.
-     */
-    public ITupleIterator rangeIterator(//
-            final byte[] fromKey,//
-            final byte[] toKey,//
-            final int capacityIsIgnored,//
-            final int flags,//
-            final IFilterConstructor filter//
-            ) {
-
-        /*
-         * Does the iterator declare that it will not write back on the index?
-         */
-        final boolean ro = ((flags & IRangeQuery.READONLY) != 0);
-
-        if (ro && ((flags & IRangeQuery.REMOVEALL) != 0)) {
-
-            throw new IllegalArgumentException();
-
-        }
-
-        /*
-         * Figure out what base iterator implementation to use.  We will layer
-         * on the optional filter(s) below. 
-         */
-        ITupleIterator src;
-
-        if (((flags & REVERSE) == 0) &&
-            ((flags & REMOVEALL) == 0) &&
-            ((flags & CURSOR) == 0)) {
-
-            /*
-             * Use the recursion-based striterator since it is faster for a
-             * BTree (but not for an IndexSegment).
-             * 
-             * Note: The recursion-based striterator does not support remove()!
-             * 
-             * @todo we could pass in the Tuple here to make the APIs a bit more
-             * consistent across the recursion-based and the cursor based
-             * iterators.
-             * 
-             * @todo when the capacity is one and REVERSE is specified then we
-             * can optimize this using a reverse traversal striterator - this
-             * will have lower overhead than the cursor for the BTree (but not
-             * for an IndexSegment).
-             */
-            src = getRoot().rangeIterator(fromKey, toKey, flags);
-
-        } else {
-
-            final Tuple tuple = new Tuple(this, flags);
-
-            if (isReadOnly()) {
-
-                // Note: this iterator does not allow removal.
-                src = new ReadOnlyBTreeTupleCursor(((BTree) this), tuple,
-                        fromKey, toKey);
-
-            } else {
-
-                // Note: this iterator supports traversal with concurrent
-                // modification.
-                src = new MutableBTreeTupleCursor(((BTree) this),
-                        new Tuple(this, flags), fromKey, toKey);
-
-            }
-
-            if ((flags & REVERSE) != 0) {
-
-                /*
-                 * Reverse scan iterator.
-                 * 
-                 * Note: The reverse scan MUST be layered directly over the
-                 * ITupleCursor. Most critically, REMOVEALL combined with a
-                 * REVERSE scan needs to process the tuples in reverse index
-                 * order and then delete them as it goes.
-                 */
-
-                src = new Reverserator((ITupleCursor) src);
-
-            }
-
-        }
-
-        if (filter != null) {
-
-            /*
-             * Apply the optional filter.
-             * 
-             * Note: This needs to be after the reverse scan and before
-             * REMOVEALL (those are the assumptions for the flags).
-             */
-            
-            src = filter.newInstance(src);
-            
-        }
-        
-        if ((flags & REMOVEALL) != 0) {
-            
-            assertNotReadOnly();
-            
-            /*
-             * Note: This iterator removes each tuple that it visits from the
-             * source iterator.
-             */
-            
-            src = new TupleRemover() {
-                @Override
-                protected boolean remove(ITuple e) {
-                    // remove all visited tuples.
-                    return true;
-                }
-            }.filter(src);
-
-        }
-        
-        return src;
-
-    }
-
-    /**
      * Factory for mutable nodes and leaves used by the {@link NodeSerializer}.
      */
     protected static class NodeFactory implements INodeFactory {
@@ -1826,6 +1682,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
      * Mutable counter.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
     public static class Counter implements ICounter {
 
@@ -1885,6 +1742,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
      * int32 word.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
     public static class PartitionedCounter implements ICounter {
 
@@ -1993,6 +1851,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
+     * @version $Id$
      */
     protected static class Stack {
 
@@ -2168,6 +2027,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
      * Note: The {@link MutableBTreeTupleCursor} does register such listeners.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     * @version $Id$
      */
     public class LeafCursor implements ILeafCursor<Leaf> {
 
@@ -2265,7 +2125,6 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
             
         }
         
-        @Override
         public LeafCursor clone() {
             
             return new LeafCursor(this);
@@ -2318,7 +2177,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
             
         }
         
-        final public Leaf first() {
+        public Leaf first() {
 
             stack.clear();
             
@@ -2339,7 +2198,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
             
         }
 
-        final public Leaf last() {
+        public Leaf last() {
             
             stack.clear();
             
@@ -2365,7 +2224,7 @@ public class BTree extends AbstractBTree implements ICommitter, ILocalBTreeView 
          * the leaf may not actually contain the key, in which case it is the
          * leaf that contains the insertion point for the key.
          */
-        final public Leaf seek(final byte[] key) {
+        public Leaf seek(final byte[] key) {
 
             stack.clear();
             
