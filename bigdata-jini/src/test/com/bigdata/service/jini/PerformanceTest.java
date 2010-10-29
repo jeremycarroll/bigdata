@@ -71,6 +71,10 @@ import com.bigdata.resources.ResourceManager;
 import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.service.Session;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.resources.ILocalResourceManagement;
+
 /**
  * A harness for performance tests for a jini-federation.
  * 
@@ -524,14 +528,23 @@ futuresQueue.add(((ShardManagement)service).submit(new WorkloadTask(data)));
         }
 
 //BTM - PRE_FRED_3481        public Object call() throws Exception {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public Object startDataTask(IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE                                    ResourceManager resourceManager,
+//BTM - PRE_CLIENT_SERVICE                                    IConcurrencyManager concurrencyManager,
+//BTM - PRE_CLIENT_SERVICE                                    Session session,
+//BTM - PRE_CLIENT_SERVICE                                    String hostname,
+//BTM - PRE_CLIENT_SERVICE                                    String serviceName)
+//BTM - PRE_CLIENT_SERVICE                          throws Exception
+//BTM - PRE_CLIENT_SERVICE        {
         public Object startDataTask(IIndexManager indexManager,
                                     ResourceManager resourceManager,
                                     IConcurrencyManager concurrencyManager,
-                                    Session session,
-                                    String hostname,
-                                    String serviceName)
+                                    ILocalResourceManagement localResourceManager,
+                                    IBigdataDiscoveryManagement discoveryManager)
                           throws Exception
         {
+//BTM - PRE_CLIENT_SERVICE - END
 
 //            System.err.print("r"); // run.
             

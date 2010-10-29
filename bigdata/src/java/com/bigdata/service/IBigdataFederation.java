@@ -31,19 +31,16 @@ import com.bigdata.btree.BTree;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.event.EventQueueSender;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.IIndexManager;
-//BTM import com.bigdata.journal.ITransactionService;
 import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.service.ndx.ClientIndexView;
 import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.sparse.GlobalRowStoreSchema;
 import com.bigdata.sparse.SparseRowStore;
-
-//BTM
-import com.bigdata.journal.TransactionService;
-import com.bigdata.event.EventQueue;
 
 /**
  * The client-facing interface to a bigdata federation. Note that each bigdata
@@ -55,7 +52,10 @@ import com.bigdata.event.EventQueue;
  * @param <T>
  *            The generic type of the client or service.
  */
-public interface IBigdataFederation<T> extends IIndexManager, IFederationDelegate<T> {
+public interface IBigdataFederation<T> extends IIndexManager,
+                                               IFederationDelegate<T>,
+                                               IBigdataDiscoveryManagement
+{
 
     /**
      * Return the client object that was used to connect to the federation.
@@ -74,30 +74,6 @@ public interface IBigdataFederation<T> extends IIndexManager, IFederationDelegat
      *         running.
      */
     public String getHttpdURL();
-    
-    /**
-     * Return the transaction service (or a proxy for that service).
-     * 
-     * @return The service -or- <code>null</code> if the service has not been
-     *         discovered.
-     */
-//BTM    public ITransactionService getTransactionService();
-public TransactionService getTransactionService();
-    
-    /**
-     * Return the load balancer service (or a proxy for that service).
-     * 
-     * @return The service -or- <code>null</code> if the service has not been discovered.
-     */
-    public LoadBalancer getLoadBalancerService();
-    
-    /**
-     * Return the metadata service (or a proxy for the metadata service).
-     * 
-     * @return The service -or- <code>null</code> if the service has not been discovered.
-     */
-//BTM    public IMetadataService getMetadataService();
-public ShardLocator getMetadataService();
     
     /**
      * A thread pool that may be used by clients to parallelize operations
@@ -139,85 +115,7 @@ public ShardLocator getMetadataService();
      * @see #getServiceCounterSet()
      */
     public String getServiceCounterPathPrefix();
-    
-    /**
-     * Return an array UUIDs for {@link ShardService}s.
-     * 
-     * @param maxCount
-     *            The maximum #of data services whose UUIDs will be returned.
-     *            When zero (0) the UUID for all known data services will be
-     *            returned.
-     * 
-     * @return An array of {@link UUID}s for data services.
-     */
-    public UUID[] getDataServiceUUIDs(int maxCount);
-    
-    /**
-     * Return an array of {@link ShardService} references that is correlated
-     * with the given array of {@link ShardService} {@link UUID}s.
-     * <p>
-     * Note: This method will also resolve the {@link UUID} of an
-     * {@link IMetadataService}.
-     * 
-     * @param uuids
-     *            The (meta)data service UUIDs.
-     * 
-     * @return The (meta)data service proxies.
-     */
-//BTM    public IDataService[] getDataServices(UUID[] uuid);
-public ShardService[] getDataServices(UUID[] uuid);
-    
-    /**
-     * Resolve the service identifier to an {@link ShardService}.
-     * <p>
-     * Note: Whether the returned object is a proxy or the service
-     * implementation depends on whether the federation is embedded (in process)
-     * or distributed (networked).
-     * 
-     * @param serviceUUID
-     *            The identifier for a {@link ShardService}.
-     * 
-     * @return The {@link ShardService} or <code>null</code> iff the
-     *         {@link ShardService} could not be discovered from its identifier.
-     */
-//BTM    public IDataService getDataService(UUID serviceUUID);
-public ShardService getDataService(UUID serviceUUID);
 
-    /**
-     * Return ANY {@link ShardService} which has been (or could be) discovered
-     * and which is part of the connected federation.
-     * <p>
-     * Note: This method is here as a failsafe when the
-     * load balancer service is not available.
-     * 
-     * @return <code>null</code> if there are NO known {@link ShardService}s.
-     */
-//BTM    public IDataService getAnyDataService();
-public ShardService getAnyDataService();
-    
-    /**
-     * Return an {@link ShardService} joined with this
-     * {@link IBigdataFederation} and having the specified service name.
-     * Services that are not joined will not be discovered.
-     * <p>
-     * Note: At least some service fabrics (such as jini) do not enforce a
-     * uniqueness constraint on the service name(s). In such cases an arbitrary
-     * {@link ShardService} method the other requirements will be returned. It
-     * is the responsibility of the administrator to ensure that each
-     * {@link ShardService} is assigned a distinct service name.
-     * 
-     * @param name
-     *            The service name.
-     * 
-     * @return A service assigned that name -or- <code>null</code> if none is
-     *         joined with the {@link IBigdataFederation} at this time.
-     * 
-     * @throws IllegalArgumentException
-     *             if <i>name</i> is <code>null</code>.
-     */
-//BTM    public IDataService getDataServiceByName(String name);
-public ShardService getDataServiceByName(String name);
-     
     /**
      * Return a read-only view of the index partitions for the named scale-out
      * index.
@@ -377,5 +275,5 @@ public ShardService getDataServiceByName(String name);
      * cached, and from which events are retrieved and sent to the
      * load balancer service.
      */
-    EventQueue getEventQueue();
+    EventQueueSender getEventQueueSender();
 }

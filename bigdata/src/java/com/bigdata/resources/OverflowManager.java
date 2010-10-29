@@ -74,7 +74,7 @@ import com.bigdata.service.IServiceShutdown;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 
 //BTM
-import com.bigdata.service.IBigdataFederation;
+//BTM import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IService;
 import com.bigdata.service.ShardService;
 import com.bigdata.service.Service;
@@ -2014,10 +2014,18 @@ if(dataService instanceof IService) {
 //BTM                EventType.SynchronousOverflow).addDetail(
 //BTM                "synchronousOverflowCounter",
 //BTM                overflowCounters.synchronousOverflowCounter.get()).start();
-final Event e = new Event(getFederation().getEventQueue(),
-                          getFederation().getServiceIface(),
-                          getFederation().getServiceName(),
-                          getFederation().getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE final Event e = new Event(getFederation().getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                           getFederation().getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                           getFederation().getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                           getFederation().getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                           new EventResource(),
+//BTM - PRE_CLIENT_SERVICE                           EventType.SynchronousOverflow).addDetail("synchronousOverflowCounter",
+//BTM - PRE_CLIENT_SERVICE                                                                    overflowCounters.synchronousOverflowCounter.get()).start();
+//BTM - PRE_CLIENT_SERVICE 
+final Event e = new Event(getLocalResourceManager().getEventQueueSender(),
+                          getLocalResourceManager().getServiceIface(),
+                          getLocalResourceManager().getServiceName(),
+                          getLocalResourceManager().getServiceUUID(),
                           new EventResource(),
                           EventType.SynchronousOverflow).addDetail("synchronousOverflowCounter",
                                                                    overflowCounters.synchronousOverflowCounter.get()).start();
@@ -2286,8 +2294,8 @@ final Event e = new Event(getFederation().getEventQueue(),
         try {
 
             // The service's counter set hierarchy.
-            final CounterSet serviceRoot = getFederation()
-                    .getServiceCounterSet();
+//BTM - PRE_CLIENT_SERVICE            final CounterSet serviceRoot = getFederation().getServiceCounterSet();
+            final CounterSet serviceRoot = getLocalResourceManager().getServiceCounterSet();
 
             if (serviceRoot != null) {
 
@@ -2388,8 +2396,8 @@ final Event e = new Event(getFederation().getEventQueue(),
              * journals and index segments.
              */
             
-            log.error("Problem purging old resources? service="
-                    + getFederation().getServiceName(), t);
+//BTM - PRE_CLIENT_SERVICE            log.error("Problem purging old resources? service="+ getFederation().getServiceName(), t);
+            log.error("Problem purging old resources? service="+ getLocalResourceManager().getServiceName(), t);
 
         }
 
@@ -2831,9 +2839,10 @@ final Event e = new Event(getFederation().getEventQueue(),
     protected double getHostCounter(final String path, final double defaultValue) {
 
 //BTM        final AbstractFederation<?> fed = (AbstractFederation<?>) getFederation();
-final IBigdataFederation fed = getFederation();
-
-        final ICounterSet hostRoot = fed.getHostCounterSet();
+//BTM - PRE_CLIENT_SERVICE final IBigdataFederation fed = getFederation();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE         final ICounterSet hostRoot = fed.getHostCounterSet();
+        final ICounterSet hostRoot = getLocalResourceManager().getHostCounterSet();
 
         if (hostRoot == null) {
 
@@ -2880,10 +2889,10 @@ final IBigdataFederation fed = getFederation();
             final double defaultValue) {
 
 //BTM        final AbstractFederation<?> fed = (AbstractFederation<?>) getFederation();
-final IBigdataFederation fed = getFederation();
-
-        final ICounterSet serviceRoot = fed.getServiceCounterSet();
-
+//BTM - PRE_CLIENT_SERVICE final IBigdataFederation fed = getFederation();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE         final ICounterSet serviceRoot = fed.getServiceCounterSet();
+        final ICounterSet serviceRoot = getLocalResourceManager().getServiceCounterSet();
         if (serviceRoot == null) {
 
             /*

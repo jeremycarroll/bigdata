@@ -40,6 +40,10 @@ import com.sun.jini.start.LifeCycle;
 import com.sun.jini.start.ServiceDescriptor;
 import com.sun.jini.start.ServiceStarter;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexStore;
+import com.bigdata.resources.ILocalResourceManagement;
 
 /**
  * The load balancer server.
@@ -336,9 +340,15 @@ public class LoadBalancerServer extends AbstractServer {
                                     timestamp);
 
                             try {
-
-                                final DumpFederation dumper = new DumpFederation(
-                                        fed, tx, formatter);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                                final DumpFederation dumper = new DumpFederation(
+//BTM - PRE_CLIENT_SERVICE                                        fed, tx, formatter);
+                                final DumpFederation dumper =
+                                          new DumpFederation( (IScaleOutIndexStore)fed,
+                                                              (IBigdataDiscoveryManagement)fed,
+                                                              (ILocalResourceManagement)fed,
+                                                              tx, formatter);
+//BTM - PRE_CLIENT_SERVICE - END
 
                                 for (String s : namespaces) {
 

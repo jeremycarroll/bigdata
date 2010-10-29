@@ -162,12 +162,15 @@ protected String dbgFlnm="EmbeddedShardService.out";
 
         this.resultHandler = resultHandler;
 
-        this.taskCounters = ndx.getFederation().getTaskCounters();
+//BTM - PRE_CLIENT_SERVICE  this.taskCounters = ndx.getFederation().getTaskCounters();
+        this.taskCounters = (ndx.getLocalResourceManager()).getTaskCounters();
 
         //            this.taskCountersByProc = fed.getTaskCounters(proc);
         //            
-        this.taskCountersByIndex = ndx.getFederation().getIndexCounters(
-                ndx.getName()).synchronousCounters;
+//BTM - PRE_CLIENT_SERVICE  this.taskCountersByIndex = ndx.getFederation().getIndexCounters(ndx.getName()).synchronousCounters;
+        this.taskCountersByIndex =
+            (ndx.getLocalResourceManager())
+                .getIndexCounters(ndx.getName()).synchronousCounters;
 
         /*
          * This timestamp is set when the task is created since that is when the

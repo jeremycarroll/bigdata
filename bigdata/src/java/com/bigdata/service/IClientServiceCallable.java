@@ -17,25 +17,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service;
 
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
+
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+
 import java.io.Serializable;
+import java.util.List;
 
 /**
- * A task which can be distributed to {@link IClientService}s.
- * @param <V> type of value returned by the
- * {@link #startClientTask(IBigdataFederation, ClientService) startClientTask}
- * method.
+ * A task which can be distributed to callable executor service(s).
+ *
+ * @param <V> type of value returned by a call to the
+ *            <code>startClientTask</code> method.
  */
 public interface IClientServiceCallable<V> extends Serializable {
 
     /**
-     * Computes a result on a {@link IClientService}, or throws an
+     * Computes a result on a callable executor service, or throws an
      * exception if unable to do so.
      *
-     * @param federation federation to which the ClientService belongs.
-     * @param clientService reference to the ClientService executing this task.
+     * @param indexMgr the <code>ScaleoutIndexManager</code> currently
+     *        being employed by the entity that invokes the
+     *        <code>startClientTask</code> method.
+     *
+     * @param embeddedCallableExecutor reference to the local object
+     *        executing this task.
+     *
      * @return computed result
+     *
      * @throws Exception if unable to compute a result
      */
-    V startClientTask(IBigdataFederation federation,
-                      ClientService clientService) throws Exception;
+    V startClientTask(IIndexManager indexManager,
+                      ILocalResourceManagement localResourceManager,
+                      CallableExecutor embeddedCallableExecutor,
+                      ZooKeeper zookeeperClient,
+                      List<ACL> zookeeperAcl,
+                      String zookeeperRoot)
+          throws Exception;
 }

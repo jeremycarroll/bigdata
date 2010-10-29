@@ -78,8 +78,8 @@ import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.AbstractScaleOutFederation;
-import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
 //BTM import com.bigdata.service.IDataService;
 //BTM import com.bigdata.service.IMetadataService;
 import com.bigdata.service.Split;
@@ -91,6 +91,11 @@ import com.bigdata.service.ndx.pipeline.IndexWriteTask;
 //BTM
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardService;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexStore;
+import com.bigdata.resources.ILocalResourceManagement;
 
 /**
  * Abstract base class for the {@link IScaleOutClientIndex} implementation(s).
@@ -153,21 +158,52 @@ abstract public class AbstractScaleOutClientIndexView implements IScaleOutClient
      */
     static protected final transient String ERR_ABORT_TX = "Could not abort transaction: tx=";
     
-    protected final AbstractScaleOutFederation fed;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected final AbstractScaleOutFederation fed;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    public AbstractScaleOutFederation getFederation() {
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        return fed;
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE
 
-    public AbstractScaleOutFederation getFederation() {
-        
-        return fed;
-        
+    private IBigdataDiscoveryManagement discoveryManager;
+    private ILocalResourceManagement localResourceManager;
+    private IScaleOutIndexStore indexStore;
+    private int maxParallelTasksPerRequest;
+    private int maxStaleLocatorRetries;
+
+    // Required by IScaleOutClientIndex
+
+    public IBigdataDiscoveryManagement getDiscoveryManager() {
+        return discoveryManager;
     }
-    
+
+    public ILocalResourceManagement getLocalResourceManager() {
+        return localResourceManager;
+    }
+
+    public IScaleOutIndexStore getIndexStore() {
+        return indexStore;
+    }
+
+    public int getMaxParallelTasksPerRequest() {
+        return maxParallelTasksPerRequest;
+    }
+
+    public int getMaxStaleLocatorRetries() {
+        return maxStaleLocatorRetries;
+    }
+//BTM - PRE_CLIENT_SERVICE - END
+
     /**
      * The thread pool exposed by {@link IBigdataFederation#getExecutorService()}
      */
     protected ThreadPoolExecutor getThreadPool() {
 
-        return (ThreadPoolExecutor) fed.getExecutorService();
-
+//BTM - PRE_CLIENT_SERVICE        return (ThreadPoolExecutor) fed.getExecutorService();
+        return (ThreadPoolExecutor) localResourceManager.getThreadPool();
     }
 
     /**
@@ -237,10 +273,10 @@ abstract public class AbstractScaleOutClientIndexView implements IScaleOutClient
      * Obtain the proxy for a metadata service. if this instance fails, then we
      * can always ask for a new instance for the same federation (failover).
      */
-//BTM    final protected IMetadataService getMetadataService() {
-final protected ShardLocator getMetadataService() {
+    final protected ShardLocator getMetadataService() {
         
-        return fed.getMetadataService();
+//BTM - PRE_CLIENT_SERVICE        return fed.getMetadataService();
+        return discoveryManager.getMetadataService();
         
     }
     
@@ -313,12 +349,36 @@ final protected ShardLocator getMetadataService() {
      *            object contains the template {@link IndexMetadata} for the
      *            scale-out index partitions.
      */
-    public AbstractScaleOutClientIndexView(final AbstractScaleOutFederation fed,
-            final String name, final long timestamp,
-            final IMetadataIndex metadataIndex) {
-
-        if (fed == null)
-            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public AbstractScaleOutClientIndexView(final AbstractScaleOutFederation fed,
+//BTM - PRE_CLIENT_SERVICE            final String name, final long timestamp,
+//BTM - PRE_CLIENT_SERVICE            final IMetadataIndex metadataIndex) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        if (fed == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+    public AbstractScaleOutClientIndexView
+               (final IBigdataDiscoveryManagement discoveryManager,
+                final ILocalResourceManagement localResourceManager,
+                final IScaleOutIndexStore indexStore,
+                final String name,
+                final long timestamp,
+                final IMetadataIndex metadataIndex,
+                      int defaultRangeQueryCapacity,
+                      boolean batchApiOnly,
+                      long taskTimeout,
+                      int maxParallelTasksPerRequest,
+                      int maxStaleLocatorRetries)
+    {
+        if (discoveryManager == null) {
+            throw new NullPointerException("null discoveryManager");
+        }
+        if (localResourceManager == null) {
+            throw new NullPointerException("null localResourceManager");
+        }
+        if (indexStore == null) {
+            throw new NullPointerException("null indexStore");
+        }
+//BTM - PRE_CLIENT_SERVICE -END
 
         if (name == null)
             throw new IllegalArgumentException();
@@ -326,7 +386,12 @@ final protected ShardLocator getMetadataService() {
         if (metadataIndex == null)
             throw new IllegalArgumentException();
         
-        this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        this.fed = fed;
+        this.discoveryManager = discoveryManager;
+        this.localResourceManager = localResourceManager;
+        this.indexStore = indexStore;
+//BTM - PRE_CLIENT_SERVICE - END
 
         this.name = name;
 
@@ -336,12 +401,16 @@ final protected ShardLocator getMetadataService() {
         
         this.metadataIndexMetadata = metadataIndex.getIndexMetadata();
         
-        this.capacity = fed.getClient().getDefaultRangeQueryCapacity();
-        
-        this.batchOnly = fed.getClient().getBatchApiOnly();
-
-        this.taskTimeout = fed.getClient().getTaskTimeout();
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        this.capacity = fed.getClient().getDefaultRangeQueryCapacity();
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        this.batchOnly = fed.getClient().getBatchApiOnly();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        this.taskTimeout = fed.getClient().getTaskTimeout();
+        this.capacity = defaultRangeQueryCapacity;
+        this.batchOnly = batchApiOnly;
+        this.taskTimeout = taskTimeout;
+//BTM - PRE_CLIENT_SERVICE - END
     }
 
     /**
@@ -366,19 +435,21 @@ final protected ShardLocator getMetadataService() {
 
     }
 
-//BTM    public IDataService getDataService(final PartitionLocator pmd) {
-public ShardService getDataService(final PartitionLocator pmd) {
-
-        return fed.getDataService(pmd.getDataServiceUUID());
-
+    public ShardService getDataService(final PartitionLocator pmd) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return fed.getDataService(pmd.getDataServiceUUID());
+        return discoveryManager.getDataService(pmd.getDataServiceUUID());
+//BTM - PRE_CLIENT_SERVICE - END
     }
 
     @SuppressWarnings("unchecked")
     public Iterator<PartitionLocator> locatorScan(final long ts,
             final byte[] fromKey, final byte[] toKey, final boolean reverseScan) {
 
-        return fed.locatorScan(name, ts, fromKey, toKey, reverseScan);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return fed.locatorScan(name, ts, fromKey, toKey, reverseScan);
+        return indexStore.locatorScan(name, ts, fromKey, toKey, reverseScan);
+//BTM - PRE_CLIENT_SERVICE - END
     }
     
     /**
@@ -662,7 +733,9 @@ public ShardService getDataService(final PartitionLocator pmd) {
             try {
 
                 // run as globally consistent read.
-                ts = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE                ts = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+                ts = discoveryManager.getTransactionService().newTx
+                                                   (ITx.READ_COMMITTED);
 
             } catch (IOException ex) {
 
@@ -764,8 +837,13 @@ public ShardService getDataService(final PartitionLocator pmd) {
              * 
              * Note: Using the caller's timestamp here!
              */
-            final PartitionLocator locator = fed.getMetadataIndex(name, ts)
-                    .find(keys[currentIndex]);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final PartitionLocator locator = fed.getMetadataIndex(name, ts)
+//BTM - PRE_CLIENT_SERVICE                    .find(keys[currentIndex]);
+            final PartitionLocator locator =
+                      indexStore.getMetadataIndex(name, ts).find
+                                                         (keys[currentIndex]);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 
             if (locator == null)
                 throw new RuntimeException("No index partitions?: name=" + name);
@@ -984,7 +1062,8 @@ public ShardService getDataService(final PartitionLocator pmd) {
         }
 
         // notify the metadata index view that it has a stale locator.
-        fed.getMetadataIndex(name, timestamp).staleLocator(locator);
+//BTM - PRE_CLIENT_SERVICE        fed.getMetadataIndex(name, timestamp).staleLocator(locator);
+        indexStore.getMetadataIndex(name, timestamp).staleLocator(locator);
 
     }
 
@@ -1000,7 +1079,9 @@ public ShardService getDataService(final PartitionLocator pmd) {
             final long tx;
             try {
 
-                tx = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE                tx = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+                tx = discoveryManager.getTransactionService().newTx
+                                                   (ITx.READ_COMMITTED);
 
             } catch (IOException ex) {
 
@@ -1016,7 +1097,8 @@ public ShardService getDataService(final PartitionLocator pmd) {
 
                 try {
 
-                    fed.getTransactionService().abort(tx);
+//BTM - PRE_CLIENT_SERVICE                    fed.getTransactionService().abort(tx);
+                    discoveryManager.getTransactionService().abort(tx);
 
                 } catch (IOException ex) {
 
@@ -1067,7 +1149,9 @@ public ShardService getDataService(final PartitionLocator pmd) {
             final long tx;
             try {
 
-                tx = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE                tx = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+                tx = discoveryManager.getTransactionService().newTx
+                                                   (ITx.READ_COMMITTED);
 
             } catch (IOException ex) {
 
@@ -1083,7 +1167,8 @@ public ShardService getDataService(final PartitionLocator pmd) {
 
                 try {
 
-                    fed.getTransactionService().abort(tx);
+//BTM - PRE_CLIENT_SERVICE                    fed.getTransactionService().abort(tx);
+                    discoveryManager.getTransactionService().abort(tx);
 
                 } catch (IOException ex) {
 
@@ -1165,7 +1250,9 @@ public ShardService getDataService(final PartitionLocator pmd) {
 
                 try {
 
-                    ts = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE                    ts = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+                    ts = discoveryManager.getTransactionService().newTx
+                                                       (ITx.READ_COMMITTED);
 
                 } catch (IOException e) {
 
@@ -1194,7 +1281,8 @@ public ShardService getDataService(final PartitionLocator pmd) {
 
                 try {
 
-                    fed.getTransactionService().abort(ts);
+//BTM - PRE_CLIENT_SERVICE                    fed.getTransactionService().abort(ts);
+                    discoveryManager.getTransactionService().abort(ts);
 
                 } catch (IOException e) {
                     
@@ -1280,12 +1368,15 @@ public ShardService getDataService(final PartitionLocator pmd) {
                 duplicateRemover,//
                 ctor,//
                 resultHandler,//
-                fed.getIndexCounters(name).asynchronousStats,
+//BTM - PRE_CLIENT_SERVICE                fed.getIndexCounters(name).asynchronousStats,
+localResourceManager.getIndexCounters(name).asynchronousStats,
                 writeBuffer//
                 );
 
-        final Future<? extends IndexAsyncWriteStats> future = fed
-                .getExecutorService().submit(task);
+//BTM - PRE_CLIENT_SERVICE        final Future<? extends IndexAsyncWriteStats> future = fed
+//BTM - PRE_CLIENT_SERVICE                .getExecutorService().submit(task);
+        final Future<? extends IndexAsyncWriteStats> future =
+                  localResourceManager.getThreadPool().submit(task);
 
         writeBuffer.setFuture(future);
 
@@ -1299,7 +1390,8 @@ public ShardService getDataService(final PartitionLocator pmd) {
      */
     public ICounterSet getCounters() {
 
-        return getFederation().getIndexCounters(name).getCounters();
+//BTM - PRE_CLIENT_SERVICE        return getFederation().getIndexCounters(name).getCounters();
+        return localResourceManager.getIndexCounters(name).getCounters();
 
     }
 

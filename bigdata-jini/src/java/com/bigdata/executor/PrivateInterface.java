@@ -30,17 +30,26 @@ import net.jini.admin.JoinAdmin;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.concurrent.Callable;
+//BTM import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
+
+//BTM
+import com.bigdata.service.IClientServiceCallable;
 
 interface PrivateInterface extends Remote, Administrable,
                                    DestroyAdmin, JoinAdmin
 {
     //Related to CallableExecutor
 
-    <T> Future<T> submit(Callable<T> task) throws RemoteException;
+//BTM    <T> Future<T> submit(Callable<T> task) throws RemoteException;
+    <T> Future<T> submit(IClientServiceCallable<T> task)
+                      throws RemoteException;
 
-    //Related to TestAdmin
+    //Related to ShutdownAdmin
+
+    void shutdown() throws RemoteException;
+
+    void shutdownNow() throws RemoteException;
 
     void kill(int status) throws RemoteException;
 }

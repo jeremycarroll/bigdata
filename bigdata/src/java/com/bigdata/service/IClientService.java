@@ -28,9 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service;
 
-import java.rmi.RemoteException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
+//BTM import java.rmi.RemoteException;
+//BTM import java.util.concurrent.Callable;
+//BTM import java.util.concurrent.Future;
 
 /**
  * A service for distributing client {@link Callable}s across the resources of
@@ -38,23 +38,24 @@ import java.util.concurrent.Future;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
-public interface IClientService extends IService {
+//BTM public interface IClientService extends IService {
+public interface IClientService extends CallableExecutor, IService {
 
-    /**
-     * Submit a {@link Callable} and return its {@link Future}. The
-     * {@link Callable} will execute on the
-     * {@link IBigdataFederation#getExecutorService()}.
-     *
-     * @return The {@link Future} for that task.
-     *
-     * @throws RejectedExecutionException
-     *             if the task can not be accepted for execution.
-     * @throws IOException
-     *             if there is an RMI problem.
-     *
-     * @todo change API to <T> Future<T> submit(Callable<T> proc). This will
-     *       break existing code but reflects the correct use of generics.
-     */
-    public <T> Future<T> submit(IClientServiceCallable<T> task)
-            throws RemoteException;
+//BTM    /**
+//BTM     * Submit a {@link Callable} and return its {@link Future}. The
+//BTM     * {@link Callable} will execute on the
+//BTM     * {@link IBigdataFederation#getExecutorService()}.
+//BTM     *
+//BTM     * @return The {@link Future} for that task.
+//BTM     *
+//BTM     * @throws RejectedExecutionException
+//BTM     *             if the task can not be accepted for execution.
+//BTM     * @throws IOException
+//BTM     *             if there is an RMI problem.
+//BTM     *
+//BTM     * @todo change API to <T> Future<T> submit(Callable<T> proc). This will
+//BTM     *       break existing code but reflects the correct use of generics.
+//BTM     */
+//BTM    public <T> Future<T> submit(IClientServiceCallable<T> task)
+//BTM            throws RemoteException;
 }

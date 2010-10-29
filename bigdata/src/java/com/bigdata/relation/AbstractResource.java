@@ -66,7 +66,11 @@ import com.bigdata.relation.rule.eval.NestedSubqueryWithJoinThreadsTask;
 import com.bigdata.relation.rule.eval.ProgramTask;
 import com.bigdata.relation.rule.eval.pipeline.JoinMasterTask;
 import com.bigdata.relation.rule.eval.pipeline.JoinTask;
-import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 
 /**
  * Base class for locatable resources.
@@ -81,7 +85,12 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
     protected final transient static Logger log = Logger.getLogger(AbstractResource.class);
 
     final private IIndexManager indexManager;
-    
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    final private IConcurrencyManager concurrencyManager;
+    final private IBigdataDiscoveryManagement discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+
     final private String namespace;
 
     final private String containerNamespace;
@@ -395,12 +404,29 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
     /**
      * 
      */
-    protected AbstractResource(final IIndexManager indexManager,
-            final String namespace, final Long timestamp,
-            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE  protected AbstractResource(final IIndexManager indexManager, final String namespace, final Long timestamp, final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected AbstractResource(final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            final String namespace, final Long timestamp,
+//BTM - PRE_CLIENT_SERVICE            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE    {
+//BTM - PRE_CLIENT_SERVICE        if (indexManager == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+    protected AbstractResource
+                  (final IIndexManager indexManager,
+                   final IConcurrencyManager concurrencyManager,
+                   final IBigdataDiscoveryManagement discoveryManager,
+                   final String namespace,
+                   final Long timestamp,
+                   final Properties properties)
+    {
+        if (indexManager == null) {
+            throw new IllegalArgumentException("null indexManager");
+        }
 
-        if (indexManager == null)
-            throw new IllegalArgumentException();
+        this.concurrencyManager = concurrencyManager;//BTM - can be null if not scale out?
+        this.discoveryManager = discoveryManager;//BTM - can be null if not scale out?
+//BTM - FOR_CLIENT_SERVICE - END
 
         if (namespace == null)
             throw new IllegalArgumentException();
@@ -434,10 +460,16 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
 
         if (log.isInfoEnabled()) {
 
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            log.info("namespace=" + namespace + ", timestamp=" + timestamp
+//BTM - PRE_CLIENT_SERVICE                    + ", container=" + containerNamespace + ", indexManager="
+//BTM - PRE_CLIENT_SERVICE                    + indexManager);
             log.info("namespace=" + namespace + ", timestamp=" + timestamp
                     + ", container=" + containerNamespace + ", indexManager="
-                    + indexManager);
-
+                    + indexManager
+                    + "concurrencyManager=" + concurrencyManager
+                    + "discoveryManager=" + discoveryManager);
+//BTM - PRE_CLIENT_SERVICE - END
         }
 
         forceSerialExecution = Boolean.parseBoolean(getProperty(
@@ -563,6 +595,17 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
         return indexManager;
         
     }
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    public IConcurrencyManager getConcurrencyManager() {
+        return concurrencyManager;
+    }
+
+    public IBigdataDiscoveryManagement getDiscoveryManager() {
+        return discoveryManager;
+    }
+//BTM - FOR_CLIENT_SERVICE - END
+
     
     final public ExecutorService getExecutorService() {
         

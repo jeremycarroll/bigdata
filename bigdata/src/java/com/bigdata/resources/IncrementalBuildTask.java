@@ -95,13 +95,23 @@ public class IncrementalBuildTask extends AbstractPrepareTask<BuildResult> {
 //BTM        final Event e = new Event(resourceManager.getFederation(),
 //BTM                new EventResource(vmd.indexMetadata), OverflowActionEnum.Build,
 //BTM                vmd.getParams()).start();
-final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
-                           (resourceManager.getFederation()).getServiceIface(),
-                           (resourceManager.getFederation()).getServiceName(),
-                           (resourceManager.getFederation()).getServiceUUID(),
-                           new EventResource(vmd.indexMetadata),
-                           OverflowActionEnum.Build,
-                           vmd.getParams()).start();
+//BTM - PRE_CLIENT_SERVICE final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                            new EventResource(vmd.indexMetadata),
+//BTM - PRE_CLIENT_SERVICE                            OverflowActionEnum.Build,
+//BTM - PRE_CLIENT_SERVICE                            vmd.getParams()).start();
+//BTM - PRE_CLIENT_SERVICE 
+        final Event e =
+              new Event
+              ((resourceManager.getLocalResourceManager()).getEventQueueSender(),
+               (resourceManager.getLocalResourceManager()).getServiceIface(),
+               (resourceManager.getLocalResourceManager()).getServiceName(),
+               (resourceManager.getLocalResourceManager()).getServiceUUID(),
+               new EventResource(vmd.indexMetadata),
+               OverflowActionEnum.Build,
+               vmd.getParams()).start();
 
         BuildResult buildResult = null;
         try {

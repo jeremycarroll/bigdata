@@ -63,10 +63,15 @@ import com.bigdata.relation.rule.IStep;
 import com.bigdata.relation.rule.Rule;
 import com.bigdata.relation.rule.Var;
 import com.bigdata.relation.rule.eval.pipeline.JoinTask;
-import com.bigdata.service.AbstractScaleOutFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.ScaleOutIndexManager;
 
 /**
  * Interface provides an interoperability nexus for the {@link IPredicate}s,
@@ -489,8 +494,18 @@ public interface IJoinNexus {
      * 
      * @return The iterator.
      */
-    Iterator<PartitionLocator> locatorScan(
-            final AbstractScaleOutFederation fed, final IPredicate predicate);
+//BTM - PRE_CLIENT_SERVICE    Iterator<PartitionLocator> locatorScan(final AbstractScaleOutFederation fed, final IPredicate predicate);
+    Iterator<PartitionLocator> locatorScan(ScaleOutIndexManager indexManager,
+                                           IPredicate predicate);
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    // Used to manage concurrency operations when executing in scale out
+    IConcurrencyManager getConcurrencyManager();
+
+    // Used to discover services when exeuting in scale out
+    IBigdataDiscoveryManagement getDiscoveryManager();
+    
+//BTM - FOR_CLIENT_SERVICE - END
     
     /**
      * Used to locate indices, relations and relation containers.

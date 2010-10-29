@@ -37,8 +37,13 @@ import org.apache.log4j.Logger;
 import com.bigdata.BigdataStatics;
 import com.bigdata.btree.BigdataMap;
 import com.bigdata.relation.accesspath.BlockingBuffer;
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.master.INotifyOutcome;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.journal.IIndexStore;
+import java.rmi.server.ExportException;
+import com.bigdata.util.Util;
 
 /**
  * Extends the master task to track outstanding asynchronous operations on work
@@ -76,13 +81,21 @@ implements INotifyOutcome<E, L>
      */
     private final ReentrantLock lock = new ReentrantLock();
 
-    private final JiniFederation<?> fed;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    private final JiniFederation<?> fed;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    public JiniFederation<?> getFederation() {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        return fed;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
 
-    public JiniFederation<?> getFederation() {
+    private final IIndexStore indexStore;
 
-        return fed;
-
+    public IIndexStore getIndexStore() {
+        return indexStore;
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * A proxy for this class which is used by the client task to send
@@ -104,21 +117,46 @@ implements INotifyOutcome<E, L>
      * @param sinkIdleTimeoutNanos
      * @param sinkPollTimeoutNanos
      */
-    public AbstractPendingSetMasterTask(final JiniFederation<?> fed,
-            final H stats, final BlockingBuffer<E[]> buffer,
-            final long sinkIdleTimeoutNanos, final long sinkPollTimeoutNanos) {
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public AbstractPendingSetMasterTask(final JiniFederation<?> fed,
+//BTM - PRE_CLIENT_SERVICE            final H stats, final BlockingBuffer<E[]> buffer,
+//BTM - PRE_CLIENT_SERVICE            final long sinkIdleTimeoutNanos, final long sinkPollTimeoutNanos) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(stats, buffer, sinkIdleTimeoutNanos, sinkPollTimeoutNanos);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        if (fed == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        this.masterProxy = (INotifyOutcome<E, L>) fed
+//BTM - PRE_CLIENT_SERVICE                .getProxy(this, true/* enableDGC */);
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
+    public AbstractPendingSetMasterTask
+               (final IIndexStore indexStore,
+                final H stats,
+                final BlockingBuffer<E[]> buffer,
+                final long sinkIdleTimeoutNanos,
+                final long sinkPollTimeoutNanos)
+    {
         super(stats, buffer, sinkIdleTimeoutNanos, sinkPollTimeoutNanos);
-
-        if (fed == null)
-            throw new IllegalArgumentException();
-
-        this.fed = fed;
-
-        this.masterProxy = (INotifyOutcome<E, L>) fed
-                .getProxy(this, true/* enableDGC */);
-        
+        if (indexStore == null) {
+            throw new NullPointerException("null indexStore");
+        }
+        this.indexStore = indexStore;
+        try {
+            this.masterProxy =
+                 (INotifyOutcome<E, L>) Util.exportObj(this,
+                                                       true,  //enableDgc
+                                                       false);//keepAlive
+        } catch(ExportException e) {//maintain original logic?
+            throw new RuntimeException
+                          ("AbstractPendingSetMasterTask.constructor - "
+                           +"export failure ["+e+"]", e);
+        }
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     final protected boolean nothingPending() {
         lock.lock();

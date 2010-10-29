@@ -24,8 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.journal;
 
-import net.jini.core.lookup.ServiceItem;
-import net.jini.lookup.LookupCache;
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
 
 /**
  * Concrete implementation of <code>AbstractLocalTransactionManager</code>
@@ -36,22 +35,16 @@ import net.jini.lookup.LookupCache;
 public class LocalTransactionManager
                  extends AbstractLocalTransactionManager
 {
-    private LookupCache txnServiceCache;//for discovering txn service
-    private TransactionService embeddedTxnService;//for embedded fed tests
+    private IBigdataDiscoveryManagement discoveryMgr;
 
-    public LocalTransactionManager(LookupCache txnServiceCache,
-                                   TransactionService embeddedTxnService)
+    public LocalTransactionManager
+               (IBigdataDiscoveryManagement discoveryMgr)
     {
-        this.txnServiceCache = txnServiceCache;
-        this.embeddedTxnService = embeddedTxnService;
+        this.discoveryMgr = discoveryMgr;
     }
 
     public TransactionService getTransactionService() {
-        if(txnServiceCache != null) {
-            ServiceItem txnItem = txnServiceCache.lookup(null);
-            if(txnItem != null) return (TransactionService)txnItem.service;
-        }
-        return embeddedTxnService;
+        return discoveryMgr.getTransactionService();
     }
 
     public void deactivateTx(final Tx localState) {

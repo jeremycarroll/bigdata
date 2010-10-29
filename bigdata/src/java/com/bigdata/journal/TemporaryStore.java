@@ -43,6 +43,10 @@ import com.bigdata.sparse.GlobalRowStoreHelper;
 import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * A temporary store that supports named indices but no concurrency controls.
  * {@link #checkpoint()} may be used to checkpoint the indices and
@@ -84,6 +88,11 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
     private final long liveIndexCacheTimeout = Long
             .parseLong(Options.DEFAULT_LIVE_INDEX_CACHE_TIMEOUT);
     
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    private IConcurrencyManager concurrencyManager;
+    private IBigdataDiscoveryManagement discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
+
     /**
      * A {@link TemporaryStore} that can scale-up. The backing file will be
      * created using the Java temporary file mechanism.
@@ -91,11 +100,20 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
      * @see WormAddressManager#SCALE_UP_OFFSET_BITS
      * @see #getTempFile()
      */
-    public TemporaryStore() {
-
-        this(WormAddressManager.SCALE_UP_OFFSET_BITS);
-        
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public TemporaryStore() {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        this(WormAddressManager.SCALE_UP_OFFSET_BITS);
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
+    public TemporaryStore(final IConcurrencyManager concurrencyManager,
+                          final IBigdataDiscoveryManagement discoveryManager)
+    {
+        this(concurrencyManager,
+             discoveryManager,
+             WormAddressManager.SCALE_UP_OFFSET_BITS);        
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * A {@link TemporaryStore} provisioned with the specified <i>offsetBits</i>.
@@ -106,11 +124,22 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
      *            length of a record. The value is passed through to
      *            {@link WormAddressManager#WormAddressManager(int)}.
      */
-    public TemporaryStore(final int offsetBits) {
-
-        this(offsetBits, getTempFile());
-        
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public TemporaryStore(final int offsetBits) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        this(offsetBits, getTempFile());
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
+    public TemporaryStore(final IConcurrencyManager concurrencyManager,
+                          final IBigdataDiscoveryManagement discoveryManager,
+                          final int offsetBits)
+    {
+        this(concurrencyManager,
+             discoveryManager,
+             offsetBits,
+             getTempFile());
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * A {@link TemporaryStore} provisioned with the specified <i>offsetBits</i>
@@ -123,8 +152,28 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
      * @param file
      *            The backing file (may exist, but must be empty if it exists).
      */
-    public TemporaryStore(final int offsetBits, final File file) {
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public TemporaryStore(final int offsetBits, final File file) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(0L/* maximumExtent */, offsetBits, file);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        setupName2AddrBTree();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        executorService = Executors.newCachedThreadPool(new DaemonThreadFactory
+//BTM - PRE_CLIENT_SERVICE                (getClass().getName()+".executorService"));
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        resourceLocator = new DefaultResourceLocator(//
+//BTM - PRE_CLIENT_SERVICE                this,//
+//BTM - PRE_CLIENT_SERVICE                null // delegate
+//BTM - PRE_CLIENT_SERVICE        );
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+    public TemporaryStore
+               (final IConcurrencyManager concurrencyManager,
+                final IBigdataDiscoveryManagement discoveryManager,
+                final int offsetBits,
+                final File file)
+    {
         super(0L/* maximumExtent */, offsetBits, file);
 
         setupName2AddrBTree();
@@ -136,8 +185,11 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
                 this,//
                 null // delegate
         );
-        
+
+        this.concurrencyManager = concurrencyManager;
+        this.discoveryManager = discoveryManager;
     }
+//BTM - PRE_CLIENT_SERVICE - END
     
     /**
      * BTree mapping index names to the last metadata record committed for the
@@ -368,8 +420,12 @@ public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
     public BigdataFileSystem getGlobalFileSystem() {
 
         assertOpen();
-        
-        return globalFileSystemHelper.getGlobalFileSystem();
+
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return globalFileSystemHelper.getGlobalFileSystem();
+        return globalFileSystemHelper.getGlobalFileSystem(concurrencyManager,
+                                                          discoveryManager);
+//BTM - PRE_CLIENT_SERVICE - END
         
     }
     private GlobalFileSystemHelper globalFileSystemHelper = new GlobalFileSystemHelper(this); 

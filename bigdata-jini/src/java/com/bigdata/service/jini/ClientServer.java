@@ -42,7 +42,6 @@ import net.jini.lookup.entry.Name;
 import org.apache.log4j.MDC;
 
 import com.bigdata.service.ClientService;
-import com.bigdata.service.DataService;
 import com.bigdata.service.ClientService.ClientServiceFederationDelegate;
 import com.bigdata.service.IClientServiceCallable;
 import com.sun.jini.start.LifeCycle;
@@ -91,6 +90,12 @@ public class ClientServer extends AbstractServer {
     public ClientServer(final String[] args, final LifeCycle lifeCycle) {
 
         super(args, lifeCycle);
+//BTM
+System.err.println("\n>>>> ClientServer -----------------------------------------");
+for(int i=0; i<args.length; i++) {
+    System.err.println(">>>> ClientServer args["+i+"] = "+args[i]);
+}
+System.err.println(">>>> ClientServer -----------------------------------------\n");
 
     }
 
@@ -98,7 +103,7 @@ public class ClientServer extends AbstractServer {
      * Starts a new {@link ClientServer}.  This can be done programmatically
      * by executing
      * <pre>
-     *    new DataServer(args, new FakeLifeCycle()).run();
+     *    new ClientServer(args, new FakeLifeCycle()).run();
      * </pre>
      * within a {@link Thread}.
      * 
@@ -144,7 +149,7 @@ public class ClientServer extends AbstractServer {
 //    }
 
     /**
-     * Adds jini administration interfaces to the basic {@link DataService}.
+     * Adds jini administration interfaces to the basic {@link ClientService}.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$

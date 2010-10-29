@@ -25,7 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.counters.httpd;
 
 import com.bigdata.counters.CounterSet;
-import com.bigdata.service.IFederationDelegate;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.resources.ResourceManager;
 import com.bigdata.util.config.LogUtil;
 
 import org.apache.log4j.Logger;
@@ -41,18 +43,23 @@ import java.util.Vector;
  */
 public class HttpReportingServer extends CounterSetHTTPD {
 
-    private IFederationDelegate embeddedIndexStore;
+    private ResourceManager resourceMgr;
+    private IConcurrencyManager concurrencyMgr;
+    private ILocalResourceManagement localResourceMgr;
     private Logger logger;
 
     public HttpReportingServer
                  (final int port,
-                  final CounterSet root,
-                  final IFederationDelegate embeddedIndexStore,
+                  final ResourceManager resourceMgr,
+                  final IConcurrencyManager concurrencyMgr,
+                  final ILocalResourceManagement localResourceMgr,
                         Logger logger)
                throws IOException
     {
-        super(port, root);
-        this.embeddedIndexStore = embeddedIndexStore;
+        super(port, localResourceMgr.getServiceCounterSet());
+        this.resourceMgr = resourceMgr;
+        this.concurrencyMgr = concurrencyMgr;
+        this.localResourceMgr = localResourceMgr;
         this.logger = (logger == null ? 
                        LogUtil.getLog4jLogger((this.getClass()).getName()) :
                        logger);
@@ -67,7 +74,8 @@ public class HttpReportingServer extends CounterSetHTTPD {
                         throws Exception
     {
         try {
-            embeddedIndexStore.reattachDynamicCounters();
+            localResourceMgr.reattachDynamicCounters
+                                 (resourceMgr, concurrencyMgr);
         } catch (Exception e) {
             // Usually because the live journal has been
             // concurrently closed during the request.

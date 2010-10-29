@@ -255,7 +255,7 @@ System.out.println("*** ServicesManagerConfiguration.getConfigurations: LoadBala
             } else if (a.equals(ClientServer.class.getName())) {
 
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: ClientServer BEGIN");
-                v.add(new ClientServerConfiguration(config));
+                v.add(new ClientServerConfiguration(ClientServer.class, config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: ClientServer END\n");
 
 
@@ -284,6 +284,12 @@ System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigd
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bigdata.loadbalancer.ServiceImpl BEGIN");
                 v.add(new LoadBalancerConfiguration(com.bigdata.loadbalancer.ServiceImpl.class, config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigdata.loadbalancer.ServiceImpl END\n");
+
+            } else if (a.equals(com.bigdata.executor.ServiceImpl.class.getName())) {//callable executor service
+
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bigdata.executor.ServiceImpl BEGIN");
+                v.add(new ClientServerConfiguration(com.bigdata.executor.ServiceImpl.class, config));
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigdata.executor.ServiceImpl END\n");
 
 //BTM - END: smart proxy impls ------------------------------------------------------------
 

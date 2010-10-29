@@ -22,25 +22,59 @@ import com.bigdata.relation.RelationSchema;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 public class TempMagicStore extends TempTripleStore {
 
     protected static final Logger log = Logger.getLogger(TempMagicStore.class);
     
     protected static final boolean INFO = log.isInfoEnabled();
     
-    public TempMagicStore(IIndexManager indexManager, String namespace,
-            Long timestamp, Properties properties) {
-        super(indexManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public TempMagicStore(IIndexManager indexManager, String namespace,
+//BTM - PRE_CLIENT_SERVICE            Long timestamp, Properties properties) {
+//BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    public TempMagicStore(Properties properties) {
+//BTM - PRE_CLIENT_SERVICE        super(properties);
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    public TempMagicStore(TemporaryStore store, Properties properties,
+//BTM - PRE_CLIENT_SERVICE            AbstractTripleStore db) {
+//BTM - PRE_CLIENT_SERVICE        super(store, properties, db);
+//BTM - PRE_CLIENT_SERVICE    }
+    public TempMagicStore(IIndexManager indexManager,
+                          IConcurrencyManager concurrencyManager,
+                          IBigdataDiscoveryManagement discoveryManager,
+                          String namespace,
+                          Long timestamp,
+                          Properties properties)
+    {
+        super(indexManager,
+              concurrencyManager, discoveryManager,
+              namespace, timestamp, properties);
     }
 
-    public TempMagicStore(Properties properties) {
-        super(properties);
+    public TempMagicStore(IConcurrencyManager concurrencyManager,
+                          IBigdataDiscoveryManagement discoveryManager,
+                          Properties properties)
+    {
+        super(concurrencyManager, discoveryManager, properties);
     }
 
-    public TempMagicStore(TemporaryStore store, Properties properties,
-            AbstractTripleStore db) {
-        super(store, properties, db);
+    public TempMagicStore(TemporaryStore store,
+                          IConcurrencyManager concurrencyManager,
+                          IBigdataDiscoveryManagement discoveryManager,
+                          Properties properties,
+                          AbstractTripleStore db)
+    {
+        super(store, concurrencyManager, discoveryManager, properties, db);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     @Override
     public Iterator<IRelation> relations() {
@@ -81,8 +115,16 @@ public class TempMagicStore extends TempTripleStore {
 
         try {
 
-            relation = new MagicRelation(getIndexManager(), 
-                getNamespace() + "." + symbol, getTimestamp(), tmp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            relation = new MagicRelation(getIndexManager(), 
+//BTM - PRE_CLIENT_SERVICE                getNamespace() + "." + symbol, getTimestamp(), tmp);
+            relation = new MagicRelation(getIndexManager(),
+                                         getConcurrencyManager(),
+                                         getDiscoveryManager(),
+                                         getNamespace() + "." + symbol,
+                                         getTimestamp(),
+                                         tmp);
+//BTM - PRE_CLIENT_SERVICE - END
 
             relation.create();
 

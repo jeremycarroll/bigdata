@@ -31,25 +31,44 @@ import java.rmi.RemoteException;
 
 import net.jini.core.lookup.ServiceTemplate;
 
-import com.bigdata.service.IClientService;
-import com.bigdata.service.jini.JiniFederation;
+import com.bigdata.service.CallableExecutor;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import net.jini.lookup.ServiceDiscoveryManager;
+import net.jini.lookup.ServiceDiscoveryListener;
+import java.util.UUID;
 
 /**
- * Class handles discovery of an {@link IClientService}.
+ * Class handles discovery of a callable executor service.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
 public class ClientServicesClient extends
-        BigdataCachingServiceClient<IClientService> {
+        BigdataCachingServiceClient<CallableExecutor> {
 
-    public ClientServicesClient(final JiniFederation fed, final long timeout)
-            throws RemoteException {
-
-        super(fed, IClientService.class, new ServiceTemplate(null,
-                new Class[] { IClientService.class }, null), null/* filter */,
-                timeout);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public ClientServicesClient(final JiniFederation fed, final long timeout)
+//BTM - PRE_CLIENT_SERVICE            throws RemoteException {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(fed, CallableExecutor.class, new ServiceTemplate(null,
+//BTM - PRE_CLIENT_SERVICE                new Class[] { CallableExecutor.class }, null), null/* filter */,
+//BTM - PRE_CLIENT_SERVICE                timeout);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+    public ClientServicesClient(final ServiceDiscoveryManager sdm,
+                                final ServiceDiscoveryListener listener,
+                                final UUID serviceUUID,
+                                final Object serviceRef,
+                                final long timeout)
+               throws RemoteException
+    {
+        super(sdm, listener, serviceUUID, serviceRef,
+              CallableExecutor.class,
+              new ServiceTemplate(null, new Class[] {CallableExecutor.class}, null),
+              null, //filter
+              timeout);
     }
-
+//BTM - PRE_CLIENT_SERVICE - END
 }

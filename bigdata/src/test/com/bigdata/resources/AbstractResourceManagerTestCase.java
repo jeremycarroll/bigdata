@@ -78,7 +78,7 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.httpd.AbstractHTTPD;
 
 //BTM
-import com.bigdata.event.EventQueue;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.event.EventQueue;
 import com.bigdata.journal.TransactionService;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.LoadBalancer;
@@ -97,6 +97,21 @@ import com.bigdata.service.IDataServiceCallable;
 import java.util.LinkedList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+
+//BTM - FOR_CLIENT_SERVICE           
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.event.EventQueueSender;
+import com.bigdata.jini.BigdataDiscoveryManager;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.service.Session;
+import com.bigdata.service.ndx.ScaleOutIndexCounters;
+import com.bigdata.util.concurrent.TaskCounters;
+import com.bigdata.util.config.NicUtil;
+import com.bigdata.util.config.ConfigDeployUtil;
+
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Base class for {@link ResourceManager} test suites that can use normal
@@ -161,33 +176,45 @@ protected ShardLocator metadataService;
         
         final Properties properties = getProperties();
 
-        resourceManager = new ResourceManager(properties) {
+//BTM - FOR_CLIENT_SERVICE - BEGIN - moved these lines up from below for new ResourceManager constructor
+        executorService = Executors.newCachedThreadPool(DaemonThreadFactory.defaultThreadFactory());
+        fed = new MockFederation();
+//BTM - FOR_CLIENT_SERVICE - END
 
-            final private UUID dataServiceUUID = UUID.randomUUID();
-            
-            @Override
-            public IBigdataFederation getFederation() {
-                
-                return fed;
-                
-            }
-            
-            @Override
-//BTM            public DataService getDataService() {
-public ShardService getDataService() {
-                
-                throw new UnsupportedOperationException();
-                
-            }
-            
-            @Override
-            public UUID getDataServiceUUID() {
-                
-                return dataServiceUUID;
-                
-            }
+//BTM - PRE_CLIENT_SERVICE - BEGIN - use new MyResourceManager ------------
+//BTM - PRE_CLIENT_SERVICE         resourceManager = new ResourceManager(properties) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             final private UUID dataServiceUUID = UUID.randomUUID();
+//BTM - PRE_CLIENT_SERVICE             
+//BTM - PRE_CLIENT_SERVICE             @Override
+//BTM - PRE_CLIENT_SERVICE             public IBigdataFederation getFederation() {
+//BTM - PRE_CLIENT_SERVICE                 
+//BTM - PRE_CLIENT_SERVICE                 return fed;
+//BTM - PRE_CLIENT_SERVICE                 
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE             
+//BTM - PRE_CLIENT_SERVICE             @Override
+//BTM - PRE_CLIENT_SERVICE //BTM            public DataService getDataService() {
+//BTM - PRE_CLIENT_SERVICE public ShardService getDataService() {
+//BTM - PRE_CLIENT_SERVICE                 
+//BTM - PRE_CLIENT_SERVICE                 throw new UnsupportedOperationException();
+//BTM - PRE_CLIENT_SERVICE                 
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE             
+//BTM - PRE_CLIENT_SERVICE             @Override
+//BTM - PRE_CLIENT_SERVICE             public UUID getDataServiceUUID() {
+//BTM - PRE_CLIENT_SERVICE                 
+//BTM - PRE_CLIENT_SERVICE                 return dataServiceUUID;
+//BTM - PRE_CLIENT_SERVICE                 
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         };
 
-        };
+        resourceManager = new MyResourceManager
+                                  ( (IIndexManager)fed,
+                                    (ILocalResourceManagement)fed,
+                                    properties );
+//BTM - PRE_CLIENT_SERVICE - END -----------------------------------------
 
         txService = new MockTransactionService(properties){
 
@@ -219,9 +246,11 @@ public ShardService getDataService() {
         
         assertTrue( resourceManager.awaitRunning() );
         
-        executorService = Executors.newCachedThreadPool(DaemonThreadFactory.defaultThreadFactory());
-        
-        fed = new MockFederation();
+//BTM - PRE_CLIENT_SERVICE - BEGIN - moved these lines above for new ResourceManager constructor
+//BTM - PRE_CLIENT_SERVICE        executorService = Executors.newCachedThreadPool(DaemonThreadFactory.defaultThreadFactory());
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        fed = new MockFederation();
+//BTM - PRE_CLIENT_SERVICE - END
         
     }
 
@@ -448,7 +477,13 @@ protected static class MockMetadataService implements ShardLocator {
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      * @version $Id$
      */
-    protected class MockFederation implements IBigdataFederation<MockMetadataService> {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected class MockFederation implements IBigdataFederation<MockMetadataService> {
+    protected class MockFederation
+                        implements IBigdataFederation<MockMetadataService>,
+                                   ILocalResourceManagement
+{
+//BTM - PRE_CLIENT_SERVICE - END
 
         private final MockMetadataService metadataService = new MockMetadataService();
         private final MockSendEventsTask mockSendEventsTask = new MockSendEventsTask();//BTM
@@ -662,10 +697,82 @@ public ShardService[] getDataServices(UUID[] uuid) {
             return null;
         }
 
-//BTM - BEGIN -----------------------------------------------------------------
+//BTM - FOR_CLIENT_SERVICE - END ----------------------------------------------
         public void serviceJoin(Service service, UUID serviceUUID) { }
 
-        private class MockSendEventsTask implements EventQueue, Runnable {
+        // Required by ILocalResourceManagement
+
+        public String getHostname() {
+            try {
+                return ( NicUtil.getIpAddress
+                             ("default.nic", 
+                              ConfigDeployUtil.getString
+                                  ("node.serviceNetwork"),
+                              false) );
+            } catch(Throwable t) {
+                return "UNKNOWN";
+            }
+        }
+
+        public ExecutorService getThreadPool() {
+            return this.getExecutorService();
+        }
+
+        public ScheduledExecutorService getScheduledExecutor() {
+            return null;
+        }
+
+        public Session getSession() {
+            return null;
+        }
+        public ScaleOutIndexCounters getIndexCounters(String name) {
+            return null;
+        }
+        public void reattachDynamicCounters
+                                 (ResourceManager resourceMgr,
+                                  IConcurrencyManager concurrencyMgr)
+        {
+            //no-op
+        }
+        public CounterSet getServiceCounterSet(boolean addCounters) {
+            return null;
+        }
+        public TaskCounters getTaskCounters() {
+            return null;
+        }
+        public EventQueueSender getEventQueueSender() {
+            return mockSendEventsTask;
+        }
+        public void terminate(long timeout) {
+            //no-opp
+        }
+
+//BTM - PRE_CLIENT_SERVICE        private class MockSendEventsTask implements EventQueue, Runnable {
+//BTM - PRE_CLIENT_SERVICE            final private BlockingQueue<Event> eventQueue = 
+//BTM - PRE_CLIENT_SERVICE                              new LinkedBlockingQueue<Event>();
+//BTM - PRE_CLIENT_SERVICE            public MockSendEventsTask() { }
+//BTM - PRE_CLIENT_SERVICE            public void queueEvent(Event e) {
+//BTM - PRE_CLIENT_SERVICE                eventQueue.add(e);
+//BTM - PRE_CLIENT_SERVICE            }
+//BTM - PRE_CLIENT_SERVICE            public void run() {
+//BTM - PRE_CLIENT_SERVICE                try {
+//BTM - PRE_CLIENT_SERVICE                    final LinkedList<Event> c = new LinkedList<Event>();
+//BTM - PRE_CLIENT_SERVICE                    eventQueue.drainTo(c);
+//BTM - PRE_CLIENT_SERVICE                    for (Event e : c) {
+//BTM - PRE_CLIENT_SERVICE                        log.debug("sent event to load balancer");
+//BTM - PRE_CLIENT_SERVICE                    }
+//BTM - PRE_CLIENT_SERVICE                } catch (Throwable t) {
+//BTM - PRE_CLIENT_SERVICE                    log.warn(getServiceName(), t);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                }
+//BTM - PRE_CLIENT_SERVICE            }
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        public EventQueue getEventQueue() {
+//BTM - PRE_CLIENT_SERVICE            return mockSendEventsTask;
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE
+        private class MockSendEventsTask implements EventQueueSender {
             final private BlockingQueue<Event> eventQueue = 
                               new LinkedBlockingQueue<Event>();
             public MockSendEventsTask() { }
@@ -684,15 +791,62 @@ public ShardService[] getDataServices(UUID[] uuid) {
 
                 }
             }
+        }//end class MockSendEventsTask
+
+    }//end class MockFederation
+
+    protected static class MyResourceManager extends ResourceManager {
+
+        final private UUID dataServiceUUID = UUID.randomUUID();
+
+        private IBigdataDiscoveryManagement discoveryMgr;
+        private IIndexManager indexMgr;
+        private ILocalResourceManagement localResourceMgr;
+
+        MyResourceManager(Properties properties) {
+            this(null, null, properties);
         }
 
-        public EventQueue getEventQueue() {
-            return mockSendEventsTask;
+        MyResourceManager(IIndexManager indexManager,
+                          ILocalResourceManagement localResourceManager,
+                          Properties properties)
+        {
+            super(properties);
+            this.discoveryMgr = new BigdataDiscoveryManager();
+            this.indexMgr = indexManager;
+            this.localResourceMgr = localResourceManager;
         }
-//BTM - END -------------------------------------------------------------------
 
-    }
-    
+        @Override
+        public IBigdataDiscoveryManagement getDiscoveryManager() {
+            return discoveryMgr;
+        }
+
+        @Override
+        public ILocalResourceManagement getLocalResourceManager() {
+            return localResourceMgr;
+        }
+
+        @Override
+        public IIndexManager getIndexManager() {
+            return indexMgr;
+        }
+            
+        @Override
+        public ShardService getDataService() {
+            throw new UnsupportedOperationException();
+        }
+            
+        @Override
+        public UUID getDataServiceUUID() {
+            return dataServiceUUID;
+        }
+    }//end class MyResourceManager
+
+//BTM - FOR_CLIENT_SERVICE - END ----------------------------------------------
+
+
+
     /**
      * Utility method to register an index partition on the {@link #resourceManager}.
      * 

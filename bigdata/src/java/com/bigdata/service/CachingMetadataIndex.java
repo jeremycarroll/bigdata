@@ -41,12 +41,15 @@ import com.bigdata.journal.TimestampUtility;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
+
 /**
  * Implementation caches all locators and then updates them on demand as stale
  * locators are discovered.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class CachingMetadataIndex extends CacheOnceMetadataIndex {
 
@@ -80,14 +83,27 @@ public class CachingMetadataIndex extends CacheOnceMetadataIndex {
      *         is no such scale-out index.
      */
 //BTM    public CachingMetadataIndex(AbstractScaleOutFederation fed, String name,
-public CachingMetadataIndex(IBigdataFederation fed, String name,
-            long timestamp, MetadataIndexMetadata mdmd) {
-
-        super(fed, name, timestamp, mdmd);
-        
-        this.delegate = new NoCacheMetadataIndexView(fed, name, timestamp, mdmd);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICEpublic CachingMetadataIndex(IBigdataFederation fed, String name,
+//BTM - PRE_CLIENT_SERVICE            long timestamp, MetadataIndexMetadata mdmd) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(fed, name, timestamp, mdmd);
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        this.delegate = new NoCacheMetadataIndexView(fed, name, timestamp, mdmd);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+    public CachingMetadataIndex
+               (IBigdataDiscoveryManagement discoveryManager,
+                IIndexManager indexManager,
+                String name,
+                long timestamp,
+                MetadataIndexMetadata mdmd)
+    {
+        super(discoveryManager, indexManager, name, timestamp, mdmd);
+        this.delegate = new NoCacheMetadataIndexView
+                                (discoveryManager, name, timestamp, mdmd);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Re-fetches the locator(s).

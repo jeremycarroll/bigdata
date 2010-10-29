@@ -27,19 +27,15 @@ package com.bigdata.util.config;
 
 import com.bigdata.attr.ServiceInfo;
 
-import com.sun.jini.config.Config;
-import net.jini.config.Configuration;
 import net.jini.config.ConfigurationException;
 import net.jini.core.discovery.LookupLocator;
-import net.jini.discovery.DiscoveryManagement;
-import net.jini.discovery.DiscoveryGroupManagement;
-import net.jini.discovery.DiscoveryLocatorManagement;
-import net.jini.discovery.LookupDiscoveryManager;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.SocketException;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -62,6 +58,40 @@ public class ConfigDeployUtil {
     private static final String DESCRIPTION = ".description";
     private static final String TYPE = ".type";
 
+    private static final String FALLBACK_FEDNAME_FORMAT =
+                                    "bigdata.test.group-%s";
+    
+    //use current locale
+    private static final NumberFormat numberFormat =
+                                          NumberFormat.getInstance();
+
+    //prevent instantiation
+    private ConfigDeployUtil() {
+        throw new AssertionError("ConfigDeployUtil cannot be instantiated");
+    }
+
+    /**
+     * Returns the <code>String</code> value associated with the given
+     * parameter in the configured properties file. The value, if any,
+     * returned will be:
+     *
+     * 1) the explicitly defined value for the property, or
+     * 2) the default value for that property, if a default exists.
+     *
+     * If the provided parameter has an associated set of valid entries in the
+     * properties files, then the value obtained, above, will be validated 
+     * against those entries. If either the value (explicit or default) can't
+     * be found or fails the validation check, a
+     * <code>ConfigurationException</code> will be thrown.
+     *
+     * @param parameter The property name to lookup
+     *
+     * @return the <code>String</code> value associated the requested
+     *         parameter, if available
+     *
+     * @throws ConfigurationException if the parameter value (explicit or
+     *         default) was not defined.
+     */
     public static String getString(String parameter) 
                              throws ConfigurationException
     {
@@ -70,6 +100,28 @@ public class ConfigDeployUtil {
         return value;
     }
 
+    /**
+     * Returns the <code>String[]</code> value associated with the given
+     * parameter in the configured properties file. The value, if any,
+     * returned will be:
+     *
+     * 1) the explicitly defined value for the property, or
+     * 2) the default value for that property, if a default exists.
+     *
+     * If the provided parameter has an associated set of valid entries in the
+     * properties files, then the component values obtained, above, will be
+     * validated against those entries. If either the value (explicit or
+     * default) can't be found or fails the validation check, a
+     * <code>ConfigurationException</code> will be thrown.
+     *
+     * @param parameter The property name to lookup
+     *
+     * @return the <code>String[]</code> value associated the requested
+     *         parameter, if available
+     *
+     * @throws ConfigurationException if the parameter value (explicit or
+     *         default) was not defined.
+     */    
     public static String[] getStringArray(String parameter)
                                throws ConfigurationException
     {
@@ -78,12 +130,54 @@ public class ConfigDeployUtil {
         return value;
     }
 
+    /**
+     * Returns the <code>int</code> value associated with the given parameter 
+     * in the configured properties file. The value, if any, returned will be:
+     *
+     * 1) the explicitly defined value for the property, or
+     * 2) the default value for that property, if a default exists.
+     *
+     * If the provided parameter has an associated set of valid entries in the
+     * properties files, then the value obtained, above, will be validated 
+     * against those entries. If either the value (explicit or default) can't
+     * be found or fails the validation check, a
+     * <code>ConfigurationException</code> will be thrown.
+     *
+     * @param parameter The property name to lookup
+     *
+     * @return the <code>int</code> value associated the requested parameter,
+     *         if available
+     *
+     * @throws ConfigurationException if the parameter value (explicit or
+     *         default) was not defined.
+     */    
     public static int getInt(String parameter) throws ConfigurationException {
         int value;
         value = validateInt(parameter, get(parameter));
         return value;
     }
 
+    /**
+     * Returns the <code>long</code> value associated with the given parameter 
+     * in the configured properties file. The value, if any, returned will be:
+     *
+     * 1) the explicitly defined value for the property, or
+     * 2) the default value for that property, if a default exists.
+     *
+     * If the provided parameter has an associated set of valid entries in the
+     * properties files, then the value obtained, above, will be validated 
+     * against those entries. If either the value (explicit or default) can't
+     * be found or fails the validation check, a
+     * <code>ConfigurationException</code> will be thrown.
+     *
+     * @param parameter The property name to lookup
+     *
+     * @return the <code>long</code> value associated the requested parameter,
+     *         if available
+     *
+     * @throws ConfigurationException if the parameter value (explicit or
+     *         default) was not defined.
+     */    
     public static long getLong(String parameter) throws ConfigurationException
     {
         long value;
@@ -91,60 +185,96 @@ public class ConfigDeployUtil {
         return value;
     }
 
+    /**
+     * Returns the <code>boolean</code> value associated with the given
+     * parameter in the configured properties file. The value, if any,
+     * returned will be:
+     *
+     * 1) the explicitly defined value for the property, or
+     * 2) the default value for that property, if a default exists.
+     *
+     * If the provided parameter has an associated set of valid entries in the
+     * properties files, then the value obtained, above, will be validated 
+     * against those entries. If either the value (explicit or default) can't
+     * be found or fails the validation check, a
+     * <code>ConfigurationException</code> will be thrown.
+     *
+     * @param parameter The property name to lookup
+     *
+     * @return the <code>boolean</code> value associated the requested
+     *         parameter, if available
+     *
+     * @throws ConfigurationException if the parameter value (explicit or
+     * default) was not defined.
+     */    
     public static boolean getBoolean(String parameter) 
-                              throws ConfigurationException {
-        boolean boolValue = false;
-        String value;
-        try {
-            value = get(parameter);
-        } catch (Exception ex) {
-            throw new ConfigurationException("parameter value ["+parameter+"] "
-                                             +"neither 'true' nor 'false'");
-        }
-        if( value != null && value.equalsIgnoreCase("true")
-           || value.equalsIgnoreCase("false") )
-        {
-            boolValue = Boolean.parseBoolean(value);
-        } else {
-            throw new ConfigurationException("parameter value ["+parameter+"] "
-                                             +"neither 'true' nor 'false'");
-        }
-        return boolValue;
+                              throws ConfigurationException
+    {
+        boolean value;
+        value = validateBoolean(parameter, get(parameter));
+        return value;
     }
 
+    /**
+     * Returns the description value associated with the given parameter 
+     * in the configured properties file. The method returns <code>null</code>
+     * if the property is not found.
+     *
+     * @param parameter The property name to lookup
+     *
+     * @return the <code>String</code> value associated the requested
+     *         parameter, if available. Otherwise return <code>null</code>
+     *
+     * @throws ConfigurationException if there was a problem accessing the
+     *         parameter value.
+     */    
     public static String getDescription(String parameter)
                              throws ConfigurationException
     {
         String value;
-        if(deploymentProps == null) {
-            deploymentProps = new Properties();
-            loadDeployProps(deploymentProps);
-        }
-        value = deploymentProps.getProperty(parameter + DESCRIPTION);
+        value = getDeploymentProperties().getProperty(parameter + DESCRIPTION);
         return value;
     }
 
+    /**
+     * Returns the type value associated with the given parameter 
+     * in the configured properties file. The method returns <code>null</code>
+     * if the property is not found.
+     *
+     * @param parameter The property name to lookup
+     *
+     * @return the <code>String</code> value of the type associated the
+     *         requested parameter, if available. Otherwise return
+     *         <code>null</code>
+     *
+     * @throws ConfigurationException if there was a problem accessing the
+     *         parameter value.
+     */    
     public static String getType(String parameter)
                              throws ConfigurationException
     {
         String value;
-        if (deploymentProps == null) {
-            deploymentProps = new Properties();
-            loadDeployProps(deploymentProps);
-        }
-        value = deploymentProps.getProperty(parameter + TYPE);
+        value = getDeploymentProperties().getProperty(parameter + TYPE);
         return value;
     }
 
+    /**
+     * Returns the default value associated with the given parameter 
+     * in the configured properties file.
+     *
+     * @param parameter The property name to lookup
+     *
+     * @return the <code>String</code> value of the type associated the
+     *         requested parameter, if available. Otherwise return
+     *         <code>null</code>
+     *
+     * @throws ConfigurationException if no default value was specified
+     */        
     public static String getDefault(String parameter) 
                              throws ConfigurationException
     {
         String value;
-        if (deploymentProps == null) {
-            deploymentProps = new Properties();
-            loadDeployProps(deploymentProps);
-        }
-        value = deploymentProps.getProperty(parameter + DEFAULT);
+        value = getDeploymentProperties().getProperty(parameter + DEFAULT);
         if (value == null) {
             throw new ConfigurationException
                           ("deployment parameter not found ["+parameter+"]");
@@ -162,11 +292,53 @@ public class ConfigDeployUtil {
      */
     public static String[] getGroupsToDiscover() throws ConfigurationException
     {
-        String fedNameStr = System.getProperty("federation.name");
-        if(fedNameStr == null) {
-            fedNameStr = getString("federation.name");
-        }
+        String fedNameStr = getFederationName();
         return fedNameStr.split(",");
+    }
+    
+    /**
+     * Returns the federation name (Jini group name) via the following 
+     * selection order:
+     * <ol>
+     * <li>From the Java system property: <code>federation.name</code></li>
+     * <li>From the deployment properties file. Note that a value from the
+     *     deployment properties file that has not gone through token
+     *     replacement is considered invalid. In this case, the next value
+     *     in the selection order is used.</li>
+     * <li>Using the fallback convention:
+     *     <code>bigdata.test.group-&lt;ipaddress&gt;</code></li>
+     * </ol>
+     * 
+     * @return String value representing the federation name
+     * 
+     * @throws ConfigurationException
+     */
+    public static String getFederationName() throws ConfigurationException {
+
+        // If we have a system property override, use that.
+        String fedName = System.getProperty("federation.name");
+
+        // If not, look in the deploy properties
+        if(fedName == null) {
+            fedName = getString("federation.name");
+        }
+
+        // If not set in the deploy properties, then use the fallback name of 
+        // "bigdata.test.group-<ipaddress>". This is primarily to support test 
+        // environments and we should never get this far in production.
+        if (fedName == null || fedName.length() == 0) {
+            try {
+                String ipAddress = 
+                    NicUtil.getIpAddress("default.nic", "default", true);
+                fedName = String.format(FALLBACK_FEDNAME_FORMAT, ipAddress);
+            }
+            catch (Exception e) {
+                throw new ConfigurationException
+                              ("error retrieving IP address while "
+                               +"constructing fallback federation name.", e);
+            }
+        }
+        return fedName;
     }
 
     /**
@@ -217,14 +389,9 @@ public class ConfigDeployUtil {
         return serviceInfo;
     }
 
-
     private static String get(String parameter) throws ConfigurationException {
         String value;
-        if (deploymentProps == null) {
-            deploymentProps = new Properties();
-            loadDeployProps(deploymentProps);
-        }
-        value = deploymentProps.getProperty(parameter);
+        value = getDeploymentProperties().getProperty(parameter);
         if (value == null) value = getDefault(parameter);
         return value;
     }
@@ -233,7 +400,7 @@ public class ConfigDeployUtil {
                             throws ConfigurationException
     {
         String validValuesStr = 
-            (String) deploymentProps.get(parameter + STRINGVALS);
+            (String) getDeploymentProperties().get(parameter + STRINGVALS);
 
         if (validValuesStr != null) {
             String[] validValues = validValuesStr.split(",");
@@ -250,7 +417,7 @@ public class ConfigDeployUtil {
                                 throws ConfigurationException
     {
         String validValuesStr = 
-            (String)(deploymentProps.get(parameter + STRINGVALS));
+            (String)(getDeploymentProperties().get(parameter + STRINGVALS));
         String[] values = value.split(",");
 
         if (validValuesStr != null) {
@@ -270,16 +437,39 @@ public class ConfigDeployUtil {
     private static int validateInt(String parameter, String strvalue)
                            throws ConfigurationException
     {
-        String maxString = (String)(deploymentProps.get(parameter + MAX));
-        String minString = (String)(deploymentProps.get(parameter + MIN));
+        String maxString =
+            (String)(getDeploymentProperties().get(parameter + MAX));
+        String minString =
+            (String)(getDeploymentProperties().get(parameter + MIN));
 
         int value = str2int(strvalue);
 
         if (maxString != null) {
-            int max = Integer.parseInt(maxString);
-            if (value > max) {
-                throw new ConfigurationException("parameter ["+parameter+"] "
-                                                 +"exceeds maximum ["+max+"]");
+            try {
+                int max = numberFormat.parse(maxString).intValue();          
+                if (value > max) {
+                    throw new ConfigurationException
+                                      ("parameter ["+parameter+"] "
+                                       +"exceeds maximum ["+max+"]");
+                }
+            } catch (ParseException e) {
+                throw new NumberFormatException
+                              ("invalid maximum integer for parameter: "
+                               +parameter);
+            }
+        }
+        if (minString != null) {
+            try {
+                int min = numberFormat.parse(minString).intValue();          
+                if (value < min) {
+                    throw new ConfigurationException
+                                  ("parameter ["+parameter+"] "
+                                   +"is less than maximum ["+min+"]");
+                }
+            } catch (ParseException e) {
+                throw new NumberFormatException
+                              ("invalid minimum integer for parameter: "
+                               +parameter);         	
             }
         }
         return value;
@@ -288,55 +478,84 @@ public class ConfigDeployUtil {
     private static long validateLong(String parameter, String strvalue) 
                             throws ConfigurationException
     {
-        String maxString = (String)(deploymentProps.get(parameter + MAX));
-        String minString = (String)(deploymentProps.get(parameter + MIN));
+        String maxString =
+            (String)(getDeploymentProperties().get(parameter + MAX));
+        String minString =
+            (String)(getDeploymentProperties().get(parameter + MIN));
 
         long value = str2long(strvalue);
 
         if (maxString != null) {
-            long max = Long.parseLong(maxString);
-            if (value > max) {
-                throw new ConfigurationException("parameter ["+parameter+"] "
-                                                 +"exceeds maximum ["+max+"]");
+            try {
+                long max = numberFormat.parse(maxString).longValue();          
+                if (value > max) {
+                    throw new ConfigurationException
+                                  ("parameter ["+parameter+"] "
+                                   +"exceeds maximum ["+max+"]");
+                }
+            } catch (ParseException e) {
+                throw new NumberFormatException
+                              ("invalid maximum long for parameter: "
+                               +parameter);
             }
         }
         if (minString != null) {
-            long min = Long.parseLong(minString);
-            if (value < min) {
-                throw new ConfigurationException("parameter ["+parameter+"] "
-                                                 +"is less than manimum "
-                                                 +"["+min+"]");
-            }
+            try {
+                long min = numberFormat.parse(minString).longValue();          
+                if (value < min) {
+                    throw new ConfigurationException
+                                  ("parameter ["+parameter+"] "
+                                   +"is less than manimum ["+min+"]");
+                }
+            } catch (ParseException e) {
+                throw new NumberFormatException
+                              ("invalid minimum long for parameter: "
+                               +parameter);         	
+            }            
         }
         return value;
     }
 
+    private static boolean validateBoolean(String parameter, String value) 
+                              throws ConfigurationException {
+        boolean boolValue = false;
 
-    private static String getPropertiesPath() {
-        String rootPath = "/opt/bigdata";//real installation
+        if( value != null && (value.equalsIgnoreCase("true")
+           || value.equalsIgnoreCase("false")) )
+        {
+            boolValue = Boolean.parseBoolean(value);
+        } else {
+            throw new ConfigurationException("parameter value ["+parameter+"] "
+                                             +"is neither 'true' nor 'false'");
+        }
+        return boolValue;
+    }
+
+    private static File getPropertiesPath() {
+        File rootDir = new File("/opt/bigdata"); //real installation
         String appHome = System.getProperty("appHome");//pstart
         String appDotHome = System.getProperty("app.home");//build.xml
 
         if(appHome != null) {
-            rootPath = appHome;
+            rootDir = new File(appHome);
         } else if(appDotHome != null) {
-            rootPath = appDotHome + File.separator 
-                               + "dist" + File.separator + "bigdata";
+            rootDir = new File(appDotHome);
         }
-        String relPath = "var" + File.separator + "config" 
-                               + File.separator + "deploy";
-        String retPath = rootPath + File.separator + relPath;
+
+        File retDir = new File(rootDir,"var/config/deploy");
+
         //eclipse
-        if( !(new File(retPath)).exists() ) {
+        if( !retDir.exists() ) {
             String tmpPath = "bigdata-jini" + File.separator + "src"
                                             + File.separator + "java"
                                             + File.separator + "com"
                                             + File.separator + "bigdata"
                                             + File.separator + "util"
                                             + File.separator + "config";
-            retPath = (new File(tmpPath)).getAbsolutePath();
+            retDir = new File( (new File(tmpPath)).getAbsolutePath() );
+//maven_scaleout - retDir = new File("src/main/deploy/var/config/deploy");
         }
-        return retPath;
+        return retDir;
     }
 
     private static void loadDeployProps(Properties deployProps) {
@@ -345,32 +564,23 @@ public class ConfigDeployUtil {
     }
 
     private static void loadDefaultProps(Properties deployProps) {
-        FileInputStream fis = null;
-        try {
-            String flnm = getPropertiesPath() 
-                          + File.separator + "default-deploy.properties";
-            fis = new FileInputStream(flnm);
-            deployProps.load(fis);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException ioex) { /* swallow */ }
-            }
-        }
+    	loadPropsInternal("default-deploy.properties", deployProps, true);
     }
 
     private static void loadOverrideProps(Properties deployProps) {
+    	loadPropsInternal("deploy.properties", deployProps, false);
+    }
+    
+    private static void loadPropsInternal(String propFileName, 
+    	Properties deployProps,	boolean prtinTrace) 
+    {    
         FileInputStream fis = null;
         try {
-            String flnm = getPropertiesPath() 
-                          + File.separator + "deploy.properties";
-            fis = new FileInputStream(new File(flnm));
+            File flnm = new File(getPropertiesPath(), propFileName);
+            fis = new FileInputStream(flnm);
             deployProps.load(fis);
         } catch (Exception ex) {
-            // using all defaults
+            if (prtinTrace) ex.printStackTrace();
         } finally {
             if (fis != null) {
                 try {
@@ -380,216 +590,57 @@ public class ConfigDeployUtil {
         }
     }
 
-
     private static int str2int(String argx) {
-        long l;
-
-        if( argx.trim().equals(Integer.MAX_VALUE) ) return Integer.MAX_VALUE;
-        if( argx.trim().equals(Integer.MIN_VALUE) ) return Integer.MIN_VALUE;
-
-        l = str2long(argx);
-        if (l < Integer.MAX_VALUE && l > Integer.MIN_VALUE) {
-            return (int) l;
-        } else {
-            throw new NumberFormatException("Invalid number:"+argx
-                                            +"  --number out of range");
+        Number n = null;
+        try {	
+//TODO - truncation can occur -- check for overflow
+            n = numberFormat.parse(argx);
+        } catch (ParseException e) {
+            throw new NumberFormatException("invalid integer: "+argx);
         }
+        return n.intValue();
     }
 
     private static long str2long(String argx) {
-
-        int minDigitNumBetwnComma = 3;
-
-        String arg = argx.trim();
-        arg = arg.replaceAll("\"", ""); // strip all quotes
-        int sz = arg.length();
-
-        if( arg.equals("Long.MAX_VALUE") ) return Long.MAX_VALUE;
-
-        if( arg.equals("Long.MIN_VALUE") ) return Long.MIN_VALUE;
-
-        int asterPos = -1;
-        String arg1 = null;
-        String arg2 = null;
-        if( (asterPos = arg.indexOf("*")) != -1) {
-            int dotPos = -1;
-            arg1 = arg.substring(0, asterPos).trim();
-            int denom1 = 1;
-            if( (dotPos = arg1.indexOf(".")) != -1) {
-                StringBuffer tmpBuf = new StringBuffer("1");
-                int hitNumber = 0;
-                for (int i = dotPos + 1; i < (arg1.length() - dotPos); i++) {
-                    if( Character.isDigit(arg1.charAt(i)) ) {
-                        tmpBuf.append("0");
-                    } else {
-                        break;
-                    }
-                }
-                denom1 = Integer.valueOf(tmpBuf.toString());
-                arg1 = arg1.substring(0, dotPos) + arg1.substring(dotPos + 1);
-            }
-
-            arg2 = arg.substring(asterPos + 1).trim();
-            int denom2 = 1;
-            if( (dotPos = arg2.indexOf(".")) != -1) {
-                StringBuffer tmpBuf = new StringBuffer("1");
-                for(int i = dotPos + 1; i <= (arg2.length() - dotPos); i++) {
-                    tmpBuf.append("0");
-                }
-
-                denom2 = Integer.valueOf(tmpBuf.toString());
-                arg2 = arg2.substring(0, dotPos) + arg2.substring(dotPos + 1);
-            }
-
-            long numerator = str2long(arg1) * str2long(arg2);
-            long denom = (denom1 * denom2);
-
-            if (numerator % denom != 0) {
-                throw new NumberFormatException(" Bad value passed in:" +
-                                                ((double) (numerator) /
-                                                 denom) +
-                                                ", expecting a long");
-            }
-            return (numerator / denom);
+        Number n = null;
+        try {	
+//TODO - truncation can occur -- check for overflow
+            n = numberFormat.parse(argx);
+        } catch (ParseException e) {
+            throw new NumberFormatException("invalid long: "+argx);
         }
-
-        char unit = arg.charAt(sz - 1);
-
-        String valScalar = arg.substring(0, (sz - 1)).trim();
-
-        long factor = 0l;
-
-        switch (Character.toUpperCase(unit)) {
-
-            case 'G':
-                factor = 1000000000l;
-                break;
-            case 'M':
-                factor = 1000000l;
-                break;
-            case 'K':
-                factor = 1000l;
-                break;
-            case 'B':
-                char unitPre = arg.charAt(sz - 2);
-                if (Character.isDigit(unitPre)) {
-                    factor = -1l;
-                } else {
-                    factor =
-                        (Character.toUpperCase(unitPre) ==
-                         'G' ? 1000000000l : (Character.toUpperCase(unitPre) ==
-                                          'M' ? 1000000l : (Character.
-                                                            toUpperCase
-                                                            (unitPre) ==
-                                                            'K' ? 1000l :
-                                                            -1l)));
-                    valScalar = arg.substring(0, (sz - 2)).trim();
-                }
-                break;
-
-            default:
-                if (Character.isDigit(unit)) {
-                    factor = 1l;
-                    valScalar = arg;
-                }
+        return n.longValue();
+    }
+    
+    /**
+     * Returns a reference to the <code>deploymenyProps</code> field.
+     * If <code>null</code>, then the field is populated by looking for
+     * the default and override properties files (defined in
+     * <code>loadDefaultProps</code> and <code>loadOverrideProps</code>).
+     *
+     * This method is synchronized in order to ensure that the returned
+     * reference is a singleton instance.
+     *
+     * Note: This method should be private, but is needed by the unit
+     * tests in order to access and modify the underlying
+     * <code>Properties</code> object.
+     *
+     * @return Properties instance containing the configuration properties.
+     */
+    synchronized static Properties getDeploymentProperties() {    
+        if(deploymentProps == null) {
+            deploymentProps = new Properties();
+            loadDeployProps(deploymentProps);
         }
-        if (factor == -1l) {
-            throw new NumberFormatException("Invalid number:" + arg);
-        }
-
-        int comaPos = -1;
-        if( (comaPos = valScalar.indexOf(',')) != -1) {
-            if(valScalar.indexOf('.') != -1) {
-                throw new NumberFormatException("Invalid number:"+arg
-                                                +" both \",\" and decimal "
-                                                +"point are not supported");
-            }
-            if( comaPos != 0 && comaPos != (valScalar.length() - 1) ) {
-                String[]spltByComa = valScalar.split(",");
-                valScalar = "";
-                for (int i = spltByComa.length - 1; i >= 0; i--) {
-                    if(i > 0 && spltByComa[i].length() < minDigitNumBetwnComma)
-                    {
-                        throw new NumberFormatException("Invalid number:"+arg
-                                                        +"  unexpected comma "
-                                                        +"format");
-                    }
-                    valScalar = spltByComa[i] + valScalar;
-                }
-            } else {
-                throw new NumberFormatException("Invalid number:\"" +arg
-                                                +"\" -unexpected comma in "
-                                                +"position: "+comaPos);
-            }
-        }
-
-        int decimalPos = -1;
-        String valMultiplByFactor = null;
-        int numZero = 0;
-        try {
-            if( (decimalPos = valScalar.indexOf('.')) != -1) {
-                if (decimalPos != valScalar.lastIndexOf('.')) {
-                    throw new NumberFormatException("Invalid number:"
-                                                    +valScalar
-                                                    +"  --invalid decimal "
-                                                    +"number, bad value");
-                }
-
-                String facStr = String.valueOf(factor);
-                int numZeroFactor = facStr.length() - 1;
-                int numDigitsAfterDecimal =
-                    valScalar.length() - decimalPos - 1;
-                int countZero = 0;
-                for(int i = valScalar.length() - 1; i > decimalPos; i--) {
-
-                    if (valScalar.charAt(i) != '0')
-                        break;
-                    --numDigitsAfterDecimal;
-                    countZero++;
-                }
-                numZero = numZeroFactor - numDigitsAfterDecimal;
-                if (numZero == numDigitsAfterDecimal) {
-                    numZero = 0;
-                }
-                if(numZero < 0) {
-                    throw new NumberFormatException("Invalid number:"
-                                                    +valScalar
-                                                    +"  --invalid decimal "
-                                                    +"number, numzero="
-                                                    + numZero);
-                }
-
-                if(numZero >= 0) {
-                    StringBuffer tmpStrNum =
-                        new StringBuffer(20).
-                        append(valScalar.substring(0, decimalPos)).
-                        append(valScalar.substring(decimalPos + 1,
-                                                   decimalPos + 1 +
-                                                   numDigitsAfterDecimal));
-                    for(int i=0; i<numZero; i++) {
-                        tmpStrNum.append('0');
-                    }
-                    valMultiplByFactor = tmpStrNum.toString();
-                }
-
-            }
-        } catch(NumberFormatException nfe) {
-            throw new NumberFormatException("Invalid number:" +valScalar
-                                            +"  --invalid decimal number, "
-                                            +"numZero="+numZero);
-        }
-
-        long ret = -1l;
-
-        Long ll = ((decimalPos != -1) ? Long.valueOf(valMultiplByFactor)
-                   : (Long.valueOf(valScalar) * factor));
-        if( (ret = Long.valueOf(ll)) >= Long.MAX_VALUE
-            || ret <= Long.MIN_VALUE)
-        {
-            throw new NumberFormatException("Invalid number:"+arg
-                                            +"  --absolute value of number "
-                                            +"too big");
-        }
-        return ret;
+        return deploymentProps;
+    }
+    
+    /**
+     * Convenience method intended for use by unit tests only.
+     *
+     * @param properties Sets <code>Properties</code> object 
+     */
+    synchronized static void setDeploymentProperties(Properties properties) {
+    	deploymentProps = properties;
     }
 }

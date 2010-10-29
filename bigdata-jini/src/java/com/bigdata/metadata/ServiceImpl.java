@@ -32,6 +32,7 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.ResultSet;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.proc.IIndexProcedure;
+import com.bigdata.io.SerializerUtil;
 import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.jini.util.ConfigMath;
 import com.bigdata.mdi.PartitionLocator;
@@ -42,11 +43,14 @@ import com.bigdata.util.Util;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.LogUtil;
 import com.bigdata.util.config.NicUtil;
+import com.bigdata.zookeeper.ZooKeeperAccessor;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import org.apache.zookeeper.KeeperException.NodeExistsException;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
 
 import com.sun.jini.config.Config;
 import com.sun.jini.start.LifeCycle;
@@ -77,7 +81,9 @@ import java.io.File;
 import java.io.IOException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -106,6 +112,12 @@ class ServiceImpl implements PrivateInterface {
         LogUtil.getLog4jLogger(COMPONENT_NAME);
     private static String shutdownStr;
     private static String killStr;
+
+    private static String zookeeperRoot = null;
+    private static String zookeeperServers = null;
+    private static int zookeeperSessionTimeout = 300000;
+    private static List<ACL> zookeeperAcl = new ArrayList<ACL>();
+    private static ZooKeeperAccessor zookeeperAccessor = null;
 
     private final LifeCycle lifeCycle;//for Jini ServiceStarter framework
     private final ReadyState readyState = new ReadyState();//access when ready
@@ -428,6 +440,11 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
             serviceId = bootStateUtil.getServiceId();
             logger.debug("smsProxyId = null - service generated & persisted "
                          +"(or retreieved) its own proxy id ["+proxyId+"]");
+
+            setZookeeperConfigInfo(config);
+            zookeeperAccessor = 
+                    new ZooKeeperAccessor
+                            (zookeeperServers, zookeeperSessionTimeout);
         } else {//ServicesConfiguration pre-generated the proxy id
             proxyId = smsProxyId;
             serviceId = com.bigdata.jini.util.JiniUtil.uuid2ServiceID(proxyId);
@@ -522,13 +539,55 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                                    LOWER_BOUND_RESOURCE_LOCATOR_CACHE_TIMEOUT,
                                    UPPER_BOUND_RESOURCE_LOCATOR_CACHE_TIMEOUT);
 
-        long lbsReportingPeriod = 
-               Config.getLongEntry(config,
+        int defaultRangeQueryCapacity = 
+                Config.getIntEntry(config,
                                    COMPONENT_NAME,
-                                   "loadBalancerReportingPeriod",
-                                   DEFAULT_LOAD_BALANCER_REPORTING_PERIOD, 
-                                   LOWER_BOUND_LOAD_BALANCER_REPORTING_PERIOD,
-                                   UPPER_BOUND_LOAD_BALANCER_REPORTING_PERIOD);
+                                   "defaultRangeQueryCapacity",
+                                   DEFAULT_RESOURCE_LOCATOR_CACHE_SIZE, 
+                                   LOWER_BOUND_RESOURCE_LOCATOR_CACHE_SIZE,
+                                   UPPER_BOUND_RESOURCE_LOCATOR_CACHE_SIZE);
+        boolean batchApiOnly =
+            (Boolean)Config.getNonNullEntry(config,
+                                            COMPONENT_NAME,
+                                            "batchApiOnly",
+                                            Boolean.class,
+                                            DEFAULT_BATCH_API_ONLY);
+        long taskTimeout = Config.getLongEntry(config,
+                                               COMPONENT_NAME,
+                                               "taskTimeout",
+                                               DEFAULT_TASK_TIMEOUT, 
+                                               LOWER_BOUND_TASK_TIMEOUT,
+                                               UPPER_BOUND_TASK_TIMEOUT);
+        int maxParallelTasksPerRequest = 
+                Config.getIntEntry
+                           (config,
+                            COMPONENT_NAME,
+                            "maxParallelTasksPerRequest",
+                            DEFAULT_MAX_PARALLEL_TASKS_PER_REQUEST, 
+                            LOWER_BOUND_MAX_PARALLEL_TASKS_PER_REQUEST,
+                            UPPER_BOUND_MAX_PARALLEL_TASKS_PER_REQUEST);
+
+        int maxStaleLocatorRetries = 
+                Config.getIntEntry
+                           (config,
+                            COMPONENT_NAME,
+                            "maxStaleLocatorRetries",
+                            DEFAULT_MAX_STALE_LOCATOR_RETRIES, 
+                            LOWER_BOUND_MAX_STALE_LOCATOR_RETRIES,
+                            UPPER_BOUND_MAX_STALE_LOCATOR_RETRIES);
+
+        boolean collectQueueStatistics =
+            (Boolean)Config.getNonNullEntry(config,
+                                            COMPONENT_NAME,
+                                            "collectQueueStatistics",
+                                            Boolean.class,
+                                            DEFAULT_COLLECT_QUEUE_STATISTICS);
+        boolean collectPlatformStatistics =
+            (Boolean)Config.getNonNullEntry(config,
+                                            COMPONENT_NAME,
+                                            "collectPlatformStatistics",
+                                            Boolean.class,
+                                            Boolean.FALSE);
 
         this.sdm = new ServiceDiscoveryManager(ldm, null, config);
         embeddedShardLocator = 
@@ -538,13 +597,22 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                      null,//embedded txn service   - for embedded fed testing
                      null,//embedded lbs service   - for embedded fed testing
                      null,//embedded data services - for embedded fed testing
+                     zookeeperAccessor,
+                     zookeeperAcl,
+                     zookeeperRoot,
                      threadPoolSize,
                      indexCacheSize,
                      indexCacheTimeout,
                      metadataIndexCachePolicy,
                      resourceLocatorCacheSize,
                      resourceLocatorCacheTimeout,
-                     lbsReportingPeriod,
+                     defaultRangeQueryCapacity,
+                     batchApiOnly,
+                     taskTimeout,
+                     maxParallelTasksPerRequest,
+                     maxStaleLocatorRetries,
+                     collectQueueStatistics,
+                     collectPlatformStatistics,
                      props);
 
         //advertise this service
@@ -814,6 +882,12 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                              smsEntries[3]).serviceUUID;
                     logger.debug("[main]: smsProxyId="+smsProxyId);
                 }
+
+                setZookeeperConfigInfo(smsConfig);
+                zookeeperAccessor = 
+                    new ZooKeeperAccessor
+                            (zookeeperServers, zookeeperSessionTimeout);
+
                 String logicalServiceZPath = 
                     (String)smsConfig.getEntry((ServiceImpl.class).getName(),
                                                "logicalServiceZPath",
@@ -824,61 +898,32 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                     physicalServiceZPath = 
                         logicalServiceZPath
                         +BigdataZooDefs.ZSLASH 
-                        +BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER 
+                        +BigdataZooDefs.PHYSICAL_SERVICES_CONTAINER
                         +BigdataZooDefs.ZSLASH 
                         +smsProxyId;
                 }
                 logger.debug
                     ("[main]: logicalServiceZPath="+logicalServiceZPath);
                 if(physicalServiceZPath != null) {
-                    org.apache.zookeeper.data.ACL[] acl =
-                    (org.apache.zookeeper.data.ACL[])smsConfig.getEntry
-                        ("org.apache.zookeeper.ZooKeeper", "acl",
-                         org.apache.zookeeper.data.ACL[].class, null);
-                    if(acl != null) {
-                        java.util.List<org.apache.zookeeper.data.ACL> aclList =
-                            java.util.Arrays.asList(acl);
-                        logger.debug("[main]: aclList="+aclList);
-                        String servers = (String)smsConfig.getEntry
-                                            ("org.apache.zookeeper.ZooKeeper",
-                                             "servers", String.class, null);
-                        logger.debug("[main]: zookeeper servers="+servers);
-                        if(servers != null) {
-                            int sessionTimeout = 
-                                    (Integer)smsConfig.getEntry
-                                        ("org.apache.zookeeper.ZooKeeper",
-                                         "sessionTimeout", int.class, 300000);
-                            logger.debug("[main]: zookeeper session timeout="
-                                         +sessionTimeout);
-
-                            byte[] data = 
-                                com.bigdata.io.SerializerUtil.serialize
-                                    (smsEntries);
-                            org.apache.zookeeper.ZooKeeper zookeeperClient =
-                                new org.apache.zookeeper.ZooKeeper
-                                        (servers, sessionTimeout, null);
-                            logger.debug("[main]: zookeeper client created");
-                            try {
-                                zookeeperClient.create
-                                  (physicalServiceZPath, data, aclList,
+                    byte[] data = SerializerUtil.serialize(smsEntries);
+                    ZooKeeper zookeeperClient = zookeeperAccessor.getZookeeper();
+                    logger.debug("[main]: zookeeper client created");
+                    try {
+                        zookeeperClient.create
+                                  (physicalServiceZPath, data, zookeeperAcl,
                                    org.apache.zookeeper.CreateMode.PERSISTENT);
-                                logger.debug("[main]: zookeeper znode created "
-                                             +"[physicalServiceZPath="
-                                             +physicalServiceZPath+"]");
-                            } catch(NodeExistsException e) {
-                                zookeeperClient.setData
-                                     (physicalServiceZPath, data, -1);
-                                logger.debug("[main]: zookeeper znode updated "
-                                             +"[physicalServiceZPath="
-                                             +physicalServiceZPath+"]");
-
-                            } catch(Throwable z) {
-                                logger.error
-                                    ("[main]: problem creaating/updating "
+                        logger.debug("[main]: zookeeper znode created "
+                                     +"[physicalServiceZPath="
+                                     +physicalServiceZPath+"]");
+                    } catch(NodeExistsException e) {
+                        zookeeperClient.setData(physicalServiceZPath, data, -1);
+                        logger.debug("[main]: zookeeper znode updated "
+                                     +"[physicalServiceZPath="
+                                     +physicalServiceZPath+"]");
+                    } catch(Throwable z) {
+                        logger.error("[main]: problem creaating/updating "
                                      +"zookeeper znode", z);
-                                throw z;
-                            }
-                        }
+                        throw z;
                     }
                 }
             }
@@ -889,5 +934,41 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
         } catch(Throwable t) {
             logger.log(Level.WARN, "failed to start shard locator service", t);
         }
+    }
+
+    private static void setZookeeperConfigInfo(Configuration zkConfig)
+                            throws ConfigurationException
+    {
+        String zkComponent = "org.apache.zookeeper.ZooKeeper";
+
+        zookeeperRoot = (String)zkConfig.getEntry
+                               (zkComponent, "zroot", String.class, null);
+        if(zookeeperRoot == null) {
+            throw new ConfigurationException
+                          ("zookeeper zroot path not specified");
+        }
+        logger.debug("zookeepeRoot="+zookeeperRoot);
+
+        zookeeperServers = 
+            (String)zkConfig.getEntry
+                                 (zkComponent, "servers", String.class, null);
+        if(zookeeperServers == null) {
+            throw new ConfigurationException
+                          ("zookeeper servers not specified");
+        }
+        logger.debug("zookeeperServers="+zookeeperServers);
+
+        zookeeperSessionTimeout = 
+            (Integer)zkConfig.getEntry
+                         (zkComponent, "sessionTimeout", int.class, 300000);
+        logger.debug("zookeeperSessionTimeout="+zookeeperSessionTimeout);
+
+        ACL[] acl = (ACL[])zkConfig.getEntry
+                               (zkComponent, "acl", ACL[].class, null);
+        if(acl == null) {
+            throw new ConfigurationException("zookeeper acl not specified");
+        }
+        zookeeperAcl = Arrays.asList(acl);
+        logger.debug("zookeeperAcl="+zookeeperAcl);
     }
 }

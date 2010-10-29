@@ -60,12 +60,23 @@ import com.bigdata.util.httpd.AbstractHTTPD;
 import com.ibm.icu.impl.LinkedHashMap;
 
 //BTM
-import com.bigdata.event.EventQueue;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.event.EventQueue;
 import com.bigdata.service.Event;
 
 import java.util.LinkedList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.event.EventQueueSender;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.resources.ResourceManager;
+import com.bigdata.util.concurrent.TaskCounters;
+import com.bigdata.service.Session;
+import com.bigdata.service.ndx.ScaleOutIndexCounters;
+
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Unit tests for the {@link EventReceiver}.
@@ -101,40 +112,129 @@ public class TestEventReceiver extends TestCase2 {
          */
         private static final long serialVersionUID = 3987546249519888387L;
 
-//BTM
-private transient IBigdataFederation fed;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE private transient IBigdataFederation fed;
+        private transient ILocalResourceManagement localResourceMgr;
+        private transient IEventReceivingService eventReceiver;
+//BTM - PRE_CLIENT_SERVICE - END
 
         /**
          * @param fed
          * @param resource
          * @param majorEventType
          */
-//BTM        public MyEvent(IBigdataFederation fed, EventResource resource, Object majorEventType) {
-public MyEvent(IBigdataFederation fed, EventQueue eventQueue, Class serviceIface, String serviceName, UUID serviceUUID, EventResource resource, Object majorEventType) {
-            
-//BTM            super(fed, resource, majorEventType);
-super(eventQueue, serviceIface, serviceName, serviceUUID, resource, majorEventType);
-this.fed = fed;
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE //BTM        public MyEvent(IBigdataFederation fed, EventResource resource, Object majorEventType) {
+//BTM - PRE_CLIENT_SERVICE public MyEvent(IBigdataFederation fed,
+//BTM - PRE_CLIENT_SERVICE                EventQueue eventQueue,
+//BTM - PRE_CLIENT_SERVICE                Class serviceIface,
+//BTM - PRE_CLIENT_SERVICE                String serviceName,
+//BTM - PRE_CLIENT_SERVICE                UUID serviceUUID,
+//BTM - PRE_CLIENT_SERVICE                EventResource resource,
+//BTM - PRE_CLIENT_SERVICE                Object majorEventType) {
+//BTM - PRE_CLIENT_SERVICE             
+//BTM - PRE_CLIENT_SERVICE //BTM            super(fed, resource, majorEventType);
+//BTM - PRE_CLIENT_SERVICE                  super(eventQueue, serviceIface, serviceName, serviceUUID, resource, majorEventType);
+//BTM - PRE_CLIENT_SERVICE                  this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM        protected MyEvent(final IBigdataFederation fed, final EventResource resource, final Object majorEventType, final Object minorEventType, final Map<String, Object> details) {
+//BTM - PRE_CLIENT_SERVICE         protected MyEvent(final IBigdataFederation fed,
+//BTM - PRE_CLIENT_SERVICE                           final EventQueue eventQueue,
+//BTM - PRE_CLIENT_SERVICE                           final Class serviceIface,
+//BTM - PRE_CLIENT_SERVICE                           final String serviceName,
+//BTM - PRE_CLIENT_SERVICE                           final UUID serviceUUID,
+//BTM - PRE_CLIENT_SERVICE                           final EventResource resource,
+//BTM - PRE_CLIENT_SERVICE                           final Object majorEventType,
+//BTM - PRE_CLIENT_SERVICE                           final Object minorEventType,
+//BTM - PRE_CLIENT_SERVICE                           final Map<String,
+//BTM - PRE_CLIENT_SERVICE                           Object> details) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM            super(fed, resource, majorEventType, minorEventType, details);
+//BTM - PRE_CLIENT_SERVICE             super(eventQueue, serviceIface, serviceName, serviceUUID, resource, majorEventType, minorEventType, details);
+//BTM - PRE_CLIENT_SERVICE             this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE //BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         @Override
+//BTM - PRE_CLIENT_SERVICE         public MyEvent newSubEvent(Object minorEventType) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM            return new MyEvent(this.fed, this.resource, this.majorEventType, minorEventType, this.details);
+//BTM - PRE_CLIENT_SERVICE             return new MyEvent(this.fed,
+//BTM - PRE_CLIENT_SERVICE                                this.eventQueue,
+//BTM - PRE_CLIENT_SERVICE                                this.serviceIface,
+//BTM - PRE_CLIENT_SERVICE                                this.serviceName,
+//BTM - PRE_CLIENT_SERVICE                                this.serviceUUID,
+//BTM - PRE_CLIENT_SERVICE                                this.resource,
+//BTM - PRE_CLIENT_SERVICE                                this.majorEventType,
+//BTM - PRE_CLIENT_SERVICE                                minorEventType,
+//BTM - PRE_CLIENT_SERVICE                                this.details);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         /**
+//BTM - PRE_CLIENT_SERVICE          * Serializes and then de-serializes the event and sends the
+//BTM - PRE_CLIENT_SERVICE          * de-serialized reference to the {@link EventReceiver}. This simulates
+//BTM - PRE_CLIENT_SERVICE          * RMI where the receiver always has a different instance for each
+//BTM - PRE_CLIENT_SERVICE          * message received.
+//BTM - PRE_CLIENT_SERVICE          */
+//BTM - PRE_CLIENT_SERVICE         protected void sendEvent() throws IOException {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             final byte[] data = SerializerUtil.serialize(this);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             final MyEvent e = (MyEvent) SerializerUtil.deserialize(data);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             ((MockFederation) fed).eventReceiver.notifyEvent(e);
+//BTM - PRE_CLIENT_SERVICE             
+//BTM - PRE_CLIENT_SERVICE         }
+        public MyEvent(ILocalResourceManagement localResourceManager,
+                       IEventReceivingService eventReceiver,
+                       EventResource resource,
+                       Object majorEventType)
+        {
+            super(localResourceManager.getEventQueueSender(),
+                  localResourceManager.getServiceIface(),
+                  localResourceManager.getServiceName(),
+                  localResourceManager.getServiceUUID(),
+                  resource,
+                  majorEventType);
+            this.localResourceMgr = localResourceManager;
+            this.eventReceiver = eventReceiver;
         }
 
-//BTM        protected MyEvent(final IBigdataFederation fed, final EventResource resource, final Object majorEventType, final Object minorEventType, final Map<String, Object> details) {
-protected MyEvent(final IBigdataFederation fed, final EventQueue eventQueue, final Class serviceIface, final String serviceName, final UUID serviceUUID, final EventResource resource, final Object majorEventType, final Object minorEventType, final Map<String, Object> details) {
-
-//BTM            super(fed, resource, majorEventType, minorEventType, details);
-super(eventQueue, serviceIface, serviceName, serviceUUID, resource, majorEventType, minorEventType, details);
-this.fed = fed;
-
+        protected MyEvent(final ILocalResourceManagement localResourceManager,
+                          final IEventReceivingService eventReceiver,
+                          final EventResource resource,
+                          final Object majorEventType,
+                          final Object minorEventType,
+                          final Map<String,
+                          Object> details)
+        {
+            super(localResourceManager.getEventQueueSender(),
+                  localResourceManager.getServiceIface(),
+                  localResourceManager.getServiceName(),
+                  localResourceManager.getServiceUUID(),
+                  resource,
+                  majorEventType,
+                  minorEventType,
+                 details);
+            this.localResourceMgr = localResourceManager;
+            this.eventReceiver = eventReceiver;
         }
 
         @Override
         public MyEvent newSubEvent(Object minorEventType) {
-
-//BTM            return new MyEvent(this.fed, this.resource, this.majorEventType, minorEventType, this.details);
-return new MyEvent(this.fed, this.eventQueue, this.serviceIface, this.serviceName, this.serviceUUID, this.resource, this.majorEventType, minorEventType, this.details);
-
+            return new MyEvent(this.localResourceMgr,
+                               this.eventReceiver,
+                               this.resource,
+                               this.majorEventType,
+                               minorEventType,
+                               this.details);
         }
-        
+
         /**
          * Serializes and then de-serializes the event and sends the
          * de-serialized reference to the {@link EventReceiver}. This simulates
@@ -142,16 +242,13 @@ return new MyEvent(this.fed, this.eventQueue, this.serviceIface, this.serviceNam
          * message received.
          */
         protected void sendEvent() throws IOException {
-
             final byte[] data = SerializerUtil.serialize(this);
-
             final MyEvent e = (MyEvent) SerializerUtil.deserialize(data);
-
-            ((MockFederation) fed).eventReceiver.notifyEvent(e);
-            
+            (this.eventReceiver).notifyEvent(e);
         }
-        
-    }
+//BTM - PRE_CLIENT_SERVICE - END
+
+    }//end class MyEvent
     
     /**
      * Test dispatch using both {@link Event#start()} and {@link Event#end()}.
@@ -167,8 +264,20 @@ return new MyEvent(this.fed, this.eventQueue, this.serviceIface, this.serviceNam
 
         final IBigdataFederation fed = new MockFederation(eventReceiver);
         
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 //BTM        final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
-final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(), new EventResource("testIndex"), "testEventType");
+//BTM - PRE_CLIENT_SERVICE final Event e = new MyEvent(fed,
+//BTM - PRE_CLIENT_SERVICE                             fed.getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                             new EventResource("testIndex"),
+//BTM - PRE_CLIENT_SERVICE                             "testEventType");
+        final Event e = new MyEvent( (ILocalResourceManagement)fed,
+                                     ((MockFederation)fed).getService(),
+                                     new EventResource("testIndex"),
+                                     "testEventType" );
+//BTM - PRE_CLIENT_SERVICE - END
 
         assertEquals(0, eventReceiver.eventCache.size());
 
@@ -248,8 +357,20 @@ final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed
 
         final IBigdataFederation fed = new MockFederation(eventReceiver);
         
-//BTM        final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
-final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(), new EventResource("testIndex"), "testEventType");
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE //BTM        final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
+//BTM - PRE_CLIENT_SERVICE final Event e = new MyEvent(fed,
+//BTM - PRE_CLIENT_SERVICE                             fed.getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                             new EventResource("testIndex"),
+//BTM - PRE_CLIENT_SERVICE                             "testEventType");
+        final Event e = new MyEvent( (ILocalResourceManagement)fed,
+                                     ((MockFederation)fed).getService(),
+                                     new EventResource("testIndex"),
+                                     "testEventType" );
+//BTM - PRE_CLIENT_SERVICE - END
 
         assertEquals(0, eventReceiver.eventCache.size());
 
@@ -331,8 +452,20 @@ final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed
         int nevents = 0;
         while ((elapsed = System.currentTimeMillis() - begin) < eventHistoryMillis / 2) {
             
-//BTM            final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
-final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(), new EventResource("testIndex"), "testEventType");
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE //BTM            final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
+//BTM - PRE_CLIENT_SERVICE final Event e = new MyEvent(fed,
+//BTM - PRE_CLIENT_SERVICE                             fed.getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                             new EventResource("testIndex"),
+//BTM - PRE_CLIENT_SERVICE                             "testEventType");
+            final Event e = new MyEvent( (ILocalResourceManagement)fed,
+                                         ((MockFederation)fed).getService(),
+                                         new EventResource("testIndex"),
+                                         "testEventType" );
+//BTM - PRE_CLIENT_SERVICE - END
 
             if (r.nextDouble() < .2) {
 
@@ -454,8 +587,20 @@ final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed
 
             for (int i = 0; i < nevents; i++) {
 
-//BTM                final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
-final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(), new EventResource("testIndex"), "testEventType");
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE //BTM                final Event e = new MyEvent(fed, new EventResource("testIndex"), "testEventType");
+//BTM - PRE_CLIENT_SERVICE final Event e = new MyEvent(fed,
+//BTM - PRE_CLIENT_SERVICE                             fed.getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                             new EventResource("testIndex"),
+//BTM - PRE_CLIENT_SERVICE                             "testEventType");
+                final Event e = new MyEvent( (ILocalResourceManagement)fed,
+                                             ((MockFederation)fed).getService(),
+                                             new EventResource("testIndex"),
+                                             "testEventType" );
+//BTM - PRE_CLIENT_SERVICE - END
 
                 if (r.nextDouble() < .2) {
 
@@ -539,7 +684,13 @@ final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
      */
-    static class MockFederation implements IBigdataFederation<IEventReceivingService> {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    static class MockFederation implements IBigdataFederation<IEventReceivingService> {
+    static class MockFederation 
+                     implements IBigdataFederation<IEventReceivingService>,
+                                ILocalResourceManagement
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         private final IEventReceivingService eventReceiver;
         private final UUID serviceUUID = UUID.randomUUID();
@@ -738,16 +889,74 @@ public ShardService[] getDataServices(UUID[] uuid) {
 //BTM - BEGIN -----------------------------------------------------------------
         public void serviceJoin(Service service, UUID serviceUUID) { }
 
-        public EventQueue getEventQueue() {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public EventQueue getEventQueue() {
+//BTM - PRE_CLIENT_SERVICE            return mockSendEventsTask;
+//BTM - PRE_CLIENT_SERVICE        }
+        public EventQueueSender getEventQueueSender() {
             return mockSendEventsTask;
         }
-//BTM - END -------------------------------------------------------------------
 
+        // Required by ILocalResourceManagement
+        public void terminate(long timeout) {
+            //no-opp
+        }
+        public TaskCounters getTaskCounters() {
+            return null;
+        }
+        public CounterSet getServiceCounterSet(boolean addCounters) {
+            return null;
+        }
+        public void reattachDynamicCounters
+                                 (ResourceManager resourceMgr,
+                                  IConcurrencyManager concurrencyMgr)
+        {
+            //no-op
+        }
+        public ScaleOutIndexCounters getIndexCounters(String name) {
+            return null;
+        }
+        public Session getSession() {
+            return null;
+        }
+        public ExecutorService getThreadPool() {
+            return null;
+        }
+        public ScheduledExecutorService getScheduledExecutor() {
+            return null;
+        }
+        public String getHostname() {
+            return "UNKNOWN-TESTING";
+        }
+//BTM - PRE_CLIENT_SERVICE - END
+
+//BTM - END -------------------------------------------------------------------
         
     }
 
 //BTM - BEGIN -----------------------------------------------------------------
-    static class MockSendEventsTask implements EventQueue, Runnable {
+
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    static class MockSendEventsTask implements EventQueue, Runnable {
+//BTM - PRE_CLIENT_SERVICE        final private BlockingQueue<Event> eventQueue = 
+//BTM - PRE_CLIENT_SERVICE                          new LinkedBlockingQueue<Event>();
+//BTM - PRE_CLIENT_SERVICE        public MockSendEventsTask() { }
+//BTM - PRE_CLIENT_SERVICE        public void queueEvent(Event e) {
+//BTM - PRE_CLIENT_SERVICE            eventQueue.add(e);
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE        public void run() {
+//BTM - PRE_CLIENT_SERVICE            try {
+//BTM - PRE_CLIENT_SERVICE                final LinkedList<Event> c = new LinkedList<Event>();
+//BTM - PRE_CLIENT_SERVICE                eventQueue.drainTo(c);
+//BTM - PRE_CLIENT_SERVICE                for (Event e : c) {
+//BTM - PRE_CLIENT_SERVICE                    log.debug("sent event to load balancer");
+//BTM - PRE_CLIENT_SERVICE                }
+//BTM - PRE_CLIENT_SERVICE            } catch (Throwable t) {
+//BTM - PRE_CLIENT_SERVICE                log.warn(IEventReceivingService.class.getName(), t);
+//BTM - PRE_CLIENT_SERVICE            }
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE    }
+    static class MockSendEventsTask implements EventQueueSender {
         final private BlockingQueue<Event> eventQueue = 
                           new LinkedBlockingQueue<Event>();
         public MockSendEventsTask() { }
@@ -766,6 +975,8 @@ public ShardService[] getDataServices(UUID[] uuid) {
             }
         }
     }
+//BTM - PRE_CLIENT_SERVICE - END
+
 //BTM - END -------------------------------------------------------------------
 
 }

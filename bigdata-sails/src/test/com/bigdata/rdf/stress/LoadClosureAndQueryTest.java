@@ -104,6 +104,11 @@ import com.bigdata.test.ExperimentDriver.IComparisonTest;
 import com.bigdata.test.ExperimentDriver.Result;
 import com.bigdata.util.NV;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.service.AbstractFederation;
+
 /**
  * Parameterized test to verify load, closure, restart, and query for each of
  * the database deployment models. The test has as inputs a set of properties, a
@@ -180,8 +185,18 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
                 System.out.println("Creating tripleStore: namespace="
                         + namespace);
 
-                tripleStore = new ScaleOutTripleStore(fed, namespace,
-                        timestamp, fed.getClient().getProperties());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                tripleStore = new ScaleOutTripleStore(fed, namespace,
+//BTM - PRE_CLIENT_SERVICE                        timestamp, fed.getClient().getProperties());
+                tripleStore =
+                    new ScaleOutTripleStore
+                            ((IIndexManager)fed,
+                             ((AbstractFederation)fed).getConcurrencyManager(),
+                             (IBigdataDiscoveryManagement)fed,
+                             namespace,
+                             timestamp,
+                             fed.getClient().getProperties());
+//BTM - PRE_CLIENT_SERVICE - END
 
                 tripleStore.create();
 

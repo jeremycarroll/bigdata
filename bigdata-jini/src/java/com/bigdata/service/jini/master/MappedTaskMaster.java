@@ -44,7 +44,15 @@ import com.bigdata.btree.BigdataSet;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.service.IMetadataService;
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.jini.IJiniDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.zookeeper.ZooKeeperAccessor;
+import org.apache.zookeeper.data.ACL;
+import java.util.List;
 
 /**
  * Extends the {@link TaskMaster} to assign chunks of resources for processing
@@ -283,11 +291,25 @@ public abstract class MappedTaskMaster<
     /**
      * {@inheritDoc}
      */
-    public MappedTaskMaster(JiniFederation<?> fed) throws ConfigurationException {
-
-        super(fed);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public MappedTaskMaster(JiniFederation<?> fed) throws ConfigurationException {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(fed);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+    public MappedTaskMaster(final IScaleOutIndexManager scaleOutIndexManager,
+                            final IJiniDiscoveryManagement discoveryManager,
+                            final ILocalResourceManagement localResourceManager,
+                            final ZooKeeperAccessor zookeeperAccessor,
+                            final List<ACL> zookeeperAcl,
+                            final String zookeeperRoot,
+                            final Configuration config)
+               throws ConfigurationException
+    {
+        super(scaleOutIndexManager, discoveryManager, localResourceManager,
+              zookeeperAccessor, zookeeperAcl, zookeeperRoot, config);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Runs the scanner, handing off resources to clients for processing. The
@@ -315,8 +337,12 @@ public abstract class MappedTaskMaster<
                     .newScanner((BlockingBuffer) resourceBuffer);
 
             // start scanner.
-            final Future<Long> scannerFuture = fed.getExecutorService().submit(
-                    scanner);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final Future<Long> scannerFuture = fed.getExecutorService().submit(
+//BTM - PRE_CLIENT_SERVICE                    scanner);
+            final Future<Long> scannerFuture =
+                  localResourceManager.getThreadPool().submit(scanner);
+//BTM - PRE_CLIENT_SERVICE - END
 
             System.out.println("Master running : " + scanner);
 
@@ -362,9 +388,15 @@ public abstract class MappedTaskMaster<
 
         final AsynchronousIndexWriteConfiguration conf = getJobState().conf;
 
-        final ResourceBufferStatistics<ClientLocator, ResourceBufferSubtaskStatistics> stats //
-            = new ResourceBufferStatistics<ClientLocator, ResourceBufferSubtaskStatistics>(
-                getFederation());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final ResourceBufferStatistics<ClientLocator, ResourceBufferSubtaskStatistics> stats //
+//BTM - PRE_CLIENT_SERVICE            = new ResourceBufferStatistics<ClientLocator, ResourceBufferSubtaskStatistics>(
+//BTM - PRE_CLIENT_SERVICE                getFederation());
+        final ResourceBufferStatistics<ClientLocator, ResourceBufferSubtaskStatistics> stats
+            = new ResourceBufferStatistics<ClientLocator, ResourceBufferSubtaskStatistics>
+                      ( localResourceManager.getScheduledExecutor() );
+//BTM - PRE_CLIENT_SERVICE - END
+
         
         final BlockingBuffer<V[]> resourceBuffer = new BlockingBuffer<V[]>(
                 new LinkedBlockingDeque<V[]>(conf.getMasterQueueCapacity()),//
@@ -374,16 +406,30 @@ public abstract class MappedTaskMaster<
                 false// NOT ordered data.
         );
 
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final ResourceBufferTask.M<V> task = new ResourceBufferTask.M<V>(
+//BTM - PRE_CLIENT_SERVICE                this, //
+//BTM - PRE_CLIENT_SERVICE                conf.getSinkIdleTimeoutNanos(),//
+//BTM - PRE_CLIENT_SERVICE                conf.getSinkPollTimeoutNanos(),//
+//BTM - PRE_CLIENT_SERVICE                conf.getSinkQueueCapacity(), //
+//BTM - PRE_CLIENT_SERVICE                conf.getSinkChunkSize(), //
+//BTM - PRE_CLIENT_SERVICE                conf.getSinkChunkTimeoutNanos(),//
+//BTM - PRE_CLIENT_SERVICE                stats,//
+//BTM - PRE_CLIENT_SERVICE                resourceBuffer//
+//BTM - PRE_CLIENT_SERVICE        ) {
         final ResourceBufferTask.M<V> task = new ResourceBufferTask.M<V>(
-                this, //
-                conf.getSinkIdleTimeoutNanos(),//
-                conf.getSinkPollTimeoutNanos(),//
-                conf.getSinkQueueCapacity(), //
-                conf.getSinkChunkSize(), //
-                conf.getSinkChunkTimeoutNanos(),//
-                stats,//
-                resourceBuffer//
+                this,
+                conf.getSinkIdleTimeoutNanos(),
+                conf.getSinkPollTimeoutNanos(),
+                conf.getSinkQueueCapacity(),
+                conf.getSinkChunkSize(),
+                conf.getSinkChunkTimeoutNanos(),
+                stats,
+                resourceBuffer,
+                localResourceManager
         ) {
+//BTM - PRE_CLIENT_SERVICE - END
+
           
             @Override
             public void didSucceed(final V resource) {
@@ -410,8 +456,12 @@ public abstract class MappedTaskMaster<
 
         };
 
-        final Future<? extends ResourceBufferStatistics> future = getFederation()
-                .getExecutorService().submit(task);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final Future<? extends ResourceBufferStatistics> future = getFederation()
+//BTM - PRE_CLIENT_SERVICE                .getExecutorService().submit(task);
+        final Future<? extends ResourceBufferStatistics> future =
+                  localResourceManager.getThreadPool().submit(task);
+//BTM - PRE_CLIENT_SERVICE - END
 
         resourceBuffer.setFuture(future);
 

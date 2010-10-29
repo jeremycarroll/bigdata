@@ -56,6 +56,10 @@ import com.bigdata.sparse.TPS.TPV;
 import cutthecrap.utils.striterators.Resolver;
 import cutthecrap.utils.striterators.Striterator;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * A distributed file system with extensible metadata and atomic append
  * implemented using the bigdata scale-out architecture. Files have a client
@@ -346,10 +350,21 @@ public class BigdataFileSystem extends
      * 
      * @see Options
      */
-    public BigdataFileSystem(IIndexManager indexManager, String namespace,
-            Long timestamp, Properties properties) {
-
-        super(indexManager,namespace,timestamp,properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public BigdataFileSystem(IIndexManager indexManager, String namespace,
+//BTM - PRE_CLIENT_SERVICE            Long timestamp, Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(indexManager,namespace,timestamp,properties);
+    public BigdataFileSystem(IIndexManager indexManager,
+                             IConcurrencyManager concurrencyManager,
+                             IBigdataDiscoveryManagement discoveryManager,
+                             String namespace,
+                             Long timestamp,
+                             Properties properties)
+    {
+        super(indexManager, concurrencyManager, discoveryManager,
+              namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - END
         
         /*
          * @todo This should probably be raised directly to a property reported

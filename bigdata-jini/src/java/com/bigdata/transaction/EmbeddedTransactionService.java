@@ -2623,13 +2623,13 @@ final List<Future<Void>> futures = threadPool.invokeAll(tasks);
     }
 
     private void setupLoggingContext() {
-
         try {
             MDC.put("serviceUUID", this.serviceUUID);
             MDC.put("serviceName", SERVICE_NAME);
             MDC.put("hostname", this.hostname);
         } catch(Throwable t) { /* swallow */ }
     }
+
 
     /**
      * Clear the logging context.

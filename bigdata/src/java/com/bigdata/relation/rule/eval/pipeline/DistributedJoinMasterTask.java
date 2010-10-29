@@ -26,8 +26,8 @@ import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.ISolutionExpander;
 import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.ISolution;
-import com.bigdata.service.AbstractDistributedFederation;
-import com.bigdata.service.AbstractScaleOutFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractDistributedFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
 //BTM import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
 //BTM import com.bigdata.service.IDataService;
@@ -38,6 +38,13 @@ import com.bigdata.util.concurrent.ExecutionExceptions;
 //BTM
 import com.bigdata.service.ShardManagement;
 import com.bigdata.service.ShardService;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.ScaleOutIndexManager;
+import com.bigdata.util.Util;
+import java.rmi.server.ExportException;
 
 /**
  * Implementation for distributed join execution.
@@ -129,20 +136,26 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
 
         super(rule, joinNexus, buffer);
 
-        if (!(joinNexus.getIndexManager() instanceof IBigdataFederation)
-                || !(((IBigdataFederation) joinNexus.getIndexManager())
-                        .isScaleOut())) {
-
-            /*
-             * Either not running in a scale-out deployment or executed in a
-             * context (such as within the ConcurrencyManager) where the
-             * joinNexus will not report the federation as the index manager
-             * object.
-             */
-
-            throw new UnsupportedOperationException();
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        if (!(joinNexus.getIndexManager() instanceof IBigdataFederation)
+//BTM - PRE_CLIENT_SERVICE                || !(((IBigdataFederation) joinNexus.getIndexManager())
+//BTM - PRE_CLIENT_SERVICE                        .isScaleOut())) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            /*
+//BTM - PRE_CLIENT_SERVICE             * Either not running in a scale-out deployment or executed in a
+//BTM - PRE_CLIENT_SERVICE             * context (such as within the ConcurrencyManager) where the
+//BTM - PRE_CLIENT_SERVICE             * joinNexus will not report the federation as the index manager
+//BTM - PRE_CLIENT_SERVICE             * object.
+//BTM - PRE_CLIENT_SERVICE             */
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            throw new UnsupportedOperationException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+        if ( !(joinNexus.getIndexManager() instanceof ScaleOutIndexManager) ) {
+            throw new UnsupportedOperationException
+                      ("indexManager not instance of ScaleOutIndexManager");
         }
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (joinNexus.getAction().isMutation()) {
 
@@ -192,27 +205,49 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
          * @todo do we need distributed garbage collection for these
          * proxies?
          */
-        if (joinNexus.getIndexManager() instanceof AbstractDistributedFederation) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        if (joinNexus.getIndexManager() instanceof AbstractDistributedFederation) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            final AbstractDistributedFederation fed = (AbstractDistributedFederation) joinNexus
+//BTM - PRE_CLIENT_SERVICE                    .getIndexManager();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            masterProxy = (IJoinMaster) fed
+//BTM - PRE_CLIENT_SERVICE                    .getProxy(this, true/* enableDGC */);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (joinNexus.getAction().isMutation()) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                // mutation.
+//BTM - PRE_CLIENT_SERVICE                solutionBufferProxy = null;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            } else {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                // query - export proxy for the solution buffer.
+//BTM - PRE_CLIENT_SERVICE                solutionBufferProxy = fed.getProxy(solutionBuffer);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            }
+//BTM - PRE_CLIENT_SERVICE
 
-            final AbstractDistributedFederation fed = (AbstractDistributedFederation) joinNexus
-                    .getIndexManager();
+        if (joinNexus.getIndexManager() instanceof ScaleOutIndexManager) {
+            try {
+                masterProxy =
+                    (IJoinMaster) Util.exportObj(this,
+                                                 true,  // enableDgc
+                                                 false);//keepAlive
 
-            masterProxy = (IJoinMaster) fed
-                    .getProxy(this, true/* enableDGC */);
-
-            if (joinNexus.getAction().isMutation()) {
-
-                // mutation.
-                solutionBufferProxy = null;
-
-            } else {
-
-                // query - export proxy for the solution buffer.
-                solutionBufferProxy = fed.getProxy(solutionBuffer);
-
+                if (joinNexus.getAction().isMutation()) {// mutation
+                    solutionBufferProxy = null;
+                } else {
+                    // query - export proxy for the solution buffer.
+                    solutionBufferProxy = Util.wrapBuffer(solutionBuffer);
+                }
+            } catch(ExportException e) {// maintain original behavior?
+                throw new RuntimeException
+                           ("DistributedJoinMasterTask.constructor: "
+                            +"failed to export remote task or buffer", e);
             }
+//BTM - PRE_CLIENT_SERVICE - END
 
-        } else {
+        } else {// NOT SCALE OUT
 
             /*
              * Not really distributed, so just use the actual reference.
@@ -329,15 +364,23 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
         final IPredicate<?> predicate = rule.getTail(order[0]).asBound(bindingSet);
 
         // scale-out index manager.
-        final AbstractScaleOutFederation<?> fed = (AbstractScaleOutFederation<?>) joinNexus
-                .getIndexManager();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final AbstractScaleOutFederation<?> fed = (AbstractScaleOutFederation<?>) joinNexus
+//BTM - PRE_CLIENT_SERVICE                .getIndexManager();
+        final ScaleOutIndexManager indexManager =
+                  (ScaleOutIndexManager)joinNexus.getIndexManager();
+//BTM - PRE_CLIENT_SERVICE - END
 
         // the scale out index on which this predicate must read (logging only).
         final String scaleOutIndexName = predicate.getOnlyRelationName()+"."
                 + ruleState.getKeyOrder()[order[0]];
 
-        final Iterator<PartitionLocator> itr = joinNexus.locatorScan(fed,
-                predicate);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final Iterator<PartitionLocator> itr = joinNexus.locatorScan(fed,
+//BTM - PRE_CLIENT_SERVICE                predicate);
+        final Iterator<PartitionLocator> itr =
+                  joinNexus.locatorScan(indexManager, predicate);
+//BTM - PRE_CLIENT_SERVICE - END
 
         final List<Future> futures = new LinkedList<Future>();
 
@@ -364,7 +407,10 @@ public class DistributedJoinMasterTask extends JoinMasterTask implements
                     ruleState.getRequiredVars());
 
 //BTM            final IDataService dataService = fed.getDataService(locator.getDataServiceUUID());
-final ShardService dataService = fed.getDataService(locator.getDataServiceUUID());
+//PRE_CLIENT_SERVICE final ShardService dataService = fed.getDataService(locator.getDataServiceUUID());
+            final ShardService dataService =
+                      (joinNexus.getDiscoveryManager()).getDataService
+                                            (locator.getDataServiceUUID());
 
             /*
              * Submit the JoinTask. It will begin to execute when it is

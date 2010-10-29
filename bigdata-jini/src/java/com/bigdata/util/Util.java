@@ -29,9 +29,22 @@ import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
 import com.bigdata.counters.IStatisticsCollector;
+import com.bigdata.io.IStreamSerializer;
+import com.bigdata.relation.accesspath.IAsynchronousIterator;
+import com.bigdata.relation.accesspath.IBuffer;
+import com.bigdata.relation.accesspath.IRunnableBuffer;
 import com.bigdata.service.proxy.ClientFuture;
 import com.bigdata.service.proxy.RemoteFuture;
 import com.bigdata.service.proxy.RemoteFutureImpl;
+import com.bigdata.service.proxy.RemoteAsynchronousIterator;
+import com.bigdata.service.proxy.RemoteAsynchronousIteratorImpl;
+import com.bigdata.service.proxy.RemoteBuffer;
+import com.bigdata.service.proxy.RemoteBufferImpl;
+import com.bigdata.service.proxy.RemoteRunnableBuffer;
+import com.bigdata.service.proxy.RemoteRunnableBufferImpl;
+import com.bigdata.service.proxy.ClientAsynchronousIterator;
+import com.bigdata.service.proxy.ClientBuffer;
+import com.bigdata.service.proxy.ClientRunnableBuffer;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.LogUtil;
 
@@ -60,6 +73,7 @@ import net.jini.lookup.ServiceDiscoveryEvent;
 import net.jini.lookup.ServiceDiscoveryManager;
 
 import java.io.IOException;
+import java.rmi.Remote;
 import java.rmi.server.ExportException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -449,37 +463,6 @@ public class Util {
         return getDiscoveryManager(config, componentName, "discoveryManager");
     }
 
-    public static Exporter getExporter(Configuration config,
-                                       String componentName,
-                                       String entryName,
-                                       boolean defaultEnableDgc,
-                                       boolean defaultKeepAlive)
-                               throws ConfigurationException
-    {
-        if(config == null) {
-            throw new NullPointerException("null config");
-        }
-        if(componentName == null) {
-            throw new NullPointerException("null componentName");
-        }
-        if(entryName == null) {
-            throw new NullPointerException("null entryName");
-        }
-        Exporter exporter = null;
-        ServerEndpoint endpoint = TcpServerEndpoint.getInstance(0);
-        InvocationLayerFactory ilFactory = new BasicILFactory();
-        Exporter defaultExporter =
-                 new BasicJeriExporter
-                     (endpoint, ilFactory, defaultEnableDgc, defaultKeepAlive);
-        exporter = 
-            (Exporter)config.getEntry
-                (componentName, entryName, Exporter.class, defaultExporter);
-        if(exporter == null) {
-            throw new ConfigurationException("null exporter");
-        }
-        return exporter;
-    }
-
     public static void shutdownExecutorService
                            (ExecutorService executorService,
                             long timeoutMs,
@@ -516,6 +499,93 @@ public class Util {
         if(logger != null) logger.log(Level.DEBUG, "shutdown "+logStr);
     }
 
+    /** 
+     * Creates and returns the exporter specified in the given
+     * <code>Configuration<code> having the given attritutes.
+     */
+    public static Exporter getExporter(Configuration config,
+                                       String componentName,
+                                       String entryName,
+                                       boolean defaultEnableDgc,
+                                       boolean defaultKeepAlive)
+                               throws ConfigurationException
+    {
+        if(config == null) {
+            throw new NullPointerException("null config");
+        }
+        if(componentName == null) {
+            throw new NullPointerException("null componentName");
+        }
+        if(entryName == null) {
+            throw new NullPointerException("null entryName");
+        }
+        Exporter exporter = null;
+        ServerEndpoint endpoint = TcpServerEndpoint.getInstance(0);
+        InvocationLayerFactory ilFactory = new BasicILFactory();
+        Exporter defaultExporter =
+                     getExporter(defaultEnableDgc, defaultKeepAlive);
+        exporter = 
+            (Exporter)config.getEntry
+                (componentName, entryName, Exporter.class, defaultExporter);
+        if(exporter == null) {
+            throw new ConfigurationException("null exporter");
+        }
+        return exporter;
+    }
+
+    /** 
+     * Creates and returns a default exporter with the given attritutes.
+     */
+    public static Exporter getExporter(boolean enableDgc,
+                                       boolean keepAlive)
+
+    {
+        Exporter exporter = null;
+        ServerEndpoint endpoint = TcpServerEndpoint.getInstance(0);
+        InvocationLayerFactory ilFactory = new BasicILFactory();
+        return new BasicJeriExporter
+                       (endpoint, ilFactory, enableDgc, keepAlive);
+    }
+
+    public static <E> E exportObj(E obj, boolean enableDgc, boolean keepAlive)
+                            throws ExportException
+    {
+        Exporter exporter = getExporter(enableDgc, keepAlive);
+        return (E) exporter.export((Remote) obj);
+    }
+
+    /**
+     * Wraps the given <code>future</code> in a <code>RemoteFutureImpl</code>,
+     * uses a default exporter (with distributed gc enabled) to export
+     * the wrapped future, and then returns the resulting proxy to the
+     * wrapped future as an instance of <code>ClientFuture</code> wrapping
+     * the proxy.
+     * <p>
+     * Note that distributed garbage collection is enabled by default
+     * because the exported <code>RemoteFutureImpl</code> (the proxy to the
+     * remote future) CAN become locally weakly reachable sooner than the
+     * entity that receives/uses it can get() the future's result. Thus,
+     * distributed gc is enabled since distributed gc will automatically
+     * unexport the wrapped proxy once that proxy is no longer strongly
+     * referenced by the entity.
+     */
+    public static <E> Future<E> wrapFuture(Future<E> future) 
+                                    throws ExportException
+    {
+        //use default exporter
+        boolean defaultEnableDgc = true;
+        boolean defaultKeepAlive = false;
+        Exporter defaultExporter =
+                     getExporter(defaultEnableDgc, defaultKeepAlive);
+        return wrapFuture(defaultExporter, future);
+    }
+
+    /**
+     * Wraps the given <code>future</code> in a <code>RemoteFutureImpl</code>,
+     * uses the given <code>exporter</code> to export the wrapped future,
+     * and then returns the resulting proxy to the wrapped future as an
+     * instance of <code>ClientFuture</code> wrapping the proxy.
+     */
     public static <E> Future<E> wrapFuture(Exporter exporter,
                                            Future<E> future) 
                                 throws ExportException
@@ -537,6 +607,186 @@ public class Util {
         final RemoteFuture<E> stub = (RemoteFuture<E>)exporter.export(impl);
 
         return new ClientFuture<E>(stub);
+    }
+
+    /**
+     * Wraps the given <code>sourceIterator</code> and <code>serializer</code>
+     * in a <code>RemoteAsynchronousIteratorImpl</code>, uses a default
+     * exporter (with distributed gc enabled) to export the wrapped iterator,
+     * and then returns the resulting proxy to the wrapped iterator as an
+     * instance of <code>ClientAsynchronousIterator</code> wrapping the
+     * proxy.
+     * <p>
+     * Note that distributed garbage collection is enabled by default
+     * because the exported <code>RemoteAsynchronousIteratorImpl</code>
+     * (the proxy to the remote iterator) CAN become locally weakly reachable
+     * sooner than the entity that receives/uses it can close() the iterator
+     * (or possibly even before the entity can consume the iterator).
+     * Thus, distributed gc is enabled since distributed gc will
+     * automatically unexport the wrapped proxy once that proxy is no
+     * longer strongly referenced by the entity.
+     */
+    public static <E> IAsynchronousIterator<E> wrapIterator
+                          (IAsynchronousIterator<E> sourceIterator,
+                           IStreamSerializer<E> serializer,
+                           int capacity)
+                          throws ExportException
+
+    {
+        boolean defaultEnableDgc = true;
+        boolean defaultKeepAlive = false;
+        Exporter defaultExporter =
+                     getExporter(defaultEnableDgc, defaultKeepAlive);
+        return wrapIterator
+                   (sourceIterator, serializer, capacity, defaultExporter);
+    }
+
+    /**
+     * Wraps the given <code>sourceIterator</code> and <code>serializer</code>
+     * in a <code>RemoteAsynchronousIteratorImpl</code>, uses the given
+     * <code>exporter</code> to export the wrapped iterator, and then
+     * returns the resulting proxy to the wrapped iterator as an instance
+     * of <code>ClientAsynchronousIterator</code> wrapping the proxy.
+     */
+    public static <E> IAsynchronousIterator<E> wrapIterator
+                          (IAsynchronousIterator<E> sourceIterator,
+                           IStreamSerializer<E> serializer,
+                           int capacity,
+                           Exporter exporter)
+                      throws ExportException
+
+    {
+        if (sourceIterator == null) {
+            throw new NullPointerException("null sourceIterator");
+        }
+        if (serializer == null) {
+            throw new NullPointerException("null serializer");
+        }
+        if (capacity <= 0) {
+            throw new IllegalArgumentException
+                          ("non-positve capacity ["+capacity+"]");
+        }
+        if(exporter == null) {
+            throw new NullPointerException("null exporter");
+        }
+
+        // 1. Wrap the given iterator in a remote (proxyable) object
+        // 2. Export the remote object to produce a dynamic proxy (stub)
+        // 3. Return the proxied iterator (the stub) wrapped in a Serializable
+        //    wrapper class implementing that the Iterator interface.
+
+        final RemoteAsynchronousIterator<E> impl = 
+                  new RemoteAsynchronousIteratorImpl<E>(sourceIterator,
+                                                        serializer);
+        final RemoteAsynchronousIterator<E> stub =
+                  (RemoteAsynchronousIterator<E>) exporter.export(impl);;
+
+        return new ClientAsynchronousIterator<E>(stub, capacity);
+    }
+
+    /**
+     * Wraps the given <code>buffer</code> in a <code>RemoteBufferImpl</code>,
+     * uses a default exporter (with distributed gc enabled) to export the
+     * wrapped buffer, and then returns the resulting proxy to the wrapped
+     * buffer as an instance of <code>ClientBuffer</code> wrapping the
+     * proxy.
+     * <p>
+     * The buffer being wrapped is typically not <code>Remote</code>,
+     * and its methods typically do not throw <code>IOException</code>.
+     */
+    public static <E> IBuffer<E> wrapBuffer(IBuffer<E> buffer)
+                                     throws ExportException
+    {
+        boolean defaultEnableDgc = true;
+        boolean defaultKeepAlive = false;
+        Exporter defaultExporter =
+                     getExporter(defaultEnableDgc, defaultKeepAlive);
+        return wrapBuffer(buffer, defaultExporter);
+    }
+
+    /**
+     * Wraps the given <code>buffer</code> in a <code>RemoteBufferImpl</code>,
+     * uses the given <code>exporter</code> to export the wrapped buffer,
+     * and then returns the resulting proxy to the wrapped buffer as
+     * an instance of <code>ClientBuffer</code> wrapping the proxy.
+     */
+    public static <E> IBuffer<E> wrapBuffer(IBuffer<E> buffer,
+                                            Exporter exporter)
+                      throws ExportException
+
+    {
+        if (buffer == null) {
+            throw new NullPointerException("null buffer");
+        }
+        if(exporter == null) {
+            throw new NullPointerException("null exporter");
+        }
+
+        // 1. Wrap the given buffer in a remote (proxyable) object
+        // 2. Export the remote object to produce a dynamic proxy (stub)
+        // 3. Return the proxied iterator (the stub) wrapped in a Serializable
+        //    wrapper class implementing that the IBuffer interface.
+
+        final RemoteBuffer<E> impl = new RemoteBufferImpl<E>(buffer);
+
+        final RemoteBuffer<E> stub = (RemoteBuffer<E>) exporter.export(impl);
+
+        return new ClientBuffer<E>(stub);
+    }
+
+    /**
+     * Wraps the given <code>buffer</code> in a
+     * <code>RemoteRunnableBufferImpl</code>, uses a default exporter (with
+     * distributed gc enabled) to export the wrapped buffer, and then returns
+     * the resulting proxy to the wrapped buffer as an instance of
+     * <code>ClientRunnableBuffer</code> wrapping the proxy.
+     * <p>
+     * The buffer being wrapped is typically not <code>Remote</code>,
+     * and its methods typically do not throw <code>IOException</code>.
+     */
+    public static <E,V> IRunnableBuffer<E> wrapRunnableBuffer
+                                               (IRunnableBuffer<E> buffer)
+                                                    throws ExportException
+    {
+        boolean defaultEnableDgc = true;
+        boolean defaultKeepAlive = false;
+        Exporter defaultExporter =
+                     getExporter(defaultEnableDgc, defaultKeepAlive);
+        return wrapRunnableBuffer(buffer, defaultExporter);
+    }
+
+    /**
+     * Wraps the given <code>buffer</code> in a
+     * <code>RemoteRunnableBufferImpl</code>, uses the given
+     * <code>exporter</code> to export the wrapped buffer, and then
+     * returns the resulting proxy to the wrapped buffer as an instance
+     * of <code>ClientRunnableBuffer</code> wrapping the proxy.
+     */
+    public static <E,V> IRunnableBuffer<E> wrapRunnableBuffer
+                                               (IRunnableBuffer<E> buffer,
+                                                Exporter exporter)
+                                                    throws ExportException
+    {
+        if (buffer == null) {
+            throw new NullPointerException("null buffer");
+        }
+        if(exporter == null) {
+            throw new NullPointerException("null exporter");
+        }
+
+        // 1. Wrap the given buffer in a remote (proxyable) object
+        // 2. Export the remote object to produce a dynamic proxy (stub)
+        // 3. Return the proxied iterator (the stub) wrapped in a Serializable
+        //    wrapper class implementing that the IBuffer interface.
+
+        final RemoteRunnableBuffer<E, V> impl =
+                  new RemoteRunnableBufferImpl<E, V>
+                          ( buffer, wrapFuture(buffer.getFuture()) );
+
+        final RemoteRunnableBuffer<E,V> stub =
+                           (RemoteRunnableBuffer<E,V>) exporter.export(impl);
+
+        return new ClientRunnableBuffer<E,V>(stub);
     }
 
     /**
@@ -667,6 +917,15 @@ public class Util {
 
 public static synchronized String getCurrentStackTrace() {
     StackTraceElement[] e = (Thread.currentThread()).getStackTrace();
+    StringBuffer buf = new StringBuffer("    "+(e[0]).toString()+"\n");
+    for(int i=1;i<e.length;i++) {
+        buf.append("    "+(e[i]).toString()+"\n");
+    }
+    return buf.toString();
+}
+public static synchronized String getThrowableStackTrace(Throwable t) {
+    if (t == null) return null;
+    StackTraceElement[] e = t.getStackTrace();
     StringBuffer buf = new StringBuffer("    "+(e[0]).toString()+"\n");
     for(int i=1;i<e.length;i++) {
         buf.append("    "+(e[i]).toString()+"\n");

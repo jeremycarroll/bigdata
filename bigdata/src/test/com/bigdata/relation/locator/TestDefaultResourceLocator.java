@@ -53,6 +53,11 @@ import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+
 /**
  * Test suite for location relations, etc.
  * 
@@ -107,8 +112,17 @@ public class TestDefaultResourceLocator extends TestCase2 {
         try {
 
             // instantiate relation.
-            MockRelation mockRelation = new MockRelation(store, namespace,
-                    ITx.UNISOLATED, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            MockRelation mockRelation = new MockRelation(store, namespace,
+//BTM - PRE_CLIENT_SERVICE                    ITx.UNISOLATED, properties);
+            MockRelation mockRelation =
+                new MockRelation(store,//Journal -> AbstractJournal -> IBTreeManager -> IIndexManager
+                                 store,//Journal -> IConcurrencyManager
+                                 store.getDiscoveryManager(),//returns null
+                                 namespace,
+                                 ITx.UNISOLATED,
+                                 properties);
+//BTM - PRE_CLIENT_SERVICE - END
             
             /*
              * the index for the relation does not exist yet. we verify
@@ -236,12 +250,28 @@ public class TestDefaultResourceLocator extends TestCase2 {
          * @param timestamp
          * @param properties
          */
-        public MockRelation(IIndexManager indexManager, String namespace, Long timestamp,
-                Properties properties) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public MockRelation(IIndexManager indexManager, String namespace, Long timestamp,
+//BTM - PRE_CLIENT_SERVICE                Properties properties) {
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE            super(indexManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE        }
+        public MockRelation(IIndexManager indexManager,
+                            IConcurrencyManager concurrencyManager,
+                            IBigdataDiscoveryManagement discoveryManager,
+                            String namespace,
+                            Long timestamp,
+                            Properties properties) {
             
-            super(indexManager, namespace, timestamp, properties);
-            
+            super(indexManager,
+                  concurrencyManager,
+                  discoveryManager,
+                  namespace,
+                  timestamp,
+                  properties);
         }
+//BTM - PRE_CLIENT_SERVICE - END
 
         public void create() {
             

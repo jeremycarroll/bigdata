@@ -72,10 +72,12 @@ import com.bigdata.service.ShardService;
 import com.bigdata.util.Util;
 
 //BTM - PRE_FRED_3481
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
 import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
 import com.bigdata.service.IDataServiceCallable;
-import com.bigdata.service.Session;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.Session;
 
 /**
  * Task moves an index partition to another {@link ShardService}.
@@ -246,13 +248,22 @@ this.targetIndexName = Util.getIndexPartitionName(vmd.indexMetadata.getName(), n
 
 //BTM        this.e = new Event(resourceManager.getFederation(), new EventResource(
 //BTM                vmd.indexMetadata), OverflowActionEnum.Move, params);
-this.e = new Event( (resourceManager.getFederation()).getEventQueue(),
-                    (resourceManager.getFederation()).getServiceIface(),
-                    (resourceManager.getFederation()).getServiceName(),
-                    (resourceManager.getFederation()).getServiceUUID(),
-                    new EventResource(vmd.indexMetadata),
-                    OverflowActionEnum.Move,
-                    params);
+//BTM - PRE_CLIENT_SERVICE this.e = new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                     (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                     (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                     (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                     new EventResource(vmd.indexMetadata),
+//BTM - PRE_CLIENT_SERVICE                     OverflowActionEnum.Move,
+//BTM - PRE_CLIENT_SERVICE                     params);
+            this.e = 
+                new Event
+                ((resourceManager.getLocalResourceManager()).getEventQueueSender(),
+                 (resourceManager.getLocalResourceManager()).getServiceIface(),
+                 (resourceManager.getLocalResourceManager()).getServiceName(),
+                 (resourceManager.getLocalResourceManager()).getServiceUUID(),
+                 new EventResource(vmd.indexMetadata),
+                 OverflowActionEnum.Move,
+                 params);
     }
 
     @Override
@@ -588,7 +599,10 @@ final String targetIndexName = Util.getIndexPartitionName(scaleOutIndexName, tar
 
 //BTM                    final IDataService targetDataService = resourceManager.getFederation().getDataService(targetDataServiceUUID);
 //BTM - PRE_FRED_3481 final ShardService targetDataService = resourceManager.getFederation().getDataService(targetDataServiceUUID);
-                         final ShardService targetDataService = rsrcManager.getFederation().getDataService(targetDataServiceUUID);
+//BTM - PRE_CLIENT_SERVICE  final ShardService targetDataService = rsrcManager.getFederation().getDataService(targetDataServiceUUID);
+                         final ShardService targetDataService =
+                             rsrcManager.getDiscoveryManager()
+                                 .getDataService(targetDataServiceUUID);
 
                     if (targetDataService == null)
                         throw new Exception("No such data service: "
@@ -828,10 +842,13 @@ final ShardService targetDataService,//
             
             try {
                 
-                final PartitionLocator current = rsrcManager
-                        .getFederation().getMetadataService().get(
-                                scaleOutIndexName, ITx.UNISOLATED,
-                                oldLocator.getLeftSeparatorKey());
+//BTM - PRE_CLIENT_SERVICE final PartitionLocator current = rsrcManager.getFederation().getMetadataService().get(scaleOutIndexName, ITx.UNISOLATED, oldLocator.getLeftSeparatorKey());
+                final PartitionLocator current =
+                          rsrcManager.getDiscoveryManager()
+                              .getMetadataService()
+                                  .get(scaleOutIndexName,
+                                       ITx.UNISOLATED,
+                                       oldLocator.getLeftSeparatorKey());
 
                 final boolean mdsWasUpdated = current.getPartitionId() != oldLocator
                         .getPartitionId();
@@ -843,9 +860,10 @@ final ShardService targetDataService,//
                      */
                     try {
 
-                        rsrcManager.getFederation().getMetadataService()
-                                .moveIndexPartition(scaleOutIndexName,
-                                        newLocator, oldLocator);
+//BTM - PRE_CLIENT_SERVICE  rsrcManager.getFederation().getMetadataService().moveIndexPartition(scaleOutIndexName, newLocator, oldLocator);
+                        rsrcManager.getDiscoveryManager().getMetadataService()
+                            .moveIndexPartition
+                                (scaleOutIndexName, newLocator, oldLocator);
                         
                     } catch (Throwable t2) {
 
@@ -996,12 +1014,22 @@ final ShardService targetDataService,//
 //        }
 
 //BTM - PRE_FRED_3481        public Void call() throws Exception {
-        public Void startDataTask(IIndexManager indexManager,
-                                  final ResourceManager resourceManager,
-                                  IConcurrencyManager concurrencyManager,
-                                  Session session,
-                                  String hostName,
-                                  String serviceName) throws Exception {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        public Void startDataTask(IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE                                  final ResourceManager resourceManager,
+//BTM - PRE_CLIENT_SERVICE                                  IConcurrencyManager concurrencyManager,
+//BTM - PRE_CLIENT_SERVICE                                  Session session,
+//BTM - PRE_CLIENT_SERVICE                                  String hostName,
+//BTM - PRE_CLIENT_SERVICE                                  String serviceName) throws Exception {
+//BTM - PRE_CLIENT_SERVICE
+        public Void startDataTask
+                        (IIndexManager indexManager,
+                         ResourceManager resourceManager,
+                         IConcurrencyManager concurrencyManager,
+                         ILocalResourceManagement localResourceManager,
+                         IBigdataDiscoveryManagement discoveryManager)
+                    throws Exception
+        {
             
             /*
              * The name of the target index partition on the target data
@@ -1011,8 +1039,10 @@ final ShardService targetDataService,//
              */
 //BTM            final String targetIndexName = DataService.getIndexPartitionName(
 //BTM                    sourceIndexMetadata.getName(), targetIndexPartitionId);
-final String targetIndexName = Util.getIndexPartitionName(sourceIndexMetadata.getName(), targetIndexPartitionId);
-
+            final String targetIndexName = 
+                             Util.getIndexPartitionName
+                                 (sourceIndexMetadata.getName(),
+                                  targetIndexPartitionId);
             /*
              * Run the inner task on the write service of the target data
              * service.
@@ -1166,13 +1196,23 @@ this.sourceIndexName = Util.getIndexPartitionName(scaleOutIndexName, sourceIndex
 //BTM            this.parentEvent = new Event(resourceManager.getFederation(),
 //BTM                    new EventResource(sourceIndexMetadata.getName(),
 //BTM                            sourceIndexPartitionId), OverflowActionEnum.Move);
-this.parentEvent = new Event( (resourceManager.getFederation()).getEventQueue(),
-                              (resourceManager.getFederation()).getServiceIface(),
-                              (resourceManager.getFederation()).getServiceName(),
-                              (resourceManager.getFederation()).getServiceUUID(),
-                              new EventResource(sourceIndexMetadata.getName(),
-                              sourceIndexPartitionId),
-                              OverflowActionEnum.Move);
+//BTM - PRE_CLIENT_SERVICE this.parentEvent = new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                               (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                               (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                               (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                               new EventResource(sourceIndexMetadata.getName(),
+//BTM - PRE_CLIENT_SERVICE                               sourceIndexPartitionId),
+//BTM - PRE_CLIENT_SERVICE                               OverflowActionEnum.Move);
+//BTM - PRE_CLIENT_SERVICE 
+            this.parentEvent =
+                new Event
+                ((resourceManager.getLocalResourceManager()).getEventQueueSender(),
+                 (resourceManager.getLocalResourceManager()).getServiceIface(),
+                 (resourceManager.getLocalResourceManager()).getServiceName(),
+                 (resourceManager.getLocalResourceManager()).getServiceUUID(),
+                 new EventResource(sourceIndexMetadata.getName(),
+                 sourceIndexPartitionId),
+                 OverflowActionEnum.Move);
 
             this.parentEvent.addDetail("summary", this.summary);
 
@@ -1487,10 +1527,11 @@ this.parentEvent = new Event( (resourceManager.getFederation()).getEventQueue(),
                         + ", newLocator=" + moveResult.newLocator);
 
             // atomic update on the metadata server.
-            rsrcManager.getFederation().getMetadataService()
-                    .moveIndexPartition(scaleOutIndexName,
-                            moveResult.oldLocator, moveResult.newLocator);
-
+//BTM - PRE_CLIENT_SERVICE  rsrcManager.getFederation().getMetadataService().moveIndexPartition(scaleOutIndexName, moveResult.oldLocator, moveResult.newLocator);
+            rsrcManager.getDiscoveryManager().getMetadataService()
+                .moveIndexPartition(scaleOutIndexName,
+                                    moveResult.oldLocator,
+                                    moveResult.newLocator);
             /*
              * @todo This flag is unused for this impl since MDS update is done
              * by the target data service - in fact, the flag can probably be

@@ -94,6 +94,10 @@ import com.bigdata.journal.TransactionService;
 //BTM - PRE_FRED_3481
 import com.bigdata.journal.IIndexManager;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.resources.ILocalResourceManagement;
+
 /**
  * An implementation of a network-capable {@link ShardService}. The service is
  * started using the {@link DataServer} class. Operations are submitted using an
@@ -230,11 +234,28 @@ abstract public class DataService extends AbstractService
 
         return new ResourceManager(properties) {
 
-            public IBigdataFederation getFederation() {
-                
-                return DataService.this.getFederation();
-                                
-            }
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            public IBigdataFederation getFederation() {
+//BTM - PRE_CLIENT_SERVICE                
+//BTM - PRE_CLIENT_SERVICE                return DataService.this.getFederation();
+//BTM - PRE_CLIENT_SERVICE                                
+//BTM - PRE_CLIENT_SERVICE            }
+
+        @Override
+        public IBigdataDiscoveryManagement getDiscoveryManager() {
+            return (IBigdataDiscoveryManagement)(DataService.this.getFederation());
+        }
+
+        @Override
+        public ILocalResourceManagement getLocalResourceManager() {
+            return (ILocalResourceManagement)(DataService.this.getFederation());
+        }
+
+        @Override
+        public IIndexManager getIndexManager() {
+            return (IIndexManager)(DataService.this.getFederation());
+        }
+//BTM - PRE_CLIENT_SERVICE - END
             
             public DataService getDataService() {
                 
@@ -1474,9 +1495,16 @@ System.err.println("---------- END DataService --------------\n");
                 throw new IllegalArgumentException();
 
             // submit the task and return its Future.
-            return getFederation().getExecutorService().submit(
-                    new DataTaskWrapper(getFederation(), this, task));
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  return getFederation().getExecutorService().submit(new DataTaskWrapper(getFederation(), this, task));
+            return getFederation().getExecutorService().submit
+                       (new DataTaskWrapper( (IIndexManager)getFederation(),
+                                             getResourceManager(),
+                                             getConcurrencyManager(),
+                                             (ILocalResourceManagement)getFederation(),
+                                             (IBigdataDiscoveryManagement)getFederation(),
+                                             task));
+//BTM - PRE_CLIENT_SERVICE - END
         } finally {
 
             clearLoggingContext();

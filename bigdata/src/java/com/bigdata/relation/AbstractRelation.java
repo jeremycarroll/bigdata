@@ -43,6 +43,10 @@ import com.bigdata.journal.TemporaryStore;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.striterator.IKeyOrder;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * Base class for {@link IRelation} and {@link IMutableRelation} impls.
  * 
@@ -62,13 +66,26 @@ abstract public class AbstractRelation<E> extends AbstractResource<IRelation<E>>
     /**
      * 
      */
-    protected AbstractRelation(final IIndexManager indexManager,
-            final String namespace, final Long timestamp,
-            final Properties properties) {
-
-        super(indexManager, namespace, timestamp, properties);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected AbstractRelation(final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            final String namespace, final Long timestamp,
+//BTM - PRE_CLIENT_SERVICE            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+    protected AbstractRelation
+                  (final IIndexManager indexManager,
+                   final IConcurrencyManager concurrencyManager,
+                   final IBigdataDiscoveryManagement discoveryManager,
+                   final String namespace,
+                   final Long timestamp,
+                   final Properties properties)
+    {
+        super(indexManager, concurrencyManager, discoveryManager,
+              namespace, timestamp, properties);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * The fully qualified name of the index.

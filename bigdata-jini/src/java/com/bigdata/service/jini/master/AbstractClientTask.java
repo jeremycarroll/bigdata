@@ -24,6 +24,12 @@ import com.bigdata.service.jini.master.TaskMaster.JobState;
 import com.bigdata.zookeeper.ZLock;
 import com.bigdata.zookeeper.ZLockImpl;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.journal.IScaleOutIndexStore;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.service.CallableExecutor;
+
 /**
  * An abstract base class which may be used for client tasks run by the master
  * on one or more data services. This class contends for a {@link ZLock} based
@@ -95,14 +101,27 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState,
     /**
      * Runs the generator.
      */
-    public U startClientTask(IBigdataFederation federation,
-                             ClientService clientService) throws Exception {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public U startClientTask(IBigdataFederation federation,
+//BTM - PRE_CLIENT_SERVICE                             ClientService clientService) throws Exception {
+//BTM - PRE_CLIENT_SERVICE
+    public U startClientTask(IIndexManager indexManager,
+                             ILocalResourceManagement localResourceManager,
+                             CallableExecutor embeddedCallableExecutor,
+                             ZooKeeper zookeeperClient,
+                             List<ACL> zookeeperAcl,
+                             String zookeeperRoot)
+             throws Exception
+    {
+//BTM - PRE_CLIENT_SERVICE -END
 
         if (log.isInfoEnabled())
             log.info("Running: client#=" + clientNum + ", " + jobState);
 
-        JiniFederation jiniFederation = (JiniFederation) federation;
-        final V clientState = setupClientState(jiniFederation);
+//BTM - PRE_CLIENT_SERVICE        JiniFederation jiniFederation = (JiniFederation) federation;
+//BTM - PRE_CLIENT_SERVICE        final V clientState = setupClientState(jiniFederation);
+        final V clientState = 
+             setupClientState(zookeeperClient, zookeeperAcl, zookeeperRoot);
         
         while (true) {
 
@@ -111,9 +130,10 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState,
              * on the target {@link IClientService}). The data of this znode
              * is the client's state (if it saves its state in zookeeper).
              */
+//BTM - PRE_CLIENT_SERVICE            String clientZPath = jobState.getClientZPath(jiniFederation, clientNum);
+//BTM - PRE_CLIENT_SERVICE            List<ACL> acl = jiniFederation.getZooConfig().acl;
             String clientZPath =
-                    jobState.getClientZPath(jiniFederation, clientNum);
-            List<ACL> acl = jiniFederation.getZooConfig().acl;
+                jobState.getClientZPath(zookeeperRoot, clientNum);
 
             /**
              * The zpath for the {@link ZLock} node. Only the instance of
@@ -123,17 +143,37 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState,
              * that gains the {@link ZLock} will read the client's state
              * from zookeeper and continue processing.
              */
-            ZLockImpl zlock = ZLockImpl.getLock(jiniFederation.getZookeeper(),
-                    jobState.getLockNodeZPath(jiniFederation, clientNum), acl);
+//BTM - PRE_CLIENT_SERVICE            ZLockImpl zlock = ZLockImpl.getLock(jiniFederation.getZookeeper(),
+//BTM - PRE_CLIENT_SERVICE                    jobState.getLockNodeZPath(jiniFederation, clientNum), acl);
+            ZLockImpl zlock =
+                ZLockImpl.getLock
+                    (zookeeperClient,
+                     jobState.getLockNodeZPath(zookeeperRoot, clientNum),
+                     zookeeperAcl);
             zlock.lock();
             try {
-                final U ret = runWithZLock(clientState, jiniFederation,
-                                           zlock, clientZPath);
-                if (log.isInfoEnabled())
-                    log.info("Finished: client#=" + clientNum + ", "
-                            + jobState);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE   final U ret = runWithZLock(clientState, jiniFederation, zlock, clientZPath);
+                if (indexManager instanceof IScaleOutIndexStore) {
+                    final U ret =
+                        runWithZLock(clientState,
+                                     (IScaleOutIndexStore)indexManager,
+                                     localResourceManager,
+                                     zlock, clientZPath);
 
-                return ret;
+                    if (log.isInfoEnabled()) {
+                        log.info("Finished: client#=" + clientNum + ", "
+                                 + jobState);
+                    }
+                    return ret;
+                } else {
+                    log.warn("AbstractClientTask.startClientTask: cannot "
+                             +"execute runWithZlock [clientNum="+clientNum
+                             +", jobState="+jobState+"] - indexManager NOT "
+                             +"instance of IScaleOutIndexStore");
+                    return null;
+                }
+//BTM - PRE_CLIENT_SERVICE - END
 
             } catch (SessionExpiredException ex) {
 
@@ -167,11 +207,19 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState,
      * @throws KeeperException
      * @throws InterruptedException
      */
-    abstract protected U runWithZLock(V clientState,
-                                      JiniFederation jiniFederation,
-                                      final ZLockImpl zlock,
-                                      final String clientZPath)
-            throws Exception, KeeperException, InterruptedException;
+//BTM - PRE_CLIENT_SERVICE    abstract protected U runWithZLock(V clientState,
+//BTM - PRE_CLIENT_SERVICE                                      JiniFederation jiniFederation,
+//BTM - PRE_CLIENT_SERVICE                                      final ZLockImpl zlock,
+//BTM - PRE_CLIENT_SERVICE                                      final String clientZPath)
+//BTM - PRE_CLIENT_SERVICE            throws Exception, KeeperException, InterruptedException;
+//BTM - PRE_CLIENT_SERVICE
+    abstract protected U runWithZLock
+                             (V clientState,
+                              IScaleOutIndexStore indexStore,
+                              ILocalResourceManagement localResourceManager,
+                              final ZLockImpl zlock,
+                              final String clientZPath)
+             throws Exception, KeeperException, InterruptedException;
 
     /**
      * The method invoked {@link #newClientState()} and attempts to create the
@@ -197,24 +245,37 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState,
      * @see JobState#getClientZPath(JiniFederation, int)
      */
     @SuppressWarnings("unchecked")
-    protected V setupClientState(JiniFederation jiniFederation)
-            throws InterruptedException, KeeperException {
-
-        final ZooKeeper zookeeper =
-                jiniFederation.getZookeeperAccessor().getZookeeper();
-
-        final String clientZPath = jobState.getClientZPath(jiniFederation,
-                clientNum);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected V setupClientState(JiniFederation jiniFederation)
+//BTM - PRE_CLIENT_SERVICE            throws InterruptedException, KeeperException {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        final ZooKeeper zookeeper =
+//BTM - PRE_CLIENT_SERVICE                jiniFederation.getZookeeperAccessor().getZookeeper();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        final String clientZPath = jobState.getClientZPath(jiniFederation,
+//BTM - PRE_CLIENT_SERVICE                clientNum);
+//BTM - PRE_CLIENT_SERVICE
+    protected V setupClientState(final ZooKeeper zookeeper,
+                             final List<ACL> zookeeperAcl,
+                             final String zookeeperRoot)
+                throws InterruptedException, KeeperException
+    {
+    final String clientZPath = jobState.getClientZPath(zookeeperRoot, clientNum);
+//BTM - PRE_CLIENT_SERVICE - END
 
         V clientState;
         try {
 
             clientState = newClientState();
 
+//BTM - PRE_CLIENT_SERVICE            zookeeper.create(clientZPath,
+//BTM - PRE_CLIENT_SERVICE                             SerializerUtil.serialize(clientState),
+//BTM - PRE_CLIENT_SERVICE                             jiniFederation.getZooConfig().acl,
+//BTM - PRE_CLIENT_SERVICE                             CreateMode.PERSISTENT);
             zookeeper.create(clientZPath,
-                    SerializerUtil
-                    .serialize(clientState), jiniFederation.getZooConfig().acl,
-                    CreateMode.PERSISTENT);
+                             SerializerUtil.serialize(clientState),
+                             zookeeperAcl,
+                             CreateMode.PERSISTENT);
 
             if (log.isInfoEnabled())
                 log.info("Created: clientZPath=" + clientZPath + ", state="

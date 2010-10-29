@@ -58,6 +58,10 @@ import com.bigdata.relation.rule.eval.IRuleTaskFactory;
 import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.relation.rule.eval.IStepTask;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * Factory for {@link RDFJoinNexus} objects.
  * 
@@ -288,7 +292,12 @@ public class RDFJoinNexusFactory implements IJoinNexusFactory {
     
     // @todo refactor singleton factory into base class or utility class.
 	// @todo assumes one "central" relation (SPORelation).
-    public IJoinNexus newInstance(final IIndexManager indexManager) {
+//BTM - PRE_CLIENT_SERVICE    public IJoinNexus newInstance(final IIndexManager indexManager) {
+    public IJoinNexus newInstance
+                          (final IIndexManager indexManager,
+                           final IConcurrencyManager concurrencyManager,
+                           final IBigdataDiscoveryManagement discoveryManager)
+    {
 
         synchronized (joinNexusCache) {
 
@@ -299,7 +308,13 @@ public class RDFJoinNexusFactory implements IJoinNexusFactory {
 
             if (joinNexus == null) {
 
-                joinNexus = new RDFJoinNexus(this, indexManager);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  joinNexus =
+//BTM - PRE_CLIENT_SERVICE      new RDFJoinNexus(this, indexManager);
+                joinNexus = new RDFJoinNexus
+                                    (this, indexManager,
+                                     concurrencyManager, discoveryManager);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 joinNexusCache.put(indexManager, new WeakReference<IJoinNexus>(
                         joinNexus));

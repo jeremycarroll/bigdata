@@ -73,15 +73,13 @@ import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.jini.start.config.ZookeeperClientConfig;
 import com.bigdata.jini.util.JiniUtil;
 import com.bigdata.journal.IResourceLockService;
-//BTM import com.bigdata.journal.ITransactionService;
+import com.bigdata.journal.TransactionService;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.accesspath.IAsynchronousIterator;
 import com.bigdata.relation.accesspath.IBuffer;
 import com.bigdata.relation.accesspath.IRunnableBuffer;
 import com.bigdata.service.AbstractDistributedFederation;
 import com.bigdata.service.AbstractFederation;
-import com.bigdata.service.IClientService;
-//BTM import com.bigdata.service.IDataService;
 import com.bigdata.service.IService;
 import com.bigdata.service.jini.lookup.ClientServicesClient;
 import com.bigdata.service.jini.lookup.DataServiceFilter;
@@ -89,7 +87,9 @@ import com.bigdata.service.jini.lookup.DataServicesClient;
 import com.bigdata.service.jini.lookup.LoadBalancerClient;
 import com.bigdata.service.jini.lookup.MetadataServiceFilter;
 import com.bigdata.service.jini.lookup.ServicesManagerClient;
+import com.bigdata.service.jini.lookup.ShardLocatorClient;
 import com.bigdata.service.jini.lookup.TransactionServiceClient;
+import com.bigdata.service.LoadBalancer;
 import com.bigdata.service.proxy.ClientAsynchronousIterator;
 import com.bigdata.service.proxy.ClientBuffer;
 import com.bigdata.service.proxy.ClientFuture;
@@ -102,17 +102,15 @@ import com.bigdata.service.proxy.RemoteFuture;
 import com.bigdata.service.proxy.RemoteFutureImpl;
 import com.bigdata.service.proxy.RemoteRunnableBuffer;
 import com.bigdata.service.proxy.RemoteRunnableBufferImpl;
+import com.bigdata.service.Service;
+import com.bigdata.service.ShardLocator;
+import com.bigdata.service.ShardService;
 import com.bigdata.zookeeper.ZooHelper;
 import com.bigdata.zookeeper.ZooKeeperAccessor;
 import com.bigdata.zookeeper.ZooResourceLockService;
 
-//BTM
-import com.bigdata.service.LoadBalancer;
-import com.bigdata.service.Service;
-import com.bigdata.service.ShardLocator;
-import com.bigdata.service.ShardService;
-import com.bigdata.journal.TransactionService;
-import com.bigdata.service.jini.lookup.ShardLocatorClient;
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.jini.IJiniDiscoveryManagement;
 
 /**
  * Concrete implementation for Jini.
@@ -120,16 +118,23 @@ import com.bigdata.service.jini.lookup.ShardLocatorClient;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class JiniFederation<T> extends AbstractDistributedFederation<T> implements
-        DiscoveryListener, ServiceDiscoveryListener {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICEpublic class JiniFederation<T> extends AbstractDistributedFederation<T> implements
+//BTM - PRE_CLIENT_SERVICE        DiscoveryListener, ServiceDiscoveryListener {
+public class JiniFederation<T> extends AbstractDistributedFederation<T>
+                               implements DiscoveryListener,
+                                          ServiceDiscoveryListener,
+                                          IJiniDiscoveryManagement
+{
+//BTM - PRE_CLIENT_SERVICE - END
 
     private LookupDiscoveryManager lookupDiscoveryManager;
 
     private ServiceDiscoveryManager serviceDiscoveryManager;
 
     private DataServicesClient dataServicesClient;
-//BTM
-private ShardLocatorClient shardLocatorClient;
+
+    private ShardLocatorClient shardLocatorClient;
 
     private LoadBalancerClient loadBalancerClient;
 
@@ -139,7 +144,10 @@ private ShardLocatorClient shardLocatorClient;
 
     private ClientServicesClient clientServicesClient;
 
-    private final ZooResourceLockService resourceLockService = new ZooResourceLockService(this);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    private final ZooResourceLockService resourceLockService = new ZooResourceLockService(this);
+    private final ZooResourceLockService resourceLockService;
+//BTM - PRE_CLIENT_SERVICE - END
 
     private final ZooKeeperAccessor zooKeeperAccessor;
     
@@ -234,7 +242,7 @@ private ShardLocatorClient shardLocatorClient;
         for (String zpath : a) {
 
             try {
-
+//BTM
 System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath="+zpath+"]");
                 zookeeper.create(zpath, new byte[] {}/* data */, acl,
                         CreateMode.PERSISTENT);
@@ -281,17 +289,15 @@ System.out.println("ZZZZ JiniFederation.createKeyZNodes: *** create ZNODE [zpath
         return dataServicesClient;
         
     }
-    
-//BTM - BEGIN
+
     /**
      * Cached lookup for discovered shard locators. Will block
      * on a cache miss and attempt to discover an appropriate service
      * instance.
      */
-public ShardLocatorClient getShardLocatorClient() {
-    return shardLocatorClient;
-}
-//BTM - END
+    public ShardLocatorClient getShardLocatorClient() {
+        return shardLocatorClient;
+    }
 
     public ServicesManagerClient getServicesManagerClient() {
         
@@ -300,7 +306,7 @@ public ShardLocatorClient getShardLocatorClient() {
     }
     
     /**
-     * Cached lookup for discovered {@link IClientService}s. 
+     * Cached lookup for discovered callable executor services. 
      */
     public ClientServicesClient getClientServicesClient() {
         
@@ -349,6 +355,9 @@ public ShardLocatorClient getShardLocatorClient() {
 
             zooKeeperAccessor = new ZooKeeperAccessor(zooConfig.servers,
                     zooConfig.sessionTimeout);
+
+//BTM - FOR_CLIENT_SERVICE
+            this.resourceLockService = new ZooResourceLockService(zooKeeperAccessor, (this.zooConfig).acl, (this.zooConfig).zroot);
             
             /*
              * Note: This class will perform multicast discovery if ALL_GROUPS
@@ -383,26 +392,76 @@ public ShardLocatorClient getShardLocatorClient() {
                     .getProperty(JiniClient.Options.CACHE_MISS_TIMEOUT,
                             JiniClient.Options.DEFAULT_CACHE_MISS_TIMEOUT));
 
-            // Start discovery for data and metadata services.
-            dataServicesClient = new DataServicesClient(this, cacheMissTimeout);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            // Start discovery for shard services.
+//BTM - PRE_CLIENT_SERVICE            dataServicesClient = new DataServicesClient(this, cacheMissTimeout);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            // Start discovery for the shard locator service
+//BTM - PRE_CLIENT_SERVICE            shardLocatorClient = new ShardLocatorClient(this, cacheMissTimeout);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            // Start discovery for the timestamp service.
+//BTM - PRE_CLIENT_SERVICE            transactionServiceClient = new TransactionServiceClient(this,
+//BTM - PRE_CLIENT_SERVICE                    cacheMissTimeout);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            // Start discovery for the load balancer service.
+//BTM - PRE_CLIENT_SERVICE            loadBalancerClient = new LoadBalancerClient(this, cacheMissTimeout);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            // Start discovery for the services manager.
+//BTM - PRE_CLIENT_SERVICE            servicesManagerClient = new ServicesManagerClient(this,
+//BTM - PRE_CLIENT_SERVICE                    cacheMissTimeout);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            // Start discovery for the client services.
+//BTM - PRE_CLIENT_SERVICE            clientServicesClient = new ClientServicesClient(this,
+//BTM - PRE_CLIENT_SERVICE                    cacheMissTimeout);
+///////////////////////
+            // Start discovery for shard services.
+            dataServicesClient =
+                new DataServicesClient(this.getServiceDiscoveryManager(),
+                                       this, //ServiceDiscoveryListener
+                                       this.getServiceUUID(),
+                                       this.getService(),
+                                       cacheMissTimeout);
 
-//BTM
-shardLocatorClient = new ShardLocatorClient(this, cacheMissTimeout);
+            // Start discovery for the shard locator service
+            shardLocatorClient =
+                new ShardLocatorClient(this.getServiceDiscoveryManager(),
+                                       this, //ServiceDiscoveryListener
+                                       this.getServiceUUID(),
+                                       this.getService(),
+                                       cacheMissTimeout);
 
             // Start discovery for the timestamp service.
-            transactionServiceClient = new TransactionServiceClient(this,
-                    cacheMissTimeout);
+            transactionServiceClient =
+                new TransactionServiceClient(this.getServiceDiscoveryManager(),
+                                             this, //ServiceDiscoveryListener
+                                             this.getServiceUUID(),
+                                             this.getService(),
+                                             cacheMissTimeout);
 
             // Start discovery for the load balancer service.
-            loadBalancerClient = new LoadBalancerClient(this, cacheMissTimeout);
+            loadBalancerClient =
+                new LoadBalancerClient(this.getServiceDiscoveryManager(),
+                                       this, //ServiceDiscoveryListener
+                                       this.getServiceUUID(),
+                                       this.getService(),
+                                       cacheMissTimeout);
 
             // Start discovery for the services manager.
-            servicesManagerClient = new ServicesManagerClient(this,
-                    cacheMissTimeout);
+            servicesManagerClient =
+                new ServicesManagerClient(this.getServiceDiscoveryManager(),
+                                          this, //ServiceDiscoveryListener
+                                          this.getServiceUUID(),
+                                          this.getService(),
+                                          cacheMissTimeout);
 
             // Start discovery for the client services.
-            clientServicesClient = new ClientServicesClient(this,
-                    cacheMissTimeout);
+            clientServicesClient =
+                new ClientServicesClient(this.getServiceDiscoveryManager(),
+                                         this, //ServiceDiscoveryListener
+                                         this.getServiceUUID(),
+                                         this.getService(),
+                                         cacheMissTimeout);
+//BTM - PRE_CLIENT_SERVICE - END
 
         } catch (Exception ex) {
 
@@ -604,8 +663,7 @@ shardLocatorClient = new ShardLocatorClient(this, cacheMissTimeout);
 
     }
 
-//BTM    public ITransactionService getTransactionService() {
-public TransactionService getTransactionService() {
+    public TransactionService getTransactionService() {
 
         // Note: return null if service not available/discovered.
         if (transactionServiceClient == null) {
@@ -625,13 +683,8 @@ public TransactionService getTransactionService() {
     public ShardLocator getMetadataService() {
 
         // Note: return null if service not available/discovered.
-//BTM
-//BTM        if (dataServicesClient == null)
-//BTM            return null;
-//BTM
-//BTM        return dataServicesClient.getMetadataService();
-if (shardLocatorClient == null) return null;
-return shardLocatorClient.getMetadataService();
+        if (shardLocatorClient == null) return null;
+        return shardLocatorClient.getMetadataService();
 
     }
 
@@ -643,8 +696,7 @@ return shardLocatorClient.getMetadataService();
 
     }
 
-//BTM    public IDataService getDataService(final UUID serviceUUID) {
-public ShardService getDataService(final UUID serviceUUID) {
+    public ShardService getDataService(final UUID serviceUUID) {
 
         // Note: return null if service not available/discovered.
         if (dataServicesClient == null) {
@@ -669,8 +721,7 @@ public ShardService getDataService(final UUID serviceUUID) {
 
     }
     
-//BTM    public IDataService getAnyDataService() {
-public ShardService getAnyDataService() {
+    public ShardService getAnyDataService() {
 
         assertOpen();
 
@@ -678,8 +729,7 @@ public ShardService getAnyDataService() {
         
     }
 
-//BTM    public IDataService getDataServiceByName(final String name) {
-public ShardService getDataServiceByName(final String name) {
+    public ShardService getDataServiceByName(final String name) {
         
         // Note: no services are available/discovered.
         if (dataServicesClient == null)
@@ -768,12 +818,10 @@ public ShardService getDataServiceByName(final String name) {
             
         }
 
-//BTM - BEGIN
-if (shardLocatorClient != null) {
-    shardLocatorClient.terminate();
-    shardLocatorClient = null;
-}
-//BTM - END
+        if (shardLocatorClient != null) {
+            shardLocatorClient.terminate();
+            shardLocatorClient = null;
+        }
 
         if (servicesManagerClient != null) {
 
@@ -870,9 +918,8 @@ if (shardLocatorClient != null) {
                 DataServiceFilter.INSTANCE, immediateShutdown);
 
         // metadata service.
-//BTM        dataServicesClient.shutdownDiscoveredServices(getExecutorService(),
-//BTM                MetadataServiceFilter.INSTANCE, immediateShutdown);
-shardLocatorClient.shutdownDiscoveredServices(getExecutorService(), null/* filter */, immediateShutdown);
+        shardLocatorClient.shutdownDiscoveredServices
+            (getExecutorService(), null/* filter */, immediateShutdown);
 
         // load balancer
         loadBalancerClient.shutdownDiscoveredServices(getExecutorService(),
@@ -908,9 +955,8 @@ shardLocatorClient.shutdownDiscoveredServices(getExecutorService(), null/* filte
                     DataServiceFilter.INSTANCE);
 
             // metadata service.
-//BTM            dataServicesClient.destroyDiscoveredServices(getExecutorService(),
-//BTM                    MetadataServiceFilter.INSTANCE);
-shardLocatorClient.destroyDiscoveredServices(getExecutorService(), null/* filter */);
+            shardLocatorClient.destroyDiscoveredServices
+                (getExecutorService(), null/* filter */);
 
             // load balancer
             loadBalancerClient.destroyDiscoveredServices(getExecutorService(),
@@ -965,8 +1011,7 @@ shardLocatorClient.destroyDiscoveredServices(getExecutorService(), null/* filter
 
     public long getLastCommitTime() {
 
-//BTM        final ITransactionService transactionService = getTransactionService();
-final TransactionService transactionService = getTransactionService();
+    final TransactionService transactionService = getTransactionService();
 
         if (transactionService != null) {
 
@@ -1296,22 +1341,6 @@ final TransactionService transactionService = getTransactionService();
         
         final ServiceItem serviceItem = e.getPostEventServiceItem();
 
-//BTM        if (serviceItem.service instanceof IService) {
-//BTM
-//BTM//            System.err.println("serviceAdded: "+serviceItem);
-//BTM            
-//BTM            final UUID serviceUUID = JiniUtil
-//BTM                    .serviceID2UUID(serviceItem.serviceID);
-//BTM
-//BTM            serviceJoin((IService) serviceItem.service, serviceUUID);
-//BTM
-//BTM        } else {
-//BTM            
-//BTM            log.warn("Not an " + IService.class);
-//BTM            
-//BTM        }
-
-//BTM - BEGIN 
         if ( (serviceItem.service instanceof Service) || serviceItem.service instanceof IService) {            
             final UUID serviceUUID = JiniUtil.serviceID2UUID(serviceItem.serviceID);
             if ( serviceItem.service instanceof IService ) {
@@ -1320,10 +1349,9 @@ final TransactionService transactionService = getTransactionService();
                 serviceJoin((Service) serviceItem.service, serviceUUID);
             }
         } else {
-            log.warn("discovered service not instance of IService or Service ["+(serviceItem.service).getClass()+"]");
-        }
-//BTM - END
-        
+            log.warn("discovered service not instance of IService "
+                     +"or Service ["+(serviceItem.service).getClass()+"]");
+        }        
     }
 
     /** NOP. */

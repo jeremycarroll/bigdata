@@ -14,6 +14,9 @@ import com.bigdata.service.Event;
 import com.bigdata.service.Params;
 import com.bigdata.util.InnerCause;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.journal.IScaleOutIndexStore;
+
 /**
  * Adds additional metadata to a {@link BTreeMetadata} that deals with the index
  * partition view, including its fast rangeCount, its {@link ISimpleSplitHandler},
@@ -182,8 +185,14 @@ class ViewMetadata extends BTreeMetadata implements Params {
             long npartitions;
             try {
 
-                final IMetadataIndex mdi = resourceManager.getFederation()
-                        .getMetadataIndex(indexMetadata.getName(), commitTime);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final IMetadataIndex mdi = resourceManager.getFederation()
+//BTM - PRE_CLIENT_SERVICE                        .getMetadataIndex(indexMetadata.getName(), commitTime);
+                final IMetadataIndex mdi =
+                ( (IScaleOutIndexStore)(resourceManager.getIndexManager()) )
+                                    .getMetadataIndex(indexMetadata.getName(),
+                                                      commitTime);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 if (mdi == null) {
 

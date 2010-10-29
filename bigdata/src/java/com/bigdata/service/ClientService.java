@@ -36,6 +36,14 @@ import org.apache.log4j.Logger;
 
 import com.bigdata.Banner;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.service.jini.JiniFederation;
+import com.bigdata.resources.ILocalResourceManagement;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+import java.util.List;
+
 /**
  * A service for distributing application {@link Callable}s across an
  * {@link IBigdataFederation}.
@@ -167,9 +175,20 @@ abstract public class ClientService extends AbstractService implements
                 throw new IllegalArgumentException();
 
             // submit the task and return its Future.
-            return getFederation().getExecutorService().submit(
-                    new ClientTaskWrapper(getFederation(), this, task));
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN----------------------------------------------------------------
+//BTM - PRE_CLIENT_SERVICE   return getFederation().getExecutorService().submit( new ClientTaskWrapper(getFederation(), this, task) );
+//BTM - PRE_CLIENT_SERVICE
+            JiniFederation fed = (JiniFederation)getFederation();
+            ZooKeeper zkClient = fed.getZookeeper();
+            List<ACL> zkAcl = fed.getZooConfig().acl;
+            String zkRoot = fed.getZooConfig().zroot;
+            return getFederation().getExecutorService().submit
+                       ( new ClientTaskWrapper( (IIndexManager)fed,
+                                                (ILocalResourceManagement)fed,
+                                                this,//embeddedCallableExecutor
+                                                task,
+                                                zkClient, zkAcl, zkRoot) );
+//BTM - PRE_CLIENT_SERVICE - END -----------------------------------------------------------------
         } finally {
 
             clearLoggingContext();
@@ -178,21 +197,24 @@ abstract public class ClientService extends AbstractService implements
 
     }
 
-    private static class ClientTaskWrapper<T> implements Callable<T> {
-        private IBigdataFederation federation;
-        private ClientService clientService;
-        private IClientServiceCallable<T> task;
-        private ClientTaskWrapper(IBigdataFederation federation,
-                                  ClientService clientService,
-                                  IClientServiceCallable<T> task) {
-            this.federation = federation;
-            this.clientService = clientService;
-            this.task = task;
-        }
-        public T call() throws Exception {
-            return task.startClientTask(federation, clientService);
-        }
-    }
+//BTM - PRE_CLIENT_SERVICE (moved ClientTaskWrapper nested class to standalone class - com.bigdata.service.ClientTaskWrapper)
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    private static class ClientTaskWrapper<T> implements Callable<T> {
+//BTM - PRE_CLIENT_SERVICE        private IBigdataFederation federation;
+//BTM - PRE_CLIENT_SERVICE        private ClientService clientService;
+//BTM - PRE_CLIENT_SERVICE        private IClientServiceCallable<T> task;
+//BTM - PRE_CLIENT_SERVICE        private ClientTaskWrapper(IBigdataFederation federation,
+//BTM - PRE_CLIENT_SERVICE                                  ClientService clientService,
+//BTM - PRE_CLIENT_SERVICE                                  IClientServiceCallable<T> task) {
+//BTM - PRE_CLIENT_SERVICE            this.federation = federation;
+//BTM - PRE_CLIENT_SERVICE            this.clientService = clientService;
+//BTM - PRE_CLIENT_SERVICE            this.task = task;
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE        public T call() throws Exception {
+//BTM - PRE_CLIENT_SERVICE            return task.startClientTask(federation, clientService);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE    }
 
     /**
      * Extended to attach the various performance counters reported by the

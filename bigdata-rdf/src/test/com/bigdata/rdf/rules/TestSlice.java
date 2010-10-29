@@ -202,10 +202,18 @@ public class TestSlice extends AbstractRuleTestCase {
             ); 
             
             // no slice.
-            assertSameSolutions(joinNexusFactory.newInstance(
-                    store.getIndexManager()).runQuery(
-                    newRule(store, null/* slice */, foo, bar)),
-                    new IBindingSet[] { bs0, bs1, bs2 });
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            assertSameSolutions(joinNexusFactory.newInstance(
+//BTM - PRE_CLIENT_SERVICE                    store.getIndexManager()).runQuery(
+//BTM - PRE_CLIENT_SERVICE                    newRule(store, null/* slice */, foo, bar)),
+//BTM - PRE_CLIENT_SERVICE                    new IBindingSet[] { bs0, bs1, bs2 });
+            assertSameSolutions
+                (joinNexusFactory.newInstance
+                     (store.getIndexManager(),
+                      store.getConcurrencyManager(),
+                      store.getDiscoveryManager()).runQuery(newRule(store, null/* slice */, foo, bar)),
+                                                            new IBindingSet[] { bs0, bs1, bs2 });
+//BTM - PRE_CLIENT_SERVICE - END
 
             /*
              * FIXME This is failing for the pipeline join which currently DOES
@@ -220,47 +228,106 @@ public class TestSlice extends AbstractRuleTestCase {
                 log.error("Ignoring known issue.");
                 return;
             }
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            // slice(0,1).
+//BTM - PRE_CLIENT_SERVICE            assertSameSolutions(joinNexusFactory.newInstance(
+//BTM - PRE_CLIENT_SERVICE                    store.getIndexManager()).runQuery(
+//BTM - PRE_CLIENT_SERVICE                    newRule(store, new Slice(0L,1L), foo, bar)),
+//BTM - PRE_CLIENT_SERVICE                    new IBindingSet[] { bs0 });
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE            // slice(1,1).
+//BTM - PRE_CLIENT_SERVICE            assertSameSolutions(joinNexusFactory.newInstance(
+//BTM - PRE_CLIENT_SERVICE                    store.getIndexManager()).runQuery(
+//BTM - PRE_CLIENT_SERVICE                    newRule(store, new Slice(1L,1L), foo, bar)),
+//BTM - PRE_CLIENT_SERVICE                    new IBindingSet[] { bs1 });
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE            // slice(1,2).
+//BTM - PRE_CLIENT_SERVICE            assertSameSolutions(joinNexusFactory.newInstance(
+//BTM - PRE_CLIENT_SERVICE                    store.getIndexManager()).runQuery(
+//BTM - PRE_CLIENT_SERVICE                    newRule(store, new Slice(1L,2L), foo, bar)),
+//BTM - PRE_CLIENT_SERVICE                    new IBindingSet[] { bs1, bs2 });
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE            // slice(2,1).
+//BTM - PRE_CLIENT_SERVICE            assertSameSolutions(joinNexusFactory.newInstance(
+//BTM - PRE_CLIENT_SERVICE                    store.getIndexManager()).runQuery(
+//BTM - PRE_CLIENT_SERVICE                    newRule(store, new Slice(2L,1L), foo, bar)),
+//BTM - PRE_CLIENT_SERVICE                    new IBindingSet[] { bs2 });
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE            // slice(0,2).
+//BTM - PRE_CLIENT_SERVICE            assertSameSolutions(joinNexusFactory.newInstance(
+//BTM - PRE_CLIENT_SERVICE                    store.getIndexManager()).runQuery(
+//BTM - PRE_CLIENT_SERVICE                    newRule(store, new Slice(0L,2L), foo, bar)),
+//BTM - PRE_CLIENT_SERVICE                    new IBindingSet[] { bs0, bs1 });
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE            // slice(0,4).
+//BTM - PRE_CLIENT_SERVICE            assertSameSolutions(joinNexusFactory.newInstance(
+//BTM - PRE_CLIENT_SERVICE                    store.getIndexManager()).runQuery(
+//BTM - PRE_CLIENT_SERVICE                    newRule(store, new Slice(0L,4L), foo, bar)),
+//BTM - PRE_CLIENT_SERVICE                    new IBindingSet[] { bs0, bs1, bs2 });
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE//BTM - PRE_CLIENT_SERVICE            // slice(2,2).
+//BTM - PRE_CLIENT_SERVICE            assertSameSolutions(joinNexusFactory.newInstance(
+//BTM - PRE_CLIENT_SERVICE                    store.getIndexManager()).runQuery(
+//BTM - PRE_CLIENT_SERVICE                    newRule(store, new Slice(2L,2L), foo, bar)),
+//BTM - PRE_CLIENT_SERVICE                    new IBindingSet[] { bs2 });
+//BTM - PRE_CLIENT_SERVICE
             // slice(0,1).
-            assertSameSolutions(joinNexusFactory.newInstance(
-                    store.getIndexManager()).runQuery(
-                    newRule(store, new Slice(0L,1L), foo, bar)),
-                    new IBindingSet[] { bs0 });
+            assertSameSolutions
+                (joinNexusFactory.newInstance
+                     (store.getIndexManager(),
+                      store.getConcurrencyManager(),
+                      store.getDiscoveryManager()).runQuery(newRule(store, new Slice(0L,1L), foo, bar)),
+                                                            new IBindingSet[] { bs0 });
             
             // slice(1,1).
-            assertSameSolutions(joinNexusFactory.newInstance(
-                    store.getIndexManager()).runQuery(
-                    newRule(store, new Slice(1L,1L), foo, bar)),
-                    new IBindingSet[] { bs1 });
+            assertSameSolutions
+                (joinNexusFactory.newInstance
+                     (store.getIndexManager(),
+                      store.getConcurrencyManager(),
+                      store.getDiscoveryManager()).runQuery(newRule(store, new Slice(1L,1L), foo, bar)),
+                                                            new IBindingSet[] { bs1 });
             
             // slice(1,2).
-            assertSameSolutions(joinNexusFactory.newInstance(
-                    store.getIndexManager()).runQuery(
-                    newRule(store, new Slice(1L,2L), foo, bar)),
-                    new IBindingSet[] { bs1, bs2 });
+            assertSameSolutions
+                (joinNexusFactory.newInstance
+                     (store.getIndexManager(),
+                      store.getConcurrencyManager(),
+                      store.getDiscoveryManager()).runQuery(newRule(store, new Slice(1L,2L), foo, bar)),
+                                                            new IBindingSet[] { bs1, bs2 });
             
             // slice(2,1).
-            assertSameSolutions(joinNexusFactory.newInstance(
-                    store.getIndexManager()).runQuery(
-                    newRule(store, new Slice(2L,1L), foo, bar)),
-                    new IBindingSet[] { bs2 });
+            assertSameSolutions
+                (joinNexusFactory.newInstance
+                     (store.getIndexManager(),
+                      store.getConcurrencyManager(),
+                      store.getDiscoveryManager()).runQuery(newRule(store, new Slice(2L,1L), foo, bar)),
+                                                            new IBindingSet[] { bs2 });
             
             // slice(0,2).
-            assertSameSolutions(joinNexusFactory.newInstance(
-                    store.getIndexManager()).runQuery(
-                    newRule(store, new Slice(0L,2L), foo, bar)),
-                    new IBindingSet[] { bs0, bs1 });
+            assertSameSolutions
+                (joinNexusFactory.newInstance
+                     (store.getIndexManager(),
+                      store.getConcurrencyManager(),
+                      store.getDiscoveryManager()).runQuery(newRule(store, new Slice(0L,2L), foo, bar)),
+                                                            new IBindingSet[] { bs0, bs1 });
             
             // slice(0,4).
-            assertSameSolutions(joinNexusFactory.newInstance(
-                    store.getIndexManager()).runQuery(
-                    newRule(store, new Slice(0L,4L), foo, bar)),
-                    new IBindingSet[] { bs0, bs1, bs2 });
+            assertSameSolutions
+                (joinNexusFactory.newInstance
+                     (store.getIndexManager(),
+                      store.getConcurrencyManager(),
+                      store.getDiscoveryManager()).runQuery(newRule(store, new Slice(0L,4L), foo, bar)),
+                                                            new IBindingSet[] { bs0, bs1, bs2 });
 
             // slice(2,2).
-            assertSameSolutions(joinNexusFactory.newInstance(
-                    store.getIndexManager()).runQuery(
-                    newRule(store, new Slice(2L,2L), foo, bar)),
-                    new IBindingSet[] { bs2 });
+            assertSameSolutions
+                (joinNexusFactory.newInstance
+                     (store.getIndexManager(),
+                      store.getConcurrencyManager(),
+                      store.getDiscoveryManager()).runQuery(newRule(store, new Slice(2L,2L), foo, bar)),
+                                                            new IBindingSet[] { bs2 });
+//BTM - PRE_CLIENT_SERVICE - END
+
 
         } finally {
 

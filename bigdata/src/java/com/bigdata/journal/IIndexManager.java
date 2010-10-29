@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.journal;
 
 import com.bigdata.btree.IndexMetadata;
+import java.util.UUID;
 
 /**
  * Interface for managing named indices.
@@ -38,35 +39,35 @@ import com.bigdata.btree.IndexMetadata;
 public interface IIndexManager extends IIndexStore {
 
     /**
-     * Register a named index.
-     * <p>
-     * Note: The <i>name</i> property MUST be set on the {@link IndexMetadata}
-     * and the index will be registered under that name.
+     * Register a named index; where the name under which the index will
+     * registered MUST be specified by the given <code>IndexMetadata</code>.
      * 
      * @param indexMetadata
      *            The metadata describing the index.
      * 
-     * @throws IllegalArgumentException
-     *             if the argument is <code>null</code>.
-     * @throws IllegalArgumentException
-     *             if the name argument was not specified when the
-     *             {@link IndexMetadata} was created.
+     * @throws NullPointerException
+     *             if the <code>null</code> is input for
+     *             <code>indexMetadata</code> or if the name under which
+     *             to register the index is not specified in the
+     *             <code>indexMetadata</code> parameter.
      * 
      * @exception IndexExistsException
      *                if there is an index already registered under the name
-     *                returned by {@link IndexMetadata#getName()}. Use
-     *                {@link IIndexStore#getIndex(String)} to test whether there
-     *                is an index registered under a given name.
+     *                returned by <code>IndexMetadata#getName</code>. Note
+     *                that <code>IIndexStore#getIndex(String)</code> can be
+     *                used to determine whether there is an index already
+     *                registered under a given name.
      */
-    public void registerIndex(IndexMetadata indexMetadata);
+    void registerIndex(IndexMetadata indexMetadata);
 
     /**
      * Drops the named index.
      * <p>
-     * Note: Whether or not and when index resources are reclaimed is dependent
-     * on the store. For example, an immortal store will retain all historical
-     * states for all indices. Likewise, a store that uses index partitions may
-     * be able to delete index segments immediately.
+     * Note: Whether or not and when index resources are reclaimed is
+     *       dependent on the store. For example, an immortal store will
+     *       retain all historical states for all indices. Likewise, a
+     *       store that uses index partitions may be able to delete index
+     *       segments immediately.
      * 
      * @param name
      *            The name of the index to be dropped.
@@ -74,6 +75,5 @@ public interface IIndexManager extends IIndexStore {
      * @exception NoSuchIndexException
      *                if <i>name</i> does not identify a registered index.
      */
-    public void dropIndex(String name);
-    
+    public void dropIndex(String name);   
 }

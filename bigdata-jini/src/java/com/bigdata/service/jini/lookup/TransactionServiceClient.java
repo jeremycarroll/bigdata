@@ -31,11 +31,16 @@ import java.rmi.RemoteException;
 
 import net.jini.core.lookup.ServiceTemplate;
 
-//BTMimport com.bigdata.journal.ITransactionService;
-import com.bigdata.service.jini.JiniFederation;
+//BTM import com.bigdata.journal.ITransactionService;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
 
 //BTM
 import com.bigdata.journal.TransactionService;
+
+//BTM - FOR_CLIENT_SERVICE
+import net.jini.lookup.ServiceDiscoveryManager;
+import net.jini.lookup.ServiceDiscoveryListener;
+import java.util.UUID;
 
 /**
  * Client manages discovery of a transaction service.
@@ -46,14 +51,29 @@ import com.bigdata.journal.TransactionService;
 public class TransactionServiceClient extends
         BigdataCachingServiceClient<TransactionService> {
 
-    public TransactionServiceClient(final JiniFederation fed, final long timeout)
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public TransactionServiceClient(final JiniFederation fed, final long timeout)
+//BTM - PRE_CLIENT_SERVICE            throws RemoteException {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(fed, TransactionService.class, new ServiceTemplate(null,
+//BTM - PRE_CLIENT_SERVICE                new Class[] { TransactionService.class }, null),
+//BTM - PRE_CLIENT_SERVICE                null/* filter */, timeout);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+    public TransactionServiceClient(final ServiceDiscoveryManager sdm,
+                                    final ServiceDiscoveryListener listener,
+                                    final UUID serviceUUID,
+                                    final Object serviceRef,
+                                    final long timeout)
             throws RemoteException {
 
-        super(fed, TransactionService.class, new ServiceTemplate(null,
-                new Class[] { TransactionService.class }, null),
-                null/* filter */, timeout);
-
+        super(sdm, listener, serviceUUID, serviceRef,
+              TransactionService.class,
+              new ServiceTemplate(null, new Class[] {TransactionService.class}, null),
+              null, //filter
+              timeout);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Return the transaction service from the cache -or-

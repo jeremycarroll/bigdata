@@ -59,6 +59,12 @@ import org.apache.zookeeper.KeeperException;
 import com.bigdata.rdf.load.MappedRDFDataLoadMaster;
 import com.bigdata.service.jini.util.JiniServicesHelper;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.jini.IJiniDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.service.jini.JiniFederation;
+
 /**
  * Unit tests for the {@link MappedTaskMaster}.
  * 
@@ -152,7 +158,18 @@ public class TestMappedRDFDataLoadMaster extends TestCase2 {
 
             helper.start();
 
-            new MappedRDFDataLoadMaster(helper.getFederation()).execute();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            new MappedRDFDataLoadMaster(helper.getFederation()).execute();
+            JiniFederation fed = helper.getFederation();
+            new MappedRDFDataLoadMaster
+                    ( (IScaleOutIndexManager)fed,
+                      (IJiniDiscoveryManagement)fed,
+                      (ILocalResourceManagement)fed,
+                      fed.getZookeeperAccessor(),
+                      fed.getZooConfig().acl,
+                      fed.getZooConfig().zroot,
+                      fed.getClient().getConfiguration() ).execute();
+//BTM - PRE_CLIENT_SERVICE - END
 
         } finally {
 

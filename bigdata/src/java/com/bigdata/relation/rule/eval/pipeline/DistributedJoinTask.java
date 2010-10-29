@@ -29,8 +29,8 @@ import com.bigdata.relation.rule.eval.ActionEnum;
 import com.bigdata.relation.rule.eval.IJoinNexus;
 import com.bigdata.relation.rule.eval.IRuleState;
 import com.bigdata.relation.rule.eval.ISolution;
-import com.bigdata.service.AbstractDistributedFederation;
-import com.bigdata.service.AbstractScaleOutFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractDistributedFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
 //BTM import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
 //BTM import com.bigdata.service.IDataService;
@@ -43,6 +43,15 @@ import com.bigdata.service.IService;
 import com.bigdata.service.Service;
 import com.bigdata.service.ShardManagement;
 import com.bigdata.service.ShardService;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.journal.ScaleOutIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.util.Util;
+import java.rmi.server.ExportException;
 
 /**
  * Implementation used by scale-out deployments. There will be one instance
@@ -67,7 +76,16 @@ public class DistributedJoinTask extends JoinTask {
     /**
      * The federation is used to obtain locator scans for the access paths.
      */
-    final protected AbstractScaleOutFederation fed;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE     final protected AbstractScaleOutFederation fed;
+    private IIndexManager indexMgr;
+    private ScaleOutIndexManager scaleOutIndexMgr;
+    private ILocalResourceManagement localResourceMgr;
+    private IBigdataDiscoveryManagement discoveryMgr;
+    private final Session dataServiceSession;
+    private final String dataServiceHostname;
+    private final String dataServiceName;
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * The {@link IJoinNexus} for the {@link IBigdataFederation}. This is
@@ -120,10 +138,7 @@ public class DistributedJoinTask extends JoinTask {
      * remove the entry for the task from {@link ShardService#getSession()}.
      */
 //BTM    private final DataService dataService;
-private final Session dataServiceSession;
-private final String dataServiceHostname;
-private final String dataServiceName;
-    
+
     /**
      * The {@link JoinTaskSink}s for the downstream
      * {@link DistributedJoinTask}s onto which the generated
@@ -136,57 +151,116 @@ private final String dataServiceName;
      */
     final private Map<PartitionLocator, JoinTaskSink> sinkCache;
 
-    public DistributedJoinTask(
-//            final String scaleOutIndexName,
-            final IRule rule,//
-            final IJoinNexus joinNexus,//
-            final int[] order,//
-            final int orderIndex,//
-            final int partitionId,//
-            final AbstractScaleOutFederation fed,//
-            final IJoinMaster master,//
-            final UUID masterUUID,//
-            final IAsynchronousIterator<IBindingSet[]> src,//
-            final IKeyOrder[] keyOrders,//
-//BTM            final DataService dataService,//
-final Session dataServiceSession,
-final String dataServiceHostname,
-final String dataServiceName,
-            final IVariable[][] requiredVars//
-            ) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE     public DistributedJoinTask(
+//BTM - PRE_CLIENT_SERVICE //            final String scaleOutIndexName,
+//BTM - PRE_CLIENT_SERVICE             final IRule rule,//
+//BTM - PRE_CLIENT_SERVICE             final IJoinNexus joinNexus,//
+//BTM - PRE_CLIENT_SERVICE             final int[] order,//
+//BTM - PRE_CLIENT_SERVICE             final int orderIndex,//
+//BTM - PRE_CLIENT_SERVICE             final int partitionId,//
+//BTM - PRE_CLIENT_SERVICE             final AbstractScaleOutFederation fed,//
+//BTM - PRE_CLIENT_SERVICE             final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE             final ILocalResourceManagement localResourceManager,
+//BTM - PRE_CLIENT_SERVICE             final IBigdataDiscoveryManagement discoveryManager,
+//BTM - PRE_CLIENT_SERVICE             final IJoinMaster master,//
+//BTM - PRE_CLIENT_SERVICE             final UUID masterUUID,//
+//BTM - PRE_CLIENT_SERVICE             final IAsynchronousIterator<IBindingSet[]> src,//
+//BTM - PRE_CLIENT_SERVICE             final IKeyOrder[] keyOrders,//
+//BTM - PRE_CLIENT_SERVICE //BTM            final DataService dataService,//
+//BTM - PRE_CLIENT_SERVICE             final Session dataServiceSession,
+//BTM - PRE_CLIENT_SERVICE             final String dataServiceHostname,
+//BTM - PRE_CLIENT_SERVICE             final String dataServiceName,
+//BTM - PRE_CLIENT_SERVICE             final IVariable[][] requiredVars//
+//BTM - PRE_CLIENT_SERVICE             ) {
+
+    public DistributedJoinTask
+               (final IRule rule,
+                final IJoinNexus joinNexus,
+                final int[] order,
+                final int orderIndex,
+                final int partitionId,
+                final IIndexManager indexManager,
+                final ILocalResourceManagement localResourceManager,
+                final IBigdataDiscoveryManagement discoveryManager,
+                final IConcurrencyManager concurrencyManager,
+                final IJoinMaster master,
+                final UUID masterUUID,
+                final IAsynchronousIterator<IBindingSet[]> src,
+                final IKeyOrder[] keyOrders,
+                final IVariable[][] requiredVars)
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         super(
                 /*com.bigdata.util.Util.getIndexPartitionName(scaleOutIndexName,
                         partitionId),*/ rule, joinNexus, order, orderIndex,
                 partitionId, master, masterUUID, requiredVars);
 
-        if (fed == null)
-            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE         if (fed == null)
+//BTM - PRE_CLIENT_SERVICE             throw new IllegalArgumentException();
+
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (src == null)
             throw new IllegalArgumentException();
 
 //BTM        if (dataService == null)
 //BTM            throw new IllegalArgumentException();
-if (dataServiceSession == null) {
-    throw new IllegalArgumentException("null dataServiceSession");
-}
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE if (dataServiceSession == null) {
+//BTM - PRE_CLIENT_SERVICE     throw new IllegalArgumentException("null dataServiceSession");
+//BTM - PRE_CLIENT_SERVICE }
+        if (indexManager == null) {
+            throw new IllegalArgumentException("null indexManager");
+        }
+        if (localResourceManager == null) {
+            throw new IllegalArgumentException("null localResourceManager");
+        }
+        if (discoveryManager == null) {
+            throw new IllegalArgumentException("null discoveryManager");
+        }
+//BTM - PRE_CLIENT_SERVICE - END
 
         // Note: This MUST be the index manager for the local data service.
-        if(joinNexus instanceof IBigdataFederation)
-            throw new IllegalArgumentException();
-        
-        this.fed = fed;
+        if(joinNexus instanceof IBigdataFederation) {
+            throw new IllegalArgumentException
+                          ("joinNexus is instance of IBigdataFederation");
+        }
+
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE         this.fed = fed;
+        this.indexMgr = indexManager;
+        this.scaleOutIndexMgr = 
+            (this.indexMgr instanceof ScaleOutIndexManager ?
+                 (ScaleOutIndexManager)(this.indexMgr) : null);
+        this.localResourceMgr = localResourceManager;
+        this.discoveryMgr = discoveryManager;
+//BTM - PRE_CLIENT_SERVICE - END
 
         this.keyOrders = keyOrders;
 
-//BTM        this.dataService = dataService;
-this.dataServiceSession = dataServiceSession;
-this.dataServiceHostname = (dataServiceHostname == null ? "UNKNOWN" : dataServiceHostname);
-this.dataServiceName = (dataServiceName == null ? "UNKNOWN" : dataServiceName);
-        
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE //BTM        this.dataService = dataService;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE this.dataServiceSession = dataServiceSession;
+//BTM - PRE_CLIENT_SERVICE this.dataServiceHostname = (dataServiceHostname == null ? "UNKNOWN" : dataServiceHostname);
+//BTM - PRE_CLIENT_SERVICE this.dataServiceName = (dataServiceName == null ? "UNKNOWN" : dataServiceName);
+
+        this.dataServiceSession = (this.localResourceMgr).getSession();
+        String hostname = (this.localResourceMgr).getHostname();
+        this.dataServiceHostname = (hostname == null ? "UNKNOWN" : hostname);
+        String serviceName = (this.localResourceMgr).getServiceName();
+        this.dataServiceName = (serviceName == null ? "UNKNOWN" : serviceName);
+//BTM - PRE_CLIENT_SERVICE - END
+
         // This is the index manager for the federation (scale-out indices).
-        this.fedJoinNexus = joinNexus.getJoinNexusFactory().newInstance(fed);
+//BTM - PRE_CLIENT_SERVICE  this.fedJoinNexus = joinNexus.getJoinNexusFactory().newInstance(fed);
+        this.fedJoinNexus =
+            joinNexus.getJoinNexusFactory().newInstance(this.indexMgr,
+                                                        concurrencyManager,
+                                                        this.discoveryMgr);
 
         if (lastJoin) {
 
@@ -759,8 +833,13 @@ dataServiceSession.remove(namespace, this);
              * shard service which hosts that index partition.
              */
 
-            unsyncOutputBuffer = new UnsyncDistributedOutputBuffer<IBindingSet>(
-                    fed, this, chunkCapacity);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            unsyncOutputBuffer = new UnsyncDistributedOutputBuffer<IBindingSet>(
+//BTM - PRE_CLIENT_SERVICE                    fed, this, chunkCapacity);
+            unsyncOutputBuffer =
+                new UnsyncDistributedOutputBuffer<IBindingSet>
+                        (scaleOutIndexMgr, this, chunkCapacity);
+//BTM - PRE_CLIENT_SERVICE - END
 
         }
 
@@ -862,9 +941,9 @@ dataServiceSession.remove(namespace, this);
 
                 }
 
-                final List<Future<Void>> futures = fed.getExecutorService()
-                        .invokeAll(tasks);
-
+//BTM - PRE_CLIENT_SERVICE  final List<Future<Void>> futures = fed.getExecutorService().invokeAll(tasks);
+                final List<Future<Void>> futures =
+                          localResourceMgr.getThreadPool().invokeAll(tasks);
                 for (Future f : futures) {
 
                     // make sure that all tasks were successful.
@@ -1092,25 +1171,29 @@ dataServiceSession.remove(namespace, this);
                             + locator.getPartitionId());
 
                 final UUID sinkUUID = locator.getDataServiceUUID();
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 //BTM                final IDataService dataService;
-final ShardService dataService;
-                if (sinkUUID.equals(fed.getServiceUUID())) {
+//BTM - PRE_CLIENT_SERVICE final ShardService dataService;
+//BTM - PRE_CLIENT_SERVICE                 if (sinkUUID.equals(fed.getServiceUUID())) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE 				/*
+//BTM - PRE_CLIENT_SERVICE 				 * As an optimization, special case when the downstream
+//BTM - PRE_CLIENT_SERVICE 				 * data service is _this_ data service.
+//BTM - PRE_CLIENT_SERVICE 				 */
+//BTM - PRE_CLIENT_SERVICE //BTM                	dataService = (IDataService)fed.getService();
+//BTM - PRE_CLIENT_SERVICE dataService = (ShardService)fed.getService();
+//BTM - PRE_CLIENT_SERVICE                     
+//BTM - PRE_CLIENT_SERVICE                 } else {
+//BTM - PRE_CLIENT_SERVICE                 
+//BTM - PRE_CLIENT_SERVICE                 	dataService = fed.getDataService(sinkUUID);
+//BTM - PRE_CLIENT_SERVICE                 	
+//BTM - PRE_CLIENT_SERVICE                 }
+                 final ShardService dataService =
+                                        discoveryMgr.getDataService(sinkUUID);
 
-				/*
-				 * As an optimization, special case when the downstream
-				 * data service is _this_ data service.
-				 */
-//BTM                	dataService = (IDataService)fed.getService();
-dataService = (ShardService)fed.getService();
-                    
-                } else {
-                
-                	dataService = fed.getDataService(sinkUUID);
-                	
-                }
-
-                sink = new JoinTaskSink(fed, locator, this);
+//BTM - PRE_CLIENT_SERVICE                sink = new JoinTaskSink(fed, locator, this);
+                sink = new JoinTaskSink(locator, this);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 /*
                  * Export async iterator proxy.
@@ -1119,18 +1202,33 @@ dataService = (ShardService)fed.getService();
                  * source JoinTask(s).
                  */
                 final IAsynchronousIterator<IBindingSet[]> sourceItrProxy;
-                if (fed.isDistributed()) {
-
-                    sourceItrProxy = ((AbstractDistributedFederation) fed)
-                            .getProxy(sink.blockingBuffer.iterator(), joinNexus
-                                    .getBindingSetSerializer(), joinNexus
-                                    .getChunkOfChunksCapacity());
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                if (fed.isDistributed()) {
+//BTM - PRE_CLIENT_SERVICE                    sourceItrProxy = ((AbstractDistributedFederation) fed)
+//BTM - PRE_CLIENT_SERVICE                            .getProxy(sink.blockingBuffer.iterator(), joinNexus
+//BTM - PRE_CLIENT_SERVICE                                    .getBindingSetSerializer(), joinNexus
+//BTM - PRE_CLIENT_SERVICE                                    .getChunkOfChunksCapacity());
+//BTM - PRE_CLIENT_SERVICE                } else {
+//BTM - PRE_CLIENT_SERVICE                    sourceItrProxy = sink.blockingBuffer.iterator();
+//BTM - PRE_CLIENT_SERVICE                }
+//BTM - PRE_CLIENT_SERVICE
+                if (indexMgr instanceof ScaleOutIndexManager) {
+                    //scaleout ==> distributed
+                    try {
+                        sourceItrProxy = 
+                            Util.wrapIterator
+                                 (sink.blockingBuffer.iterator(),
+                                  joinNexus.getBindingSetSerializer(),
+                                  joinNexus.getChunkOfChunksCapacity());
+                    } catch(ExportException e) {// maintain original behavior?
+                        throw new RuntimeException
+                           ("DistributedJoinTask.getSink: "
+                            +"failed on export of iterator wrapper", e);
+                    }
                 } else {
-
                     sourceItrProxy = sink.blockingBuffer.iterator();
-
                 }
+//BTM - PRE_CLIENT_SERVICE - END
 
                 // the future for the factory task (not the JoinTask).
                 final Future factoryFuture;
@@ -1195,32 +1293,7 @@ factoryFuture = ((ShardManagement)dataService).submit(factoryTask);
 //BTM                + dataService.getServiceName() + ", joinTask=" + toString()
 //BTM                + ", rule=" + rule, t);
 
-/* ***********************************************************************
-** BTM - try #1: REPLACED if-block below with the line that follows,
-**               after getDataService method removed from 
-**               IDataServiceCallable and DataServiceCallable
-
-if(dataService != null) {
-    String hostname = null;
-    String serviceName = null;
-    if(dataService instanceof IService) {
-        try {
-            hostname = ((IService)dataService).getHostname();
-            serviceName = ((IService)dataService).getServiceName();
-        } catch(IOException e) {
-            log.error("hostname=UNKNOWN, serviceName=UNKNOWN, joinTask=" + toString() + ", rule=" + rule, t);
-        }
-    } else {
-        hostname = ((Service)dataService).getHostname();
-        serviceName = ((Service)dataService).getServiceName();
-    }
-    log.error("hostname=" + hostname + ", serviceName=" + serviceName + ", joinTask=" + toString() + ", rule=" + rule, t);
-} else {
-    log.error("null shard service reference");
-}  
-END REPLACE *********************************************************** */
-
-//BTM - try #2
+//BTM - FOR_CLIENT_SERVICE
 log.error("hostname=" + dataServiceHostname + ", serviceName=" + dataServiceName + ", joinTask=" + toString() + ", rule=" + rule, t);
 
     }

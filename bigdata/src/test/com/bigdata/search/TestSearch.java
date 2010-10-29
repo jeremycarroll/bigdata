@@ -116,8 +116,16 @@ public class TestSearch extends ProxyTestCase<IIndexManager> {
             // setup and populate the index.
             {
                 
-                ndx = new FullTextIndex(indexManager, NAMESPACE,
-                        ITx.UNISOLATED, properties );
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                ndx = new FullTextIndex(indexManager, NAMESPACE,
+//BTM - PRE_CLIENT_SERVICE                        ITx.UNISOLATED, properties );
+                ndx = new FullTextIndex(indexManager,
+                                        null, //IConcurrencyManager
+                                        null, //IBigdataDiscoveryManagement
+                                        NAMESPACE,
+                                        ITx.UNISOLATED,
+                                        properties );
+//BTM - PRE_CLIENT_SERVICE - END
 
                 ndx.create();
 

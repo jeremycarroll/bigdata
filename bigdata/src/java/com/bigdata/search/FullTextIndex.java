@@ -87,6 +87,10 @@ import com.bigdata.service.IBigdataClient;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.util.concurrent.ExecutionHelper;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * Full text indexing and search support.
  * <p>
@@ -406,11 +410,24 @@ public class FullTextIndex extends AbstractRelation {
      *       #of entries) are reasonable. The #of entries per split could be
      *       smaller if we know that we are storing more data in the values.
      */
-    public FullTextIndex(final IIndexManager indexManager,
-            final String namespace, final Long timestamp,
-            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public FullTextIndex(final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            final String namespace, final Long timestamp,
+//BTM - PRE_CLIENT_SERVICE            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
 
-        super(indexManager, namespace, timestamp, properties);
+    public FullTextIndex(final IIndexManager indexManager,
+                         final IConcurrencyManager concurrencyManager,
+                         final IBigdataDiscoveryManagement discoveryManager,
+                         final String namespace,
+                         final Long timestamp,
+                         final Properties properties)
+    {
+        super(indexManager, concurrencyManager, discoveryManager,
+              namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+
         
         // indexer.overwrite
         {

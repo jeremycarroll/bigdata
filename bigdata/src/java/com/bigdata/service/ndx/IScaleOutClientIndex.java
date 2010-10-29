@@ -36,10 +36,13 @@ import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.AbstractScaleOutFederation;
-//BTM import com.bigdata.service.IDataService;
-
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.ShardService;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexStore;
+import com.bigdata.resources.ILocalResourceManagement;
 
 /**
  * A client-side view of a scale-out index.
@@ -62,8 +65,7 @@ public interface IScaleOutClientIndex extends IClientIndex, ISplitter,
      *             if none of the data services identified in the index
      *             partition locator record could be discovered.
      */
-//BTM    IDataService getDataService(final PartitionLocator pmd);
-ShardService getDataService(final PartitionLocator pmd);
+    ShardService getDataService(final PartitionLocator pmd);
 
     /**
      * Returns an iterator that will visit the {@link PartitionLocator}s for
@@ -140,6 +142,16 @@ ShardService getDataService(final PartitionLocator pmd);
      * Return the object used to access the services in the connected
      * federation.
      */
-    AbstractScaleOutFederation getFederation();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    AbstractScaleOutFederation getFederation();
+
+    IBigdataDiscoveryManagement getDiscoveryManager();
+
+    ILocalResourceManagement getLocalResourceManager();
+
+    IScaleOutIndexStore getIndexStore();
+
+    int getMaxStaleLocatorRetries();
+//BTM - PRE_CLIENT_SERVICE - END
 
 }

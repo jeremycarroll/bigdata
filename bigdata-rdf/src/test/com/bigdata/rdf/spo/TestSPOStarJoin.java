@@ -154,9 +154,15 @@ public class TestSPOStarJoin extends AbstractTripleStoreTestCase {
                             false, // backchain
                             planFactory//
                     );
-
-            final IJoinNexus joinNexus = joinNexusFactory.newInstance(store
-                    .getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IJoinNexus joinNexus = joinNexusFactory.newInstance(store
+//BTM - PRE_CLIENT_SERVICE                    .getIndexManager());
+            final IJoinNexus joinNexus =
+                  joinNexusFactory.newInstance
+                      (store.getIndexManager(),
+                       store.getConcurrencyManager(),
+                       store.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
 
             final IChunkedOrderedIterator<ISolution> itr1 = 
                 joinNexus.runQuery(rule);
@@ -307,8 +313,15 @@ public class TestSPOStarJoin extends AbstractTripleStoreTestCase {
                             planFactory//
                     );
 
-            final IJoinNexus joinNexus = joinNexusFactory.newInstance(store
-                    .getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IJoinNexus joinNexus = joinNexusFactory.newInstance(store
+//BTM - PRE_CLIENT_SERVICE                    .getIndexManager());
+            final IJoinNexus joinNexus =
+                  joinNexusFactory.newInstance
+                      (store.getIndexManager(),
+                       store.getConcurrencyManager(),
+                       store.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
 
             final IChunkedOrderedIterator<ISolution> itr1 = 
                 joinNexus.runQuery(rule);

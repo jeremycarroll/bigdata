@@ -106,10 +106,24 @@ abstract public class AbstractRuleTestCase extends AbstractInferenceEngineTestCa
         // run as query.
         {
 
-            final IJoinNexus joinNexus = db.newJoinNexusFactory(
-                    RuleContextEnum.HighLevelQuery, ActionEnum.Query,
-                    IJoinNexus.ALL, filter, justify, backchain, planFactory)
-                    .newInstance(db.getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IJoinNexus joinNexus = db.newJoinNexusFactory(
+//BTM - PRE_CLIENT_SERVICE                    RuleContextEnum.HighLevelQuery, ActionEnum.Query,
+//BTM - PRE_CLIENT_SERVICE                    IJoinNexus.ALL, filter, justify, backchain, planFactory)
+//BTM - PRE_CLIENT_SERVICE                    .newInstance(db.getIndexManager());
+            final IJoinNexus joinNexus =
+                      db.newJoinNexusFactory
+                          (RuleContextEnum.HighLevelQuery,
+                           ActionEnum.Query,
+                           IJoinNexus.ALL,
+                           filter,
+                           justify,
+                           backchain,
+                           planFactory).newInstance(db.getIndexManager(),
+                                                    db.getConcurrencyManager(),
+                                                    db.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
+
 
             long n = 0;
             
@@ -152,10 +166,23 @@ abstract public class AbstractRuleTestCase extends AbstractInferenceEngineTestCa
         // run as insert.
         {
 
-            final IJoinNexus joinNexus = db.newJoinNexusFactory(
-                    RuleContextEnum.DatabaseAtOnceClosure, ActionEnum.Insert,
-                    IJoinNexus.ALL, filter, justify, backchain, planFactory)
-                    .newInstance(db.getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IJoinNexus joinNexus = db.newJoinNexusFactory(
+//BTM - PRE_CLIENT_SERVICE                    RuleContextEnum.DatabaseAtOnceClosure, ActionEnum.Insert,
+//BTM - PRE_CLIENT_SERVICE                    IJoinNexus.ALL, filter, justify, backchain, planFactory)
+//BTM - PRE_CLIENT_SERVICE                    .newInstance(db.getIndexManager());
+            final IJoinNexus joinNexus =
+                      db.newJoinNexusFactory
+                          (RuleContextEnum.DatabaseAtOnceClosure,
+                           ActionEnum.Insert,
+                           IJoinNexus.ALL,
+                           filter,
+                           justify,
+                           backchain,
+                           planFactory).newInstance(db.getIndexManager(),
+                                                    db.getConcurrencyManager(),
+                                                    db.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
 
             final long actualMutationCount = joinNexus.runMutation(rule);
 

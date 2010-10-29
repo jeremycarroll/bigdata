@@ -85,8 +85,8 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.accesspath.IRunnableBuffer;
 import com.bigdata.relation.accesspath.UnsynchronizedArrayBuffer;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.AbstractScaleOutFederation;
-import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
 //BTM import com.bigdata.service.IDataService;
 //BTM import com.bigdata.service.IMetadataService;
 import com.bigdata.service.Split;
@@ -102,6 +102,11 @@ import com.bigdata.util.concurrent.MappedTaskExecutor;
 //BTM
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardService;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexStore;
+import com.bigdata.resources.ILocalResourceManagement;
 
 /**
  * <p>
@@ -162,7 +167,6 @@ import com.bigdata.service.ShardService;
  *       against which the parallelized operation must be mapped.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class ClientIndexView implements IScaleOutClientIndex {
 
@@ -194,21 +198,47 @@ public class ClientIndexView implements IScaleOutClientIndex {
      */
     static protected final transient String ERR_ABORT_TX = "Could not abort transaction: tx=";
     
-    private final AbstractScaleOutFederation fed;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    private final AbstractScaleOutFederation fed;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    public AbstractScaleOutFederation getFederation() {
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        return fed;
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE
 
-    public AbstractScaleOutFederation getFederation() {
-        
-        return fed;
-        
+    private IBigdataDiscoveryManagement discoveryManager;
+    private ILocalResourceManagement localResourceManager;
+    private IScaleOutIndexStore indexStore;
+    private int maxParallelTasksPerRequest;
+    private int maxStaleLocatorRetries;
+
+    // Required by IScaleOutClientIndex
+
+    public IBigdataDiscoveryManagement getDiscoveryManager() {
+        return discoveryManager;
     }
+
+    public ILocalResourceManagement getLocalResourceManager() {
+        return localResourceManager;
+    }
+
+    public IScaleOutIndexStore getIndexStore() {
+        return indexStore;
+    }
+
+    public int getMaxStaleLocatorRetries() {
+        return maxStaleLocatorRetries;
+    }
+//BTM - PRE_CLIENT_SERVICE - END
     
     /**
      * The thread pool exposed by {@link IBigdataFederation#getExecutorService()}
      */
     protected ThreadPoolExecutor getThreadPool() {
-
-        return (ThreadPoolExecutor) fed.getExecutorService();
-
+//BTM - PRE_CLIENT_SERVICE        return (ThreadPoolExecutor) fed.getExecutorService();
+        return (ThreadPoolExecutor) localResourceManager.getThreadPool();
     }
 
     /**
@@ -278,11 +308,10 @@ public class ClientIndexView implements IScaleOutClientIndex {
      * Obtain the proxy for a metadata service. if this instance fails, then we
      * can always ask for a new instance for the same federation (failover).
      */
-//BTM    final protected IMetadataService getMetadataService() {
-final protected ShardLocator getMetadataService() {
+    final protected ShardLocator getMetadataService() {
         
-        return fed.getMetadataService();
-        
+//BTM - PRE_CLIENT_SERVICE        return fed.getMetadataService();
+        return discoveryManager.getMetadataService();
     }
 
     /**
@@ -384,12 +413,46 @@ final protected ShardLocator getMetadataService() {
      *            object contains the template {@link IndexMetadata} for the
      *            scale-out index partitions.
      */
-    public ClientIndexView(final AbstractScaleOutFederation fed,
-            final String name, final long timestamp,
-            final IMetadataIndex metadataIndex) {
-
-        if (fed == null)
-            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public ClientIndexView(final AbstractScaleOutFederation fed,
+//BTM - PRE_CLIENT_SERVICE            final String name, final long timestamp,
+//BTM - PRE_CLIENT_SERVICE            final IMetadataIndex metadataIndex) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        if (fed == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+    public ClientIndexView
+               (final IBigdataDiscoveryManagement discoveryManager,
+                final ILocalResourceManagement localResourceManager,
+                final IScaleOutIndexStore indexStore,
+                final String name,
+                final long timestamp,
+                final IMetadataIndex metadataIndex,
+                      int defaultRangeQueryCapacity,
+                      boolean batchApiOnly,
+                      long taskTimeout,
+                      int maxParallelTasksPerRequest,
+                      int maxStaleLocatorRetries)
+    {
+        if (discoveryManager == null) {
+            throw new NullPointerException("null discoveryManager");
+        }
+        if (localResourceManager == null) {
+            throw new NullPointerException("null localResourceManager");
+        }
+        if (indexStore == null) {
+            throw new NullPointerException("null indexStore");
+        }
+        if (maxParallelTasksPerRequest <= 0) {
+            throw new IllegalArgumentException
+                          ("non-positive maxParallelTasksPerRequest "
+                           +"["+maxParallelTasksPerRequest+"]");
+        }
+        if (maxStaleLocatorRetries < 0) {
+            throw new IllegalArgumentException
+                          ("negative maxStaleLocatorRetries "
+                           +"["+maxStaleLocatorRetries+"]");
+        }
+//BTM - PRE_CLIENT_SERVICE -END
 
         if (name == null)
             throw new IllegalArgumentException();
@@ -397,7 +460,14 @@ final protected ShardLocator getMetadataService() {
         if (metadataIndex == null)
             throw new IllegalArgumentException();
         
-        this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        this.fed = fed;
+        this.discoveryManager = discoveryManager;
+        this.localResourceManager = localResourceManager;
+        this.indexStore = indexStore;
+        this.maxParallelTasksPerRequest = maxParallelTasksPerRequest;
+        this.maxStaleLocatorRetries = maxStaleLocatorRetries;
+//BTM - PRE_CLIENT_SERVICE - END
 
         this.name = name;
 
@@ -408,22 +478,23 @@ final protected ShardLocator getMetadataService() {
         this.metadataIndexMetadata = metadataIndex.getIndexMetadata();
         
         this.splitter = new AbstractSplitter() {
-
             @Override
             protected IMetadataIndex getMetadataIndex(final long ts) {
-                
-                return fed.getMetadataIndex(name, ts);
-                
+//BTM - PRE_CLIENT_SERVICE    return fed.getMetadataIndex(name, ts);
+                return indexStore.getMetadataIndex(name, ts);
             }
-            
         };
         
-        this.capacity = fed.getClient().getDefaultRangeQueryCapacity();
-        
-        this.batchOnly = fed.getClient().getBatchApiOnly();
-
-        this.taskTimeout = fed.getClient().getTaskTimeout();
-        
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        this.capacity = fed.getClient().getDefaultRangeQueryCapacity();
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        this.batchOnly = fed.getClient().getBatchApiOnly();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        this.taskTimeout = fed.getClient().getTaskTimeout();
+        this.capacity = defaultRangeQueryCapacity;
+        this.batchOnly = batchApiOnly;
+        this.taskTimeout = taskTimeout;
+//BTM - PRE_CLIENT_SERVICE - END
     }
 
     /**
@@ -721,7 +792,9 @@ final protected ShardLocator getMetadataService() {
             try {
 
                 // run as globally consistent read.
-                ts = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE  ts = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+                ts = discoveryManager.getTransactionService().newTx
+                                                   (ITx.READ_COMMITTED);
 
             } catch (IOException ex) {
 
@@ -776,7 +849,8 @@ final protected ShardLocator getMetadataService() {
 
                 try {
                 
-                    fed.getTransactionService().abort(ts);
+//BTM - PRE_CLIENT_SERVICE  fed.getTransactionService().abort(ts);
+                    discoveryManager.getTransactionService().abort(ts);
                     
                 } catch (Throwable t2) {
                     
@@ -842,7 +916,9 @@ final protected ShardLocator getMetadataService() {
                 ts, isReadConsistentTx, fromKey, toKey, capacity, flags,
                 filter, queryBuffer);
 
-        queryBuffer.setFuture(fed.getExecutorService().submit(task));
+//BTM - PRE_CLIENT_SERVICE  queryBuffer.setFuture(fed.getExecutorService().submit(task));
+        queryBuffer.setFuture
+            (localResourceManager.getThreadPool().submit(task));
 
         return new UnchunkedTupleIterator(queryBuffer.iterator());
 
@@ -988,20 +1064,30 @@ final protected ShardLocator getMetadataService() {
             final int poolSize = ((ThreadPoolExecutor) getThreadPool())
                     .getCorePoolSize();
 
-            final int maxTasksPerRequest = fed.getClient()
-                    .getMaxParallelTasksPerRequest();
+//BTM - PRE_CLIENT_SERVICE  final int maxTasksPerRequest = fed.getClient().getMaxParallelTasksPerRequest();
+            final int maxTasksPerRequest = maxParallelTasksPerRequest;
 
             // max #of tasks to queue at once.
             maxTasks = poolSize == 0 ? maxTasksPerRequest : Math.min(
                     poolSize, maxTasksPerRequest);
 
             // verify positive or the loop below will fail to progress.
-            assert maxTasks > 0 : "maxTasks=" + maxTasks + ", poolSize="
-                    + poolSize + ", maxTasksPerRequest=" + maxTasksPerRequest;
+//BTM - PRE_CLIENT_SERVICE - BEGIN - if asserts are disabled, this will never be tested 
+//BTM - PRE_CLIENT_SERVICE            assert maxTasks > 0 : "maxTasks=" + maxTasks + ", poolSize="
+//BTM - PRE_CLIENT_SERVICE                    + poolSize + ", maxTasksPerRequest=" + maxTasksPerRequest;
+        if (maxTasks <= 0) {
+            throw new AssertionError
+                          ("non-positive maxTasks [maxTasks="+maxTasks
+                           +", poolSize="+poolSize+", maxTasksPerRequest="
+                           +maxTasksPerRequest+"]");
+        }
+//BTM - PRE_CLIENT_SERVICE - END
 
-            helper = new ExecutionHelper<Void>(fed.getExecutorService(), fed
-                    .getClient().getTaskTimeout(), TimeUnit.MILLISECONDS);
 
+//BTM - PRE_CLIENT_SERVICE  helper = new ExecutionHelper<Void>(fed.getExecutorService(), fed.getClient().getTaskTimeout(), TimeUnit.MILLISECONDS);
+            helper = 
+                new ExecutionHelper<Void>(localResourceManager.getThreadPool(),
+                                          taskTimeout, TimeUnit.MILLISECONDS);
         }
 
         public Void call() throws Exception {
@@ -1071,9 +1157,8 @@ final protected ShardLocator getMetadataService() {
             } catch (Throwable t) {
 
                 if (isReadConsistentTx) {
-
-                    fed.getTransactionService().abort(ts);
-
+//BTM - PRE_CLIENT_SERVICE  fed.getTransactionService().abort(ts);
+                    discoveryManager.getTransactionService().abort(ts);
                 }
 
                 throw new RuntimeException(t);
@@ -1167,7 +1252,9 @@ final protected ShardLocator getMetadataService() {
             final long tx;
             try {
 
-                tx = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE  tx = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+                tx = discoveryManager.getTransactionService().newTx
+                                                  (ITx.READ_COMMITTED);
 
             } catch (IOException ex) {
 
@@ -1183,7 +1270,8 @@ final protected ShardLocator getMetadataService() {
 
                 try {
 
-                    fed.getTransactionService().abort(tx);
+//BTM - PRE_CLIENT_SERVICE  fed.getTransactionService().abort(tx);
+                    discoveryManager.getTransactionService().abort(tx);
 
                 } catch (IOException ex) {
 
@@ -1219,8 +1307,9 @@ final protected ShardLocator getMetadataService() {
             final ISimpleIndexProcedure proc) {
 
         // Find the index partition spanning that key.
-        final PartitionLocator locator = fed.getMetadataIndex(name, ts).find(
-                key);
+//BTM - PRE_CLIENT_SERVICE  final PartitionLocator locator = fed.getMetadataIndex(name, ts).find(key);
+        final PartitionLocator locator =
+                  indexStore.getMetadataIndex(name, ts).find(key);
 
         /*
          * Submit procedure to that data service.
@@ -1260,7 +1349,8 @@ final protected ShardLocator getMetadataService() {
     public Iterator<PartitionLocator> locatorScan(final long ts,
             final byte[] fromKey, final byte[] toKey, final boolean reverseScan) {
 
-        return fed.locatorScan(name, ts, fromKey, toKey, reverseScan);
+//BTM - PRE_CLIENT_SERVICE  return fed.locatorScan(name, ts, fromKey, toKey, reverseScan);
+        return indexStore.locatorScan(name, ts, fromKey, toKey, reverseScan);
 
     }
     
@@ -1278,6 +1368,7 @@ final protected ShardLocator getMetadataService() {
     public void submit(final byte[] fromKey, final byte[] toKey,
             final IKeyRangeIndexProcedure proc, final IResultHandler resultHandler) {
 
+String dbgFlnm = "TestEmbeddedClient.txt";
         if (proc == null)
             throw new IllegalArgumentException();
 
@@ -1290,7 +1381,8 @@ final protected ShardLocator getMetadataService() {
             final long tx;
             try {
 
-                tx = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE  tx = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+                tx = discoveryManager.getTransactionService().newTx(ITx.READ_COMMITTED);
 
             } catch (IOException ex) {
 
@@ -1300,13 +1392,18 @@ final protected ShardLocator getMetadataService() {
 
             try {
 
+com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit - ENTER submit [tx="+tx+", fromKey="+fromKey+", proc="+proc+", resultHandler="+resultHandler+"]");
                 submit(tx, fromKey, toKey, proc, resultHandler);
+com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit - EXIT submit [tx="+tx+", fromKey="+fromKey+", proc="+proc+", resultHandler="+resultHandler+"]");
 
             } finally {
 
                 try {
 
-                    fed.getTransactionService().abort(tx);
+//BTM - PRE_CLIENT_SERVICE  fed.getTransactionService().abort(tx);
+com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit - FINALLY: ABORT - ENTER");
+                    discoveryManager.getTransactionService().abort(tx);
+com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit - FINALLY: ABORT - EXIT");
 
                 } catch (IOException ex) {
 
@@ -1342,6 +1439,8 @@ final protected ShardLocator getMetadataService() {
     void submit(final long ts, final byte[] fromKey,
             final byte[] toKey, final IKeyRangeIndexProcedure proc,
             final IResultHandler resultHandler) {
+String dbgFlnm = "TestEmbeddedClient.txt";
+com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 [ts="+ts+", fromKey="+fromKey+", toKey="+toKey+", proc="+proc+", resultHandler="+resultHandler+"]");
 
         // true iff the procedure is known to be parallelizable.
         final boolean parallel = proc instanceof IParallelizableIndexProcedure;
@@ -1354,16 +1453,25 @@ final protected ShardLocator getMetadataService() {
         final int poolSize = ((ThreadPoolExecutor) getThreadPool())
                 .getCorePoolSize();
 
-        final int maxTasksPerRequest = fed.getClient()
-                .getMaxParallelTasksPerRequest();
+//BTM - PRE_CLIENT_SERVICE  final int maxTasksPerRequest = fed.getClient().getMaxParallelTasksPerRequest();
+        final int maxTasksPerRequest = maxParallelTasksPerRequest;
 
         // max #of tasks to queue at once.
         final int maxTasks = poolSize == 0 ? maxTasksPerRequest : Math.min(
                 poolSize, maxTasksPerRequest);
 
         // verify positive or the loop below will fail to progress.
-        assert maxTasks > 0 : "maxTasks=" + maxTasks + ", poolSize=" + poolSize
-                + ", maxTasksPerRequest=" + maxTasksPerRequest;
+//BTM - PRE_CLIENT_SERVICE - BEGIN - if asserts are disabled, this will never be tested 
+//BTM - PRE_CLIENT_SERVICE        assert maxTasks > 0 : "maxTasks=" + maxTasks + ", poolSize=" + poolSize
+//BTM - PRE_CLIENT_SERVICE                + ", maxTasksPerRequest=" + maxTasksPerRequest;
+//BTM - PRE_CLIENT_SERVICE
+        if (maxTasks <= 0) {
+            throw new AssertionError
+                          ("non-positive maxTasks [maxTasks="+maxTasks
+                           +", poolSize="+poolSize+", maxTasksPerRequest="
+                           +maxTasksPerRequest+"]");
+        }
+//BTM - PRE_CLIENT_SERVICE - END
 
         /*
          * Scan visits index partition locators in key order.
@@ -1375,6 +1483,7 @@ final protected ShardLocator getMetadataService() {
 
         long nparts = 0;
 
+com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - ENTER WHILE LOOP");
         while (itr.hasNext()) {
 
             /*
@@ -1393,10 +1502,12 @@ final protected ShardLocator getMetadataService() {
             final ArrayList<AbstractDataServiceProcedureTask> tasks = new ArrayList<AbstractDataServiceProcedureTask>(
                     maxTasks);
 
+com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - ENTER FOR LOOP [maxTasks="+maxTasks+"]");
             for (int i = 0; i < maxTasks && itr.hasNext(); i++) {
 
                 final PartitionLocator locator = itr.next();
 
+com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - split #"+i);
                 final Split split = new Split(locator, 0/* fromIndex */, 0/* toIndex */);
 
                 // Note: task will constrain fromKey/toKey to partition.
@@ -1406,10 +1517,13 @@ final protected ShardLocator getMetadataService() {
                 nparts++;
 
             }
+com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - EXIT FOR LOOP [nparts="+nparts+"]");
 
             runTasks(parallel, tasks);
 
         } // next (chunk of) locators.
+com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - "
+                               +"Procedure " + proc.getClass().getName() + " mapped across " + nparts + " index partitions in " + (parallel ? "parallel" : "sequence"));
 
         if (log.isInfoEnabled())
             log.info("Procedure " + proc.getClass().getName()
@@ -1478,24 +1592,19 @@ final protected ShardLocator getMetadataService() {
                 isTx = true;
 
                 try {
-
-                    ts = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
-
+//BTM - PRE_CLIENT_SERVICE  ts = fed.getTransactionService().newTx(ITx.READ_COMMITTED);
+                    ts = discoveryManager.getTransactionService().newTx
+                                                      (ITx.READ_COMMITTED);
                 } catch (IOException e) {
-
                     throw new RuntimeException(ERR_NEW_TX, e);
-
                 }
-
             } else {
             
                 // might be a tx, but not one that we created here.
                 isTx = false;
                 
                 ts = getTimestamp();
-            
             }
-
         }
 
         try {
@@ -1508,7 +1617,8 @@ final protected ShardLocator getMetadataService() {
 
                 try {
 
-                    fed.getTransactionService().abort(ts);
+//BTM - PRE_CLIENT_SERVICE  fed.getTransactionService().abort(ts);
+                    discoveryManager.getTransactionService().abort(ts);
 
                 } catch (IOException e) {
                     
@@ -2134,10 +2244,10 @@ final protected ShardLocator getMetadataService() {
 //        
 //    }
     
-//BTM    public IDataService getDataService(final PartitionLocator pmd) {
-public ShardService getDataService(final PartitionLocator pmd) {
+    public ShardService getDataService(final PartitionLocator pmd) {
 
-        return fed.getDataService(pmd.getDataServiceUUID());
+//BTM - PRE_CLIENT_SERVICE  return fed.getDataService(pmd.getDataServiceUUID());
+        return discoveryManager.getDataService(pmd.getDataServiceUUID());
 
     }
 
@@ -2171,7 +2281,8 @@ public ShardService getDataService(final PartitionLocator pmd) {
         }
 
         // notify the metadata index view that it has a stale locator.
-        fed.getMetadataIndex(name, timestamp).staleLocator(locator);
+//BTM - PRE_CLIENT_SERVICE  fed.getMetadataIndex(name, timestamp).staleLocator(locator);
+        indexStore.getMetadataIndex(name, timestamp).staleLocator(locator);
 
     }
 
@@ -2204,12 +2315,14 @@ public ShardService getDataService(final PartitionLocator pmd) {
                 duplicateRemover,//
                 ctor,//
                 resultHandler,//
-                fed.getIndexCounters(name).asynchronousStats,
+//BTM - PRE_CLIENT_SERVICE   fed.getIndexCounters(name).asynchronousStats,
+localResourceManager.getIndexCounters(name).asynchronousStats,
                 writeBuffer//
                 );
 
-        final Future<? extends IndexAsyncWriteStats> future = fed
-                .getExecutorService().submit(task);
+//BTM - PRE_CLIENT_SERVICE  final Future<? extends IndexAsyncWriteStats> future = fed.getExecutorService().submit(task);
+        final Future<? extends IndexAsyncWriteStats> future =
+                  localResourceManager.getThreadPool().submit(task);
 
         writeBuffer.setFuture(future);
 
@@ -2223,7 +2336,8 @@ public ShardService getDataService(final PartitionLocator pmd) {
      */
     public ICounterSet getCounters() {
 
-        return getFederation().getIndexCounters(name).getCounters();
+//BTM - PRE_CLIENT_SERVICE  return getFederation().getIndexCounters(name).getCounters();
+        return localResourceManager.getIndexCounters(name).getCounters();
 
     }
 

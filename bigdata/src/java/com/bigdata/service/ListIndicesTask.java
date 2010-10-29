@@ -19,6 +19,10 @@ import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.resources.ResourceManager;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.resources.ILocalResourceManagement;
+
 /**
  * Task returns an array of the named indices on the {@link DataService} to
  * which it is submitted. The array is in the visitation order for the index
@@ -81,14 +85,14 @@ public class ListIndicesTask implements IDataServiceCallable<String[]> {
 //    }
 
 //BTM - PRE_FRED_3481    public String[] call() throws Exception {
-    public String[] startDataTask(IIndexManager indexManager,
-                                  ResourceManager resourceManager,
-                                  IConcurrencyManager concurrencyManager,
-                                  Session session,
-                                  String hostName,
-                                  String serviceName) throws Exception {
-
-
+    public String[] startDataTask
+                        (IIndexManager indexManager,
+                         ResourceManager resourceManager,
+                         IConcurrencyManager concurrencyManager,
+                         ILocalResourceManagement localResourceManager,
+                         IBigdataDiscoveryManagement discoveryManager)
+                    throws Exception
+    {
 //        if (dataService == null)
 //            throw new IllegalStateException("DataService not set.");
 

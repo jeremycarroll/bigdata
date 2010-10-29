@@ -69,8 +69,17 @@ public class TestPrefixSearch extends ProxyTestCase<IIndexManager> {
 
             final String NAMESPACE = "test";
 
-            final FullTextIndex ndx = new FullTextIndex(indexManager,
-                    NAMESPACE, ITx.UNISOLATED, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final FullTextIndex ndx = new FullTextIndex(indexManager,
+//BTM - PRE_CLIENT_SERVICE                    NAMESPACE, ITx.UNISOLATED, properties);
+            final FullTextIndex ndx =
+                      new FullTextIndex(indexManager,
+                                        null, //IConcurrencyManager
+                                        null, //IBigdataDiscoveryManagement
+                                        NAMESPACE,
+                                        ITx.UNISOLATED,
+                                        properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
             /*
              * Index document(s).

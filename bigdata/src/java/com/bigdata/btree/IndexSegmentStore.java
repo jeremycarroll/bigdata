@@ -59,8 +59,11 @@ import com.bigdata.resources.StoreManager;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.EventType;
-import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.ResourceService;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.resources.ILocalResourceManagement;
 
 /**
  * A read-only store backed by a file containing a single {@link IndexSegment}.
@@ -274,7 +277,10 @@ public class IndexSegmentStore extends AbstractRawStore {
     /**
      * Optional.  When defined, {@link Event}s are reported out.
      */
-    protected final IBigdataFederation<?> fed;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected final IBigdataFederation<?> fed;
+    protected final ILocalResourceManagement localResourceManager;
+//BTM - PRE_CLIENT_SERVICE - END
     private volatile Event openCloseEvent;
     
     /**
@@ -299,7 +305,11 @@ public class IndexSegmentStore extends AbstractRawStore {
      */
     public IndexSegmentStore(final File file) {
 
-        this(file, null/* fed */);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        this(file, null/* fed */);
+        this(file,
+             null);//ILocalResourceManagement
+//BTM - PRE_CLIENT_SERVICE - END
         
     }
 
@@ -310,15 +320,27 @@ public class IndexSegmentStore extends AbstractRawStore {
      * @param file
      * @param fed
      */
-    public IndexSegmentStore(final File file, final IBigdataFederation<?> fed) {
-
-        if (file == null)
-            throw new IllegalArgumentException();
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public IndexSegmentStore(final File file, final IBigdataFederation<?> fed) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        if (file == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        this.file = file;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        // MAY be null.
+//BTM - PRE_CLIENT_SERVICE        this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE
+    public IndexSegmentStore
+               (final File file,
+                final ILocalResourceManagement localResourceManager)
+    {
+        if (file == null) {
+            throw new NullPointerException("null file");
+        }
         this.file = file;
-
-        // MAY be null.
-        this.fed = fed;
+        this.localResourceManager = localResourceManager;//can be null
+//BTM - PRE_CLIENT_SERVICE - END
         
         /*
          * Mark as open so that we can use reopenChannel() and read(long addr)
@@ -445,16 +467,32 @@ public class IndexSegmentStore extends AbstractRawStore {
                 
                 counters.openCount++;
                 
-                if (fed != null) {
-
-//BTM                    openCloseEvent = new Event(fed, new EventResource(
-//BTM                            indexMetadata, file),
-//BTM                            EventType.IndexSegmentStoreOpenClose).start();
-openCloseEvent = new Event( fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(),
-                            new EventResource(indexMetadata, file),
-                            EventType.IndexSegmentStoreOpenClose).start();
-                    
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                 if (fed != null) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM                    openCloseEvent = new Event(fed, new EventResource(
+//BTM - PRE_CLIENT_SERVICE //BTM                            indexMetadata, file),
+//BTM - PRE_CLIENT_SERVICE //BTM                            EventType.IndexSegmentStoreOpenClose).start();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE openCloseEvent = new Event( fed.getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                             new EventResource(indexMetadata, file),
+//BTM - PRE_CLIENT_SERVICE                             EventType.IndexSegmentStoreOpenClose).start();
+//BTM - PRE_CLIENT_SERVICE                 }
+//BTM - PRE_CLIENT_SERVICE
+                if (localResourceManager != null) {
+                    openCloseEvent =
+                        new Event
+                            ( localResourceManager.getEventQueueSender(),
+                              localResourceManager.getServiceIface(),
+                              localResourceManager.getServiceName(),
+                              localResourceManager.getServiceUUID(),
+                              new EventResource(indexMetadata, file),
+                              EventType.IndexSegmentStoreOpenClose).start();
                 }
+//BTM - PRE_CLIENT_SERVICE - END
 
             } catch (Throwable t) {
 

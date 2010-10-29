@@ -32,8 +32,12 @@ import java.util.Properties;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.rdf.load.ConcurrentDataLoader;
 import com.bigdata.relation.locator.DefaultResourceLocator;
-import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 
 /**
  * Implementation of an {@link ITripleStore} as a client of an
@@ -104,10 +108,21 @@ public class ScaleOutTripleStore extends AbstractTripleStore {
      * <p>
      * Note: KB is NOT created automatically.
      */
-    public ScaleOutTripleStore(IIndexManager indexManager, String namespace,
-            Long timestamp, Properties properties) {
-
-        super( indexManager, namespace, timestamp, properties );
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  public ScaleOutTripleStore(IIndexManager indexManager, String namespace, Long timestamp, Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super( indexManager, namespace, timestamp, properties );
+    public ScaleOutTripleStore(IIndexManager indexManager,
+                               IConcurrencyManager concurrencyManager,
+                               IBigdataDiscoveryManagement discoveryManager,
+                               String namespace,
+                               Long timestamp,
+                               Properties properties)
+    {
+        super(indexManager,
+              concurrencyManager, discoveryManager,
+              namespace, timestamp, properties );
+//BTM - PRE_CLIENT_SERVICE - END
 
         /*
          * Note: The indexManager will be an IsolatedJournal if the resource is

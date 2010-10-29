@@ -32,7 +32,12 @@ import java.rmi.RemoteException;
 import net.jini.core.lookup.ServiceTemplate;
 
 import com.bigdata.jini.start.IServicesManagerService;
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import net.jini.lookup.ServiceDiscoveryManager;
+import net.jini.lookup.ServiceDiscoveryListener;
+import java.util.UUID;
 
 /**
  * Class handles discovery of an {@link IServicesManagerService}.
@@ -43,13 +48,28 @@ import com.bigdata.service.jini.JiniFederation;
 public class ServicesManagerClient extends
         BigdataCachingServiceClient<IServicesManagerService> {
 
-    public ServicesManagerClient(final JiniFederation fed, final long timeout)
-            throws RemoteException {
-
-        super(fed, IServicesManagerService.class, new ServiceTemplate(null,
-                new Class[] { IServicesManagerService.class }, null),
-                null/* filter */, timeout);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public ServicesManagerClient(final JiniFederation fed, final long timeout)
+//BTM - PRE_CLIENT_SERVICE            throws RemoteException {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(fed, IServicesManagerService.class, new ServiceTemplate(null,
+//BTM - PRE_CLIENT_SERVICE                new Class[] { IServicesManagerService.class }, null),
+//BTM - PRE_CLIENT_SERVICE                null/* filter */, timeout);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+    public ServicesManagerClient(final ServiceDiscoveryManager sdm,
+                                 final ServiceDiscoveryListener listener,
+                                 final UUID serviceUUID,
+                                 final Object serviceRef,
+                                 final long timeout)
+               throws RemoteException
+    {
+        super(sdm, listener, serviceUUID, serviceRef,
+              IServicesManagerService.class,
+              new ServiceTemplate(null, new Class[] {IServicesManagerService.class}, null),
+              null, //filter
+              timeout);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
 }

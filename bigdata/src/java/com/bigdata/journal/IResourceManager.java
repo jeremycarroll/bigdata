@@ -44,9 +44,13 @@ import com.bigdata.rawstore.IRawStore;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.resources.StaleLocatorException;
 import com.bigdata.resources.StaleLocatorReason;
-import com.bigdata.service.IBigdataFederation;
+//BTM import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.ShardService;
+
+//BTM
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.resources.ILocalResourceManagement;
 
 /**
  * Interface manging the resources on which indices are stored. The resources
@@ -276,15 +280,22 @@ public interface IResourceManager extends IServiceShutdown {
      *             {@link IBigdataFederation}.
      */
     public ShardService getDataService();
-    
-    /**
-     * The federation whose resources are being managed.
-     * 
-     * @throws UnsupportedOperationException
-     *             if the {@link IResourceManager} is not part of an
-     *             {@link IBigdataFederation}.
-     */
-    public IBigdataFederation getFederation();
+
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    /**
+//BTM - PRE_CLIENT_SERVICE     * The federation whose resources are being managed.
+//BTM - PRE_CLIENT_SERVICE     * 
+//BTM - PRE_CLIENT_SERVICE     * @throws UnsupportedOperationException
+//BTM - PRE_CLIENT_SERVICE     *             if the {@link IResourceManager} is not part of an
+//BTM - PRE_CLIENT_SERVICE     *             {@link IBigdataFederation}.
+//BTM - PRE_CLIENT_SERVICE     */
+//BTM - PRE_CLIENT_SERVICE    public IBigdataFederation getFederation();
+//BTM - PRE_CLIENT_SERVICE
+    IBigdataDiscoveryManagement getDiscoveryManager();
+    ILocalResourceManagement getLocalResourceManager();
+    IIndexManager getIndexManager();//return ScaleOutIndexManager when doing scale out
+//BTM - PRE_CLIENT_SERVICE - END
+
     
 //    /**
 //     * Return the ordered {@link UUID}[] of the physical {@link IDataService}

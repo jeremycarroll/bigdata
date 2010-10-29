@@ -64,6 +64,10 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.LatchedExecutor;
 import com.bigdata.util.concurrent.ShutdownHelper;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.resources.ILocalResourceManagement;
+
 /**
  * Concrete implementation suitable for a local and unpartitioned database.
  * <p>
@@ -991,15 +995,38 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
         
     }
 
-    /**
-     * @throws UnsupportedOperationException
-     *             always.
-     */
-    public IBigdataFederation getFederation() {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    /**
+//BTM - PRE_CLIENT_SERVICE     * @throws UnsupportedOperationException
+//BTM - PRE_CLIENT_SERVICE     *             always.
+//BTM - PRE_CLIENT_SERVICE     */
+//BTM - PRE_CLIENT_SERVICE    public IBigdataFederation getFederation() {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        throw new UnsupportedOperationException();
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
 
-        throw new UnsupportedOperationException();
-        
+    // Required by IResourceManager
+
+    public IBigdataDiscoveryManagement getDiscoveryManager() {
+        return null;// ==> no discovery needed?
     }
+
+    public ILocalResourceManagement getLocalResourceManager() {
+        throw new UnsupportedOperationException
+                      ("Journal.getLocalResourceManager");
+    }
+
+    public IIndexManager getIndexManager() {
+
+        // - Journal extends AbstractJournal
+        // - AbstractJournal implements IBTreeManager
+        // - IBTreeManager extends IIndexManager
+
+        return this;
+    }
+//BTM - PRE_CLIENT_SERVICE - END
+
     
     /**
      * @throws UnsupportedOperationException
@@ -1111,8 +1138,12 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
             }
 
         }
-
-        return globalFileSystemHelper.get().getGlobalFileSystem();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return globalFileSystemHelper.get().getGlobalFileSystem();
+        return globalFileSystemHelper.get().getGlobalFileSystem
+                                                (getConcurrencyManager(),
+                                                 getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
 
     }
     final private AtomicReference<GlobalFileSystemHelper> globalFileSystemHelper = new AtomicReference<GlobalFileSystemHelper>();
@@ -1147,8 +1178,11 @@ public class Journal extends AbstractJournal implements IConcurrencyManager,
     
     public TemporaryStore getTempStore() {
         
-        return tempStoreFactory.getTempStore();
-        
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return tempStoreFactory.getTempStore();
+        return tempStoreFactory.getTempStore(getConcurrencyManager(),
+                                             getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
     }
     private final TemporaryStoreFactory tempStoreFactory;
 

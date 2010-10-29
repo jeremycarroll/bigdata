@@ -40,6 +40,10 @@ import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * Class provides guidance on parameter setup a data set and queries.
  * 
@@ -61,11 +65,24 @@ public class BigdataSailHelper {
      * 
      * @return The SAIL.
      */
-    public BigdataSail getSail(final IBigdataFederation<?> fed,
-            final String namespace, final long timestamp) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public BigdataSail getSail(final IBigdataFederation<?> fed,
+//BTM - PRE_CLIENT_SERVICE            final String namespace, final long timestamp) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        ScaleOutTripleStore tripleStore = (ScaleOutTripleStore) fed
+//BTM - PRE_CLIENT_SERVICE                .getResourceLocator().locate(namespace, timestamp);
 
-        ScaleOutTripleStore tripleStore = (ScaleOutTripleStore) fed
-                .getResourceLocator().locate(namespace, timestamp);
+    public BigdataSail getSail
+                          (final IIndexManager indexManager,
+                           final IConcurrencyManager concurrencyManager,
+                           final IBigdataDiscoveryManagement discoveryManager,
+                           final String namespace,
+                           final long timestamp)
+    {
+        ScaleOutTripleStore tripleStore =
+           (ScaleOutTripleStore) indexManager.getResourceLocator().locate
+                                                       (namespace, timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (tripleStore == null) {
 
@@ -76,8 +93,15 @@ public class BigdataSailHelper {
                 System.out.println("Creating tripleStore: namespace="
                         + namespace);
 
-                tripleStore = new ScaleOutTripleStore(fed, namespace,
-                        timestamp, getProperties());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  tripleStore = new ScaleOutTripleStore(fed, namespace, timestamp, getProperties());
+                tripleStore =
+                    new ScaleOutTripleStore
+                            ( indexManager,
+                              concurrencyManager,
+                              discoveryManager,
+                              namespace, timestamp, getProperties());
+//BTM - PRE_CLIENT_SERVICE - END
 
                 tripleStore.create();
 
@@ -646,7 +670,14 @@ public class BigdataSailHelper {
             // Should be a jini configuration file.
             fed = new JiniClient(new String[] { args[0] }).connect();
 
-            sail = helper.getSail(fed, namespace, timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            sail = helper.getSail(fed, namespace, timestamp);
+            sail = helper.getSail
+                       ( (IIndexManager)fed,
+                          null,//IConcurrencyManager ==> @TODO
+                          (IBigdataDiscoveryManagement)fed,
+                          namespace, timestamp );
+//BTM - PRE_CLIENT_SERVICE - END
 
             break;
 

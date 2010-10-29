@@ -26,9 +26,8 @@ package com.bigdata.executor;
 
 import static com.bigdata.executor.Constants.*;
 
-import com.bigdata.service.Event;
-import com.bigdata.service.EventReceivingService;
 import com.bigdata.service.CallableExecutor;
+import com.bigdata.service.Service;
 
 import net.jini.admin.Administrable;
 
@@ -37,12 +36,15 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.rmi.RemoteException;
-import java.util.concurrent.Future;
-import java.util.concurrent.Callable;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
-class ServiceProxy implements CallableExecutor, Administrable, Serializable {
+//BTM
+import com.bigdata.service.IClientServiceCallable;
 
+class ServiceProxy implements CallableExecutor, Service,
+                              Administrable, Serializable
+{
     private static final long serialVersionUID = 1L;
 
     final PrivateInterface innerProxy;
@@ -83,7 +85,9 @@ class ServiceProxy implements CallableExecutor, Administrable, Serializable {
 
     // Remote methods required by the CallableExecutor interface
 
-    public <T> Future<T> submit(Callable<T> task) throws IOException {
+    public <T> Future<T> submit(IClientServiceCallable<T> task)
+                             throws IOException
+    {
         return innerProxy.submit(task);
     }
 

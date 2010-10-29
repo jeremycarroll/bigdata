@@ -50,6 +50,7 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.zookeeper.ZooHelper;
 
 //BTM
+import com.bigdata.service.CallableExecutor;
 import com.bigdata.service.ShardService;
 import com.bigdata.service.Service;
 import com.bigdata.shard.EmbeddedShardService;
@@ -96,7 +97,9 @@ public LoadBalancerTask lbs0;
 public TransactionServer txnServiceRemote0;
 public TransactionTask txnService0;
 
-    public ClientServer clientServer0;
+//BTM    public ClientServer clientServer0;
+public ClientServer csRemote0;
+public CallableExecutorTask cs0;
 
     public JiniClient<?> client;
 
@@ -572,12 +575,14 @@ try {
         java.util.ArrayList<String> mdsOptionsList = new java.util.ArrayList<String>();
         java.util.ArrayList<String> ds0OptionsList = new java.util.ArrayList<String>();
         java.util.ArrayList<String> ds1OptionsList = new java.util.ArrayList<String>();
+        java.util.ArrayList<String> csOptionsList = new java.util.ArrayList<String>();
         for(int i=0; i<options.length; i++) {
             txnOptionsList.add(options[i]);
             lbsOptionsList.add(options[i]);
             mdsOptionsList.add(options[i]);
             ds0OptionsList.add(options[i]);
             ds1OptionsList.add(options[i]);
+            csOptionsList.add(options[i]);
         }
         //joinGroupsOverStr should be of the form:
         //String joinGroupsOverrideStr = 
@@ -590,14 +595,17 @@ try {
         mdsOptionsList.add("com.bigdata.metadata.groupsToJoin=new String[] {"+"\""+fedname+"\""+"}");
         ds0OptionsList.add("com.bigdata.shard.groupsToJoin=new String[] {"+"\""+fedname+"\""+"}");
         ds1OptionsList.add("com.bigdata.shard.groupsToJoin=new String[] {"+"\""+fedname+"\""+"}");
+        csOptionsList.add("com.bigdata.executor.groupsToJoin=new String[] {"+"\""+fedname+"\""+"}");
 
         String txnServiceDir = ConfigMath.q(ConfigMath.getAbsolutePath(new File(fedServiceDir, "txn")));
         String lbsServiceDir = ConfigMath.q(ConfigMath.getAbsolutePath(new File(fedServiceDir, "lbs")));
         String mdsServiceDir = ConfigMath.q(ConfigMath.getAbsolutePath(new File(fedServiceDir, "mds")));
+        String csServiceDir = ConfigMath.q(ConfigMath.getAbsolutePath(new File(fedServiceDir, "cs")));
 
         txnOptionsList.add("com.bigdata.transaction.persistenceDirectory=new String(" + txnServiceDir + ")");
         lbsOptionsList.add("com.bigdata.loadbalancer.persistenceDirectory=new String(" + lbsServiceDir + ")");
         mdsOptionsList.add("com.bigdata.metadata.persistenceDirectory=new String(" + mdsServiceDir + ")");
+        csOptionsList.add("com.bigdata.executor.persistenceDirectory=new String(" + csServiceDir + ")");
 
         String[] txnServiceImplArgs = 
          concat(args, txnOptionsList.toArray(new String[txnOptionsList.size()]) );
@@ -605,6 +613,8 @@ try {
          concat(args, lbsOptionsList.toArray(new String[lbsOptionsList.size()]) );
         String[] mdsServiceImplArgs = 
          concat(args, mdsOptionsList.toArray(new String[mdsOptionsList.size()]) );
+        String[] csServiceImplArgs = 
+         concat(args, csOptionsList.toArray(new String[csOptionsList.size()]) );
 
 //BTM - for debugging
 if(serviceImplRemote) {
@@ -621,6 +631,9 @@ if(serviceImplRemote) {
     System.out.println("***");
     for(int i=0; i<mdsServiceImplArgs.length; i++) {
         System.out.println("**** BTM - JiniServicesHelper >>> mdsServiceImplArgs["+i+"] = "+mdsServiceImplArgs[i]);
+    }
+    for(int i=0; i<csServiceImplArgs.length; i++) {
+        System.out.println("**** BTM - JiniServicesHelper >>> csServiceImplArgs["+i+"] = "+csServiceImplArgs[i]);
     }
     System.out.println("***");
 }
@@ -779,9 +792,9 @@ System.out.println("\nJiniServicesHelper >>> NEW ShardServiceTask(ds0) - BEGIN")
         }//end ds0
 //BTM - END - IDATA_SERVICE TO SHARD_SERVICE
 
-        threadPool.execute(clientServer0 = new ClientServer(concat(
-                args, options), new FakeLifeCycle()));
-
+//BTM        threadPool.execute(clientServer0 = new ClientServer(concat(
+//BTM                args, options), new FakeLifeCycle()));
+//BTM
 //BTM        threadPool.execute(transactionServer0 = new TransactionServer(concat(
 //BTM                args, options), new FakeLifeCycle()));
 //BTM
@@ -794,6 +807,9 @@ System.out.println("\nJiniServicesHelper >>> NEW ShardServiceTask(ds0) - BEGIN")
 //BTM -----------------------------------------------------------------------
 if(serviceImplRemote) {
 //BTM System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> [purely remote]");
+
+        threadPool.execute(csRemote0 = new ClientServer(concat(
+                args, options), new FakeLifeCycle()));
 
         threadPool.execute(txnServiceRemote0 = new TransactionServer(concat(
                 args, options), new FakeLifeCycle()));
@@ -818,6 +834,9 @@ if(serviceImplRemote) {
 //BTM    optionsList.add(joinGroupsOverrideStr);
 //BTM - END - FOR IDATA_SERVICE TO SHARD_SERVICE
 
+    cs0 = new CallableExecutorTask(csServiceImplArgs);
+    threadPool.execute(cs0);
+
     txnService0 = new TransactionTask(txnServiceImplArgs);
     threadPool.execute(txnService0);
 
@@ -830,7 +849,7 @@ if(serviceImplRemote) {
 //BTM -----------------------------------------------------------------------
 
         // Wait until all the services are up.
-        getServiceID(clientServer0);
+//BTM        getServiceID(clientServer0);
 //BTM        getServiceID(transactionServer0);
 //BTM        getServiceID(metadataServer0);
 //BTM        getServiceID(dataServer0);
@@ -838,6 +857,9 @@ if(serviceImplRemote) {
 //BTM        getServiceID(loadBalancerServer0);
 //BTM
 //BTM -----------------------------------------------------------------------
+
+if(csRemote0 != null) getServiceID(csRemote0);
+if(cs0 != null) getServiceID(com.bigdata.service.CallableExecutor.class, sdm);
 
 if(txnServiceRemote0 != null) getServiceID(txnServiceRemote0);
 if(txnService0 != null) getServiceID(com.bigdata.service.ShardLocator.class, sdm);
@@ -944,13 +966,21 @@ if (mds0 != null) {
     mds0 = null;
 }
 
-        if (clientServer0 != null) {
-
-            clientServer0.destroy();
-
-            clientServer0 = null;
-
-        }
+//BTM        if (clientServer0 != null) {
+//BTM
+//BTM            clientServer0.destroy();
+//BTM
+//BTM            clientServer0 = null;
+//BTM
+//BTM        }
+if (csRemote0 != null) {
+    csRemote0.destroy();
+    csRemote0 = null;
+}
+if (cs0 != null) {
+    cs0.destroy();
+    cs0 = null;
+}
         
 //BTM        if (loadBalancerServer0 != null) {
 //BTM
@@ -1210,6 +1240,38 @@ if( (Thread.currentThread()).isInterrupted() ) {
                                        +"["+classType+"]");
         }
         return item.serviceID;
+    }
+
+    // Convenience class that allows one to instantiate and run the
+    // callable executor service's ServiceImpl class as a task in a
+    // thread pool.
+    private class CallableExecutorTask implements Runnable {
+        private String[] args;
+        private com.bigdata.executor.ServiceImpl callableExecutor;
+        CallableExecutorTask(String[] args) {
+            this.args = args;
+        }
+        public void run() {
+            try {
+                this.callableExecutor =
+                    new com.bigdata.executor.ServiceImpl
+                                                 (args,new FakeLifeCycle());
+            } catch(Throwable t) {
+                t.printStackTrace();
+                return;
+            }
+            while( !(Thread.currentThread()).isInterrupted() ) {
+                try {
+                    Thread.sleep(Long.MAX_VALUE);
+                } catch (InterruptedException e) { /*exit while loop*/ }
+            }
+        }
+        public void destroy() {
+            try {
+                this.callableExecutor.destroy();
+            } catch(Throwable t) { /* swallow */ }
+            Thread.currentThread().interrupt();
+        }
     }
 
     // Convenience class that allows one to instantiate and run the

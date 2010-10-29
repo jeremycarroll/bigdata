@@ -54,8 +54,14 @@ import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.resources.ResourceManager.Options;
 import com.bigdata.service.AbstractTransactionService;
-import com.bigdata.service.DataService;
-import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.DataService;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.service.ShardService;
 
 /**
  * Bootstrap test suite for the {@link ResourceManager}.
@@ -538,6 +544,7 @@ public class TestResourceManagerBootstrap extends AbstractResourceManagerBootstr
         final UUID indexUUID = UUID.randomUUID();
         final UUID segmentUUID;
         final IResourceMetadata segmentMetadata;
+IIndexManager journalIndexManager = null;
         {
 
             final File file = File.createTempFile("journal", Options.JNL,
@@ -550,6 +557,7 @@ public class TestResourceManagerBootstrap extends AbstractResourceManagerBootstr
             properties.setProperty(Options.FILE, file.toString());
          
             Journal journal = new Journal(properties);
+journalIndexManager = journal;
             
 //            // commit the journal to assign [firstCommitTime].
 //            journal.commit();
@@ -690,7 +698,8 @@ public class TestResourceManagerBootstrap extends AbstractResourceManagerBootstr
         
         final Properties properties = getProperties();
 
-        final ResourceManager resourceManager = new MyResourceManager(properties);
+//BTM        final ResourceManager resourceManager = new MyResourceManager(properties);
+final ResourceManager resourceManager = new MyResourceManager(journalIndexManager, properties);
         
         final AbstractTransactionService txService = new MockTransactionService(properties).start();
         
@@ -770,38 +779,82 @@ public class TestResourceManagerBootstrap extends AbstractResourceManagerBootstr
 
     }
 
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected static class MyResourceManager extends ResourceManager {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        public MyResourceManager(Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            super(properties);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        public UUID getDataServiceUUID() {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            throw new UnsupportedOperationException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        public UUID[] getDataServiceUUIDs() {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            throw new UnsupportedOperationException();
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        public IBigdataFederation getFederation() {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            throw new UnsupportedOperationException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        public DataService getDataService() {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            throw new UnsupportedOperationException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+///////////////////
     protected static class MyResourceManager extends ResourceManager {
 
-        public MyResourceManager(Properties properties) {
+        private IIndexManager indexManager;
 
+        MyResourceManager(Properties properties) {
+            this(null, properties);;
+        }
+
+        MyResourceManager(IIndexManager indexManager,
+                          Properties properties)
+        {
             super(properties);
-
+            this.indexManager = indexManager;
         }
 
+        @Override
+        public IBigdataDiscoveryManagement getDiscoveryManager() {
+            return null;
+        }
+
+        @Override
+        public ILocalResourceManagement getLocalResourceManager() {
+            return null;
+        }
+
+        @Override
+        public IIndexManager getIndexManager() {
+            return indexManager;
+        }
+
+        @Override
         public UUID getDataServiceUUID() {
-
             throw new UnsupportedOperationException();
 
         }
 
-        public UUID[] getDataServiceUUIDs() {
-
+        @Override
+        public ShardService getDataService() {
             throw new UnsupportedOperationException();
-            
         }
-
-        public IBigdataFederation getFederation() {
-
-            throw new UnsupportedOperationException();
-
-        }
-
-        public DataService getDataService() {
-
-            throw new UnsupportedOperationException();
-
-        }
-
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
 }

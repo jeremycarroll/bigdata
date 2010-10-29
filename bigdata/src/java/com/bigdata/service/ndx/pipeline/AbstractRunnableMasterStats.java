@@ -17,6 +17,10 @@ import com.bigdata.counters.Instrument;
 import com.bigdata.service.AbstractFederation;
 import com.bigdata.util.concurrent.MovingAverageTask;
 
+//BTM
+import java.util.concurrent.ScheduledExecutorService;
+
+
 /**
  * Statistics for the consumer, including several moving averages based on
  * sampled data.
@@ -64,7 +68,8 @@ public class AbstractRunnableMasterStats<L, HS extends AbstractSubtaskStats> ext
      */
     protected final StatisticsTask statisticsTask;
     
-    public AbstractRunnableMasterStats(final AbstractFederation<?> fed) {
+//BTM    public AbstractRunnableMasterStats(final AbstractFederation<?> fed) {
+public AbstractRunnableMasterStats(final ScheduledExecutorService scheduledExecutor) {
 
         /*
          * Add a scheduled task that will sample various counters of interest
@@ -73,8 +78,12 @@ public class AbstractRunnableMasterStats<L, HS extends AbstractSubtaskStats> ext
 
         statisticsTask = newStatisticsTask();
         
-        fed.addScheduledTask(statisticsTask, 1000/* initialDelay */,
-                1000/* delay */, TimeUnit.MILLISECONDS);
+//BTM        fed.addScheduledTask(statisticsTask, 1000/* initialDelay */, 1000/* delay */, TimeUnit.MILLISECONDS);
+//BTM
+scheduledExecutor.scheduleWithFixedDelay(statisticsTask,
+                                         1000, //initial delay
+                                         1000, //period
+                                         TimeUnit.MILLISECONDS);
 
     }
 

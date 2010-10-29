@@ -37,7 +37,10 @@ import net.jini.lookup.ServiceDiscoveryListener;
 import net.jini.lookup.ServiceDiscoveryManager;
 import net.jini.lookup.ServiceItemFilter;
 
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.jini.BigdataDiscoveryManager;
 
 /**
  * 
@@ -67,18 +70,34 @@ public class BigdataCachingServiceClient<S extends Object> extends
      *            which implements {@link ServiceDiscoveryListener}. Those
      *            events are used to notice service joins.
      */
-    public BigdataCachingServiceClient(JiniFederation fed, Class serviceIface,
-            ServiceTemplate template, ServiceItemFilter filter, long timeout)
-            throws RemoteException {
-
-        super(fed.getServiceDiscoveryManager(),
-                fed/* serviceDiscoveryListener */, serviceIface, template,
-                filter, timeout);
-
-        thisServiceUUID = fed.getClient().getDelegate().getServiceUUID();
-
-        thisService = fed.getClient().getDelegate().getService();
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public BigdataCachingServiceClient(JiniFederation fed, Class serviceIface,
+//BTM - PRE_CLIENT_SERVICE            ServiceTemplate template, ServiceItemFilter filter, long timeout)
+//BTM - PRE_CLIENT_SERVICE            throws RemoteException {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(fed.getServiceDiscoveryManager(),
+//BTM - PRE_CLIENT_SERVICE                fed/* serviceDiscoveryListener */, serviceIface, template,
+//BTM - PRE_CLIENT_SERVICE                filter, timeout);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        thisServiceUUID = fed.getClient().getDelegate().getServiceUUID();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        thisService = fed.getClient().getDelegate().getService();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+/////////////
+    public BigdataCachingServiceClient(ServiceDiscoveryManager sdm,
+                                       ServiceDiscoveryListener listener,
+                                       UUID owningServiceUUID,
+                                       Object owningServiceRef,
+                                       Class serviceIface,
+                                       ServiceTemplate template,
+                                       ServiceItemFilter filter,
+                                       long timeout)
+                throws RemoteException
+    {
+        super(sdm, listener, serviceIface, template, filter, timeout);
+        thisServiceUUID = owningServiceUUID;
+        thisService = owningServiceRef;
     }
-
+//BTM - PRE_CLIENT_SERVICE -END
 }

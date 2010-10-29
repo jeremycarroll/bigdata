@@ -98,18 +98,29 @@ public class CompactingMergeTask extends AbstractPrepareTask<BuildResult> {
 //BTM        final Event e = new Event(resourceManager.getFederation(), 
 //BTM                new EventResource(vmd.indexMetadata),
 //BTM                OverflowActionEnum.Merge, vmd.getParams()).start();
-com.bigdata.service.IBigdataFederation fed = resourceManager.getFederation();
-System.out.println("\n$$$$ CompactingMergeTask: eventQueue = "+fed.getEventQueue());
-System.out.println("$$$$ CompactingMergeTask: serviceIface = "+fed.getServiceIface());
-System.out.println("$$$$ CompactingMergeTask: serviceName  = "+fed.getServiceName());
-System.out.println("$$$$ CompactingMergeTask: serviceUUID  = "+fed.getServiceUUID());
-final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
-                           (resourceManager.getFederation()).getServiceIface(),
-                           (resourceManager.getFederation()).getServiceName(),
-                           (resourceManager.getFederation()).getServiceUUID(),
-                           new EventResource(vmd.indexMetadata),
-                           OverflowActionEnum.Merge,
-                           vmd.getParams()).start();
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE com.bigdata.service.IBigdataFederation fed = resourceManager.getFederation();
+//BTM - PRE_CLIENT_SERVICE System.out.println("\n$$$$ CompactingMergeTask: eventQueue = "+fed.getEventQueue());
+//BTM - PRE_CLIENT_SERVICE System.out.println("$$$$ CompactingMergeTask: serviceIface = "+fed.getServiceIface());
+//BTM - PRE_CLIENT_SERVICE System.out.println("$$$$ CompactingMergeTask: serviceName  = "+fed.getServiceName());
+//BTM - PRE_CLIENT_SERVICE System.out.println("$$$$ CompactingMergeTask: serviceUUID  = "+fed.getServiceUUID());
+//BTM - PRE_CLIENT_SERVICE final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                            new EventResource(vmd.indexMetadata),
+//BTM - PRE_CLIENT_SERVICE                            OverflowActionEnum.Merge,
+//BTM - PRE_CLIENT_SERVICE                            vmd.getParams()).start();
+//BTM - PRE_CLIENT_SERVICE 
+        final Event e =
+              new Event
+              ((resourceManager.getLocalResourceManager()).getEventQueueSender(),
+               (resourceManager.getLocalResourceManager()).getServiceIface(),
+               (resourceManager.getLocalResourceManager()).getServiceName(),
+               (resourceManager.getLocalResourceManager()).getServiceUUID(),
+               new EventResource(vmd.indexMetadata),
+               OverflowActionEnum.Merge,
+               vmd.getParams()).start();
 
         BuildResult buildResult = null;
         try {
@@ -496,13 +507,19 @@ final String rightSiblingName = Util.getIndexPartitionName(scaleOutIndexName, ri
                         // get the target service name.
                         String targetDataServiceName;
                         try {
-//BTM                            targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
-ShardService shardService = resourceManager.getFederation().getDataService(targetDataServiceUUID);
-if(shardService instanceof IService) {
-    targetDataServiceName = ((IService)shardService).getServiceName();
-} else {
-    targetDataServiceName = ((Service)shardService).getServiceName();
-}
+//BTM - BEGIN               targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
+//BTM - PRE_CLIENT_SERVICE ShardService shardService = resourceManager.getFederation().getDataService(targetDataServiceUUID);
+                            ShardService shardService =
+                                resourceManager.getDiscoveryManager()
+                                    .getDataService(targetDataServiceUUID);
+                            if(shardService instanceof IService) {
+                                targetDataServiceName =
+                                    ((IService)shardService).getServiceName();
+                            } else {
+                                targetDataServiceName =
+                                    ((Service)shardService).getServiceName();
+                            }
+//BTM - END
                         } catch (Throwable t) {
                             targetDataServiceName = targetDataServiceUUID
                                     .toString();
@@ -558,13 +575,19 @@ if(shardService instanceof IService) {
                     // get the target service name.
                     String targetDataServiceName;
                     try {
-//BTM                        targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
-ShardService shardService = resourceManager.getFederation().getDataService(targetDataServiceUUID);
-if(shardService instanceof IService) {
-    targetDataServiceName = ((IService)shardService).getServiceName();
-} else {
-    targetDataServiceName = ((Service)shardService).getServiceName();
-}
+//BTM - BEGIN              targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
+//BTM - PRE_CLIENT_SERVICE ShardService shardService = resourceManager.getFederation().getDataService(targetDataServiceUUID);
+                        ShardService shardService =
+                            resourceManager.getDiscoveryManager()
+                                .getDataService(targetDataServiceUUID);
+                            if(shardService instanceof IService) {
+                                targetDataServiceName =
+                                    ((IService)shardService).getServiceName();
+                            } else {
+                                targetDataServiceName =
+                                    ((Service)shardService).getServiceName();
+                            }
+//BTM - END
                     } catch (Throwable t) {
                         targetDataServiceName = targetDataServiceUUID
                                 .toString();
@@ -600,9 +623,10 @@ if(shardService instanceof IService) {
         
         try {
 
-            loadBalancerService = resourceManager.getFederation()
-                    .getLoadBalancerService();
-
+//BTM - PRE_CLIENT_SERVICE            loadBalancerService = resourceManager.getFederation().getLoadBalancerService();
+            loadBalancerService =
+                resourceManager.getDiscoveryManager()
+                                    .getLoadBalancerService();
         } catch (Exception ex) {
 
             log.warn("Could not discover the load balancer service", ex);
@@ -784,7 +808,9 @@ if(shardService instanceof IService) {
 //BTM                                    .getMetadataIndexName(scaleOutIndexName),
 //BTM                            op).get();
             
-ShardLocator mds = (resourceManager.getFederation()).getMetadataService();
+//BTM - PRE_CLIENT_SERVICE ShardLocator mds = (resourceManager.getFederation()).getMetadataService();
+            ShardLocator mds = 
+                (resourceManager.getDiscoveryManager()).getMetadataService();
 
 //BTM - BEGIN CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
 //BTMif(mds == null) {
@@ -852,10 +878,9 @@ resultBuffer =
      */
     private UUID[] getScatterSplitTargets(final ScatterSplitConfiguration ssc) {
 
-        final UUID[] a = resourceManager
-                .getFederation()
-                .getDataServiceUUIDs(
-                        ssc.getDataServiceCount()/* maxCount */);
+//BTM - PRE_CLIENT_SERVICE  final UUID[] a = resourceManager.getFederation().getDataServiceUUIDs(ssc.getDataServiceCount()/* maxCount */);
+        final UUID[] a = resourceManager.getDiscoveryManager()
+                             .getDataServiceUUIDs(ssc.getDataServiceCount());
 
         if (a == null || a.length == 1) {
 

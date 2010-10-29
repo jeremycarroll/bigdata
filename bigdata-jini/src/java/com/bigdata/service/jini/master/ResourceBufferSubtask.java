@@ -88,7 +88,10 @@ A//
 
         if (initialCapacity == Integer.MAX_VALUE) {
 
-            final IRawStore store = master.getFederation().getTempStore();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IRawStore store = master.getFederation().getTempStore();
+            final IRawStore store = master.getIndexStore().getTempStore();
+//BTM - PRE_CLIENT_SERVICE - END
 
             // anonymous index (unnamed)
             final IndexMetadata metadata = new IndexMetadata(UUID.randomUUID());

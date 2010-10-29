@@ -837,7 +837,7 @@ System.out.println("*** serviceImplRemote = "+serviceImplRemote+" >>> lbs       
         //END - smart proxy shard locator service -----------------------------
 //////////////////////////////////////////////////////////////////////////
 
-        // EmbeddedIndexStore of EmbeddedShardService depends on the
+        // IBigdataDiscoveryManagement of EmbeddedShardService depends on the
         // EmbeddedShardLocator that is created AFTER EmbeddedShardService
         // was created; therefore, set it on the EmbeddedShardService
         for(EmbeddedShardServiceImpl ds : this.dsList) {
@@ -1079,7 +1079,7 @@ System.out.println("\nEmbeddedFederation CREATE_FEDERATION: embeddedMds = "+meta
 //BTM   below that is commented out, is currently left in place for reference,
 //BTM   and will eventually be removed during the 2nd phase -- the cleanup
 //BTM   phase.
-/* COMMENTED OUT *******************************************************************************************************
+/* BEGIN COMMENTED OUT *******************************************************************************************************
 //BTM - DON'T START META_DATA SERVICE HERE? Do it outside of this method?????
         {// BEGIN - Start the shard locator (metadata) service AFTER the data services so the dataServiceByUUID is populated
             final Properties p = new Properties(properties);
@@ -1117,7 +1117,7 @@ p.setProperty(EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE, EmbeddedShardLo
             }
         }// END - Start the shard locator (metadata) service AFTER the data services so the dataServiceByUUID is populated
 //BTM - END   - start metadata (shard locator) service after the dataServiceByUUID map has been populated
-COMMENTED OUT ************************************************************************************************************ */
+END COMMENTED OUT ************************************************************************************************************ */
 
         return ndataServices;
 
@@ -1161,15 +1161,24 @@ COMMENTED OUT ******************************************************************
                   sdm,
                   embeddedTxnService,
                   embeddedLoadBalancer,
+                  null,//zookeeperAccessor,
+                  null,//zookeeperAcl,
+                  null,//zookeeperRoot,
                   Integer.parseInt(properties.getProperty(EmbeddedShardServiceImpl.Options.THREAD_POOL_SIZE)),
                   com.bigdata.shard.Constants.DEFAULT_INDEX_CACHE_SIZE,
                   com.bigdata.shard.Constants.DEFAULT_INDEX_CACHE_TIMEOUT,
                   com.bigdata.service.MetadataIndexCachePolicy.CacheAll,
                   com.bigdata.shard.Constants.DEFAULT_RESOURCE_LOCATOR_CACHE_SIZE,
                   com.bigdata.shard.Constants.DEFAULT_RESOURCE_LOCATOR_CACHE_TIMEOUT,
-                  true,//collectQueueStatistics
-                  Long.parseLong(IBigdataClient.Options.DEFAULT_REPORT_DELAY),
-                  Integer.parseInt(IBigdataClient.Options.DEFAULT_HTTPD_PORT),
+                  com.bigdata.shard.Constants.DEFAULT_RANGE_QUERY_CAPACITY,
+                  com.bigdata.shard.Constants.DEFAULT_BATCH_API_ONLY,
+                  com.bigdata.shard.Constants.DEFAULT_TASK_TIMEOUT,
+                  com.bigdata.shard.Constants.DEFAULT_MAX_PARALLEL_TASKS_PER_REQUEST,
+                  com.bigdata.shard.Constants.DEFAULT_MAX_STALE_LOCATOR_RETRIES,
+                  com.bigdata.shard.Constants.DEFAULT_COLLECT_QUEUE_STATISTICS,//true
+                  com.bigdata.shard.Constants.DEFAULT_COLLECT_PLATFORM_STATISTICS,//false
+                  com.bigdata.shard.Constants.DEFAULT_LOAD_BALANCER_REPORTING_PERIOD,
+                  com.bigdata.shard.Constants.DEFAULT_HTTPD_PORT,
                   properties);
         }
     }
@@ -1191,13 +1200,22 @@ COMMENTED OUT ******************************************************************
                   embeddedTxnService,
                   embeddedLbs,
                   embeddedDataServiceMap,
+                  null,//zookeeperAccessor,
+                  null,//zookeeperAcl,
+                  null,//zookeeperRoot,
                   Integer.parseInt(properties.getProperty(EmbeddedShardLocatorImpl.Options.THREAD_POOL_SIZE)),
                   com.bigdata.metadata.Constants.DEFAULT_INDEX_CACHE_SIZE,
                   com.bigdata.metadata.Constants.DEFAULT_INDEX_CACHE_TIMEOUT,
                   com.bigdata.service.MetadataIndexCachePolicy.CacheAll,
                   com.bigdata.metadata.Constants.DEFAULT_RESOURCE_LOCATOR_CACHE_SIZE,
                   com.bigdata.metadata.Constants.DEFAULT_RESOURCE_LOCATOR_CACHE_TIMEOUT,
-                  Long.parseLong(IBigdataClient.Options.DEFAULT_REPORT_DELAY),
+                  com.bigdata.shard.Constants.DEFAULT_RANGE_QUERY_CAPACITY,
+                  com.bigdata.shard.Constants.DEFAULT_BATCH_API_ONLY,
+                  com.bigdata.shard.Constants.DEFAULT_TASK_TIMEOUT,
+                  com.bigdata.shard.Constants.DEFAULT_MAX_PARALLEL_TASKS_PER_REQUEST,
+                  com.bigdata.shard.Constants.DEFAULT_MAX_STALE_LOCATOR_RETRIES,
+                  com.bigdata.shard.Constants.DEFAULT_COLLECT_QUEUE_STATISTICS,//true
+                  com.bigdata.shard.Constants.DEFAULT_COLLECT_PLATFORM_STATISTICS,//false
                   properties);
         }
     }

@@ -558,8 +558,11 @@ public class InferenceEngine {
                             false/* backchain */,
                             DefaultEvaluationPlanFactory2.INSTANCE);
 
-            final IJoinNexus joinNexus = joinNexusFactory.newInstance(database
-                    .getIndexManager());
+//BTM - PRE_CLIENT_SERVICE  final IJoinNexus joinNexus = joinNexusFactory.newInstance(database.getIndexManager());
+            final IJoinNexus joinNexus =
+                  joinNexusFactory.newInstance(database.getIndexManager(),
+                                               database.getConcurrencyManager(),
+                                               database.getDiscoveryManager());
 
             final long mutationCount = joinNexus.runMutation(program);
 

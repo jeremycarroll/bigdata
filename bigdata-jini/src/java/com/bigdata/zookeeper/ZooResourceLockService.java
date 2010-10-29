@@ -36,7 +36,11 @@ import org.apache.log4j.Logger;
 import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.journal.IResourceLock;
 import com.bigdata.journal.IResourceLockService;
-import com.bigdata.service.jini.JiniFederation;
+//BTM import com.bigdata.service.jini.JiniFederation;
+//BTM
+import com.bigdata.zookeeper.ZooKeeperAccessor;
+import org.apache.zookeeper.data.ACL;
+import java.util.List;
 
 /**
  * Implementation using {@link ZLock}s. This is purely a gloss on the
@@ -49,16 +53,39 @@ final public class ZooResourceLockService implements IResourceLockService {
 
     final static protected Logger log = Logger.getLogger(ZooResourceLockService.class);
 
-    private final JiniFederation<?> fed;
-
-    public ZooResourceLockService(final JiniFederation<?> fed) {
-
-        if (fed == null)
-            throw new IllegalArgumentException();
-
-        this.fed = fed;
-        
+//BTM - BEGIN
+//BTM    private final JiniFederation<?> fed;
+//BTM
+//BTM    public ZooResourceLockService(final JiniFederation<?> fed) {
+//BTM
+//BTM        if (fed == null)
+//BMT            throw new IllegalArgumentException();
+//BTM
+//BTM        this.fed = fed;
+//BTM        
+//BTM    }
+    private ZooKeeperAccessor zkAccessor;
+    private List<ACL> zkAcl;
+    private String zkRoot;
+    
+    public ZooResourceLockService(ZooKeeperAccessor zookeeperAccessor,
+                                  List<ACL> zookeeperAcl,
+                                  String zookeeperRoot)
+    {
+        if (zookeeperAccessor == null) {
+            throw new IllegalArgumentException("null zookeeperAccessor");
+        }
+        if (zookeeperAcl == null) {
+            throw new IllegalArgumentException("null zookeeperAcl");
+        }
+        if (zookeeperRoot == null) {
+            throw new IllegalArgumentException("null zookeeperRoot");
+        }
+        this.zkAccessor = zookeeperAccessor;
+        this.zkAcl = zookeeperAcl;
+        this.zkRoot = zookeeperRoot;
     }
+//BTM - END
 
     public IResourceLock acquireLock(final String namespace) {
 
@@ -88,12 +115,17 @@ final public class ZooResourceLockService implements IResourceLockService {
     
         try {
             
-            final String zpath = fed.getZooConfig().zroot + "/"
-                    + BigdataZooDefs.LOCKS_RESOURCES + "/" + namespace;
-            
-            final ZLock zlock = ZLockImpl.getLock(fed.getZookeeper(), zpath,
-                    fed.getZooConfig().acl);
-            
+//BTM - BTM
+//BTM            final String zpath = fed.getZooConfig().zroot + "/"
+//BTM                    + BigdataZooDefs.LOCKS_RESOURCES + "/" + namespace;
+//BTM            
+//BTM            final ZLock zlock = ZLockImpl.getLock(fed.getZookeeper(), zpath,
+//BTM                    fed.getZooConfig().acl);
+//BTM            
+            final String zpath = zkRoot + "/" + BigdataZooDefs.LOCKS_RESOURCES + "/" + namespace;
+            final ZLock zlock = ZLockImpl.getLock(zkAccessor.getZookeeper(), zpath, zkAcl);
+//BTM - END
+
             if (log.isInfoEnabled())
                 log.info("Acquiring zlock: " + zlock);
             

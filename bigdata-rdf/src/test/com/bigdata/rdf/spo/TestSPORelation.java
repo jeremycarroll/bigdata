@@ -189,10 +189,21 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
             final String relationIdentifier = store.getSPORelation()
                     .getNamespace();
 
-            final IJoinNexus joinNexus = store.newJoinNexusFactory(
-            		RuleContextEnum.HighLevelQuery,
-                    ActionEnum.Query, IJoinNexus.ALL, null/* filter */)
-                    .newInstance(store.getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IJoinNexus joinNexus = store.newJoinNexusFactory(
+//BTM - PRE_CLIENT_SERVICE            		RuleContextEnum.HighLevelQuery,
+//BTM - PRE_CLIENT_SERVICE                    ActionEnum.Query, IJoinNexus.ALL, null/* filter */)
+//BTM - PRE_CLIENT_SERVICE                    .newInstance(store.getIndexManager());
+            final IJoinNexus joinNexus =
+                  store.newJoinNexusFactory
+                            (RuleContextEnum.HighLevelQuery,
+                             ActionEnum.Query,
+                             IJoinNexus.ALL,
+                             null/* filter */).newInstance
+                                               (store.getIndexManager(),
+                                                store.getConcurrencyManager(),
+                                                store.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
             
             /*
              * rdfs9 uses a constant in the [p] position of the for both tails
@@ -306,10 +317,21 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
             final String relationIdentifier = store.getSPORelation()
                     .getNamespace();
 
-            final IJoinNexus joinNexus = store.newJoinNexusFactory(
-            		RuleContextEnum.HighLevelQuery,
-                    ActionEnum.Query, IJoinNexus.ALL, null/* filter */)
-                    .newInstance(store.getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IJoinNexus joinNexus = store.newJoinNexusFactory(
+//BTM - PRE_CLIENT_SERVICE            		RuleContextEnum.HighLevelQuery,
+//BTM - PRE_CLIENT_SERVICE                    ActionEnum.Query, IJoinNexus.ALL, null/* filter */)
+//BTM - PRE_CLIENT_SERVICE                    .newInstance(store.getIndexManager());
+            final IJoinNexus joinNexus =
+                  store.newJoinNexusFactory
+                      (RuleContextEnum.HighLevelQuery,
+                       ActionEnum.Query,
+                       IJoinNexus.ALL,
+                       null/* filter */).newInstance
+                                            (store.getIndexManager(),
+                                             store.getConcurrencyManager(),
+                                             store.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
             
             final SPORelation spoRelation = store.getSPORelation();
 
@@ -543,10 +565,21 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
 
                 log.info("\n\nQuery w/o data in KB\n");
 
-                final IJoinNexus joinNexus = store.newJoinNexusFactory(
-                		RuleContextEnum.HighLevelQuery,
-                        ActionEnum.Query, IJoinNexus.ALL, null/* filter */)
-                        .newInstance(store.getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final IJoinNexus joinNexus = store.newJoinNexusFactory(
+//BTM - PRE_CLIENT_SERVICE                		RuleContextEnum.HighLevelQuery,
+//BTM - PRE_CLIENT_SERVICE                        ActionEnum.Query, IJoinNexus.ALL, null/* filter */)
+//BTM - PRE_CLIENT_SERVICE                        .newInstance(store.getIndexManager());
+                final IJoinNexus joinNexus =
+                      store.newJoinNexusFactory
+                          (RuleContextEnum.HighLevelQuery,
+                           ActionEnum.Query,
+                           IJoinNexus.ALL,
+                           null/* filter */).newInstance
+                                                 (store.getIndexManager(),
+                                                  store.getConcurrencyManager(),
+                                                  store.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
 
                 final IChunkedOrderedIterator<ISolution> itr = joinNexus
                         .runQuery(rule);
@@ -628,11 +661,25 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
              */
             {
 
-                final IJoinNexus joinNexus = store
-                        .newJoinNexusFactory(RuleContextEnum.HighLevelQuery,
-                                ActionEnum.Query, IJoinNexus.ALL, filter,
-                                justify, backchain, planFactory).newInstance(
-                                store.getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final IJoinNexus joinNexus = store
+//BTM - PRE_CLIENT_SERVICE                        .newJoinNexusFactory(RuleContextEnum.HighLevelQuery,
+//BTM - PRE_CLIENT_SERVICE                                ActionEnum.Query, IJoinNexus.ALL, filter,
+//BTM - PRE_CLIENT_SERVICE                                justify, backchain, planFactory).newInstance(
+//BTM - PRE_CLIENT_SERVICE                                store.getIndexManager());
+                final IJoinNexus joinNexus =
+                      store.newJoinNexusFactory
+                          (RuleContextEnum.HighLevelQuery,
+                           ActionEnum.Query,
+                           IJoinNexus.ALL,
+                           filter,
+                           justify,
+                           backchain,
+                           planFactory).newInstance
+                                            (store.getIndexManager(),
+                                             store.getConcurrencyManager(),
+                                             store.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
 
 //                /*
 //                 * Note: We commit before running the Query since the writes
@@ -698,11 +745,26 @@ public class TestSPORelation extends AbstractTripleStoreTestCase {
              */
             {
 
-                final IJoinNexus joinNexus = store.newJoinNexusFactory(
-                        RuleContextEnum.DatabaseAtOnceClosure,
-                        ActionEnum.Insert, IJoinNexus.ALL, filter, justify,
-                        backchain, planFactory).newInstance(
-                        store.getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final IJoinNexus joinNexus = store.newJoinNexusFactory(
+//BTM - PRE_CLIENT_SERVICE                        RuleContextEnum.DatabaseAtOnceClosure,
+//BTM - PRE_CLIENT_SERVICE                        ActionEnum.Insert, IJoinNexus.ALL, filter, justify,
+//BTM - PRE_CLIENT_SERVICE                        backchain, planFactory).newInstance(
+//BTM - PRE_CLIENT_SERVICE                        store.getIndexManager());
+                final IJoinNexus joinNexus =
+                      store.newJoinNexusFactory
+                          (RuleContextEnum.DatabaseAtOnceClosure,
+                           ActionEnum.Insert,
+                           IJoinNexus.ALL,
+                           filter,
+                           justify,
+                           backchain,
+                           planFactory).newInstance
+                                            (store.getIndexManager(),
+                                             store.getConcurrencyManager(),
+                                             store.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
+
 
                 if(log.isInfoEnabled())
                     log.info("\n\nRun rules as insert operations\n");

@@ -49,11 +49,17 @@ import com.bigdata.util.Util;
  */
 public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
 
+//BTM
+private String dbgFlnm = (TestEmbeddedClient.class).getSimpleName()+".txt";
+
     public TestEmbeddedClient() {
+//BTM
+Util.printStr(dbgFlnm, "TestEmbeddedClient: constructor-1");
     }
 
     public TestEmbeddedClient(String name) {
         super(name);
+Util.printStr(dbgFlnm, "TestEmbeddedClient: constructor-2");
     }
 
     /**
@@ -62,6 +68,7 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
      */
     public void test_registerIndex() {
 
+Util.printStr(dbgFlnm, "TestEmbeddedClient: test_registerIndex - ENTER");
         final String name = "testIndex";
 
         final IndexMetadata metadata = new IndexMetadata(name,UUID.randomUUID());
@@ -121,13 +128,15 @@ public class TestEmbeddedClient extends AbstractEmbeddedFederationTestCase {
          * in which it existed and verify that a historical view may still be
          * obtained for that timestamp.
          */
+Util.printStr(dbgFlnm, "TestEmbeddedClient: test_registerIndex - EXIT");
 
     }
 
     /**
      * Tests the ability to statically partition a scale-out index.
      */
-    public void test_staticPartitioning() throws Exception {
+    public void XXXtest_staticPartitioning() throws Exception {
+Util.printStr(dbgFlnm, "TestEmbeddedClient: test_staticPartitioning - ENTER");
         
         final String name = "testIndex";
         
@@ -225,6 +234,7 @@ IndexMetadata actual = ((ShardManagement)dataService1).getIndexMetadata(Util.get
             assertEquals(metadata.getDeleteMarkers(),actual.getDeleteMarkers());
             
         }
+Util.printStr(dbgFlnm, "TestEmbeddedClient: test_staticPartitioning - EXIT");
         
     }
     
@@ -235,10 +245,12 @@ IndexMetadata actual = ((ShardManagement)dataService1).getIndexMetadata(Util.get
      * {@link MetadataIndex} in order to identify the split points in the
      * keys[].
      */
-    public void test_splitKeys_staticPartitions01() throws IOException {
+    public void XXXtest_splitKeys_staticPartitions01() throws IOException {
+Util.printStr(dbgFlnm, "TestEmbeddedClient: test_splitKeys_staticPartitions01 - ENTER");
         
         final String name = "testIndex";
 
+Util.printStr(dbgFlnm, "    new IndexMetadata");
         final IndexMetadata metadata = new IndexMetadata(name,UUID.randomUUID());
 
         metadata.setDeleteMarkers(true);
@@ -255,9 +267,12 @@ if(dataService1 instanceof IService) {
 } else {
     dataService1UUID = ((Service)dataService1).getServiceUUID();
 }
+Util.printStr(dbgFlnm, "    dataService0UUID = "+dataService0UUID);
+Util.printStr(dbgFlnm, "    dataService1UUID = "+dataService1UUID);
         /*
          * Register and statically partition an index.
          */
+Util.printStr(dbgFlnm, "    fed.registerIndex");
         fed.registerIndex(metadata, new byte[][]{//
                 new byte[]{}, // keys less than 5...
                 new byte[]{5} // keys GTE 5....
@@ -271,20 +286,29 @@ dataService1UUID
         /*
          * Request a view of that index.
          */
+Util.printStr(dbgFlnm, "    ndx = fed.getIndex(name="+name+")");
         ClientIndexView ndx = (ClientIndexView) fed.getIndex(name,ITx.UNISOLATED);
 
         /*
          * Range count the index to verify that it is empty.
          */
+
+Util.printStr(dbgFlnm, "    ndx.rangeCount(null, null) =");
+Util.printStr(dbgFlnm, "                                 "+ndx.rangeCount(null, null));
+Util.printStr(dbgFlnm, "    assertEquals - rangeCount");
         assertEquals("rangeCount",0,ndx.rangeCount(null, null));
 
         /*
          * Get metadata for the index partitions that we will need to verify
          * the splits.
          */
+Util.printStr(dbgFlnm, "    pmd0 = ndx.getMetadataIndex");
         final PartitionLocator pmd0 = ndx.getMetadataIndex().get(new byte[]{});
+Util.printStr(dbgFlnm, "    pmd1 = ndx.getMetadataIndex");
         final PartitionLocator pmd1 = ndx.getMetadataIndex().get(new byte[]{5});
+Util.printStr(dbgFlnm, "    assertNotNull pmd0");
         assertNotNull("partition#0",pmd0);
+Util.printStr(dbgFlnm, "    assertNotNull pmd1");
         assertNotNull("partition#1",pmd1);
         
         /*
@@ -303,14 +327,19 @@ dataService1UUID
             new byte[]{9}  // [4]
             };
             
+Util.printStr(dbgFlnm, "    splits = ndx.splitKeys - 0");
             final List<Split> splits = ndx.splitKeys(ITx.UNISOLATED, 0, keys.length,
                     keys);
         
+Util.printStr(dbgFlnm, "    assertNotNull splits - 0");
             assertNotNull(splits);
             
+Util.printStr(dbgFlnm, "    assertEquals # of splits = 2 [0]");
             assertEquals("#splits", 2, splits.size());
 
+Util.printStr(dbgFlnm, "    assertEquals new Split pmd0 - 0");
             assertEquals(new Split(pmd0, 0, 2), splits.get(0));
+Util.printStr(dbgFlnm, "    assertEquals new Split pmd1 - 0");
             assertEquals(new Split(pmd1, 2, 5), splits.get(1));
             
         }
@@ -334,14 +363,19 @@ dataService1UUID
             new byte[]{9}  // [4]
             };
             
+Util.printStr(dbgFlnm, "    splits = ndx.splitKeys - 1");
             final List<Split> splits = ndx.splitKeys(ITx.UNISOLATED, 0,
                     keys.length, keys);
         
+Util.printStr(dbgFlnm, "    assertNotNull splits - 1");
             assertNotNull(splits);
             
+Util.printStr(dbgFlnm, "    assertEquals # of splits = 2 [1]");
             assertEquals("#splits", 2, splits.size());
 
+Util.printStr(dbgFlnm, "    assertEquals new Split pmd0 - 1");
             assertEquals(new Split(pmd0, 0, 1), splits.get(0));
+Util.printStr(dbgFlnm, "    assertEquals new Split pmd1 - 1");
             assertEquals(new Split(pmd1, 1, 5), splits.get(1));
             
         }
@@ -365,21 +399,28 @@ dataService1UUID
             new byte[]{9}  // [4]
             };
             
+Util.printStr(dbgFlnm, "    splits = ndx.splitKeys - 2");
             final List<Split> splits = ndx.splitKeys(ITx.UNISOLATED, 0,
                     keys.length, keys);
         
+Util.printStr(dbgFlnm, "    assertNotNull splits - 2");
             assertNotNull(splits);
 
+Util.printStr(dbgFlnm, "    assertEquals # of splits = 2 [2]");
             assertEquals("#splits", 2, splits.size());
 
+Util.printStr(dbgFlnm, "    assertEquals new Split pmd0 - 2");
             assertEquals(new Split(pmd0, 0, 3), splits.get(0));
+Util.printStr(dbgFlnm, "    assertEquals new Split pmd1 - 2");
             assertEquals(new Split(pmd1, 3, 5), splits.get(1));
             
         }
+Util.printStr(dbgFlnm, "TestEmbeddedClient: test_splitKeys_staticPartitions01 - EXIT");
                 
     }
 
-    public void test_addDropIndex_twoPartitions() throws IOException {
+    public void XXXtest_addDropIndex_twoPartitions() throws IOException {
+Util.printStr(dbgFlnm, "TestEmbeddedClient: test_addDropIndex_twoPartitions - ENTER");
         
         final String name = "testIndex";
 
@@ -429,6 +470,7 @@ dataService1UUID
         assertNull("Not expecting index to exist",
                 fed.getIndex(name,ITx.UNISOLATED));
         
+Util.printStr(dbgFlnm, "TestEmbeddedClient: test_addDropIndex_twoPartitions - EXIT");
     }
     
 }

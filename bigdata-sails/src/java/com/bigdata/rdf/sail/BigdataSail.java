@@ -632,7 +632,7 @@ final TransactionService txService =
         
         final LocalTripleStore lts = new LocalTripleStore(
                 journal, namespace, ITx.UNISOLATED, properties);
-        
+
         try {
             
             final long tx0 = txService.newTx(ITx.READ_COMMITTED);

@@ -154,7 +154,13 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
                 
                 properties.setProperty(Options.LEXICON, "false");
                 
-                focusStore = new TempTripleStore( properties );
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                focusStore = new TempTripleStore( properties );
+                focusStore = new TempTripleStore
+                                     ( store.getConcurrencyManager(),
+                                       store.getDiscoveryManager(),
+                                       properties );
+//BTM - PRE_CLIENT_SERVICE - END
                 
 //                SPOAssertionBuffer buf = new SPOAssertionBuffer(focusStore, store,
 //                        null/* filter */, 100/* capacity */, false/* justified */);
@@ -770,8 +776,14 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
              */
             {
 
-                TempTripleStore controlStore = new TempTripleStore(store
-                        .getProperties());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                TempTripleStore controlStore = new TempTripleStore(store
+//BTM - PRE_CLIENT_SERVICE                        .getProperties());
+                TempTripleStore controlStore =
+                            new TempTripleStore(store.getConcurrencyManager(),
+                                                store.getDiscoveryManager(),
+                                                store.getProperties());
+//BTM - PRE_CLIENT_SERVICE - END
 
                 // Note: maintains closure on the controlStore.
                 TruthMaintenance tmControlStore = new TruthMaintenance(
@@ -985,7 +997,13 @@ public class TestTruthMaintenance extends AbstractInferenceEngineTestCase {
                 // no lexicon.
                 p.setProperty(Options.LEXICON, "false");
 
-                tmp = new TempTripleStore(p);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                tmp = new TempTripleStore(p);
+                tmp = new TempTripleStore
+                              (store.getConcurrencyManager(),
+                               store.getDiscoveryManager(),
+                               p);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 store.copyStatements(tmp, null/* filter */, false/* copyJustifications */);
                 

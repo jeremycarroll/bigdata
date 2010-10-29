@@ -739,7 +739,8 @@ final String indexPartitionName = Util.getIndexPartitionName(name, partitionId);
     public int nextPartitionId(final String scaleOutIndexName) {
 
 //BTM        final IMetadataService mds = getFederation().getMetadataService();
-final ShardLocator mds = getFederation().getMetadataService();
+//BTM final ShardLocator mds = getFederation().getMetadataService();
+        final ShardLocator mds = getDiscoveryManager().getMetadataService();
 
         if (mds == null) {
 

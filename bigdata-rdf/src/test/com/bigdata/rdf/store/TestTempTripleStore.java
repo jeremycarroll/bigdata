@@ -94,7 +94,12 @@ public class TestTempTripleStore extends AbstractTestCase {
     
     protected AbstractTripleStore getStore(Properties properties) {
         
-        return new TempTripleStore( properties );
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return new TempTripleStore( properties );
+        return new TempTripleStore( null,//IConcurrencyManager
+                                    null,//IBigdataDiscoveryManagement
+                                    properties );
+//BTM - PRE_CLIENT_SERVICE - END
         
     }
  

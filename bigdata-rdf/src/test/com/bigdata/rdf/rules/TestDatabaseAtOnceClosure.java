@@ -590,7 +590,13 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
             tmp.setProperty(com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
                     NoAxioms.class.getName());
 
-            groundTruth = new TempTripleStore(tmp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            groundTruth = new TempTripleStore(tmp);
+            groundTruth =
+                new TempTripleStore(closureStore.getConcurrencyManager(),
+                                    closureStore.getDiscoveryManager(),
+                                    tmp);
+//BTM - PRE_CLIENT_SERVICE - END
             
         }
 
@@ -890,8 +896,15 @@ public class TestDatabaseAtOnceClosure extends AbstractRuleTestCase {
 								RuleContextEnum.DatabaseAtOnceClosure,
 								ActionEnum.Insert, IJoinNexus.ALL, null/* filter */);
             
-                final long mutationCount = joinNexusFactory.newInstance(
-                        store.getIndexManager()).runMutation(program);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final long mutationCount = joinNexusFactory.newInstance(
+//BTM - PRE_CLIENT_SERVICE                        store.getIndexManager()).runMutation(program);
+                final long mutationCount =
+                      joinNexusFactory.newInstance
+                          (store.getIndexManager(),
+                           store.getConcurrencyManager(),
+                           store.getDiscoveryManager()).runMutation(program);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 /*
                  * FIXME This assertion is failing. The problem is how the

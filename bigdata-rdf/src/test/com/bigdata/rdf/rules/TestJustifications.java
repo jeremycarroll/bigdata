@@ -144,10 +144,21 @@ public class TestJustifications extends AbstractRuleTestCase {
             final Rule rule = new RuleRdf01(store.getSPORelation()
                     .getNamespace(), vocab);
 
-            final IJoinNexus joinNexus = store.newJoinNexusFactory(
-            		RuleContextEnum.DatabaseAtOnceClosure,
-                    ActionEnum.Insert, IJoinNexus.ALL, null/* filter */)
-                    .newInstance(store.getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IJoinNexus joinNexus = store.newJoinNexusFactory(
+//BTM - PRE_CLIENT_SERVICE            		RuleContextEnum.DatabaseAtOnceClosure,
+//BTM - PRE_CLIENT_SERVICE                    ActionEnum.Insert, IJoinNexus.ALL, null/* filter */)
+//BTM - PRE_CLIENT_SERVICE                    .newInstance(store.getIndexManager());
+            final IJoinNexus joinNexus =
+                      store.newJoinNexusFactory
+                          (RuleContextEnum.DatabaseAtOnceClosure,
+                           ActionEnum.Insert,
+                           IJoinNexus.ALL,
+                           null/* filter */).newInstance
+                                               (store.getIndexManager(),
+                                                store.getConcurrencyManager(),
+                                                store.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
             
             /*
              * The buffer that accepts solutions and causes them to be written
@@ -275,8 +286,16 @@ public class TestJustifications extends AbstractRuleTestCase {
             }
             
             // an empty focusStore.
-            final TempTripleStore focusStore = new TempTripleStore(store
-                    .getProperties(), store);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final TempTripleStore focusStore = new TempTripleStore(store
+//BTM - PRE_CLIENT_SERVICE                    .getProperties(), store);
+            final TempTripleStore focusStore =
+                      new TempTripleStore(store.getConcurrencyManager(),
+                                          store.getDiscoveryManager(),
+                                          store.getProperties(),
+                                          store);
+//BTM - PRE_CLIENT_SERVICE - END
+
             
             /*
              * The inference (A rdf:type rdf:property) is grounded by the

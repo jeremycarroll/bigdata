@@ -2323,8 +2323,13 @@ log.warn("\n*** AbstractTask#IsolatedActionJournal: getIndex [name="+name+", tim
                     && isResource(namespace + "."+BigdataFileSystem.FILE_DATA_INDEX_BASENAME)) {
 
                 // unisolated view - will create if it does not exist.
-                return new GlobalFileSystemHelper(this).getGlobalFileSystem();
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                return new GlobalFileSystemHelper(this).getGlobalFileSystem();
+                return new GlobalFileSystemHelper(this)
+                               .getGlobalFileSystem
+                                    (concurrencyManager,
+                                     resourceManager.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
             }
 
             // read committed view IFF it exists otherwise [null]
@@ -2353,8 +2358,12 @@ log.warn("\n*** AbstractTask#IsolatedActionJournal: getIndex [name="+name+", tim
          */
         public TemporaryStore getTempStore() {
             
-            return tempStoreFactory.getTempStore();
-            
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            return tempStoreFactory.getTempStore();
+            return tempStoreFactory.getTempStore
+                                      (concurrencyManager,
+                                       resourceManager.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END            
         }
         private TemporaryStoreFactory tempStoreFactory = new TemporaryStoreFactory();
         
@@ -2727,8 +2736,12 @@ log.warn("\n*** AbstractTask#ReadOnlyJournal: getIndex [name="+name+"] >>> Unsup
          */
         public TemporaryStore getTempStore() {
             
-            return tempStoreFactory.getTempStore();
-            
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            return tempStoreFactory.getTempStore();
+            return tempStoreFactory.getTempStore
+                                      (concurrencyManager,
+                                       resourceManager.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
         }
         private TemporaryStoreFactory tempStoreFactory = new TemporaryStoreFactory();
         

@@ -174,15 +174,27 @@ public class SplitIndexPartitionTask extends
 //BTM                vmd.getParams()).addDetail("summary", OverflowActionEnum.Split
 //BTM                + (moveTargets != null ? "+" + OverflowActionEnum.Move : "")
 //BTM                + "(" + vmd.name + ")");
-final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
-                           (resourceManager.getFederation()).getServiceIface(),
-                           (resourceManager.getFederation()).getServiceName(),
-                           (resourceManager.getFederation()).getServiceUUID(),
-                           new EventResource(vmd.indexMetadata),
-                           OverflowActionEnum.Split,
-                           vmd.getParams()).addDetail("summary", OverflowActionEnum.Split
-                                                      + (moveTargets != null ? "+" + OverflowActionEnum.Move : "")
-                                                      + "(" + vmd.name + ")");
+//BTM - PRE_CLIENT_SERVICE final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                            new EventResource(vmd.indexMetadata),
+//BTM - PRE_CLIENT_SERVICE                            OverflowActionEnum.Split,
+//BTM - PRE_CLIENT_SERVICE                            vmd.getParams()).addDetail("summary", OverflowActionEnum.Split
+//BTM - PRE_CLIENT_SERVICE                                      + (moveTargets != null ? "+" + OverflowActionEnum.Move : "")
+//BTM - PRE_CLIENT_SERVICE                                      + "(" + vmd.name + ")");
+//BTM - PRE_CLIENT_SERVICE 
+        final Event e =
+              new Event
+              ((resourceManager.getLocalResourceManager()).getEventQueueSender(),
+               (resourceManager.getLocalResourceManager()).getServiceIface(),
+               (resourceManager.getLocalResourceManager()).getServiceName(),
+               (resourceManager.getLocalResourceManager()).getServiceUUID(),
+               new EventResource(vmd.indexMetadata),
+               OverflowActionEnum.Split,
+               vmd.getParams()).addDetail("summary", OverflowActionEnum.Split
+                                          + (moveTargets != null ? "+" + OverflowActionEnum.Move : "")
+                                          + "(" + vmd.name + ")");
         if (moveTargets != null) {
             e.addDetail("moveTargets", Arrays.toString(moveTargets));
         }
@@ -936,7 +948,8 @@ final String name2 = Util.getIndexPartitionName(scaleOutIndexName, partitionId);
                  * Notify the metadata service that the index partition has been
                  * split.
                  */
-                resourceManager.getFederation().getMetadataService()
+//BTM - PRE_CLIENT_SERVICE                resourceManager.getFederation().getMetadataService()
+                resourceManager.getDiscoveryManager().getMetadataService()
                         .splitIndexPartition(src.getIndexMetadata().getName(),//
                                 new PartitionLocator(//
                                         oldpmd.getPartitionId(), //

@@ -40,14 +40,19 @@ import com.bigdata.relation.accesspath.IRunnableBuffer;
 import com.bigdata.relation.rule.eval.pipeline.JoinMasterTask;
 import com.bigdata.relation.rule.eval.pipeline.JoinTaskFactoryTask;
 import com.bigdata.service.DataService;
-import com.bigdata.service.FederationCallable;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.FederationCallable;
 import com.bigdata.service.IRemoteExecutor;
 import com.bigdata.service.Session;
 import com.bigdata.service.Split;
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.ndx.IAsynchronousWriteBufferFactory;
 import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
 import com.bigdata.service.ndx.pipeline.IndexWriteTask;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.journal.IScaleOutIndexStore;
+import com.bigdata.service.IFederationCallable;
+import com.bigdata.util.Util;
 
 /**
  * A task which aggregates writes destined for a specific scale-out index. An
@@ -63,7 +68,6 @@ import com.bigdata.service.ndx.pipeline.IndexWriteTask;
  * this task via the exposed proxy.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  * 
  * @param <T>
  *            The generic type of the procedure used to write on the index.
@@ -113,8 +117,15 @@ import com.bigdata.service.ndx.pipeline.IndexWriteTask;
  *       index (the key-ranges would be more coarse than those of the index
  *       partitions themselves).
  */
-public class AggregatorTask<T extends IKeyArrayIndexProcedure, O, R, A> extends
-        FederationCallable<Void> implements IAsynchronousWriteBufferFactory {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICEpublic class AggregatorTask<T extends IKeyArrayIndexProcedure, O, R, A> extends
+//BTM - PRE_CLIENT_SERVICE        FederationCallable<Void> implements IAsynchronousWriteBufferFactory {
+//BTM - PRE_CLIENT_SERVICE
+public class AggregatorTask<T extends IKeyArrayIndexProcedure, O, R, A>
+                 implements IFederationCallable,
+                            IAsynchronousWriteBufferFactory
+{
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * 
@@ -164,15 +175,17 @@ public class AggregatorTask<T extends IKeyArrayIndexProcedure, O, R, A> extends
 
     }
     
-    /**
-     * The federation object used by the {@link IRemoteExecutor} on which this
-     * task is executing.
-     */
-    public JiniFederation getFederation() {
-
-        return (JiniFederation) super.getFederation();
-
-    }
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    /**
+//BTM - PRE_CLIENT_SERVICE     * The federation object used by the {@link IRemoteExecutor} on which this
+//BTM - PRE_CLIENT_SERVICE     * task is executing.
+//BTM - PRE_CLIENT_SERVICE     */
+//BTM - PRE_CLIENT_SERVICE    public JiniFederation getFederation() {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        return (JiniFederation) super.getFederation();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 
     /**
      * Starts an {@link IndexWriteTask} and makes a proxy for the input buffer
@@ -183,19 +196,34 @@ public class AggregatorTask<T extends IKeyArrayIndexProcedure, O, R, A> extends
      * interrupt is propagated to the inner {@link IndexWriteTask} which will
      * also be canceled.
      */
-    public Void call() throws Exception {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public Void call() throws Exception {
+    public Void startFederationTask(IScaleOutIndexStore indexStore)
+                    throws Exception
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         try {
             /*
              * Create the input buffer for asynchronous writes on the index.
              */
-            writeBuffer = getFederation().getIndex(name, timestamp)
-                    .newWriteBuffer(resultHandler, duplicateRemover, ctor);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            writeBuffer = getFederation().getIndex(name, timestamp)
+//BTM - PRE_CLIENT_SERVICE                    .newWriteBuffer(resultHandler, duplicateRemover, ctor);
+            writeBuffer =
+                indexStore.getIndex(name, timestamp).newWriteBuffer
+                                                         (resultHandler,
+                                                          duplicateRemover,
+                                                          ctor);
+//BTM - PRE_CLIENT_SERVICE - END
 
             /*
              * Obtain a proxy for the buffer.
              */
-            writeBufferProxy = getFederation().getProxy(writeBuffer);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            writeBufferProxy = getFederation().getProxy(writeBuffer);
+            writeBufferProxy = Util.wrapRunnableBuffer(writeBuffer);
+//BTM - PRE_CLIENT_SERVICE - END
 
             try {
 

@@ -149,12 +149,23 @@ public class LocalTripleStore extends AbstractLocalTripleStore {
             final String namespace, final Long timestamp,
             final Properties properties) {
 
-        super(indexManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE - NOTE: the super class (AbstractLocalTripleStore --> AbstractTripleStore) now takes an
+//BTM - PRE_CLIENT_SERVICE -       IConcurrencyManager and an IBigdataDiscoveryManagment instance for scale out.
+//BTM - PRE_CLIENT_SERVICE -       It's not clear whether passing null for those parameters will be a problem 
+//BTM - PRE_CLIENT_SERVICE -       not. Need to monitor the tests for NullPointerExceptions.
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
+        super(indexManager, 
+              null, //IConcurrencyManager
+              null, //IBigdataDiscoveryManagement
+              namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
         store = (Journal) indexManager;
         
     }
-    
+
     /**
      * Create or re-open a triple store using a local embedded database.
      */
@@ -166,8 +177,7 @@ public class LocalTripleStore extends AbstractLocalTripleStore {
          * obtain the Journal and then attempt to locate the KB and create it if
          * it does not exist.
          */
-        this(new Journal(properties), "kb"/* namespace */, ITx.UNISOLATED,
-                properties);
+        this(new Journal(properties), "kb"/* namespace */, ITx.UNISOLATED, properties);
         
         /*
          * FIXME Modify this to use a row scan for the contained relations.
@@ -179,8 +189,18 @@ public class LocalTripleStore extends AbstractLocalTripleStore {
          * can just materialize the existing relations and create them if they
          * are not found.
          */
-        if (!new SPORelation(getIndexManager(), getNamespace() + "."
-                + SPORelation.NAME_SPO_RELATION, getTimestamp(), getProperties()).exists()) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        if (!new SPORelation(getIndexManager(), getNamespace() + "."
+//BTM - PRE_CLIENT_SERVICE                + SPORelation.NAME_SPO_RELATION, getTimestamp(), getProperties()).exists()) {
+        if ( !new SPORelation(getIndexManager(),
+                              getConcurrencyManager(),
+                              getDiscoveryManager(),
+                              getNamespace() + "."
+                                  + SPORelation.NAME_SPO_RELATION,
+                              getTimestamp(),
+                              getProperties()).exists() )
+        {
+//BTM - PRE_CLIENT_SERVICE - END
 
             /*
              * If we could not find the SPO relation then presume that this is a

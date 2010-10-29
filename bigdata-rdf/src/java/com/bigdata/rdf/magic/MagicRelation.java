@@ -44,6 +44,10 @@ import com.bigdata.relation.rule.Var;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 public class MagicRelation extends AbstractRelation<IMagicTuple> {
 
     protected static final Logger log = Logger.getLogger(MagicRelation.class);
@@ -56,11 +60,23 @@ public class MagicRelation extends AbstractRelation<IMagicTuple> {
     
     private transient MagicKeyOrder[] keyOrders;
     
-    public MagicRelation(final IIndexManager indexManager,
-            final String namespace, final Long timestamp,
-            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public MagicRelation(final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            final String namespace, final Long timestamp,
+//BTM - PRE_CLIENT_SERVICE            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
 
-        super(indexManager, namespace, timestamp, properties);
+    public MagicRelation(final IIndexManager indexManager,
+                         final IConcurrencyManager concurrencyManager,
+                         final IBigdataDiscoveryManagement discoveryManager,
+                         final String namespace,
+                         final Long timestamp,
+                         final Properties properties)
+    {
+        super(indexManager, concurrencyManager, discoveryManager,
+              namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
         final String arity = properties.getProperty(MagicSchema.ARITY); 
         if (arity == null) {

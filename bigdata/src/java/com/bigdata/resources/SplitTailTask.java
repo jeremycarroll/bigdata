@@ -127,15 +127,27 @@ public class SplitTailTask extends AbstractPrepareTask {
 //BTM                "summary", OverflowActionEnum.TailSplit
 //BTM                        + (moveTarget != null ? "+" + OverflowActionEnum.Move
 //BTM                                : "") + "(" + vmd.name + ")");
-final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
-                           (resourceManager.getFederation()).getServiceIface(),
-                           (resourceManager.getFederation()).getServiceName(),
-                           (resourceManager.getFederation()).getServiceUUID(),
-                           new EventResource(vmd.indexMetadata),
-                           OverflowActionEnum.TailSplit,
-                           vmd.getParams()).addDetail("summary", OverflowActionEnum.TailSplit
-                                                                 + (moveTarget != null ? "+" + OverflowActionEnum.Move
-                                                                                       : "") + "(" + vmd.name + ")");
+//BTM - PRE_CLIENT_SERVICE final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                            new EventResource(vmd.indexMetadata),
+//BTM - PRE_CLIENT_SERVICE                            OverflowActionEnum.TailSplit,
+//BTM - PRE_CLIENT_SERVICE                            vmd.getParams()).addDetail("summary", OverflowActionEnum.TailSplit
+//BTM - PRE_CLIENT_SERVICE                                         + (moveTarget != null ? "+" + OverflowActionEnum.Move
+//BTM - PRE_CLIENT_SERVICE                                                    : "") + "(" + vmd.name + ")");
+//BTM - PRE_CLIENT_SERVICE 
+        final Event e =
+              new Event
+              ((resourceManager.getLocalResourceManager()).getEventQueueSender(),
+               (resourceManager.getLocalResourceManager()).getServiceIface(),
+               (resourceManager.getLocalResourceManager()).getServiceName(),
+               (resourceManager.getLocalResourceManager()).getServiceUUID(),
+               new EventResource(vmd.indexMetadata),
+               OverflowActionEnum.TailSplit,
+               vmd.getParams()).addDetail("summary", OverflowActionEnum.TailSplit
+                                          + (moveTarget != null ? "+" + OverflowActionEnum.Move
+                                                                : "") + "(" + vmd.name + ")");
         if (moveTarget != null) {
             e.addDetail("moveTarget", "" + moveTarget);
         }

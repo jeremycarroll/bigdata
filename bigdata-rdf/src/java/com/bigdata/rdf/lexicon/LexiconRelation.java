@@ -114,6 +114,10 @@ import com.bigdata.striterator.IKeyOrder;
 import cutthecrap.utils.striterators.Resolver;
 import cutthecrap.utils.striterators.Striterator;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * The {@link LexiconRelation} handles all things related to the indices mapping
  * RDF {@link Value}s onto internal term identifiers.
@@ -237,11 +241,23 @@ public class LexiconRelation extends AbstractRelation<BigdataValue>
      * @param properties
      * 
      */
-    public LexiconRelation(final IIndexManager indexManager,
-            final String namespace, final Long timestamp,
-            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public LexiconRelation(final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            final String namespace, final Long timestamp,
+//BTM - PRE_CLIENT_SERVICE            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
 
-        super(indexManager, namespace, timestamp, properties);
+    public LexiconRelation(final IIndexManager indexManager,
+                           final IConcurrencyManager concurrencyManager,
+                           final IBigdataDiscoveryManagement discoveryManager,
+                           final String namespace,
+                           final Long timestamp,
+                           final Properties properties)
+    {
+        super(indexManager, concurrencyManager, discoveryManager,
+              namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
         {
 

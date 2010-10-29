@@ -9,8 +9,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
-import com.bigdata.service.AbstractFederation;
+//BTM import com.bigdata.service.AbstractFederation;
 import com.bigdata.util.concurrent.MovingAverageTask;
+
+//BTM
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Extended to report the moving average of the pending set size for the master
@@ -27,9 +30,11 @@ public abstract class AbstractPendingSetMasterStats<L, HS extends AbstractSubtas
     /**
      * @param fed
      */
-    public AbstractPendingSetMasterStats(final AbstractFederation<?> fed) {
-
-        super(fed);
+//BTM    public AbstractPendingSetMasterStats(final AbstractFederation<?> fed) {
+//BTM
+//BTM        super(fed);
+public AbstractPendingSetMasterStats(final ScheduledExecutorService scheduledExecutor) {
+        super(scheduledExecutor);
 
     }
 

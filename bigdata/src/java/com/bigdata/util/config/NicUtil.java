@@ -32,11 +32,11 @@ import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Enumeration;
-import java.util.Collections;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -66,7 +66,8 @@ public class NicUtil {
      *             network interface to return (for example, typical
      *             values for this parameter might be, "eth0", "eth1",
      *             "hme01", "lo", etc., depending on how the underlying
-     *             platform is configured).
+     *             platform is configured). The empty string will
+     *             return the loopback interface.
      *
      * @return an instance of <code>NetworkInterface</code> that represents
      *         the network interface corresponding to the given 
@@ -142,16 +143,13 @@ public class NicUtil {
      *             the desired network interface(s) correspond.
      *
      * @return an array whose elements are each instances of 
-     *         <code>NetworkInterface[]</code>, in which each such
-     *         instance corresponds to the given <code>name</code>,
-     *         or <code>null</code> if there is no network interface
-     *         corresponding to that name value.
+     *         <code>NetworkInterface</code>, in which each such
+     *         instance corresponds to the given <code>name</code>.
      *         
-     *         Note that if the value given for the <code>name</code> 
-     *         parameter is the <code>String</code> "all", then this
-     *         method will return an array containing all of the
-     *         network interfaces installed on the current node, 
-     *         regardless of each interface's name.
+     *         Note that if the special value "all" is given for the 
+     *         <code>name</code> parameter, then this method will return
+     *         an array containing all of the network interfaces installed
+     *         on the current node, regardless of each interface's name.
      *
      * @throws SocketException if there is an error in the underlying
      *         I/O subsystem and/or protocol.
@@ -164,31 +162,23 @@ public class NicUtil {
     {
         NetworkInterface [] nics = null;
         if (name.equals("all")) {
-	    Enumeration en = NetworkInterface.getNetworkInterfaces();
-	    List nicList = (en != null) ?
-		Collections.list(en) : Collections.EMPTY_LIST;
-            nics = (NetworkInterface[])(nicList.toArray
-                                     (new NetworkInterface[nicList.size()]) );
+            Enumeration<NetworkInterface> en =
+                NetworkInterface.getNetworkInterfaces();
+            List<NetworkInterface> nicList = 
+                ((en != null) ? Collections.list(en) 
+                              : Collections.<NetworkInterface>emptyList());
+            nics = (nicList.toArray(new NetworkInterface[nicList.size()]) );
         } else {
-            nics = new NetworkInterface[1];
-            nics[0] = NetworkInterface.getByName(name);
-            if (nics[0] == null) {
-                // try to lookup by IP address
-                InetAddress targetIp = null;
-                try {
-                    targetIp = InetAddress.getByName(name);
-                    nics[0] = NetworkInterface.getByInetAddress(targetIp);
-                } catch (UnknownHostException uhe) {
-                    // ignore, return null
-                }
-            }
+            NetworkInterface nif = getNetworkInterface(name);
+            nics = ((nif != null) ? new NetworkInterface[] { nif } 
+                                  : new NetworkInterface[0]);
         }
         return nics;
     }
 
     /**
      * Returns the instance of <code>InetAddress</code> that represents
-     * the i-th IP address assigned to the network interface having the
+     * the i-th IPv4 address assigned to the network interface having the
      * given <code>name</code> (where i is specified by the value of the
      * <code>index</code> parameter). 
      * <p>
@@ -256,7 +246,7 @@ public class NicUtil {
      *         <code>localHost</code> is <code>false</code>.
      *
      * @throws IllegalArgumentException if the value input for 
-     *         <code>index</code> is negtive.
+     *         <code>index</code> is negative.
      *
      * @throws IndexOutOfBoundsException if the value input for 
      *         <code>index</code> is out of range; that is if the value
@@ -270,10 +260,14 @@ public class NicUtil {
     {
         // Validate input parameters 
         if( (name == null) && (host == null) && (localHost == false) ) {
-            throw new NullPointerException("name cannot be null");
+            throw new NullPointerException(
+            	"Name and host cannot be null with localHost set to false.");
         }
-        if(index < 0) throw new IllegalArgumentException
-                                             ("index cannot be negative");
+
+        if(index < 0) {
+            throw new IllegalArgumentException("index cannot be negative");
+        }
+
         // Primary retrieval attempt 
         NetworkInterface nic = null;
         try {
@@ -359,6 +353,7 @@ public class NicUtil {
     public static String getMacAddress(String name) throws SocketException {
         String macAddr = null;
         NetworkInterface nic = NicUtil.getNetworkInterface(name);
+        if (nic==null) return null;
         byte[] hwAddr = nic.getHardwareAddress();
         if( (hwAddr != null) && (hwAddr.length > 0) ) {
             StringBuffer strBuf = new StringBuffer();
@@ -373,6 +368,9 @@ public class NicUtil {
             macAddr = strBuf.toString();
         }
         return macAddr;
+//TODO - verify MAC address string representation 
+// (e.g. MSB->LSB ordering)
+//TODO - verify that HW address is a MAC address 
     }
 
     // What follows are a number of versions of the getIpAddress method
@@ -614,6 +612,8 @@ public class NicUtil {
         //get all nics on the current node
         Enumeration<NetworkInterface> nics = 
             NetworkInterface.getNetworkInterfaces();
+        if (nics == null) return null;
+
         while( nics.hasMoreElements() ) {
             NetworkInterface curNic = nics.nextElement();
             List<InterfaceAddress> interfaceAddrs = 

@@ -75,8 +75,20 @@ import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 import com.bigdata.util.httpd.AbstractHTTPD;
 
 //BTM
-import com.bigdata.event.EventQueue;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.resources.ResourceManager;
 import com.bigdata.util.Util;
+import com.bigdata.util.config.NicUtil;
+import com.bigdata.util.config.ConfigDeployUtil;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.event.EventQueueSender;
+import com.bigdata.event.EventQueueSenderTask;
+import com.bigdata.journal.ConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.journal.LocalTransactionManager;
 
 /**
  * Abstract base class for {@link IBigdataFederation} implementations.
@@ -91,9 +103,17 @@ import com.bigdata.util.Util;
  *       that the IServiceShutdown.Options interface is flattened into
  *       IServiceShutdown and it shadows the Options that are being used.
  */
-abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
+//BTM abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
+abstract public class AbstractFederation<T> implements IBigdataFederation<T>,
+                                                       ILocalResourceManagement
+{
 
     protected static final Logger log = Logger.getLogger(IBigdataFederation.class);
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    protected ResourceManager fedResourceMgr;
+    protected IConcurrencyManager fedConcurrencyMgr;
+//BTM - FOR_CLIENT_SERVICE - END
 
     /**
      * The client (if connected).
@@ -193,7 +213,8 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
 
         // drain any events in one last report.
 //BTM        new SendEventsTask().run();
-new SendEventsTask(events).run();
+//BTM - PRE_CLIENT_SERVICE new SendEventsTask(events).run();
+        new EventQueueSenderTask(events, this, getServiceName(), null).run();
 
         // optional httpd service for the local counters.
         if (httpd != null) {
@@ -434,7 +455,8 @@ new SendEventsTask(events).run();
 
             if (t == null) {
         
-                t = new ScaleOutIndexCounters(this);
+//BTM                t = new ScaleOutIndexCounters(this);
+t = new ScaleOutIndexCounters(getScheduledExecutorService());
                 
                 scaleOutIndexCounters.put(name, t);
                 
@@ -551,6 +573,12 @@ new SendEventsTask(events).run();
         
     }
 
+//BTM - FOR_CLIENT_SERVICE - BEGIN - required by the ILocalResourceManagement interface
+    public CounterSet getServiceCounterSet(boolean addCounters) {
+        return getServiceCounterSet();//ignore addCounters param for now
+    }
+//BTM - FOR_CLIENT_SERVICE - END
+
     public String getServiceCounterPathPrefix() {
 
         final String hostname = AbstractStatisticsCollector.fullyQualifiedHostName;
@@ -646,8 +674,25 @@ new SendEventsTask(events).run();
 //        tempStoreFactory = new TemporaryStoreFactory(this.client
 //                .getTempStoreMaxExtent());
 
+//BTM - FOR_CLIENT_SERVICE - BEGIN - for passing concurrencyMgr to getGlobalFileSystem and TemporaryStoreFactory.getTempStore
+        this.fedResourceMgr =
+             new FedResourceManager
+                     ( (IBigdataDiscoveryManagement)this,
+                       (ILocalResourceManagement)this,
+                       (IIndexManager)this,
+                       client.getProperties() );
+        this.fedConcurrencyMgr =
+             new ConcurrencyManager
+                 (client.getProperties(),
+                  new LocalTransactionManager
+                          ( (IBigdataDiscoveryManagement)this ),
+                  this.fedResourceMgr);
+        (this.fedResourceMgr).setConcurrencyManager(this.fedConcurrencyMgr);
+//BTM - FOR_CLIENT_SERVICE - END
+
 //BTM
-this.sendEventsTask = new SendEventsTask(events);
+//BTM - PRE_CLIENT_SERVICE this.sendEventsTask = new SendEventsTask(events);
+this.sendEventsTask = new EventQueueSenderTask(events, this, getServiceName(), null);
 
         addScheduledTask(
 //BTM                new SendEventsTask(),// task to run.
@@ -794,18 +839,22 @@ return (IClientIndex)index;
 
     public void dropIndex(String name) {
 
+String dbgFlnm = "TestEmbeddedClient.txt";
         if (log.isInfoEnabled())
             log.info("name=" + name);
 
         assertOpen();
+com.bigdata.util.Util.printStr(dbgFlnm, "    AbstractFederation.dropIndex[name="+name+"] - assertOpen = OK");
 
         try {
 
+com.bigdata.util.Util.printStr(dbgFlnm, "    AbstractFederation.dropIndex - metadataService = "+getMetadataService());
             getMetadataService().dropScaleOutIndex(name);
 
             if (log.isInfoEnabled())
                 log.info("dropped scale-out index.");
             
+com.bigdata.util.Util.printStr(dbgFlnm, "    AbstractFederation.dropIndex - getIndexCache = "+getIndexCache());
             getIndexCache().dropIndexFromCache(name);
 
         } catch (Exception e) {
@@ -827,17 +876,24 @@ return (IClientIndex)index;
 
     public BigdataFileSystem getGlobalFileSystem() {
 
-        return globalFileSystemHelper.getGlobalFileSystem();
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return globalFileSystemHelper.getGlobalFileSystem();
+        return globalFileSystemHelper.getGlobalFileSystem
+                                          (fedConcurrencyMgr,
+                                           (IBigdataDiscoveryManagement)this);
+//BTM - PRE_CLIENT_SERVICE - END
     }
 
-    private final GlobalFileSystemHelper globalFileSystemHelper = new GlobalFileSystemHelper(
-            this);
+    private final GlobalFileSystemHelper globalFileSystemHelper = new GlobalFileSystemHelper(this);
 
     public TemporaryStore getTempStore() {
 
-        return tempStoreFactory.getTempStore();
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return tempStoreFactory.getTempStore();
+        return tempStoreFactory.getTempStore
+                                    (fedConcurrencyMgr,
+                                     (IBigdataDiscoveryManagement)this);
+//BTM - PRE_CLIENT_SERVICE - END
     }
 
     private final TemporaryStoreFactory tempStoreFactory;
@@ -927,7 +983,16 @@ return (IClientIndex)index;
         client.getDelegate().reattachDynamicCounters();
         
     }
-    
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN - required by ILocalResourceManagement
+    public void reattachDynamicCounters
+                                 (ResourceManager resourceMgr,
+                                  IConcurrencyManager concurrencyMgr)
+    {
+        reattachDynamicCounters();
+    }
+//BTM - FOR_CLIENT_SERVICE - END
+
     /**
      * Delegated. {@inheritDoc}
      */
@@ -1551,104 +1616,195 @@ if( (mds != null) && (mds instanceof ShardService) ) service = (ShardService)mds
     final private BlockingQueue<Event> events = new LinkedBlockingQueue<Event>();
 
 //BTM
-final private EventQueue sendEventsTask;
+//BTM - PRE_CLIENT_SERVICE final private EventQueue sendEventsTask;
+final private EventQueueSender sendEventsTask;
     
-    /**
-     * Sends events to the load balancer service.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     * 
-     * FIXME should discard events if too many build up on the client.
-     */
-//BTM    private class SendEventsTask implements Runnable {
-private class SendEventsTask implements EventQueue, Runnable {
+//BTM - PRE_CLIENT_SERVICE     /**
+//BTM - PRE_CLIENT_SERVICE      * Sends events to the load balancer service.
+//BTM - PRE_CLIENT_SERVICE      * 
+//BTM - PRE_CLIENT_SERVICE      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+//BTM - PRE_CLIENT_SERVICE      * @version $Id$
+//BTM - PRE_CLIENT_SERVICE      * 
+//BTM - PRE_CLIENT_SERVICE      * FIXME should discard events if too many build up on the client.
+//BTM - PRE_CLIENT_SERVICE      */
+//BTM - PRE_CLIENT_SERVICE //BTM    private class SendEventsTask implements Runnable {
+//BTM - PRE_CLIENT_SERVICE private class SendEventsTask implements EventQueue, Runnable {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE final private BlockingQueue<Event> eventQueue;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM        public SendEventsTask() {
+//BTM - PRE_CLIENT_SERVICE public SendEventsTask(BlockingQueue<Event> eventQueue) {
+//BTM - PRE_CLIENT_SERVICE     this.eventQueue = eventQueue;
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM
+//BTM - PRE_CLIENT_SERVICE public void queueEvent(Event e) {
+//BTM - PRE_CLIENT_SERVICE     if (isOpen()) {
+//BTM - PRE_CLIENT_SERVICE         eventQueue.add(e);
+//BTM - PRE_CLIENT_SERVICE     }
+//BTM - PRE_CLIENT_SERVICE }
+//BTM - PRE_CLIENT_SERVICE         
+//BTM - PRE_CLIENT_SERVICE         /**
+//BTM - PRE_CLIENT_SERVICE          * Note: Don't throw anything - it will cancel the scheduled task.
+//BTM - PRE_CLIENT_SERVICE          */
+//BTM - PRE_CLIENT_SERVICE         public void run() {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             try {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 final LoadBalancer lbs = getLoadBalancerService();
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 if (lbs == null) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                     // Can't drain events
+//BTM - PRE_CLIENT_SERVICE                     return;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 final long begin = System.currentTimeMillis();
+//BTM - PRE_CLIENT_SERVICE                 
+//BTM - PRE_CLIENT_SERVICE                 final LinkedList<Event> c = new LinkedList<Event>();
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM                events.drainTo(c);
+//BTM - PRE_CLIENT_SERVICE eventQueue.drainTo(c);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 /*
+//BTM - PRE_CLIENT_SERVICE                  * @todo since there is a delay before events are sent along it
+//BTM - PRE_CLIENT_SERVICE                  * is quite common that the end() event will have been generated
+//BTM - PRE_CLIENT_SERVICE                  * such that the event is complete before we send it along.
+//BTM - PRE_CLIENT_SERVICE                  * there should be an easy way to notice this and avoid sending
+//BTM - PRE_CLIENT_SERVICE                  * an event twice when we can get away with just sending it
+//BTM - PRE_CLIENT_SERVICE                  * once. however the decision must be atomic with respect to the
+//BTM - PRE_CLIENT_SERVICE                  * state change in the event so that we do not lose any data by
+//BTM - PRE_CLIENT_SERVICE                  * concluding that we have handled the event when in fact its
+//BTM - PRE_CLIENT_SERVICE                  * state was not complete before we sent it along.
+//BTM - PRE_CLIENT_SERVICE                  */
+//BTM - PRE_CLIENT_SERVICE                 
+//BTM - PRE_CLIENT_SERVICE                 for (Event e : c) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                     // avoid modification when sending the event.
+//BTM - PRE_CLIENT_SERVICE                     synchronized(e) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM                        lbs.notifyEvent(e);
+//BTM - PRE_CLIENT_SERVICE ((com.bigdata.service.EventReceivingService)lbs).notifyEvent(e);
+//BTM - PRE_CLIENT_SERVICE                         
+//BTM - PRE_CLIENT_SERVICE                     }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 if (log.isInfoEnabled()) {
+//BTM - PRE_CLIENT_SERVICE                     
+//BTM - PRE_CLIENT_SERVICE                     final int nevents = c.size();
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                     if (nevents > 0)
+//BTM - PRE_CLIENT_SERVICE                         log.info("Sent " + c.size() + " events in "
+//BTM - PRE_CLIENT_SERVICE                                 + (System.currentTimeMillis() - begin) + "ms");
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             } catch (Throwable t) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                log.warn(getServiceName(), t);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE     }
+//BTM - PRE_CLIENT_SERVICE 
 
-final private BlockingQueue<Event> eventQueue;
+    // Required by ILocalResourceManagement
 
-//BTM        public SendEventsTask() {
-public SendEventsTask(BlockingQueue<Event> eventQueue) {
-    this.eventQueue = eventQueue;
+    public String getHostname() {
+        assertOpen();
+        try {
+            return ( NicUtil.getIpAddress
+                         ("default.nic", 
+                          ConfigDeployUtil.getString
+                              ("node.serviceNetwork"),
+                          false) );
+        } catch(Throwable t) {
+            return "UNKNOWN";
+        }
+    }
+
+    public ExecutorService getThreadPool() {
+        return this.getExecutorService();
+    }
+
+    public ScheduledExecutorService getScheduledExecutor() {
+        return this.getScheduledExecutorService();
+    }
+
+    public Session getSession() {
+        assertOpen();
+        Object serviceRef = this.getService();
+        if( (serviceRef != null) && (serviceRef instanceof ISession) ) {
+            return ( ((ISession)serviceRef).getSession() );
+        }
+        return null;
+    }
+
+    public EventQueueSender getEventQueueSender() {
+        return this.sendEventsTask;
+    }
+
+    public void terminate(long timeout) {
+        this.shutdown();
+    }
+
+    // For tests
+
+    public IConcurrencyManager getConcurrencyManager() {
+        return fedConcurrencyMgr;
+    }
+
+    // Nested classes
+
+    class FedResourceManager extends ResourceManager {
+
+        private IBigdataDiscoveryManagement discoveryManager;
+        private ILocalResourceManagement localResources;
+        private IIndexManager indexManager;
+
+        FedResourceManager(IBigdataDiscoveryManagement discoveryManager,
+                           ILocalResourceManagement localResources,
+                           IIndexManager indexManager,
+                           Properties properties)
+        {
+            super(properties);
+            this.discoveryManager = discoveryManager;
+            this.localResources = localResources;
+            this.indexManager = indexManager;
         }
 
-//BTM
-public void queueEvent(Event e) {
-    if (isOpen()) {
-        eventQueue.add(e);
-    }
-}
-        
-        /**
-         * Note: Don't throw anything - it will cancel the scheduled task.
-         */
-        public void run() {
-
-            try {
-
-                final LoadBalancer lbs = getLoadBalancerService();
-
-                if (lbs == null) {
-
-                    // Can't drain events
-                    return;
-
-                }
-
-                final long begin = System.currentTimeMillis();
-                
-                final LinkedList<Event> c = new LinkedList<Event>();
-
-//BTM                events.drainTo(c);
-eventQueue.drainTo(c);
-
-                /*
-                 * @todo since there is a delay before events are sent along it
-                 * is quite common that the end() event will have been generated
-                 * such that the event is complete before we send it along.
-                 * there should be an easy way to notice this and avoid sending
-                 * an event twice when we can get away with just sending it
-                 * once. however the decision must be atomic with respect to the
-                 * state change in the event so that we do not lose any data by
-                 * concluding that we have handled the event when in fact its
-                 * state was not complete before we sent it along.
-                 */
-                
-                for (Event e : c) {
-
-                    // avoid modification when sending the event.
-                    synchronized(e) {
-
-//BTM                        lbs.notifyEvent(e);
-((com.bigdata.service.EventReceivingService)lbs).notifyEvent(e);
-                        
-                    }
-
-                }
-
-                if (log.isInfoEnabled()) {
-                    
-                    final int nevents = c.size();
-
-                    if (nevents > 0)
-                        log.info("Sent " + c.size() + " events in "
-                                + (System.currentTimeMillis() - begin) + "ms");
-
-                }
-
-            } catch (Throwable t) {
-
-                log.warn(getServiceName(), t);
-
-            }
-
+        @Override
+        public IBigdataDiscoveryManagement getDiscoveryManager() {
+            return discoveryManager;
         }
 
+        @Override
+        public ILocalResourceManagement getLocalResourceManager() {
+            return localResources;
+        }
+
+        @Override
+        public IIndexManager getIndexManager() {
+            return indexManager;
+        }
+            
+        @Override
+        public ShardService getDataService() {
+            throw new UnsupportedOperationException
+                  ("AbstractFederation#FedResourceManager.getDataService");
+        }
+            
+        @Override
+        public UUID getDataServiceUUID() {
+            throw new UnsupportedOperationException
+                  ("AbstractFederation#FedResourceManager"
+                   +".getDataServiceUUID");
+        }
     }
-
-
-public EventQueue getEventQueue() {
-    return this.sendEventsTask;
-}
 //BTM - END - REMOVAL OF NEED FOR ABSTRACT_FEDERATION IN EVENT SENDING MECHANISM
 
 

@@ -506,7 +506,13 @@ public class TestRDFXMLInterchangeWithStatementIdentifiers extends
                 properties.setProperty(DataLoader.Options.CLOSURE,
                         DataLoader.ClosureEnum.None.toString());
 
-                tempStore = new TempTripleStore(properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                tempStore = new TempTripleStore(properties);
+                tempStore =
+                    new TempTripleStore(store.getConcurrencyManager(),
+                                        store.getDiscoveryManager(),
+                                        properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
             }
 
@@ -680,7 +686,12 @@ public class TestRDFXMLInterchangeWithStatementIdentifiers extends
             properties.setProperty(DataLoader.Options.CLOSURE,
                     DataLoader.ClosureEnum.None.toString());
 
-            tempStore = new TempTripleStore(properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            tempStore = new TempTripleStore(properties);
+            tempStore = new TempTripleStore(store.getConcurrencyManager(),
+                                            store.getDiscoveryManager(),
+                                            properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
         }
 

@@ -70,15 +70,20 @@ public class BigdataServiceConfiguration extends
      * @param config
      * @throws ConfigurationException
      */
-//BTM    public BigdataServiceConfiguration(Class<? extends AbstractServer> cls,
-//BTM            Configuration config) throws ConfigurationException {
     public BigdataServiceConfiguration(Class cls, Configuration config)
                throws ConfigurationException
     {
         super(cls.getName(), config);
 System.out.println("*** BigdataServiceConfiguration: constructor");
 
-//BTM - attempting to maintain the original logic regarding what types are expected/allowed, as enforced by the generic specification <? extends AbstractServer>
+        //Note: this constructor was originally defined with the specification
+        //      of the 'cls' arguement as, 'Class<? extends AbstractServer cls'.
+        //      In order to allow different implementations of the service types
+        //      handled by this class, the generics specification was removed.
+        //      But so as to provide the same sort of type enforcement as the
+        //      orginal specification, the following analysis of the class
+        //      that is input is performed.
+
         boolean classCastOk = false;
         if( AbstractServer.class.isAssignableFrom(cls) ) {
             classCastOk = true;
@@ -101,6 +106,11 @@ System.out.println("*** BigdataServiceConfiguration: constructor");
         } else if( com.bigdata.service.jini.LoadBalancerServer.class.isAssignableFrom(cls) ) {
             classCastOk = true;
         } else if( com.bigdata.loadbalancer.ServiceImpl.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
+
+        } else if( com.bigdata.service.jini.ClientServer.class.isAssignableFrom(cls) ) {
+            classCastOk = true;
+        } else if( com.bigdata.executor.ServiceImpl.class.isAssignableFrom(cls) ) {
             classCastOk = true;
         }
 

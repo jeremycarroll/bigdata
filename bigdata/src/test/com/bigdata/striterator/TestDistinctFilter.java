@@ -64,7 +64,12 @@ public class TestDistinctFilter extends TestCase2 {
      */
     public void test_distinctOneChunk() {
         
-        final IIndexManager indexManager = new TemporaryStore();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final IIndexManager indexManager = new TemporaryStore();
+        final IIndexManager indexManager =
+                  new TemporaryStore(null, //IConcurrencyManager
+                                     null);//IBigdataDiscoveryManagement
+//BTM - PRE_CLIENT_SERVICE - END
 
         final IKeyBuilder keyBuilder = new KeyBuilder(Bytes.SIZEOF_LONG);
         
@@ -101,7 +106,12 @@ public class TestDistinctFilter extends TestCase2 {
      */
     public void test_distinctOneChunkEmptyIterator() {
 
-        final IIndexManager indexManager = new TemporaryStore();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final IIndexManager indexManager = new TemporaryStore();
+        final IIndexManager indexManager =
+                  new TemporaryStore(null, //IConcurrencyManager
+                                     null);//IBigdataDiscoveryManagement
+//BTM - PRE_CLIENT_SERVICE - END
 
         final IKeyBuilder keyBuilder = new KeyBuilder(Bytes.SIZEOF_LONG);
         
@@ -137,7 +147,12 @@ public class TestDistinctFilter extends TestCase2 {
      */
     public void test_distinctManyChunks() {
         
-        final IIndexManager indexManager = new TemporaryStore();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final IIndexManager indexManager = new TemporaryStore();
+        final IIndexManager indexManager =
+                  new TemporaryStore(null, //IConcurrencyManager
+                                     null);//IBigdataDiscoveryManagement
+//BTM - PRE_CLIENT_SERVICE - END
 
         final IKeyBuilder keyBuilder = new KeyBuilder(Bytes.SIZEOF_LONG);
         

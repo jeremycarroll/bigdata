@@ -67,6 +67,10 @@ import com.bigdata.service.ndx.IClientIndex;
 //BTM - PRE_FRED_3481import com.bigdata.journal.ConcurrencyManager;
 //BTM - PRE_FRED_3481import com.bigdata.service.Session;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
@@ -80,6 +84,11 @@ abstract public class AbstractStepTask
     protected final IJoinNexusFactory joinNexusFactory;
     protected /*final*/ IIndexManager indexManager;
     protected final IStep step;
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    protected IConcurrencyManager concurrencyManager;
+    protected IBigdataDiscoveryManagement discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
 
     /**
      * Base class handles submit either to the caller's {@link ExecutorService}
@@ -127,9 +136,18 @@ abstract public class AbstractStepTask
 //BTM - PRE_FRED_3481         final String dataServiceHost,
 //BTM - PRE_FRED_3481         final String dataServiceName) {
 
-    protected AbstractStepTask(final ActionEnum action,
-                final IJoinNexusFactory joinNexusFactory, final IStep step,
-                final IIndexManager indexManager)
+//BTM - PRE_CLIENT_SERVICE    protected AbstractStepTask(final ActionEnum action,
+//BTM - PRE_CLIENT_SERVICE                final IJoinNexusFactory joinNexusFactory, final IStep step,
+//BTM - PRE_CLIENT_SERVICE                final IIndexManager indexManager)
+//BTM - PRE_CLIENT_SERVICE    {
+
+    protected AbstractStepTask
+                  (final ActionEnum action,
+                   final IJoinNexusFactory joinNexusFactory,
+                   final IStep step,
+                   final IIndexManager indexManager,
+                   final IConcurrencyManager concurrencyManager,
+                   final IBigdataDiscoveryManagement discoveryManager)
     {
 
         if (action == null)
@@ -149,6 +167,11 @@ abstract public class AbstractStepTask
 
         this.indexManager = indexManager; // @todo MAY be null?
 
+//BTM FOR_CLIENT_SERVICE - BEGIN
+        this.concurrencyManager = concurrencyManager;
+        this.discoveryManager = discoveryManager;
+//BTM FOR_CLIENT_SERVICE - END
+
 //BTM        if (dataService != null)
 //BTM            setDataService(dataService);
 //BTM - PRE_FRED_3481 
@@ -163,9 +186,15 @@ abstract public class AbstractStepTask
 
     public String toString() {
 
+//BTM - PRE_CLIENT_SERVICE        return "{" + getClass().getSimpleName() + ", action=" + action
+//BTM - PRE_CLIENT_SERVICE                + ", step=" + step.getName() + ", joinNexusFactory="
+//BTM - PRE_CLIENT_SERVICE                + joinNexusFactory + ", indexManager=" + indexManager+"}";
+
         return "{" + getClass().getSimpleName() + ", action=" + action
                 + ", step=" + step.getName() + ", joinNexusFactory="
-                + joinNexusFactory + ", indexManager=" + indexManager+"}";
+                + joinNexusFactory + ", indexManager=" + indexManager
+                + ", concurrencyManager=" + concurrencyManager
+                + ", discoveryManager=" + discoveryManager + "}";
 
     }
 

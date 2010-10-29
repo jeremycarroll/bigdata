@@ -36,6 +36,9 @@ import junit.framework.TestCase2;
 
 import com.bigdata.service.TestEventReceiver.MyEvent;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.resources.ILocalResourceManagement;
+
 /**
  * Unit tests for parsing {@link Event}s.
  * 
@@ -68,9 +71,25 @@ public class TestEventParser extends TestCase2 {
     
     public void test_parser() throws ClassNotFoundException {
 
-//BTM        final Event e = new MyEvent(new TestEventReceiver.MockFederation(new MockEventReceivingService()), new EventResource("testIndex"), "testEventType");
-IBigdataFederation fed = new TestEventReceiver.MockFederation(new MockEventReceivingService());
-final Event e = new MyEvent(fed, fed.getEventQueue(), fed.getServiceIface(), fed.getServiceName(), fed.getServiceUUID(), new EventResource("testIndex"), "testEventType");
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE //BTM        final Event e = new MyEvent(new TestEventReceiver.MockFederation(new MockEventReceivingService()), new EventResource("testIndex"), "testEventType");
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE IBigdataFederation fed = new TestEventReceiver.MockFederation(new MockEventReceivingService());
+//BTM - PRE_CLIENT_SERVICE final Event e = new MyEvent(fed,
+//BTM - PRE_CLIENT_SERVICE                             fed.getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                             fed.getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                             new EventResource("testIndex"),
+//BTM - PRE_CLIENT_SERVICE                             "testEventType");
+        TestEventReceiver.MockFederation fed =
+            new TestEventReceiver.MockFederation
+                    (new MockEventReceivingService());
+        final Event e = new MyEvent( (ILocalResourceManagement)fed,
+                                     fed.getService(),
+                                     new EventResource("testIndex"),
+                                     "testEventType" );
+//BTM - PRE_CLIENT_SERVICE - END
 
         assertSameEvent(e, Event.fromString(e.toString()));
         

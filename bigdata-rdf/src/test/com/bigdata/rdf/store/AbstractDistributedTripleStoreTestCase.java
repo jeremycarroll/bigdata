@@ -32,6 +32,11 @@ import java.util.Properties;
 import com.bigdata.journal.ITx;
 import com.bigdata.service.jini.JiniClient;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.service.AbstractFederation;
+
 /**
  * Abstract test case that sets up and connects to a bigdata federation and
  * establishes an RDF database on that federation.
@@ -73,8 +78,18 @@ abstract public class AbstractDistributedTripleStoreTestCase extends AbstractDis
         super.setUp();
 
         // connect to the database.
-        store = new ScaleOutTripleStore(client.getFederation(), "test_",
-                ITx.UNISOLATED, client.getProperties());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        store = new ScaleOutTripleStore(client.getFederation(), "test_",
+//BTM - PRE_CLIENT_SERVICE                ITx.UNISOLATED, client.getProperties());
+        AbstractFederation fed = (AbstractFederation)(client.getFederation());
+        store = new ScaleOutTripleStore
+                        ((IIndexManager)fed,
+                         fed.getConcurrencyManager(),
+                         (IBigdataDiscoveryManagement)fed,
+                         "test_",
+                         ITx.UNISOLATED,
+                         client.getProperties());
+//BTM - PRE_CLIENT_SERVICE - END
         
         store.create();
         

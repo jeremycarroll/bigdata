@@ -25,13 +25,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.event;
 
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventReceivingService;
-import com.bigdata.service.LoadBalancer;
 import com.bigdata.util.config.LogUtil;
-
-import net.jini.core.lookup.ServiceItem;
-import net.jini.lookup.LookupCache;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -39,29 +36,29 @@ import org.apache.log4j.Logger;
 import java.util.LinkedList;
 import java.util.concurrent.BlockingQueue;
 
-public class EventQueueSenderTask implements EventQueue, Runnable {
+public class EventQueueSenderTask implements EventQueueSender {
 
     private BlockingQueue<Event> eventQueue;
-    private LookupCache lbsCache;//for discovering lbs
-    private LoadBalancer embeddedLbs;//for testing embedded fed
+    private IBigdataDiscoveryManagement discoveryMgr;
     private String serviceName;
     private Logger logger;
 
     public EventQueueSenderTask(BlockingQueue<Event> eventQueue,
-                                LookupCache loadBalancerCache,
-                                LoadBalancer embeddedLoadBalancer,
+                                IBigdataDiscoveryManagement discoveryMgr,
                                 String serviceName,
                                 Logger logger)
     {
         this.eventQueue = eventQueue;
-        this.lbsCache = loadBalancerCache;
-        this.embeddedLbs = embeddedLoadBalancer;//for embedded fed testing
+        this.discoveryMgr = discoveryMgr;
 
         this.serviceName = serviceName;//for debug output
         this.logger  = (logger == null ? 
                         LogUtil.getLog4jLogger((this.getClass()).getName()) :
                         logger);
     }
+
+    // Note: EventQueueSender interface sub-classes EventQueue interface
+    //       and Runnable interface
 
     // Required by EventQueue interface
 
@@ -75,22 +72,9 @@ public class EventQueueSenderTask implements EventQueue, Runnable {
 
 //BTM - for now, maintain the same logic and functionality as that in
 //BTM   the class AbstractFederation#SendEventsTask
-
         try {
-            LoadBalancer lbs = null;
-            EventReceivingService serviceRef = null;
-            if(embeddedLbs != null) {
-                lbs = embeddedLbs;
-            } else {
-                if(lbsCache != null) {
-                    ServiceItem lbsItem = lbsCache.lookup(null);
-                    if(lbsItem != null) {
-                        lbs = (LoadBalancer)(lbsItem.service);
-                    }
-                }
-            }
-            if(lbs == null) return;
-            serviceRef = (EventReceivingService)lbs;
+            EventReceivingService serviceRef = 
+              (EventReceivingService)(discoveryMgr.getLoadBalancerService());
 
             final long begin = System.currentTimeMillis();//for logging
 

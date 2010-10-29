@@ -42,7 +42,11 @@ import com.bigdata.journal.TemporaryStore;
 import com.bigdata.rdf.inf.TruthMaintenance;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.relation.locator.DefaultResourceLocator;
-import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 
 /**
  * A temporary triple store based on the <em>bigdata</em> architecture. Data
@@ -186,11 +190,20 @@ public class TempTripleStore extends AbstractLocalTripleStore {
      * @param properties
      *            See {@link Options}.
      */
-    public TempTripleStore(Properties properties) {
-       
-        this(properties, null);
-        
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public TempTripleStore(Properties properties) {
+//BTM - PRE_CLIENT_SERVICE       
+//BTM - PRE_CLIENT_SERVICE        this(properties, null);
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
+
+    public TempTripleStore(IConcurrencyManager concurrencyManager,
+                           IBigdataDiscoveryManagement discoveryManager,
+                           Properties properties)
+    {
+        this(concurrencyManager, discoveryManager, properties, null);   
     }
+//BTM - PRE_CLIENT_SERVICE - END
     
     /**
      * Create a transient {@link ITripleStore} backed by a new
@@ -224,11 +237,23 @@ public class TempTripleStore extends AbstractLocalTripleStore {
      *             {@link TruthMaintenance} which have to create a lot of
      *             temporary stores.
      */
-    public TempTripleStore(Properties properties, AbstractTripleStore db) {
-        
-        this(new TemporaryStore(), properties, db);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public TempTripleStore(Properties properties, AbstractTripleStore db) {
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_STORE        this(new TemporaryStore(), properties, db);
+//BTM - PRE_CLIENT_SERVICE        this(getDiscoveryManager(), new TemporaryStore(), properties, db);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+    public TempTripleStore(IConcurrencyManager concurrencyManager,
+                           IBigdataDiscoveryManagement discoveryManager,
+                           Properties properties,
+                           AbstractTripleStore db)
+    {
+        this(new TemporaryStore(concurrencyManager, discoveryManager),
+             concurrencyManager, discoveryManager,
+             properties, db);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Variant for creating a(nother) {@link TempTripleStore} on the same
@@ -244,10 +269,23 @@ public class TempTripleStore extends AbstractLocalTripleStore {
      *            {@link TempTripleStore}; and (b) will be able to locate
      *            relations declared on the backing {@link TemporaryStore}.
      */
-    public TempTripleStore(final TemporaryStore store,
-            final Properties properties, final AbstractTripleStore db) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public TempTripleStore(final TemporaryStore store,
+//BTM - PRE_CLIENT_SERVICE            final Properties properties, final AbstractTripleStore db) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        this(store, db == null ? properties : stackProperties(properties, db));
 
-        this(store, db == null ? properties : stackProperties(properties, db));
+    public TempTripleStore(final TemporaryStore store,
+                           final IConcurrencyManager concurrencyManager,
+                           final IBigdataDiscoveryManagement discoveryManager,
+                           final Properties properties,
+                           final AbstractTripleStore db)
+    {
+
+        this(store,
+             concurrencyManager, discoveryManager,
+             db == null ? properties : stackProperties(properties, db));
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (log.isInfoEnabled()) {
 
@@ -275,11 +313,24 @@ public class TempTripleStore extends AbstractLocalTripleStore {
      * Note: This is here just to make it easy to have the reference to the
      * [store] and its [uuid] when we create one in the calling ctor.
      */
-    private TempTripleStore(TemporaryStore store, Properties properties) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    private TempTripleStore(TemporaryStore store, Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE  this(store, UUID.randomUUID() + "kb", ITx.UNISOLATED, properties);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
 
-        this(store, UUID.randomUUID() + "kb", ITx.UNISOLATED, properties);
-        
+    private TempTripleStore(TemporaryStore store,
+                            IConcurrencyManager concurrencyManager,
+                            IBigdataDiscoveryManagement discoveryManager,
+                            Properties properties)
+    {
+
+        this(store,
+             concurrencyManager, discoveryManager,
+             UUID.randomUUID() + "kb", ITx.UNISOLATED, properties);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Ctor specified by {@link DefaultResourceLocator}.
@@ -289,10 +340,20 @@ public class TempTripleStore extends AbstractLocalTripleStore {
      * @param timestamp
      * @param properties
      */
-    public TempTripleStore(IIndexManager indexManager, String namespace,
-            Long timestamp, Properties properties) {
-
-        super(indexManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  public TempTripleStore(IIndexManager indexManager, String namespace, Long timestamp, Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE
+    public TempTripleStore(IIndexManager indexManager,
+                           IConcurrencyManager concurrencyManager,
+                           IBigdataDiscoveryManagement discoveryManager,
+                           String namespace,
+                           Long timestamp,
+                           Properties properties)
+    {
+        super(indexManager, concurrencyManager, discoveryManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
         store = (TemporaryStore) indexManager;
 

@@ -325,7 +325,8 @@ public class PartitionedTupleIterator<E> implements ITupleIterator<E> {
 
             try {
 
-                ndx.getFederation().getTransactionService().abort(ts);
+//BTM - PRE_CLIENT_SERVICE  ndx.getFederation().getTransactionService().abort(ts);
+                (ndx.getDiscoveryManager()).getTransactionService().abort(ts);
 
             } catch (IOException e) {
 
@@ -555,8 +556,7 @@ public class PartitionedTupleIterator<E> implements ITupleIterator<E> {
              * 
              * @todo this should failover.
              */
-//BTM            final IDataService dataService = ndx.getDataService(locator);
-final ShardService dataService = ndx.getDataService(locator);
+            final ShardService dataService = ndx.getDataService(locator);
             
             /*
              * Iterator will visit all data on that index partition.

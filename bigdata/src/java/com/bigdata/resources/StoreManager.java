@@ -101,7 +101,7 @@ import com.bigdata.relation.locator.DefaultResourceLocator;
 import com.bigdata.service.Event;
 import com.bigdata.service.EventResource;
 import com.bigdata.service.EventType;
-import com.bigdata.service.IBigdataFederation;
+//BTM import com.bigdata.service.IBigdataFederation;
 //BTM import com.bigdata.service.MetadataService;
 import com.bigdata.service.ResourceService;
 import com.bigdata.service.ShardLocator;
@@ -110,6 +110,7 @@ import com.bigdata.sparse.SparseRowStore;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 
 //BTM
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
 import com.bigdata.journal.TransactionService;
 
 /**
@@ -1453,46 +1454,100 @@ System.out.println("StoreManager#Startup >>> FINALLY >>> set isStarting to FALSE
             }
 
 			try {
-				final IBigdataFederation<?> fed = getFederation();
-				if (fed == null) {
-					/*
-					 * Some of the unit tests do not start the txs until after
-					 * the shard service. For those unit tests getFederation()
-					 * will return null during startup() of the shard service. To
-					 * have a common code path, we throw the exception here
-					 * which is caught below.
-					 */
-					throw new UnsupportedOperationException();
-				}
-//BTM				while (true) {
-//BTM					if (fed.getTransactionService() != null) {
-//BTM						break;
-//BTM					}
-//BTM					log.warn("Waiting for transaction service discovery");
-//BTM				}
-//BTM - BEGIN
-//while (true) {
-boolean discoveredTxnSrvc = false;
-for(int i=0;i<60;i++) {
-    if (fed.getTransactionService() != null) {
-        discoveredTxnSrvc = true;
-        break;
-    }
-    try { Thread.sleep(1000L); } catch(InterruptedException ie) { }
-    log.warn("Waiting for transaction service discovery");
+//BTM - BEGIN - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE				final IBigdataFederation<?> fed = getFederation();
+//BTM - PRE_CLIENT_SERVICE				if (fed == null) {
+//BTM - PRE_CLIENT_SERVICE					/*
+//BTM - PRE_CLIENT_SERVICE					 * Some of the unit tests do not start the txs until after
+//BTM - PRE_CLIENT_SERVICE					 * the shard service. For those unit tests getFederation()
+//BTM - PRE_CLIENT_SERVICE					 * will return null during startup() of the shard service. To
+//BTM - PRE_CLIENT_SERVICE					 * have a common code path, we throw the exception here
+//BTM - PRE_CLIENT_SERVICE					 * which is caught below.
+//BTM - PRE_CLIENT_SERVICE					 */
+//BTM - PRE_CLIENT_SERVICE					throw new UnsupportedOperationException();
+//BTM - PRE_CLIENT_SERVICE				}
+//BTM - PRE_CLIENT_SERVICE//BTM				while (true) {
+//BTM - PRE_CLIENT_SERVICE//BTM					if (fed.getTransactionService() != null) {
+//BTM - PRE_CLIENT_SERVICE//BTM						break;
+//BTM - PRE_CLIENT_SERVICE//BTM					}
+//BTM - PRE_CLIENT_SERVICE//BTM					log.warn("Waiting for transaction service discovery");
+//BTM - PRE_CLIENT_SERVICE//BTM				}
+//BTM - PRE_CLIENT_SERVICE//BTM - BEGIN
+//BTM - PRE_CLIENT_SERVICE//while (true) {
+//BTM - PRE_CLIENT_SERVICEboolean discoveredTxnSrvc = false;
+//BTM - PRE_CLIENT_SERVICEfor(int i=0;i<60;i++) {
+//BTM - PRE_CLIENT_SERVICE    if (fed.getTransactionService() != null) {
+//BTM - PRE_CLIENT_SERVICE        discoveredTxnSrvc = true;
+//BTM - PRE_CLIENT_SERVICE        break;
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE    try { Thread.sleep(1000L); } catch(InterruptedException ie) { }
+//BTM - PRE_CLIENT_SERVICE    log.warn("Waiting for transaction service discovery");
+//BTM - PRE_CLIENT_SERVICE}
+//BTM - PRE_CLIENT_SERVICE//BTM - PRE_CLIENT_SERVICEif(discoveredTxnSrvc) {
+//BTM - PRE_CLIENT_SERVICE    log.warn("\n>>>> discovered transaction service ---- YES\n");
+//BTM - PRE_CLIENT_SERVICE} else {
+//BTM - PRE_CLIENT_SERVICE    log.warn("\n>>>> discovered transaction service ---- NO\n");
+//BTM - PRE_CLIENT_SERVICE    StackTraceElement[] e = (Thread.currentThread()).getStackTrace();
+//BTM - PRE_CLIENT_SERVICE    StringBuffer buf = new StringBuffer("    "+(e[0]).toString()+"\n");
+//BTM - PRE_CLIENT_SERVICE    for(int i=1;i<e.length;i++) {
+//BTM - PRE_CLIENT_SERVICE        buf.append("    "+(e[i]).toString()+"\n");
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE    String stackTrace = buf.toString();
+//BTM - PRE_CLIENT_SERVICE    log.warn("\n"+stackTrace+"\n");
+//BTM - PRE_CLIENT_SERVICE}
+//BTM - PRE_CLIENT_SERVICE
+
+//BTM - maintain original logic for now
+                                final IBigdataDiscoveryManagement discoveryMgr =
+                                          getDiscoveryManager();
+				if (discoveryMgr == null) {
+                                    // Some of the unit tests do not start
+                                    // the txs until after the shard service.
+                                    // For those tests getDiscoveryManager()
+                                    // will return null during startup() of
+                                    // the shard service. To have a common
+                                    // code path, an exception is thrown
+                                    // here, but caught below.
+                                    throw new UnsupportedOperationException();
+                                }
+                                // Wait no more than N seconds for discovery
+                                int nWait = 30;
+                                boolean discoveredTxnSrvc = false;
+                                for(int i=0; i<nWait; i++) {
+                                    if (discoveryMgr.getTransactionService()
+                                                                    != null)
+                                    {
+                                        discoveredTxnSrvc = true;
+                                        break;
+                                    }
+                                    try { 
+                                        Thread.sleep(1000L); 
+                                    } catch(InterruptedException ie) { }
+                                        if (log.isDebugEnabled()) {
+                                            log.debug
+                                                ("waiting for transaction "
+                                                 +"service discovery");
+                                        }
+                                    }
+                                    if(discoveredTxnSrvc) {
+                                        if (log.isDebugEnabled()) {
+                                            log.debug
+                                                ("discovered transaction "
+                                                 +"service");
+                                        }
+                                    } else {
+                                        log.warn("transaction service "
+                                                 +"unreachable");
+StackTraceElement[] e = (Thread.currentThread()).getStackTrace();
+StringBuffer buf = new StringBuffer("    "+(e[0]).toString()+"\n");
+for(int i=1;i<e.length;i++) {
+    buf.append("    "+(e[i]).toString()+"\n");
 }
-if(discoveredTxnSrvc) {
-    log.warn("\n>>>> discovered transaction service ---- YES\n");
-} else {
-    log.warn("\n>>>> discovered transaction service ---- NO\n");
-    StackTraceElement[] e = (Thread.currentThread()).getStackTrace();
-    StringBuffer buf = new StringBuffer("    "+(e[0]).toString()+"\n");
-    for(int i=1;i<e.length;i++) {
-        buf.append("    "+(e[i]).toString()+"\n");
-    }
-    String stackTrace = buf.toString();
-    log.warn("\n"+stackTrace+"\n");
-}
+String stackTrace = buf.toString();
+log.warn("\n"+stackTrace+"\n");
+                                    }//endif(discoveredTxnSrvc)
+//BTM - END - PRE_CLIENT_SERVICE
+
 			} catch (UnsupportedOperationException ex) {
 				log.warn("Federation not available - running in test case?");
 			}
@@ -2602,39 +2657,38 @@ System.out.println("\nStoreManager.scanFile >>> addResource: file="+file);
 
         public SparseRowStore getGlobalRowStore() {
             
-            return getFederation().getGlobalRowStore();
-            
+//BTM - PRE_CLIENT_SERVICE            return getFederation().getGlobalRowStore();
+            return getIndexManager().getGlobalRowStore();
         }
         
         public BigdataFileSystem getGlobalFileSystem() {
             
-            return getFederation().getGlobalFileSystem();
-            
+//BTM - PRE_CLIENT_SERVICE            return getFederation().getGlobalFileSystem();
+             return getIndexManager().getGlobalFileSystem();
         }
         
         public DefaultResourceLocator getResourceLocator() {
             
-            return (DefaultResourceLocator) getFederation()
-                    .getResourceLocator();
-            
+//BTM - PRE_CLIENT_SERVICE            return (DefaultResourceLocator) getFederation().getResourceLocator();
+            return (DefaultResourceLocator) getIndexManager().getResourceLocator();
         }
         
         public ExecutorService getExecutorService() {
             
-            return getFederation().getExecutorService();
-            
+//BTM - PRE_CLIENT_SERVICE            return getFederation().getExecutorService();
+            return getLocalResourceManager().getThreadPool();
         }
         
         public IResourceLockService getResourceLockService() {
 
-            return getFederation().getResourceLockService();
-            
+//BTM - PRE_CLIENT_SERVICE            return getFederation().getResourceLockService();
+             return getIndexManager().getResourceLockService();
         }
 
         public TemporaryStore getTempStore() {
             
-            return getFederation().getTempStore();
-            
+//BTM - PRE_CLIENT_SERVICE            return getFederation().getTempStore();
+            return getIndexManager().getTempStore();
         }
 
         /**
@@ -3267,25 +3321,29 @@ log.warn("\n*** StoreManager.purgeOldResources: lastCommitTime="+lastCommitTime+
          * resources to release.
          */
         {
-
-            final IBigdataFederation fed;
-            try {
-
-                fed = getFederation();
-
-            } catch (UnsupportedOperationException ex) {
-
-                log.warn("Federation not available: Running in test harness?");
-
-                return null;
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IBigdataFederation fed;
+//BTM - PRE_CLIENT_SERVICE            try {
+//BTM - PRE_CLIENT_SERVICE                fed = getFederation();
+//BTM - PRE_CLIENT_SERVICE            } catch (UnsupportedOperationException ex) {
+//BTM - PRE_CLIENT_SERVICE                log.warn("Federation not available: Running in test harness?");
+//BTM - PRE_CLIENT_SERVICE                return null;
+//BTM - PRE_CLIENT_SERVICE            }
+//BTM - PRE_CLIENT_SERVICE
+            final IBigdataDiscoveryManagement discoveryMgr =
+                                                  getDiscoveryManager();
+            if (discoveryMgr == null) {
+                 log.warn("Federation not available: "
+                          +"Running in test harness?");
+                 return null;
             }
-
+//BTM - PRE_CLIENT_SERVICE - END
             try {
 
-//BTM                final ITransactionService txService = fed
-final TransactionService txService = fed
-                        .getTransactionService();
+//BTM                final ITransactionService txService = fed.getTransactionService();
+//BTM - PRE_CLIENT_SERVICE final TransactionService txService = fed.getTransactionService();
+                final TransactionService txService =
+                          discoveryMgr.getTransactionService();
 
                 if (txService != null) {
 
@@ -3364,12 +3422,19 @@ log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseT
 
 //BTM        final Event e = new Event(getFederation(), new EventResource(),
 //BTM                EventType.PurgeResources).start();
-final Event e = new Event( getFederation().getEventQueue(),
-                           getFederation().getServiceIface(),
-                           getFederation().getServiceName(),
-                           getFederation().getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE final Event e = new Event( getFederation().getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                            getFederation().getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                            getFederation().getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                            getFederation().getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                            new EventResource(),
+//BTM - PRE_CLIENT_SERVICE                            EventType.PurgeResources).start();
+final Event e = new Event( getLocalResourceManager().getEventQueueSender(),
+                           getLocalResourceManager().getServiceIface(),
+                           getLocalResourceManager().getServiceName(),
+                           getLocalResourceManager().getServiceUUID(),
                            new EventResource(),
                            EventType.PurgeResources).start();
+
         
         /*
          * Prevent concurrent access to the index cache.
@@ -4732,10 +4797,16 @@ if (!indexDir.exists()) {
 
 //BTM                final Event event = new Event(getFederation(),
 //BTM                        new EventResource(), EventType.PurgeResources).start();
-final Event event = new Event( getFederation().getEventQueue(),
-                               getFederation().getServiceIface(),
-                               getFederation().getServiceName(),
-                               getFederation().getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE final Event event = new Event( getFederation().getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                                getFederation().getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                                getFederation().getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                                getFederation().getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                                new EventResource(),
+//BTM - PRE_CLIENT_SERVICE                                EventType.PurgeResources).start();
+final Event event = new Event( getLocalResourceManager().getEventQueueSender(),
+                               getLocalResourceManager().getServiceIface(),
+                               getLocalResourceManager().getServiceName(),
+                               getLocalResourceManager().getServiceUUID(),
                                new EventResource(),
                                EventType.PurgeResources).start();
 

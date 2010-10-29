@@ -9,7 +9,7 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.accesspath.UnsynchronizedArrayBuffer;
 import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.eval.IJoinNexus;
-import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
 
 /**
  * An object used by a {@link JoinTask} to write on another {@link JoinTask}
@@ -109,11 +109,21 @@ public class JoinTaskSink {
      * @param sourceJoinTask
      *            The current join dimension.
      */
-    public JoinTaskSink(final IBigdataFederation fed,
-            final PartitionLocator locator, final JoinTask sourceJoinTask) {
-
-        if (fed == null)
-            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE - NOTE: the original constructor below takes an IBigdataFederation
+//BTM - PRE_CLIENT_SERVICE -       but this class never references that parameter other than
+//BTM - PRE_CLIENT_SERVICE -       to test it for null. Not sure if this was intended, an
+//BTM - PRE_CLIENT_SERVICE -       oversight, or a cut-and-paste error.
+//BTM - PRE_CLIENT_SERVICE -
+//BTM - PRE_CLIENT_SERVICE    public JoinTaskSink(final IBigdataFederation fed,
+//BTM - PRE_CLIENT_SERVICE            final PartitionLocator locator, final JoinTask sourceJoinTask) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        if (fed == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+    public JoinTaskSink(final PartitionLocator locator,
+                        final JoinTask sourceJoinTask)
+    {
+//BTM - PRE_CLIENT_SERVICE - END
         
         if (locator == null)
             throw new IllegalArgumentException();

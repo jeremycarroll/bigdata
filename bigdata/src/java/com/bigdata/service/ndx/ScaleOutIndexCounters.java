@@ -29,8 +29,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.service.ndx;
 
 import com.bigdata.counters.CounterSet;
-import com.bigdata.service.AbstractFederation;
+//BTM import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.ndx.pipeline.IndexAsyncWriteStats;
+
+//BTM
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Counters pertaining to a scale-out index. The {@link IScaleOutClientIndex}
@@ -54,9 +57,11 @@ public class ScaleOutIndexCounters {
      */
     final public IndexSyncRPCCounters synchronousCounters;
 
-    public ScaleOutIndexCounters(AbstractFederation fed) {
-
-        asynchronousStats = new IndexAsyncWriteStats(fed);
+//BTM    public ScaleOutIndexCounters(AbstractFederation fed) {
+//BTM
+//BTM        asynchronousStats = new IndexAsyncWriteStats(fed);
+public ScaleOutIndexCounters(ScheduledExecutorService scheduledExecutor) {
+    asynchronousStats = new IndexAsyncWriteStats(scheduledExecutor);
 
         synchronousCounters = new IndexSyncRPCCounters();
         

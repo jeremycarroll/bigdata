@@ -40,7 +40,12 @@ import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.AbstractScaleOutFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexStore;
+import com.bigdata.resources.ILocalResourceManagement;
 
 /**
  * <p>
@@ -93,13 +98,40 @@ public class ClientIndexViewRefactor extends AbstractScaleOutClientIndexView2 {
      *            object contains the template {@link IndexMetadata} for the
      *            scale-out index partitions.
      */
-    public ClientIndexViewRefactor(final AbstractScaleOutFederation fed,
-            final String name, final long timestamp,
-            final IMetadataIndex metadataIndex) {
-
-        super(fed,name,timestamp,metadataIndex);
-        
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public ClientIndexViewRefactor(final AbstractScaleOutFederation fed,
+//BTM - PRE_CLIENT_SERVICE            final String name, final long timestamp,
+//BTM - PRE_CLIENT_SERVICE            final IMetadataIndex metadataIndex) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(fed,name,timestamp,metadataIndex);
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
+    public ClientIndexViewRefactor
+               (final IBigdataDiscoveryManagement discoveryManager,
+                final ILocalResourceManagement localResourceManager,
+                final IScaleOutIndexStore indexStore,
+                final String name,
+                final long timestamp,
+                final IMetadataIndex metadataIndex,
+                      int defaultRangeQueryCapacity,
+                      boolean batchApiOnly,
+                      long taskTimeout,
+                      int maxParallelTasksPerRequest,
+                      int maxStaleLocatorRetries)
+    {
+        super(discoveryManager,
+              localResourceManager,
+              indexStore,
+              name,
+              timestamp,
+              metadataIndex,
+              defaultRangeQueryCapacity,
+              batchApiOnly,
+              taskTimeout,
+              maxParallelTasksPerRequest,
+              maxStaleLocatorRetries);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Runs a set of tasks.

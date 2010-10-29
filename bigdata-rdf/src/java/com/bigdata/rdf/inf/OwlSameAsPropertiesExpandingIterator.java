@@ -228,8 +228,11 @@ public class OwlSameAsPropertiesExpandingIterator implements
                         false, // justify 
                         false, // backchain
                         planFactory);
+//BTM - PRE_CLIENT_SERVICE final IJoinNexus joinNexus = joinNexusFactory.newInstance(db.getIndexManager());
         final IJoinNexus joinNexus =
-                joinNexusFactory.newInstance(db.getIndexManager());
+              joinNexusFactory.newInstance(db.getIndexManager(),
+                                           db.getConcurrencyManager(),
+                                           db.getDiscoveryManager());
         if (log.isInfoEnabled()) {
             final IEvaluationPlan plan = planFactory.newPlan(joinNexus, rule);
             StringBuilder sb = new StringBuilder();

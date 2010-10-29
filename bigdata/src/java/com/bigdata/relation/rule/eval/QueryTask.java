@@ -15,10 +15,9 @@ import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.IStep;
 //BTM import com.bigdata.service.DataService;
 
-//BTM
-import com.bigdata.resources.ResourceManager;
-import com.bigdata.journal.ConcurrencyManager;
-import com.bigdata.service.Session;
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 
 /**
  * A task that executes a query operation.
@@ -69,11 +68,22 @@ public class QueryTask extends AbstractStepTask {
 //BTM - PRE_FRED_3481         dataServiceHost,
 //BTM - PRE_FRED_3481         dataServiceName);
 
-    public QueryTask(IStep step, IJoinNexusFactory joinNexusFactory,
-            IBlockingBuffer<ISolution[]> buffer, IIndexManager indexManager)
-    {
+//BTM - PRE_CLIENT_SERVICE    public QueryTask(IStep step, IJoinNexusFactory joinNexusFactory,
+//BTM - PRE_CLIENT_SERVICE            IBlockingBuffer<ISolution[]> buffer, IIndexManager indexManager)
+//BTM - PRE_CLIENT_SERVICE    {
 
-        super(ActionEnum.Query, joinNexusFactory, step, indexManager);
+    public QueryTask(IStep step,
+                     IJoinNexusFactory joinNexusFactory,
+                     IBlockingBuffer<ISolution[]> buffer,
+                     IIndexManager indexManager,
+                     IConcurrencyManager concurrencyManager,
+                     IBigdataDiscoveryManagement discoveryManager)
+    {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  super(ActionEnum.Query, joinNexusFactory, step, indexManager);
+        super(ActionEnum.Query, joinNexusFactory, step,
+              indexManager, concurrencyManager, discoveryManager);
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (buffer == null)
             throw new IllegalArgumentException();
@@ -92,8 +102,13 @@ public class QueryTask extends AbstractStepTask {
          * that we are in the execution context and have the correct
          * IIndexManager object.
          */
-        
-        final IJoinNexus joinNexus = joinNexusFactory.newInstance(indexManager);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  final IJoinNexus joinNexus = joinNexusFactory.newInstance(indexManager);
+        final IJoinNexus joinNexus = 
+              joinNexusFactory.newInstance(indexManager,
+                                           concurrencyManager,
+                                           discoveryManager);
+//BTM - PRE_CLIENT_SERVICE - END
 
         /*
          * Create the individual tasks that we need to execute now that we are

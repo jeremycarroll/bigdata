@@ -41,13 +41,28 @@ import java.util.concurrent.TimeUnit;
 
 
 import com.bigdata.relation.accesspath.BlockingBuffer;
-import com.bigdata.service.ClientService;
-import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IClientService;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.ClientService;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IClientService;
 import com.bigdata.service.IClientServiceCallable;
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.ndx.pipeline.AbstractPendingSetMasterTask;
 import com.bigdata.service.ndx.pipeline.AbstractSubtask;
+
+//BTM - FOR_PRE_CLIENT_SERVICE
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.service.CallableExecutor;
+import com.bigdata.util.Util;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+import net.jini.export.Exporter;
+import net.jini.jeri.BasicILFactory;
+import net.jini.jeri.BasicJeriExporter;
+import net.jini.jeri.tcp.TcpServerEndpoint;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.resources.ILocalResourceManagement;
 
 /**
  * Task drains a {@link BlockingBuffer} containing resources (really, resource
@@ -99,6 +114,9 @@ HS extends ResourceBufferSubtaskStatistics //
 
     protected final long sinkChunkTimeoutNanos;
 
+//BTM - FOR_CLIENT_SERVICE
+    private ILocalResourceManagement localResourceManager;
+
     /**
      * Internal state reflecting the resources which are in process. Resources
      * are added to this collection when they are posted to a client for
@@ -136,15 +154,35 @@ HS extends ResourceBufferSubtaskStatistics //
      *            combine smaller chunks so that it can satisfy the desired
      *            <i>sinkChunkSize</i>.
      */
-    public ResourceBufferTask(
-            //
-            final MappedTaskMaster taskMaster, final long sinkIdleTimeoutNanos,
-            final long sinkPollTimeoutNanos, final int sinkQueueCapacity,
-            final int sinkChunkSize, final long sinkChunkTimeoutNanos,
-            final H stats, final BlockingBuffer<E[]> buffer) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public ResourceBufferTask(
+//BTM - PRE_CLIENT_SERVICE            //
+//BTM - PRE_CLIENT_SERVICE            final MappedTaskMaster taskMaster, final long sinkIdleTimeoutNanos,
+//BTM - PRE_CLIENT_SERVICE            final long sinkPollTimeoutNanos, final int sinkQueueCapacity,
+//BTM - PRE_CLIENT_SERVICE            final int sinkChunkSize, final long sinkChunkTimeoutNanos,
+//BTM - PRE_CLIENT_SERVICE            final H stats, final BlockingBuffer<E[]> buffer) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(taskMaster.getFederation(), stats, buffer, sinkIdleTimeoutNanos,
+//BTM - PRE_CLIENT_SERVICE                sinkPollTimeoutNanos);
+    public ResourceBufferTask
+               (final MappedTaskMaster taskMaster,
+                final long sinkIdleTimeoutNanos,
+                final long sinkPollTimeoutNanos,
+                final int sinkQueueCapacity,
+                final int sinkChunkSize,
+                final long sinkChunkTimeoutNanos,
+                final H stats,
+                final BlockingBuffer<E[]> buffer,
+                final ILocalResourceManagement localResourceManager)
+    {
+        super(taskMaster.getScaleOutIndexManager(), stats, buffer,
+              sinkIdleTimeoutNanos, sinkPollTimeoutNanos);
 
-        super(taskMaster.getFederation(), stats, buffer, sinkIdleTimeoutNanos,
-                sinkPollTimeoutNanos);
+        if (localResourceManager == null) {
+            throw new NullPointerException("null localResourceManager");
+        }
+        this.localResourceManager = localResourceManager;
+//BTM - PRE_CLIENT_SERVICE - END
 
 //        if (taskMaster == null)
 //            throw new IllegalArgumentException();
@@ -312,8 +350,10 @@ HS extends ResourceBufferSubtaskStatistics //
     @Override
     protected S newSubtask(final L locator, final BlockingBuffer<E[]> out) {
 
-        IClientService service = taskMaster.getJobState().clientServiceMap
-                .getService(locator.getClientNo());
+//BTM - PRE_CLIENT_SERVICE  IClientService service = taskMaster.getJobState().clientServiceMap
+        CallableExecutor service =
+            taskMaster.getJobState().clientServiceMap.getService
+                                                      (locator.getClientNo());
         assert service != null;
 
         try {
@@ -322,13 +362,13 @@ HS extends ResourceBufferSubtaskStatistics //
              * Submit a factory task whose Future evaluates to the proxy for the
              * client task running on the remote service. The factory task ctor
              * accepts the Serializable client task object. The factory task is
-             * executed on the ClientService and returns the proxy for the
-             * client task from that machine.
+             * executed on the callable executor service and returns the proxy
+             * for the client task from that machine.
              */
-            final IAsynchronousClientTask<?, E> clientTask = (IAsynchronousClientTask<?, E>) service
-                    .submit(
-                            new ClientTaskFactory(taskMaster.newClientTask(
-                                    masterProxy, locator))).get();
+            final IAsynchronousClientTask<?, E> clientTask = 
+                (IAsynchronousClientTask<?, E>) service.submit
+                    (new ClientTaskFactory(taskMaster.newClientTask
+                                               (masterProxy, locator))).get();
 
             // Verify that the client task is still running.
             if (clientTask.getFuture().isDone()) {
@@ -356,7 +396,7 @@ HS extends ResourceBufferSubtaskStatistics //
 
     /**
      * Factory object used to start a {@link AbstractAsynchronousClientTask} on
-     * an {@link IClientService} service. The factory returns the proxy for the
+     * a callable executor service. The factory returns the proxy for the
      * {@link AbstractAsynchronousClientTask}. By using
      * {@link AbstractAsynchronousClientTask#getFuture()}, the caller can also
      * obtain the proxy for the task's {@link Future}.
@@ -374,13 +414,15 @@ HS extends ResourceBufferSubtaskStatistics //
 
         private final AbstractAsynchronousClientTask task;
 
+        private static final boolean ENABLE_DGC = true;
+        private static final boolean KEEP_ALIVE = false;
+
         public ClientTaskFactory(final AbstractAsynchronousClientTask task) {
 
             if (task == null)
                 throw new IllegalArgumentException();
 
             this.task = task;
-
         }
 
         /**
@@ -390,22 +432,49 @@ HS extends ResourceBufferSubtaskStatistics //
          * {@link Future} is available from the {@link IAsynchronousClientTask}
          * proxy.
          */
-        public IAsynchronousClientTask startClientTask(
-                IBigdataFederation federation,
-                ClientService clientService)
-            throws Exception {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public IAsynchronousClientTask startClientTask(
+//BTM - PRE_CLIENT_SERVICE                IBigdataFederation federation,
+//BTM - PRE_CLIENT_SERVICE                ClientService clientService)
+//BTM - PRE_CLIENT_SERVICE            throws Exception {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            JiniFederation jiniFederation = (JiniFederation) federation;
+//BTM - PRE_CLIENT_SERVICE            final Future future =
+//BTM - PRE_CLIENT_SERVICE                jiniFederation.getProxy(clientService.submit(task));
+//BTM - PRE_CLIENT_SERVICE            task.setFuture(future);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            return (IAsynchronousClientTask)
+//BTM - PRE_CLIENT_SERVICE                    jiniFederation.getProxy(task, true/* enableDGC */);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
 
-            JiniFederation jiniFederation = (JiniFederation) federation;
-            final Future future =
-                jiniFederation.getProxy(clientService.submit(task));
-            task.setFuture(future);
-
-            return (IAsynchronousClientTask)
-                    jiniFederation.getProxy(task, true/* enableDGC */);
-
+        public IAsynchronousClientTask startClientTask
+                               (IIndexManager indexManager,
+                                ILocalResourceManagement localResourceManager,
+                                CallableExecutor embeddedCallableExecutor,
+                                ZooKeeper zookeeperClient,
+                                List<ACL> zookeeperAcl,
+                                String zookeeperRoot)
+                                           throws Exception
+        {
+            Exporter futureExporter =
+                       new BasicJeriExporter(TcpServerEndpoint.getInstance(0),
+                                             new BasicILFactory(),
+                                             ENABLE_DGC, KEEP_ALIVE);
+            Exporter masterExporter =
+                       new BasicJeriExporter(TcpServerEndpoint.getInstance(0),
+                                             new BasicILFactory(),
+                                             ENABLE_DGC, KEEP_ALIVE);
+            Future futureStub = 
+                Util.wrapFuture( futureExporter,
+                                 embeddedCallableExecutor.submit(task) );
+            task.setFuture(futureStub);
+            return ((IAsynchronousClientTask)masterExporter.export(task));
         }
-
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * {@inheritDoc}
@@ -428,8 +497,12 @@ HS extends ResourceBufferSubtaskStatistics //
     @Override
     protected Future<HS> submitSubtask(final S subtask) {
 
-        return (Future<HS>) getFederation().getExecutorService()
-                .submit(subtask);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return (Future<HS>) getFederation().getExecutorService()
+//BTM - PRE_CLIENT_SERVICE                .submit(subtask);
+        return (Future<HS>) localResourceManager.getThreadPool().submit
+                                                                     (subtask);
+//BTM - PRE_CLIENT_SERVICE - END
 
     }
 
@@ -474,7 +547,6 @@ HS extends ResourceBufferSubtaskStatistics //
      * those that are meaningful to parameterize.
      *
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public static class M<E extends Serializable>
             extends
@@ -489,22 +561,43 @@ HS extends ResourceBufferSubtaskStatistics //
         /**
          * {@inheritDoc}
          */
-        public M(
-                final MappedTaskMaster taskMaster,
-                final long sinkIdleTimeoutNanos,
-                final long sinkPollTimeoutNanos,
-                final int sinkQueueCapacity,
-                final int sinkChunkSize,
-                final long sinkChunkTimeoutNanos,
-                final ResourceBufferStatistics<ClientLocator, ResourceBufferSubtaskStatistics> stats,
-                final BlockingBuffer<E[]> buffer) {
-
-            super(taskMaster, sinkIdleTimeoutNanos, sinkPollTimeoutNanos,
-                    sinkQueueCapacity, sinkChunkSize, sinkChunkTimeoutNanos,
-                    stats, buffer);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public M(
+//BTM - PRE_CLIENT_SERVICE                final MappedTaskMaster taskMaster,
+//BTM - PRE_CLIENT_SERVICE                final long sinkIdleTimeoutNanos,
+//BTM - PRE_CLIENT_SERVICE                final long sinkPollTimeoutNanos,
+//BTM - PRE_CLIENT_SERVICE                final int sinkQueueCapacity,
+//BTM - PRE_CLIENT_SERVICE                final int sinkChunkSize,
+//BTM - PRE_CLIENT_SERVICE                final long sinkChunkTimeoutNanos,
+//BTM - PRE_CLIENT_SERVICE                final ResourceBufferStatistics<ClientLocator, ResourceBufferSubtaskStatistics> stats,
+//BTM - PRE_CLIENT_SERVICE                final BlockingBuffer<E[]> buffer) {
+//BTM - PRE_CLIENT_SERVICE            super(taskMaster, sinkIdleTimeoutNanos, sinkPollTimeoutNanos,
+//BTM - PRE_CLIENT_SERVICE                    sinkQueueCapacity, sinkChunkSize, sinkChunkTimeoutNanos,
+//BTM - PRE_CLIENT_SERVICE                    stats, buffer);
+//BTM - PRE_CLIENT_SERVICE        }
+        public M
+            (final MappedTaskMaster taskMaster,
+             final long sinkIdleTimeoutNanos,
+             final long sinkPollTimeoutNanos,
+             final int sinkQueueCapacity,
+             final int sinkChunkSize,
+             final long sinkChunkTimeoutNanos,
+             final ResourceBufferStatistics<ClientLocator,
+                                            ResourceBufferSubtaskStatistics> stats,
+             final BlockingBuffer<E[]> buffer,
+             final ILocalResourceManagement localResourceManager)
+        {
+            super(taskMaster,
+                  sinkIdleTimeoutNanos,
+                  sinkPollTimeoutNanos,
+                  sinkQueueCapacity,
+                  sinkChunkSize,
+                  sinkChunkTimeoutNanos,
+                  stats,
+                  buffer,
+                  localResourceManager);
         }
-
+//BTM - PRE_CLIENT_SERVICE - END
     }
 
 }

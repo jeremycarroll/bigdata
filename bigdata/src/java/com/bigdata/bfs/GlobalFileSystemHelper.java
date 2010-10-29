@@ -35,6 +35,10 @@ import org.apache.log4j.Logger;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * Helper class.
  * 
@@ -63,7 +67,13 @@ public class GlobalFileSystemHelper {
     /**
      * The {@link ITx#UNISOLATED} view.
      */
-    synchronized public BigdataFileSystem getGlobalFileSystem() {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    synchronized public BigdataFileSystem getGlobalFileSystem() {
+    synchronized public BigdataFileSystem getGlobalFileSystem
+                            (final IConcurrencyManager concurrencyManager,
+                             final IBigdataDiscoveryManagement discoveryManager)
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (INFO)
             log.info("");
@@ -71,9 +81,18 @@ public class GlobalFileSystemHelper {
         if (globalRowStore == null) {
 
             // setup the repository view.
-            globalRowStore = new BigdataFileSystem(indexManager,
-                    GLOBAL_FILE_SYSTEM_NAMESPACE, ITx.UNISOLATED,
-                    new Properties());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            globalRowStore = new BigdataFileSystem(indexManager,
+//BTM - PRE_CLIENT_SERVICE                    GLOBAL_FILE_SYSTEM_NAMESPACE, ITx.UNISOLATED,
+//BTM - PRE_CLIENT_SERVICE                    new Properties());
+            globalRowStore = 
+                new BigdataFileSystem(indexManager,
+                                      concurrencyManager,
+                                      discoveryManager,
+                                      GLOBAL_FILE_SYSTEM_NAMESPACE,
+                                      ITx.UNISOLATED,
+                                      new Properties());
+//BTM - PRE_CLIENT_SERVICE - END
             
             // register the indices.
             globalRowStore.create();

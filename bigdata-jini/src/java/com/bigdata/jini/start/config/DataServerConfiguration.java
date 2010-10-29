@@ -41,7 +41,7 @@ import com.bigdata.util.NV;
 import com.bigdata.shard.EmbeddedShardService;
 
 /**
- * Configuration for the {@link DataServer}.
+ * Configuration for the shard (data) service.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$

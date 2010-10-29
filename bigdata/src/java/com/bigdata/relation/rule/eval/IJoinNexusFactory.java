@@ -35,7 +35,11 @@ import com.bigdata.journal.IIndexStore;
 import com.bigdata.relation.accesspath.IElementFilter;
 import com.bigdata.relation.rule.IProgram;
 import com.bigdata.service.DataService;
-import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 
 /**
  * A factory for {@link IJoinNexus} instances.
@@ -49,7 +53,6 @@ import com.bigdata.service.IBigdataFederation;
  * created buffers, etc.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public interface IJoinNexusFactory extends Serializable {
 
@@ -85,6 +88,9 @@ public interface IJoinNexusFactory extends Serializable {
      *            Used to locate relations and parallelize operations during
      *            rule execution.
      */
-    IJoinNexus newInstance(IIndexManager indexManager);
+//BTM - FOR_CLIENT_SERVICE    IJoinNexus newInstance(IIndexManager indexManager);
+    IJoinNexus newInstance(IIndexManager indexManager,
+                           IConcurrencyManager concurrency,
+                           IBigdataDiscoveryManagement discoveryManager);
 
 }

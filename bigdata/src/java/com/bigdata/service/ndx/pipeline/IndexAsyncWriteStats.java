@@ -1,6 +1,7 @@
 package com.bigdata.service.ndx.pipeline;
 
-import com.bigdata.service.AbstractFederation;
+//BTM import com.bigdata.service.AbstractFederation;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Statistics for asynchronous index writes.
@@ -11,9 +12,11 @@ import com.bigdata.service.AbstractFederation;
 public class IndexAsyncWriteStats<L, HS extends IndexPartitionWriteStats> extends
         AbstractRunnableMasterStats<L, HS> {
 
-    public IndexAsyncWriteStats(final AbstractFederation<?> fed) {
-
-        super(fed);
+//BTM    public IndexAsyncWriteStats(final AbstractFederation<?> fed) {
+//BTM
+//BTM        super(fed);
+public IndexAsyncWriteStats(final ScheduledExecutorService scheduledExecutor) {
+        super(scheduledExecutor);
 
     }
 

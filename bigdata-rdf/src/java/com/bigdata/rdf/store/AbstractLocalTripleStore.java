@@ -36,6 +36,10 @@ import com.bigdata.journal.ITx;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.spo.SPORelation;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * Abstract base class for both transient and persistent {@link ITripleStore}
  * implementations using local storage.
@@ -51,12 +55,26 @@ abstract public class AbstractLocalTripleStore extends AbstractTripleStore {
      * @param timestamp
      * @param properties
      */
-    protected AbstractLocalTripleStore(IIndexManager indexManager,
-            String namespace, Long timestamp, Properties properties) {
-
-        super(indexManager, namespace, timestamp, properties);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected AbstractLocalTripleStore(IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            String namespace, Long timestamp, Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE
+    protected AbstractLocalTripleStore
+                  (IIndexManager indexManager,
+                   IConcurrencyManager concurrencyManager,
+                   IBigdataDiscoveryManagement discoveryManager,
+                   String namespace,
+                   Long timestamp,
+                   Properties properties)
+    {
+        super(indexManager, concurrencyManager, discoveryManager,
+              namespace, timestamp, properties);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Reports the bytes written on each of the {@link SPORelation} indices and

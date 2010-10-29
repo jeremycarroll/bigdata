@@ -308,18 +308,33 @@ public class IndexSegment extends AbstractBTree {
         fileStore.lock.lock();
         try {
 
-            if (fileStore.fed != null) {
-
-//BTM                openCloseEvent = new Event(fileStore.fed, new EventResource(
-//BTM                        fileStore.getIndexMetadata(), fileStore.file),
-//BTM                        EventType.IndexSegmentOpenClose);
-openCloseEvent = new Event( (fileStore.fed).getEventQueue(),
-                            (fileStore.fed).getServiceIface(),
-                            (fileStore.fed).getServiceName(),
-                            (fileStore.fed).getServiceUUID(),
-                            new EventResource(fileStore.getIndexMetadata(), fileStore.file),
-                            EventType.IndexSegmentOpenClose);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE             if (fileStore.fed != null) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE //BTM                openCloseEvent = new Event(fileStore.fed, new EventResource(
+//BTM - PRE_CLIENT_SERVICE //BTM                        fileStore.getIndexMetadata(), fileStore.file),
+//BTM - PRE_CLIENT_SERVICE //BTM                        EventType.IndexSegmentOpenClose);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE openCloseEvent = new Event( (fileStore.fed).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                             (fileStore.fed).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                             (fileStore.fed).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                             (fileStore.fed).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                             new EventResource(fileStore.getIndexMetadata(), fileStore.file),
+//BTM - PRE_CLIENT_SERVICE                             EventType.IndexSegmentOpenClose);
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE
+            if (fileStore.localResourceManager != null) {
+                openCloseEvent =
+                    new Event
+                      ( (fileStore.localResourceManager).getEventQueueSender(),
+                        (fileStore.localResourceManager).getServiceIface(),
+                        (fileStore.localResourceManager).getServiceName(),
+                        (fileStore.localResourceManager).getServiceUUID(),
+                        new EventResource(fileStore.getIndexMetadata(),
+                                          fileStore.file),
+                        EventType.IndexSegmentOpenClose);
             }
+//BTM - PRE_CLIENT_SERVICE - END
             
             if (!fileStore.isOpen()) {
 

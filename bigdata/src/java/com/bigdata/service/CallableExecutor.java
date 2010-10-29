@@ -25,20 +25,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.service;
 
 import java.io.IOException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 /**
  * Public interface for a service that can be used to distribute and
- * execute a {@link Callable} task across the resources of a federation.
+ * execute an {@link IClientServiceCallable} task across the resources
+ * of a federation.
  */
-public interface CallableExecutor extends Service {
+public interface CallableExecutor {
 
     /**
-     * Submit a {@link Callable} and return its {@link Future}. The
-     * {@link Callable} will execute on each member of the federation.
+     * Submit an {@link IClientServiceCallable} and return its {@link Future}.
+     * The given <code>task</code> will execute on the backend of the
+     * service that implements this interface.
      * 
-     * @return The {@link Future} for the given task to execute.
+     * @return The {@link Future} for the task that is executed.
      * 
      * @throws RejectedExecutionException
      *             if the task can not be accepted for execution.
@@ -46,5 +47,5 @@ public interface CallableExecutor extends Service {
      *              if there is a communication failure between this
      *              service and the entity that calls this method.
      */
-    <T> Future<T> submit(Callable<T> task) throws IOException;
+    <T> Future<T> submit(IClientServiceCallable<T> task) throws IOException;
 }

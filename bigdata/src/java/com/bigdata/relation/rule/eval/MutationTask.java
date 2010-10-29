@@ -51,6 +51,10 @@ import com.bigdata.resources.ResourceManager;
 import com.bigdata.journal.ConcurrencyManager;
 import com.bigdata.service.Session;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * A task that executes a mutation operation.
  * 
@@ -88,13 +92,24 @@ public class MutationTask extends AbstractStepTask {
 //BTM - PRE_FRED_3481       dataServiceHost,
 //BTM - PRE_FRED_3481       dataServiceName);
 
-    protected MutationTask(ActionEnum action,
-            IJoinNexusFactory joinNexusFactory, IStep step,
-            IIndexManager indexManager)
-    {
+//BTM - PRE_CLIENT_SERVICE    protected MutationTask(ActionEnum action,
+//BTM - PRE_CLIENT_SERVICE            IJoinNexusFactory joinNexusFactory, IStep step,
+//BTM - PRE_CLIENT_SERVICE            IIndexManager indexManager)
+//BTM - PRE_CLIENT_SERVICE    {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(action, joinNexusFactory, step, indexManager);
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
 
-        super(action, joinNexusFactory, step, indexManager);
-        
+    protected MutationTask(ActionEnum action,
+                           IJoinNexusFactory joinNexusFactory,
+                           IStep step,
+                           IIndexManager indexManager,
+                           IConcurrencyManager concurrencyManager,
+                           IBigdataDiscoveryManagement discoveryManager)
+    {
+        super(action, joinNexusFactory, step,
+              indexManager, concurrencyManager, discoveryManager);
     }
 
     /**
@@ -119,7 +134,13 @@ public class MutationTask extends AbstractStepTask {
          * that we are in the execution context and have the correct
          * IIndexManager object.
          */
-        final IJoinNexus joinNexus = joinNexusFactory.newInstance(indexManager);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final IJoinNexus joinNexus = joinNexusFactory.newInstance(indexManager);
+        final IJoinNexus joinNexus =
+              joinNexusFactory.newInstance(indexManager,
+                                           concurrencyManager,
+                                           discoveryManager);
+//BTM - PRE_CLIENT_SERVICE - END
 
         /*
          * Note: This assumes that we are using the same write timestamp for

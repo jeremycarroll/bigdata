@@ -8,8 +8,9 @@ import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.util.InnerCause;
 
-//BTM
-import com.bigdata.journal.IIndexStore;
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
 
 /**
  * Concrete implementation for {@link IMetadataIndex} views.
@@ -26,49 +27,77 @@ public class MetadataIndexCache extends AbstractIndexCache<IMetadataIndex>{
      */
     protected static transient final String ERR_NO_METADATA_SERVICE = "Metadata service";
     
-//BTM - BEGIN
-//BTM    private final AbstractScaleOutFederation fed;
-//BTM    public MetadataIndexCache(final AbstractScaleOutFederation fed,
-//BTM            final int capacity, final long timeout) {
-//BTM        
-//BTM        super(capacity, timeout);
-//BTM
-//BTM        if (fed == null)
-//BTM            throw new IllegalArgumentException();
-//BTM        
-//BTM        this.fed = fed;
-//BTM
-//BTM    }
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE//BTM - BEGIN
+//BTM - PRE_CLIENT_SERVICE//BTM    private final AbstractScaleOutFederation fed;
+//BTM - PRE_CLIENT_SERVICE//BTM    public MetadataIndexCache(final AbstractScaleOutFederation fed,
+//BTM - PRE_CLIENT_SERVICE//BTM            final int capacity, final long timeout) {
+//BTM - PRE_CLIENT_SERVICE//BTM        
+//BTM - PRE_CLIENT_SERVICE//BTM        super(capacity, timeout);
+//BTM - PRE_CLIENT_SERVICE//BTM
+//BTM - PRE_CLIENT_SERVICE//BTM        if (fed == null)
+//BTM - PRE_CLIENT_SERVICE//BTM            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE//BTM        
+//BTM - PRE_CLIENT_SERVICE//BTM        this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE//BTM
+//BTM - PRE_CLIENT_SERVICE//BTM    }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    private final IBigdataFederation fed;
+//BTM - PRE_CLIENT_SERVICE    private final MetadataIndexCachePolicy metadataIndexCachePolicy;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    public MetadataIndexCache
+//BTM - PRE_CLIENT_SERVICE               (final IBigdataFederation fed,
+//BTM - PRE_CLIENT_SERVICE                final MetadataIndexCachePolicy metadataIndexCachePolicy,
+//BTM - PRE_CLIENT_SERVICE                final int capacity,
+//BTM - PRE_CLIENT_SERVICE                final long timeout)
+//BTM - PRE_CLIENT_SERVICE    {
+//BTM - PRE_CLIENT_SERVICE        super(capacity, timeout);
+//BTM - PRE_CLIENT_SERVICE        if (fed == null) {
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException("null federation");
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE        this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE        this.metadataIndexCachePolicy = 
+//BTM - PRE_CLIENT_SERVICE            (metadataIndexCachePolicy == null ? 
+//BTM - PRE_CLIENT_SERVICE                 MetadataIndexCachePolicy.CacheAll 
+//BTM - PRE_CLIENT_SERVICE                 : metadataIndexCachePolicy);
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    public MetadataIndexCache
+//BTM - PRE_CLIENT_SERVICE               (final AbstractScaleOutFederation fed,
+//BTM - PRE_CLIENT_SERVICE                final int capacity,
+//BTM - PRE_CLIENT_SERVICE                final long timeout)
+//BTM - PRE_CLIENT_SERVICE    {
+//BTM - PRE_CLIENT_SERVICE        this((IBigdataFederation)fed, fed.metadataIndexCachePolicy,
+//BTM - PRE_CLIENT_SERVICE             capacity, timeout);
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE//BTM - END
 
-    private final IBigdataFederation fed;
+    private final IBigdataDiscoveryManagement discoveryManager;
+    private final IIndexManager indexManager;
     private final MetadataIndexCachePolicy metadataIndexCachePolicy;
 
     public MetadataIndexCache
-               (final IBigdataFederation fed,
+               (final IBigdataDiscoveryManagement discoveryManager,
+                final IIndexManager indexManager,
                 final MetadataIndexCachePolicy metadataIndexCachePolicy,
                 final int capacity,
                 final long timeout)
     {
         super(capacity, timeout);
-        if (fed == null) {
-            throw new IllegalArgumentException("null federation");
+        if (discoveryManager == null) {
+            throw new IllegalArgumentException("null discoveryManager");
         }
-        this.fed = fed;
+        if (indexManager == null) {
+            throw new IllegalArgumentException("null indexManager");
+        }
+        this.discoveryManager = discoveryManager;
+        this.indexManager = indexManager;
         this.metadataIndexCachePolicy = 
             (metadataIndexCachePolicy == null ? 
                  MetadataIndexCachePolicy.CacheAll 
                  : metadataIndexCachePolicy);
     }
-
-    public MetadataIndexCache
-               (final AbstractScaleOutFederation fed,
-                final int capacity,
-                final long timeout)
-    {
-        this((IBigdataFederation)fed, fed.metadataIndexCachePolicy,
-             capacity, timeout);
-    }
-//BTM - END
+//BTM - PRE_CLIENT_SERVICE - END
 
     @Override
     protected IMetadataIndex newView(String name, long timestamp) {
@@ -88,8 +117,9 @@ switch (metadataIndexCachePolicy) {
 
         case NoCache: { 
         
-            return new NoCacheMetadataIndexView(fed, name, timestamp, mdmd);
-            
+//BTM - PRE_CLIENT_SERVICE  return new NoCacheMetadataIndexView(fed, name, timestamp, mdmd);
+            return new NoCacheMetadataIndexView
+                           (discoveryManager, name, timestamp, mdmd);
         }
 
         case CacheAll: {
@@ -101,7 +131,10 @@ switch (metadataIndexCachePolicy) {
                  * discovers stale locators.
                  */
                 
-                return new CachingMetadataIndex(fed, name, timestamp, mdmd);
+//BTM - PRE_CLIENT_SERVICE  return new CachingMetadataIndex(fed, name, timestamp, mdmd);
+                return new CachingMetadataIndex
+                               (discoveryManager, indexManager,
+                                name, timestamp, mdmd);
 
             } else {
 
@@ -110,12 +143,12 @@ switch (metadataIndexCachePolicy) {
                  * historical reads since the locators can not become stale.
                  */
                 
-                return new CacheOnceMetadataIndex(fed, name, timestamp, mdmd);
-                
+//BTM - PRE_CLIENT_SERVICE  return new CacheOnceMetadataIndex(fed, name, timestamp, mdmd);
+                return new CacheOnceMetadataIndex
+                               (discoveryManager, indexManager,
+                                name, timestamp, mdmd);
             }
-            
         }
-
         default:
 //BTM            throw new AssertionError("Unknown option: " + fed.metadataIndexCachePolicy);
 throw new AssertionError("Unknown option: " + metadataIndexCachePolicy);
@@ -141,22 +174,8 @@ throw new AssertionError("Unknown option: " + metadataIndexCachePolicy);
             final long timestamp) {
 
 //BTM        final IMetadataService mds = fed.getMetadataService();
-final ShardLocator mds = fed.getMetadataService();
-
-//BTM - BEGIN - IDATA_SERVICE TO SHARD_SERVICE
-//BTM IDataService remoteShardMgr = null;
-//BTM ShardManagement shardMgr = null;
-//BTM if(mds instanceof IDataService) {
-//BTM log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds INSTANCE OF IDataService ["+mds+"]\n");
-//BTM     remoteShardMgr = (IDataService)mds;
-//BTM } else if(mds instanceof ShardManagement) {
-//BTM log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds IS INSTANCE OF ShardManagement ["+mds+"]\n");
-//BTM     shardMgr = (ShardManagement)mds;
-//BTM }else {
-//BTM log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: mds NOT instance of ShardManagement or IDataService ["+mds+"]\n");
-//BTM }
-//BTM log.warn("\nMetadataIndexCache.getMetadataIndexMetadata: remoteShardMgr="+remoteShardMgr+", shardMgr="+shardMgr+"\n");
-//BTM - END - IDATA_SERVICE TO SHARD_SERVICE
+//BTM - PRE_CLIENT_SERVICE final ShardLocator mds = fed.getMetadataService(); //BTM - IDATA_SERVICE TO SHARD_SERVICE
+        final ShardLocator mds = discoveryManager.getMetadataService(); //BTM - FOR_CLIENT_SERVICE
 
         if (mds == null)
             throw new NoSuchService(ERR_NO_METADATA_SERVICE);
@@ -165,21 +184,10 @@ final ShardLocator mds = fed.getMetadataService();
         try {
 
             // @todo test cache for this object as of that timestamp?
-//BTM - BEGIN - IDATA_SERVICE TO SHARD_SERVICE
-//BTM if(remoteShardMgr != null) {
-//BTM             mdmd = (MetadataIndexMetadata) remoteShardMgr.getIndexMetadata(
-//BTM                             MetadataService.getMetadataIndexName(name),
-//BTM                             timestamp);
-//BTM } else if(shardMgr != null) {
-//BTM log.warn("\nMetadataIndexCache.getMetadataIndexMetadata >>>> CALLING shardMgr.getIndexMetadata <<<<\n");
-//BTM             mdmd = (MetadataIndexMetadata) shardMgr.getIndexMetadata(
-//BTM                             MetadataService.getMetadataIndexName(name),
-//BTM                             timestamp);
-//BTM }
-
-mdmd = (MetadataIndexMetadata) ((ShardManagement)mds).getIndexMetadata(MetadataService.getMetadataIndexName(name), timestamp);
-
-//BTM - END - IDATA_SERVICE TO SHARD_SERVICE
+//BTM - IDATA_SERVICE TO SHARD_SERVICE
+            mdmd = 
+            (MetadataIndexMetadata) ((ShardManagement)mds).getIndexMetadata
+                      (MetadataService.getMetadataIndexName(name), timestamp);
 
             assert mdmd != null;
 

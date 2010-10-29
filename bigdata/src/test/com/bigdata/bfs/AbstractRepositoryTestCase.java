@@ -41,6 +41,12 @@ import com.bigdata.journal.ITx;
 import com.bigdata.rawstore.WormAddressManager;
 import com.bigdata.service.AbstractEmbeddedFederationTestCase;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.service.AbstractFederation;
+
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -87,8 +93,17 @@ public class AbstractRepositoryTestCase extends
         super.setUp();
 
         // setup the repository view.
-        repo = new BigdataFileSystem(fed, "test", ITx.UNISOLATED, fed
-                .getClient().getProperties());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        repo = new BigdataFileSystem(fed, "test", ITx.UNISOLATED, fed
+//BTM - PRE_CLIENT_SERVICE                .getClient().getProperties());
+        repo = new BigdataFileSystem
+                       ((IIndexManager)fed,
+                        ((AbstractFederation)fed).getConcurrencyManager(),
+                        (IBigdataDiscoveryManagement)fed,
+                        "test",         //namespace
+                        ITx.UNISOLATED, //timestamp
+                        fed.getClient().getProperties());
+//BTM - PRE_CLIENT_SERVICE - END
         
         // register the indices.
         repo.create();

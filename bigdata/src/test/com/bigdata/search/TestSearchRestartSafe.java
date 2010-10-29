@@ -105,8 +105,17 @@ public class TestSearchRestartSafe extends ProxyTestCase<IIndexManager> {
             final String languageCode = "EN";
             {
 
-                final FullTextIndex ndx = new FullTextIndex(indexManager,
-                        NAMESPACE, ITx.UNISOLATED, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final FullTextIndex ndx = new FullTextIndex(indexManager,
+//BTM - PRE_CLIENT_SERVICE                        NAMESPACE, ITx.UNISOLATED, properties);
+                final FullTextIndex ndx =
+                          new FullTextIndex(indexManager,
+                                            null, //IConcurrencyManager
+                                            null, //IBigdataDiscoveryManagement
+                                            NAMESPACE,
+                                            ITx.UNISOLATED,
+                                            properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 ndx.create();
 
@@ -125,8 +134,17 @@ public class TestSearchRestartSafe extends ProxyTestCase<IIndexManager> {
             /* Search w/o restart. */
             {
 
-                final FullTextIndex ndx = new FullTextIndex(indexManager,
-                        NAMESPACE, ITx.UNISOLATED, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final FullTextIndex ndx = new FullTextIndex(indexManager,
+//BTM - PRE_CLIENT_SERVICE                        NAMESPACE, ITx.UNISOLATED, properties);
+                final FullTextIndex ndx =
+                          new FullTextIndex(indexManager,
+                                            null, //IConcurrencyManager
+                                            null, //IBigdataDiscoveryManagement
+                                            NAMESPACE,
+                                            ITx.UNISOLATED,
+                                            properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 final Hiterator<?> itr = ndx.search(text, languageCode);
 
@@ -154,8 +172,17 @@ public class TestSearchRestartSafe extends ProxyTestCase<IIndexManager> {
             /* Search with restart. */
             {
 
-                final FullTextIndex ndx = new FullTextIndex(indexManager,
-                        NAMESPACE, ITx.UNISOLATED, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final FullTextIndex ndx = new FullTextIndex(indexManager,
+//BTM - PRE_CLIENT_SERVICE                        NAMESPACE, ITx.UNISOLATED, properties);
+                final FullTextIndex ndx =
+                          new FullTextIndex(indexManager,
+                                            null, //IConcurrencyManager
+                                            null, //IBigdataDiscoveryManagement
+                                            NAMESPACE,
+                                            ITx.UNISOLATED,
+                                            properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 final Hiterator<?> itr = ndx.search(text, languageCode);
 

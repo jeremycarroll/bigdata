@@ -37,7 +37,7 @@ import com.bigdata.service.jini.ClientServer;
 import com.bigdata.service.jini.JiniFederation;
 
 /**
- * Configuration for the {@link ClientServer}.
+ * Configuration for the callable executor service.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -53,10 +53,13 @@ public class ClientServerConfiguration extends
     /**
      * @param config
      */
-    public ClientServerConfiguration(Configuration config)
-            throws ConfigurationException {
-
-        super(ClientServer.class, config);
+    public ClientServerConfiguration(Class         classType,
+                                     Configuration config)
+            throws ConfigurationException
+    {
+        super(classType, config);
+//BTM
+System.out.println("*** ClientServerConfiguration: constructor ***");
 
     }
 
@@ -64,6 +67,7 @@ public class ClientServerConfiguration extends
             IServiceListener listener, String zpath, Entry[] attributes)
             throws Exception {
 
+System.out.println("*** ClientServerConfiguration ---> newServiceStarter ***");
         return new ClientServiceStarter(fed, listener, zpath, attributes);
 
     }
@@ -80,6 +84,7 @@ public class ClientServerConfiguration extends
                 IServiceListener listener, String zpath, Entry[] attributes) {
 
             super(fed, listener, zpath, attributes);
+System.out.println("*** ClientServerConfiguration.ClientServiceStarter: constructor ***");
 
         }
 

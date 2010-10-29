@@ -60,13 +60,13 @@ import org.apache.zookeeper.data.Stat;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.jini.start.BigdataZooDefs;
-import com.bigdata.service.AbstractScaleOutFederation;
-import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IClientService;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IClientService;
 import com.bigdata.service.IDataServiceCallable;
 //BTM - PRE_FRED_3481 import com.bigdata.service.IMetadataService;
 //BTM - PRE_FRED_3481 import com.bigdata.service.IRemoteExecutor;
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.jini.util.DumpFederation.ScheduledDumpTask;
 //BTM - PRE_FRED_3481 import com.bigdata.service.ndx.pipeline.KVOLatch;
 import com.bigdata.util.concurrent.ExecutionExceptions;
@@ -75,8 +75,19 @@ import com.bigdata.zookeeper.ZLockImpl;
 import com.bigdata.zookeeper.ZooHelper;
 
 //BTM - PRE_FRED_3481
+import com.bigdata.service.CallableExecutor;
 import com.bigdata.service.IClientServiceCallable;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.jini.IJiniDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexManager;
+import com.bigdata.service.ForceOverflowTask;
+import com.bigdata.service.PurgeResourcesTask;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.zookeeper.ZooKeeperAccessor;
+import org.apache.zookeeper.data.ACL;
+import java.util.ArrayList;
+import java.util.concurrent.ScheduledFuture;
 
 /**
  * Utility class that can be used to execute a distributed job. The master
@@ -107,6 +118,17 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
         implements Callable<Void> {
 
     final private static Logger log = Logger.getLogger(TaskMaster.class);
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    protected IScaleOutIndexManager scaleOutIndexManager;
+    protected ILocalResourceManagement localResourceManager;
+    protected IJiniDiscoveryManagement discoveryManager;
+    protected Configuration config;
+
+    private ZooKeeperAccessor zookeeperAccessor;
+    private List<ACL> zookeeperAcl;
+    private String zookeeperRoot;
+//BTM - FOR_CLIENT_SERVICE - END
 
     /**
      * {@link Configuration} options for the {@link TaskMaster} and derived
@@ -160,7 +182,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
 
         /**
          * The #of clients to start. The clients will be distributed across the
-         * discovered {@link IClientService}s in the federation matching the
+         * discovered callable executor services in the federation matching the
          * {@link #CLIENTS_TEMPLATE}.
          */
         String NCLIENTS = "nclients";
@@ -486,7 +508,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
         }
 
         /**
-         * The mapping of clients onto the {@link IClientService}s on which
+         * The mapping of clients onto the callable executor services on which
          * that client will execute.
          */
         final public ServiceMap clientServiceMap;
@@ -497,21 +519,26 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
          * 
          * @see #component
          */
-        final public String getJobClassZPath(final JiniFederation fed) {
-
-            return fed.getZooConfig().zroot + "/" + BigdataZooDefs.JOBS + "/"
-                    + component;
-
+//BTM - PRE_CLIENT_SERVICE        final public String getJobClassZPath(final JiniFederation fed) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            return fed.getZooConfig().zroot + "/" + BigdataZooDefs.JOBS + "/" + component;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+        final public String getJobClassZPath(final String zookeeperRoot) {
+            return zookeeperRoot + "/" + BigdataZooDefs.JOBS + "/" + component;
         }
 
         /**
          * Return the zpath to the znode which corresponds to the job which is
          * being executed. The data for this znode is this {@link JobState}.
          */
-        final public String getJobZPath(final JiniFederation fed) {
-
-            return getJobClassZPath(fed) + "/" + jobName;
-
+//BTM - PRE_CLIENT_SERVICE        final public String getJobZPath(final JiniFederation fed) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            return getJobClassZPath(fed) + "/" + jobName;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+        final public String getJobZPath(final String zookeeperRoot) {
+            return getJobClassZPath(zookeeperRoot) + "/" + jobName;
         }
 
         /**
@@ -526,11 +553,15 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
          * 
          * @see ConfigurationOptions#JOB_NAME
          */
-        final public String getClientZPath(final JiniFederation fed,
-                final int clientNum) {
-
-            return getJobZPath(fed) + "/" + "client" + clientNum;
-
+//BTM - PRE_CLIENT_SERVICE        final public String getClientZPath(final JiniFederation fed, final int clientNum) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            return getJobZPath(fed) + "/" + "client" + clientNum;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+        final public String getClientZPath(final String zookeeperRoot,
+                                           final int clientNum)
+        {
+            return getJobZPath(zookeeperRoot) + "/" + "client" + clientNum;
         }
 
         /**
@@ -543,28 +574,37 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
          * @param clientNum
          *            The client number.
          */
-        final public String getLockNodeZPath(final JiniFederation fed,
-                final int clientNum) {
-
-            return getClientZPath(fed, clientNum) + "/" + "locknode";
-
+//BTM - PRE_CLIENT_SERVICE        final public String getLockNodeZPath(final JiniFederation fed, final int clientNum) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            return getClientZPath(fed, clientNum) + "/" + "locknode";
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+        final public String getLockNodeZPath(final String zookeeperRoot,
+                                             final int clientNum)
+        {
+            return getClientZPath(zookeeperRoot, clientNum) + "/" + "locknode";
         }
 
     }
 
-    /**
-     * The federation (from the ctor).
-     */
-    protected final JiniFederation<?> fed;
-
-    /**
-     * The federation (from the ctor).
-     */
-    public JiniFederation<?> getFederation() {
-
-        return fed;
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE     /**
+//BTM - PRE_CLIENT_SERVICE      * The federation (from the ctor).
+//BTM - PRE_CLIENT_SERVICE      */
+//BTM - PRE_CLIENT_SERVICE     protected final JiniFederation<?> fed;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE     /**
+//BTM - PRE_CLIENT_SERVICE      * The federation (from the ctor).
+//BTM - PRE_CLIENT_SERVICE      */
+//BTM - PRE_CLIENT_SERVICE     public JiniFederation<?> getFederation() {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         return fed;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE     }
+    public IScaleOutIndexManager getScaleOutIndexManager() {
+        return scaleOutIndexManager;
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * The {@link JobState} which is either set from the {@link Configuration}
@@ -591,7 +631,8 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
      */
     final protected Future<Void> innerMain() {
 
-        final Future<Void> future = fed.getExecutorService().submit(this);
+//BTM - PRE_CLIENT_SERVICE         final Future<Void> future = fed.getExecutorService().submit(this);
+        final Future<Void> future = localResourceManager.getThreadPool().submit(this);
 
         /*
          * Install a shutdown hook so that the master will cancel any running
@@ -621,13 +662,47 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
      * 
      * @throws ConfigurationException
      */
-    protected TaskMaster(final JiniFederation<?> fed)
-            throws ConfigurationException {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected TaskMaster(final JiniFederation<?> fed)
+//BTM - PRE_CLIENT_SERVICE            throws ConfigurationException {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        if (fed == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        this.fed = fed;
+    protected TaskMaster(final IScaleOutIndexManager scaleOutIndexManager,
+                         final IJiniDiscoveryManagement discoveryManager,
+                         final ILocalResourceManagement localResourceManager,
+                         final ZooKeeperAccessor zookeeperAccessor,
+                         final List<ACL> zookeeperAcl,
+                         final String zookeeperRoot,
+                         final Configuration config)
+            throws ConfigurationException
+    {
+        if (scaleOutIndexManager == null) {
+            throw new NullPointerException("null scaleOutIndexManager");
+        }
+        if (discoveryManager == null) {
+            throw new NullPointerException("null discoveryManager");
+        }
+        if (localResourceManager == null) {
+            throw new NullPointerException("null localResourceManager");
+        }
+        if (zookeeperAccessor == null) {
+            throw new NullPointerException("null zookeeperAccessor");
+        }
+        if (config == null) {
+            throw new NullPointerException("null config");
+        }
 
-        if (fed == null)
-            throw new IllegalArgumentException();
-
-        this.fed = fed;
+        this.scaleOutIndexManager = scaleOutIndexManager;
+        this.discoveryManager = discoveryManager;
+        this.localResourceManager = localResourceManager;
+        this.zookeeperAccessor = zookeeperAccessor;
+        this.zookeeperAcl = zookeeperAcl;
+        this.zookeeperRoot = zookeeperRoot;
+        this.config = config;
+//BTM - PRE_CLIENT_SERVICE - END
 
         /*
          * Use the name of the concrete instance of this class by default but
@@ -637,7 +712,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
                 getClass().getName());
 
         // The jini configuration specified on the command line.
-        final Configuration config = fed.getClient().getConfiguration();
+//BTM - PRE_CLIENT_SERVICE        final Configuration config = fed.getClient().getConfiguration();
 
         // Initialize the job state.
         jobState = newJobState(component, config);
@@ -808,7 +883,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
      * returns a map containing their {@link Future}s. The kind of service on
      * which the clients are run is determined by
      * {@link JobState#clientsTemplate} but must implement
-     * {@link IClientService}. Clients are assigned to the services using a
+     * {@link CallableExecutor}. Clients are assigned to the services using a
      * stable ordered assignment {@link JobState#clientServiceUUIDs}. If there
      * are more clients than services, then some services will be tasked with
      * more than one client. If there is a problem submitting the clients then
@@ -817,7 +892,7 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
      * 
      * @throws IOException
      *             If there is an RMI problem submitting the clients to the
-     *             {@link IClientService}s.
+     *             {@link CallableExecutor} services.
      * @throws ConfigurationException
      * 
      * @see {@link JobState#futures}
@@ -836,8 +911,9 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
 
             for (int clientNum = 0; clientNum < jobState.nclients; clientNum++) {
 
-                final IClientService service = jobState.clientServiceMap
-                        .getService(clientNum);
+//BTM - PRE_CLIENT_SERVICE  final IClientService service = jobState.clientServiceMap.getService(clientNum);
+                final CallableExecutor service =
+                    jobState.clientServiceMap.getService(clientNum);
 
                 final IClientServiceCallable<U> clientTask = newClientTask(clientNum);
 
@@ -961,15 +1037,22 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
         /*
          * This is the commit point corresponding to the end of the job.
          */
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        System.out.println("commit point: "
+//BTM - PRE_CLIENT_SERVICE                + getFederation().getLastCommitTime());
         System.out.println("commit point: "
-                + getFederation().getLastCommitTime());
-
+                + scaleOutIndexManager.getLastCommitTime());
+//BTM - PRE_CLIENT_SERVICE - END
         /*
          * Delete zookeeper state when the job completes successfully.
          */
-        ZooHelper.destroyZNodes(fed.getZookeeperAccessor().getZookeeper(),
-                jobState.getJobZPath(fed), 0/* depth */);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        ZooHelper.destroyZNodes(fed.getZookeeperAccessor().getZookeeper(),
+//BTM - PRE_CLIENT_SERVICE                jobState.getJobZPath(fed), 0/* depth */);
+        ZooHelper.destroyZNodes(zookeeperAccessor.getZookeeper(),
+                                jobState.getJobZPath(zookeeperRoot),
+                                0);//depth
+//BTM - PRE_CLIENT_SERVICE - END
     }
 
     /**
@@ -1077,26 +1160,67 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
 
         if (jobState.indexDumpDir != null) {
 
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            // runs @t0, 1m, 2m, ... 9m.
+//BTM - PRE_CLIENT_SERVICE            fed.addScheduledTask(new ScheduledDumpTask(fed,
+//BTM - PRE_CLIENT_SERVICE                    jobState.indexDumpNamespace, 10/* nruns */,
+//BTM - PRE_CLIENT_SERVICE                    jobState.indexDumpDir, "indexDump", TimeUnit.MINUTES),
+//BTM - PRE_CLIENT_SERVICE                    0/* initialDelay */, 1/* delay */, TimeUnit.MINUTES);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            // runs @t10m, 20m, 30m, ... 50m.
+//BTM - PRE_CLIENT_SERVICE            fed.addScheduledTask(new ScheduledDumpTask(fed,
+//BTM - PRE_CLIENT_SERVICE                    jobState.indexDumpNamespace, 5/* nruns */,
+//BTM - PRE_CLIENT_SERVICE                    jobState.indexDumpDir, "indexDump", TimeUnit.MINUTES),
+//BTM - PRE_CLIENT_SERVICE                    10/* initialDelay */, 10/* delay */, TimeUnit.MINUTES);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            // runs @t1h, 2h, ... until cancelled.
+//BTM - PRE_CLIENT_SERVICE            fed.addScheduledTask(new ScheduledDumpTask(fed,
+//BTM - PRE_CLIENT_SERVICE                    jobState.indexDumpNamespace, Integer.MAX_VALUE/* nruns */,
+//BTM - PRE_CLIENT_SERVICE                    jobState.indexDumpDir, "indexDump", TimeUnit.MINUTES),
+//BTM - PRE_CLIENT_SERVICE                    1/* initialDelay */, 1/* delay */, TimeUnit.HOURS);
             // runs @t0, 1m, 2m, ... 9m.
-            fed.addScheduledTask(new ScheduledDumpTask(fed,
-                    jobState.indexDumpNamespace, 10/* nruns */,
-                    jobState.indexDumpDir, "indexDump", TimeUnit.MINUTES),
-                    0/* initialDelay */, 1/* delay */, TimeUnit.MINUTES);
+            this.addScheduledTask
+                (new ScheduledDumpTask(scaleOutIndexManager,
+                                       discoveryManager,
+                                       localResourceManager,
+                                       jobState.indexDumpNamespace,
+                                       10, //nruns
+                                       jobState.indexDumpDir,
+                                       "indexDump",
+                                       TimeUnit.MINUTES),
+                 0, //initialDelay
+                 1, //period
+                 TimeUnit.MINUTES);
 
             // runs @t10m, 20m, 30m, ... 50m.
-            fed.addScheduledTask(new ScheduledDumpTask(fed,
-                    jobState.indexDumpNamespace, 5/* nruns */,
-                    jobState.indexDumpDir, "indexDump", TimeUnit.MINUTES),
-                    10/* initialDelay */, 10/* delay */, TimeUnit.MINUTES);
+            this.addScheduledTask
+                (new ScheduledDumpTask(scaleOutIndexManager,
+                                       discoveryManager,
+                                       localResourceManager,
+                                       jobState.indexDumpNamespace,
+                                       5, //nruns
+                                       jobState.indexDumpDir,
+                                       "indexDump",
+                                       TimeUnit.MINUTES),
+                 10, //initialDelay
+                 10, //period
+                 TimeUnit.MINUTES);
 
             // runs @t1h, 2h, ... until cancelled.
-            fed.addScheduledTask(new ScheduledDumpTask(fed,
-                    jobState.indexDumpNamespace, Integer.MAX_VALUE/* nruns */,
-                    jobState.indexDumpDir, "indexDump", TimeUnit.MINUTES),
-                    1/* initialDelay */, 1/* delay */, TimeUnit.HOURS);
-
+            this.addScheduledTask
+                (new ScheduledDumpTask(scaleOutIndexManager,
+                                       discoveryManager,
+                                       localResourceManager,
+                                       jobState.indexDumpNamespace,
+                                       Integer.MAX_VALUE, //nruns
+                                       jobState.indexDumpDir,
+                                       "indexDump",
+                                       TimeUnit.MINUTES),
+                 1,//initialDelay
+                 1,//period
+                 TimeUnit.HOURS);
+//BTM - PRE_CLIENT_SERVICE - END
         }
-
     }
 
     /**
@@ -1114,23 +1238,38 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
     protected ZLock setupJob() throws KeeperException, InterruptedException,
             TimeoutException {
 
-        final ZooKeeper zookeeper = fed.getZookeeperAccessor().getZookeeper();
+//BTM - PRE_CLIENT_SERVICE        final ZooKeeper zookeeper = fed.getZookeeperAccessor().getZookeeper();
+        final ZooKeeper zookeeper = zookeeperAccessor.getZookeeper();
 
         try {
             // ensure znode exists.
-            zookeeper.create(fed.getZooConfig().zroot + "/"
-                    + BigdataZooDefs.JOBS, new byte[0], fed.getZooConfig().acl,
-                    CreateMode.PERSISTENT);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            zookeeper.create(fed.getZooConfig().zroot + "/"
+//BTM - PRE_CLIENT_SERVICE                    + BigdataZooDefs.JOBS, new byte[0], fed.getZooConfig().acl,
+//BTM - PRE_CLIENT_SERVICE                    CreateMode.PERSISTENT);
+            zookeeper.create(zookeeperRoot + "/" + BigdataZooDefs.JOBS,
+                             new byte[0],
+                             zookeeperAcl,
+                             CreateMode.PERSISTENT);
+//BTM - PRE_CLIENT_SERVICE - END
         } catch (NodeExistsException ex) {
             // ignore.
         }
 
-        final String jobClassZPath = jobState.getJobClassZPath(fed);
+//BTM - PRE_CLIENT_SERVICE  final String jobClassZPath = jobState.getJobClassZPath(fed);
+        final String jobClassZPath = jobState.getJobClassZPath(zookeeperRoot);
 
         try {
             // ensure znode exists.
-            zookeeper.create(jobClassZPath, new byte[0],
-                    fed.getZooConfig().acl, CreateMode.PERSISTENT);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            zookeeper.create(jobClassZPath, new byte[0],
+//BTM - PRE_CLIENT_SERVICE                    fed.getZooConfig().acl, CreateMode.PERSISTENT);
+            zookeeper.create(jobClassZPath,
+                             new byte[0],
+                             zookeeperAcl,
+                             CreateMode.PERSISTENT);
+//BTM - PRE_CLIENT_SERVICE - END
+
         } catch (NodeExistsException ex) {
             // ignore.
         }
@@ -1141,13 +1280,21 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
          * Note: We just created parent of this lock node (or at any rate,
          * ensured that it exists).
          */
-        final ZLock zlock = ZLockImpl.getLock(zookeeper, jobClassZPath + "/"
-                + "locknode_" + jobState.jobName, fed.getZooConfig().acl);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final ZLock zlock = ZLockImpl.getLock(zookeeper, jobClassZPath + "/"
+//BTM - PRE_CLIENT_SERVICE                + "locknode_" + jobState.jobName, fed.getZooConfig().acl);
+        final ZLock zlock =
+              ZLockImpl.getLock
+                  (zookeeper,
+                   jobClassZPath + "/" + "locknode_" + jobState.jobName,
+                   zookeeperAcl);
+//BTM - PRE_CLIENT_SERVICE - END
 
         zlock.lock();
         try {
 
-            final String jobZPath = jobState.getJobZPath(fed);
+//BTM - PRE_CLIENT_SERVICE  final String jobZPath = jobState.getJobZPath(fed);
+            final String jobZPath = jobState.getJobZPath(zookeeperRoot);
 
             if (jobState.deleteJob
                     && zookeeper.exists(jobZPath, false/* watch */) != null) {
@@ -1158,8 +1305,13 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
 
                 log.warn("Deleting old job: " + jobZPath);
 
-                ZooHelper.destroyZNodes(fed.getZookeeperAccessor()
-                        .getZookeeper(), jobZPath, 0/* depth */);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                ZooHelper.destroyZNodes(fed.getZookeeperAccessor()
+//BTM - PRE_CLIENT_SERVICE                        .getZookeeper(), jobZPath, 0/* depth */);
+                ZooHelper.destroyZNodes(zookeeperAccessor.getZookeeper(),
+                                        jobZPath,
+                                        0);//depth
+//BTM - PRE_CLIENT_SERVICE - END
 
                 // detach the performance counters for the old job.
                 detachPerformanceCounters();
@@ -1169,8 +1321,14 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
             try {
 
                 // create znode that is the root for the job.
-                zookeeper.create(jobZPath, SerializerUtil.serialize(jobState),
-                        fed.getZooConfig().acl, CreateMode.PERSISTENT);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                zookeeper.create(jobZPath, SerializerUtil.serialize(jobState),
+//BTM - PRE_CLIENT_SERVICE                        fed.getZooConfig().acl, CreateMode.PERSISTENT);
+                zookeeper.create(jobZPath,
+                                 SerializerUtil.serialize(jobState),
+                                 zookeeperAcl,
+                                 CreateMode.PERSISTENT);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 if (log.isInfoEnabled())
                     log.info("New job: " + jobState);
@@ -1226,7 +1384,9 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
                 jobState = (S) SerializerUtil.deserialize(zookeeper.getData(
                         jobZPath, false, new Stat()));
 
-                jobState.clientServiceMap.resolveServiceUUIDs(fed);
+//BTM - PRE_CLIENT_SERVICE                jobState.clientServiceMap.resolveServiceUUIDs(fed);
+                jobState.clientServiceMap.resolveServiceUUIDs
+                                              (discoveryManager);
 
                 jobState.resumedJob = true;
 
@@ -1266,10 +1426,12 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
      *       same job within the same JVM instance.
      */
     protected void detachPerformanceCounters() {
-
-        getFederation().getServiceCounterSet().makePath("Jobs").detach(
-                jobState.jobName);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        getFederation().getServiceCounterSet().makePath("Jobs").detach(
+//BTM - PRE_CLIENT_SERVICE                jobState.jobName);
+        localResourceManager.getServiceCounterSet(true)
+                            .makePath("Jobs").detach(jobState.jobName);
+//BTM - PRE_CLIENT_SERVICE - END
     }
     
     /**
@@ -1282,10 +1444,15 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
             throw new IllegalArgumentException();
             
         }
-        
-        getFederation().getServiceCounterSet().makePath("Jobs").makePath(
-                getJobState().jobName).attach(counterSet, true/* replace */);
-        
+//BTM - PRE_CLIENT_SERVICE - BEGIN  
+//BTM - PRE_CLIENT_SERVICE        getFederation().getServiceCounterSet().makePath("Jobs").makePath(
+//BTM - PRE_CLIENT_SERVICE                getJobState().jobName).attach(counterSet, true/* replace */);
+        localResourceManager.getServiceCounterSet(true)
+                            .makePath("Jobs").makePath
+                              (getJobState().jobName).attach
+                                                      (counterSet,
+                                                       true);//replace
+//BTM - PRE_CLIENT_SERVICE - END
 
     }
     
@@ -1328,16 +1495,28 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
              * This is the task that will give us the services on which the
              * clients will execute.
              */
-            ServicesTemplate clientsTemplate = new ServicesTemplate(
-                jobState.clientServiceCount, // minMatches
-		new ServiceTemplate(null, //serviceID
-                    new Class[]{ com.bigdata.service.IClientService.class },
-		    null),
-                null);
-            final Future<ServiceItem[]> discoverClientServicesFuture = fed
-                    .getExecutorService().submit(
-                            new DiscoverServices(fed, clientsTemplate,
-                                    jobState.servicesDiscoveryTimeout));
+            ServicesTemplate clientsTemplate =
+                new ServicesTemplate
+                    (jobState.clientServiceCount, // minMatches
+		     new ServiceTemplate
+                        (null, //serviceID
+//BTM - PRE_FRED_3481    new Class[]{ com.bigdata.service.IClientService.class },
+                         new Class[]{ com.bigdata.service.CallableExecutor.class },
+		         null),
+                     null);
+
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final Future<ServiceItem[]> discoverClientServicesFuture = fed
+//BTM - PRE_CLIENT_SERVICE                    .getExecutorService().submit(
+//BTM - PRE_CLIENT_SERVICE                            new DiscoverServices(fed, clientsTemplate,
+//BTM - PRE_CLIENT_SERVICE                                    jobState.servicesDiscoveryTimeout));
+            final Future<ServiceItem[]> discoverClientServicesFuture =
+                  localResourceManager.getThreadPool().submit
+                      ( new DiscoverServices
+                                (discoveryManager.getServiceDiscoveryManager(),
+                                 clientsTemplate,
+                                 jobState.servicesDiscoveryTimeout) );
+//BTM - PRE_CLIENT_SERVICE - END
 
             /*
              * Additional tasks for the other services which must be discovered
@@ -1347,14 +1526,26 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
 
             for (ServicesTemplate t : jobState.servicesTemplates) {
 
-                tasks.add(new DiscoverServices(fed, t,
-                        jobState.servicesDiscoveryTimeout));
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                tasks.add(new DiscoverServices(fed, t,
+//BTM - PRE_CLIENT_SERVICE                        jobState.servicesDiscoveryTimeout));
+                tasks.add
+                    ( new DiscoverServices
+                              (discoveryManager.getServiceDiscoveryManager(),
+                               t,
+                               jobState.servicesDiscoveryTimeout) );
+//BTM - PRE_CLIENT_SERVICE - END
 
             }
 
             // submit all tasks in parallel.
-            final Future<ServiceItem[]>[] futures = fed.getExecutorService()
-                    .invokeAll(tasks).toArray(new Future[tasks.size()]);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final Future<ServiceItem[]>[] futures = fed.getExecutorService()
+//BTM - PRE_CLIENT_SERVICE                    .invokeAll(tasks).toArray(new Future[tasks.size()]);
+            final Future<ServiceItem[]>[] futures =
+                      localResourceManager.getThreadPool().invokeAll(tasks)
+                                          .toArray(new Future[tasks.size()]);
+//BTM - PRE_CLIENT_SERVICE - END
 
             // Assemble a list of errors.
             final List<Throwable> causes = new LinkedList<Throwable>();
@@ -1548,7 +1739,11 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
 
         System.out.println("Forcing overflow: now=" + new Date());
 
-		fed.forceOverflow(true/* compactingMerge */, true/* truncateJournal */);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE		fed.forceOverflow(true/* compactingMerge */, true/* truncateJournal */);
+        forceOverflowAllDataServices(true,  //compactingMerge,
+                                     true); //truncateJournal
+//BTM - PRE_CLIENT_SERVICE - END
 
         System.out.println("Forced overflow: now=" + new Date());
 
@@ -1566,5 +1761,123 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
     protected void notifyOutcome(final int clientNum, final U value) {
 
     }
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN - methods added by BTM ---------------------
+
+    private ScheduledFuture addScheduledTask(Runnable task,
+                                             long initialDelay,
+                                             long delay,
+                                             TimeUnit unit)
+    {
+        if (task == null) {
+            throw new IllegalArgumentException("null task");
+        }
+        if (log.isInfoEnabled()) {
+            log.info("Scheduling task: task=" + task.getClass()
+                    + ", initialDelay=" + initialDelay + ", delay=" + delay
+                    + ", unit=" + unit);
+        }
+        return (localResourceManager.getScheduledExecutor())
+                                    .scheduleWithFixedDelay
+                                         (task, initialDelay, delay, unit);
+    }
+
+//BTM - Adapted from AbstractScaleOutFederation
+
+    /**
+     * Force overflow of each data service in the scale-out federation (only
+     * scale-out federations support overflow processing). This method is
+     * synchronous. It will not return until all {@link ShardService}s have
+     * initiated and completed overflow processing. Any unused resources (as
+     * determined by the {@link StoreManager}) will have been purged.
+     * <p>
+     * This is a relatively fast operation when
+     * <code>compactingMerge := false</code>. By specifying both
+     * <code>compactingMerge := false</code> and
+     * <code>truncateJournal := false</code> you can cause the data services to
+     * close out their current journals against further writes. While this is
+     * not a global synchronous operation, it can provide a basis to obtain a
+     * "near synchronous" snapshot from the federation consisting of all writes
+     * up to the point where overflow was triggered on each data service.
+     * 
+     * @param compactingMerge
+     *            When <code>true</code>, each shard on each
+     *            {@link ShardService} will undergo a compacting merge.
+     *            Synchronous parallel compacting merge of all shards is an
+     *            expensive operation. This parameter shoudl normally be
+     *            <code>false</code> unless you are requesting a compacting
+     *            merge for specific purposes, such as benchmarking when all
+     *            data is known to exist in one {@link IndexSegment} per shard.
+     * @param truncateJournal
+     *            When <code>true</code>, the live journal will be truncated to
+     *            its minimum extent (all writes will be preserved but there
+     *            will be no free space left in the journal). This may be used
+     *            to force the {@link ShardService} to its minimum possible
+     *            footprint.
+     * 
+     * @todo when overflow processing is enabled for the shard locator service
+     *       we will have to modify this to also trigger overflow for those
+     *       services.
+     */
+    private void forceOverflowAllDataServices(boolean compactingMerge,
+                                              boolean truncateJournal)
+    {
+        // find UUID for each data service.
+        final UUID[] dataServiceUUIDs =
+                     discoveryManager.getDataServiceUUIDs(Integer.MAX_VALUE);
+        final int ndataServices = dataServiceUUIDs.length;
+
+        log.warn("forcing overflow [# of dataServices="+ndataServices
+                 +", now="+new Date()+"]");
+
+        final List<Callable<Void>> tasks =
+                  new ArrayList<Callable<Void>>(ndataServices);
+        for (UUID serviceUUID : dataServiceUUIDs) {
+            tasks.add(new ForceOverflowTask
+                              (discoveryManager.getDataService(serviceUUID),
+                               compactingMerge,
+                               truncateJournal) );
+        }
+
+        if(truncateJournal) {
+            // @todo
+            //
+            // The metadata service does not yet support overflow (it does
+            // not support partitioned metadata indices) so it only has a live
+            // journal. Therefore all that can be done until overflow
+            // processing is enabled in the metadata service is to 
+            // truncate the live journal for the metadata service.
+
+            tasks.add( new PurgeResourcesTask
+                               (discoveryManager.getMetadataService(),
+                                truncateJournal) );
+        }
+        final List<Future<Void>> futures;
+        try {
+            futures = localResourceManager.getThreadPool().invokeAll(tasks);
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
+        int nok = 0;
+        for (Future f : futures) {
+            try {
+                f.get();
+                nok++;
+            } catch (InterruptedException ex) {
+                log.warn(ex.getLocalizedMessage());
+                continue;
+            } catch (ExecutionException ex) {
+                log.error(ex.getLocalizedMessage(), ex);
+            }
+        }
+        log.warn("overflow complete [# of ok="+nok+", # of dataServices="
+                 +ndataServices+",now="+new Date()+"]");
+        if (nok != tasks.size()) {
+            throw new RuntimeException
+                          ("overflow processing failed [# of ok="+nok
+                            +", # of tasks="+tasks.size()+"]");
+        }
+    }
+//BTM - FOR_CLIENT_SERVICE - END ----------------------------------------------
 
 }

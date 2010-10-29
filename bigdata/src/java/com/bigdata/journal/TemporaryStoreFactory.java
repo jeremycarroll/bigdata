@@ -41,6 +41,10 @@ import com.bigdata.cache.ConcurrentWeakValueCache;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.WormAddressManager;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * Helper class for {@link IIndexStore#getTempStore()}. This class is very light
  * weight.
@@ -162,6 +166,7 @@ public class TemporaryStoreFactory {
      */
     private final long maxExtent;
 
+
     /**
      * Constructor uses the Java system properties to configure the factory.
      * The {@link Options} may be used to override the defaults if specified
@@ -228,8 +233,7 @@ public class TemporaryStoreFactory {
      *             cause each request to return a distinct
      *             {@link TemporaryStore}).
      */
-    public TemporaryStoreFactory(final File tmpDir, final int offsetBits,
-            final long maxExtent) {
+    public TemporaryStoreFactory(final File tmpDir, final int offsetBits, final long maxExtent) {
 
         if (tmpDir == null)
             throw new IllegalArgumentException();
@@ -264,7 +268,13 @@ public class TemporaryStoreFactory {
      * configured maximum extent then a new {@link TemporaryStore} will be
      * created and returned. Otherwise the existing instance is returned.
      */
-    synchronized public TemporaryStore getTempStore() {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    synchronized public TemporaryStore getTempStore() {
+    synchronized public TemporaryStore getTempStore
+                            (final IConcurrencyManager concurrencyManager,       //BTM - can be null?
+                             final IBigdataDiscoveryManagement discoveryManager) //BTM - can be null?
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         TemporaryStore t = ref == null ? null : ref.get();
 
@@ -274,7 +284,13 @@ public class TemporaryStoreFactory {
             final File file = TemporaryRawStore.getTempFile(tmpDir);
             
             // Create a temporary store using that backing file.
-            t = new TemporaryStore(offsetBits, file);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            t = new TemporaryStore(offsetBits, file);
+            t = new TemporaryStore(concurrencyManager,
+                                   discoveryManager,
+                                   offsetBits,
+                                   file);
+//BTM - PRE_CLIENT_SERVICE - END
 
             // put into the weak value cache.
             stores.put(t.getUUID(), t);

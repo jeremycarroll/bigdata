@@ -203,8 +203,16 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
             final Properties tmp = store.getProperties();
             tmp.setProperty(AbstractTripleStore.Options.LEXICON, "false");
 
-            final TempMagicStore tempStore = new TempMagicStore(
-                    store.getIndexManager().getTempStore(), tmp, store);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final TempMagicStore tempStore = new TempMagicStore(
+//BTM - PRE_CLIENT_SERVICE                    store.getIndexManager().getTempStore(), tmp, store);
+            final TempMagicStore tempStore =
+                  new TempMagicStore
+                          (store.getIndexManager().getTempStore(),
+                           store.getConcurrencyManager(),
+                           store.getDiscoveryManager(),
+                           tmp, store);
+//BTM - PRE_CLIENT_SERVICE - END
             
             // now get the program from the inference engine
             BaseClosure closure = store.getClosureInstance();
@@ -343,8 +351,15 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
                             false/* backchain */,
                             DefaultEvaluationPlanFactory2.INSTANCE);
 
-            final IJoinNexus joinNexus = joinNexusFactory.newInstance(database
-                    .getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IJoinNexus joinNexus = joinNexusFactory.newInstance(database
+//BTM - PRE_CLIENT_SERVICE                    .getIndexManager());
+            final IJoinNexus joinNexus =
+                  joinNexusFactory.newInstance
+                      (database.getIndexManager(),
+                       database.getConcurrencyManager(),
+                       database.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 
             final long mutationCount = joinNexus.runMutation(program);
 
@@ -394,9 +409,16 @@ public class TestIRIS extends AbstractInferenceEngineTestCase {
                             planFactory//
                             );
 
-            final IJoinNexus joinNexus = joinNexusFactory.newInstance(database
-                    .getIndexManager());
-    
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IJoinNexus joinNexus = joinNexusFactory.newInstance(database
+//BTM - PRE_CLIENT_SERVICE                    .getIndexManager());
+            final IJoinNexus joinNexus =
+                  joinNexusFactory.newInstance
+                      (database.getIndexManager(),
+                       database.getConcurrencyManager(),
+                       database.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
+
             itr1 = joinNexus.runQuery(rule);
 
         } catch (Exception ex) {

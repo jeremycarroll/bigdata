@@ -37,6 +37,11 @@ import com.bigdata.jini.start.ServicesManagerServer;
 import com.bigdata.journal.ITx;
 import com.bigdata.service.jini.util.JiniServicesHelper;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.service.jini.JiniFederation;
+
 /**
  * Proxy test suite for {@link ScaleOutTripleStore} running against an
  * distributed federation using Jini services.
@@ -202,8 +207,19 @@ public class TestScaleOutTripleStoreWithJiniFederation extends AbstractTestCase 
         final String namespace = "test"+inc.incrementAndGet();
    
         // Connect to the triple store.
-        final AbstractTripleStore store = new ScaleOutTripleStore(helper.client
-                .getFederation(), namespace, ITx.UNISOLATED, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final AbstractTripleStore store = new ScaleOutTripleStore(helper.client
+//BTM - PRE_CLIENT_SERVICE                .getFederation(), namespace, ITx.UNISOLATED, properties);
+        JiniFederation fed = (JiniFederation)helper.client.getFederation();
+        final AbstractTripleStore store =
+              new ScaleOutTripleStore
+                      ((IIndexManager)fed,
+                       fed.getConcurrencyManager(),
+                       (IBigdataDiscoveryManagement)fed,
+                       namespace,
+                       ITx.UNISOLATED,
+                       properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
         store.create();
         
@@ -239,8 +255,18 @@ public class TestScaleOutTripleStoreWithJiniFederation extends AbstractTestCase 
         helper.client.connect();
 
         // obtain view of the triple store.
-        return new ScaleOutTripleStore(helper.client.getFederation(),
-                namespace, ITx.UNISOLATED, store.getProperties()).init();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return new ScaleOutTripleStore(helper.client.getFederation(),
+//BTM - PRE_CLIENT_SERVICE                namespace, ITx.UNISOLATED, store.getProperties()).init();
+        JiniFederation fed = (JiniFederation)helper.client.getFederation();
+        return new ScaleOutTripleStore
+                       ((IIndexManager)fed,
+                        fed.getConcurrencyManager(),
+                        (IBigdataDiscoveryManagement)fed,
+                        namespace,
+                        ITx.UNISOLATED,
+                        store.getProperties()).init();
+//BTM - PRE_CLIENT_SERVICE - END
 
     }
 

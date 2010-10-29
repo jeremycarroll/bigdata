@@ -97,6 +97,13 @@ import com.bigdata.journal.IIndexManager;
 import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.service.Session;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexStore;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.service.IService;
+import com.bigdata.service.Service;
+
 /**
  * A client utility that connects to and dumps various interesting aspects of a
  * live federation.
@@ -112,7 +119,14 @@ import com.bigdata.service.Session;
 public class DumpFederation {
 
     protected static final Logger log = Logger.getLogger(DumpFederation.class);
-    
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    private IScaleOutIndexStore scaleOutIndexStore;
+    private IBigdataDiscoveryManagement discoveryManager;
+    private ILocalResourceManagement localResourceManager;
+//BTM - FOR_CLIENT_SERVICE - END
+
+
     /**
      * The component name for this class (for use with the
      * {@link ConfigurationOptions}).
@@ -194,8 +208,7 @@ public class DumpFederation {
                 log.info("Waiting up to " + discoveryDelay
                         + "ms for metadata service discovery.");
 
-            fed
-                    .awaitServices(1/* minDataServices */, discoveryDelay/* timeout(ms) */);
+            fed.awaitServices(1/* minDataServices */, discoveryDelay/* timeout(ms) */);
 
             // a read-only transaction as of the last commit time.
             final long tx = fed.getTransactionService().newTx(
@@ -206,8 +219,16 @@ public class DumpFederation {
                 final FormatRecord formatter = new FormatCSVTable(System.out);
 //                final FormatRecord formatter = new FormatTabTable(System.out);
 
-                final DumpFederation dumper = new DumpFederation(fed, tx,
-                        formatter);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final DumpFederation dumper = new DumpFederation(fed, tx,
+//BTM - PRE_CLIENT_SERVICE                        formatter);
+                final DumpFederation dumper =
+                          new DumpFederation
+                                  ( (IScaleOutIndexStore)fed,
+                                    (IBigdataDiscoveryManagement)fed,
+                                    (ILocalResourceManagement)fed,
+                                    tx, formatter );
+//BTM - PRE_CLIENT_SERVICE - END
 
                 formatter.writeHeaders();
                 
@@ -252,7 +273,13 @@ public class DumpFederation {
      */
     public static class ScheduledDumpTask implements Runnable {
        
-        final JiniFederation<?> fed;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final JiniFederation<?> fed;
+        private IScaleOutIndexStore scaleOutIndexStore;
+        private IBigdataDiscoveryManagement discoveryMgr;
+        private ILocalResourceManagement localResourceMgr;
+//BTM - PRE_CLIENT_SERVICE - END
+
         final String namespace;
         final File path;
         final String basename;
@@ -287,37 +314,68 @@ public class DumpFederation {
          *            {@link TimeUnit#HOURS} or {@link TimeUnit#DAYS} to have
          *            the dumped files labeled with the appropriate unit.
          */
-        public ScheduledDumpTask(final JiniFederation<?> fed,
-                final String namespace, final int nruns, final File path,
-                final String basename, final TimeUnit unit) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public ScheduledDumpTask(final JiniFederation<?> fed,
+//BTM - PRE_CLIENT_SERVICE                final String namespace, final int nruns, final File path,
+//BTM - PRE_CLIENT_SERVICE                final String basename, final TimeUnit unit) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (fed == null)
+//BTM - PRE_CLIENT_SERVICE                throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (namespace == null)
+//BTM - PRE_CLIENT_SERVICE                throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (path == null)
+//BTM - PRE_CLIENT_SERVICE                throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (basename == null)
+//BTM - PRE_CLIENT_SERVICE                throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (nruns < 0)
+//BTM - PRE_CLIENT_SERVICE                throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (unit == null)
+//BTM - PRE_CLIENT_SERVICE                throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE            this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE            this.namespace = namespace;
+//BTM - PRE_CLIENT_SERVICE            this.path = path;
+//BTM - PRE_CLIENT_SERVICE            this.basename = basename;
+//BTM - PRE_CLIENT_SERVICE            this.nruns = nruns;
+//BTM - PRE_CLIENT_SERVICE            this.unit = unit;
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE        }
+        public ScheduledDumpTask
+                   (final IScaleOutIndexStore scaleOutIndexStore,
+                    final IBigdataDiscoveryManagement discoveryManager,
+                    final ILocalResourceManagement localResourceManager,
+                    final String namespace,
+                    final int nruns,
+                    final File path,
+                    final String basename,
+                    final TimeUnit unit)
+        {
+            if (scaleOutIndexStore == null) {
+                throw new NullPointerException("null scaleOutIndexStore");
+            }
+            if (discoveryManager == null) {
+                throw new NullPointerException("null discoveryManager");
+            }
+            if (localResourceManager == null) {
+                throw new NullPointerException("null localResourceManager");
+            }
 
-            if (fed == null)
-                throw new IllegalArgumentException();
-
-            if (namespace == null)
-                throw new IllegalArgumentException();
-
-            if (path == null)
-                throw new IllegalArgumentException();
-
-            if (basename == null)
-                throw new IllegalArgumentException();
-
-            if (nruns < 0)
-                throw new IllegalArgumentException();
-
-            if (unit == null)
-                throw new IllegalArgumentException();
-            
-            this.fed = fed;
+            this.scaleOutIndexStore = scaleOutIndexStore;
+            this.discoveryMgr = discoveryManager;
+            this.localResourceMgr = localResourceManager;
             this.namespace = namespace;
             this.path = path;
             this.basename = basename;
             this.nruns = nruns;
             this.unit = unit;
-            
         }
-        
+//BTM - PRE_CLIENT_SERVICE - END
+
         /**
          * Runs until {@link #nruns} and then throws an exception to prevent
          * re-execution thereafter.
@@ -364,20 +422,31 @@ public class DumpFederation {
                  * A read-only transaction from the last committed state of the
                  * db.
                  */
-                final long tx = fed.getTransactionService().newTx(
-                        ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE                final long tx = fed.getTransactionService().newTx(
+//BTM - PRE_CLIENT_SERVICE                        ITx.READ_COMMITTED);
+                final long tx =
+                    discoveryMgr.getTransactionService().newTx
+                                                        (ITx.READ_COMMITTED);
 
                 try {
-
-                    final DumpFederation dumper = new DumpFederation(fed, tx,
-                            formatter);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                    final DumpFederation dumper = new DumpFederation(fed, tx,
+//BTM - PRE_CLIENT_SERVICE                            formatter);
+                    final DumpFederation dumper = 
+                          new DumpFederation
+                                  ( scaleOutIndexStore,
+                                    discoveryMgr,
+                                    localResourceMgr,
+                                    tx, formatter );
+//BTM - PRE_CLIENT_SERVICE - END
 
                     dumper.dumpIndices(namespace);
 
                 } finally {
 
                     // discard read-only transaction.
-                    fed.getTransactionService().abort(tx);
+//BTM - PRE_CLIENT_SERVICE                    fed.getTransactionService().abort(tx);
+                    discoveryMgr.getTransactionService().abort(tx);
 
                 }
                 
@@ -409,14 +478,14 @@ public class DumpFederation {
                 
             }
 
-        }
+        }//end run
         
-    }
-    
+    }//end class ScheduledDumpTask
+
     /**
      * The connected federation.
      */
-    private final JiniFederation<?> fed;
+//BTM - PRE_CLIENT_SERVICE    private final JiniFederation<?> fed;
 
     /**
      * The read-historical transaction that will be used to dump the database.
@@ -850,23 +919,52 @@ sb.append("," + Util.getIndexPartitionName(rec.indexName,rec.locator.getPartitio
      * @param formatter
      *            Object used to format the output.
      */
-    public DumpFederation(final JiniFederation<?> fed, final long tx,
-            final FormatRecord formatter) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public DumpFederation(final JiniFederation<?> fed, final long tx,
+//BTM - PRE_CLIENT_SERVICE            final FormatRecord formatter) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        if (fed == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        if (formatter == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        this.ts = tx;
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        this.formatter = formatter;
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
 
-        if (fed == null)
-            throw new IllegalArgumentException();
-        
-        if (formatter == null)
-            throw new IllegalArgumentException();
-        
-        this.fed = fed;
-        
+    public DumpFederation
+               (final IScaleOutIndexStore scaleOutIndexStore,
+                final IBigdataDiscoveryManagement discoveryManager,
+                final ILocalResourceManagement localResourceManager,
+                final long tx,
+                final FormatRecord formatter)
+    {
+        if (scaleOutIndexStore == null) {
+            throw new NullPointerException("null scaleOutIndexStore");
+        }
+        if (discoveryManager == null) {
+            throw new NullPointerException("null discoveryManager");
+        }
+        if (localResourceManager == null) {
+            throw new NullPointerException("null localResourceManager");
+        }
+        if (formatter == null) {
+            throw new NullPointerException("null formatter");
+        }
+
+        this.scaleOutIndexStore = scaleOutIndexStore;
+        this.discoveryManager = discoveryManager;
+        this.localResourceManager = localResourceManager;
         this.ts = tx;
-        
         this.formatter = formatter;
-        
     }
-    
+//BTM - PRE_CLIENT_SERVICE - END
+
     /**
      * The names of all registered scale-out indices having the specified
      * namespace prefix.
@@ -893,7 +991,7 @@ sb.append("," + Util.getIndexPartitionName(rec.indexName,rec.locator.getPartitio
         }
         
 //BTM        final IMetadataService mds = fed.getMetadataService();
-final ShardLocator mds = fed.getMetadataService();
+        final ShardLocator mds = discoveryManager.getMetadataService();
         
         if(mds == null) {
             
@@ -912,7 +1010,7 @@ final ShardLocator mds = fed.getMetadataService();
 //BTM     throw new RuntimeException("DumpFederation.getIndexNames: shard locator (metadata) service is not a shard manager [type="+mds.getClass()+"]");
 //BTM }
 
-return (String[]) ((ShardManagement)mds).submit(new ListIndicesTask(ts, namespace)).get();
+        return (String[]) ((ShardManagement)mds).submit(new ListIndicesTask(ts, namespace)).get();
 
 //BTM - END CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
 
@@ -965,7 +1063,8 @@ return (String[]) ((ShardManagement)mds).submit(new ListIndicesTask(ts, namespac
         final IMetadataIndex metadataIndex;
         try {
 
-            metadataIndex = fed.getMetadataIndex(indexName, ts);
+//BTM - PRE_CLIENT_SERVICE            metadataIndex = fed.getMetadataIndex(indexName, ts);
+            metadataIndex = scaleOutIndexStore.getMetadataIndex(indexName, ts);
 
         } catch (Throwable t) {
 
@@ -997,12 +1096,24 @@ return (String[]) ((ShardManagement)mds).submit(new ListIndicesTask(ts, namespac
      */
     static public class IndexPartitionRecord {
 
-        public IndexPartitionRecord(final JiniFederation<?> fed, final long ts,
-                final String indexName, final PartitionLocator locator)
-                throws InterruptedException {
-
-            if (fed == null)
-                throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public IndexPartitionRecord(final JiniFederation<?> fed, final long ts,
+//BTM - PRE_CLIENT_SERVICE                final String indexName, final PartitionLocator locator)
+//BTM - PRE_CLIENT_SERVICE                throws InterruptedException {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (fed == null)
+//BTM - PRE_CLIENT_SERVICE                throw new IllegalArgumentException();
+        public IndexPartitionRecord
+                   (final IBigdataDiscoveryManagement discoveryManager,
+                    final long ts,
+                    final String indexName,
+                    final PartitionLocator locator)
+                throws InterruptedException
+        {
+            if (discoveryManager == null) {
+                throw new NullPointerException("null discoveryManager");
+            }
+//BTM - PRE_CLIENT_SERVICE - END
 
             if (indexName == null)
                 throw new IllegalArgumentException();
@@ -1016,10 +1127,21 @@ return (String[]) ((ShardManagement)mds).submit(new ListIndicesTask(ts, namespac
 
             this.locator = locator;
             
-            smd = ServiceMetadata.getServiceMetadata(fed, locator.getDataServiceUUID());
-            
-//BTM            final IDataService dataService = fed.getDataService(locator.getDataServiceUUID());
-final ShardService dataService = fed.getDataService(locator.getDataServiceUUID());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            smd = ServiceMetadata.getServiceMetadata(fed, locator.getDataServiceUUID());
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE //BTM            final IDataService dataService = fed.getDataService(locator.getDataServiceUUID());
+//BTM - PRE_CLIENT_SERVICE final ShardService dataService = fed.getDataService(locator.getDataServiceUUID());
+
+            smd = ServiceMetadata.getServiceMetadata
+                      (discoveryManager, locator.getDataServiceUUID());
+
+            final ShardService dataService =
+                  discoveryManager.getDataService
+                                       (locator.getDataServiceUUID());
+//BTM - PRE_CLIENT_SERVICE - END
+
+
 
             if (dataService == null) {
 
@@ -1040,8 +1162,12 @@ final ShardService dataService = fed.getDataService(locator.getDataServiceUUID()
 //BTM                        .submit(new FetchIndexPartitionByteCountRecordTask(ts,
 //BTM                                DataService.getIndexPartitionName(indexName,
 //BTM                                        locator.getPartitionId()))).get(); 
-detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(new FetchIndexPartitionByteCountRecordTask(ts, Util.getIndexPartitionName(indexName, locator.getPartitionId()))).get(); 
-                
+                detailRec =
+                    (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit
+                         (new FetchIndexPartitionByteCountRecordTask
+                                  (ts, Util.getIndexPartitionName
+                                            (indexName,
+                                             locator.getPartitionId()))).get(); 
             } catch(InterruptedException t) {
                 
                 throw t;
@@ -1089,7 +1215,7 @@ detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(n
          */
         public final IndexPartitionDetailRecord detailRec;
         
-    }
+    }//end class IndexPartitionRecord
 
 //    /**
 //     * Helper task returns the {@link LocalPartitionMetadata} for an index
@@ -1266,7 +1392,7 @@ detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(n
 
         }
 
-    }
+    }//end class SourceDetailRecord
 
     /**
      * Encapsulates several different kinds of byte counts for the index
@@ -1553,7 +1679,7 @@ detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(n
             
         }
 
-    }
+    }//end class IndexPartitionDetailRecord
 
     /**
      * Helper task returns various byte counts for an index partition and the
@@ -1599,14 +1725,14 @@ detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(n
         }
 
 //BTM - PRE_FRED_3481        public IndexPartitionDetailRecord call() throws Exception {
-        public IndexPartitionDetailRecord startDataTask(IIndexManager indexManager,
-                                                        final ResourceManager resourceManager,
-                                                        IConcurrencyManager concurrencyManager,
-                                                        Session session,
-                                                        String hostname,
-                                                        String serviceName)
-                throws Exception {
-
+        public IndexPartitionDetailRecord startDataTask
+                   (IIndexManager indexManager,
+                    final ResourceManager resourceManager,
+                    IConcurrencyManager concurrencyManager,
+                    ILocalResourceManagement localResourceManager,
+                    IBigdataDiscoveryManagement discoveryManager)
+                throws Exception
+        {
 //BTM            final ResourceManager resourceManager = getDataService().getResourceManager();
 //BTM - PRE_FRED_3481 final ResourceManager resourceManager = getResourceManager();
 
@@ -1621,7 +1747,7 @@ detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(n
             
         }
 
-    }
+    }//end class FetchIndexPartitionByteCountRecordTask
         
     /**
      * Dumps useful information about the index partition in the context of the
@@ -1649,7 +1775,9 @@ detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(n
             tasks.add(new Callable<IndexPartitionRecord>(){
                 public IndexPartitionRecord call() throws Exception {
 
-                    return new IndexPartitionRecord(fed, ts, indexName, locator);
+//BTM - PRE_CLIENT_SERVICE                    return new IndexPartitionRecord(fed, ts, indexName, locator);
+                    return new IndexPartitionRecord(discoveryManager,
+                                                    ts, indexName, locator);
 
                 }
             });
@@ -1657,7 +1785,9 @@ detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(n
         }
         
         // execute all requests in parallel.
-        final List<Future<IndexPartitionRecord>> futures = fed.getExecutorService().invokeAll(tasks);
+//BTM - PRE_CLIENT_SERVICE        final List<Future<IndexPartitionRecord>> futures = fed.getExecutorService().invokeAll(tasks);
+        final List<Future<IndexPartitionRecord>> futures =
+                  localResourceManager.getThreadPool().invokeAll(tasks);
         
         final List<IndexPartitionRecord> results = new LinkedList<IndexPartitionRecord>();
         
@@ -1779,11 +1909,21 @@ detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(n
         /**
          * Extract some useful metadata for an {@link ShardService}.
          */
-        static public ServiceMetadata getServiceMetadata(
-                final JiniFederation<?> fed, final UUID uuid) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        static public ServiceMetadata getServiceMetadata(
+//BTM - PRE_CLIENT_SERVICE                final JiniFederation<?> fed, final UUID uuid) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (fed == null)
+//BTM - PRE_CLIENT_SERVICE                throw new IllegalArgumentException();
+        static public ServiceMetadata getServiceMetadata
+                          (final IBigdataDiscoveryManagement discoveryManager,
+                           final UUID uuid)
+        {
 
-            if (fed == null)
-                throw new IllegalArgumentException();
+            if (discoveryManager == null) {
+                throw new NullPointerException("null discoveryManager");
+            }
+//BTM - PRE_CLIENT_SERVICE - END
 
             if (uuid == null)
                 throw new IllegalArgumentException();
@@ -1792,55 +1932,88 @@ detailRec = (IndexPartitionDetailRecord) ((ShardManagement)dataService).submit(n
              * @todo restricted to (meta)data services by use of type specific
              * cache!
              */
-//BTM            final ServiceItem serviceItem = fed.getDataServicesClient().getServiceItem(uuid);
-ServiceItem serviceItem = fed.getDataServicesClient().getServiceItem(uuid);
-
-            if (serviceItem == null) {
-
-//BTM - BEGIN
-//BTM                throw new RuntimeException("No such (Meta)DataService? uuid="
-//BTM                        + uuid);
-
-// no shard service with that uuid, try shard locator service
-serviceItem = fed.getShardLocatorClient().getServiceItem(uuid);
-if (serviceItem == null) {
-    throw new RuntimeException("No such shard or shard locator service [uuid="+uuid+"]");
-}
-//BTM - END
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE //BTM            final ServiceItem serviceItem = fed.getDataServicesClient().getServiceItem(uuid);
+//BTM - PRE_CLIENT_SERVICE ServiceItem serviceItem = fed.getDataServicesClient().getServiceItem(uuid);
+//BTM - PRE_CLIENT_SERVICE             Service service = discoverManager.getDataService(uuid);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             if (serviceItem == null) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM - BEGIN
+//BTM - PRE_CLIENT_SERVICE //BTM                throw new RuntimeException("No such (Meta)DataService? uuid="
+//BTM - PRE_CLIENT_SERVICE //BTM                        + uuid);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE // no shard service with that uuid, try shard locator service
+//BTM - PRE_CLIENT_SERVICE serviceItem = fed.getShardLocatorClient().getServiceItem(uuid);
+//BTM - PRE_CLIENT_SERVICE if (serviceItem == null) {
+//BTM - PRE_CLIENT_SERVICE     throw new RuntimeException("No such shard or shard locator service [uuid="+uuid+"]");
+//BTM - PRE_CLIENT_SERVICE }
+//BTM - PRE_CLIENT_SERVICE //BTM - END
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            String hostname = null;
+//BTM - PRE_CLIENT_SERVICE            String name = null;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            for (Entry e : serviceItem.attributeSets) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                if (e instanceof Hostname && hostname == null) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                    hostname = ((Hostname) e).hostname;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                } else if (e instanceof Name && name == null) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                    name = ((Name) e).name;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (hostname == null) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                log.warn("No hostname? : " + serviceItem);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                hostname = "Unknown(" + uuid + ")";
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            if (name == null) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                log.warn("No name? : "+serviceItem);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                name = "Unknown(" + uuid + ")";
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            }
+            Object serviceRef = discoveryManager.getDataService(uuid);
+            if (serviceRef == null) {
+                //no shard service with that uuid, try shard locator
+                //note: assuming only 1 shard locator
+                serviceRef = discoveryManager.getMetadataService();
+                if (serviceRef == null) {//maintain original behavior
+                    throw new RuntimeException
+                                  ("No such shard or shard locator "
+                                   +"service [uuid="+uuid+"]");
+                }
             }
-            
             String hostname = null;
             String name = null;
-
-            for (Entry e : serviceItem.attributeSets) {
-
-                if (e instanceof Hostname && hostname == null) {
-
-                    hostname = ((Hostname) e).hostname;
-
-                } else if (e instanceof Name && name == null) {
-
-                    name = ((Name) e).name;
-
-                }
-
+            if (serviceRef instanceof Service) {
+                hostname = ((Service)serviceRef).getHostname();
+                name = ((Service)serviceRef).getServiceName();
+            } else if (serviceRef instanceof IService) {
+                try {
+                    hostname = ((IService)serviceRef).getHostname();
+                    name = ((IService)serviceRef).getServiceName();
+                } catch(Exception e) {/* swallow */ }
             }
-
             if (hostname == null) {
-
-                log.warn("No hostname? : " + serviceItem);
-
+                log.warn("No hostname? : " + serviceRef);
                 hostname = "Unknown(" + uuid + ")";
-
             }
-
             if (name == null) {
-
-                log.warn("No name? : "+serviceItem);
-
+                log.warn("No name? : "+serviceRef);
                 name = "Unknown(" + uuid + ")";
-
             }
+//BTM - PRE_CLIENT_SERVICE - END
 
             /*
              * Assign a one-up integer code to the service.

@@ -117,13 +117,23 @@ public class JoinIndexPartitionTask extends AbstractPrepareTask<JoinResult> {
 //BTM                // Note: using the leftSibling for the event resource.
 //BTM                new EventResource(vmd[0].indexMetadata),
 //BTM                OverflowActionEnum.Join).start();
-final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
-                           (resourceManager.getFederation()).getServiceIface(),
-                           (resourceManager.getFederation()).getServiceName(),
-                           (resourceManager.getFederation()).getServiceUUID(),
-                           // Note: using the leftSibling for the event resource.
-                           new EventResource(vmd[0].indexMetadata),
-                           OverflowActionEnum.Join).start();
+//BTM - PRE_CLIENT_SERVICE final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                            // Note: using the leftSibling for the event resource.
+//BTM - PRE_CLIENT_SERVICE                            new EventResource(vmd[0].indexMetadata),
+//BTM - PRE_CLIENT_SERVICE                            OverflowActionEnum.Join).start();
+//BTM - PRE_CLIENT_SERVICE 
+        final Event e =
+              new Event
+              ((resourceManager.getLocalResourceManager()).getEventQueueSender(),
+               (resourceManager.getLocalResourceManager()).getServiceIface(),
+               (resourceManager.getLocalResourceManager()).getServiceName(),
+               (resourceManager.getLocalResourceManager()).getServiceUUID(),
+               // Note: using the leftSibling for the event resource.
+               new EventResource(vmd[0].indexMetadata),
+               OverflowActionEnum.Join).start();
         
         e.addDetail("summary", OverflowActionEnum.Join + "("
                 + Arrays.toString(getResource()) + ")");
@@ -282,9 +292,10 @@ final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
 
                 final String scaleOutIndexName = newMetadata.getName();
 
-                final int partitionId = resourceManager.getFederation()
-                        .getMetadataService()
-                        .nextPartitionId(scaleOutIndexName);
+//BTM - PRE_CLIENT_SERVICE  final int partitionId = resourceManager.getFederation().getMetadataService().nextPartitionId(scaleOutIndexName);
+                final int partitionId = resourceManager.getDiscoveryManager()
+                                        .getMetadataService()
+                                         .nextPartitionId(scaleOutIndexName);
                 
                 // used for the history and also for event reporting.
                 summary = OverflowActionEnum.Join + "("
@@ -522,9 +533,10 @@ result = new JoinResult(Util.getIndexPartitionName(scaleOutIndexName, partitionI
                                 .getLeftSeparatorKey(), pmd
                                 .getRightSeparatorKey());
 
-                resourceManager.getFederation().getMetadataService()
-                        .joinIndexPartition(scaleOutIndexName, oldLocators,
-                                newLocator);
+//BTM - PRE_CLIENT_SERVICE  resourceManager.getFederation().getMetadataService().joinIndexPartition(scaleOutIndexName, oldLocators, newLocator);
+                resourceManager.getDiscoveryManager().getMetadataService()
+                    .joinIndexPartition
+                         (scaleOutIndexName, oldLocators, newLocator);
 
                 for (String name : result.oldnames) {
 

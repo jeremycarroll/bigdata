@@ -8,8 +8,11 @@ import com.bigdata.relation.accesspath.AbstractUnsynchronizedArrayBuffer;
 import com.bigdata.relation.rule.IBindingSet;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.eval.IJoinNexus;
-import com.bigdata.service.AbstractScaleOutFederation;
-import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.journal.ScaleOutIndexManager;
 
 /**
  * Unsynchronized buffer maps the {@link IBindingSet}s across the index
@@ -31,7 +34,9 @@ class UnsyncDistributedOutputBuffer<E extends IBindingSet> extends
     /** The tailIndex of the next predicate to be evaluated. */
     final int nextTailIndex;
     
-    final IBigdataFederation fed;
+//BTM - PRE_CLIENT_SERVICE    final IBigdataFederation fed;
+//BTM - FOR_CLIENT_SERVICE
+    final ScaleOutIndexManager indexManager;
 
     /**
      * 
@@ -39,18 +44,31 @@ class UnsyncDistributedOutputBuffer<E extends IBindingSet> extends
      * @param joinTask
      * @param capacity
      */
-    public UnsyncDistributedOutputBuffer(final AbstractScaleOutFederation fed,
-            final DistributedJoinTask joinTask, final int capacity) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public UnsyncDistributedOutputBuffer(final AbstractScaleOutFederation fed,
+//BTM - PRE_CLIENT_SERVICE            final DistributedJoinTask joinTask, final int capacity) {
+    public UnsyncDistributedOutputBuffer
+               (final ScaleOutIndexManager indexManager,
+                final DistributedJoinTask joinTask,
+                final int capacity)
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         super(capacity);
 
-        if (fed == null)
-            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        if (fed == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+        if (indexManager == null) {
+            throw new NullPointerException("null indexManager");
+        }
+        this.indexManager = indexManager;
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (joinTask == null)
             throw new IllegalArgumentException();
         
-        this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE        this.fed = fed;
         
         this.joinTask = joinTask;
         
@@ -109,8 +127,20 @@ class UnsyncDistributedOutputBuffer<E extends IBindingSet> extends
              * Locator scan for the index partitions for that predicate as
              * bound.
              */
-            final Iterator<PartitionLocator> itr = joinNexus.locatorScan(
-                    joinTask.fed, nextPred.asBound(bindingSet));
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE - Note: in the original code below, joinTask.fed is passed in rather than the fed object set above in the constructor. 
+//BTM - PRE_CLIENT_SERVICE -       The fact that this class can access the protected fed field of the DistributedJoinTask class is simply due to
+//BTM - PRE_CLIENT_SERVICE -       the fact that this class is in the same package. Not sure if this was intentional or an oversight that was
+//BTM - PRE_CLIENT_SERVICE -       never discovered because the compiler didn't complain. In any event, the ScaleOutIndexManager that was passed
+//BTM - PRE_CLIENT_SERVICE -       in to the constructor is used in the new code below.
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            final Iterator<PartitionLocator> itr = joinNexus.locatorScan(
+//BTM - PRE_CLIENT_SERVICE                    joinTask.fed, nextPred.asBound(bindingSet));
+//BTM - PRE_CLIENT_SERVICE
+            final Iterator<PartitionLocator> itr =
+                  joinNexus.locatorScan(indexManager,
+                                        nextPred.asBound(bindingSet));
+//BTM - PRE_CLIENT_SERVICE - END
 
             while (itr.hasNext()) {
 

@@ -359,8 +359,15 @@ public class TestRuleExpansion extends AbstractInferenceEngineTestCase {
                         false, // justify 
                         false, // backchain
                         planFactory);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final IJoinNexus joinNexus =
+//BTM - PRE_CLIENT_SERVICE                joinNexusFactory.newInstance(db.getIndexManager());
         final IJoinNexus joinNexus =
-                joinNexusFactory.newInstance(db.getIndexManager());
+              joinNexusFactory.newInstance
+                  (db.getIndexManager(),
+                   db.getConcurrencyManager(),
+                   db.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
         final IEvaluationPlan plan = planFactory.newPlan(joinNexus, rule);
         StringBuilder sb = new StringBuilder();
         int order[] = plan.getOrder();

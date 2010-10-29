@@ -8,13 +8,12 @@ import net.jini.lookup.LookupCache;
 import com.bigdata.jini.lookup.entry.Hostname;
 import com.bigdata.jini.lookup.entry.HostnameFilter;
 import com.bigdata.jini.lookup.entry.ServiceItemFilterChain;
-import com.bigdata.service.IClientService;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.NicUtil;
 
 /**
- * Constraint on the #of {@link IClientService}s on the same host.
+ * Constraint on the #of callable executor services on the same host.
  */
 public class MaxClientServicesPerHostConstraint extends
         MaxServicesPerHostConstraint {

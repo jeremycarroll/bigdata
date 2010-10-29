@@ -296,9 +296,9 @@ final ShardService dataService = ndx.getDataService(locator);
     @Override
     protected Future<HS> submitSubtask(final S subtask) {
 
-        return (Future<HS>) ndx.getFederation().getExecutorService().submit(
-                subtask);
-        
+//BTM - PRE_CLIENT_SERVICE  return (Future<HS>) ndx.getFederation().getExecutorService().submit(subtask);
+        return (Future<HS>) (ndx.getLocalResourceManager()).getThreadPool()
+                                                           .submit(subtask);
     }
 
     /**

@@ -145,16 +145,37 @@ public class TestAddDeleteResource extends AbstractResourceManagerTestCase {
              * Note: the IndexSegmentStore is on the retention list and
              * therefore is not releaseable until we remove it from that list.
              */
-            buildResult = resourceManager.buildIndexSegment(INDEX_NAME, btree,
-                    true/* compactingMerge */, createTime, null/* fromKey */,
-                    null /* toKey */, 
-//BTM                    new Event(resourceManager.getFederation(), new EventResource(INDEX_NAME), "test"));
-new Event( (resourceManager.getFederation()).getEventQueue(),
-           (resourceManager.getFederation()).getServiceIface(),
-           (resourceManager.getFederation()).getServiceName(),
-           (resourceManager.getFederation()).getServiceUUID(),
-           new EventResource(INDEX_NAME),
-           "test" ) );
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE //BTM            buildResult = resourceManager.buildIndexSegment(INDEX_NAME, btree,
+//BTM - PRE_CLIENT_SERVICE //BTM                    true/* compactingMerge */, createTime, null/* fromKey */,
+//BTM - PRE_CLIENT_SERVICE //BTM                    null /* toKey */, 
+//BTM - PRE_CLIENT_SERVICE //BTM                    new Event(resourceManager.getFederation(), new EventResource(INDEX_NAME), "test"));
+//BTM - PRE_CLIENT_SERVICE             buildResult = resourceManager.buildIndexSegment(INDEX_NAME, btree,
+//BTM - PRE_CLIENT_SERVICE                     true/* compactingMerge */, createTime, null/* fromKey */,
+//BTM - PRE_CLIENT_SERVICE                     null /* toKey */, 
+//BTM - PRE_CLIENT_SERVICE                     new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                                (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                                (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                                (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                                new EventResource(INDEX_NAME),
+//BTM - PRE_CLIENT_SERVICE                                "test" ) );
+//////////////////////////
+            buildResult =
+                resourceManager.buildIndexSegment
+                    ( INDEX_NAME,
+                      btree,
+                      true, //compactingMerge
+                      createTime,
+                      null, //fromKey
+                      null, //toKey 
+                      new Event
+               ( (resourceManager.getLocalResourceManager()).getEventQueueSender(),
+                 (resourceManager.getLocalResourceManager()).getServiceIface(),
+                 (resourceManager.getLocalResourceManager()).getServiceName(),
+                 (resourceManager.getLocalResourceManager()).getServiceUUID(),
+                 new EventResource(INDEX_NAME),
+                 "test" ) );
+//BTM - PRE_CLIENT_SERVICE - END
 
         }
 

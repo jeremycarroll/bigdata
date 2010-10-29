@@ -25,13 +25,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.counters;
 
 import com.bigdata.counters.CounterSet;
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.rawstore.Bytes;
-import com.bigdata.service.IFederationDelegate;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.resources.ResourceManager;
 import com.bigdata.service.LoadBalancer;
 import com.bigdata.util.config.LogUtil;
-
-import net.jini.core.lookup.ServiceItem;
-import net.jini.lookup.LookupCache;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -47,34 +47,32 @@ import java.util.UUID;
  */
 public class LoadBalancerReportingTask implements Runnable {
 
-    private IFederationDelegate embeddedIndexStore;
-    private UUID serviceUUID;
-    private CounterSet serviceRoot;
-    private LookupCache lbsCache;//for discovering lbs
-    private LoadBalancer embeddedLbs;//for testing embedded fed
+    private ResourceManager resourceMgr;
+    private IConcurrencyManager concurrencyMgr;
+    private ILocalResourceManagement localResourceMgr;
+    private IBigdataDiscoveryManagement discoveryMgr;
     private Logger logger;
 
     public LoadBalancerReportingTask
-               (IFederationDelegate embeddedIndexStore,
-                UUID serviceUUID,
-                CounterSet serviceRoot,
-                LookupCache loadBalancerCache,
-                LoadBalancer embeddedLoadBalancer,
+               (ResourceManager resourceMgr,
+                IConcurrencyManager concurrencyMgr,
+                ILocalResourceManagement localResourceMgr,
+                IBigdataDiscoveryManagement discoveryMgr,
                 Logger logger)
     {
-        this.embeddedIndexStore = embeddedIndexStore;
-        this.serviceUUID = serviceUUID;
-        this.serviceRoot = serviceRoot;
-        this.lbsCache = loadBalancerCache;
-        this.embeddedLbs = embeddedLoadBalancer;//for embedded fed testing
-        this.logger  = (logger == null ? 
-                        LogUtil.getLog4jLogger((this.getClass()).getName()) :
-                        logger);
+        this.resourceMgr = resourceMgr;
+        this.concurrencyMgr = concurrencyMgr;
+        this.localResourceMgr = localResourceMgr;
+        this.discoveryMgr = discoveryMgr;
+        this.logger = (logger == null ? 
+                       LogUtil.getLog4jLogger((this.getClass()).getName()) :
+                       logger);
     }
 
     public void run() {
         try {
-            embeddedIndexStore.reattachDynamicCounters();
+            localResourceMgr.reattachDynamicCounters
+                                 (resourceMgr, concurrencyMgr);
         } catch (Throwable t) {
             logger.error
                 ("failure on dynamic counter reattachment ["+t+"]", t);
@@ -89,32 +87,22 @@ public class LoadBalancerReportingTask implements Runnable {
     }
 
     private void reportPerformanceCounters() throws IOException {
-System.out.println("\n>>>>> LoadBalancerReportingTask.reportPerformanceCounters: serviceUUID = "+serviceUUID);
-        LoadBalancer lbs = null;
-        if(embeddedLbs != null) {
-            lbs = embeddedLbs;
-        } else {
-            if(lbsCache != null) {
-                ServiceItem lbsItem = lbsCache.lookup(null);
-                if(lbsItem != null) {
-                    lbs = (LoadBalancer)(lbsItem.service);
-                }
-            }
-        }
+//BTM
+System.out.println("\n>>>>> LoadBalancerReportingTask.reportPerformanceCounters: serviceUUID = "+localResourceMgr.getServiceUUID());
+        LoadBalancer lbs = discoveryMgr.getLoadBalancerService();
         if(lbs == null) {
             logger.warn
                 ("cannot report counters [no load balancer service]");
 System.out.println(">>>>> LoadBalancerReportingTask.reportPerformanceCounters: loadBalancerService = NULL");
             return;
         }
-
 System.out.println(">>>>> LoadBalancerReportingTask.reportPerformanceCounters: loadBalancerService = "+lbs);
-
         ByteArrayOutputStream baos = new ByteArrayOutputStream(Bytes.kilobyte32 * 2);
-        serviceRoot.asXML(baos, "UTF-8", null/* filter */);
-
+        (localResourceMgr.getServiceCounterSet()).asXML(baos,
+                                                        "UTF-8",
+                                                        null);//filter
 System.out.println(">>>>> LoadBalancerReportingTask.reportPerformanceCounters: CALLING loadBalancer.notify ...");
-        lbs.notify(serviceUUID, baos.toByteArray());
+        lbs.notify(localResourceMgr.getServiceUUID(), baos.toByteArray());
 System.out.println(">>>>> LoadBalancerReportingTask.reportPerformanceCounters: DONE CALLING loadBalancer.notify");
 
         if (logger.isDebugEnabled()) {

@@ -39,6 +39,11 @@ import com.bigdata.service.DataService;
 import com.bigdata.service.EmbeddedClient;
 import com.bigdata.service.EmbeddedFederation;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.service.AbstractFederation;
+
 /**
  * Proxy test suite for {@link ScaleOutTripleStore} running against an
  * {@link EmbeddedFederation}.
@@ -203,8 +208,18 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
         // Note: distinct namespace for each triple store created on the federation.
         final String namespace = "test"+inc.incrementAndGet();
    
-        final AbstractTripleStore store = new ScaleOutTripleStore(client
-                .getFederation(), namespace, ITx.UNISOLATED, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final AbstractTripleStore store = new ScaleOutTripleStore(client
+//BTM - PRE_CLIENT_SERVICE                .getFederation(), namespace, ITx.UNISOLATED, properties);
+        AbstractFederation fed = (AbstractFederation)(client.getFederation());
+        final AbstractTripleStore store =
+                  new ScaleOutTripleStore((IIndexManager)fed,
+                                          fed.getConcurrencyManager(),
+                                          (IBigdataDiscoveryManagement)fed,
+                                          namespace,
+                                          ITx.UNISOLATED,
+                                          properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
         store.create();
         
@@ -252,11 +267,22 @@ public class TestScaleOutTripleStoreWithEmbeddedFederation extends AbstractTestC
         client.connect();
         
         // Obtain view on the triple store.
-        return new ScaleOutTripleStore(client.getFederation(), namespace,
-                ITx.UNISOLATED,
-                store.getProperties()
-//                client.getProperties()
-                ).init();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE         return new ScaleOutTripleStore(client.getFederation(), namespace,
+//BTM - PRE_CLIENT_SERVICE                 ITx.UNISOLATED,
+//BTM - PRE_CLIENT_SERVICE                 store.getProperties()
+//BTM - PRE_CLIENT_SERVICE //                client.getProperties()
+//BTM - PRE_CLIENT_SERVICE                 ).init();
+        AbstractFederation fed = (AbstractFederation)(client.getFederation());
+        return new ScaleOutTripleStore
+                       ((IIndexManager)fed,
+                        fed.getConcurrencyManager(),
+                        (IBigdataDiscoveryManagement)fed,
+                        namespace,
+                        ITx.UNISOLATED,
+                        store.getProperties()).init();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+
         
     }
 

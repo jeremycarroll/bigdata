@@ -41,6 +41,10 @@ import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.search.FullTextIndex;
 import com.bigdata.search.TokenBuffer;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * Implementation based on the built-in keyword search capabilities for bigdata.
  * 
@@ -50,16 +54,30 @@ import com.bigdata.search.TokenBuffer;
 public class BigdataRDFFullTextIndex extends FullTextIndex implements
         ITextIndexer {
 
-    static public ITextIndexer getInstance(final IIndexManager indexManager,
-            final String namespace, final Long timestamp,
-            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    static public ITextIndexer getInstance(final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            final String namespace, final Long timestamp,
+//BTM - PRE_CLIENT_SERVICE            final Properties properties) {
+    static public ITextIndexer getInstance
+                      (final IIndexManager indexManager,
+                       final IConcurrencyManager concurrencyManager,
+                       final IBigdataDiscoveryManagement discoveryManager,
+                       final String namespace,
+                       final Long timestamp,
+                       final Properties properties)
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (namespace == null)
             throw new IllegalArgumentException();
         
-        return new BigdataRDFFullTextIndex(indexManager, namespace, timestamp,
-                properties);
-        
+//BTM - PRE_CLIENT_SERVICE        return new BigdataRDFFullTextIndex(indexManager, namespace, timestamp, properties);
+        return new BigdataRDFFullTextIndex(indexManager,
+                                           concurrencyManager,
+                                           discoveryManager,
+                                           namespace,
+                                           timestamp,
+                                           properties);
     }
 
     /**
@@ -79,10 +97,22 @@ public class BigdataRDFFullTextIndex extends FullTextIndex implements
      * @param timestamp
      * @param properties
      */
-    public BigdataRDFFullTextIndex(IIndexManager indexManager,
-            String namespace, Long timestamp, Properties properties) {
-
-        super(indexManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public BigdataRDFFullTextIndex(IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            String namespace, Long timestamp, Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
+    public BigdataRDFFullTextIndex
+               (IIndexManager indexManager,
+                IConcurrencyManager concurrencyManager,
+                IBigdataDiscoveryManagement discoveryManager,
+                String namespace,
+                Long timestamp,
+                Properties properties)
+    {
+        super(indexManager, concurrencyManager, discoveryManager,
+              namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
         /*
          * Also index datatype literals?

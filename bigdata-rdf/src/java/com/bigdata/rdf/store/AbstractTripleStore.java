@@ -148,7 +148,7 @@ import com.bigdata.relation.rule.eval.ISolution;
 import com.bigdata.search.FullTextIndex;
 import com.bigdata.service.AbstractEmbeddedDataService;
 import com.bigdata.service.DataService;
-import com.bigdata.service.IBigdataFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.ndx.IClientIndex;
 import com.bigdata.striterator.ChunkedArrayIterator;
 import com.bigdata.striterator.ChunkedConvertingIterator;
@@ -158,6 +158,10 @@ import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.ICloseableIterator;
 import com.bigdata.striterator.IKeyOrder;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexStore;
 
 /**
  * Abstract base class that implements logic for the {@link ITripleStore}
@@ -970,11 +974,25 @@ abstract public class AbstractTripleStore extends
      * @see Options
      */
     @SuppressWarnings("unchecked")
-    protected AbstractTripleStore(final IIndexManager indexManager,
-            final String namespace, final Long timestamp,
-            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected AbstractTripleStore(final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            final String namespace, final Long timestamp,
+//BTM - PRE_CLIENT_SERVICE            final Properties properties) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE
+    protected AbstractTripleStore
+                  (final IIndexManager indexManager,
+                   final IConcurrencyManager concurrencyManager,
+                   final IBigdataDiscoveryManagement discoveryManager,
+                   final String namespace,
+                   final Long timestamp,
+                   final Properties properties)
+    {
+        super(indexManager, concurrencyManager, discoveryManager,
+              namespace, timestamp, properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
-        super(indexManager, namespace, timestamp, properties);
         
         /*
          * Reads off the property for the inference engine that tells us whether
@@ -1248,10 +1266,20 @@ abstract public class AbstractTripleStore extends
 
             if (lexicon) {
 
-                lexiconRelation = new LexiconRelation(getIndexManager(),
-                        getNamespace() + "."
-                                + LexiconRelation.NAME_LEXICON_RELATION,
-                        getTimestamp(), tmp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                lexiconRelation = new LexiconRelation(getIndexManager(),  getNamespace() + "."
+//BTM - PRE_CLIENT_SERVICE                                + LexiconRelation.NAME_LEXICON_RELATION,
+//BTM - PRE_CLIENT_SERVICE                        getTimestamp(), tmp);
+                lexiconRelation = 
+                    new LexiconRelation
+                            (getIndexManager(),
+                             getConcurrencyManager(),
+                             getDiscoveryManager(),
+                             getNamespace() + "."
+                                 + LexiconRelation.NAME_LEXICON_RELATION,
+                             getTimestamp(),
+                             tmp);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 lexiconRelation.create();//assignedSplits);
                 
@@ -1259,8 +1287,17 @@ abstract public class AbstractTripleStore extends
 
             }
 
-            spoRelation = new SPORelation(getIndexManager(), getNamespace()
-                    + "." + SPORelation.NAME_SPO_RELATION, getTimestamp(), tmp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            spoRelation = new SPORelation(getIndexManager(), getNamespace()
+//BTM - PRE_CLIENT_SERVICE                    + "." + SPORelation.NAME_SPO_RELATION, getTimestamp(), tmp);
+            spoRelation = new SPORelation(getIndexManager(),
+                                          getConcurrencyManager(),
+                                          getDiscoveryManager(),
+                                          getNamespace() + "."
+                                              + SPORelation.NAME_SPO_RELATION,
+                                          getTimestamp(),
+                                          tmp);
+//BTM - PRE_CLIENT_SERVICE - END
 
             spoRelation.create();//assignedSplits);
 
@@ -3436,10 +3473,17 @@ abstract public class AbstractTripleStore extends
         properties.setProperty(
                 com.bigdata.rdf.store.AbstractTripleStore.Options.AXIOMS_CLASS,
                 NoAxioms.class.getName());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final TempTripleStore tmp = new TempTripleStore(getIndexManager()
+//BTM - PRE_CLIENT_SERVICE                .getTempStore(), properties, this);
 
-        final TempTripleStore tmp = new TempTripleStore(getIndexManager()
-                .getTempStore(), properties, this);
-        
+        final TempTripleStore tmp =
+              new TempTripleStore(getIndexManager().getTempStore(),
+                                  getConcurrencyManager(),
+                                  getDiscoveryManager(),
+                                  properties, this);
+//BTM - PRE_CLIENT_SERVICE - END
+
         /*
          * buffer everything in a temp triple store.
          * 
@@ -3760,7 +3804,8 @@ abstract public class AbstractTripleStore extends
                 
             }
 
-            if( getIndexManager() instanceof IBigdataFederation) {
+//BTM - PRE_CLIENT_SERVICE  if( getIndexManager() instanceof IBigdataFederation) {
+            if( getIndexManager() instanceof IScaleOutIndexStore) {
 
                 /*
                  * Use historical reads.
@@ -3979,12 +4024,22 @@ abstract public class AbstractTripleStore extends
         
         final int solutionFlags = IJoinNexus.BINDINGS;
 
-		final IJoinNexus joinNexus = newJoinNexusFactory(//
-				RuleContextEnum.HighLevelQuery,// 
-				ActionEnum.Query,//
-				solutionFlags,//
-                null // filter
-                ).newInstance(getIndexManager());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE		final IJoinNexus joinNexus = newJoinNexusFactory(//
+//BTM - PRE_CLIENT_SERVICE				RuleContextEnum.HighLevelQuery,// 
+//BTM - PRE_CLIENT_SERVICE				ActionEnum.Query,//
+//BTM - PRE_CLIENT_SERVICE				solutionFlags,//
+//BTM - PRE_CLIENT_SERVICE                null // filter
+//BTM - PRE_CLIENT_SERVICE                ).newInstance(getIndexManager());
+//BTM - PRE_CLIENT_SERVICE
+        final IJoinNexus joinNexus =
+              newJoinNexusFactory( RuleContextEnum.HighLevelQuery,
+                                   ActionEnum.Query,
+                                   solutionFlags,
+                                   null).newInstance(getIndexManager(),
+                                                     getConcurrencyManager(),
+                                                     getDiscoveryManager() );
+//BTM - PRE_CLIENT_SERVICE - END
 
         /*
          * Resolve ISolutions to their binding sets and efficiently resolves

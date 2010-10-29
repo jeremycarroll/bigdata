@@ -56,8 +56,13 @@ import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.relation.rule.Predicate;
 import com.bigdata.relation.rule.Rule;
 import com.bigdata.relation.rule.Var;
-import com.bigdata.service.AbstractScaleOutFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.striterator.IChunkedOrderedIterator;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.ScaleOutIndexManager;
 
 /**
  * Test harness for {@link DefaultEvaluationPlan}.
@@ -395,10 +400,19 @@ public class TestDefaultEvaluationPlan extends TestCase2 {
             return null;
         }
 
-        public Iterator<PartitionLocator> locatorScan(AbstractScaleOutFederation fed, IPredicate predicate) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public Iterator<PartitionLocator> locatorScan(AbstractScaleOutFederation fed, IPredicate predicate) {
+//BTM - PRE_CLIENT_SERVICE            // TODO Auto-generated method stub
+//BTM - PRE_CLIENT_SERVICE            return null;
+//BTM - PRE_CLIENT_SERVICE        }
+        public Iterator<PartitionLocator> locatorScan
+                                           (ScaleOutIndexManager indexManager,
+                                            IPredicate predicate)
+        {
             // TODO Auto-generated method stub
             return null;
         }
+//BTM - PRE_CLIENT_SERVICE - END
 
         public IStreamSerializer<IBindingSet[]> getBindingSetSerializer() {
             // TODO Auto-generated method stub
@@ -416,6 +430,14 @@ public class TestDefaultEvaluationPlan extends TestCase2 {
             return null;
         }
 
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        public IConcurrencyManager getConcurrencyManager() {
+            return null;
+        }
+        public IBigdataDiscoveryManagement getDiscoveryManager() {
+            return null;
+        }
+//BTM - FOR_CLIENT_SERVICE - END
     }
 
     private static class MockRangeCountFactory implements IRangeCountFactory {

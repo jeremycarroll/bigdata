@@ -50,6 +50,7 @@ import com.bigdata.config.LongValidator;
 import com.bigdata.io.IStreamSerializer;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.journal.ConcurrencyManager;
+import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.Journal;
 import com.bigdata.journal.TemporaryStore;
@@ -119,6 +120,10 @@ import com.bigdata.striterator.EmptyChunkedIterator;
 import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.ScaleOutIndexManager;
+
 /**
  * {@link IProgram} execution support for the RDF DB.
  * <p>
@@ -173,6 +178,10 @@ public class RDFJoinNexus implements IJoinNexus {
     
     private final IIndexManager indexManager;
     
+//BTM - FOR_CLIENT_SERVICE
+    private final IConcurrencyManager concurrencyManager;
+    private final IBigdataDiscoveryManagement discoveryManager;
+
     // Note: cached.
     private final IResourceLocator resourceLocator;
 
@@ -422,14 +431,29 @@ public class RDFJoinNexus implements IJoinNexus {
 	 * @param indexManager
 	 *            The object used to resolve indices, relations, etc.
 	 */
-	public RDFJoinNexus(final RDFJoinNexusFactory joinNexusFactory,
-			final IIndexManager indexManager) {
+//BTM - BEFORE_CLIENT_SERVICE  public RDFJoinNexus(final RDFJoinNexusFactory joinNexusFactory, final IIndexManager indexManager) {
+        public RDFJoinNexus
+                   (final RDFJoinNexusFactory joinNexusFactory,
+                    final IIndexManager indexManager,
+                    final IConcurrencyManager concurrencyManager,
+                    final IBigdataDiscoveryManagement discoveryManager)
+        {
 
         if (joinNexusFactory == null)
             throw new IllegalArgumentException();
         
         if (indexManager == null)
             throw new IllegalArgumentException();
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        if (concurrencyManager == null) {
+            throw new IllegalArgumentException("null concurrencyManager");
+        }
+        if (discoveryManager == null) {
+            throw new IllegalArgumentException("null discoveryManager");
+        }
+        this.concurrencyManager = concurrencyManager;
+        this.discoveryManager = discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
 
         this.joinNexusFactory = joinNexusFactory;
         
@@ -942,14 +966,18 @@ public class RDFJoinNexus implements IJoinNexus {
 //
 //    }
     
-    public Iterator<PartitionLocator> locatorScan(
-            final AbstractScaleOutFederation fed, final IPredicate predicate) {
-
+//BTM - PRE_CLIENT_SERVICE    public Iterator<PartitionLocator> locatorScan(final AbstractScaleOutFederation fed, final IPredicate predicate) {
+    public Iterator<PartitionLocator> locatorScan
+                                         (final ScaleOutIndexManager indexManager,
+                                          final IPredicate predicate)
+    {
         final long timestamp = getReadTimestamp();
 
         // Note: assumes that we are NOT using a view of two relations.
-        final IRelation relation = (IRelation) fed.getResourceLocator().locate(
-                predicate.getOnlyRelationName(), timestamp);
+//BTM - PRE_CLIENT_SERVICE  final IRelation relation = (IRelation) fed.getResourceLocator().locate(predicate.getOnlyRelationName(), timestamp);
+        final IRelation relation =
+                  (IRelation) indexManager.getResourceLocator().locate
+                                  (predicate.getOnlyRelationName(), timestamp);
 
         /*
          * Find the best access path for the predicate for that relation.
@@ -978,11 +1006,26 @@ public class RDFJoinNexus implements IJoinNexus {
          */
         final String name = ndx.getIndexMetadata().getName();
 
-        return fed.locatorScan(name, timestamp, accessPath.getFromKey(),
-                accessPath.getToKey(), false/* reverse */);
+//BTM - PRE_CLIENT_SERVICE  return fed.locatorScan(name, timestamp, accessPath.getFromKey(), accessPath.getToKey(), false/* reverse */);
+        return indexManager.locatorScan(name,
+                                        timestamp,
+                                        accessPath.getFromKey(),
+                                        accessPath.getToKey(),
+                                        false);//do forward scan
 
     }
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    public IConcurrencyManager getConcurrencyManager() {
+        return concurrencyManager;
+    }
+
+    public IBigdataDiscoveryManagement getDiscoveryManager() {
+        return discoveryManager;
+    }
     
+//BTM - FOR_CLIENT_SERVICE - END
+
     public IIndexManager getIndexManager() {
         
         return indexManager;
@@ -1753,12 +1796,19 @@ public class RDFJoinNexus implements IJoinNexus {
 
         final IIndexManager tmpIndexManager = getIndexManager();
 
-        if (tmpIndexManager instanceof IBigdataFederation<?>) {
-
-            // distributed program execution.
-            return runDistributedProgram((IBigdataFederation<?>) tmpIndexManager,
-                    action, step);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        if (tmpIndexManager instanceof IBigdataFederation<?>) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE           // distributed program execution.
+//BTM - PRE_CLIENT_SERVICE            return runDistributedProgram((IBigdataFederation<?>) tmpIndexManager, action, step);
+//BTM - PRE_CLIENT_SERVICE
+        if (tmpIndexManager instanceof ScaleOutIndexManager) {
+            // scaleout ==> distributed program execution
+                return runDistributedProgram
+                           ( (ScaleOutIndexManager)tmpIndexManager,
+                             concurrencyManager, discoveryManager,
+                             action, step);
+//BTM - PRE_CLIENT_SERVICE - END
         } else {
             
             // local Journal or TemporaryStore execution.
@@ -1786,35 +1836,61 @@ public class RDFJoinNexus implements IJoinNexus {
         final ProgramTask innerTask = 
                               new ProgramTask(action, step, getJoinNexusFactory());
 
-        return innerTask.startDataTask(getIndexManager(), null, null, null, null, null);
-
+//BTM - PRE_CLIENT_SERVICE  return innerTask.startDataTask(getIndexManager(), null, null, null, null, null);
+        return innerTask.startDataTask(indexManager,
+                                       null, //ResourceManager
+                                       null, //ConcurrencyManager
+                                       null, //ILocalResourceManagement
+                                       null);//IBigdataDiscoveryManagement
     }
 
     /**
      * Runs a distributed {@link IProgram} (key-range partitioned indices, RMI,
      * and multi-machine).
      */
-    protected Object runDistributedProgram(final IBigdataFederation fed,
-            final ActionEnum action, final IStep step) throws Exception {
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected Object runDistributedProgram(final IBigdataFederation fed,
+//BTM - PRE_CLIENT_SERVICE            final ActionEnum action, final IStep step) throws Exception {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        if (log.isInfoEnabled()) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            log.info("Running distributed program: action=" + action
+//BTM - PRE_CLIENT_SERVICE                    + ", program=" + step.getName());
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE //BTM - PRE_FRED_3481        final ProgramTask innerTask = new ProgramTask(action, step,
+//BTM - PRE_CLIENT_SERVICE //BTM - PRE_FRED_3481                getJoinNexusFactory(), getIndexManager());
+//BTM - PRE_CLIENT_SERVICE //BTM - PRE_FRED_3481
+//BTM - PRE_CLIENT_SERVICE //BTM - PRE_FRED_3481        return innerTask.startDataTask(fed, null);
+//BTM - PRE_CLIENT_SERVICE        final ProgramTask innerTask = 
+//BTM - PRE_CLIENT_SERVICE                              new ProgramTask(action, step, getJoinNexusFactory());
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        return innerTask.startDataTask(fed, null, null, null, null, null);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE
+    protected Object runDistributedProgram
+                         (final ScaleOutIndexManager indexMgr,
+                          final IConcurrencyManager concurrencyMgr,
+                          final IBigdataDiscoveryManagement discoveryMgr,
+                          final ActionEnum action,
+                          final IStep step)
+                         throws Exception
+    {
         if (log.isInfoEnabled()) {
-
             log.info("Running distributed program: action=" + action
                     + ", program=" + step.getName());
-
         }
-
-//BTM - PRE_FRED_3481        final ProgramTask innerTask = new ProgramTask(action, step,
-//BTM - PRE_FRED_3481                getJoinNexusFactory(), getIndexManager());
-//BTM - PRE_FRED_3481
-//BTM - PRE_FRED_3481        return innerTask.startDataTask(fed, null);
         final ProgramTask innerTask = 
                               new ProgramTask(action, step, getJoinNexusFactory());
-
-        return innerTask.startDataTask(fed, null, null, null, null, null);
-
+        return innerTask.startDataTask(indexMgr,
+                                       null, //ResourceManager
+                                       concurrencyMgr,
+                                       null, //ILocalResourceManagement
+                                       discoveryMgr);
     }
-
+//BTM - PRE_CLIENT_SERVICE - END
     /**
      * This variant is submitted and executes the rules from inside of the
      * {@link ConcurrencyManager} on the {@link LocalDataServiceImpl} (fast).

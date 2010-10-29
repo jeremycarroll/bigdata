@@ -38,6 +38,9 @@ import com.bigdata.util.concurrent.TaskCounters;
 import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 import com.bigdata.util.concurrent.WriteTaskCounters;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.journal.IScaleOutIndexStore;
+
 /**
  * Supports concurrent operations against named indices. Historical read and
  * read-committed tasks run with full concurrency. For unisolated tasks, the
@@ -1228,7 +1231,8 @@ public class ConcurrencyManager implements IConcurrencyManager {
         
         // And even then only for the distributed federation
         try {
-            if (!(resourceManager.getFederation() instanceof AbstractDistributedFederation)) {
+//BTM - PRE_CLIENT_SERVICE  if (!(resourceManager.getFederation() instanceof AbstractDistributedFederation)) {
+            if (!(resourceManager.getIndexManager() instanceof IScaleOutIndexStore)) {
                 return 0;
             }
         } catch (UnsupportedOperationException ex) {

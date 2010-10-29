@@ -1638,8 +1638,11 @@ public class BigdataEvaluationStrategyImpl2 extends EvaluationStrategyImpl {
                             queryHints
                     );
             
-            final IJoinNexus joinNexus = joinNexusFactory.newInstance(database
-                    .getIndexManager());
+//BTM - PRE_CLIENT_SERVICE  final IJoinNexus joinNexus = joinNexusFactory.newInstance(database.getIndexManager());
+            final IJoinNexus joinNexus = 
+                  joinNexusFactory.newInstance(database.getIndexManager(),
+                                               database.getConcurrencyManager(),
+                                               database.getDiscoveryManager());
         
 //            itr1 = joinNexus.runQuery(step);
 

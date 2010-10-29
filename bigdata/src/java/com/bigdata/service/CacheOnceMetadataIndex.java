@@ -42,7 +42,13 @@ import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
 //BTM
-import com.bigdata.journal.IIndexStore;
+//BTM - PRE_CLIENT_SERVICEimport com.bigdata.journal.IIndexStore;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.metadata.EmbeddedShardLocator;
+import java.rmi.Remote;
 
 /**
  * Implementation caches all locators but does not allow stale locators. This is
@@ -65,7 +71,10 @@ public class CacheOnceMetadataIndex implements IMetadataIndex {
      * The federation.
      */
 //BTM    protected final AbstractScaleOutFederation fed;
-protected final IBigdataFederation fed;
+//BTM - PRE_CLIENT_SERVICE protected final IBigdataFederation fed;
+    final private IBigdataDiscoveryManagement discoveryManager;
+
+    final private IIndexManager indexManager; //BTM - FOR_CLIENT_SERVICE
 
     /**
      * Name of the scale-out index.
@@ -94,10 +103,22 @@ protected final IBigdataFederation fed;
      *            The name of the scale-out index.
      */
 //BTM    public CacheOnceMetadataIndex(AbstractScaleOutFederation fed, String name,
-public CacheOnceMetadataIndex(IBigdataFederation fed, String name,
-            long timestamp, MetadataIndexMetadata mdmd) {
-
-        this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICEpublic CacheOnceMetadataIndex(IBigdataFederation fed, String name,
+//BTM - PRE_CLIENT_SERVICE            long timestamp, MetadataIndexMetadata mdmd) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        this.fed = fed;
+//BTM - PRE_CLIENT_SERVICE
+    public CacheOnceMetadataIndex
+               (IBigdataDiscoveryManagement discoveryManager,
+                IIndexManager indexManager,
+                String name,
+                long timestamp,
+                MetadataIndexMetadata mdmd)
+    {
+        this.discoveryManager = discoveryManager;
+        this.indexManager = indexManager;
+//BTM - PRE_CLIENT_SERVICE - END
 
         this.name = name;
 
@@ -106,12 +127,19 @@ public CacheOnceMetadataIndex(IBigdataFederation fed, String name,
         /*
          * Allocate a cache for the defined index partitions.
          */
-        this.mdi = MetadataIndex.create(//
-//BTM                fed.getTempStore(),//
-((IIndexStore)fed).getTempStore(),
-                mdmd.getIndexUUID(),// UUID of the metadata index.
-                mdmd.getManagedIndexMetadata()// the managed index's metadata.
-                );
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        this.mdi = MetadataIndex.create(//
+//BTM - PRE_CLIENT_SERVICE//BTM                fed.getTempStore(),//
+//BTM - PRE_CLIENT_SERVICE((IIndexStore)fed).getTempStore(),
+//BTM - PRE_CLIENT_SERVICE                mdmd.getIndexUUID(),// UUID of the metadata index.
+//BTM - PRE_CLIENT_SERVICE                mdmd.getManagedIndexMetadata()// the managed index's metadata.
+//BTM - PRE_CLIENT_SERVICE                );
+        this.mdi = 
+            MetadataIndex.create
+                (indexManager.getTempStore(),
+                 mdmd.getIndexUUID(),// UUID of the metadata index.
+                 mdmd.getManagedIndexMetadata() ); //managed index's metadata
+//BTM - PRE_CLIENT_SERVICE - END
 
         this.mdmd = mdmd;
         
@@ -145,17 +173,42 @@ public CacheOnceMetadataIndex(IBigdataFederation fed, String name,
         /*
          * Read the locators from the remote metadata service.
          */
-        final ITupleIterator itr = new RawDataServiceTupleIterator(fed
-                .getMetadataService(),//
-                MetadataService.getMetadataIndexName(name), //
-                timestamp,//
-                true, // readConsistent
-                fromKey, //
-                toKey, //
-                0, // capacity
-                IRangeQuery.KEYS | IRangeQuery.VALS | IRangeQuery.READONLY, //
-                null // filter
-        );
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final ITupleIterator itr = new RawDataServiceTupleIterator(fed
+//BTM - PRE_CLIENT_SERVICE                .getMetadataService(),//
+//BTM - PRE_CLIENT_SERVICE                MetadataService.getMetadataIndexName(name), //
+//BTM - PRE_CLIENT_SERVICE                timestamp,//
+//BTM - PRE_CLIENT_SERVICE                true, // readConsistent
+//BTM - PRE_CLIENT_SERVICE                fromKey, //
+//BTM - PRE_CLIENT_SERVICE                toKey, //
+//BTM - PRE_CLIENT_SERVICE                0, // capacity
+//BTM - PRE_CLIENT_SERVICE                IRangeQuery.KEYS | IRangeQuery.VALS | IRangeQuery.READONLY, //
+//BTM - PRE_CLIENT_SERVICE                null // filter
+//BTM - PRE_CLIENT_SERVICE        );
+        ShardLocator mds = discoveryManager.getMetadataService();
+        String indexName = null;
+        if (mds instanceof Remote) {
+            indexName = MetadataService.getMetadataIndexName(name);
+        } else {
+            indexName = EmbeddedShardLocator.getMetadataIndexName(name);
+        }
+        if(indexName == null) {
+            throw new NullPointerException
+                          ("CacheOnceMetadataIndex.cacheLocators "
+                           +"[null indexName]");
+        }
+        final ITupleIterator itr =
+              new RawDataServiceTupleIterator
+                  (mds,
+                   indexName,
+                   timestamp,
+                   true, // readConsistent
+                   fromKey,
+                   toKey,
+                   0, // capacity
+                   IRangeQuery.KEYS | IRangeQuery.VALS | IRangeQuery.READONLY,
+                   null); // filter
+//BTM - PRE_CLIENT_SERVICE - END
 
         while (itr.hasNext()) {
 

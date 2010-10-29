@@ -178,8 +178,15 @@ public class TruthMaintenance {
                 com.bigdata.rdf.store.AbstractTripleStore.Options.BLOOM_FILTER,
                 "false");
         
-        final TempTripleStore tempStore = new TempTripleStore(database
-                .getIndexManager().getTempStore(), properties, database);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final TempTripleStore tempStore = new TempTripleStore(database
+//BTM - PRE_CLIENT_SERVICE                .getIndexManager().getTempStore(), properties, database);
+        final TempTripleStore tempStore =
+              new TempTripleStore(database.getIndexManager().getTempStore(),
+                                  database.getConcurrencyManager(),
+                                  database.getDiscoveryManager(),
+                                  properties, database);
+//BTM - PRE_CLIENT_SERVICE - END
 
         return tempStore;
         

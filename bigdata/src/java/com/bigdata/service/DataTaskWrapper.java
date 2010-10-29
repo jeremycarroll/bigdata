@@ -24,9 +24,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service;
 
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
 import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
-import com.bigdata.resources.LocalResourceManagement;
+import com.bigdata.resources.ILocalResourceManagement;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.service.DataService;
 import com.bigdata.service.IBigdataFederation;
@@ -39,46 +40,83 @@ import java.util.concurrent.Callable;
 
 public class DataTaskWrapper<T> implements Callable<T> {
 
+//BTM - POST_CLIENT_SERVICE changes - BEGIN
     private IIndexManager indexMgr;
     private ResourceManager resourceMgr;
     private IConcurrencyManager concurrencyMgr;
-    private Session session;
-    private String hostname = "UNKNOWN";;
-    private String serviceName = "UNKNOWN";
+    private ILocalResourceManagement localResourceMgr;
+    private IBigdataDiscoveryManagement discoveryMgr;
 
     private IDataServiceCallable<T> task;
 
-    public DataTaskWrapper(IBigdataFederation federation,
-                           ShardManagement dataService,
-                           IDataServiceCallable<T> task)
+    public DataTaskWrapper
+               (IIndexManager indexManager,
+                ResourceManager resourceManager,
+                IConcurrencyManager concurrencyManager,
+                ILocalResourceManagement localResourceManager,
+                IBigdataDiscoveryManagement discoveryManager,
+                IDataServiceCallable<T> task)
     {
-        this.indexMgr = federation;
-        if(dataService instanceof DataService) {
-            this.resourceMgr =
-                ((DataService)dataService).getResourceManager();
-            this.concurrencyMgr =
-                ((DataService)dataService).getConcurrencyManager();
-            this.session = ((DataService)dataService).getSession();
-            try {
-                this.hostname = ((IService)dataService).getHostname();
-                this.serviceName = ((IService)dataService).getServiceName();
-            } catch(IOException e) { /* fallback to "UKNOWN" */ }
-        } else {//embeddedShardService or embeddedShardLocator
-            this.resourceMgr =
-                ((LocalResourceManagement)dataService).getResourceManager();
-            this.concurrencyMgr = 
-             ((LocalResourceManagement)dataService).getConcurrencyManager();
-            this.session = ((ISession)dataService).getSession();
-            this.hostname = ((Service)dataService).getHostname();
-            this.serviceName = ((Service)dataService).getServiceName();
-        }
+        this.indexMgr = indexManager;
+        this.resourceMgr = resourceManager;
+        this.concurrencyMgr = concurrencyManager;
+        this.localResourceMgr = localResourceManager;
+        this.discoveryMgr = discoveryManager;
         this.task = task;
     }
 
     public T call() throws Exception {
         return task.startDataTask
                        (indexMgr, resourceMgr, concurrencyMgr,
-                        session, hostname, serviceName);
+                        localResourceMgr, discoveryMgr);
     }
+//BTM - POST_CLIENT_SERVICE changes - BEGIN
+
+//BTM - PRE_CLIENT_SERVICE changes - BEGIN
+//BTM - PRE_CLIENT_SERVICE    private IIndexManager indexMgr;
+//BTM - PRE_CLIENT_SERVICE    private ResourceManager resourceMgr;
+//BTM - PRE_CLIENT_SERVICE    private IConcurrencyManager concurrencyMgr;
+//BTM - PRE_CLIENT_SERVICE    private Session session;
+//BTM - PRE_CLIENT_SERVICE    private String hostname = "UNKNOWN";;
+//BTM - PRE_CLIENT_SERVICE    private String serviceName = "UNKNOWN";
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    private IDataServiceCallable<T> task;
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    public DataTaskWrapper(IBigdataFederation federation,
+//BTM - PRE_CLIENT_SERVICE                           ShardManagement dataService,
+//BTM - PRE_CLIENT_SERVICE                           IDataServiceCallable<T> task)
+//BTM - PRE_CLIENT_SERVICE    {
+//BTM - PRE_CLIENT_SERVICE        this.indexMgr = federation;
+//BTM - PRE_CLIENT_SERVICE        if(dataService instanceof DataService) {
+//BTM - PRE_CLIENT_SERVICE            this.resourceMgr =
+//BTM - PRE_CLIENT_SERVICE                ((DataService)dataService).getResourceManager();
+//BTM - PRE_CLIENT_SERVICE            this.concurrencyMgr =
+//BTM - PRE_CLIENT_SERVICE                ((DataService)dataService).getConcurrencyManager();
+//BTM - PRE_CLIENT_SERVICE            this.session = ((DataService)dataService).getSession();
+//BTM - PRE_CLIENT_SERVICE            try {
+//BTM - PRE_CLIENT_SERVICE                this.hostname = ((IService)dataService).getHostname();
+//BTM - PRE_CLIENT_SERVICE                this.serviceName = ((IService)dataService).getServiceName();
+//BTM - PRE_CLIENT_SERVICE            } catch(IOException e) {
+//BTM - PRE_CLIENT_SERVICE                //fallback to "UKNOWN"
+//BTM - PRE_CLIENT_SERVICE            }
+//BTM - PRE_CLIENT_SERVICE        } else {//embeddedShardService or embeddedShardLocator
+//BTM - PRE_CLIENT_SERVICE             this.resourceMgr =
+//BTM - PRE_CLIENT_SERVICE                ((ILocalResourceManagement)dataService).getResourceManager();
+//BTM - PRE_CLIENT_SERVICE            this.concurrencyMgr = 
+//BTM - PRE_CLIENT_SERVICE             ((ILocalResourceManagement)dataService).getConcurrencyManager();
+//BTM - PRE_CLIENT_SERVICE            this.session = ((ISession)dataService).getSession();
+//BTM - PRE_CLIENT_SERVICE            this.hostname = ((Service)dataService).getHostname();
+//BTM - PRE_CLIENT_SERVICE            this.serviceName = ((Service)dataService).getServiceName();
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE        this.task = task;
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    public T call() throws Exception {
+//BTM - PRE_CLIENT_SERVICE        return task.startDataTask
+//BTM - PRE_CLIENT_SERVICE                       (indexMgr, resourceMgr, concurrencyMgr,
+//BTM - PRE_CLIENT_SERVICE                        session, hostname, serviceName);
+//BTM - PRE_CLIENT_SERVICE    }
+//BTM - PRE_CLIENT_SERVICE changes - END
+
 }
 

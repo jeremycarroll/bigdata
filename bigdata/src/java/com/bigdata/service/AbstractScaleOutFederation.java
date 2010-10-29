@@ -60,7 +60,11 @@ import com.bigdata.service.ndx.ClientIndexView;
 import cutthecrap.utils.striterators.Resolver;
 import cutthecrap.utils.striterators.Striterator;
 
-//BTM
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.journal.IScaleOutIndexManager;
+import com.bigdata.journal.IScaleOutIndexStore;
 import net.jini.admin.Administrable;
 
 /**
@@ -72,8 +76,11 @@ import net.jini.admin.Administrable;
  * @param <T>
  *            The generic type of the client or service.
  */
-public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T> {
-
+//BTM public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T> {
+public abstract class AbstractScaleOutFederation<T>
+                          extends AbstractFederation<T>
+                          implements IScaleOutIndexManager
+{
     /**
      * @param client
      */
@@ -81,17 +88,48 @@ public abstract class AbstractScaleOutFederation<T> extends AbstractFederation<T
        
         super(client);
         
-        indexCache = new IndexCache(this, client.getIndexCacheCapacity(),
-                client.getIndexCacheTimeout());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        indexCache = new IndexCache(this, client.getIndexCacheCapacity(),
+//BTM - PRE_CLIENT_SERVICE                client.getIndexCacheTimeout());
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        metadataIndexCache = new MetadataIndexCache(this, client
+//BTM - PRE_CLIENT_SERVICE                .getIndexCacheCapacity(), client.getIndexCacheTimeout());
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        final Properties properties = client.getProperties();
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        metadataIndexCachePolicy = MetadataIndexCachePolicy.valueOf(properties
+//BTM - PRE_CLIENT_SERVICE                .getProperty(Options.METADATA_INDEX_CACHE_POLICY,
+//BTM - PRE_CLIENT_SERVICE                        Options.DEFAULT_METADATA_INDEX_CACHE_POLICY));
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE - NEED metadataIndexCachePolicy from the config BEFORE creating MetadataIndexCache so it can be input to the constructor
+//BTM - PRE_CLIENT_SERVICE
 
-        metadataIndexCache = new MetadataIndexCache(this, client
-                .getIndexCacheCapacity(), client.getIndexCacheTimeout());
-        
+        indexCache = 
+            new IndexCache( (IBigdataDiscoveryManagement)this,
+                            this,
+                            (IScaleOutIndexStore)this,
+                            client.getIndexCacheCapacity(),
+                            client.getIndexCacheTimeout(),
+                            client.getDefaultRangeQueryCapacity(),
+                            client.getBatchApiOnly(),
+                            client.getTaskTimeout(),
+                            client.getMaxParallelTasksPerRequest(),
+                            client.getMaxStaleLocatorRetries() );
+
         final Properties properties = client.getProperties();
         
         metadataIndexCachePolicy = MetadataIndexCachePolicy.valueOf(properties
                 .getProperty(Options.METADATA_INDEX_CACHE_POLICY,
                         Options.DEFAULT_METADATA_INDEX_CACHE_POLICY));
+
+        metadataIndexCache = 
+            new MetadataIndexCache
+                    ( (IBigdataDiscoveryManagement)this,
+                      (IIndexManager)this,
+                      metadataIndexCachePolicy,
+                      client.getIndexCacheCapacity(),
+                      client.getIndexCacheTimeout() );
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (log.isInfoEnabled())
             log.info(Options.METADATA_INDEX_CACHE_POLICY + "="
@@ -608,243 +646,245 @@ ShardLocator metadataService = null;
 
     }
 
-    /**
-     * Task directs a {@link ShardService} to purge any unused resources and to
-     * optionally truncate the extent of the live journal.
-     * 
-     */
-    public static class PurgeResourcesTask implements Callable<Void> {
+//BTM - PRE_CLIENT_SERVICE - BEGIN - moved to standalone classes -------------------------------------------------------------------
+//BTM - PRE_CLIENT_SERVICE     /**
+//BTM - PRE_CLIENT_SERVICE //BTM - PRE_CLIENT_SERVICE      * Task directs a {@link ShardService} to purge any unused resources and to
+//BTM - PRE_CLIENT_SERVICE      * optionally truncate the extent of the live journal.
+//BTM - PRE_CLIENT_SERVICE      * 
+//BTM - PRE_CLIENT_SERVICE      */
+//BTM - PRE_CLIENT_SERVICE     public static class PurgeResourcesTask implements Callable<Void> {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         protected static final Logger log = Logger
+//BTM - PRE_CLIENT_SERVICE                 .getLogger(PurgeResourcesTask.class);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM        private final IDataService dataService;
+//BTM - PRE_CLIENT_SERVICE private final ShardService dataService;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         private final boolean truncateJournal;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM - BEGIN
+//BTM - PRE_CLIENT_SERVICE private final ShardLocator metadataService;
+//BTM - PRE_CLIENT_SERVICE public PurgeResourcesTask(final ShardLocator metadataService, final boolean truncateJournal) {
+//BTM - PRE_CLIENT_SERVICE     if (metadataService == null) {
+//BTM - PRE_CLIENT_SERVICE         throw new IllegalArgumentException
+//BTM - PRE_CLIENT_SERVICE                               ("null shard locator service");
+//BTM - PRE_CLIENT_SERVICE     }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE     this.dataService = null;
+//BTM - PRE_CLIENT_SERVICE     this.metadataService = metadataService;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE     this.truncateJournal = truncateJournal;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE }
+//BTM - PRE_CLIENT_SERVICE //BTM - END
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM        public PurgeResourcesTask(final IDataService dataService, final boolean truncateJournal)
+//BTM - PRE_CLIENT_SERVICE public PurgeResourcesTask(final ShardService dataService, final boolean truncateJournal)
+//BTM - PRE_CLIENT_SERVICE         {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             if (dataService == null)
+//BTM - PRE_CLIENT_SERVICE                 throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             this.dataService = dataService;
+//BTM - PRE_CLIENT_SERVICE //BTM
+//BTM - PRE_CLIENT_SERVICE this.metadataService = null;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             this.truncateJournal = truncateJournal;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         public Void call() throws Exception {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM - BEGIN CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
+//BTM - PRE_CLIENT_SERVICE if(dataService != null) {
+//BTM - PRE_CLIENT_SERVICE //BTM            if (log.isInfoEnabled()) {
+//BTM - PRE_CLIENT_SERVICE //BTM                log.info("dataService: " + dataService.getServiceName());
+//BTM - PRE_CLIENT_SERVICE //BTM            }
+//BTM - PRE_CLIENT_SERVICE //BTM            if (!dataService.purgeOldResources(5000/* ms */, truncateJournal)) {
+//BTM - PRE_CLIENT_SERVICE //BTM
+//BTM - PRE_CLIENT_SERVICE //BTM                log.warn("Could not pause write service - resources will not be purged.");
+//BTM - PRE_CLIENT_SERVICE //BTM            }
+//BTM - PRE_CLIENT_SERVICE             String serviceName = null;
+//BTM - PRE_CLIENT_SERVICE             if(dataService instanceof IService) {
+//BTM - PRE_CLIENT_SERVICE                 serviceName = 
+//BTM - PRE_CLIENT_SERVICE                     ((IService)dataService).getServiceName();
+//BTM - PRE_CLIENT_SERVICE             } else {
+//BTM - PRE_CLIENT_SERVICE                 serviceName = 
+//BTM - PRE_CLIENT_SERVICE                     ((Service)dataService).getServiceName();
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE             ShardManagement shardMgr = (ShardManagement)dataService;
+//BTM - PRE_CLIENT_SERVICE             boolean resourcesPurged = shardMgr.purgeOldResources(5000/* ms */, truncateJournal);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             if (log.isInfoEnabled()) {
+//BTM - PRE_CLIENT_SERVICE                 log.info("dataService: " + serviceName);
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE             if ( !resourcesPurged ) {
+//BTM - PRE_CLIENT_SERVICE                 log.warn("Could not pause shard service - resources will not be purged.");
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE }//endif (dataService != null)
+//BTM - PRE_CLIENT_SERVICE //BTM - END CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE if(metadataService != null) {
+//BTM - PRE_CLIENT_SERVICE //BTM - BEGIN CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
+//BTM - PRE_CLIENT_SERVICE //BTM            String serviceName = null;
+//BTM - PRE_CLIENT_SERVICE //BTM    IDataService remoteShardMgr = null;
+//BTM - PRE_CLIENT_SERVICE //BTM    ShardManagement shardMgr = null;
+//BTM - PRE_CLIENT_SERVICE //BTM            if(metadataService instanceof IMetadataService) {
+//BTM - PRE_CLIENT_SERVICE //BTM                serviceName = 
+//BTM - PRE_CLIENT_SERVICE //BTM                    ((IMetadataService)metadataService).getServiceName();
+//BTM - PRE_CLIENT_SERVICE //BTM                remoteShardMgr = (IDataService)metadataService;
+//BTM - PRE_CLIENT_SERVICE //BTM            } else if(metadataService instanceof Service) {
+//BTM - PRE_CLIENT_SERVICE //BTM                serviceName = 
+//BTM - PRE_CLIENT_SERVICE //BTM                    ((Service)metadataService).getServiceName();
+//BTM - PRE_CLIENT_SERVICE //BTM                shardMgr = (ShardManagement)metadataService;
+//BTM - PRE_CLIENT_SERVICE //BTM            } else {
+//BTM - PRE_CLIENT_SERVICE //BTM                log.warn("wrong type for shard locator service "
+//BTM - PRE_CLIENT_SERVICE //BTM                         +"["+metadataService.getClass()+"]");
+//BTM - PRE_CLIENT_SERVICE //BTM            }
+//BTM - PRE_CLIENT_SERVICE //BTM            if (log.isInfoEnabled()) {
+//BTM - PRE_CLIENT_SERVICE //BTM                log.info("metadataService: " + serviceName);
+//BTM - PRE_CLIENT_SERVICE //BTM            }
+//BTM - PRE_CLIENT_SERVICE //BTM    boolean resourcesPurged = false;
+//BTM - PRE_CLIENT_SERVICE //BTM    if(remoteShardMgr != null) {
+//BTM - PRE_CLIENT_SERVICE //BTM        resourcesPurged = remoteShardMgr.purgeOldResources(5000/* ms */, truncateJournal);
+//BTM - PRE_CLIENT_SERVICE //BTM    } else if(shardMgr != null) {
+//BTM - PRE_CLIENT_SERVICE //BTM        resourcesPurged = shardMgr.purgeOldResources(5000/* ms */, truncateJournal);
+//BTM - PRE_CLIENT_SERVICE //BTM    }
+//BTM - PRE_CLIENT_SERVICE //BTM
+//BTM - PRE_CLIENT_SERVICE             String serviceName = null;
+//BTM - PRE_CLIENT_SERVICE             if(metadataService instanceof IService) {
+//BTM - PRE_CLIENT_SERVICE                 serviceName = 
+//BTM - PRE_CLIENT_SERVICE                     ((IService)metadataService).getServiceName();
+//BTM - PRE_CLIENT_SERVICE             } else {
+//BTM - PRE_CLIENT_SERVICE                 serviceName = 
+//BTM - PRE_CLIENT_SERVICE                     ((Service)metadataService).getServiceName();
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE             ShardManagement shardMgr = (ShardManagement)metadataService;
+//BTM - PRE_CLIENT_SERVICE             boolean resourcesPurged = shardMgr.purgeOldResources(5000/* ms */, truncateJournal);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             if (log.isInfoEnabled()) {
+//BTM - PRE_CLIENT_SERVICE                 log.info("metadataService: " + serviceName);
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE             if ( !resourcesPurged ) {
+//BTM - PRE_CLIENT_SERVICE                 log.warn("Could not pause shard locator service - resources will not be purged.");
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE //BTM - END CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
+//BTM - PRE_CLIENT_SERVICE //BTM
+//BTM - PRE_CLIENT_SERVICE //BTM            if (!resourcesPurged) {
+//BTM - PRE_CLIENT_SERVICE //BTM                log.warn("Could not pause write service - resources will not be purged.");
+//BTM - PRE_CLIENT_SERVICE //BTM            }
+//BTM - PRE_CLIENT_SERVICE }//endif (metadataService != null)
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             return null;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE     }   
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE     /**
+//BTM - PRE_CLIENT_SERVICE      * Task forces immediate overflow of the specified data service, returning
+//BTM - PRE_CLIENT_SERVICE      * once both synchronous AND asynchronous overflow are complete.
+//BTM - PRE_CLIENT_SERVICE      * 
+//BTM - PRE_CLIENT_SERVICE      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+//BTM - PRE_CLIENT_SERVICE      * @version $Id$
+//BTM - PRE_CLIENT_SERVICE      */
+//BTM - PRE_CLIENT_SERVICE     public static class ForceOverflowTask implements Callable<Void> {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE         protected static final Logger log = Logger
+//BTM - PRE_CLIENT_SERVICE                 .getLogger(ForceOverflowTask.class);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM        private final IDataService dataService;
+//BTM - PRE_CLIENT_SERVICE private final ShardService dataService;
+//BTM - PRE_CLIENT_SERVICE private String serviceName;
+//BTM - PRE_CLIENT_SERVICE private ShardManagement shardMgr = null;
+//BTM - PRE_CLIENT_SERVICE private OverflowAdmin overflowAdmin = null;
+//BTM - PRE_CLIENT_SERVICE         private final boolean compactingMerge;
+//BTM - PRE_CLIENT_SERVICE         private final boolean truncateJournal;
+//BTM - PRE_CLIENT_SERVICE         
+//BTM - PRE_CLIENT_SERVICE //BTM        public ForceOverflowTask(final IDataService dataService, final boolean compactingMerge, final boolean truncateJournal)
+//BTM - PRE_CLIENT_SERVICE public ForceOverflowTask(final ShardService dataService, final boolean compactingMerge, final boolean truncateJournal)
+//BTM - PRE_CLIENT_SERVICE         {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             if (dataService == null)
+//BTM - PRE_CLIENT_SERVICE                 throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             this.dataService = dataService;
+//BTM - PRE_CLIENT_SERVICE             
+//BTM - PRE_CLIENT_SERVICE             this.compactingMerge = compactingMerge;
+//BTM - PRE_CLIENT_SERVICE             
+//BTM - PRE_CLIENT_SERVICE             this.truncateJournal = truncateJournal;
+//BTM - PRE_CLIENT_SERVICE //BTM
+//BTM - PRE_CLIENT_SERVICE this.serviceName = "UNKNOWN";
+//BTM - PRE_CLIENT_SERVICE if(this.dataService != null) {
+//BTM - PRE_CLIENT_SERVICE     if(this.dataService instanceof IService) {
+//BTM - PRE_CLIENT_SERVICE         try {
+//BTM - PRE_CLIENT_SERVICE             this.serviceName = ((IService)this.dataService).getServiceName();
+//BTM - PRE_CLIENT_SERVICE             this.overflowAdmin = (OverflowAdmin)(this.dataService);
+//BTM - PRE_CLIENT_SERVICE         } catch(java.io.IOException e) {
+//BTM - PRE_CLIENT_SERVICE             log.warn("failed to retrieved serviceName from shard service", e);
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE     } else {
+//BTM - PRE_CLIENT_SERVICE         this.serviceName = ((Service)this.dataService).getServiceName();
+//BTM - PRE_CLIENT_SERVICE         try {
+//BTM - PRE_CLIENT_SERVICE             this.overflowAdmin =
+//BTM - PRE_CLIENT_SERVICE             (OverflowAdmin)( ((Administrable)(this.dataService)).getAdmin() );
+//BTM - PRE_CLIENT_SERVICE         } catch(java.rmi.RemoteException e) {
+//BTM - PRE_CLIENT_SERVICE             log.warn("failure when retrieving overflow admin", e);
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE     }
+//BTM - PRE_CLIENT_SERVICE     this.shardMgr = (ShardManagement)(this.dataService);
+//BTM - PRE_CLIENT_SERVICE }
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE         
+//BTM - PRE_CLIENT_SERVICE         public Void call() throws Exception {
+//BTM - PRE_CLIENT_SERVICE             
+//BTM - PRE_CLIENT_SERVICE             if(log.isInfoEnabled()) {
+//BTM - PRE_CLIENT_SERVICE //BTM                log.info("dataService: " + dataService.getServiceName());
+//BTM - PRE_CLIENT_SERVICE                 log.info("dataService: " + serviceName);
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE             // returns once synchronous overflow is complete.
+//BTM - PRE_CLIENT_SERVICE //BTM            dataService.forceOverflow(true/* immediate */, compactingMerge);
+//BTM - PRE_CLIENT_SERVICE overflowAdmin.forceOverflow(true/* immediate */, compactingMerge);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             if (log.isInfoEnabled()) {
+//BTM - PRE_CLIENT_SERVICE //BTM                log.info("Synchronous overflow is done: " + dataService.getServiceName());
+//BTM - PRE_CLIENT_SERVICE                 log.info("Synchronous overflow is done: " + serviceName);
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE             // wait until overflow processing is done.
+//BTM - PRE_CLIENT_SERVICE //BTM            while (dataService.isOverflowActive()) {
+//BTM - PRE_CLIENT_SERVICE while (overflowAdmin.isOverflowActive()) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 Thread.sleep(100/* ms */);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             if (log.isInfoEnabled()) {
+//BTM - PRE_CLIENT_SERVICE //BTM                log.info("Asynchronous overflow is done: " + dataService.getServiceName());
+//BTM - PRE_CLIENT_SERVICE                 log.info("Asynchronous overflow is done: " + serviceName);
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE             /*
+//BTM - PRE_CLIENT_SERVICE              * Note: Old resources are automatically released as the last step
+//BTM - PRE_CLIENT_SERVICE              * of asynchronous overflow processing. Therefore all we are really
+//BTM - PRE_CLIENT_SERVICE              * doing here is issuing a request to truncate the journal. However,
+//BTM - PRE_CLIENT_SERVICE              * we use the same method to accomplish both ends.
+//BTM - PRE_CLIENT_SERVICE              */
+//BTM - PRE_CLIENT_SERVICE             if (truncateJournal) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //BTM                if (!dataService.purgeOldResources(5000/* ms */, true/* truncateJournal */)) {
+//BTM - PRE_CLIENT_SERVICE                 if (!shardMgr.purgeOldResources(5000/* ms */, true/* truncateJournal */)) {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                     log.warn("Could not pause shard service - resources will not be purged.");
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 }
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             }
+//BTM - PRE_CLIENT_SERVICE             
+//BTM - PRE_CLIENT_SERVICE             return null;
+//BTM - PRE_CLIENT_SERVICE             
+//BTM - PRE_CLIENT_SERVICE         }
+//BTM - PRE_CLIENT_SERVICE         
+//BTM - PRE_CLIENT_SERVICE     }
+//BTM - PRE_CLIENT_SERVICE - END -------------------------------------------------------------------------------------------
 
-        protected static final Logger log = Logger
-                .getLogger(PurgeResourcesTask.class);
-
-//BTM        private final IDataService dataService;
-private final ShardService dataService;
-
-        private final boolean truncateJournal;
-
-//BTM - BEGIN
-private final ShardLocator metadataService;
-public PurgeResourcesTask(final ShardLocator metadataService, final boolean truncateJournal) {
-    if (metadataService == null) {
-        throw new IllegalArgumentException
-                              ("null shard locator service");
-    }
-
-    this.dataService = null;
-    this.metadataService = metadataService;
-
-    this.truncateJournal = truncateJournal;
-
-}
-//BTM - END
-
-//BTM        public PurgeResourcesTask(final IDataService dataService, final boolean truncateJournal)
-public PurgeResourcesTask(final ShardService dataService, final boolean truncateJournal)
-        {
-
-            if (dataService == null)
-                throw new IllegalArgumentException();
-
-            this.dataService = dataService;
-//BTM
-this.metadataService = null;
-
-            this.truncateJournal = truncateJournal;
-
-        }
-
-        public Void call() throws Exception {
-
-
-//BTM - BEGIN CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
-if(dataService != null) {
-//BTM            if (log.isInfoEnabled()) {
-//BTM                log.info("dataService: " + dataService.getServiceName());
-//BTM            }
-//BTM            if (!dataService.purgeOldResources(5000/* ms */, truncateJournal)) {
-//BTM
-//BTM                log.warn("Could not pause write service - resources will not be purged.");
-//BTM            }
-            String serviceName = null;
-            if(dataService instanceof IService) {
-                serviceName = 
-                    ((IService)dataService).getServiceName();
-            } else {
-                serviceName = 
-                    ((Service)dataService).getServiceName();
-            }
-            ShardManagement shardMgr = (ShardManagement)dataService;
-            boolean resourcesPurged = shardMgr.purgeOldResources(5000/* ms */, truncateJournal);
-
-            if (log.isInfoEnabled()) {
-                log.info("dataService: " + serviceName);
-            }
-            if ( !resourcesPurged ) {
-                log.warn("Could not pause shard service - resources will not be purged.");
-            }
-}//endif (dataService != null)
-//BTM - END CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
-
-if(metadataService != null) {
-//BTM - BEGIN CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
-//BTM            String serviceName = null;
-//BTM    IDataService remoteShardMgr = null;
-//BTM    ShardManagement shardMgr = null;
-//BTM            if(metadataService instanceof IMetadataService) {
-//BTM                serviceName = 
-//BTM                    ((IMetadataService)metadataService).getServiceName();
-//BTM                remoteShardMgr = (IDataService)metadataService;
-//BTM            } else if(metadataService instanceof Service) {
-//BTM                serviceName = 
-//BTM                    ((Service)metadataService).getServiceName();
-//BTM                shardMgr = (ShardManagement)metadataService;
-//BTM            } else {
-//BTM                log.warn("wrong type for shard locator service "
-//BTM                         +"["+metadataService.getClass()+"]");
-//BTM            }
-//BTM            if (log.isInfoEnabled()) {
-//BTM                log.info("metadataService: " + serviceName);
-//BTM            }
-//BTM    boolean resourcesPurged = false;
-//BTM    if(remoteShardMgr != null) {
-//BTM        resourcesPurged = remoteShardMgr.purgeOldResources(5000/* ms */, truncateJournal);
-//BTM    } else if(shardMgr != null) {
-//BTM        resourcesPurged = shardMgr.purgeOldResources(5000/* ms */, truncateJournal);
-//BTM    }
-//BTM
-            String serviceName = null;
-            if(metadataService instanceof IService) {
-                serviceName = 
-                    ((IService)metadataService).getServiceName();
-            } else {
-                serviceName = 
-                    ((Service)metadataService).getServiceName();
-            }
-            ShardManagement shardMgr = (ShardManagement)metadataService;
-            boolean resourcesPurged = shardMgr.purgeOldResources(5000/* ms */, truncateJournal);
-
-            if (log.isInfoEnabled()) {
-                log.info("metadataService: " + serviceName);
-            }
-            if ( !resourcesPurged ) {
-                log.warn("Could not pause shard locator service - resources will not be purged.");
-            }
-//BTM - END CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
-//BTM
-//BTM            if (!resourcesPurged) {
-//BTM                log.warn("Could not pause write service - resources will not be purged.");
-//BTM            }
-}//endif (metadataService != null)
-
-            return null;
-
-        }
-
-    }
-
-    /**
-     * Task forces immediate overflow of the specified data service, returning
-     * once both synchronous AND asynchronous overflow are complete.
-     * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
-     */
-    public static class ForceOverflowTask implements Callable<Void> {
-
-        protected static final Logger log = Logger
-                .getLogger(ForceOverflowTask.class);
-
-//BTM        private final IDataService dataService;
-private final ShardService dataService;
-private String serviceName;
-private ShardManagement shardMgr = null;
-private OverflowAdmin overflowAdmin = null;
-        private final boolean compactingMerge;
-        private final boolean truncateJournal;
-        
-//BTM        public ForceOverflowTask(final IDataService dataService, final boolean compactingMerge, final boolean truncateJournal)
-public ForceOverflowTask(final ShardService dataService, final boolean compactingMerge, final boolean truncateJournal)
-        {
-
-            if (dataService == null)
-                throw new IllegalArgumentException();
-
-            this.dataService = dataService;
-            
-            this.compactingMerge = compactingMerge;
-            
-            this.truncateJournal = truncateJournal;
-//BTM
-this.serviceName = "UNKNOWN";
-if(this.dataService != null) {
-    if(this.dataService instanceof IService) {
-        try {
-            this.serviceName = ((IService)this.dataService).getServiceName();
-            this.overflowAdmin = (OverflowAdmin)(this.dataService);
-        } catch(java.io.IOException e) {
-            log.warn("failed to retrieved serviceName from shard service", e);
-        }
-    } else {
-        this.serviceName = ((Service)this.dataService).getServiceName();
-        try {
-            this.overflowAdmin =
-            (OverflowAdmin)( ((Administrable)(this.dataService)).getAdmin() );
-        } catch(java.rmi.RemoteException e) {
-            log.warn("failure when retrieving overflow admin", e);
-        }
-    }
-    this.shardMgr = (ShardManagement)(this.dataService);
-}
-        }
-        
-        public Void call() throws Exception {
-            
-            if(log.isInfoEnabled()) {
-//BTM                log.info("dataService: " + dataService.getServiceName());
-                log.info("dataService: " + serviceName);
-            }
-            // returns once synchronous overflow is complete.
-//BTM            dataService.forceOverflow(true/* immediate */, compactingMerge);
-overflowAdmin.forceOverflow(true/* immediate */, compactingMerge);
-
-            if (log.isInfoEnabled()) {
-//BTM                log.info("Synchronous overflow is done: " + dataService.getServiceName());
-                log.info("Synchronous overflow is done: " + serviceName);
-            }
-            // wait until overflow processing is done.
-//BTM            while (dataService.isOverflowActive()) {
-while (overflowAdmin.isOverflowActive()) {
-
-                Thread.sleep(100/* ms */);
-
-            }
-
-            if (log.isInfoEnabled()) {
-//BTM                log.info("Asynchronous overflow is done: " + dataService.getServiceName());
-                log.info("Asynchronous overflow is done: " + serviceName);
-            }
-            /*
-             * Note: Old resources are automatically released as the last step
-             * of asynchronous overflow processing. Therefore all we are really
-             * doing here is issuing a request to truncate the journal. However,
-             * we use the same method to accomplish both ends.
-             */
-            if (truncateJournal) {
-
-//BTM                if (!dataService.purgeOldResources(5000/* ms */, true/* truncateJournal */)) {
-                if (!shardMgr.purgeOldResources(5000/* ms */, true/* truncateJournal */)) {
-
-                    log.warn("Could not pause shard service - resources will not be purged.");
-
-                }
-
-            }
-            
-            return null;
-            
-        }
-        
-    }
-    
 }

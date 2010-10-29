@@ -27,6 +27,14 @@ import com.bigdata.service.jini.master.AbstractAsynchronousClientTask;
 import com.bigdata.service.jini.master.ClientLocator;
 import com.bigdata.service.jini.master.INotifyOutcome;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.service.CallableExecutor;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+import java.util.List;
+
 /**
  * Task reads files from the file system, loads them into an
  * {@link ITripleStore}, and optionally deletes the source files once they are
@@ -165,8 +173,15 @@ public class MappedRDFFileLoadTask<S extends JobState,
         
     }
 
-    protected void setUp(IBigdataFederation federation)
-            throws InterruptedException {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected void setUp(IBigdataFederation federation)
+//BTM - PRE_CLIENT_SERVICE            throws InterruptedException {
+//BTM - PRE_CLIENT_SERVICE
+    protected void setUp(IIndexManager indexMgr,
+                         ILocalResourceManagement localResourceMgr)
+                   throws InterruptedException
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         // set transient fields.
 //        lock = new ReentrantLock();
@@ -179,9 +194,10 @@ public class MappedRDFFileLoadTask<S extends JobState,
             if (log.isInfoEnabled())
                 log.info(toString());
             
-            final AbstractTripleStore tripleStore = (AbstractTripleStore)
-                    federation.getResourceLocator().locate(jobState.namespace,
-                                                           ITx.UNISOLATED);
+//BTM - PRE_CLIENT_SERVICE  final AbstractTripleStore tripleStore = (AbstractTripleStore)federation.getResourceLocator().locate(jobState.namespace, ITx.UNISOLATED);
+            final AbstractTripleStore tripleStore =
+                (AbstractTripleStore)indexMgr.getResourceLocator().locate
+                                         (jobState.namespace, ITx.UNISOLATED);
 
             if (tripleStore == null) {
 
@@ -289,15 +305,16 @@ public class MappedRDFFileLoadTask<S extends JobState,
              */
             {
 
-                final CounterSet serviceRoot = federation.getServiceCounterSet();
+//BTM - PRE_CLIENT_SERVICE  final CounterSet serviceRoot = federation.getServiceCounterSet();
+                final CounterSet serviceRoot = localResourceMgr.getServiceCounterSet();
 
                 final String relPath = jobState.jobName;
 
                 // Create path to counter set.
                 final CounterSet tmp = serviceRoot.makePath(relPath);
 
-                final CounterSet tmpCounters = statementBufferFactory
-                        .getCounters();
+                final CounterSet tmpCounters =
+                                     statementBufferFactory.getCounters();
 
 //                if (log.isDebugEnabled())
 //                    log.debug("Attaching counters: locator=" + locator + " : "
@@ -338,12 +355,24 @@ public class MappedRDFFileLoadTask<S extends JobState,
         
     }
     
-    public Void startClientTask(IBigdataFederation federation,
-            ClientService clientService) throws Exception {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public Void startClientTask(IBigdataFederation federation,
+//BTM - PRE_CLIENT_SERVICE            ClientService clientService) throws Exception {
+//BTM - PRE_CLIENT_SERVICE
+    public Void startClientTask(IIndexManager indexManager,
+                                ILocalResourceManagement localResourceManager,
+                                CallableExecutor embeddedCallableExecutor,
+                                ZooKeeper zookeeperClient,
+                                List<ACL> zookeeperAcl,
+                                String zookeeperRoot)
+                 throws Exception
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         try {
 
-            setUp(federation);
+//BTM - PRE_CLIENT_SERVICE  setUp(federation);
+            setUp(indexManager, localResourceManager);
             
             /*
              * Wait until either (a) interrupted by the master using

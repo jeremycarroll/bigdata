@@ -52,7 +52,7 @@ import com.bigdata.relation.rule.IRule;
 import com.bigdata.relation.rule.IStep;
 //BTM - PRE_FRED_3481 import com.bigdata.service.DataService;
 //BTM - PRE_FRED_3481 import com.bigdata.service.DataServiceCallable;
-import com.bigdata.service.IBigdataFederation;
+//BTM - FOR_CLIENT_SERVICE import com.bigdata.service.IBigdataFederation;
 import com.bigdata.service.IDataService;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.ICloseableIterator;
@@ -65,6 +65,11 @@ import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.resources.ResourceManager;
 import com.bigdata.service.IDataServiceCallable;
 import com.bigdata.service.Session;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.journal.TransactionService;
 
 /**
  * Task for executing a program when all of the indices for the relation are
@@ -239,12 +244,22 @@ public class ProgramTask implements IDataServiceCallable<Object> {
      * @throws Exception
      */
 //BTM - PRE_FRED_3481    public Object call() throws Exception {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public Object startDataTask(IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE                                ResourceManager resourceManager,
+//BTM - PRE_CLIENT_SERVICE                                IConcurrencyManager concurrencyManager,
+//BTM - PRE_CLIENT_SERVICE                                Session session,
+//BTM - PRE_CLIENT_SERVICE                                String hostName,
+//BTM - PRE_CLIENT_SERVICE                                String serviceName) throws Exception {
+//BTM - PRE_CLIENT_SERVICE
     public Object startDataTask(IIndexManager indexManager,
                                 ResourceManager resourceManager,
                                 IConcurrencyManager concurrencyManager,
-                                Session session,
-                                String hostName,
-                                String serviceName) throws Exception {
+                                ILocalResourceManagement localResources,
+                                IBigdataDiscoveryManagement discoveryManager)
+                      throws Exception
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (log.isDebugEnabled()) {
 
@@ -267,10 +282,12 @@ public class ProgramTask implements IDataServiceCallable<Object> {
                      * Compute closure of a flat set of rules.
                      */
 
-//BTM - PRE_FRED_3481                    totals = executeClosure((IProgram) step);
-                    totals = executeClosure((IProgram) step, indexManager,
-                                            concurrencyManager);
-
+//BTM - PRE_FRED_3481       totals = executeClosure((IProgram) step);
+//BTM - PRE_CLIENT_SERVICE  totals = executeClosure((IProgram) step, indexManager, concurrencyManager);
+                    totals = executeClosure((IProgram) step,
+                                             indexManager,
+                                             concurrencyManager,
+                                             discoveryManager);
                 } else if (util.isClosureProgram(step)) {
 
                     /*
@@ -278,9 +295,13 @@ public class ProgramTask implements IDataServiceCallable<Object> {
                      * operations.
                      */
 
-//BTM - PRE_FRED_3481                    totals = executeProgramWithEmbeddedClosure((IProgram)step);
-                    totals = executeProgramWithEmbeddedClosure((IProgram)step,
-                            indexManager, concurrencyManager);
+//BTM - PRE_FRED_3481       totals = executeProgramWithEmbeddedClosure((IProgram)step);
+//BTM - PRE_CLIENT_SERVICE  totals = executeProgramWithEmbeddedClosure((IProgram)step, indexManager, concurrencyManager);
+                    totals = executeProgramWithEmbeddedClosure
+                                 ( (IProgram)step,
+                                   indexManager,
+                                   concurrencyManager,
+                                   discoveryManager );
 
                 } else {
 
@@ -288,9 +309,12 @@ public class ProgramTask implements IDataServiceCallable<Object> {
                      * Execute a mutation operation that does not use closure.
                      */
 
-//BTM - PRE_FRED_3481                    totals = executeMutation(step);
-                    totals = executeMutation(step, indexManager, concurrencyManager);
-
+//BTM - PRE_FRED_3481       totals = executeMutation(step);
+//BTM - PRE_CLIENT_SERVICE  totals = executeMutation(step, indexManager, concurrencyManager);
+                    totals = executeMutation(step,
+                                             indexManager,
+                                             concurrencyManager,
+                                             discoveryManager);
                 }
 
                 RuleLog.log(totals);
@@ -315,10 +339,13 @@ public class ProgramTask implements IDataServiceCallable<Object> {
                 /*
                  * Execute a query.
                  */
-//BTM - PRE_FRED_3481                return new ChunkConsumerIterator<ISolution>(executeQuery(step));
-                return new ChunkConsumerIterator<ISolution>(
-                        executeQuery(step, indexManager, concurrencyManager));
-
+//BTM - PRE_FRED_3481       return new ChunkConsumerIterator<ISolution>(executeQuery(step));
+//BTM - PRE_CLIENT_SERVICE  return new ChunkConsumerIterator<ISolution>( executeQuery(step, indexManager, concurrencyManager) );
+                return new ChunkConsumerIterator<ISolution>
+                               ( executeQuery(step,
+                                              indexManager,
+                                              concurrencyManager,
+                                              discoveryManager) );
             }
 
         } finally {
@@ -345,10 +372,13 @@ public class ProgramTask implements IDataServiceCallable<Object> {
      *
      * @throws RuntimeException
      */
-//BTM - PRE_FRED_3481    protected IAsynchronousIterator<ISolution[]> executeQuery(final IStep step) {
-    protected IAsynchronousIterator<ISolution[]> executeQuery(
-       final IStep step, IIndexManager indexManager, IConcurrencyManager concurrencyManager) {
-
+//BTM - PRE_FRED_3481       protected IAsynchronousIterator<ISolution[]> executeQuery(final IStep step) {
+    protected IAsynchronousIterator<ISolution[]> executeQuery
+                  (final IStep step,
+                   IIndexManager indexManager,
+                   IConcurrencyManager concurrencyManager,
+                   IBigdataDiscoveryManagement discoveryManager)
+    {
         if (step == null)
             throw new IllegalArgumentException();
 
@@ -356,13 +386,22 @@ public class ProgramTask implements IDataServiceCallable<Object> {
             log.debug("program=" + step.getName());
 
         // buffer shared by all rules run in this query.
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  final IBlockingBuffer<ISolution[]> buffer =
+//BTM - PRE_CLIENT_SERVICE        joinNexusFactory.newInstance(indexManager).newQueryBuffer();
+//BTM - PRE_CLIENT_SERVICE
         final IBlockingBuffer<ISolution[]> buffer =
-            joinNexusFactory.newInstance(indexManager).newQueryBuffer();
+            joinNexusFactory.newInstance(indexManager,
+                                         concurrencyManager,
+                                         discoveryManager).newQueryBuffer();
+//BTM - PRE_CLIENT_SERVICE - END
 
         // the task to execute.
-//BTM        final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexManager, isDataService()?getDataService():null);
-//BTM - PRE_FRED_3481 final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexManager, getResourceManager(), getConcurrencyManager(), getIndexManager(), getSession(), getHostname(), getServiceName());
-final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexManager);
+//BTM                  final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexManager, isDataService()?getDataService():null);
+//BTM - PRE_FRED_3481  final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexManager, getResourceManager(), getConcurrencyManager(), getIndexManager(), getSession(), getHostname(), getServiceName());
+
+//BTM - PRE_CLIENT_SERVICE        final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexManager);
+        final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexManager, concurrencyManager, discoveryManager);
 
         Future<RuleStats> future = null;
 
@@ -440,12 +479,17 @@ final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexM
      * @throws InterruptedException
      * @throws ExecutionException
      */
-//BTM - PRE_FRED_3481    protected RuleStats executeMutation(final IStep step)
+//BTM - PRE_FRED_3481       protected RuleStats executeMutation(final IStep step)
 //BTM - PRE_FRED_3481            throws InterruptedException, ExecutionException {
-    protected RuleStats executeMutation(final IStep step,
-            IIndexManager indexManager, IConcurrencyManager concurrencyManager)
-            throws InterruptedException, ExecutionException {
+//BTM - PRE_CLIENT_SERVICE  protected RuleStats executeMutation(final IStep step, IIndexManager indexManager, IConcurrencyManager concurrencyManager) throws InterruptedException, ExecutionException {
 
+    protected RuleStats executeMutation
+                            (final IStep step,
+                             IIndexManager indexManager,
+                             IConcurrencyManager concurrencyManager,
+                             IBigdataDiscoveryManagement discoveryManager)
+                        throws InterruptedException, ExecutionException
+    {
         if (step == null)
             throw new IllegalArgumentException();
 
@@ -453,107 +497,110 @@ final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexM
             throw new IllegalArgumentException();
 
         long tx = 0L;
+        TransactionService txnService = null;
         try {
-        if (indexManager instanceof IBigdataFederation) {
+//BTM - PRE_CLIENT_SERVICE  if (indexManager instanceof IBigdataFederation) {
+            if (discoveryManager != null) {
 
-            /*
-             * Advance the read-consistent timestamp so that any writes from the
-             * previous rules or the last round are now visible.
-             *
-             * Note: We can only do this for the federation with its autoCommit
-             * semantics.
-             *
-             * Note: The Journal (LTS) must both read and write against the
-             * unisolated view for closure operations.
-             *
-             * @todo clone the joinNexusFactory 1st to avoid possible side
-             * effects?
-             */
-
-            final long lastCommitTime = indexManager.getLastCommitTime();
-
-            try {
                 /*
-                 * A read-only tx reading from the lastCommitTime.
+                 * Advance the read-consistent timestamp so that any writes from the
+                 * previous rules or the last round are now visible.
                  *
-                 * Note: This provides a read-lock on the commit time from which
-                 * the mutation task will read.
+                 * Note: We can only do this for the federation with its autoCommit
+                 * semantics.
                  *
-                 * @todo we could use the [tx] as the readTimestamp and we could
-                 * use ITx.READ_COMMITTED rather that explicitly looking up the
-                 * lastCommitTime.
+                 * Note: The Journal (LTS) must both read and write against the
+                 * unisolated view for closure operations.
+                 *
+                 * @todo clone the joinNexusFactory 1st to avoid possible side
+                 * effects?
                  */
-                    tx = ((IBigdataFederation) indexManager)
-                        .getTransactionService().newTx(lastCommitTime);
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
 
-            // the timestamp that we will read on for this step.
-            joinNexusFactory.setReadTimestamp(TimestampUtility
-                  .asHistoricalRead(lastCommitTime));
+                final long lastCommitTime = indexManager.getLastCommitTime();
 
-//            final long lastCommitTime = indexManager.getLastCommitTime();
+                try {
+                    /*
+                     * A read-only tx reading from the lastCommitTime.
+                     *
+                     * Note: This provides a read-lock on the commit time from which
+                     * the mutation task will read.
+                     *
+                     * @todo we could use the [tx] as the readTimestamp and we could
+                     * use ITx.READ_COMMITTED rather that explicitly looking up the
+                     * lastCommitTime.
+                     */
+//BTM - PRE_CLIENT_SERVICE  tx = ((IBigdataFederation) indexManager).getTransactionService().newTx(lastCommitTime);
+                    txnService = discoveryManager.getTransactionService();
+                    tx = txnService.newTx(lastCommitTime);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+
+                // the timestamp that we will read on for this step.
+                joinNexusFactory.setReadTimestamp(TimestampUtility
+                                    .asHistoricalRead(lastCommitTime));
+
+//                final long lastCommitTime = indexManager.getLastCommitTime();
 //
-//            // the timestamp that we will read on for this step.
-//            joinNexusFactory.setReadTimestamp(TimestampUtility
-//                    .asHistoricalRead(lastCommitTime));
+//                // the timestamp that we will read on for this step.
+//                joinNexusFactory.setReadTimestamp(TimestampUtility
+//                                    .asHistoricalRead(lastCommitTime));
 //
-//            try {
-//
-//                /*
-//                 * Allow the data services to release data for older views.
-//                 *
-//                 * FIXME This is being done in order to prevent the release of
-//                 * data associated with the [readTimestamp] while the rule(s)
-//                 * are reading on those views. In fact, the rules should be
-//                 * using a read-historical transaction and releasing the
-//                 * transaction when they are finished which would allow the
-//                 * transaction manager to take responsibility for globally
-//                 * determining the releaseTime for the federation. In the
-//                 * absence of that facility, this has been hacked so that we can
-//                 * do scale-out closure without having our views disrupted by
-//                 * overflow allowing resources to be purge that are in use by
-//                 * those views. Basically, we are declaring a read lock.
-//                 *
-//                 * The problem discussed here can be readily observed if you
-//                 * attempt the closure of a large data set (U20 may do it, U50
-//                 * will) or if you reduce the journal extent so that overflow is
-//                 * triggered more frequently, in which case you may be able to
-//                 * demonstrate the problem with a much smaller data set.
-//                 *
-//                 * Also note that this is globally advancing the release time.
-//                 * This means that you can not compute closure for two different
-//                 * RDF DBs within the same federation at the same time.
-//                 *
-//                 * Also see the code that resets the release time to 0L after
-//                 * the ProgramTask is finished.
-//                 */
-//
-//                if (lastCommitTime != 0L) {
+//                try {
 //
 //                    /*
-//                     * There is some committed state, so update the release time
-//                     * such that the timestamp specified by [lastCommitTime]
-//                     * does not get released.
+//                     * Allow the data services to release data for older views.
+//                     *
+//                     * FIXME This is being done in order to prevent the release of
+//                     * data associated with the [readTimestamp] while the rule(s)
+//                     * are reading on those views. In fact, the rules should be
+//                     * using a read-historical transaction and releasing the
+//                     * transaction when they are finished which would allow the
+//                     * transaction manager to take responsibility for globally
+//                     * determining the releaseTime for the federation. In the
+//                     * absence of that facility, this has been hacked so that we can
+//                     * do scale-out closure without having our views disrupted by
+//                     * overflow allowing resources to be purge that are in use by
+//                     * those views. Basically, we are declaring a read lock.
+//                     *
+//                     * The problem discussed here can be readily observed if you
+//                     * attempt the closure of a large data set (U20 may do it, U50
+//                     * will) or if you reduce the journal extent so that overflow is
+//                     * triggered more frequently, in which case you may be able to
+//                     * demonstrate the problem with a much smaller data set.
+//                     *
+//                     * Also note that this is globally advancing the release time.
+//                     * This means that you can not compute closure for two different
+//                     * RDF DBs within the same federation at the same time.
+//                     *
+//                     * Also see the code that resets the release time to 0L after
+//                     * the ProgramTask is finished.
 //                     */
 //
-//                    final long releaseTime = lastCommitTime - 1;
+//                    if (lastCommitTime != 0L) {
 //
-//                    log.warn("readLock: releaseTime="+releaseTime+", step="+step.getName());
+//                        /*
+//                         * There is some committed state, so update the release time
+//                         * such that the timestamp specified by [lastCommitTime]
+//                         * does not get released.
+//                         */
 //
-//                    ((IBigdataFederation) indexManager).getTransactionService()
-//                            .setReleaseTime(releaseTime);
+//                        final long releaseTime = lastCommitTime - 1;
+//
+//                        log.warn("readLock: releaseTime="+releaseTime+", step="+step.getName());
+//
+//                        ((IBigdataFederation) indexManager).getTransactionService()
+//                                .setReleaseTime(releaseTime);
+//
+//                    }
+//
+//                } catch (IOException e) {
+//
+//                    throw new RuntimeException(e);
 //
 //                }
-//
-//            } catch (IOException e) {
-//
-//                throw new RuntimeException(e);
-//
-//            }
 
-        }
+            }//endif(discoveryManager != null)
 
 //BTM        final MutationTask mutationTask = new MutationTask(action, joinNexusFactory,
 //BTM                step, indexManager, isDataService()?getDataService():null);
@@ -567,33 +614,38 @@ final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexM
 //BTM - PRE_FRED_3481         getHostname(),
 //BTM - PRE_FRED_3481         getServiceName());
 
-        final MutationTask mutationTask = 
-                  new MutationTask(action, joinNexusFactory, step, indexManager);
+//BTM - PRE_CLIENT_SERVICE            final MutationTask mutationTask = 
+//BTM - PRE_CLIENT_SERVICE                  new MutationTask(action, joinNexusFactory, step, indexManager);
 
-        if (log.isDebugEnabled())
-            log.debug("begin: action=" + action + ", program=" + step.getName()
-                    + ", task=" + mutationTask);
+            final MutationTask mutationTask = 
+                  new MutationTask(action, joinNexusFactory, step,
+                                   indexManager, concurrencyManager,
+                                   discoveryManager);
 
-        /*
-         * Submit task and await completion, returning the result.
-         *
-         * Note: The task is responsible for computing the aggregate mutation
-         * count.
-         */
+            if (log.isDebugEnabled())
+                log.debug("begin: action=" + action + ", program=" + step.getName()
+                        + ", task=" + mutationTask);
+
+            /*
+             * Submit task and await completion, returning the result.
+             *
+             * Note: The task is responsible for computing the aggregate mutation
+             * count.
+             */
 //BTM - PRE_FRED_3481            return mutationTask.submit().get();
-            return mutationTask.submit(concurrencyManager).get();
+                return mutationTask.submit(concurrencyManager).get();
         } finally {
-            if (tx != 0L) {
+//BTM - PRE_CLIENT_SERVICE  if (tx != 0L) {
+            if (txnService != null) {// => tx != 0L
                 // terminate the read-only tx (releases the read-lock).
                 try {
-                    ((IBigdataFederation) indexManager).getTransactionService()
-                            .abort(tx);
+//BTM - PRE_CLIENT_SERVICE  ((IBigdataFederation) indexManager).getTransactionService().abort(tx);
+                    txnService.abort(tx);
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
             }
         }
-
     }
 
     /**
@@ -639,12 +691,17 @@ final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexM
      * @throws ExecutionException
      * @throws InterruptedException
      */
-//BTM - PRE_FRED_3481    protected RuleStats executeClosure(final IProgram program)
+//BTM - PRE_FRED_3481       protected RuleStats executeClosure(final IProgram program)
 //BTM - PRE_FRED_3481            throws InterruptedException, ExecutionException {
-    protected RuleStats executeClosure(final IProgram program,
-            IIndexManager indexManager, IConcurrencyManager concurrencyManager)
-            throws InterruptedException, ExecutionException {
+//BTM - PRE_CLIENT_SERVICE  protected RuleStats executeClosure(final IProgram program, IIndexManager indexManager, IConcurrencyManager concurrencyManager) throws InterruptedException, ExecutionException {
 
+    protected RuleStats executeClosure
+                           (final IProgram program,
+                            IIndexManager indexManager,
+                            IConcurrencyManager concurrencyManager,
+                            IBigdataDiscoveryManagement discoveryManager)
+              throws InterruptedException, ExecutionException
+    {
         if (program == null)
             throw new IllegalArgumentException();
 
@@ -653,8 +710,17 @@ final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexM
 
         final long begin = System.currentTimeMillis();
 
-        final RuleStats totals = joinNexusFactory.newInstance(indexManager)
-                .getRuleStatisticsFactory().newInstance(program);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  final RuleStats totals =
+//BTM - PRE_CLIENT_SERVICE        joinNexusFactory.newInstance(indexManager).getRuleStatisticsFactory().newInstance(program);
+//BTM - PRE_CLIENT_SERVICE
+        final RuleStats totals = 
+              joinNexusFactory.newInstance
+                                  (indexManager,
+                                   concurrencyManager,
+                                   discoveryManager).getRuleStatisticsFactory()
+                                                    .newInstance(program);
+//BTM - PRE_CLIENT_SERVICE - END
 
         int round = 1;
 
@@ -681,10 +747,13 @@ final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexM
 //            }
 
             // execute the program.
-//BTM - PRE_FRED_3481             final RuleStats tmp = executeMutation(program);
-            final RuleStats tmp =
-                    executeMutation(program, indexManager, concurrencyManager);
-
+//BTM - PRE_FRED_3481       final RuleStats tmp = executeMutation(program);
+//BTM - PRE_CLIENT_SERVICE  final RuleStats tmp = executeMutation(program, indexManager, concurrencyManager);
+            final RuleStats tmp = 
+                      executeMutation(program,
+                                      indexManager,
+                                      concurrencyManager,
+                                      discoveryManager);
             /*
              * This is the #of mutations from executing this round.
              *
@@ -767,13 +836,16 @@ final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexM
      * @throws IllegalStateException
      *             unless the {@link ActionEnum} is a mutation operation.
      */
-//BTM - PRE_FRED_3481    protected RuleStats executeProgramWithEmbeddedClosure(final IProgram program)
-//BTM - PRE_FRED_3481            throws InterruptedException, ExecutionException {
-    protected RuleStats executeProgramWithEmbeddedClosure(
-            final IProgram program, IIndexManager indexManager,
-            IConcurrencyManager concurrencyManager)
-            throws InterruptedException, ExecutionException {
+//BTM - PRE_FRED_3481       protected RuleStats executeProgramWithEmbeddedClosure(final IProgram program) throws InterruptedException, ExecutionException {
+//BTM - PRE_CLIENT_SERVICE  protected RuleStats executeProgramWithEmbeddedClosure(final IProgram program, IIndexManager indexManager, IConcurrencyManager concurrencyManager) throws InterruptedException, ExecutionException {
 
+    protected RuleStats executeProgramWithEmbeddedClosure
+                            (final IProgram program,
+                             IIndexManager indexManager,
+                             IConcurrencyManager concurrencyManager,
+                             IBigdataDiscoveryManagement discoveryManager)
+              throws InterruptedException, ExecutionException
+    {
         if (program == null)
             throw new IllegalArgumentException();
 
@@ -787,8 +859,17 @@ final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexM
         if (log.isInfoEnabled())
             log.info("program embeds closure operations");
 
-        final RuleStats totals = joinNexusFactory.newInstance(indexManager)
-                .getRuleStatisticsFactory().newInstance(program);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  final RuleStats totals =
+//BTM - PRE_CLIENT_SERVICE        joinNexusFactory.newInstance(indexManager).getRuleStatisticsFactory().newInstance(program);
+//BTM - PRE_CLIENT_SERVICE
+        final RuleStats totals =
+              joinNexusFactory.newInstance
+                  (indexManager,
+                   concurrencyManager,
+                   discoveryManager).getRuleStatisticsFactory()
+                                    .newInstance(program);
+//BTM - PRE_CLIENT_SERVICE - END
 
         final Iterator<? extends IStep> itr = (program).steps();
 
@@ -802,16 +883,21 @@ final QueryTask queryTask = new QueryTask(step, joinNexusFactory, buffer, indexM
             if (!tmpStep.isRule() && ((IProgram) tmpStep).isClosure()) {
 
                 // A closure step.
-//BTM - PRE_FRED_3481                stats = executeClosure((IProgram) step);
-                stats = executeClosure((IProgram) tmpStep, indexManager,
-                                       concurrencyManager);
-
+//BTM - PRE_FRED_3481       stats = executeClosure((IProgram) step);
+//BTM - PRE_CLIENT_SERVICE  stats = executeClosure((IProgram) tmpStep, indexManager, concurrencyManager);
+                stats = executeClosure( (IProgram) tmpStep,
+                                        indexManager,
+                                        concurrencyManager,
+                                        discoveryManager );
             } else {
 
                 // A non-closure step.
-//BTM - PRE_FRED_3481                stats = executeMutation(step);
-                stats = executeMutation(tmpStep, indexManager, concurrencyManager);
-
+//BTM - PRE_FRED_3481       stats = executeMutation(step);
+//BTM - PRE_CLIENT_SERVICE  stats = executeMutation(tmpStep, indexManager, concurrencyManager);
+                stats = executeMutation(tmpStep,
+                                        indexManager,
+                                        concurrencyManager,
+                                        discoveryManager);
             }
 
             totals.add(stats);

@@ -211,13 +211,25 @@ public class TestBuildTask2 extends AbstractResourceManagerTestCase {
         int npasses = 0;
         while (npasses++ < 50) {
 
-//BTM            final Event e = new Event(resourceManager.getFederation(), new EventResource(name), "test").addDetail("pass", "" + npasses).start();
-final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
-                           (resourceManager.getFederation()).getServiceIface(),
-                           (resourceManager.getFederation()).getServiceName(),
-                           (resourceManager.getFederation()).getServiceUUID(),
-                           new EventResource(name),
-                           "test" ).addDetail("pass", "" + npasses).start();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE //BTM            final Event e = new Event(resourceManager.getFederation(), new EventResource(name), "test").addDetail("pass", "" + npasses).start();
+//BTM - PRE_CLIENT_SERVICE final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                            new EventResource(name),
+//BTM - PRE_CLIENT_SERVICE                            "test" ).addDetail("pass", "" + npasses).start();
+
+            final Event e =
+           new Event
+           ( (resourceManager.getLocalResourceManager()).getEventQueueSender(),
+             (resourceManager.getLocalResourceManager()).getServiceIface(),
+             (resourceManager.getLocalResourceManager()).getServiceName(),
+             (resourceManager.getLocalResourceManager()).getServiceUUID(),
+             new EventResource(name),
+             "test" ).addDetail("pass", "" + npasses).start();
+//BTM - PRE_CLIENT_SERVICE - END
+
             try {
 
                 /*

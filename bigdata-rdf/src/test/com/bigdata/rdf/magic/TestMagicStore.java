@@ -126,8 +126,17 @@ public class TestMagicStore extends AbstractInferenceEngineTestCase {
         tmp.setProperty(AbstractTripleStore.Options.LEXICON, "false");
         tmp.setProperty(AbstractTripleStore.Options.ONE_ACCESS_PATH, "true");
 
-        final TempMagicStore tempStore = new TempMagicStore(
-                store.getIndexManager().getTempStore(), tmp, store);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final TempMagicStore tempStore = new TempMagicStore(
+//BTM - PRE_CLIENT_SERVICE                store.getIndexManager().getTempStore(), tmp, store);
+        final TempMagicStore tempStore =
+                  new TempMagicStore
+                      (store.getIndexManager().getTempStore(),
+                       store.getConcurrencyManager(),
+                       store.getDiscoveryManager(),
+                       tmp,
+                       store);
+//BTM - PRE_CLIENT_SERVICE - END
 
         try {
 
@@ -188,8 +197,17 @@ public class TestMagicStore extends AbstractInferenceEngineTestCase {
         tmp.setProperty(AbstractTripleStore.Options.LEXICON, "false");
         tmp.setProperty(AbstractTripleStore.Options.ONE_ACCESS_PATH, "true");
 
-        final TempMagicStore tempStore = new TempMagicStore(
-                store.getIndexManager().getTempStore(), tmp, store);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final TempMagicStore tempStore = new TempMagicStore(
+//BTM - PRE_CLIENT_SERVICE                store.getIndexManager().getTempStore(), tmp, store);
+        final TempMagicStore tempStore =
+                  new TempMagicStore
+                      (store.getIndexManager().getTempStore(),
+                       store.getConcurrencyManager(),
+                       store.getDiscoveryManager(),
+                       tmp,
+                       store);
+//BTM - PRE_CLIENT_SERVICE - END
 
         try {
 

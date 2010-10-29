@@ -54,7 +54,7 @@ import com.bigdata.counters.render.XHTMLRenderer;
 import com.bigdata.journal.ITx;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.relation.accesspath.IRunnableBuffer;
-import com.bigdata.service.AbstractFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.DataService;
 import com.bigdata.service.Event;
 import com.bigdata.service.jini.DataServer;
@@ -66,6 +66,16 @@ import com.bigdata.service.ndx.IScaleOutClientIndex;
 import com.bigdata.service.ndx.pipeline.IDuplicateRemover;
 import com.bigdata.zookeeper.ZLockImpl;
 import org.apache.log4j.Logger;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.jini.IJiniDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexManager;
+import com.bigdata.journal.IScaleOutIndexStore;
+import com.bigdata.journal.ScaleOutIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.zookeeper.ZooKeeperAccessor;
+import org.apache.zookeeper.data.ACL;
+import java.util.List;
 
 /**
  * Utility class for benchmarking index operations on a federation. This test
@@ -426,12 +436,27 @@ public class ThroughputMaster
      * 
      * @throws ConfigurationException
      */
-    protected ThroughputMaster(JiniFederation fed)
-            throws ConfigurationException {
-
-        super(fed);
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    protected ThroughputMaster(JiniFederation fed)
+//BTM - PRE_CLIENT_SERVICE            throws ConfigurationException {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(fed);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+    protected ThroughputMaster
+               (final IScaleOutIndexManager scaleOutIndexManager,
+                final IJiniDiscoveryManagement discoveryManager,
+                final ILocalResourceManagement localResourceManager,
+                final ZooKeeperAccessor zookeeperAccessor,
+                final List<ACL> zookeeperAcl,
+                final String zookeeperRoot,
+                final Configuration config)
+            throws ConfigurationException
+    {
+        super(scaleOutIndexManager, discoveryManager, localResourceManager,
+              zookeeperAccessor, zookeeperAcl, zookeeperRoot, config);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Runs the master. SIGTERM (normal kill or ^C) will cancel the job,
@@ -458,7 +483,18 @@ public class ThroughputMaster
 
         try {
 
-            final TaskMaster task = new ThroughputMaster(fed);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final TaskMaster task = new ThroughputMaster(fed);
+            final TaskMaster task =
+                  new ThroughputMaster
+                          ( (IScaleOutIndexManager)fed,
+                            (IJiniDiscoveryManagement)fed,
+                            (ILocalResourceManagement)fed,
+                            fed.getZookeeperAccessor(),
+                            fed.getZooConfig().acl,
+                            fed.getZooConfig().zroot,
+                            fed.getClient().getConfiguration() );
+//BTM - PRE_CLIENT_SERVICE - END
 
             // execute master wait for it to finish.
             task.execute();
@@ -480,7 +516,10 @@ public class ThroughputMaster
 
         final String name = jobState.namespace;
 
-        if (fed.getIndex(name, ITx.UNISOLATED) == null) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        if (fed.getIndex(name, ITx.UNISOLATED) == null) {
+        if (scaleOutIndexManager.getIndex(name, ITx.UNISOLATED) == null) {
+//BTM - PRE_CLIENT_SERVICE - END
 
             if (log.isInfoEnabled())
                 log.info("Registering index: " + name);
@@ -520,12 +559,23 @@ public class ThroughputMaster
                 // use whatever is discovered by the MDS.
                 final UUID[] dataServiceUUIDs = null;
 
-                fed.registerIndex(new IndexMetadata(name, UUID.randomUUID()),
-                        separatorKeys, dataServiceUUIDs);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                fed.registerIndex(new IndexMetadata(name, UUID.randomUUID()),
+//BTM - PRE_CLIENT_SERVICE                        separatorKeys, dataServiceUUIDs);
+                ((ScaleOutIndexManager)scaleOutIndexManager).registerIndex
+                                  (new IndexMetadata(name, UUID.randomUUID()),
+                                   separatorKeys,
+                                   dataServiceUUIDs);
+//BTM - PRE_CLIENT_SERVICE - END
 
             } else {
             
-                fed.registerIndex(new IndexMetadata(name, UUID.randomUUID()));
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                fed.registerIndex(new IndexMetadata(name, UUID.randomUUID()));
+                scaleOutIndexManager.registerIndex
+                                 (new IndexMetadata(name, UUID.randomUUID()));
+//BTM - PRE_CLIENT_SERVICE - END
+
                 
             }
 
@@ -585,11 +635,22 @@ public class ThroughputMaster
         }
 
         @Override
-        protected Void runWithZLock(final ClientState clientState,
-                                    final JiniFederation jiniFederation,
-                                    final ZLockImpl zlock,
-                                    final String clientZPath)
-                throws Exception, KeeperException, InterruptedException {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        protected Void runWithZLock(final ClientState clientState,
+//BTM - PRE_CLIENT_SERVICE                                    final JiniFederation jiniFederation,
+//BTM - PRE_CLIENT_SERVICE                                    final ZLockImpl zlock,
+//BTM - PRE_CLIENT_SERVICE                                    final String clientZPath)
+//BTM - PRE_CLIENT_SERVICE                throws Exception, KeeperException, InterruptedException {
+//BTM - PRE_CLIENT_SERVICE
+        protected Void runWithZLock
+                         (final ClientState clientState,
+                          final IScaleOutIndexStore indexStore,
+                          final ILocalResourceManagement localResourceManager,
+                          final ZLockImpl zlock,
+                          final String clientZPath)
+                  throws Exception, KeeperException, InterruptedException
+        {
+//BTM - PRE_CLIENT_SERVICE - END
             
             if (r == null) {
 
@@ -599,8 +660,9 @@ public class ThroughputMaster
             }
 
             // unisolated view of the scale-out index.
-            final IScaleOutClientIndex ndx = 
-                    jiniFederation.getIndex(jobState.namespace, ITx.UNISOLATED);
+//BTM - PRE_CLIENT_SERVICE  final IScaleOutClientIndex ndx = jiniFederation.getIndex(jobState.namespace, ITx.UNISOLATED);
+            final IScaleOutClientIndex ndx =
+                  indexStore.getIndex(jobState.namespace, ITx.UNISOLATED);
 
             final IDuplicateRemover<Void> duplicateRemover;
             final IRunnableBuffer<KVO<Void>[]> insertBuffer;
@@ -724,7 +786,9 @@ public class ThroughputMaster
              * can get them from there and then aggregate them across the
              * clients.
              */
-            System.err.println(jiniFederation.getIndexCounters(ndx.getName()));
+//BTM - PRE_CLIENT_SERVICE  System.err.println(jiniFederation.getIndexCounters(ndx.getName()));
+            System.err.println
+                (localResourceManager.getIndexCounters(ndx.getName()));
             
             return null;
             

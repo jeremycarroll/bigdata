@@ -26,84 +26,54 @@ package com.bigdata.shard;
 
 import static com.bigdata.shard.Constants.*;
 
-import com.bigdata.counters.IDataServiceCounters;//BTM - moved from a nested class in DataService to a standalone class that can be shared
-
-import com.bigdata.service.DefaultServiceFederationDelegate;//BTM - remove?
-import com.bigdata.service.IBigdataFederation;//BTM - remove when federation dependencies are removed from codebase
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IMetadataService;
-import com.bigdata.service.IDataServiceCallable;//BTM - investigate
-import com.bigdata.service.IFederationCallable;//BTM - investigate
-
-
-import com.bigdata.btree.IIndex;
-import com.bigdata.btree.IRangeQuery;
-import com.bigdata.btree.ITupleIterator;
 import com.bigdata.btree.IndexMetadata;
+import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ResultSet;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.proc.IIndexProcedure;
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.ICounterSet;
+import com.bigdata.counters.IDataServiceCounters;
 import com.bigdata.counters.Instrument;
-import com.bigdata.io.ByteBufferInputStream;
-//BTM import com.bigdata.journal.AbstractLocalTransactionManager;
-import com.bigdata.journal.AbstractTask;
-import com.bigdata.journal.ConcurrencyManager;
-import com.bigdata.journal.DropIndexTask;
-import com.bigdata.journal.IConcurrencyManager;
-//BTM import com.bigdata.journal.ILocalTransactionManager;
-import com.bigdata.journal.IResourceManager;
-import com.bigdata.journal.ITransactionService;
-import com.bigdata.journal.ITx;
-import com.bigdata.journal.IndexProcedureTask;
-import com.bigdata.journal.RegisterIndexTask;
-import com.bigdata.journal.RunState;
-import com.bigdata.journal.TimestampUtility;
-import com.bigdata.journal.Tx;
-import com.bigdata.journal.ConcurrencyManager.IConcurrencyManagerCounters;
-import com.bigdata.journal.JournalTransactionService.SinglePhaseCommit;
-import com.bigdata.mdi.IResourceMetadata;
-import com.bigdata.rawstore.IBlock;
-import com.bigdata.rawstore.IRawStore;
-import com.bigdata.resources.ResourceManager;
-import com.bigdata.resources.IndexManager.IIndexManagerCounters;
-import com.bigdata.resources.ResourceManager.IResourceManagerCounters;
-import com.bigdata.resources.StoreManager.ManagedJournal;
-
-//BTM
-import com.bigdata.counters.AbstractStatisticsCollector;
 import com.bigdata.counters.IServiceCounters;
-import com.bigdata.counters.IStatisticsCollector;
 import com.bigdata.counters.LoadBalancerReportingTask;
 import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.counters.ReadBlockCounters;
 import com.bigdata.counters.httpd.HttpReportingServer;
-import com.bigdata.event.EventQueueSenderTask;
-import com.bigdata.jini.lookup.entry.Hostname;
-import com.bigdata.jini.lookup.entry.ServiceUUID;
-import com.bigdata.jini.start.IServicesManagerService;
+import com.bigdata.io.ByteBufferInputStream;
+import com.bigdata.jini.BigdataDiscoveryManager;
+import com.bigdata.journal.AbstractTask;
+import com.bigdata.journal.ConcurrencyManager;
 import com.bigdata.journal.DistributedCommitTask;
-import com.bigdata.journal.EmbeddedIndexStore;
+import com.bigdata.journal.DropIndexTask;
 import com.bigdata.journal.GetIndexMetadataTask;
-import com.bigdata.journal.IIndexManager;
+import com.bigdata.journal.IndexProcedureTask;
+import com.bigdata.journal.ITx;
 import com.bigdata.journal.LocalTransactionManager;
 import com.bigdata.journal.RangeIteratorTask;
-import com.bigdata.journal.TemporaryStoreFactory;
+import com.bigdata.journal.RegisterIndexTask;
+import com.bigdata.journal.RunState;
+import com.bigdata.journal.ScaleOutIndexManager;
+import com.bigdata.journal.TimestampUtility;
 import com.bigdata.journal.TransactionService;
-import com.bigdata.resources.LocalResourceManagement;
-import com.bigdata.service.Event; //BTM *** move to com.bigdata.event?
-import com.bigdata.service.IClientService;
-import com.bigdata.service.IDataService;
-import com.bigdata.service.IDataServiceOnlyFilter;
-import com.bigdata.service.IMetadataService;
-import com.bigdata.service.ILoadBalancerService;
+import com.bigdata.journal.Tx;
+import com.bigdata.journal.JournalTransactionService.SinglePhaseCommit;
+import com.bigdata.mdi.IResourceMetadata;
+import com.bigdata.rawstore.IBlock;
+import com.bigdata.rawstore.IRawStore;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.resources.LocalResourceManager;
+import com.bigdata.resources.ResourceManager;
+import com.bigdata.resources.StoreManager.ManagedJournal;
+import com.bigdata.service.DataTaskWrapper;
+import com.bigdata.service.IDataServiceCallable;
+import com.bigdata.service.IFederationCallable;
 import com.bigdata.service.ISession;
-import com.bigdata.service.IService;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.ITxCommitProtocol;
 import com.bigdata.service.LoadBalancer;
-import com.bigdata.service.MetadataIndexCache;
 import com.bigdata.service.MetadataIndexCachePolicy;
 import com.bigdata.service.OverflowAdmin;
 import com.bigdata.service.Service;
@@ -111,52 +81,35 @@ import com.bigdata.service.Session;
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardManagement;
 import com.bigdata.service.ShardService;
-import com.bigdata.util.EntryUtil;
-import com.bigdata.util.Util;
-import com.bigdata.util.concurrent.DaemonThreadFactory;
-import com.bigdata.util.concurrent.TaskCounters;
-import com.bigdata.util.concurrent.ThreadPoolExecutorStatisticsTask;
 import com.bigdata.util.config.LogUtil;
 import com.bigdata.util.httpd.AbstractHTTPD;
+import com.bigdata.zookeeper.ZooKeeperAccessor;
 
-import net.jini.core.entry.Entry;
-import net.jini.core.lookup.ServiceID;
-import net.jini.core.lookup.ServiceItem;
-import net.jini.core.lookup.ServiceTemplate;
-import net.jini.lookup.LookupCache;
-import net.jini.lookup.ServiceDiscoveryEvent;
-import net.jini.lookup.ServiceDiscoveryListener;
 import net.jini.lookup.ServiceDiscoveryManager;
-import net.jini.lookup.ServiceItemFilter;
-import net.jini.lookup.entry.Name;
 
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
+import org.apache.zookeeper.data.ACL;
+
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.Writer;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
-import java.rmi.RemoteException;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-//BTM - PRE_FRED_3481
-import com.bigdata.service.DataTaskWrapper;
-import com.bigdata.service.IDataServiceCallable;
 
 // Make package protected in the future when possible
 public
@@ -166,15 +119,13 @@ class EmbeddedShardService implements ShardService,
                                       OverflowAdmin,
                                       Service,
                                       ISession,
-                                      IServiceShutdown,
-                                      LocalResourceManagement
+                                      IServiceShutdown
 {
     public static Logger logger =
         LogUtil.getLog4jLogger((EmbeddedShardService.class).getName());
 
     /**
      * Options understood by the shard service.
-     * 
      */
     public static interface Options extends com.bigdata.journal.Options,
             com.bigdata.journal.ConcurrencyManager.Options,
@@ -183,283 +134,137 @@ class EmbeddedShardService implements ShardService,
             com.bigdata.service.IBigdataClient.Options
             // @todo local tx manager options?
     {
-//BTM - BEGIN - added options
-    String THREAD_POOL_SIZE = "threadPoolSize";
-    String DEFAULT_THREAD_POOL_SIZE = 
+        String THREAD_POOL_SIZE = "threadPoolSize";
+        String DEFAULT_THREAD_POOL_SIZE = 
            new Integer(Constants.DEFAULT_THREAD_POOL_SIZE).toString();
-//BTM - END   - added options
     }
-    
-    /**
-     * Counters for the block read API.
-     */
-    final private ReadBlockCounters readBlockApiCounters = new ReadBlockCounters();
 
-    /**
-     * Object manages the resources hosted by this shard service.
-     */
-    private ResourceManager resourceManager;
+    private ZooKeeperAccessor zkAccessor;
+    private List<ACL> zkAcl;
+    private String zkRoot;
+    private Properties properties;
 
-    /**
-     * Object provides concurrency control for the named resources (indices).
-     */
-    private ConcurrencyManager concurrencyManager;
+    private IBigdataDiscoveryManagement discoveryMgr;
+    private ILocalResourceManagement localResources;
+    private ScaleOutIndexManager indexMgr;
+    private ResourceManager resourceMgr;
+    private LocalTransactionManager localTransactionMgr;
+    private ConcurrencyManager concurrencyMgr;
 
-    /**
-     * Object supports local transactions and does handshaking with the
-     * {@link DistributedTransactionService}.
-     */
-//BTM    private DataServiceTransactionManager localTransactionManager;
-private LocalTransactionManager localTransactionManager;
+    private ReadBlockCounters readBlockApiCounters = new ReadBlockCounters();
 
-    /**
-     * A clone of properties specified to the ctor.
-     */
-    private final Properties properties;
-
-    /**
-     * The dynamic property set associated with the service instance.
-     */
-    private final Session session = new Session();
-    
-
-private UUID thisServiceUUID;
-private String hostname;
-private ServiceDiscoveryManager sdm;//for discovering txn, lbs, shard services
-
-private LookupCache txnServiceCache;
-private LookupCache lbsServiceCache;
-private LookupCache mdsServiceCache;
-private LookupCache shardCache;
-private LookupCache remoteShardCache;//need because of IMetadataService
-
-//for embedded federation testing
-private LoadBalancer embeddedLoadBalancer;
-
-//BTM - BEGIN - fields from AbstractFederation --------------------------------
-private final ThreadPoolExecutor threadPool;
-private final ScheduledExecutorService scheduledExecutor =
-                      Executors.newSingleThreadScheduledExecutor
-                          (new DaemonThreadFactory
-                                   (getClass().getName()+".sampleService"));
-private ScheduledFuture<?> eventTaskFuture;
-private ScheduledFuture<?> queueStatsTaskFuture;
-private ScheduledFuture<?> lbsReportingTaskFuture;
-private AbstractHTTPD httpServer;
-private String httpServerUrl;//URL used to access the httpServer
-
-private final TemporaryStoreFactory tempStoreFactory;
-
-//Queue of events sent periodically to the load balancer service
-private BlockingQueue<Event> eventQueue = new LinkedBlockingQueue<Event>();
-
-private TaskCounters taskCounters = new TaskCounters();
-private CounterSet countersRoot = new CounterSet();
-private CounterSet serviceRoot;
-private AbstractStatisticsCollector statisticsCollector;
-private int httpdPort;
-
-//BTM - END   - fields from AbstractFederation --------------------------------
+//BTM - BEGIN - fields from AbstractFederation -------------------------------
+    private ScheduledFuture<?> eventTaskFuture;
+    private ScheduledFuture<?> lbsReportingTaskFuture;
+    private AbstractHTTPD httpServer;
+    private String httpServerUrl;//URL used to access the httpServer
+    private int httpdPort;
+//BTM - END   - fields from AbstractFederation -------------------------------
 
 String dbgFlnm="EmbeddedShardService.out";
-
-//for executing IDataServiceCallable tasks
-private EmbeddedIndexStore embeddedIndexStore;
 
     protected EmbeddedShardService
                   (final UUID serviceUUID,
                    final String hostname,
                    final ServiceDiscoveryManager sdm,
                    final TransactionService embeddedTxnService,
-                   final LoadBalancer embeddedLbs,
+                   final LoadBalancer embeddedLoadBalancer,
+                   final ZooKeeperAccessor zookeeperAccessor,
+                   final List<ACL> zookeeperAcl,
+                   final String zookeeperRoot,
                    final int threadPoolSize,
                    final int indexCacheSize,
                    final long indexCacheTimeout,
                    final MetadataIndexCachePolicy metadataIndexCachePolicy,
                    final int resourceLocatorCacheSize,
                    final long resourceLocatorCacheTimeout,
+                   final int defaultRangeQueryCapacity,
+                   final boolean batchApiOnly,
+                   final long taskTimeout,
+                   final int maxParallelTasksPerRequest,
+                   final int maxStaleLocatorRetries,
                    final boolean collectQueueStatistics,
+                   final boolean collectPlatformStatistics,
                    final long lbsReportingPeriod,
                    final int httpdPort,
                    Properties properties)
     {
+        this.zkAccessor = zookeeperAccessor;
+        this.zkAcl = zookeeperAcl;
+        this.zkRoot = zookeeperRoot;
+        this.httpdPort = httpdPort;
+        this.properties = (Properties) properties.clone();
 
-//BTM        super(properties);
+        (this.properties).setProperty
+            ( AbstractStatisticsCollector.Options.PROCESS_NAME,
+              "service" + ICounterSet.pathSeparator + SERVICE_TYPE
+              + ICounterSet.pathSeparator + serviceUUID.toString() );
 
-this.properties = (Properties) properties.clone();
-if (serviceUUID == null) {
-    throw new NullPointerException("null serviceUUID");
-}   
-this.thisServiceUUID = serviceUUID;
+        this.discoveryMgr = 
+            new BigdataDiscoveryManager(sdm,
+                                        embeddedTxnService,
+                                        embeddedLoadBalancer,
+                                        null, //embeddedShardLocator
+                                        null, //embeddedDataServiceMap
+                                        logger);
+        this.localResources = 
+            new LocalResourceManager(SERVICE_TYPE,
+                                     SERVICE_NAME,
+                                     serviceUUID,
+                                     hostname,
+                                     this.discoveryMgr,
+                                     logger,
+                                     threadPoolSize,
+                                     collectQueueStatistics,
+                                     collectPlatformStatistics,
+                                     this.properties);
 
-if (hostname == null) {
-    throw new NullPointerException("null hostname");
-}   
-this.hostname = hostname;
-this.sdm = sdm;
-this.embeddedLoadBalancer = embeddedLbs;
-this.httpdPort = httpdPort;
-String httpServerPath = 
-                   Util.getServiceCounterPathPrefix
-                       (this.thisServiceUUID, SERVICE_TYPE, this.hostname);
-try {
-    this.httpServerUrl = 
+        this.indexMgr = new ScaleOutIndexManager(this.discoveryMgr,
+                                                 this.localResources,
+                                                 this.zkAccessor,
+                                                 this.zkAcl,
+                                                 this.zkRoot,
+                                                 indexCacheSize,
+                                                 indexCacheTimeout,
+                                                 metadataIndexCachePolicy,
+                                                 resourceLocatorCacheSize,
+                                                 resourceLocatorCacheTimeout,
+                                                 defaultRangeQueryCapacity,
+                                                 batchApiOnly,
+                                                 taskTimeout,
+                                                 maxParallelTasksPerRequest,
+                                                 maxStaleLocatorRetries,
+                                                 logger,
+                                                 this.properties);
+        String httpServerPath = 
+                   (this.localResources).getServiceCounterPathPrefix();
+        try {
+            this.httpServerUrl = 
                 "http://"
                 +AbstractStatisticsCollector.fullyQualifiedHostName
                 +":"+this.httpdPort+"/?path="
                 +URLEncoder.encode(httpServerPath, "UTF-8");
-} catch(java.io.UnsupportedEncodingException e) {
-    logger.warn("failed to initialize httpServerUrl", e);
-}
-if(sdm != null) {
-            //for discovering txn, lbs, and shard locator services
-            Class[] txnServiceType = 
-                            new Class[] {TransactionService.class};
-            ServiceTemplate txnServiceTmpl = 
-                            new ServiceTemplate(null, txnServiceType, null);
-
-            Class[] lbsServiceType = 
-                            new Class[] {LoadBalancer.class};
-            ServiceTemplate lbsServiceTmpl = 
-                            new ServiceTemplate(null, lbsServiceType, null);
-
-            Class[] mdsServiceType = 
-                            new Class[] {ShardLocator.class};
-            ServiceTemplate mdsServiceTmpl = 
-                            new ServiceTemplate(null, mdsServiceType, null);
-
-            Class[] shardType = new Class[] {ShardService.class};
-            ServiceTemplate shardTmpl = 
-                            new ServiceTemplate(null, shardType, null);
-            ServiceItemFilter shardFilter = null;
-            try {
-                //caches for smart proxy implementations
-                this.txnServiceCache = sdm.createLookupCache
-                                     ( txnServiceTmpl, 
-                                       null,
-                                       new CacheListener(logger) );
-                this.lbsServiceCache = sdm.createLookupCache
-                                     ( lbsServiceTmpl, 
-                                       null,
-                                       new CacheListener(logger) );
-                this.mdsServiceCache = sdm.createLookupCache
-                                     ( mdsServiceTmpl, 
-                                       null,
-                                       new CacheListener(logger) );
-                this.shardCache = sdm.createLookupCache
-                                     ( shardTmpl, 
-                                       shardFilter,
-                                       new CacheListener(logger) );
-            } catch(RemoteException e) {
-                logger.warn(e.getMessage(), e);
-            }
-
-            //for remote implementation
-
-            Class[] remoteShardType = new Class[] {IDataService.class};
-            ServiceTemplate remoteShardTmpl = 
-                            new ServiceTemplate(null, remoteShardType, null);
-            ServiceItemFilter remoteShardFilter = new IDataServiceOnlyFilter();
-            try {
-                this.remoteShardCache = sdm.createLookupCache
-                                     ( remoteShardTmpl,
-                                       remoteShardFilter,
-                                       new CacheListener(logger) );
-            } catch(RemoteException e) {
-                logger.warn(e.getMessage(), e);
-            }
-}//endif(sdm != null)
-
-//BTM - trying to maintain logic from AbstractionFederation (for now)
-
-        if (threadPoolSize == 0) {
-            this.threadPool = 
-                (ThreadPoolExecutor) Executors.newCachedThreadPool
-                    (new DaemonThreadFactory
-                         (getClass().getName()+".executorService"));
-        } else {
-            this.threadPool = 
-                (ThreadPoolExecutor) Executors.newFixedThreadPool
-                    (threadPoolSize, 
-                     new DaemonThreadFactory
-                         (getClass().getName()+".executorService"));
+        } catch(java.io.UnsupportedEncodingException e) {
+            logger.warn("failed to initialize httpServerUrl", e);
         }
 
-        this.localTransactionManager = 
-            new LocalTransactionManager(this.txnServiceCache,
-                                        embeddedTxnService);//for embedded fed
-
-        this.tempStoreFactory = new TemporaryStoreFactory(this.properties);
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-//BTM - eventually remove this section?
-//BTM - probably don't want shard service collecting platform statistics like the data service does
-//BTM - but for initial testing after smart conversion, default to collecting them for now
-
-boolean collectPlatformStatistics = Boolean.parseBoolean( this.properties.getProperty(Options.COLLECT_PLATFORM_STATISTICS, "false") );
-    (this.properties).setProperty( AbstractStatisticsCollector.Options.PROCESS_NAME,
-                                   "service"+ICounterSet.pathSeparator
-                                            +SERVICE_TYPE+ICounterSet.pathSeparator
-                                            +serviceUUID.toString() );
-        this.statisticsCollector = 
-            AbstractStatisticsCollector.newInstance(this.properties);
-        this.serviceRoot = Util.getServiceCounterSet(this.thisServiceUUID,
-                                                     SERVICE_TYPE,
-                                                     SERVICE_NAME,
-                                                     this.hostname,
-                                                     this.countersRoot,
-                                                     this.statisticsCollector,
-                                                     this.properties,
-                                                     true);//add basic counters
-if(collectPlatformStatistics) {
-        this.statisticsCollector.start();
-        if( logger.isDebugEnabled() ) {
-            logger.debug("collecting platform statistics ["+serviceUUID+"]");
-        }
-}//endif(collectPlatformStatistics)
-///////////////////////////////////////////////////////////////////////////////////////
-
-        EventQueueSenderTask eventTask = 
-            new EventQueueSenderTask
-                    (eventQueue, this.lbsServiceCache,
-                     this.embeddedLoadBalancer, SERVICE_NAME, logger);
-
-        this.embeddedIndexStore =
-            new EmbeddedIndexStore(this.thisServiceUUID,
-                                   SERVICE_TYPE,
-                                   SERVICE_NAME,
-                                   hostname,
-this.lbsServiceCache,
-this.mdsServiceCache,
-this.shardCache,
-this.remoteShardCache,
-this.embeddedLoadBalancer,
-                                   (LocalResourceManagement)this,
-                                   this.tempStoreFactory,
-                                   indexCacheSize,
-                                   indexCacheTimeout,
-                                   metadataIndexCachePolicy,
-                                   resourceLocatorCacheSize,
-                                   resourceLocatorCacheTimeout,
-                                   this.countersRoot,
-                                   this.statisticsCollector,
-                                   this.properties,
-                                   readBlockApiCounters,
-                                   this.localTransactionManager,
-                                   eventTask,
-                                   this.threadPool,
-                                   this.httpServerUrl);
 System.out.println("\nEmbeddedShardService >>> NEW StoreManager - BEGIN");
-        this.resourceManager = 
-            new ShardResourceManager(this, this.embeddedIndexStore, properties);
+        this.resourceMgr = 
+            new ShardResourceManager(this,
+                                     this.discoveryMgr,
+                                     this.localResources,
+                                     this.indexMgr,
+                                     this.properties);
 System.out.println("\nEmbeddedShardService >>> NEW StoreManager - END");
 
-        this.concurrencyManager = 
-            new ConcurrencyManager
-                    (properties, localTransactionManager, resourceManager);
-
-        resourceManager.setConcurrencyManager(concurrencyManager);
+        this.localTransactionMgr = new LocalTransactionManager(discoveryMgr);
+        this.concurrencyMgr = 
+            new ConcurrencyManager(this.properties,
+                                   this.localTransactionMgr,
+                                   this.resourceMgr);
+        //WARN: circular refs
+        (this.resourceMgr).setConcurrencyManager(this.concurrencyMgr);
+        (this.indexMgr).setConcurrencyManager(this.concurrencyMgr);
 
 //BTM - from AbstractFederation constructor and addScheduledTask
 
@@ -468,55 +273,40 @@ System.out.println("\nEmbeddedShardService >>> NEW StoreManager - END");
         long sendEventsDelay = 100L;//one-time initial delay
         long sendEventsPeriod = 2000L;
         this.eventTaskFuture = 
-            this.scheduledExecutor.scheduleWithFixedDelay(eventTask,
-                                                          sendEventsDelay,
-                                                          sendEventsPeriod,
-                                                          TimeUnit.MILLISECONDS);
+            (localResources.getScheduledExecutor()).scheduleWithFixedDelay
+                                              (localResources.getEventQueueSender(),
+                                               sendEventsDelay,
+                                               sendEventsPeriod,
+                                               TimeUnit.MILLISECONDS);
 
 //BTM - from AbstractFederation - start deferred tasks
-
-        //start queue statistics collection task (runs every 1 sec)
-
-        if(collectQueueStatistics) {
-            long queueStatsDelay = 0L;//no initial delay
-            long queueStatsPeriod = 1000L;
-            String threadPoolName = 
-                "EmbeddedShardService-Queue-Statistics-Collection";
-            ThreadPoolExecutorStatisticsTask queueStatsTask =
-                new ThreadPoolExecutorStatisticsTask
-                    (threadPoolName, this.threadPool, taskCounters);
-            (this.serviceRoot).makePath(threadPoolName).attach
-                                     (queueStatsTask.getCounters());
-            this.queueStatsTaskFuture = 
-                this.scheduledExecutor.scheduleWithFixedDelay
-                                           (queueStatsTask,
-                                            queueStatsDelay,
-                                            queueStatsPeriod,
-                                            TimeUnit.MILLISECONDS);
-        }
 
         //start task to report counters to the load balancer
 
         LoadBalancerReportingTask lbsReportingTask = 
-            new LoadBalancerReportingTask
-                    (embeddedIndexStore, this.thisServiceUUID,
-                     this.serviceRoot, this.lbsServiceCache,
-                     this.embeddedLoadBalancer, logger);
+            new LoadBalancerReportingTask(this.resourceMgr,
+                                          this.concurrencyMgr,
+                                          this.localResources,
+                                          this.discoveryMgr,
+                                          logger);
         this.lbsReportingTaskFuture = 
-            this.scheduledExecutor.scheduleWithFixedDelay
-                                       (lbsReportingTask,
-                                        lbsReportingPeriod,//initial delay
-                                        lbsReportingPeriod,
-                                        TimeUnit.MILLISECONDS);
+            ((this.localResources).getScheduledExecutor())
+                                      .scheduleWithFixedDelay
+                                          (lbsReportingTask,
+                                           lbsReportingPeriod,//initial delay
+                                           lbsReportingPeriod,
+                                           TimeUnit.MILLISECONDS);
 
         //start an http daemon from which interested parties can query
         //counter and/or statistics information with http get commands
 
         try {
             httpServer = 
-                new HttpReportingServer
-                        (httpdPort, this.countersRoot,
-                         embeddedIndexStore, logger);
+                new HttpReportingServer(this.httpdPort,
+                                        this.resourceMgr,
+                                        this.concurrencyMgr,
+                                        this.localResources,
+                                        logger);
         } catch (IOException e) {
             logger.error("failed to start http server "
                          +"[port="+this.httpdPort
@@ -529,42 +319,60 @@ System.out.println("\nEmbeddedShardService >>> NEW StoreManager - END");
                              +"[access URL="+this.httpServerUrl+"]");
             }
             // add counter reporting the access url to load balancer
-            serviceRoot.addCounter
-                (IServiceCounters.LOCAL_HTTPD,
-                 new OneShotInstrument<String>(this.httpServerUrl));
+            ((this.localResources).getServiceCounterSet())
+                .addCounter
+                     (IServiceCounters.LOCAL_HTTPD,
+                     new OneShotInstrument<String>(this.httpServerUrl));
         }
 
+//BTM - BEGIN ScaleOutIndexManager
+//BTM -       The call to embeddedIndexStore.didStart was previously
+//BTM -       commented out during the data service conversion. But
+//BTM -       the method didStart() on the original EmbeddedIndexStore and
+//BTM -       AbstractFederation calls the private method setupCounters;
+//BTM -       which seems to be important for at least the shard (data)
+//BTM -       service. The tests still passed without calling that method,
+//BTM -       but we should consider calling it at this point (the problem
+//BTM -       is that it waits on the resource manager to finish
+//BTM -       initializing, which waits on the transaction service to be
+//BTM -       discovered). Setting up these counters seem to be important
+//BTM -       only for the shard (data) service rather than the other
+//BTM -       services. So we should consider adding setupCounters to this
+//BTM -       class, and calling it here instead of calling
+//BTM -       embeddedIndexStore.didStart() or AbstractFederation.didStart().
+//BTM -       
 //BTM        embeddedIndexStore.didStart();
+
+        setupCounters();
+
+//BTM - END ScaleOutIndexManager
     }
 
-//BTM
-// Required by Service interface
+    // Required by Service interface
 
     public UUID getServiceUUID() {
-        return thisServiceUUID;
+        return localResources.getServiceUUID();
     }
 
     public Class getServiceIface() {
-        return SERVICE_TYPE;
+        return localResources.getServiceIface();
     }
 
     public String getServiceName() {
-        return SERVICE_NAME;
+        return localResources.getServiceName();
     }
 
     public String getHostname() {
-        return this.hostname;
+        return localResources.getHostname();
     }
 
-//BTM
-// Required by ISession interface
+    // Required by ISession interface
 
     public Session getSession() {
-        return session;
+        return localResources.getSession();
     }
 
-//BTM
-// Required by IServiceShutdown interface
+    // Required by IServiceShutdown interface
 
     /**
      * Note: "open" is determined by the {@link ConcurrencyManager#isOpen()}
@@ -579,162 +387,44 @@ System.out.println("\nEmbeddedShardService >>> NEW StoreManager - END");
      *       not complete within a timeout.
      */
     public boolean isOpen() {
-        return concurrencyManager != null && concurrencyManager.isOpen();
+        return ( (concurrencyMgr != null) && (concurrencyMgr.isOpen()) );
     }
 
     synchronized public void shutdown() {
 logger.warn("SSSS SHARD SERVICE EmbeddedShardService.shutdown");
         if (!isOpen()) return;
 
-        if (concurrencyManager != null) {
-            concurrencyManager.shutdown();
+        if (concurrencyMgr != null) {
+            concurrencyMgr.shutdown();
         }
-        if (localTransactionManager != null) {
-            localTransactionManager.shutdown();
+        if (localTransactionMgr != null) {
+            localTransactionMgr.shutdown();
         }
-        if (resourceManager != null) {
-            resourceManager.shutdown();
-        }
-
-//BTM - from AbstractFederation.shutdown
-        if (statisticsCollector != null) {
-            statisticsCollector.stop();
-            statisticsCollector = null;
+        if (resourceMgr != null) {
+            resourceMgr.shutdown();
         }
 
         //false ==> allow in-progress tasks to complete
         lbsReportingTaskFuture.cancel(false);
-        queueStatsTaskFuture.cancel(false);
         eventTaskFuture.cancel(false);
-        Util.shutdownExecutorService
-                 (scheduledExecutor, EXECUTOR_TERMINATION_TIMEOUT,
-                  "EmbeddedShardService.scheduledExecutor", logger);
-        threadPool.shutdownNow();
 
-        //send one last event report (same logic as in AbstractFederation)
-        new EventQueueSenderTask
-                (eventQueue, lbsServiceCache, embeddedLoadBalancer,
-                 SERVICE_NAME, logger).run();
+        if (indexMgr != null) indexMgr.destroy();
+        if (localResources != null) {
+            localResources.terminate(EXECUTOR_TERMINATION_TIMEOUT);
+        }
 
-        if(httpServer != null) {//same login as in AbstractFederation.shutdown
+        if(httpServer != null) {//same logic as AbstractFederation.shutdown
             httpServer.shutdown();
             httpServer = null;
             httpServerUrl = null;
         }
-
-        tempStoreFactory.closeAll();
     }
 
     synchronized public void shutdownNow() {
-logger.warn("SSSSS SHARD SERVICE EmbeddedShardService.shutdownNow");
-        if (!isOpen()) return;
-
-        if (concurrencyManager != null) {
-            concurrencyManager.shutdownNow();
-        }
-        if (localTransactionManager != null) {
-            localTransactionManager.shutdownNow();
-        }
-        if (resourceManager != null) {
-            resourceManager.shutdownNow();
-        }
-
-//BTM - from AbstractFederation.shutdownNow
-
-        //false ==> allow in-progress tasks to complete
-        lbsReportingTaskFuture.cancel(false);
-        queueStatsTaskFuture.cancel(false);
-        eventTaskFuture.cancel(false);
-        Util.shutdownExecutorService
-                 (scheduledExecutor, EXECUTOR_TERMINATION_TIMEOUT,
-                  "EmbeddedShardService.scheduledExecutor", logger);
-        threadPool.shutdownNow();
-
-        //send one last event report (same logic as in AbstractFederation)
-        new EventQueueSenderTask
-                (eventQueue, lbsServiceCache, embeddedLoadBalancer,
-                 SERVICE_NAME, logger).run();
-
-        if(httpServer != null) {//same login as in AbstractFederation.shutdown
-            httpServer.shutdown();
-            httpServer = null;
-            httpServerUrl = null;
-        }
-
-        tempStoreFactory.closeAll();
+        shutdown();
     }
 
-//BTM public methods added to EmbeddedShardService by BTM
-
-    //from DataService
-
-    synchronized public void destroy() {
-logger.warn("\nSSSSS SHARD SERVICE EmbeddedShardService.destroy PRE-delete >>> resourceManager.isOpen() = "+resourceManager.isOpen()+"\n");
-        resourceManager.shutdownNow();//sets isOpen to false
-        try {
-            resourceManager.deleteResources();
-        } catch(Throwable t) { 
-            logger.warn("exception on resourceManager.deleteResources\n", t);
-        }
-logger.warn("\nSSSSS SHARD SERVICE EmbeddedShardService.destroy POST-delete >>> resourceManager.isOpen() = "+resourceManager.isOpen()+"\n");
-
-        final File file = getHTTPDURLFile();
-        if(file.exists()) {
-            file.delete();
-        }
-        shutdownNow();
-    }
-
-// Needed for embedded testing. Currently, EmbeddedFederation creates
-// the shard locator service (embeddedMds) after it creates this
-// class, but the EmbeddedIndexStore created by this class has
-// to return a non-null value when its getMetadataService method
-// is called (ex. TestMove). Therefore, this method is provided so
-// that EmbeddedFederation can call it after the embeddedMds is
-// created, so that this class can then pass it down to the
-// EmbeddedIndexStore.
-
-    public void setEmbeddedMds(ShardLocator embeddedMds) {
-        embeddedIndexStore.setEmbeddedMds(embeddedMds);
-    }
-
-    public void setEmbeddedDsMap(Map<UUID, ShardService> embeddedDsMap) {
-        embeddedIndexStore.setEmbeddedDsMap(embeddedDsMap);
-    }
-
-//BTM
-// Required by LocalResourceManagement interface
-
-    public ResourceManager getResourceManager() {
-        return resourceManager;
-    }
-
-    public ConcurrencyManager getConcurrencyManager() {
-        return concurrencyManager;
-    }
-
-    public IIndexManager getIndexManager() {
-        return embeddedIndexStore;
-    }
-
-    public CounterSet getCounterSet() {
-        return Util.getCounterSet(statisticsCollector);
-    }
-    
-    public CounterSet getHostCounterSet() {
-        return Util.getHostCounterSet(statisticsCollector);
-    }
-
-    public CounterSet getServiceCounterSet() {
-        return serviceRoot;
-    }
-
-//BTM    public ILocalTransactionManager getLocalTransactionManager() {
-//BTM        return localTransactionManager; 
-//BTM    }
-
-//BTM
-// Required by ShardManagement interface
+    // Required by ShardManagement interface
 
     public IndexMetadata getIndexMetadata(String name, long timestamp)
                throws IOException,
@@ -749,8 +439,8 @@ logger.warn("\nSSSSS SHARD SERVICE EmbeddedShardService.destroy POST-delete >>> 
                             ITx.READ_COMMITTED : timestamp);
             final AbstractTask task = 
                   new GetIndexMetadataTask
-                          (concurrencyManager, startTime, name);
-            return (IndexMetadata) concurrencyManager.submit(task).get();
+                          (concurrencyMgr, startTime, name);
+            return (IndexMetadata) concurrencyMgr.submit(task).get();
         } finally {
             clearLoggingContext();
         }
@@ -800,55 +490,27 @@ logger.warn("\nSSSSS SHARD SERVICE EmbeddedShardService.destroy POST-delete >>> 
 //                        : tx);
 
             final RangeIteratorTask task = new RangeIteratorTask(
-                    concurrencyManager, timestamp, name, fromKey, toKey,
+                    concurrencyMgr, timestamp, name, fromKey, toKey,
                     capacity, flags, filter);
 
             // submit the task and wait for it to complete.
-            return (ResultSet) concurrencyManager.submit(task).get();
+            return (ResultSet) concurrencyMgr.submit(task).get();
         } finally {
             clearLoggingContext();
         }
     }
 
-//BTM - PRE_FRED_3481    public Future submit(final Callable task) {
     public <T> Future<T> submit(IDataServiceCallable<T> task) {
-
-Util.printStr(dbgFlnm, "EmbeddedShardService.submit(task) ENTERED");
-
         setupLoggingContext();
         try {
             if (task == null) {
                 throw new IllegalArgumentException("null task");
             }
-
-            // Submit to the ExecutorService for the shard service's federation
-            // object. This is used for tasks which are not associated with a
-            // timestamp and hence not linked to any specific view of the named
-            // indices.
-//BTM - PRE_FRED_3481            if (task instanceof IFederationCallable) {
-//BTM - PRE_FRED_3481//BTM           ((IFederationCallable) task).setFederation(getFederation());
-//BTM - PRE_FRED_3481//                throw new UnsupportedOperationException
-//BTM - PRE_FRED_3481//                              ("EmbeddedShardService.submit [1-arg]: "
-//BTM - PRE_FRED_3481//                               +"IFederationCallable task type");
-//BTM - PRE_FRED_3481Util.printStr(dbgFlnm, "EmbeddedShardService.submit(task) >>> task instanceof IFederationCallable");
-//BTM - PRE_FRED_3481((IFederationCallable) task).setFederation(embeddedIndexStore);
-//BTM - PRE_FRED_3481            }
-//BTM - PRE_FRED_3481
-//BTM - PRE_FRED_3481            if (task instanceof IDataServiceCallable) {
-//BTM - PRE_FRED_3481//BTM                ((IDataServiceCallable) task).setDataService(this);
-//BTM - PRE_FRED_3481//BTM                throw new UnsupportedOperationException
-//BTM - PRE_FRED_3481//BTM                              ("EmbeddedShardService.submit [1-arg]: "
-//BTM - PRE_FRED_3481//BTM                               +"IDataServiceCallable task type");
-//BTM - PRE_FRED_3481Util.printStr(dbgFlnm, "EmbeddedShardService.submit(task) >>> task instanceof IDataServiceCallable");
-//BTM - PRE_FRED_3481((IDataServiceCallable) task).setDataService(this);
-//BTM - PRE_FRED_3481            }
-
             // submit the task and return its Future.
-//BTM            return getFederation().getExecutorService().submit(task);
-//BTM - PRE_FRED_3481 return threadPool.submit(task);
-            return threadPool.submit
-                       (new DataTaskWrapper
-                                (embeddedIndexStore, this, task));
+            return (localResources.getThreadPool()).submit
+                       ( new DataTaskWrapper
+                                 (indexMgr, resourceMgr, concurrencyMgr,
+                                  localResources, discoveryMgr, task) );
         } finally {
             clearLoggingContext();
         }
@@ -868,17 +530,13 @@ Util.printStr(dbgFlnm, "EmbeddedShardService.submit(task) ENTERED");
                          final String name,
                          final IIndexProcedure proc)
     {
-//Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) ENTERED");
         setupLoggingContext();
         try {
-    
             if (name == null) {
-//Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) >>> name = NULL >>> IllegalArgumentException");
                 throw new IllegalArgumentException("null name");
             }
 
             if (proc == null) {
-//Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) >>> proc = NULL >>> IllegalArgumentException");
                 throw new IllegalArgumentException("null proc");
             }
 
@@ -887,46 +545,22 @@ Util.printStr(dbgFlnm, "EmbeddedShardService.submit(task) ENTERED");
             final long timestamp = 
                 (tx == ITx.UNISOLATED && proc.isReadOnly() ?
                      ITx.READ_COMMITTED : tx);
-//Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) >>> timestamp="+timestamp);
 
             // wrap the caller's task.
-            final AbstractTask task = new IndexProcedureTask(
-                    concurrencyManager, timestamp, name, proc);
-//Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) >>> task="+task);
-
-            
-            if (task instanceof IFederationCallable) {
-//BTM                ((IFederationCallable) task).setFederation(getFederation());
-//                throw new UnsupportedOperationException
-//                              ("EmbeddedShardService.submit [3-args]: "
-//                               +"IFederationCallable task type");
-//Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) >>> task instanceof IFederationCallable");
-((IFederationCallable) task).setFederation(embeddedIndexStore);
-            }
-
-            if (task instanceof IDataServiceCallable) {
-//BTM                ((IDataServiceCallable) task).setDataService(this);
-//Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) >>> task instanceof IDataCallable");
-                throw new UnsupportedOperationException
-                              ("EmbeddedShardService.submit [3-args]: "
-                               +"IDataServiceCallable task type");
-            }
+            final AbstractTask task = 
+                new IndexProcedureTask
+                    (concurrencyMgr, timestamp, name, proc);
             
             // submit the procedure and await its completion.
-//Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) >>> CALLING concurrencyManager.submit() - CURRENT STACK TRACE:");
-//Util.printStr(dbgFlnm, Util.getCurrentStackTrace());
-Future retFuture = concurrencyManager.submit(task);
-//Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) >>> RETURNING "+retFuture);
-return retFuture;
-//BTM            return concurrencyManager.submit(task);
-} catch(Throwable t) {
-Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) >>> Throwable t="+t);
-
+            Future retFuture = concurrencyMgr.submit(task);
+            return retFuture;
+        } catch(Throwable t) {
+            logger.warn("EmbeddedShardService.submit(tx, name, proc) "
+                        +">>> "+t, t);
         } finally {
             clearLoggingContext();
         }
-//Util.printStr(dbgFlnm, "EmbeddedShardService.submit(tx, name, proc) >>> RETURNING NULL");
-return null;
+        return null;
     }
 
     public boolean purgeOldResources(final long timeout,
@@ -934,21 +568,15 @@ return null;
                        throws InterruptedException
     {
         // delegate all the work.
-//BTM        return getResourceManager().purgeOldResources(timeout, truncateJournal);
-return resourceManager.purgeOldResources(timeout, truncateJournal);
+        return resourceMgr.purgeOldResources(timeout, truncateJournal);
     }
     
-//BTM
-// Required by ITxCommitProtocol interface
+    // Required by ITxCommitProtocol interface
 
-    /*
-     * ITxCommitProtocol.
-     */
     public void setReleaseTime(final long releaseTime) {
         setupLoggingContext();
         try {
-//BTM            getResourceManager().setReleaseTime(releaseTime);
-resourceManager.setReleaseTime(releaseTime);
+            resourceMgr.setReleaseTime(releaseTime);
         } finally {
             clearLoggingContext();
         }
@@ -959,15 +587,13 @@ resourceManager.setReleaseTime(releaseTime);
      * 
      * @see JournalTransactionService#commitImpl(long)}.
      */
-    public long singlePhaseCommit(final long tx) throws ExecutionException,
-            InterruptedException, IOException {
-        
+    public long singlePhaseCommit(final long tx)
+                throws ExecutionException, InterruptedException, IOException
+    {
         setupLoggingContext();
-        
         try {
 
             if(TimestampUtility.isReadOnly(tx)) {
-                
                 /*
                  * A read-only transaction.
                  * 
@@ -979,77 +605,50 @@ resourceManager.setReleaseTime(releaseTime);
                  * Note: Thrown exception since this method will not be invoked
                  * by the txService for a read-only tx.
                  */
-
-                throw new IllegalArgumentException();
-                
+                throw new IllegalArgumentException("read-only transaction");
             }
             
-//BTM            final Tx localState = (Tx) getLocalTransactionManager().getTx(tx);
-final Tx localState = (Tx) localTransactionManager.getTx(tx);
+            final Tx localState = (Tx) localTransactionMgr.getTx(tx);
 
-            if (localState == null) {
-
-                /*
-                 * This is not an active transaction.
-                 */
-
-                throw new IllegalStateException();
-
+            if (localState == null) {//not an active transaction
+                throw new IllegalStateException("transaction not active");
             }
             
             /*
              * Note: This code is shared (copy-by-value) by the
              * JournalTransactionService commitImpl(...)
              */
-//BTM            final ManagedJournal journal = getResourceManager().getLiveJournal();
-final ManagedJournal journal = resourceManager.getLiveJournal();            
+            final ManagedJournal journal = resourceMgr.getLiveJournal();            
             {
-
                 /*
                  * A transaction with an empty write set can commit immediately
-                 * since validation and commit are basically NOPs (this is the same
-                 * as the read-only case.)
+                 * since validation and commit are basically NOPs (this is
+                 * the same as the read-only case.)
                  * 
                  * Note: We lock out other operations on this tx so that this
                  * decision will be atomic.
                  */
-
                 localState.lock.lock();
-
                 try {
 
-                    if (localState.isEmptyWriteSet()) {
-
-                        /*
-                         * Sort of a NOP commit. 
-                         */
+                    if (localState.isEmptyWriteSet()) {// Sort of a NOP commit. 
                         
                         localState.setRunState(RunState.Committed);
 
-//BTM                        ((DataServiceTransactionManager) journal.getLocalTransactionManager()).deactivateTx(localState);
-((LocalTransactionManager) journal.getLocalTransactionManager()).deactivateTx(localState);
-
-//                        state.setRunState(RunState.Committed);
-                        
+                        ((LocalTransactionManager) journal
+                            .getLocalTransactionManager())
+                                .deactivateTx(localState);
                         return 0L;
-
                     }
-
                 } finally {
-
                     localState.lock.unlock();
-
                 }
-
-            }
-
-//BTM            final IConcurrencyManager concurrencyManager = /*journal.*/getConcurrencyManager();
+            }//end block
 
             final AbstractTask<Void> task = 
-                new SinglePhaseCommit(concurrencyManager,
+                new SinglePhaseCommit(concurrencyMgr,
                                       journal.getLocalTransactionManager(),
                                       localState);
-
             try {
                 
                 /*
@@ -1062,7 +661,7 @@ final ManagedJournal journal = resourceManager.getLiveJournal();
                  * distributed commit protocol.
                  */
                 // submit and wait for the result.
-                concurrencyManager.submit(task).get();
+                concurrencyMgr.submit(task).get();
 //                .getWriteService().submit(task).get();
 //                .getWriteService().getLockManager().submit(task.getResource(), task).get();
 
@@ -1076,73 +675,46 @@ final ManagedJournal journal = resourceManager.getLiveJournal();
                  */
 
                 localState.lock.lock();
-                
                 try {
-                
                     localState.setRunState(RunState.Committed);
 
-//BTM                    ((DataServiceTransactionManager) journal.getLocalTransactionManager()).deactivateTx(localState);
-((LocalTransactionManager) journal.getLocalTransactionManager()).deactivateTx(localState);
-                
-//                    state.setRunState(RunState.Committed);
-
+                    ((LocalTransactionManager) journal
+                        .getLocalTransactionManager()).deactivateTx(localState);
                 } finally {
-                    
                     localState.lock.unlock();
-                    
                 }
-
             } catch (Throwable t) {
-
 //                logger.error(t.getMessage(), t);
 
                 localState.lock.lock();
-
                 try {
-
                     localState.setRunState(RunState.Aborted);
 
-//BTM                    ((DataServiceTransactionManager) journal.getLocalTransactionManager()).deactivateTx(localState);
-((LocalTransactionManager) journal.getLocalTransactionManager()).deactivateTx(localState);
-
-//                    state.setRunState(RunState.Aborted);
-
+                    ((LocalTransactionManager) journal
+                        .getLocalTransactionManager()).deactivateTx(localState);
                     throw new RuntimeException(t);
-                    
                 } finally {
-                    
                     localState.lock.unlock();
-
                 }
-
             }
 
             /*
              * Note: This is returning the commitTime set on the task when it was
              * committed as part of a group commit.
              */
-            
 //            logger.warn("\n" + state + "\n" + localState);
-
             return task.getCommitTime();
-
         } finally {
-            
             clearLoggingContext();
-            
         }
-        
     }
 
     public void prepare(final long tx, final long revisionTime)
-            throws ExecutionException, InterruptedException, IOException {
-        
+            throws ExecutionException, InterruptedException, IOException
+    {
         setupLoggingContext();
-        
         try {
-
             if(TimestampUtility.isReadOnly(tx)) {
-                
                 /*
                  * A read-only transaction.
                  * 
@@ -1154,78 +726,47 @@ final ManagedJournal journal = resourceManager.getLiveJournal();
                  * Note: Thrown exception since this method will not be invoked
                  * by the txService for a read-only tx.
                  */
-                
-                throw new IllegalArgumentException();
-                
+                throw new IllegalArgumentException("read-only transaction");
             }
             
-//BTM            final Tx state = (Tx) getLocalTransactionManager().getTx(tx);
-final Tx state = (Tx) localTransactionManager.getTx(tx);
-
-            if (state == null) {
-
-                /*
-                 * This is not an active transaction.
-                 */
-
-                throw new IllegalStateException();
-
+            final Tx state = (Tx) localTransactionMgr.getTx(tx);
+            if (state == null) {//not an active transaction.
+                throw new IllegalStateException("transaction not active");
             }
             
-            /*
-             * Submit the task and await its future
-             */
-
-            concurrencyManager.submit(
-                    new DistributedCommitTask(concurrencyManager,
-                            resourceManager, getServiceUUID(), state,
-                            revisionTime)).get();
-
-            // Done.
-            
+            // Submit the task and await its future
+            concurrencyMgr.submit
+                ( new DistributedCommitTask(concurrencyMgr,
+                                            resourceMgr,
+                                            localResources.getServiceUUID(),
+                                            state,
+                                            revisionTime) ).get();
         } finally {
-
             clearLoggingContext();
-
         }
-
     }
 
     public void abort(final long tx) throws IOException {
-
         setupLoggingContext();
-
         try {
 
-//BTM            final Tx localState = (Tx) getLocalTransactionManager().getTx(tx);
-final Tx localState = (Tx) localTransactionManager.getTx(tx);
-
-            if (localState == null)
-                throw new IllegalArgumentException();
-
+            final Tx localState = (Tx) localTransactionMgr.getTx(tx);
+            if (localState == null) {
+                throw new IllegalArgumentException("null localState");
+            }
             localState.lock.lock();
 
             try {
-
                 localState.setRunState(RunState.Aborted);
-
             } finally {
-
                 localState.lock.unlock();
-
             }
-            
         } finally {
-            
             clearLoggingContext();
-            
         }
-        
     }
 
-
-//BTM
-// Required by ShardService interface
+    // Required by ShardService interface
 
     public void registerIndex(String name, IndexMetadata metadata)
                     throws IOException,
@@ -1238,9 +779,9 @@ final Tx localState = (Tx) localTransactionManager.getTx(tx);
                 throw new IllegalArgumentException("null metadata");
             }
             final AbstractTask task = 
-                  new RegisterIndexTask(concurrencyManager,
+                  new RegisterIndexTask(concurrencyMgr,
                                         name, metadata);
-            concurrencyManager.submit(task).get();
+            concurrencyMgr.submit(task).get();
         } finally {
             clearLoggingContext();
         }
@@ -1254,8 +795,8 @@ final Tx localState = (Tx) localTransactionManager.getTx(tx);
         setupLoggingContext();
         try {
             final AbstractTask task = 
-                  new DropIndexTask(concurrencyManager, name);
-            concurrencyManager.submit(task).get();
+                  new DropIndexTask(concurrencyMgr, name);
+            concurrencyMgr.submit(task).get();
         } finally {
             clearLoggingContext();
         }
@@ -1288,7 +829,7 @@ final Tx localState = (Tx) localTransactionManager.getTx(tx);
         final long begin = System.nanoTime();
         try {
             final IRawStore store = 
-                      resourceManager.openStore(resource.getUUID());
+                      resourceMgr.openStore(resource.getUUID());
     
             if (store == null) {
                 logger.warn("resource not available ["+resource+"]");
@@ -1331,9 +872,7 @@ final Tx localState = (Tx) localTransactionManager.getTx(tx);
         }
     }
 
-
-//BTM
-// Required by OverflowAdmin interface (for testing & benchmarking)
+    // Required by OverflowAdmin interface (for testing & benchmarking)
 
     public void forceOverflow(final boolean immediate,
                               final boolean compactingMerge)
@@ -1341,19 +880,20 @@ final Tx localState = (Tx) localTransactionManager.getTx(tx);
     {
         setupLoggingContext();
         try {
-            if (!(resourceManager instanceof ResourceManager)) {
+            if ( !(resourceMgr instanceof ResourceManager) ) {
                 throw new UnsupportedOperationException
                               ("not instance of ResourceManager "
-                               +"["+resourceManager.getClass()+"]");
+                               +"["+resourceMgr.getClass()+"]");
             }
 
-//BTM            final Callable task = new ForceOverflowTask(compactingMerge);
-final Callable task = new ForceOverflowTask(resourceManager, compactingMerge);
+            final Callable task =
+                           new ForceOverflowTask(resourceMgr, compactingMerge);
 
             logger.warn("Will force overflow: immediate=" + immediate
-                    + ", compactingMerge=" + compactingMerge);
+                        + ", compactingMerge=" + compactingMerge);
             
             if (immediate) {
+
                 // Run the task on the write service. The task writes a small
                 // record on the journal in order to make sure that it is dirty
                 // and then sets the flag to force overflow with the next
@@ -1364,11 +904,8 @@ final Callable task = new ForceOverflowTask(resourceManager, compactingMerge);
                 // 
                 // Note: the resource itself is arbitrary - there is no index
                 // by that name.
-
-//BTM                getConcurrencyManager().submit
-//BTM                    ( new AbstractTask(getConcurrencyManager(),
-                concurrencyManager.submit
-                    ( new AbstractTask( concurrencyManager,
+                concurrencyMgr.submit
+                    ( new AbstractTask( concurrencyMgr,
                                         ITx.UNISOLATED,
                                         new String[] { "__forceOverflow" } )
                       {
@@ -1402,85 +939,99 @@ final Callable task = new ForceOverflowTask(resourceManager, compactingMerge);
     public long getAsynchronousOverflowCounter() throws IOException {
         setupLoggingContext();
         try {
-            if (!(resourceManager instanceof ResourceManager)) {
+            if ( !(resourceMgr instanceof ResourceManager) ) {
                 throw new UnsupportedOperationException
                               ("not instance of ResourceManager "
-                               +"["+resourceManager.getClass()+"]");
+                               +"["+resourceMgr.getClass()+"]");
             }
-            return resourceManager.getAsynchronousOverflowCount();
+            return resourceMgr.getAsynchronousOverflowCount();
         } finally {
             clearLoggingContext();
         }
     }
     
     public boolean isOverflowActive() throws IOException {
-        
         setupLoggingContext();
-
         try {
-
-            if (!(resourceManager instanceof ResourceManager)) {
+            if ( !(resourceMgr instanceof ResourceManager) ) {
                 throw new UnsupportedOperationException
                               ("not instance of ResourceManager "
-                               +"["+resourceManager.getClass()+"]");
+                               +"["+resourceMgr.getClass()+"]");
             }
 
             // overflow processing is enabled but not allowed, which
             // means that overflow processing is occurring right now.
 
-            return resourceManager.isOverflowEnabled()
-                    && !resourceManager.isOverflowAllowed();
+            return (  resourceMgr.isOverflowEnabled() &&
+                     !resourceMgr.isOverflowAllowed() );
         } finally {
             clearLoggingContext();
         }
     }
 
+    // NOTE: the following methods are needed for embedded testing.
+    //       Currently, EmbeddedFederation creates the shard locator
+    //       service (embeddedMds) after it creates this class, but the
+    //       IBigdataDiscoveryManagement utility created by this class
+    //       has to return a non-null value when its getMetadataService
+    //       method is called (ex. TestMove). Therefore, the setter
+    //       methods below are provided so that EmbeddedFederation can
+    //       call them after the embeddedMds is created and the
+    //       embeddedDsMap is populated, so that this class can then
+    //       pass a non-null reference to the setter methods of the
+    //       corresponding setter methods. The getter method is
+    //       provided because the DataService class provided such a
+    //       method and EmbeddedFederation assumes that method
+    //       exists on the embedded ref.
 
-
-
-    /**
-     * The file on which the URL of the embedded httpd service is written.
-     */
-    protected File getHTTPDURLFile() {
-//BTM        return new File(getResourceManager().getDataDir(), "httpd.url");
-return new File(resourceManager.getDataDir(), "httpd.url");
+    public void setEmbeddedMds(ShardLocator embeddedMds) {
+        ((BigdataDiscoveryManager)discoveryMgr).setEmbeddedMds
+                                                    (embeddedMds);
     }
 
-    /**
-     * Forms the name of the index corresponding to a partition of a named
-     * scale-out index as <i>name</i>#<i>partitionId</i>.
-     * <p>
-     * Another advantage of this naming scheme is that index partitions are just
-     * named indices and all of the mechanisms for operating on named indices
-     * and for concurrency control for named indices apply automatically. Among
-     * other things, this means that different tasks can write concurrently on
-     * different partitions of the same named index on a given shard service.
-     * 
-     * @return The name of the index partition.
-     */
-//BTM - MOVED to com.bigdata.util.Util
-//BTM    public static final String getIndexPartitionName(final String name,
-//BTM                                                     final int partitionId)
-//BTM    {
-//BTM        if (name == null) {
-//BTM            throw new IllegalArgumentException("null name");
-//BTM        }
-//BTM
-//BTM        if (partitionId == -1) {// Not a partitioned index.
-//BTM            return name;
-//BTM        }
-//BTM        return name + "#" + partitionId;
-//BTM    }
+    public void setEmbeddedDsMap(Map<UUID, ShardService> embeddedDsMap) {
+        ((BigdataDiscoveryManager)discoveryMgr).setEmbeddedDsMap
+                                                    (embeddedDsMap);
+    }
 
+    public ResourceManager getResourceManager() {
+        return resourceMgr;
+    }
 
-// Private methods of this class
+    // public method(s) needed from DataService class
+
+    //from DataService - destroy persisted state
+    synchronized public void destroy() {
+logger.warn("\nSSSSS SHARD SERVICE EmbeddedShardService.destroy PRE-delete >>> resourceMgr.isOpen() = "+resourceMgr.isOpen()+"\n");
+        resourceMgr.shutdownNow();//sets isOpen to false
+        try {
+            resourceMgr.deleteResources();
+        } catch(Throwable t) { 
+            logger.warn("exception on resourceMgr.deleteResources\n", t);
+        }
+logger.warn("\nSSSSS SHARD SERVICE EmbeddedShardService.destroy POST-delete >>> resourceMgr.isOpen() = "+resourceMgr.isOpen()+"\n");
+
+        final File file = getHTTPDURLFile();
+        if(file.exists()) {
+            file.delete();
+        }
+        shutdownNow();
+    }
+
+    // Private methods
+
+    // Returns the file to which the URL of the embedded httpd
+    // service is written.
+    private File getHTTPDURLFile() {
+        return new File(resourceMgr.getDataDir(), "httpd.url");
+    }
 
     private void setupLoggingContext() {
 
         try {
-            MDC.put("serviceUUID", thisServiceUUID);
-            MDC.put("serviceName", SERVICE_NAME);
-            MDC.put("hostname", hostname);
+            MDC.put("serviceUUID", localResources.getServiceUUID());
+            MDC.put("serviceName", localResources.getServiceName());
+            MDC.put("hostname", localResources.getHostname());
         } catch(Throwable t) { /* swallow */ }
     }
 
@@ -1493,28 +1044,41 @@ return new File(resourceManager.getDataDir(), "httpd.url");
         MDC.remove("hostname");
     }
 
-
-
-// Nested classes
+    // Nested classes
 
     class ShardResourceManager extends ResourceManager {
 
         private ShardService dataService;
-//BTM        private IBigdataFederation federation;
-        private IBigdataFederation indexStore;
+        private IBigdataDiscoveryManagement discoveryManager;
+        private ILocalResourceManagement localResources;
+        private ScaleOutIndexManager indexManager;
 
         ShardResourceManager(ShardService dataService,
-                             IBigdataFederation indexStore,
+                             IBigdataDiscoveryManagement discoveryManager,
+                             ILocalResourceManagement localResources,
+                             ScaleOutIndexManager indexManager,
                              Properties properties)
         {
             super(properties);
             this.dataService = dataService;
-            this.indexStore = indexStore;
+            this.discoveryManager = discoveryManager;
+            this.localResources = localResources;
+            this.indexManager = indexManager;
         }
 
         @Override
-        public IBigdataFederation getFederation() {
-            return indexStore;
+        public IBigdataDiscoveryManagement getDiscoveryManager() {
+            return discoveryManager;
+        }
+
+        @Override
+        public ILocalResourceManagement getLocalResourceManager() {
+            return localResources;
+        }
+
+        @Override
+        public ScaleOutIndexManager getIndexManager() {
+            return indexManager;
         }
             
         @Override
@@ -1528,410 +1092,189 @@ return new File(resourceManager.getDataDir(), "httpd.url");
         }
     }
 
-
-//BTM - supports service discovery (added by BTM)
-
-    private class CacheListener implements ServiceDiscoveryListener {
-        private Logger logger;
-        CacheListener(Logger logger) {
-            this.logger = logger;
-        }
-	public void serviceAdded(ServiceDiscoveryEvent event) {
-            ServiceItem item = event.getPostEventServiceItem();
-
-            ServiceID serviceId = item.serviceID;
-            Object service = item.service;
-            Entry[] attrs = item.attributeSets;
-
-            Class serviceType = service.getClass();
-
-            UUID serviceUUID = null;
-            String hostname = null;
-            String serviceName = null;
-            Class serviceIface = null;
-
-            if( (IService.class).isAssignableFrom(serviceType) ) {
-
-                // Avoid remote calls by getting info from attrs
-                ServiceUUID serviceUUIDAttr = 
-                    (ServiceUUID)(EntryUtil.getEntryByType
-                        (attrs, ServiceUUID.class));
-                if(serviceUUIDAttr != null) {
-                    serviceUUID = serviceUUIDAttr.serviceUUID;
-                } else {
-                    if(service != null) {
-                        try {
-                            serviceUUID = 
-                            ((IService)service).getServiceUUID();
-                        } catch(IOException e) {
-                            if(logger.isDebugEnabled()) {
-                                logger.log(Level.DEBUG, 
-                                           "failed to retrieve "
-                                           +"serviceUUID "
-                                           +"[service="+serviceType+", "
-                                            +"ID="+serviceId+"]", e);
-                            }
-                        }
-                    }
-                }
-                Hostname hostNameAttr =
-                    (Hostname)(EntryUtil.getEntryByType
-                                  (attrs, Hostname.class));
-                if(hostNameAttr != null) {
-                    hostname = hostNameAttr.hostname;
-                } else {
-                    if(service != null) {
-                        try {
-                            hostname = 
-                            ((IService)service).getHostname();
-                        } catch(IOException e) {
-                            if(logger.isDebugEnabled()) {
-                                logger.log(Level.DEBUG, 
-                                           "failed to retrieve "
-                                           +"hostname "
-                                           +"[service="+serviceType+", "
-                                            +"ID="+serviceId+"]", e);
-                            }
-                        }
-                    }
-                }
-                Name serviceNameAttr = 
-                    (Name)(EntryUtil.getEntryByType
-                                         (attrs, Name.class));
-                if(serviceNameAttr != null) {
-                    serviceName = serviceNameAttr.name;
-                } else {
-                    if(service != null) {
-                        try {
-                            serviceName = 
-                            ((IService)service).getServiceName();
-                        } catch(IOException e) {
-                            if(logger.isDebugEnabled()) {
-                                logger.log(Level.DEBUG, 
-                                           "failed to retrieve "
-                                           +"serviceName "
-                                           +"[service="+serviceType+", "
-                                            +"ID="+serviceId+"]", e);
-                            }
-                        }
-                    }
-                }
-                if( (IMetadataService.class).isAssignableFrom
-                                                 (serviceType) )
-                {
-                    serviceIface = IMetadataService.class;
-                } else if( (IDataService.class).isAssignableFrom
-                                                    (serviceType) )
-                {
-                    serviceIface = IDataService.class;
-                } else if( (IClientService.class).isAssignableFrom
-                                                      (serviceType) )
-                {
-                    serviceIface = IClientService.class;
-                } else if( (ILoadBalancerService.class).isAssignableFrom
-                                                      (serviceType) )
-                {
-                    serviceIface = ILoadBalancerService.class;
-                } else if( (ITransactionService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    serviceIface = ITransactionService.class;
-                } else if( (IServicesManagerService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.DEBUG, "serviceAdded "
-                                   +"[service=IServicesManagerService, "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                } else {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.WARN, "UNEXPECTED serviceAdded "
-                                   +"[service="+serviceType+", "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                }
-            } else if( (Service.class).isAssignableFrom(serviceType) ) {
-                serviceUUID = ((Service)service).getServiceUUID();
-                hostname = ((Service)service).getHostname();
-                serviceName = ((Service)service).getServiceName();
-                serviceIface = ((Service)service).getServiceIface();
-            } else {
-                if(logger.isDebugEnabled()) {
-                    logger.log(Level.WARN, "UNEXPECTED serviceAdded "
-                               +"[service="+serviceType+", "
-                               +"ID="+serviceId+"]");
-                }
-                return;
-            }
-            if(logger.isDebugEnabled()) {
-                logger.log(Level.DEBUG, "serviceAdded [service="
-                           +serviceIface+", ID="+serviceId+"]");
-            }
-	}
-
-	public void serviceRemoved(ServiceDiscoveryEvent event) {
-            ServiceItem item = event.getPreEventServiceItem();
-
-            ServiceID serviceId = item.serviceID;
-            Object service = item.service;
-            Entry[] attrs = item.attributeSets;
-
-            Class serviceType = service.getClass();
-
-            UUID serviceUUID = null;
-            Class serviceIface = null;
-
-            if( (IService.class).isAssignableFrom(serviceType) ) {
-
-                // Avoid remote calls by getting info from attrs
-                ServiceUUID serviceUUIDAttr = 
-                    (ServiceUUID)(EntryUtil.getEntryByType
-                        (attrs, ServiceUUID.class));
-                if(serviceUUIDAttr != null) {
-                    serviceUUID = serviceUUIDAttr.serviceUUID;
-                } else {
-                    if(service != null) {
-                        try {
-                            serviceUUID = 
-                            ((IService)service).getServiceUUID();
-                        } catch(IOException e) {
-                            if(logger.isTraceEnabled()) {
-                                logger.log(Level.TRACE, 
-                                           "failed to retrieve "
-                                           +"serviceUUID "
-                                           +"[service="+serviceType+", "
-                                            +"ID="+serviceId+"]", e);
-                            }
-                        }
-                    }
-                }
-
-                if( (IMetadataService.class).isAssignableFrom
-                                                 (serviceType) )
-                {
-                    serviceIface = IMetadataService.class;
-                } else if( (IDataService.class).isAssignableFrom
-                                             (serviceType) )
-                {
-                    serviceIface = IDataService.class;
-                } else if( (IClientService.class).isAssignableFrom
-                                                      (serviceType) )
-                {
-                    serviceIface = IClientService.class;
-                } else if( (ILoadBalancerService.class).isAssignableFrom
-                                                      (serviceType) )
-                {
-                    serviceIface = ILoadBalancerService.class;
-                } else if( (ITransactionService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    serviceIface = ITransactionService.class;
-
-                } else if( (IServicesManagerService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.DEBUG, "serviceRemoved "
-                                   +"[service=IServicesManagerService, "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                } else {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.WARN, "UNEXPECTED serviceRemoved "
-                                   +"[service="+serviceType+", "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                } 
-
-            } else if( (Service.class).isAssignableFrom(serviceType) ) {
-                serviceUUID = ((Service)service).getServiceUUID();
-                serviceIface = ((Service)service).getServiceIface();
-            } else {
-
-                if(logger.isDebugEnabled()) {
-                    logger.log(Level.WARN, "UNEXPECTED serviceRemoved "
-                                   +"[service="+serviceType+", "
-                                   +"ID="+serviceId+"]");
-                }
-                return;
-            }
-            if(logger.isDebugEnabled()) {
-                logger.log(Level.DEBUG, "serviceRemoved [service="
-                           +serviceIface+", ID="+serviceId+"]");
-            }
-        }
-
-	public void serviceChanged(ServiceDiscoveryEvent event) {
-
-            ServiceItem preItem  = event.getPreEventServiceItem();
-            ServiceItem postItem = event.getPostEventServiceItem();
-
-            ServiceID serviceId = postItem.serviceID;
-            Object service = postItem.service;
-
-            Class serviceType = service.getClass();
-
-            Entry[] preAttrs  = preItem.attributeSets;
-            Entry[] postAttrs = postItem.attributeSets; 
-
-            UUID serviceUUID = null;
-            Class serviceIface = null;
-
-            if( (IService.class).isAssignableFrom(serviceType) ) {
-
-                // Avoid remote calls by getting info from attrs
-                ServiceUUID serviceUUIDAttr = 
-                    (ServiceUUID)(EntryUtil.getEntryByType
-                        (preAttrs, ServiceUUID.class));
-                if(serviceUUIDAttr != null) {
-                    serviceUUID = serviceUUIDAttr.serviceUUID;
-                } else {
-                    if(service != null) {
-                        try {
-                            serviceUUID = 
-                            ((IService)service).getServiceUUID();
-                        } catch(IOException e) {
-                            if(logger.isTraceEnabled()) {
-                                logger.log(Level.TRACE, 
-                                           "failed to retrieve "
-                                           +"serviceUUID "
-                                           +"[service="+serviceType+", "
-                                            +"ID="+serviceId+"]", e);
-                            }
-                        }
-                    }
-                }
-
-                if( (IMetadataService.class).isAssignableFrom
-                                                 (serviceType) )
-                {
-                    serviceIface = IMetadataService.class;
-                } else if( (IDataService.class).isAssignableFrom
-                                             (serviceType) )
-                {
-                    serviceIface = IDataService.class;
-                } else if( (IClientService.class).isAssignableFrom
-                                                      (serviceType) )
-                {
-                    serviceIface = IClientService.class;
-                } else if( (ITransactionService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    serviceIface = ITransactionService.class;
-
-                } else if( (IServicesManagerService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.DEBUG, "serviceChanged "
-                                   +"[service=IServicesManagerService, "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                } else {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.WARN, "UNEXPECTED serviceChanged "
-                                   +"[service="+serviceType+", "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                }
-            } else if( (Service.class).isAssignableFrom(serviceType) ) {
-                serviceUUID = ((Service)service).getServiceUUID();
-                serviceIface = ((Service)service).getServiceIface();
-            } else {
-                if(logger.isDebugEnabled()) {
-                    logger.log(Level.WARN, "UNEXPECTED serviceChanged "
-                                   +"[service="+serviceType+", "
-                                   +"ID="+serviceId+"]");
-                }
-                return;
-            }
-
-            if(logger.isDebugEnabled()) {
-                logger.log(Level.DEBUG, "serviceChanged [service="
-                           +serviceIface+", ID="+serviceId+"]");
-            }
-        }
-    }
-
-
     /**
      * Task sets the flag that will cause overflow processing to be triggered on
      * the next group commit.
      */
     private class ForceOverflowTask implements Callable<Void> {
 
-private ResourceManager resourceMgr;
+        private ResourceManager resourceManager;
         private final boolean compactingMerge;
         
-//BTM        public ForceOverflowTask(final boolean compactingMerge) {
-public ForceOverflowTask(final ResourceManager resourceMgr, final boolean compactingMerge) {
-    this.resourceMgr = resourceMgr;
+        public ForceOverflowTask(final ResourceManager resourceManager,
+                                 final boolean compactingMerge)
+        {
+            this.resourceManager = resourceManager;
             this.compactingMerge = compactingMerge;
-            
         }
         
         public Void call() throws Exception {
-
-//            final WriteExecutorService writeService = concurrencyManager
-//                    .getWriteService();
-
-//BTM            final ResourceManager resourceManager = (ResourceManager) DataService.this.resourceManager;
-
-//BTM            if (resourceManager.isOverflowAllowed()) {
-            if (resourceMgr.isOverflowAllowed()) {
-
+            if (resourceManager.isOverflowAllowed()) {
                 if (compactingMerge) {
-
-//BTM                    resourceManager.compactingMerge.set(true);
-                    resourceMgr.compactingMerge.set(true);
-
+                    resourceManager.compactingMerge.set(true);
                 }
-
                 // trigger overflow on the next group commit.
-//                writeService.forceOverflow.set(true);
-//BTM                resourceManager.forceOverflow.set(true);
-                resourceMgr.forceOverflow.set(true);
-
+                resourceManager.forceOverflow.set(true);
             }
-
             return null;
+        }
+    }
+
+//BTM - see the note at the end of this class' constructor
+
+    /**
+     * Sets up shard service specific counters.
+     * <p>
+     * NOTE: the method setupCounters calls the method getCounters on
+     *       the resource manager which calls the method getLiveJournal
+     *       on the StoreManager which calls the method assertRunning
+     *       (also on the StoreManager). The assertRunning method throws
+     *       an IllegalStateException if the store manager is open but
+     *       still in the 'isStarting' state. This can happen because
+     *       the constructor for the store manager submits the execution
+     *       of the StoreManager's startup processing to a separate thread;
+     *       which means that the object that instantiates the
+     *       ResourceManager (and ultimately the StoreManager, since
+     *       the ResourceManager extends OverflowManager which extends
+     *       IndexManager which extends StoreManager) continues -- and
+     *       possibly completes -- its own intialization processing before
+     *       the StoreManager completes its startup processing and sets
+     *       the 'isStarting' state to false.
+     * <p>
+     *       One of the things that can slow down the StoreManager's
+     *       initialization process in its StartupTask is the fact that
+     *       the StartupTask WAITS FOREVER for a transaction service to be
+     *       discovered by its federation object/discovery manager. As part
+     *       of the smart proxy conversion work, the wait forever loop was
+     *       changed to a loop that only waits for N seconds for the
+     *       transaction service to be discovered; for some value of N.
+     *       But even that wait loop can cause the object that instantiated
+     *       the ResourceManager to complete it's initialization processing
+     *       before the StoreManager completes its startup processing and
+     *       sets the 'isStarting' state to false; resulting in an
+     *       IllegalStateException when this method is called by the object.
+     * <p>
+     *       The reason that a wait loop for the transaction service is still
+     *       used in the StoreManager, is to maintain the same logic as the
+     *       old purely remote implementation of the data (shard) service.
+     *       At some point after the smart proxy conversion work is complete,
+     *       the need to wait for the transaction service in the StoreManager
+     *       should be revisited and a determination should be made on
+     *       whether or not there is a better way to initialize the
+     *       Resource/StoreManager created by the EmbeddedShardService.
+     *       For now though, this method will wait for Resource/StoreManager
+     *       to complete its startup processing before setting up the
+     *       necessary counters.
+     */
+    private synchronized void setupCounters() {
+
+        logger.debug("waiting for resource manager to complete "
+                     +"start up processing");
+        boolean resourceMgrStarted = false;
+        for(int i=0;i<60;i++) {
+            //must be open but no longer in a starting state
+            if( resourceMgr.isOpen() && !resourceMgr.isStarting() ) {
+                resourceMgrStarted = true;
+                break;
+            }
+            try { Thread.sleep(1000L); } catch(InterruptedException ie) { }
 
         }
+        if(resourceMgrStarted) {
+            logger.debug("resource manager startup processing complete");
+        } else {
+            logger.warn("resource manager startup processing NOT complete "
+                        +"-- NO TRANSACTION SERVICE DISCOVERED");
+            logger.warn("\n>>>> discovered transaction service ---- NO\n");
+        }
 
+        if (localResources.getServiceUUID() == null) {
+            throw new IllegalStateException("null serviceUUID");
+        }
+            
+        if( !isOpen() ) {// service has already been closed
+            logger.warn("service is not open");
+            return;
+        }
+
+        // Service specific counters.
+
+        final CounterSet serviceRoot = localResources.getServiceCounterSet();
+
+        serviceRoot.makePath
+            (IDataServiceCounters.resourceManager).attach
+                                      ( resourceMgr.getCounters() );
+
+        serviceRoot.makePath
+            (IDataServiceCounters.concurrencyManager).attach
+                                      ( concurrencyMgr.getCounters() );
+
+        serviceRoot.makePath
+            (IDataServiceCounters.transactionManager).attach
+                                      ( localTransactionMgr.getCounters() );
+
+        // block API.
+        {
+            CounterSet tmp = serviceRoot.makePath("Block API");
+
+            tmp.addCounter("Blocks Read", new Instrument<Long>() {
+                public void sample() {
+                    setValue(readBlockApiCounters.readBlockCount);
+                }
+            });
+
+            tmp.addCounter (
+                    "Blocks Read Per Second",
+                     new Instrument<Double>() {
+
+                         public void sample() {
+                             // @todo encapsulate this logic.
+                             long secs = 
+                                 TimeUnit.SECONDS.convert
+                                     (readBlockApiCounters.readBlockNanos,
+                                      TimeUnit.NANOSECONDS);
+
+                               final double v;
+                               if (secs == 0L) {
+                                   v = 0d;
+                               } else {
+                                   v = 
+                                    readBlockApiCounters.readBlockCount / secs;
+                               }
+                               setValue(v);
+
+                         }//end sample
+
+                     }// end new Instrument
+
+            );//end addCounter
+
+        }//end block API
+
+        logHttpServerUrl(new File(resourceMgr.getDataDir(), "httpd.url"));
     }
 
     /**
-     * Concrete implementation manages the local state of transactions executing
-     * on a shard service.
+     * Writes the access url to the associated shard service's daemon onto
+     * the given <code>File</code>.
+     *
+     * (Taken from <code>DefaultServiceFederationDelegate.logHttpdURL</code>).
      */
-//BTM    public class DataServiceTransactionManager extends
-//BTM            AbstractLocalTransactionManager {
-//BTM
-//BTM//BTM        public ITransactionService getTransactionService() {
-//BTMpublic TransactionService getTransactionService() {
-//BTM
-//BTM            return DataService.this.getFederation().getTransactionService();
-//BTM
-//BTM        }
-//BTM
-        /**
-         * Exposed to {@link singlePhaseCommit(long)}
-         */
-//BTM        public void deactivateTx(final Tx localState) {
-//BTM
-//BTM            super.deactivateTx(localState);
-//BTM
-//BTM        }
-//BTM
-//BTM    }
-
+    private void logHttpServerUrl(final File file) {
+        if( (file == null) || (httpServerUrl == null) ) return;
+        file.delete(); // in case an old version of the given file exists
+        try {
+            Writer w = new BufferedWriter( new FileWriter(file) );
+            try {
+                w.write(httpServerUrl);
+            } finally {
+                w.close();
+            }
+        } catch (IOException ex) {
+            logger.warn("failure on write of http daemon access url "
+                        +"[file="+file+", url="+httpServerUrl+"]" );
+        }
+    }
 }
 
 

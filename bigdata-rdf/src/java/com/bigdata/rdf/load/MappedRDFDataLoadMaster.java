@@ -62,6 +62,14 @@ import com.bigdata.service.jini.master.MappedTaskMaster;
 import com.bigdata.service.jini.master.TaskMaster;
 import java.net.URL;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.jini.IJiniDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexManager;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.zookeeper.ZooKeeperAccessor;
+import org.apache.zookeeper.data.ACL;
+import java.util.List;
+
 /**
  * Distributed bulk loader for RDF data. Creates/(re-)opens the
  * {@link AbstractTripleStore}, loads the optional ontology, and starts the
@@ -681,7 +689,18 @@ try {
 
         try {
 
-            final TaskMaster task = new MappedRDFDataLoadMaster(fed);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final TaskMaster task = new MappedRDFDataLoadMaster(fed);
+            final TaskMaster task =
+                      new MappedRDFDataLoadMaster
+                              ( (IScaleOutIndexManager)fed,
+                                (IJiniDiscoveryManagement)fed,
+                                (ILocalResourceManagement)fed,
+                                fed.getZookeeperAccessor(),
+                                fed.getZooConfig().acl,
+                                fed.getZooConfig().zroot,
+                                fed.getClient().getConfiguration() );
+//BTM - PRE_CLIENT_SERVICE - END
 
             // execute master wait for it to finish.
             task.execute();
@@ -695,12 +714,27 @@ try {
 
     }
     
-    public MappedRDFDataLoadMaster(final JiniFederation fed)
-            throws ConfigurationException {
-
-        super(fed);
-    
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public MappedRDFDataLoadMaster(final JiniFederation fed)
+//BTM - PRE_CLIENT_SERVICE            throws ConfigurationException {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(fed);
+//BTM - PRE_CLIENT_SERVICE    
+//BTM - PRE_CLIENT_SERVICE    }
+    public MappedRDFDataLoadMaster
+               (final IScaleOutIndexManager scaleOutIndexManager,
+                final IJiniDiscoveryManagement discoveryManager,
+                final ILocalResourceManagement localResourceManager,
+                final ZooKeeperAccessor zookeeperAccessor,
+                final List<ACL> zookeeperAcl,
+                final String zookeeperRoot,
+                final Configuration config)
+                   throws ConfigurationException
+    {
+        super(scaleOutIndexManager, discoveryManager, localResourceManager,
+              zookeeperAccessor, zookeeperAcl, zookeeperRoot, config);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Extended to support optional load, closure, and reporting.
@@ -750,8 +784,13 @@ try {
              * 
              * Note: This lock is advisory.
              */
-            final IResourceLock lock = fed.getResourceLockService()
-                    .acquireLock(tripleStore.getNamespace());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IResourceLock lock = fed.getResourceLockService()
+//BTM - PRE_CLIENT_SERVICE                    .acquireLock(tripleStore.getNamespace());
+            final IResourceLock lock =
+                      scaleOutIndexManager.getResourceLockService().acquireLock
+                                                 (tripleStore.getNamespace());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 
             try {
 
@@ -835,7 +874,10 @@ try {
 
             System.out.println("Forcing overflow: now=" + new Date());
 
-			fed.forceOverflow(true/* compactingMerge */, true/* truncateJournal */);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE			fed.forceOverflow(true/* compactingMerge */, true/* truncateJournal */);
+            forceOverflow();// defined in TaskMaster super class
+//BTM - PRE_CLIENT_SERVICE - END
 
             System.out.println("Forced overflow: now=" + new Date());
 
@@ -922,8 +964,14 @@ try {
         final JobState jobState = getJobState();
         
         // locate the resource declaration (aka "open").
-        tripleStore = (AbstractTripleStore) fed.getResourceLocator().locate(
-                jobState.namespace, ITx.UNISOLATED);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        tripleStore = (AbstractTripleStore) fed.getResourceLocator().locate(
+//BTM - PRE_CLIENT_SERVICE                jobState.namespace, ITx.UNISOLATED);
+        tripleStore =
+            (AbstractTripleStore) scaleOutIndexManager.getResourceLocator()
+                                                      .locate(jobState.namespace,
+                                                              ITx.UNISOLATED);
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (tripleStore == null) {
 
@@ -988,11 +1036,23 @@ try {
          * You can specify those properties using NV[] for the component that is
          * executing the master.
          */
-        final Properties properties = fed.getClient().getProperties(
-                jobState.component);
-        
-        final AbstractTripleStore tripleStore = new ScaleOutTripleStore(fed,
-                jobState.namespace, ITx.UNISOLATED, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final Properties properties = fed.getClient().getProperties(
+//BTM - PRE_CLIENT_SERVICE                jobState.component);
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE        final AbstractTripleStore tripleStore = new ScaleOutTripleStore(fed,
+//BTM - PRE_CLIENT_SERVICE                jobState.namespace, ITx.UNISOLATED, properties);
+        final Properties properties =
+                 JiniClient.getProperties(jobState.component, config);
+
+        final AbstractTripleStore tripleStore =
+              new ScaleOutTripleStore( scaleOutIndexManager,
+                                       null, //IConcurrencyManager ==> BTM - not needed?
+                                       discoveryManager,
+                                       jobState.namespace,
+                                       ITx.UNISOLATED,
+                                       properties );
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 
         // create the triple store.
         tripleStore.create();

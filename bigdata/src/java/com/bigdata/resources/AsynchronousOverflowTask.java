@@ -627,11 +627,13 @@ public class AsynchronousOverflowTask implements Callable<Object> {
         try {
 
             final Executor buildService = new LatchedExecutor(
-                    resourceManager.getFederation().getExecutorService(),
+//BTM - PRE_CLIENT_SERVICE  resourceManager.getFederation().getExecutorService(),
+                    resourceManager.getLocalResourceManager().getThreadPool(),
                     resourceManager.buildServiceCorePoolSize);
 
             final Executor mergeService = new LatchedExecutor(
-                    resourceManager.getFederation().getExecutorService(),
+//BTM - PRE_CLIENT_SERVICE  resourceManager.getFederation().getExecutorService(),
+                    resourceManager.getLocalResourceManager().getThreadPool(),
                     resourceManager.mergeServiceCorePoolSize);
 
             // Schedule merge tasks.
@@ -843,10 +845,9 @@ public class AsynchronousOverflowTask implements Callable<Object> {
                      * of the post-split index partitions on this data service.
                      */
 
-                    final UUID[] a = resourceManager
-                            .getFederation()
-                            .getDataServiceUUIDs(
-                                    ssc.getDataServiceCount()/* maxCount */);
+//BTM - PRE_CLIENT_SERVICE  final UUID[] a = resourceManager.getFederation().getDataServiceUUIDs(ssc.getDataServiceCount()/* maxCount */);
+                    final UUID[] a = resourceManager.getDiscoveryManager()
+                                         .getDataServiceUUIDs(ssc.getDataServiceCount());
 
                     if (a == null || a.length == 1) {
 
@@ -1205,11 +1206,16 @@ public class AsynchronousOverflowTask implements Callable<Object> {
 //BTM                                            .getMetadataIndexName(scaleOutIndexName),
 //BTM                                    op).get();
 
-ShardLocator mds = (resourceManager.getFederation()).getMetadataService();
-if(mds == null) {
-    log.error("AsynchronousOverflowTask.chooseJoins: null shard locator (metadata) service - could not locate rightSiblings [index="+scaleOutIndexName+"]");
-    continue;
-}
+//BTM - PRE_CLIENT_SERVICE ShardLocator mds = (resourceManager.getFederation()).getMetadataService();
+                    ShardLocator mds = (resourceManager.getDiscoveryManager())
+                                                       .getMetadataService();
+                    if(mds == null) {
+                        log.error("AsynchronousOverflowTask.chooseJoins: "
+                                  +"null shard locator (metadata) service - "
+                                  +"could not locate rightSiblings "
+                                  +"[index="+scaleOutIndexName+"]");
+                        continue;
+                    }
 //BTM - BEGIN CHANGE FROM IDATA_SERVICE TO SHARD_SERVICE
 
 //BTMif(mds instanceof IDataService) {
@@ -1355,14 +1361,19 @@ final String sourceIndexName = Util.getIndexPartitionName(scaleOutIndexName, pmd
                         // get the target service name.
                         String targetDataServiceName;
                         try {
-//BTM                            targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
-ShardService shardService =  resourceManager.getFederation().getDataService(targetDataServiceUUID);
-if(shardService instanceof IService) {
-    targetDataServiceName = ((IService)shardService).getServiceName();
-} else {
-    targetDataServiceName = ((Service)shardService).getServiceName();
-}
-
+//BTM - BEGIN               targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
+//BTM - PRE_CLIENT_SERVICE ShardService shardService =  resourceManager.getFederation().getDataService(targetDataServiceUUID);
+                            ShardService shardService =
+                                resourceManager.getDiscoveryManager()
+                                    .getDataService(targetDataServiceUUID);
+                            if(shardService instanceof IService) {
+                                targetDataServiceName =
+                                    ((IService)shardService).getServiceName();
+                            } else {
+                                targetDataServiceName =
+                                    ((Service)shardService).getServiceName();
+                            }
+//BTM - END
                         } catch (Throwable t) {
                             targetDataServiceName = targetDataServiceUUID.toString();
                         }
@@ -1415,8 +1426,9 @@ if(shardService instanceof IService) {
         
         try {
 
-            loadBalancerService = resourceManager.getFederation()
-                    .getLoadBalancerService();
+//BTM - PRE_CLIENT_SERVICE             loadBalancerService = resourceManager.getFederation().getLoadBalancerService();
+            loadBalancerService = resourceManager.getDiscoveryManager()
+                                                   .getLoadBalancerService();
 
         } catch (Exception ex) {
 
@@ -2006,13 +2018,19 @@ if(shardService instanceof IService) {
             // get the target service name.
             String targetDataServiceName;
             try {
-//BTM                targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
-ShardService shardService =  resourceManager.getFederation().getDataService(targetDataServiceUUID);
-if(shardService instanceof IService) {
-    targetDataServiceName = ((IService)shardService).getServiceName();
-} else {
-    targetDataServiceName = ((Service)shardService).getServiceName();
-}
+//BTM - BEGIN   targetDataServiceName = resourceManager.getFederation().getDataService(targetDataServiceUUID).getServiceName();
+//BTM - PRE_CLIENT_SERVICE ShardService shardService =  resourceManager.getFederation().getDataService(targetDataServiceUUID);
+                ShardService shardService =
+                    resourceManager.getDiscoveryManager()
+                                      .getDataService(targetDataServiceUUID);
+                if(shardService instanceof IService) {
+                    targetDataServiceName =
+                        ((IService)shardService).getServiceName();
+                } else {
+                    targetDataServiceName =
+                        ((Service)shardService).getServiceName();
+                }
+//BTM - END
             } catch (Throwable t) {
                 targetDataServiceName = targetDataServiceUUID.toString();
             }
@@ -2937,14 +2955,23 @@ if(shardService instanceof IService) {
 //BTM                new EventResource(), EventType.AsynchronousOverflow).addDetail(
 //BTM                "asynchronousOverflowCounter",
 //BTM                resourceManager.overflowCounters.asynchronousOverflowCounter.get()).start();
-final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
-                           (resourceManager.getFederation()).getServiceIface(),
-                           (resourceManager.getFederation()).getServiceName(),
-                           (resourceManager.getFederation()).getServiceUUID(),
-                           new EventResource(),
-                           EventType.AsynchronousOverflow).addDetail("asynchronousOverflowCounter",
-                                                                     resourceManager.overflowCounters.asynchronousOverflowCounter.get()).start();
-        
+//BTM - PRE_CLIENT_SERVICE final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                            new EventResource(),
+//BTM - PRE_CLIENT_SERVICE                            EventType.AsynchronousOverflow).addDetail("asynchronousOverflowCounter",
+//BTM - PRE_CLIENT_SERVICE                                       resourceManager.overflowCounters.asynchronousOverflowCounter.get()).start();
+//BTM - PRE_CLIENT_SERVICE 
+        final Event e = 
+            new Event
+            ((resourceManager.getLocalResourceManager()).getEventQueueSender(),
+             (resourceManager.getLocalResourceManager()).getServiceIface(),
+             (resourceManager.getLocalResourceManager()).getServiceName(),
+             (resourceManager.getLocalResourceManager()).getServiceUUID(),
+             new EventResource(),
+             EventType.AsynchronousOverflow).addDetail("asynchronousOverflowCounter",
+                                                       resourceManager.overflowCounters.asynchronousOverflowCounter.get()).start();
         try {
 
             if(log.isInfoEnabled()) {

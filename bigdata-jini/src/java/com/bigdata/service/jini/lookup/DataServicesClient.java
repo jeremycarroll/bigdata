@@ -38,10 +38,15 @@ import net.jini.lookup.entry.Name;
 
 //BTM import com.bigdata.service.IDataService;
 //BTM import com.bigdata.service.IMetadataService;
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
 
 //BTM
 import com.bigdata.service.ShardService;
+
+//BTM - FOR_CLIENT_SERVICE
+import net.jini.lookup.ServiceDiscoveryManager;
+import net.jini.lookup.ServiceDiscoveryListener;
+import java.util.UUID;
 
 /**
  * Class handles discovery, caching, and local lookup of 
@@ -49,31 +54,49 @@ import com.bigdata.service.ShardService;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
-public class DataServicesClient extends
-//BTM        BigdataCachingServiceClient<IDataService> {
-BigdataCachingServiceClient<ShardService> {
+//BTM public class DataServicesClient extends BigdataCachingServiceClient<IDataService> {
+public class DataServicesClient extends BigdataCachingServiceClient<ShardService> {
 
 //BTM - NOTE: an IMetadataService IS a ShardService, so IMetadataService must be filtered below
 
     /**
      * {@inheritDoc}
      */
-    public DataServicesClient(final JiniFederation fed, final long timeout)
-            throws RemoteException {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE     public DataServicesClient(final JiniFederation fed, final long timeout)
+//BTM - PRE_CLIENT_SERVICE             throws RemoteException {
+//BTM - PRE_CLIENT_SERVICE         /*
+//BTM - PRE_CLIENT_SERVICE          * Note: No filter is imposed here. Instead there are type specific
+//BTM - PRE_CLIENT_SERVICE          * methods if you want ShardService vs an IMetadataService.
+//BTM - PRE_CLIENT_SERVICE          */
+//BTM - PRE_CLIENT_SERVICE //BTM        super(fed, IDataService.class, new ServiceTemplate(null,
+//BTM - PRE_CLIENT_SERVICE //BTM                new Class[] { IDataService.class }, null), null/* filter */,
+//BTM - PRE_CLIENT_SERVICE //BTM                timeout);
+//BTM - PRE_CLIENT_SERVICE super(fed, 
+//BTM - PRE_CLIENT_SERVICE       ShardService.class, 
+//BTM - PRE_CLIENT_SERVICE       new ServiceTemplate(null, new Class[] { ShardService.class }, null), 
+//BTM - PRE_CLIENT_SERVICE       null, //filter 
+//BTM - PRE_CLIENT_SERVICE       timeout);
+//BTM - PRE_CLIENT_SERVICE     }
 
+    public DataServicesClient(final ServiceDiscoveryManager sdm,
+                              final ServiceDiscoveryListener listener,
+                              final UUID serviceUUID,
+                              final Object serviceRef,
+                              final long timeout)
+                throws RemoteException
+    {
         /*
          * Note: No filter is imposed here. Instead there are type specific
          * methods if you want ShardService vs an IMetadataService.
          */
-//BTM        super(fed, IDataService.class, new ServiceTemplate(null,
-//BTM                new Class[] { IDataService.class }, null), null/* filter */,
-//BTM                timeout);
-super(fed, 
-      ShardService.class, 
-      new ServiceTemplate(null, new Class[] { ShardService.class }, null), 
-      null, //filter 
-      timeout);
+        super(sdm, listener, serviceUUID, serviceRef, 
+              ShardService.class, 
+              new ServiceTemplate(null, new Class[] {ShardService.class}, null), 
+              null, //filter 
+              timeout);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Return an arbitrary {@link ShardService} instance from the cache -or-

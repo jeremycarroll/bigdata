@@ -29,8 +29,13 @@ import java.util.UUID;
 
 import net.jini.core.lookup.ServiceItem;
 import net.jini.core.lookup.ServiceTemplate;
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.service.ShardLocator;
+
+//BTM - FOR_CLIENT_SERVICE
+import net.jini.lookup.ServiceDiscoveryManager;
+import net.jini.lookup.ServiceDiscoveryListener;
+import java.util.UUID;
 
 /**
  * Class handles discovery, caching, and local lookup of a shard locator
@@ -42,12 +47,27 @@ public class ShardLocatorClient extends
     /**
      * {@inheritDoc}
      */
-    public ShardLocatorClient(final JiniFederation fed, final long timeout)
-            throws RemoteException {
-        super(fed, ShardLocator.class, new ServiceTemplate(null,
-                new Class[] { ShardLocator.class }, null), null/* filter */,
-                timeout);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public ShardLocatorClient(final JiniFederation fed, final long timeout)
+//BTM - PRE_CLIENT_SERVICE            throws RemoteException {
+//BTM - PRE_CLIENT_SERVICE        super(fed, ShardLocator.class, new ServiceTemplate(null,
+//BTM - PRE_CLIENT_SERVICE                new Class[] { ShardLocator.class }, null), null/* filter */,
+//BTM - PRE_CLIENT_SERVICE                timeout);
+//BTM - PRE_CLIENT_SERVICE    }
+    public ShardLocatorClient(final ServiceDiscoveryManager sdm,
+                              final ServiceDiscoveryListener listener,
+                              final UUID serviceUUID,
+                              final Object serviceRef,
+                              final long timeout)
+                throws RemoteException
+    {
+        super(sdm, listener, serviceUUID, serviceRef,
+              ShardLocator.class,
+              new ServiceTemplate(null, new Class[] {ShardLocator.class}, null),
+              null, //filter
+              timeout);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * Return the shard locator service from the cache -or-

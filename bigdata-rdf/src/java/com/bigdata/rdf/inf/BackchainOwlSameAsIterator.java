@@ -101,7 +101,13 @@ public abstract class BackchainOwlSameAsIterator implements IChunkedOrderedItera
         props.setProperty(AbstractTripleStore.Options.ONE_ACCESS_PATH, "true");
         // @todo MikeP : test w/ SPO bloom filter enabled and see if this improves performance.
         props.setProperty(AbstractTripleStore.Options.BLOOM_FILTER, "false");
-        return new TempTripleStore(db.getIndexManager().getTempStore(), props, db);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return new TempTripleStore(db.getIndexManager().getTempStore(), props, db);
+        return new TempTripleStore(db.getIndexManager().getTempStore(),
+                                   db.getConcurrencyManager(),
+                                   db.getDiscoveryManager(),
+                                   props, db);
+//BTM - PRE_CLIENT_SERVICE - END
     }
 
     protected void dumpSPO(ISPO spo) {

@@ -179,17 +179,32 @@ public class ScatterSplitTask extends
 //BTM                OverflowActionEnum.ScatterSplit + "+" + OverflowActionEnum.Move + "("
 //BTM                        + vmd.name + ", nsplits=" + nsplits + ")").addDetail(
 //BTM                "moveTargets", Arrays.toString(moveTargets)).start();
-final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
-                           (resourceManager.getFederation()).getServiceIface(),
-                           (resourceManager.getFederation()).getServiceName(),
-                           (resourceManager.getFederation()).getServiceUUID(),
-                           new EventResource(vmd.indexMetadata),
-                           OverflowActionEnum.ScatterSplit,
-                           vmd.getParams()).addDetail("summary",
-                                                      OverflowActionEnum.ScatterSplit +
-                                                      "+" + OverflowActionEnum.Move + "("
-                                                      + vmd.name + ", nsplits=" + nsplits + ")").addDetail("moveTargets",
-                                                                                                            Arrays.toString(moveTargets)).start();
+//BTM - PRE_CLIENT_SERVICE final Event e = new Event( (resourceManager.getFederation()).getEventQueue(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceIface(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceName(),
+//BTM - PRE_CLIENT_SERVICE                            (resourceManager.getFederation()).getServiceUUID(),
+//BTM - PRE_CLIENT_SERVICE                            new EventResource(vmd.indexMetadata),
+//BTM - PRE_CLIENT_SERVICE                            OverflowActionEnum.ScatterSplit,
+//BTM - PRE_CLIENT_SERVICE                            vmd.getParams()).addDetail("summary",
+//BTM - PRE_CLIENT_SERVICE                            OverflowActionEnum.ScatterSplit +
+//BTM - PRE_CLIENT_SERVICE                            "+" + OverflowActionEnum.Move + "("
+//BTM - PRE_CLIENT_SERVICE                             + vmd.name + ", nsplits=" + nsplits + ")").addDetail("moveTargets",
+//BTM - PRE_CLIENT_SERVICE                             Arrays.toString(moveTargets)).start();
+//BTM - PRE_CLIENT_SERVICE 
+
+        final Event e =
+              new Event
+              ((resourceManager.getLocalResourceManager()).getEventQueueSender(),
+               (resourceManager.getLocalResourceManager()).getServiceIface(),
+               (resourceManager.getLocalResourceManager()).getServiceName(),
+               (resourceManager.getLocalResourceManager()).getServiceUUID(),
+               new EventResource(vmd.indexMetadata),
+               OverflowActionEnum.ScatterSplit,
+               vmd.getParams()).addDetail("summary",
+                   OverflowActionEnum.ScatterSplit +
+                   "+" + OverflowActionEnum.Move + "("
+                    + vmd.name + ", nsplits=" + nsplits + ")").addDetail("moveTargets",
+                                                 Arrays.toString(moveTargets)).start();
 
         SplitResult splitResult = null;
         try {

@@ -46,8 +46,13 @@ import com.bigdata.journal.ITx;
 import com.bigdata.mdi.IMetadataIndex;
 import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.resources.StaleLocatorException;
-import com.bigdata.service.AbstractScaleOutFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractScaleOutFederation;
 import com.bigdata.service.Split;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IScaleOutIndexStore;
+import com.bigdata.resources.ILocalResourceManagement;
 
 /**
  * Abstract class encapsulating MOST of the logic for executing tasks
@@ -81,12 +86,39 @@ abstract public class AbstractScaleOutClientIndexView2 extends
      *            object contains the template {@link IndexMetadata} for the
      *            scale-out index partitions.
      */
-    public AbstractScaleOutClientIndexView2(AbstractScaleOutFederation fed,
-            String name, long timestamp, IMetadataIndex metadataIndex) {
-
-        super(fed, name, timestamp, metadataIndex);
-        
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public AbstractScaleOutClientIndexView2(AbstractScaleOutFederation fed,
+//BTM - PRE_CLIENT_SERVICE            String name, long timestamp, IMetadataIndex metadataIndex) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        super(fed, name, timestamp, metadataIndex);
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE    }
+    public AbstractScaleOutClientIndexView2
+               (final IBigdataDiscoveryManagement discoveryManager,
+                final ILocalResourceManagement localResourceManager,
+                final IScaleOutIndexStore indexStore,
+                final String name,
+                final long timestamp,
+                final IMetadataIndex metadataIndex,
+                      int defaultRangeQueryCapacity,
+                      boolean batchApiOnly,
+                      long taskTimeout,
+                      int maxParallelTasksPerRequest,
+                      int maxStaleLocatorRetries)
+    {
+        super(discoveryManager,
+              localResourceManager,
+              indexStore,
+              name,
+              timestamp,
+              metadataIndex,
+              defaultRangeQueryCapacity,
+              batchApiOnly,
+              taskTimeout,
+              maxParallelTasksPerRequest,
+              maxStaleLocatorRetries);
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
     /**
      * 
@@ -131,8 +163,12 @@ abstract public class AbstractScaleOutClientIndexView2 extends
             final ISimpleIndexProcedure proc) {
 
         // Find the index partition spanning that key.
-        final PartitionLocator locator = fed.getMetadataIndex(name, ts).find(
-                key);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final PartitionLocator locator = fed.getMetadataIndex(name, ts).find(
+//BTM - PRE_CLIENT_SERVICE                key);
+        final PartitionLocator locator =
+                  getIndexStore().getMetadataIndex(name, ts).find(key);
+//BTM - PRE_CLIENT_SERVICE - END
 
         /*
          * Submit procedure to that data service.
@@ -193,8 +229,11 @@ abstract public class AbstractScaleOutClientIndexView2 extends
         final int poolSize = ((ThreadPoolExecutor) getThreadPool())
                 .getCorePoolSize();
 
-        final int maxTasksPerRequest = fed.getClient()
-                .getMaxParallelTasksPerRequest();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final int maxTasksPerRequest = fed.getClient()
+//BTM - PRE_CLIENT_SERVICE                .getMaxParallelTasksPerRequest();
+        final int maxTasksPerRequest = getMaxParallelTasksPerRequest();
+//BTM - PRE_CLIENT_SERVICE - END
 
         // max #of tasks to queue at once.
         final int maxTasks = poolSize == 0 ? maxTasksPerRequest : Math.min(

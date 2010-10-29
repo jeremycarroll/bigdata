@@ -62,7 +62,8 @@ class SimpleDataServiceProcedureTask extends AbstractDataServiceProcedureTask {
             taskCountersByIndex.redirectCount++;
         }
 
-        if (ntries++ > ndx.getFederation().getClient().getMaxStaleLocatorRetries()) {
+//BTM - PRE_CLIENT_SERVICE  if (ntries++ > ndx.getFederation().getClient().getMaxStaleLocatorRetries()) {
+        if (ntries++ > ndx.getMaxStaleLocatorRetries()) {
 
             throw new RuntimeException("Retry count exceeded: ntries="
                     + ntries);
@@ -73,8 +74,10 @@ class SimpleDataServiceProcedureTask extends AbstractDataServiceProcedureTask {
          * Note: uses the metadata index for the timestamp against which the
          * procedure is running.
          */
-        final PartitionLocator locator = ndx.getFederation()
-                .getMetadataIndex(ndx.getName(), ts).find(key);
+//BTM - PRE_CLIENT_SERVICE  final PartitionLocator locator = ndx.getFederation().getMetadataIndex(ndx.getName(), ts).find(key);
+        final PartitionLocator locator = 
+            (ndx.getIndexStore()).getMetadataIndex(ndx.getName(), ts).find
+                                                                        (key);
 
         if (log.isInfoEnabled())
             log.info("Retrying: proc=" + proc.getClass().getName()

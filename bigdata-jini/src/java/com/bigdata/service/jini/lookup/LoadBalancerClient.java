@@ -31,10 +31,15 @@ import java.rmi.RemoteException;
 
 import net.jini.core.lookup.ServiceTemplate;
 
-import com.bigdata.service.jini.JiniFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.jini.JiniFederation;
 
 //BTM
 import com.bigdata.service.LoadBalancer;
+
+//BTM - FOR_CLIENT_SERVICE
+import net.jini.lookup.ServiceDiscoveryManager;
+import net.jini.lookup.ServiceDiscoveryListener;
+import java.util.UUID;
 
 /**
  * Class handles discovery of a load balancer service.
@@ -43,12 +48,27 @@ import com.bigdata.service.LoadBalancer;
 public class LoadBalancerClient 
                  extends BigdataCachingServiceClient<LoadBalancer>
 {
-    public LoadBalancerClient(final JiniFederation fed, final long timeout) throws RemoteException {
-        super(fed, LoadBalancer.class, new ServiceTemplate(null,
-                new Class[] { LoadBalancer.class }, null),
-                null/* filter */, timeout);        
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public LoadBalancerClient(final JiniFederation fed, final long timeout) throws RemoteException {
+//BTM - PRE_CLIENT_SERVICE        super(fed, LoadBalancer.class, new ServiceTemplate(null,
+//BTM - PRE_CLIENT_SERVICE                new Class[] { LoadBalancer.class }, null),
+//BTM - PRE_CLIENT_SERVICE                null/* filter */, timeout);        
+//BTM - PRE_CLIENT_SERVICE    }
+    public LoadBalancerClient(final ServiceDiscoveryManager sdm,
+                              final ServiceDiscoveryListener listener,
+                              final UUID serviceUUID,
+                              final Object serviceRef,
+                              final long timeout)
+               throws RemoteException
+    {
+        super(sdm, listener, serviceUUID, serviceRef,
+              LoadBalancer.class,
+              new ServiceTemplate(null, new Class[] {LoadBalancer.class}, null),
+              null, //filter
+              timeout);        
     }
-   
+//BTM - PRE_CLIENT_SERVICE - END
+
 
     /**
      * Return the load balancer service from the cache -or-

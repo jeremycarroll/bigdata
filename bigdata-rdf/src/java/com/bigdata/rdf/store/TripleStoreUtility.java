@@ -382,7 +382,14 @@ public class TripleStoreUtility {
         properties.setProperty(Options.AXIOMS_CLASS,
                 NoAxioms.class.getName());
         
-        final TempTripleStore tmp = new TempTripleStore(properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final TempTripleStore tmp = new TempTripleStore(properties);
+        final TempTripleStore tmp =
+              new TempTripleStore(db.getConcurrencyManager(),
+                                  db.getDiscoveryManager(),
+                                  properties);
+//BTM - PRE_CLIENT_SERVICE - END
+
     
         final StatementBuffer<Statement> sb = new StatementBuffer<Statement>(tmp, 100000/* capacity */);
     

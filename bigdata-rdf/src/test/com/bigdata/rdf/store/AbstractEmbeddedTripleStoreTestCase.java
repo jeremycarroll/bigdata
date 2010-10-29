@@ -31,6 +31,11 @@ import java.util.Properties;
 
 import com.bigdata.journal.ITx;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.service.AbstractFederation;
+
 /**
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -68,8 +73,19 @@ public class AbstractEmbeddedTripleStoreTestCase extends
         super.setUp();
 
         // connect to the database.
-        store = new ScaleOutTripleStore(client.getFederation(), "test_",
-                ITx.UNISOLATED, client.getProperties());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        store = new ScaleOutTripleStore(client.getFederation(), "test_",
+//BTM - PRE_CLIENT_SERVICE                ITx.UNISOLATED, client.getProperties());
+        AbstractFederation fed = (AbstractFederation)(client.getFederation());
+        store = new ScaleOutTripleStore
+                        ((IIndexManager)fed,
+                         fed.getConcurrencyManager(),
+                         (IBigdataDiscoveryManagement)fed,
+                         "test_",
+                         ITx.UNISOLATED,
+                         client.getProperties());
+//BTM - PRE_CLIENT_SERVICE - END
+
         
         store.create();
         

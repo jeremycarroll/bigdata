@@ -27,8 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service.jini.master;
 
-import com.bigdata.service.AbstractFederation;
+//BTM import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.ndx.pipeline.AbstractPendingSetMasterStats;
+
+//BTM
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Statistics for passing resources to be processed to the distributed clients.
@@ -42,9 +45,11 @@ public class ResourceBufferStatistics<L, HS extends ResourceBufferSubtaskStatist
     /**
      * @param fed
      */
-    public ResourceBufferStatistics(AbstractFederation<?> fed) {
-
-        super(fed);
+//BTM    public ResourceBufferStatistics(AbstractFederation<?> fed) {
+//BTM
+//BTM        super(fed);
+public ResourceBufferStatistics(ScheduledExecutorService scheduledExecutor) {
+        super(scheduledExecutor);
 
     }
 

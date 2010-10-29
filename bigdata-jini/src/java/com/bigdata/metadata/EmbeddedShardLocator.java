@@ -26,113 +26,72 @@ package com.bigdata.metadata;
 
 import static com.bigdata.metadata.Constants.*;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
 import com.bigdata.btree.BytesUtil;
+import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.ITupleIterator;
-import com.bigdata.btree.IndexMetadata;
-import com.bigdata.io.SerializerUtil;
-import com.bigdata.journal.AbstractTask;
-import com.bigdata.journal.ConcurrencyManager;
-import com.bigdata.journal.IConcurrencyManager;
-import com.bigdata.journal.IResourceManager;
-import com.bigdata.journal.ITx;
-import com.bigdata.journal.IndexExistsException;
-import com.bigdata.journal.NoSuchIndexException;
-import com.bigdata.mdi.LocalPartitionMetadata;
-import com.bigdata.mdi.MetadataIndex;
-import com.bigdata.mdi.PartitionLocator;
-import com.bigdata.resources.ResourceManager;
-
-//BTM - added because of new package
 import com.bigdata.btree.ResultSet;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.proc.IIndexProcedure;
-import com.bigdata.counters.CounterSet;
-import com.bigdata.counters.ReadBlockCounters;
-import com.bigdata.event.EventQueueSenderTask;
-import com.bigdata.jini.lookup.entry.Hostname;
-import com.bigdata.jini.lookup.entry.ServiceUUID;
-import com.bigdata.jini.start.IServicesManagerService;
+import com.bigdata.counters.AbstractStatisticsCollector;
+import com.bigdata.counters.ICounterSet;
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.io.SerializerUtil;
+import com.bigdata.jini.BigdataDiscoveryManager;
+import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.ConcurrencyManager;
-import com.bigdata.journal.EmbeddedIndexStore;
 import com.bigdata.journal.GetIndexMetadataTask;
-import com.bigdata.journal.IIndexManager;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IndexExistsException;
 import com.bigdata.journal.IndexProcedureTask;
-import com.bigdata.journal.ITransactionService;//remote impl
+import com.bigdata.journal.IResourceManager;
+import com.bigdata.journal.ITx;
 import com.bigdata.journal.LocalTransactionManager;
+import com.bigdata.journal.NoSuchIndexException;
 import com.bigdata.journal.RangeIteratorTask;
-import com.bigdata.journal.TemporaryStoreFactory;
-import com.bigdata.journal.TransactionService;//smart proxy impl
-import com.bigdata.journal.Tx;
-import com.bigdata.resources.LocalResourceManagement;
+import com.bigdata.journal.ScaleOutIndexManager;
+import com.bigdata.journal.TransactionService;
+import com.bigdata.mdi.LocalPartitionMetadata;
+import com.bigdata.mdi.MetadataIndex;
+import com.bigdata.mdi.PartitionLocator;
+import com.bigdata.resources.ILocalResourceManagement;
+import com.bigdata.resources.LocalResourceManager;
 import com.bigdata.resources.ResourceManager;
-import com.bigdata.service.Event; //BTM *** move to com.bigdata.event?
-import com.bigdata.service.IBigdataFederation;
-import com.bigdata.service.IClientService;
-import com.bigdata.service.IDataService;
+import com.bigdata.service.DataTaskWrapper;
 import com.bigdata.service.IDataServiceCallable;
-import com.bigdata.service.IDataServiceOnlyFilter;
-import com.bigdata.service.IFederationCallable;
-import com.bigdata.service.ILoadBalancerService;
-import com.bigdata.service.IMetadataService;
-import com.bigdata.service.IService;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.ISession;
 import com.bigdata.service.LoadBalancer;
 import com.bigdata.service.MetadataIndexCachePolicy;
+import com.bigdata.service.Service;
+import com.bigdata.service.Session;
 import com.bigdata.service.ShardLocator;
 import com.bigdata.service.ShardManagement;
 import com.bigdata.service.ShardService;
-import com.bigdata.service.Service;
-import com.bigdata.service.Session;
-import com.bigdata.shard.EmbeddedShardService;
-import com.bigdata.util.EntryUtil;
 import com.bigdata.util.Util;
-import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.config.LogUtil;
+import com.bigdata.zookeeper.ZooKeeperAccessor;
 
-import net.jini.core.entry.Entry;
-import net.jini.core.lookup.ServiceID;
-import net.jini.core.lookup.ServiceItem;
-import net.jini.core.lookup.ServiceTemplate;
-import net.jini.lookup.LookupCache;
-import net.jini.lookup.ServiceDiscoveryEvent;
-import net.jini.lookup.ServiceDiscoveryListener;
 import net.jini.lookup.ServiceDiscoveryManager;
-import net.jini.lookup.ServiceItemFilter;
-import net.jini.lookup.entry.Name;
 
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
-import java.io.File;
-import java.rmi.RemoteException;
-import java.util.Enumeration;
+import org.apache.zookeeper.data.ACL;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-//BTM - PRE_FRED_3481
-import com.bigdata.service.DataTaskWrapper;
-import com.bigdata.service.IDataServiceCallable;
+import com.bigdata.service.IFederationCallable;//BTM - not needed?
 
 // Make package protected in the future when possible
 public 
@@ -140,10 +99,8 @@ class EmbeddedShardLocator implements ShardLocator,
                                       ShardManagement,
                                       Service,
                                       ISession,
-                                      IServiceShutdown,
-                                      LocalResourceManagement
+                                      IServiceShutdown
 {
-
     public static Logger logger =
         LogUtil.getLog4jLogger((EmbeddedShardLocator.class).getName());
 
@@ -166,9 +123,7 @@ class EmbeddedShardLocator implements ShardLocator,
      * @see Util#getIndexPartitionName(String, int)
      */
     public static String getMetadataIndexName(String name) {
-        
         return METADATA_INDEX_NAMESPACE + name;
-        
     }
     
     /**
@@ -176,62 +131,33 @@ class EmbeddedShardLocator implements ShardLocator,
      */
     public static final String METADATA_INDEX_NAMESPACE = "metadata-";
 
-public static interface Options extends 
+    public static interface Options extends 
                   com.bigdata.journal.Options,
                   com.bigdata.journal.ConcurrencyManager.Options,
                   com.bigdata.resources.ResourceManager.Options,
                   com.bigdata.counters.AbstractStatisticsCollector.Options,
                   com.bigdata.service.IBigdataClient.Options
-{
-//BTM - BEGIN - added options
-    String THREAD_POOL_SIZE = "threadPoolSize";
-    String DEFAULT_THREAD_POOL_SIZE = 
+    {
+        String THREAD_POOL_SIZE = "threadPoolSize";
+        String DEFAULT_THREAD_POOL_SIZE = 
            new Integer(Constants.DEFAULT_THREAD_POOL_SIZE).toString();
-//BTM - END   - added options
-}
+    }
 
-private UUID thisServiceUUID;
-private String hostname;
-private ServiceDiscoveryManager sdm;//for discovering txn, lbs, shard services
+    private ZooKeeperAccessor zkAccessor;
+    private List<ACL> zkAcl;
+    private String zkRoot;
+    private Properties properties;
 
-private LookupCache txnServiceCache;
-private LookupCache lbsServiceCache;
-private LookupCache shardCache;
-private LookupCache remoteShardCache;//need because of IMetadataService
-
-//BTM private ConcurrentHashMap<UUID, IDataService> remoteShardMap = 
-//BTM            new ConcurrentHashMap<UUID, IDataService>();
-private ConcurrentHashMap<UUID, ShardService> shardMap = 
-            new ConcurrentHashMap<UUID, ShardService>();
-
-//for embedded federation testing
-private LoadBalancer embeddedLoadBalancer;
-private Map<UUID, ShardService> embeddedDataServiceMap;
-
-private Properties properties;
-private ReadBlockCounters readBlockApiCounters = new ReadBlockCounters();
-
-private ResourceManager resourceManager;
-private LocalTransactionManager localTransactionManager;
-private ConcurrencyManager concurrencyManager;
+    private IBigdataDiscoveryManagement discoveryMgr;
+    private ILocalResourceManagement localResources;
+    private ScaleOutIndexManager indexMgr;
+    private ResourceManager resourceMgr;
+    private LocalTransactionManager localTransactionMgr;
+    private ConcurrencyManager concurrencyMgr;
 
 //BTM - BEGIN - fields from AbstractFederation --------------------------------
-private final ThreadPoolExecutor threadPool;
-private final ScheduledExecutorService scheduledExecutor =
-                      Executors.newSingleThreadScheduledExecutor
-                          (new DaemonThreadFactory
-                                   (getClass().getName()+".sampleService"));
-private ScheduledFuture<?> eventTaskFuture;
-private final TemporaryStoreFactory tempStoreFactory;
-
-//Queue of events sent periodically to the load balancer service
-private BlockingQueue<Event> eventQueue = new LinkedBlockingQueue<Event>();
-
+    private ScheduledFuture<?> eventTaskFuture;
 //BTM - END   - fields from AbstractFederation --------------------------------
-
-//for executing IDataServiceCallable tasks
-private EmbeddedIndexStore embeddedIndexStore;
-private final Session session = new Session();
 
     /**
      * @param properties
@@ -241,145 +167,89 @@ private final Session session = new Session();
                    final String hostname,
                    final ServiceDiscoveryManager sdm,
                    final TransactionService embeddedTxnService,
-                   final LoadBalancer embeddedLbs,
+                   final LoadBalancer embeddedLoadBalancer,
                    final Map<UUID, ShardService> embeddedDataServiceMap,
+                   final ZooKeeperAccessor zookeeperAccessor,
+                   final List<ACL> zookeeperAcl,
+                   final String zookeeperRoot,
                    final int threadPoolSize,
                    final int indexCacheSize,
                    final long indexCacheTimeout,
                    final MetadataIndexCachePolicy metadataIndexCachePolicy,
                    final int resourceLocatorCacheSize,
                    final long resourceLocatorCacheTimeout,
-                   final long lbsReportingPeriod,
+                   final int defaultRangeQueryCapacity,
+                   final boolean batchApiOnly,
+                   final long taskTimeout,
+                   final int maxParallelTasksPerRequest,
+                   final int maxStaleLocatorRetries,
+                   final boolean collectQueueStatistics,
+                   final boolean collectPlatformStatistics,
                    Properties properties)
     {
+        this.zkAccessor = zookeeperAccessor;
+        this.zkAcl = zookeeperAcl;
+        this.zkRoot = zookeeperRoot;
+        this.properties = (Properties) properties.clone();
 
-//BTM        super(properties);
-this.properties = (Properties) properties.clone();
-if (serviceUUID == null) {
-    throw new NullPointerException("null serviceUUID");
-}   
-this.thisServiceUUID = serviceUUID;
+        (this.properties).setProperty
+            ( AbstractStatisticsCollector.Options.PROCESS_NAME,
+              "service" + ICounterSet.pathSeparator + SERVICE_TYPE
+              + ICounterSet.pathSeparator + serviceUUID.toString() );
 
-if (hostname == null) {
-    throw new NullPointerException("null hostname");
-}   
-this.hostname = hostname;
-this.sdm = sdm;
-this.embeddedDataServiceMap = embeddedDataServiceMap;
-this.embeddedLoadBalancer = embeddedLbs;
-if(sdm != null) {
+        this.discoveryMgr = 
+            new BigdataDiscoveryManager(sdm,
+                                        embeddedTxnService,
+                                        embeddedLoadBalancer,
+                                        null, //embeddedShardLocator
+                                        embeddedDataServiceMap,
+                                        logger);
+        this.localResources = 
+            new LocalResourceManager(SERVICE_TYPE,
+                                     SERVICE_NAME,
+                                     serviceUUID,
+                                     hostname,
+                                     this.discoveryMgr,
+                                     logger,
+                                     threadPoolSize,
+                                     collectQueueStatistics,
+                                     collectPlatformStatistics,
+                                     this.properties);
 
-            //for discovering txn, lbs, and shard services
-            Class[] txnServiceType = 
-                            new Class[] {TransactionService.class};
-            ServiceTemplate txnServiceTmpl = 
-                            new ServiceTemplate(null, txnServiceType, null);
-
-            Class[] lbsServiceType = 
-                            new Class[] {LoadBalancer.class};
-            ServiceTemplate lbsServiceTmpl = 
-                            new ServiceTemplate(null, lbsServiceType, null);
-
-            Class[] shardType = new Class[] {ShardService.class};
-            ServiceTemplate shardTmpl = 
-                            new ServiceTemplate(null, shardType, null);
-            ServiceItemFilter shardFilter = null;
-            try {
-                //caches for smart proxy implementations
-                this.txnServiceCache = sdm.createLookupCache
-                                     ( txnServiceTmpl, 
-                                       null,
-                                       new CacheListener(logger) );
-                this.lbsServiceCache = sdm.createLookupCache
-                                     ( lbsServiceTmpl, 
-                                       null,
-                                       new CacheListener(logger) );
-                this.shardCache = sdm.createLookupCache
-                                     ( shardTmpl, 
-                                       shardFilter,
-                                       new CacheListener(logger) );
-            } catch(RemoteException e) {
-                logger.warn(e.getMessage(), e);
-            }
-
-            //for remote implementation 
-
-            Class[] remoteShardType = new Class[] {IDataService.class};
-            ServiceTemplate remoteShardTmpl = 
-                            new ServiceTemplate(null, remoteShardType, null);
-            ServiceItemFilter remoteShardFilter = new IDataServiceOnlyFilter();
-            try {
-                this.remoteShardCache = sdm.createLookupCache
-                                     ( remoteShardTmpl,
-                                       remoteShardFilter,
-                                       new CacheListener(logger) );
-            } catch(RemoteException e) {
-                logger.warn(e.getMessage(), e);
-            }
-}//endif(sdm != null)
-
-// BTM - trying to maintain logic from AbstractionFederation (for now)
-
-        if (threadPoolSize == 0) {
-            this.threadPool = 
-                (ThreadPoolExecutor) Executors.newCachedThreadPool
-                    (new DaemonThreadFactory
-                         (getClass().getName()+".executorService"));
-        } else {
-            this.threadPool = 
-                (ThreadPoolExecutor) Executors.newFixedThreadPool
-                    (threadPoolSize, 
-                     new DaemonThreadFactory
-                         (getClass().getName()+".executorService"));
-        }
-
-        this.localTransactionManager = 
-            new LocalTransactionManager(this.txnServiceCache,
-                                        embeddedTxnService);//for embedded fed
-
-        this.tempStoreFactory = new TemporaryStoreFactory(this.properties);
-
-        EventQueueSenderTask eventTask = 
-            new EventQueueSenderTask
-                    (eventQueue, this.lbsServiceCache,
-                     this.embeddedLoadBalancer, SERVICE_NAME, logger);
+        this.indexMgr = new ScaleOutIndexManager(this.discoveryMgr,
+                                                 this.localResources,
+                                                 this.zkAccessor,
+                                                 this.zkAcl,
+                                                 this.zkRoot,
+                                                 indexCacheSize,
+                                                 indexCacheTimeout,
+                                                 metadataIndexCachePolicy,
+                                                 resourceLocatorCacheSize,
+                                                 resourceLocatorCacheTimeout,
+                                                 defaultRangeQueryCapacity,
+                                                 batchApiOnly,
+                                                 taskTimeout,
+                                                 maxParallelTasksPerRequest,
+                                                 maxStaleLocatorRetries,
+                                                 logger,
+                                                 this.properties);
 
 System.out.println("\nEmbeddedShardLocator >>> NEW StoreManager - BEGIN");
-        this.embeddedIndexStore =
-            new EmbeddedIndexStore
-                         (this.thisServiceUUID,
-                          SERVICE_TYPE,
-                          SERVICE_NAME,
-                          hostname,
-                          null,// lbsServiceCache - no need to discover lbs?
-                          null,// mdsServiceCache - no need to discover mds?
-                          null,// shardCache  - no need to discover ds?
-                          null,// remoteShardCache - no need to discover ds?
-                          null,// embeddedLbs - no need for lbs?
-                          (LocalResourceManagement)this,
-                          this.tempStoreFactory,
-                          indexCacheSize,
-                          indexCacheTimeout,
-                          metadataIndexCachePolicy,
-                          resourceLocatorCacheSize,
-                          resourceLocatorCacheTimeout,
-                          null, // countersRoot
-                          null, // statisticsCollector
-                          this.properties,
-                          readBlockApiCounters,
-                          this.localTransactionManager,
-                          eventTask,
-                          this.threadPool,
-                          null); //httpServerUrl
-        this.resourceManager = 
-            new MdsResourceManager(this.embeddedIndexStore, properties);
+        this.resourceMgr = 
+            new MdsResourceManager(this.discoveryMgr,
+                                   this.localResources,
+                                   this.indexMgr,
+                                   this.properties);
 System.out.println("\nEmbeddedShardLocator >>> NEW StoreManager - END");
 
-        this.concurrencyManager = 
-            new ConcurrencyManager
-                    (properties, localTransactionManager, resourceManager);
-
-        resourceManager.setConcurrencyManager(concurrencyManager);
+        this.localTransactionMgr = new LocalTransactionManager(discoveryMgr);
+        this.concurrencyMgr = 
+            new ConcurrencyManager(this.properties,
+                                   this.localTransactionMgr,
+                                   this.resourceMgr);
+        //WARN: circular refs
+        (this.resourceMgr).setConcurrencyManager(this.concurrencyMgr);
+        (this.indexMgr).setConcurrencyManager(this.concurrencyMgr);
 
 //BTM - from AbstractFederation constructor and addScheduledTask
 
@@ -388,41 +258,38 @@ System.out.println("\nEmbeddedShardLocator >>> NEW StoreManager - END");
         long sendEventsDelay = 100L;//one-time initial delay
         long sendEventsPeriod = 2000L;
         this.eventTaskFuture = 
-            this.scheduledExecutor.scheduleWithFixedDelay
-                                       (eventTask,
-                                        sendEventsDelay,
-                                        sendEventsPeriod,
-                                        TimeUnit.MILLISECONDS);
+            (localResources.getScheduledExecutor()).scheduleWithFixedDelay
+                                              (localResources.getEventQueueSender(),
+                                               sendEventsDelay,
+                                               sendEventsPeriod,
+                                               TimeUnit.MILLISECONDS);
     }
 
-//BTM
-// Required by Service interface
+    // Required by Service interface
 
     public UUID getServiceUUID() {
-        return thisServiceUUID;
+        return localResources.getServiceUUID();
     }
 
     public Class getServiceIface() {
-        return SERVICE_TYPE;
+        return localResources.getServiceIface();
     }
 
     public String getServiceName() {
-        return SERVICE_NAME;
+        return localResources.getServiceName();
     }
 
     public String getHostname() {
-        return this.hostname;
+        return localResources.getHostname();
     }
 
-//BTM
-// Required by ISession interface
+    // Required by ISession interface
 
     public Session getSession() {
-        return session;
+        return localResources.getSession();
     }
 
-//BTM
-// Required by IServiceShutdown interface
+    // Required by IServiceShutdown interface
 
     /**
      * Note: "open" is determined by the {@link ConcurrencyManager#isOpen()}
@@ -437,120 +304,36 @@ System.out.println("\nEmbeddedShardLocator >>> NEW StoreManager - END");
      *       not complete within a timeout.
      */
     public boolean isOpen() {
-        return concurrencyManager != null && concurrencyManager.isOpen();
+        return ( (concurrencyMgr != null) && (concurrencyMgr.isOpen()) );
     }
 
     synchronized public void shutdown() {
 logger.warn("ZZZZZ SHARD LOCATOR EmbeddedShardLocator.shutdown");
         if (!isOpen()) return;
 
-        if (concurrencyManager != null) {
-            concurrencyManager.shutdown();
+        if (concurrencyMgr != null) {
+            concurrencyMgr.shutdown();
         }
-        if (localTransactionManager != null) {
-            localTransactionManager.shutdown();
+        if (localTransactionMgr != null) {
+            localTransactionMgr.shutdown();
         }
-        if (resourceManager != null) {
-            resourceManager.shutdown();
+        if (resourceMgr != null) {
+            resourceMgr.shutdown();
         }
-
-//BTM - from AbstractFederation.shutdownNow
-        threadPool.shutdownNow();
-        tempStoreFactory.closeAll();
 
         //false ==> allow in-progress tasks to complete
         eventTaskFuture.cancel(false);
-        Util.shutdownExecutorService
-                  (scheduledExecutor, EXECUTOR_TERMINATION_TIMEOUT,
-                   "EmbeddedShardLocator.scheduledExecutor", logger);
 
-        //send one last event report (same logic as in AbstractFederation)
-        new EventQueueSenderTask
-                (eventQueue, lbsServiceCache, embeddedLoadBalancer,
-                 SERVICE_NAME, logger).run();
+        if (indexMgr != null) indexMgr.destroy();
+        if (localResources != null) {
+            localResources.terminate(EXECUTOR_TERMINATION_TIMEOUT);
+        }
     }
 
     synchronized public void shutdownNow() {
-logger.warn("ZZZZZ SHARD LOCATOR EmbeddedShardLocator.shutdownNow");
-        if (!isOpen()) return;
-
-        if (concurrencyManager != null) {
-            concurrencyManager.shutdownNow();
-        }
-        if (localTransactionManager != null) {
-            localTransactionManager.shutdownNow();
-        }
-        if (resourceManager != null) {
-            resourceManager.shutdownNow();
-        }
-
-//BTM - from AbstractFederation.shutdown
-        tempStoreFactory.closeAll();
-
-        //false ==> allow in-progress tasks to complete
-        eventTaskFuture.cancel(false);
-        Util.shutdownExecutorService
-                 (scheduledExecutor, EXECUTOR_TERMINATION_TIMEOUT,
-                  "EmbeddedShardLocator.scheduledExecutor", logger);
-
-        //send one last event report (same logic as in AbstractFederation)
-        new EventQueueSenderTask
-                (eventQueue, lbsServiceCache,
-                 embeddedLoadBalancer, SERVICE_NAME, logger).run();
-
-        threadPool.shutdownNow();
+        shutdown();
     }
 
-//BTM public methods added to EmbeddedShardLocator by BTM (from DataService)
-
-    synchronized public void destroy() {
-logger.warn("\nZZZZZ SHARD LOCATOR EmbeddedShardLocator.destroy PRE-delete >>> resourceManager.isOpen() = "+resourceManager.isOpen()+"\n");
-        resourceManager.shutdownNow();//sets isOpen to false
-        try {
-            resourceManager.deleteResources();
-        } catch(Throwable t) { 
-            logger.warn("exception on resourceManager.deleteResources\n", t);
-        }
-logger.warn("\nZZZZZ SHARD LOCATOR EmbeddedShardLocator.destroy POST-delete >>> resourceManager.isOpen() = "+resourceManager.isOpen()+"\n");
-
-        final File file = getHTTPDURLFile();
-        if(file.exists()) {
-            file.delete();
-        }
-        shutdownNow();
-    }
-
-//BTM
-// Required by LocalResourceManagement interface
-
-    public ResourceManager getResourceManager() {
-        return resourceManager;
-    }
-
-    public ConcurrencyManager getConcurrencyManager() {
-        return concurrencyManager;
-    }
-
-    public IIndexManager getIndexManager() {
-        return embeddedIndexStore;
-    }
-
-    public CounterSet getCounterSet() {
-        throw new UnsupportedOperationException
-                      ("EmbeddedShardLocator.getCounterSet");
-    }
-    
-    public CounterSet getHostCounterSet() {
-        throw new UnsupportedOperationException
-                      ("EmbeddedShardLocator.getHostCounterSet");
-    }
-
-    public CounterSet getServiceCounterSet() {
-        throw new UnsupportedOperationException
-                      ("EmbeddedShardLocator.getServiceCounterSet");
-    }
-
-//BTM - Previously defined on DataService class
     // Required by the ShardManagement interface
 
     public IndexMetadata getIndexMetadata(String name, long timestamp)
@@ -562,11 +345,9 @@ logger.warn("\n*** EmbeddedShardLocator.getIndexMetata: name="+name+", timestamp
             final long startTime = (timestamp == ITx.UNISOLATED
                     ? ITx.READ_COMMITTED
                     : timestamp);
-
-            final AbstractTask task = new GetIndexMetadataTask(
-                    concurrencyManager, startTime, name);
-
-            return (IndexMetadata) concurrencyManager.submit(task).get();
+            final AbstractTask task = 
+                      new GetIndexMetadataTask(concurrencyMgr, startTime, name);
+            return (IndexMetadata) concurrencyMgr.submit(task).get();
         } finally {
             clearLoggingContext();
         }
@@ -603,20 +384,18 @@ logger.warn("\n*** EmbeddedShardLocator.rangeIterator: tx="+tx+", name="+name+",
                 timestamp = ITx.READ_COMMITTED;
             }
             final RangeIteratorTask task = 
-                      new RangeIteratorTask(concurrencyManager, timestamp,
+                      new RangeIteratorTask(concurrencyMgr, timestamp,
                                             name, fromKey, toKey, capacity,
                                             flags, filter);
 
             // submit the task and wait for it to complete.
-            return (ResultSet) concurrencyManager.submit(task).get();
+            return (ResultSet) concurrencyMgr.submit(task).get();
         } finally {
             clearLoggingContext();
         }
     }
 
-//BTM - PRE_FRED_3481    public Future submit(Callable task) {
     public <T> Future<T> submit(IDataServiceCallable<T> task) {
-
         setupLoggingContext();
         try {
             if (task == null) {
@@ -636,10 +415,10 @@ logger.warn("\n*** EmbeddedShardLocator.rangeIterator: tx="+tx+", name="+name+",
             }
 
             // submit the task and return its Future.
-//BTM - PRE_FRED_3481            return threadPool.submit(task);
-            return threadPool.submit
-                       (new DataTaskWrapper
-                                (embeddedIndexStore, this, task));
+            return (localResources.getThreadPool()).submit
+                       ( new DataTaskWrapper
+                                 (indexMgr, resourceMgr, concurrencyMgr,
+                                  localResources, discoveryMgr, task) );
         } finally {
             clearLoggingContext();
         }
@@ -666,7 +445,8 @@ logger.warn("\n*** EmbeddedShardLocator.rangeIterator: tx="+tx+", name="+name+",
 
             // wrap the caller's task.
             final AbstractTask task = 
-                new IndexProcedureTask(concurrencyManager,timestamp,name,proc);
+                new IndexProcedureTask
+                    (concurrencyMgr, timestamp, name, proc);
 
 //BTM - PRE_FRED_3481            if (task instanceof IFederationCallable) {
 //BTM - PRE_FRED_3481//BTM           ((IFederationCallable) task).setFederation(getFederation());
@@ -682,8 +462,8 @@ logger.warn("\n*** EmbeddedShardLocator.rangeIterator: tx="+tx+", name="+name+",
 //BTM - PRE_FRED_3481            }
             
             // submit the procedure and await its completion.
-            return concurrencyManager.submit(task);
-        
+            Future retFuture = concurrencyMgr.submit(task);
+            return retFuture;
         } finally {
             
             clearLoggingContext();
@@ -692,17 +472,14 @@ logger.warn("\n*** EmbeddedShardLocator.rangeIterator: tx="+tx+", name="+name+",
     }
 
     public boolean purgeOldResources(final long timeout,
-            final boolean truncateJournal) throws InterruptedException {
-
+                                     final boolean truncateJournal)
+                   throws InterruptedException
+    {
         // delegate all the work.
-        return resourceManager.purgeOldResources(timeout, truncateJournal);
-        
+        return resourceMgr.purgeOldResources(timeout, truncateJournal);
     }
 
-
-//BTM
-// Required by ShardLocator interface
-
+    // Required by ShardLocator interface
 
     public int nextPartitionId(String name)
                   throws IOException, InterruptedException, ExecutionException
@@ -711,10 +488,10 @@ logger.warn("\n*** EmbeddedShardLocator.rangeIterator: tx="+tx+", name="+name+",
         try {
             final AbstractTask task = 
                 new NextPartitionIdTask
-                    (concurrencyManager, getMetadataIndexName(name));
+                    (concurrencyMgr, getMetadataIndexName(name));
             
             final Integer partitionId = 
-                          (Integer) concurrencyManager.submit(task).get();
+                          (Integer) concurrencyMgr.submit(task).get();
         
             if (logger.isInfoEnabled())
                 logger.info("Assigned partitionId=" + partitionId + ", name="
@@ -728,125 +505,99 @@ logger.warn("\n*** EmbeddedShardLocator.rangeIterator: tx="+tx+", name="+name+",
     }
     
     public PartitionLocator get(String name, long timestamp, final byte[] key)
-            throws InterruptedException, ExecutionException, IOException {
-    
+            throws InterruptedException, ExecutionException, IOException
+    {
         setupLoggingContext();
-
         try {
-
             if (timestamp == ITx.UNISOLATED) {
-
-                /*
-                 * This is a read-only operation so run as read committed rather
-                 * than unisolated.
-                 */
-                
+                 // This is a read-only operation so run as read
+                 // committed rather than unisolated.
                 timestamp = ITx.READ_COMMITTED;
-
             }
-
-            final AbstractTask task = new GetTask(concurrencyManager,
-                    timestamp, getMetadataIndexName(name), key);
-            
-            return (PartitionLocator) concurrencyManager.submit(task).get();
-            
+            final AbstractTask task = 
+                  new GetTask(concurrencyMgr,
+                              timestamp,
+                              getMetadataIndexName(name),
+                              key);
+            return (PartitionLocator) concurrencyMgr.submit(task).get();
         } finally {
-            
             clearLoggingContext();
-            
         }        
-
     }
 
     public PartitionLocator find(String name, long timestamp, final byte[] key)
-            throws InterruptedException, ExecutionException, IOException {
-
+            throws InterruptedException, ExecutionException, IOException
+    {
         setupLoggingContext();
-
         try {
             if (timestamp == ITx.UNISOLATED) {
-                /*
-                 * This is a read-only operation so run as read
-                 * committed rather than unisolated.
-                 */
+                // This is a read-only operation so run as read
+                //committed rather than unisolated./
                 timestamp = ITx.READ_COMMITTED;
             }
-            
-            final AbstractTask task = new FindTask(concurrencyManager,
-                    timestamp, getMetadataIndexName(name), key);
-            
-            return 
-                (PartitionLocator) concurrencyManager.submit(task).get();
-
+            final AbstractTask task = 
+                  new FindTask(concurrencyMgr,
+                               timestamp,
+                               getMetadataIndexName(name),
+                               key);
+            return (PartitionLocator) concurrencyMgr.submit(task).get();
         } finally {
             clearLoggingContext();
         }
     }
 
-    public void splitIndexPartition(String name, PartitionLocator oldLocator,
-            PartitionLocator newLocators[]) throws IOException,
-            InterruptedException, ExecutionException {
-
+    public void splitIndexPartition(String name,
+                                    PartitionLocator oldLocator,
+                                    PartitionLocator newLocators[])
+                throws IOException, InterruptedException, ExecutionException
+    {
         setupLoggingContext();
-
         try {
-
-            final AbstractTask task = new SplitIndexPartitionTask(
-                    concurrencyManager, getMetadataIndexName(name),
-                    oldLocator, newLocators);
-            
-            concurrencyManager.submit(task).get();
-            
+            final AbstractTask task = 
+                  new SplitIndexPartitionTask(concurrencyMgr,
+                                              getMetadataIndexName(name),
+                                              oldLocator,
+                                              newLocators);
+            concurrencyMgr.submit(task).get();
         } finally {
-            
             clearLoggingContext();
-            
         }        
-        
     }
     
-    public void joinIndexPartition(String name, PartitionLocator[] oldLocators,
-            PartitionLocator newLocator) throws IOException,
-            InterruptedException, ExecutionException {
-
+    public void joinIndexPartition(String name,
+                                   PartitionLocator[] oldLocators,
+                                   PartitionLocator newLocator)
+                throws IOException, InterruptedException, ExecutionException
+    {
         setupLoggingContext();
-
         try {
-
-            final AbstractTask task = new JoinIndexPartitionTask(
-                    concurrencyManager, getMetadataIndexName(name),
-                    oldLocators, newLocator);
-            
-            concurrencyManager.submit(task).get();
-            
+            final AbstractTask task =
+                  new JoinIndexPartitionTask(concurrencyMgr,
+                                             getMetadataIndexName(name),
+                                             oldLocators,
+                                             newLocator);
+            concurrencyMgr.submit(task).get();
         } finally {
-            
             clearLoggingContext();
-            
         }        
-        
     }
     
-    public void moveIndexPartition(String name, PartitionLocator oldLocator,
-            PartitionLocator newLocator) throws IOException,
-            InterruptedException, ExecutionException {
-
+    public void moveIndexPartition(String name,
+                                   PartitionLocator oldLocator,
+                                   PartitionLocator newLocator)
+                throws IOException, InterruptedException, ExecutionException
+    {
         setupLoggingContext();
-
         try {
-
-            final AbstractTask task = new MoveIndexPartitionTask(
-                    concurrencyManager, getMetadataIndexName(name),
-                    oldLocator, newLocator);
-            
-            concurrencyManager.submit(task).get();
-            
+            final AbstractTask task =
+                  new MoveIndexPartitionTask(concurrencyMgr,
+                                             getMetadataIndexName(name),
+                                             oldLocator,
+                                             newLocator);
+            concurrencyMgr.submit(task).get();
         } finally {
-            
             clearLoggingContext();
-            
         }        
-        
     }
     
     /**
@@ -863,7 +614,6 @@ logger.warn("\n*** EmbeddedShardLocator.rangeIterator: tx="+tx+", name="+name+",
                 throw new IllegalArgumentException
                           ("no name assigned to index in metadata template");
             }
-            
             if(!metadata.getDeleteMarkers()) {
                 metadata.setDeleteMarkers(true);
                 if (logger.isInfoEnabled()) {
@@ -871,71 +621,77 @@ logger.warn("\n*** EmbeddedShardLocator.rangeIterator: tx="+tx+", name="+name+",
                                  +metadata.getName());
                 }
             }
-            
+
             final String scaleOutIndexName = metadata.getName();
-            
+
             // Note: We need this in order to assert a lock on this resource!
             final String metadataIndexName = 
                              EmbeddedShardLocator.getMetadataIndexName
                                                       (scaleOutIndexName);
-     
+
             final AbstractTask task = 
-                new RegisterScaleOutIndexTask(
-//BTM federation,
-lbsServiceCache,
-shardMap,
-//BTM remoteShardMap,
-embeddedLoadBalancer,
-embeddedDataServiceMap,
-                                              concurrencyManager,
-                                              resourceManager,
+                new RegisterScaleOutIndexTask(discoveryMgr,
+                                              concurrencyMgr,
+                                              resourceMgr,
                                               metadataIndexName,
                                               metadata,
                                               separatorKeys,
                                               dataServices);
             
             final UUID managedIndexUUID = 
-                           (UUID) concurrencyManager.submit(task).get();
+                           (UUID) concurrencyMgr.submit(task).get();
             return managedIndexUUID;
         } finally {
             clearLoggingContext();
         }
     }
-    
-    public void dropScaleOutIndex(final String name) throws IOException,
-            InterruptedException, ExecutionException {
 
+    public void dropScaleOutIndex(final String name)
+                throws IOException, InterruptedException, ExecutionException
+    {
         setupLoggingContext();
-        
         try {
-
             final AbstractTask task = 
-                new DropScaleOutIndexTask(
-//BTM federation,
-shardMap,
-//BTM remoteShardMap,
-embeddedDataServiceMap,
-                                           concurrencyManager,
-                                           getMetadataIndexName(name));
-            
-            concurrencyManager.submit(task).get();
-        
+                new DropScaleOutIndexTask(discoveryMgr,
+                                          concurrencyMgr,
+                                          getMetadataIndexName(name));
+            concurrencyMgr.submit(task).get();
         } finally {
-            
             clearLoggingContext();
-            
         }
-
     }
 
-// Private methods of this class
+    // public method(s) needed from MetadataService/DataService class
+
+    synchronized public void destroy() {
+logger.warn("\nZZZZZ SHARD LOCATOR EmbeddedShardLocator.destroy PRE-delete >>> resourceMgr.isOpen() = "+resourceMgr.isOpen()+"\n");
+        resourceMgr.shutdownNow();//sets isOpen to false
+        try {
+            resourceMgr.deleteResources();
+        } catch(Throwable t) { 
+            logger.warn("exception on resourceMgr.deleteResources\n", t);
+        }
+logger.warn("\nZZZZZ SHARD LOCATOR EmbeddedShardLocator.destroy POST-delete >>> resourceMgr.isOpen() = "+resourceMgr.isOpen()+"\n");
+        shutdownNow();
+    }
+
+    // NOTE: the following method is needed for embedded testing.
+    //       The original MetadataService implementation class 
+    //       provides this method and EmbeddedFederation assumes
+    //       that method exists on the embedded ref.
+
+    public ResourceManager getResourceManager() {
+        return resourceMgr;
+    }
+
+    // Private methods
 
     private void setupLoggingContext() {
 
         try {
-            MDC.put("serviceUUID", thisServiceUUID);
-            MDC.put("serviceName", SERVICE_NAME);
-            MDC.put("hostname", hostname);
+            MDC.put("serviceUUID", localResources.getServiceUUID());
+            MDC.put("serviceName", localResources.getServiceName());
+            MDC.put("hostname", localResources.getHostname());
         } catch(Throwable t) { /* swallow */ }
     }
 
@@ -948,42 +704,28 @@ embeddedDataServiceMap,
         MDC.remove("hostname");
     }
 
-//BTM - from DataService
-    /**
-     * The file on which the URL of the embedded httpd service is written.
-     */
-    private File getHTTPDURLFile() {
-        return new File(resourceManager.getDataDir(), "httpd.url");
-    }
-
-
-    // ------------------------------ Tasks -------------------------------
+    // Nested classes/tasks
 
     /**
      * Task for {@link ShardLocator#get(String, long, byte[])}.
      */
     static private final class GetTask extends AbstractTask {
-
         private final byte[] key;
-        
-        public GetTask(IConcurrencyManager concurrencyManager, long timestamp,
-                String resource, byte[] key) {
 
+        public GetTask(IConcurrencyManager concurrencyManager,
+                       long timestamp,
+                       String resource,
+                       byte[] key)
+        {
             super(concurrencyManager, timestamp, resource);
-
             this.key = key;
-            
         }
 
         @Override
         protected Object doTask() throws Exception {
-
             MetadataIndex ndx = (MetadataIndex) getIndex(getOnlyResource());
-
             return ndx.get(key);
-
         }
-        
     }
 
     /**
@@ -992,25 +734,21 @@ embeddedDataServiceMap,
     static private final class FindTask extends AbstractTask {
 
         private final byte[] key;
-        
-        public FindTask(IConcurrencyManager concurrencyManager, long timestamp,
-                String resource, byte[] key) {
 
+        public FindTask(IConcurrencyManager concurrencyManager,
+                        long timestamp,
+                        String resource,
+                        byte[] key)
+        {
             super(concurrencyManager, timestamp, resource);
-
             this.key = key;
-            
         }
 
         @Override
         protected Object doTask() throws Exception {
-
             MetadataIndex ndx = (MetadataIndex) getIndex(getOnlyResource());
-
             return ndx.find(key);
-
         }
-        
     }
 
     /**
@@ -1023,10 +761,10 @@ embeddedDataServiceMap,
          * @param concurrencyManager
          * @param resource
          */
-        protected NextPartitionIdTask(IConcurrencyManager concurrencyManager, String resource) {
-
+        protected NextPartitionIdTask(IConcurrencyManager concurrencyManager,
+                                      String resource)
+        {
             super(concurrencyManager, ITx.UNISOLATED, resource);
-            
         }
 
         /**
@@ -1035,18 +773,13 @@ embeddedDataServiceMap,
         @Override
         protected Object doTask() throws Exception {
 
-            final MetadataIndex ndx = (MetadataIndex)getIndex(getOnlyResource());
-
+            final MetadataIndex ndx =
+                      (MetadataIndex)getIndex(getOnlyResource());
             final int partitionId = ndx.incrementAndGetNextPartitionId();
-            
             assert ndx.needsCheckpoint();
-            
 //            final int counter = (int) ndx.getCounter().incrementAndGet();
-            
             return partitionId;
-            
         }
-        
     }
     
     /**
@@ -1072,146 +805,121 @@ embeddedDataServiceMap,
 
             super(concurrencyManager, ITx.UNISOLATED, resource);
 
-            if (oldLocator == null)
-                throw new IllegalArgumentException();
-
-            if (newLocators == null)
-                throw new IllegalArgumentException();
-
+            if (oldLocator == null) {
+                throw new NullPointerException("null oldLocator");
+            }
+            if (newLocators == null) {
+                throw new NullPointerException("null newLocators");
+            }
             this.oldLocator = oldLocator;
-            
             this.newLocators = newLocators;
-            
         }
 
         @Override
         protected Object doTask() throws Exception {
 
-            if (logger.isInfoEnabled())
+            if (logger.isInfoEnabled()) {
                 logger.info("name=" + getOnlyResource() + ", oldLocator="
                         + oldLocator + ", locators="
                         + Arrays.toString(newLocators));
+            }
             
             final MetadataIndex mdi = 
                       (MetadataIndex)getIndex(getOnlyResource());
             
-            final PartitionLocator pmd = (PartitionLocator) SerializerUtil
-                    .deserialize(mdi.remove(oldLocator.getLeftSeparatorKey()));
+            final PartitionLocator pmd =
+                  (PartitionLocator) SerializerUtil.deserialize
+                      (mdi.remove(oldLocator.getLeftSeparatorKey()));
             
             if (pmd == null) {
-
-                throw new RuntimeException("No such locator: name="
-                        + getOnlyResource() + ", locator=" + oldLocator);
-
+                throw new RuntimeException("null pmd: no such locator "
+                                           +"[name="+getOnlyResource()
+                                           +", locator="+oldLocator+"]");
             }
             
             if(!oldLocator.equals(pmd)) {
 
-                /*
-                 * Sanity check failed - old locator not equal to the locator
-                 * found under that key in the metadata index.
-                 */
+                // Sanity check failed - old locator not equal to the locator
+                //found under that key in the metadata index.
 
-                throw new RuntimeException("Expected different locator: name="
-                        + getOnlyResource() + ", oldLocator=" + oldLocator
-                        + ", but actual=" + pmd);
-                
+                throw new RuntimeException("oldLocator not equal to pmd: " 
+                                           +"expected different locator "
+                                           +"[name="+getOnlyResource()
+                                           +", oldLocator="+oldLocator
+                                           +", actual pmd="+pmd+"]");
             }
 
             final byte[] leftSeparator = oldLocator.getLeftSeparatorKey();
-            
-            /*
-             * Sanity check the first locator. It's leftSeparator MUST be the
-             * leftSeparator of the index partition that was split.
-             */
-            if(!BytesUtil.bytesEqual(leftSeparator,newLocators[0].getLeftSeparatorKey())) {
-                
-                throw new RuntimeException("locators[0].leftSeparator does not agree.");
-                
+
+            // Sanity check the first locator. It's leftSeparator MUST be the
+            // leftSeparator of the index partition that was split.
+
+            if ( !BytesUtil.bytesEqual
+                      (leftSeparator,newLocators[0].getLeftSeparatorKey()))
+            {
+                throw new RuntimeException
+                              ("locators[0].leftSeparator does not agree.");
             }
 
-            /*
-             * Sanity check the last locator. It's rightSeparator MUST be the
-             * rightSeparator of the index partition that was split.  For the
-             * last index partition, the right separator is always null.
-             */
-            {
-                
+            // Sanity check the last locator. It's rightSeparator MUST be the
+            // rightSeparator of the index partition that was split.  For the
+            // last index partition, the right separator is always null.
+
+            {//begin block
+
                 final int indexOf = mdi.indexOf(leftSeparator);
                 byte[] rightSeparator;
                 try {
-
                     // The key for the next index partition.
-
                     rightSeparator = mdi.keyAt(indexOf + 1);
-
                 } catch (IndexOutOfBoundsException ex) {
-
                     // The rightSeparator for the last index partition is null.
-
                     rightSeparator = null;
-
                 }
 
-                final PartitionLocator locator = newLocators[newLocators.length - 1];
-                
+                final PartitionLocator locator =
+                                           newLocators[newLocators.length - 1];
                 if (rightSeparator == null) {
-
                     if (locator.getRightSeparatorKey() != null) {
-
-                        throw new RuntimeException("locators["
-                                + newLocators.length
-                                + "].rightSeparator should be null.");
-
+                        throw new RuntimeException
+                                      ("locators["+newLocators.length
+                                       +"].rightSeparator should be null.");
                     }
-
                 } else {
-
-                    if (!BytesUtil.bytesEqual(rightSeparator, locator
-                            .getRightSeparatorKey())) {
-
-                        throw new RuntimeException("locators["
-                                + newLocators.length
-                                + "].rightSeparator does not agree.");
-
+                    if ( !BytesUtil.bytesEqual(rightSeparator,
+                                               locator.getRightSeparatorKey()))
+                    {
+                        throw new RuntimeException
+                                      ("locators["+newLocators.length
+                                       +"].rightSeparator does not agree.");
                     }
-
                 }
-                
-            }
+            }//end block
 
-            /*
-             * Sanity check the partition identifers. They must be distinct from
-             * one another and distinct from the old partition identifier.
-             */
-
+            // Sanity check the partition identifers. They must be distinct from
+            // one another and distinct from the old partition identifier.
             for(int i=0; i<newLocators.length; i++) {
                 
                 PartitionLocator tmp = newLocators[i];
-
                 if (tmp.getPartitionId() == oldLocator.getPartitionId()) {
-
-                    throw new RuntimeException("Same partition identifier: "
-                            + tmp + ", " + oldLocator);
-
+                    throw new RuntimeException
+                                  ("same partition identifier [tmp="
+                                   +tmp+", oldLocator="+oldLocator+"]");
                 }
 
                 for (int j = i + 1; j < newLocators.length; j++) {
-
-                    if (tmp.getPartitionId() == newLocators[j].getPartitionId()) {
-
-                        throw new RuntimeException(
-                                "Same partition identifier: " + tmp + ", "
-                                        + newLocators[j]);
-
+                    if  (tmp.getPartitionId() ==
+                             newLocators[j].getPartitionId() )
+                    {
+                        throw new RuntimeException
+                                      ("same partition identifier [tmp="
+                                       +tmp+", newLocators["+j+"]="
+                                       +newLocators[j]+"]");
                     }
-
                 }
-                    
             }
 
             for(int i=0; i<newLocators.length; i++) {
-                
                 PartitionLocator locator = newLocators[i];
                 
 //                PartitionLocator tmp = new PartitionLocator(
@@ -1219,15 +927,11 @@ embeddedDataServiceMap,
 //                        locator.getDataServices()
 //                );
 
-                mdi.insert(locator.getLeftSeparatorKey(), SerializerUtil
-                        .serialize(locator));
-                
+                mdi.insert(locator.getLeftSeparatorKey(),
+                           SerializerUtil.serialize(locator));
             }
-            
             return null;
-            
         }
-
     }
 
     /**
@@ -1245,106 +949,92 @@ embeddedDataServiceMap,
          * @param oldLocators
          * @param newLocator
          */
-        protected JoinIndexPartitionTask(
-                IConcurrencyManager concurrencyManager, String resource,
-                PartitionLocator oldLocators[],
-                PartitionLocator newLocator) {
-
+        protected JoinIndexPartitionTask(IConcurrencyManager concurrencyManager,
+                                         String resource,
+                                         PartitionLocator oldLocators[],
+                                         PartitionLocator newLocator)
+        {
             super(concurrencyManager, ITx.UNISOLATED, resource);
 
-            if (oldLocators == null)
-                throw new IllegalArgumentException();
-
-            if (newLocator == null)
-                throw new IllegalArgumentException();
-
+            if (oldLocators == null) {
+                throw new NullPointerException("null oldLocators");
+            }
+            if (newLocator == null) {
+                throw new IllegalArgumentException("null newLocator");
+            }
             this.oldLocators = oldLocators;
-            
             this.newLocator = newLocator;
-            
         }
 
         @Override
         protected Object doTask() throws Exception {
 
-            if (logger.isInfoEnabled())
+            if (logger.isInfoEnabled()) {
                 logger.info("name=" + getOnlyResource() + ", oldLocators="
                         + Arrays.toString(oldLocators) + ", newLocator="
                         + newLocator);
+            }
             
             MetadataIndex mdi = (MetadataIndex)getIndex(getOnlyResource());
 
-            /*
-             * Sanity check the partition identifers. They must be distinct from
-             * one another and distinct from the old partition identifier.
-             */
-
+            // Sanity check the partition identifers. They must be distinct from
+            // one another and distinct from the old partition identifier.
             for(int i=0; i<oldLocators.length; i++) {
                 
                 PartitionLocator tmp = oldLocators[i];
-
                 if (tmp.getPartitionId() == newLocator.getPartitionId()) {
-
-                    throw new RuntimeException("Same partition identifier: "
-                            + tmp + ", " + newLocator);
-
+                    throw new RuntimeException
+                                  ("same partition identifier [tmp="
+                                   +tmp+", newLocator="+newLocator+"]");
                 }
 
                 for (int j = i + 1; j < oldLocators.length; j++) {
-
-                    if (tmp.getPartitionId() == oldLocators[j].getPartitionId()) {
-
-                        throw new RuntimeException(
-                                "Same partition identifier: " + tmp + ", "
-                                        + oldLocators[j]);
-
+                    if ( tmp.getPartitionId() ==
+                             oldLocators[j].getPartitionId() )
+                    {
+                        throw new RuntimeException
+                                      ("same partition identifier [tmp="
+                                       +tmp+", oldLocators["+j+"]="
+                                       +oldLocators[j]+"]");
                     }
-
                 }
-                    
             }
 
             // remove the old locators from the metadata index.
             for(int i=0; i<oldLocators.length; i++) {
                 
                 PartitionLocator locator = oldLocators[i];
-                
-                PartitionLocator pmd = (PartitionLocator) SerializerUtil
-                        .deserialize(mdi.remove(locator.getLeftSeparatorKey()));
+                PartitionLocator pmd = 
+                    (PartitionLocator) SerializerUtil.deserialize
+                                  (mdi.remove(locator.getLeftSeparatorKey()));
 
                 if (!locator.equals(pmd)) {
 
-                    /*
-                     * Sanity check failed - old locator not equal to the
-                     * locator found under that key in the metadata index.
-                     * 
-                     * @todo differences in just the data service failover chain
-                     * are probably not important and might be ignored.
-                     */
+                    // Sanity check failed - old locator not equal to the
+                    // locator found under that key in the metadata index.
+                    //
+                    // @todo differences in just the data service failover chain
+                    // are probably not important and might be ignored.
 
-                    throw new RuntimeException("Expected oldLocator=" + locator
-                            + ", but actual=" + pmd);
-                    
+                    throw new RuntimeException
+                                  ("locator not equal to pmd [expected "
+                                   +"oldLocator="+locator+", actual pmd="
+                                   +pmd+"]");
                 }
 
-                /*
-                 * FIXME validate that the newLocator is a perfect fit
-                 * replacement for the oldLocators in terms of the key range
-                 * spanned and that there are no gaps.  Add an API constaint
-                 * that the oldLocators are in key order by their leftSeparator
-                 * key.
-                 */
-                
+                // FIXME validate that the newLocator is a perfect fit
+                // replacement for the oldLocators in terms of the key range
+                // spanned and that there are no gaps.  Add an API constaint
+                // that the oldLocators are in key order by their leftSeparator
+                // key.
             }
 
             // add the new locator to the metadata index.
-            mdi.insert(newLocator.getLeftSeparatorKey(), SerializerUtil
-                    .serialize(newLocator));
-            
-            return null;
-            
-        }
+            mdi.insert(newLocator.getLeftSeparatorKey(),
+                       SerializerUtil.serialize(newLocator));
 
+            return null;
+        }
     }
 
     /**
@@ -1362,76 +1052,71 @@ embeddedDataServiceMap,
          * @param oldLocator
          * @param newLocator
          */
-        protected MoveIndexPartitionTask(
-                IConcurrencyManager concurrencyManager, String resource,
-                PartitionLocator oldLocator,
-                PartitionLocator newLocator) {
+        protected MoveIndexPartitionTask(IConcurrencyManager concurrencyManager,
+                                         String resource,
+                                         PartitionLocator oldLocator,
+                                         PartitionLocator newLocator)
+        {
 
             super(concurrencyManager, ITx.UNISOLATED, resource);
 
-            if (oldLocator == null)
-                throw new IllegalArgumentException();
-
-            if (newLocator == null)
-                throw new IllegalArgumentException();
-
+            if (oldLocator == null) {
+                throw new NullPointerException("null oldLocator");
+            }
+            if (newLocator == null) {
+                throw new NullPointerException("null newLocator");
+            }
             this.oldLocator = oldLocator;
-            
             this.newLocator = newLocator;
-            
         }
 
         @Override
         protected Object doTask() throws Exception {
 
-            if (logger.isInfoEnabled())
+            if (logger.isInfoEnabled()) {
                 logger.info("name=" + getOnlyResource() + ", oldLocator="
                         + oldLocator + ", newLocator=" + newLocator);
+            }
 
-            final MetadataIndex mdi = (MetadataIndex) getIndex(getOnlyResource());
+            final MetadataIndex mdi =
+                      (MetadataIndex) getIndex(getOnlyResource());
 
             // remove the old locators from the metadata index.
-            final PartitionLocator pmd = (PartitionLocator) SerializerUtil
-                    .deserialize(mdi.remove(oldLocator.getLeftSeparatorKey()));
-
+            final PartitionLocator pmd =
+                      (PartitionLocator) SerializerUtil.deserialize
+                              (mdi.remove(oldLocator.getLeftSeparatorKey()));
 
             if (pmd == null) {
-
-                throw new RuntimeException("No such locator: name="
-                        + getOnlyResource() + ", locator=" + oldLocator);
-
+                throw new RuntimeException
+                              ("no such locator [name="+getOnlyResource()
+                               +", locator="+oldLocator+"]");
             }
-            
+
             if (!oldLocator.equals(pmd)) {
 
-                /*
-                 * Sanity check failed - old locator not equal to the locator
-                 * found under that key in the metadata index.
-                 * 
-                 * @todo differences in just the data service failover chain are
-                 * probably not important and might be ignored.
-                 */
+                // Sanity check failed - old locator not equal to the locator
+                // found under that key in the metadata index.
+                // 
+                // @todo differences in just the data service failover chain are
+                // probably not important and might be ignored.
 
-                throw new RuntimeException("Expected oldLocator=" + oldLocator
-                        + ", but actual=" + pmd);
-
+                throw new RuntimeException
+                              ("oldLocator not equal to pmd "
+                               +"[expected oldLocator="+oldLocator
+                               +", actual pmd="+pmd+"]");
             }
 
-            /*
-             * FIXME validate that the newLocator is a perfect fit replacement
-             * for the oldLocators in terms of the key range spanned and that
-             * there are no gaps. Add an API constaint that the oldLocators are
-             * in key order by their leftSeparator key.
-             */
+            // FIXME validate that the newLocator is a perfect fit replacement
+            // for the oldLocators in terms of the key range spanned and that
+            // there are no gaps. Add an API constaint that the oldLocators are
+            // in key order by their leftSeparator key.
 
             // add the new locator to the metadata index.
-            mdi.insert(newLocator.getLeftSeparatorKey(), SerializerUtil
-                    .serialize(newLocator));
+            mdi.insert(newLocator.getLeftSeparatorKey(),
+                       SerializerUtil.serialize(newLocator));
 
             return null;
-
         }
-
     }
 
     /**
@@ -1451,24 +1136,17 @@ embeddedDataServiceMap,
      */
     static protected class RegisterScaleOutIndexTask extends AbstractTask {
 
-        /** The federation. */
-//BTM        final private IBigdataFederation fed;
-final Map<UUID, ShardService> embeddedDataServiceMap;
-        /** The name of the scale-out index. */
-        final private String scaleOutIndexName;
-        /** The metadata template for the scale-out index. */
-        final private IndexMetadata metadata;
-        /** The #of index partitions to create. */
-        final private int npartitions;
-        /** The separator keys for those index partitions. */
+        final private String scaleOutIndexName;// name of the scale-out index
+        final private IndexMetadata metadata;//metadata template for the index
+        final private int npartitions;//# of index partitions to create
         final private byte[][] separatorKeys;
-        /** The service UUIDs of the data services on which to create
-         *  those index partitions. */
+
+        // service UUIDs of the data services on which to create
+        // thee index partitions.
         final private UUID[] dataServiceUUIDs;
-        /** The data services on which to create those index partitions. */
-//BTM - replace with ShardService when DataService is converted
-//BTM        final private IDataService[] dataServices;
-final private ShardService[] dataServices;
+
+        // data services on which to create the index partitions. */
+        final private ShardService[] dataServices;
         
         /**
          * Create and statically partition a scale-out index.
@@ -1489,142 +1167,103 @@ final private ShardService[] dataServices;
          *            the index paritions will be auto-assigned to data
          *            services.
          */
-        public RegisterScaleOutIndexTask(
-//BTM                final IBigdataFederation fed,
-LookupCache lbsCache,
-Map<UUID, ShardService> shardMap,
-//BTM Map<UUID, IDataService> remoteShardMap,
-LoadBalancer embeddedLoadBalancer,
-Map<UUID, ShardService> embeddedDataServiceMap,
-                final ConcurrencyManager concurrencyManager,
-                final IResourceManager resourceManager,
-                final String metadataIndexName,
-                final IndexMetadata metadata,
-                final byte[][] separatorKeys,
-                UUID[] dataServiceUUIDs
-                )
+        public RegisterScaleOutIndexTask
+                   (final IBigdataDiscoveryManagement discoveryManager,
+                    final ConcurrencyManager concurrencyManager,
+                    final IResourceManager resourceManager,
+                    final String metadataIndexName,
+                    final IndexMetadata metadata,
+                    final byte[][] separatorKeys,
+                    UUID[] dataServiceUUIDs)
         {
             super(concurrencyManager, ITx.UNISOLATED, metadataIndexName);
 
-//BTM            if (fed == null)
-//BTM                throw new IllegalArgumentException();
-this.embeddedDataServiceMap = embeddedDataServiceMap;
-
-            if (metadata == null)
-                throw new IllegalArgumentException();
-
-            if (separatorKeys == null)
-                throw new IllegalArgumentException();
-
-            if (separatorKeys.length == 0)
-                throw new IllegalArgumentException();
-
+            if (discoveryManager == null) {
+                throw new NullPointerException("null discoveryManager");
+            }
+            if (metadata == null) {
+                throw new NullPointerException("null metadata");
+            }
+            if (separatorKeys == null) {
+                throw new NullPointerException("null separatorKeys");
+            }
+            if (separatorKeys.length == 0) {
+                throw new IllegalArgumentException("0 separatorKeys");
+            }
             if (dataServiceUUIDs != null) {
                 if (dataServiceUUIDs.length == 0) {
-                    throw new IllegalArgumentException();
+                    throw new IllegalArgumentException("0 dataServiceUUIDs");
                 }
-
                 if (separatorKeys.length != dataServiceUUIDs.length) {
-                    throw new IllegalArgumentException();
+                    throw new IllegalArgumentException
+                                  ("# of separatorKeys != # of "
+                                   +"dataServiceUUIDs ["+separatorKeys.length
+                                   +" != "+dataServiceUUIDs.length+"]");
                 }
-            } else {
-                /*
-                 * Auto-assign the index partitions to data services.
-                 */
+            } else {//auto-assign index partitions to data services.
                 try {
-
                     // discover under-utilized data service UUIDs.
-LoadBalancer loadBalancer = getLoadBalancer(lbsCache, embeddedLoadBalancer);
-if(loadBalancer != null) {
-                    dataServiceUUIDs = 
-//BTM - BEGIN       fed.getLoadBalancerService().getUnderUtilizedDataServices
-loadBalancer.getUnderUtilizedDataServices
-                         (separatorKeys.length, // minCount
-                          separatorKeys.length, // maxCount
-                          null );// exclude
-}
-//BTM - END
+                    LoadBalancer loadBalancer = 
+                        discoveryManager.getLoadBalancerService();
+                    if(loadBalancer != null) {
+                        dataServiceUUIDs = 
+                            loadBalancer.getUnderUtilizedDataServices
+                                (separatorKeys.length, // minCount
+                                 separatorKeys.length, // maxCount
+                                 null );// exclude
+                    }
                 } catch(Exception ex) {
-                    
                     throw new RuntimeException(ex);
-                    
                 }
-                
             }
-
-//BTM            this.fed = fed;
             
             this.scaleOutIndexName = metadata.getName();
-
             this.metadata = metadata;
-            
             this.npartitions = separatorKeys.length;
-            
             this.separatorKeys = separatorKeys;
-            
             this.dataServiceUUIDs = dataServiceUUIDs;
 
-//BTM - replace with ShardService when DataService is converted
-//BTM            this.dataServices = new IDataService[dataServiceUUIDs.length];
-this.dataServices = new ShardService[dataServiceUUIDs.length];
+            this.dataServices = new ShardService[dataServiceUUIDs.length];
 
-            if( separatorKeys[0] == null )
-                throw new IllegalArgumentException();
-                
-            if (separatorKeys[0].length != 0)
-                throw new IllegalArgumentException(
-                        "The first separatorKey must be an empty byte[].");
-            
+            if( separatorKeys[0] == null ) {
+                throw new NullPointerException
+                              ("null separatorKey at index 0");
+            }
+            if (separatorKeys[0].length != 0) {
+                throw new IllegalArgumentException
+                              ("length of separatorKey at index 0 != 0 "
+                               +"["+separatorKeys[0].length+"] - "
+                               +"first separatorKey must be empty byte[]");
+            }
+
             for (int i = 0; i < npartitions; i++) {
-
                 final byte[] separatorKey = separatorKeys[i];
-                
                 if (separatorKey == null) {
-
-                    throw new IllegalArgumentException();
-
+                    throw new NullPointerException("null separatorKey["+i+"]");
                 }
-                
                 if (i > 0) {
-                    
-                    if(BytesUtil.compareBytes(separatorKey, separatorKeys[i-1])<0) {
-                        
-                        throw new IllegalArgumentException(
-                                "Separator keys out of order at index=" + i);
-                        
+                    if (BytesUtil.compareBytes
+                                      (separatorKey, separatorKeys[i-1])<0)
+                    {   
+                        throw new IllegalArgumentException
+                                    ("separator keys out of order [index="+i);
                     }
-                    
                 }
 
                 final UUID uuid = dataServiceUUIDs[i];
-
                 if (uuid == null) {
-
-                    throw new IllegalArgumentException();
-
+                    throw new IllegalArgumentException
+                                  ("null uuid dataServiceUUIDs["+i+"]");
                 }
 
-//BTM - replace with ShardService when DataService is converted
-//BTM                final IDataService dataService = fed.getDataService(uuid);
-//BTM IDataService dataService = null;
-ShardService dataService = null;
-if(embeddedDataServiceMap != null) {
-    dataService = embeddedDataServiceMap.get(uuid);
-} else {
-//BTM    dataService = remoteShardMap.get(uuid);
-    dataService = shardMap.get(uuid);
-}
+                final ShardService dataService =
+                                       discoveryManager.getDataService(uuid);
                 if (dataService == null) {
-
-                    throw new IllegalArgumentException(
-                            "Unknown data service: uuid=" + uuid);
-
+                    throw new IllegalArgumentException
+                                  ("unknown data service [uuid="+uuid+"]");
                 }
-
                 dataServices[i] = dataService;
-
             }
-            
         }
 
         /**
@@ -1640,76 +1279,65 @@ logger.warn("\n*** calling getOnlyResource");
             
             // make sure there is no metadata index for that btree.
             try {
-                
 logger.warn("\n*** calling getIndex("+metadataName+")");
                 getIndex(metadataName);
-                
                 throw new IndexExistsException(metadataName);
-                
             } catch(NoSuchIndexException ex) {
-
-                // ignore expected exception
-                
+                // ignore EXPECTED exception
             }
 
-            /*
-             * Note: there are two UUIDs here - the UUID for the metadata index
-             * describing the partitions of the named scale-out index and the
-             * UUID of the named scale-out index. The metadata index UUID MUST
-             * be used by all B+Tree objects having data for the metadata index
-             * (its mutable btrees on journals and its index segments) while the
-             * managed named index UUID MUST be used by all B+Tree objects
-             * having data for the named index (its mutable btrees on journals
-             * and its index segments).
-             */
+            // Note: there are two UUIDs here - the UUID for the metadata index
+            // describing the partitions of the named scale-out index and the
+            // UUID of the named scale-out index. The metadata index UUID MUST
+            // be used by all B+Tree objects having data for the metadata index
+            // (its mutable btrees on journals and its index segments), while
+            // the managed named index UUID MUST be used by all B+Tree objects
+            // having data for the named index (its mutable btrees on journals
+            // and its index segments).
             
             final UUID metadataIndexUUID = UUID.randomUUID();
-            
-            /*
-             * Create the metadata index.
-             */
-            
-            final MetadataIndex mdi = MetadataIndex.create(getJournal(),
-                    metadataIndexUUID, metadata);
 
-            /*
-             * Map the partitions onto the data services.
-             */
-            
-            final PartitionLocator[] partitions = new PartitionLocator[npartitions];
+            // Create the metadata index.
+            final MetadataIndex mdi =
+                      MetadataIndex.create
+                          (getJournal(), metadataIndexUUID, metadata);
+
+            // Map the partitions onto the data services.
+            final PartitionLocator[] partitions =
+                      new PartitionLocator[npartitions];
             
             for (int i = 0; i < npartitions; i++) {
-                
                 final byte[] leftSeparator = separatorKeys[i];
+                final byte[] rightSeparator =
+                             i + 1 < npartitions ? separatorKeys[i + 1]
+                                                 : null;
 
-                final byte[] rightSeparator = i + 1 < npartitions ? separatorKeys[i + 1]
-                        : null;
-
-                final PartitionLocator pmd = new PartitionLocator(//
-                        mdi.incrementAndGetNextPartitionId(),//
-                        dataServiceUUIDs[i],
-                        leftSeparator,
-                        rightSeparator
-                        );
+                final PartitionLocator pmd =
+                          new PartitionLocator
+                                  (mdi.incrementAndGetNextPartitionId(),
+                                   dataServiceUUIDs[i],
+                                   leftSeparator,
+                                   rightSeparator);
                 
-                if (logger.isInfoEnabled())
+                if (logger.isInfoEnabled()) {
                     logger.info("name=" + scaleOutIndexName + ", pmd=" + pmd);
+                }
 
-                /*
-                 * Map the initial partition onto that data service. This
-                 * requires us to compute the left and right separator keys. The
-                 * right separator key is just the separator key for the next
-                 * partition in order and null iff this is the last partition.
-                 */
+                // Map the initial partition onto that data service. This
+                // requires us to compute the left and right separator keys.
+                // The right separator key is just the separator key for
+                // the next partition in order and null iff this is the
+                // last partition.
 
                 final IndexMetadata md = metadata.clone();
                 
                 // override the partition metadata.
-                md.setPartitionMetadata(new LocalPartitionMetadata(
-                        pmd.getPartitionId(),//
-                        -1, // we are creating a new index, not moving an index partition.
-                        leftSeparator,//
-                        rightSeparator,//
+                md.setPartitionMetadata
+                    (new LocalPartitionMetadata
+                         (pmd.getPartitionId(),//
+                          -1,//creating new index, not moving index partition
+                          leftSeparator,
+                          rightSeparator,
                         /*
                          * Note: By setting this to null we are indicating to
                          * the RegisterIndexTask on the data service that it
@@ -1718,54 +1346,35 @@ logger.warn("\n*** calling getIndex("+metadataName+")");
                          * the when the task actually executes on the data
                          * service.
                          */
-                         null, // [resources] Signal to the RegisterIndexTask.
-                         null // [cause] Signal to RegisterIndexTask
+                           null,//[resources] Signal to the RegisterIndexTask.
+                           null //[cause] Signal to RegisterIndexTask
 //                         /*
 //                          * History.
 //                          */
 //                         ,"createScaleOutIndex(name="+scaleOutIndexName+") "
                     ));
                 
-//BTM - replace with EmbeddedShardService when DataService is converted
-//BTM                dataServices[i].registerIndex(DataService.getIndexPartitionName(scaleOutIndexName, pmd.getPartitionId()), md);
-dataServices[i].registerIndex(Util.getIndexPartitionName(scaleOutIndexName, pmd.getPartitionId()), md);
-
+                dataServices[i].registerIndex
+                    (Util.getIndexPartitionName(scaleOutIndexName,
+                                                pmd.getPartitionId()),
+                     md);
                 partitions[i] = pmd;
-                
             }
 
-            /*
-             * Record each partition in the metadata index.
-             */
-
+            // Record each partition in the metadata index.
             for (int i = 0; i < npartitions; i++) {
-
 //                mdi.put(separatorKeys[i], partitions[i]);
-                
-                mdi.insert(separatorKeys[i], SerializerUtil.serialize(partitions[i]));
-            
+                mdi.insert(separatorKeys[i],
+                           SerializerUtil.serialize(partitions[i]));
             }
 
-            /*
-             * Register the metadata index with the metadata service. This
-             * registration will not be restart safe until the task commits.
-             */
+            // Register the metadata index with the metadata service. This
+            // registration will not be restart safe until the task commits.
+
             getJournal().registerIndex(metadataName, mdi);
 
             // Done.
-            
             return mdi.getScaleOutIndexMetadata().getIndexUUID();
-            
-        }
-
-        private LoadBalancer getLoadBalancer(LookupCache lbsCache,
-                                             LoadBalancer embeddedLbs)
-        {
-            if(lbsCache != null) {
-                ServiceItem lbsItem = lbsCache.lookup(null);
-                if(lbsItem != null) return (LoadBalancer)lbsItem.service;
-            }
-            return embeddedLbs;
         }
     }
 
@@ -1794,32 +1403,24 @@ dataServices[i].registerIndex(Util.getIndexPartitionName(scaleOutIndexName, pmd.
      */
     static public class DropScaleOutIndexTask extends AbstractTask {
 
-//BTM        private final IBigdataFederation fed;
-Map<UUID, ShardService> shardMap;
-//BTM Map<UUID, IDataService> remoteShardMap;
-Map<UUID, ShardService> embeddedDataServiceMap;
+        private IBigdataDiscoveryManagement discoveryManager;
+
         /**
-         * @parma fed
+         * @parma discoveryManager
          * @param journal
          * @param name
          *            The name of the metadata index for some scale-out index.
          */
-        protected DropScaleOutIndexTask(
-//BTM IBigdataFederation fed,
-Map<UUID, ShardService> shardMap,
-//BTM Map<UUID, IDataService> remoteShardMap,
-Map<UUID, ShardService> embeddedDataServiceMap,
-                ConcurrencyManager concurrencyManager, String name) {
-            
+        protected DropScaleOutIndexTask
+                      (IBigdataDiscoveryManagement discoveryManager,
+                       ConcurrencyManager concurrencyManager,
+                       String name)
+        {
             super(concurrencyManager, ITx.UNISOLATED, name);
-            
-//BTM            if (fed == null)
-//BTM                throw new IllegalArgumentException();
-            
-//BTM            this.fed = fed;
-this.shardMap = shardMap;
-//BTM this.remoteShardMap = remoteShardMap;
-this.embeddedDataServiceMap = embeddedDataServiceMap;
+            if (discoveryManager == null) {
+                throw new NullPointerException("null discoveryManager");
+            }
+            this.discoveryManager = discoveryManager;
         }
 
         /**
@@ -1833,458 +1434,104 @@ this.embeddedDataServiceMap = embeddedDataServiceMap;
             final MetadataIndex ndx;
 
             try {
-                
                 ndx = (MetadataIndex) getIndex(getOnlyResource());
-
             } catch (ClassCastException ex) {
-
-                throw new UnsupportedOperationException(
-                        "Not a scale-out index?", ex);
-
+                throw new UnsupportedOperationException
+                              ("not a scale-out index?", ex);
             }
 
             // name of the scale-out index.
             final String name = ndx.getScaleOutIndexMetadata().getName();
             
-            if (logger.isInfoEnabled())
+            if (logger.isInfoEnabled()) {
                 logger.info("Will drop index partitions for " + name);
-            
+            }
+
 //            final ChunkedLocalRangeIterator itr = new ChunkedLocalRangeIterator(
 //                    ndx, null, null, 0/* capacity */, IRangeQuery.VALS, null/* filter */);
             final ITupleIterator itr = ndx.rangeIterator(null, null,
                     0/* capacity */, IRangeQuery.VALS, null/* filter */);
-            
+
             int ndropped = 0;
-            
             while(itr.hasNext()) {
-                
                 final ITuple tuple = itr.next();
 
                 // FIXME There is still (5/30/08) a problem with using getValueStream() here!
-                final PartitionLocator pmd = (PartitionLocator) SerializerUtil
-                        .deserialize(tuple.getValue());
+                final PartitionLocator pmd =
+                          (PartitionLocator) SerializerUtil.deserialize
+                                                 (tuple.getValue());
 //                .deserialize(tuple.getValueStream());
 
-                /*
-                 * Drop the index partition.
-                 */
+                //Drop the index partition.
                 {
-                    
                     final int partitionId = pmd.getPartitionId();
-                    
                     final UUID serviceUUID = pmd.getDataServiceUUID();
-                    
-//BTM - replace with ShardService when DataService is converted
-//BTM                    final IDataService dataService = fed
-//BTM                            .getDataService(serviceUUID);
-//BTM IDataService dataService = null;
-ShardService dataService = null;
-if(embeddedDataServiceMap != null) {
-    dataService = embeddedDataServiceMap.get(serviceUUID);
-} else {
-//BTM    dataService = remoteShardMap.get(serviceUUID);
-    dataService = shardMap.get(serviceUUID);
-}
-if (dataService == null) {
-    logger.warn("EmbeddedShardLocator.DropScaleOutIndexTask: "
-                +"null shard service [id="+serviceUUID+", "
-                +"partition="+partitionId+"]");
-    return 0;
-}
+                    final ShardService dataService =
+                              discoveryManager.getDataService(serviceUUID);
+                    if (dataService == null) {
+                        logger.warn
+                            ("EmbeddedShardLocator.DropScaleOutIndexTask: "
+                             +"null shard service [id="+serviceUUID+", "
+                             +"partition="+partitionId+"]");
+                        return 0;
+                    }
 
-                    if (logger.isInfoEnabled())
+                    if (logger.isInfoEnabled()) {
                         logger.info("Dropping index partition: partitionId="
                                 + partitionId + ", dataService=" + dataService);
+                    }
+                    dataService.dropIndex
+                        (Util.getIndexPartitionName(name, partitionId));
+                }//end drop block
 
-//BTM - replace with ShardService when DataService is converted
-//BTM                    dataService.dropIndex(DataService.getIndexPartitionName(name, partitionId));
-dataService.dropIndex(Util.getIndexPartitionName(name, partitionId));
-
-                }
-                
                 ndropped++;
-                
             }
             
 //            // flush all delete requests.
 //            itr.flush();
             
-            if (logger.isInfoEnabled())
-                logger.info("Dropped " + ndropped + " index partitions for "
-                        + name);
+            if (logger.isInfoEnabled()) {
+                logger.info
+                    ("Dropped " + ndropped + " index partitions for "+ name);
+            }
 
             // drop the metadata index as well.
             getJournal().dropIndex(getOnlyResource());
-            
+
             return ndropped;
-            
-        }
-
-    }
-
-//BTM - supports service discovery (added by BTM)
-
-    private class CacheListener implements ServiceDiscoveryListener {
-        private Logger logger;
-        CacheListener(Logger logger) {
-            this.logger = logger;
-        }
-	public void serviceAdded(ServiceDiscoveryEvent event) {
-            ServiceItem item = event.getPostEventServiceItem();
-
-            ServiceID serviceId = item.serviceID;
-            Object service = item.service;
-            Entry[] attrs = item.attributeSets;
-
-            Class serviceType = service.getClass();
-
-            UUID serviceUUID = null;
-            String hostname = null;
-            String serviceName = null;
-            Class serviceIface = null;
-
-            if( (IService.class).isAssignableFrom(serviceType) ) {
-
-                // Avoid remote calls by getting info from attrs
-                ServiceUUID serviceUUIDAttr = 
-                    (ServiceUUID)(EntryUtil.getEntryByType
-                        (attrs, ServiceUUID.class));
-                if(serviceUUIDAttr != null) {
-                    serviceUUID = serviceUUIDAttr.serviceUUID;
-                } else {
-                    if(service != null) {
-                        try {
-                            serviceUUID = 
-                            ((IService)service).getServiceUUID();
-                        } catch(IOException e) {
-                            if(logger.isDebugEnabled()) {
-                                logger.log(Level.DEBUG, 
-                                           "failed to retrieve "
-                                           +"serviceUUID "
-                                           +"[service="+serviceType+", "
-                                            +"ID="+serviceId+"]", e);
-                            }
-                        }
-                    }
-                }
-                Hostname hostNameAttr =
-                    (Hostname)(EntryUtil.getEntryByType
-                                  (attrs, Hostname.class));
-                if(hostNameAttr != null) {
-                    hostname = hostNameAttr.hostname;
-                } else {
-                    if(service != null) {
-                        try {
-                            hostname = 
-                            ((IService)service).getHostname();
-                        } catch(IOException e) {
-                            if(logger.isDebugEnabled()) {
-                                logger.log(Level.DEBUG, 
-                                           "failed to retrieve "
-                                           +"hostname "
-                                           +"[service="+serviceType+", "
-                                            +"ID="+serviceId+"]", e);
-                            }
-                        }
-                    }
-                }
-                Name serviceNameAttr = 
-                    (Name)(EntryUtil.getEntryByType
-                                         (attrs, Name.class));
-                if(serviceNameAttr != null) {
-                    serviceName = serviceNameAttr.name;
-                } else {
-                    if(service != null) {
-                        try {
-                            serviceName = 
-                            ((IService)service).getServiceName();
-                        } catch(IOException e) {
-                            if(logger.isDebugEnabled()) {
-                                logger.log(Level.DEBUG, 
-                                           "failed to retrieve "
-                                           +"serviceName "
-                                           +"[service="+serviceType+", "
-                                            +"ID="+serviceId+"]", e);
-                            }
-                        }
-                    }
-                }
-                if( (IMetadataService.class).isAssignableFrom
-                                                 (serviceType) )
-                {
-                    serviceIface = IMetadataService.class;
-                } else if( (IDataService.class).isAssignableFrom
-                                                    (serviceType) )
-                {
-                    serviceIface = IDataService.class;
-//BTM               remoteShardMap.put(serviceUUID, (IDataService)service);
-shardMap.put(serviceUUID, (IDataService)service);
-                } else if( (IClientService.class).isAssignableFrom
-                                                      (serviceType) )
-                {
-                    serviceIface = IClientService.class;
-                } else if( (ILoadBalancerService.class).isAssignableFrom
-                                                      (serviceType) )
-                {
-                    serviceIface = ILoadBalancerService.class;
-                } else if( (ITransactionService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    serviceIface = ITransactionService.class;
-                } else if( (IServicesManagerService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.DEBUG, "serviceAdded "
-                                   +"[service=IServicesManagerService, "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                } else {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.WARN, "UNEXPECTED serviceAdded "
-                                   +"[service="+serviceType+", "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                }
-            } else if( (Service.class).isAssignableFrom(serviceType) ) {
-                serviceUUID = ((Service)service).getServiceUUID();
-                hostname = ((Service)service).getHostname();
-                serviceName = ((Service)service).getServiceName();
-                serviceIface = ((Service)service).getServiceIface();
-
-                if( (ShardService.class).isAssignableFrom(serviceType) ) {
-                    shardMap.put(serviceUUID, (ShardService)service);
-                }
-            } else {
-                if(logger.isDebugEnabled()) {
-                    logger.log(Level.WARN, "UNEXPECTED serviceAdded "
-                               +"[service="+serviceType+", "
-                               +"ID="+serviceId+"]");
-                }
-                return;
-            }
-            if(logger.isDebugEnabled()) {
-                logger.log(Level.DEBUG, "serviceAdded [service="
-                           +serviceIface+", ID="+serviceId+"]");
-            }
-	}
-
-	public void serviceRemoved(ServiceDiscoveryEvent event) {
-            ServiceItem item = event.getPreEventServiceItem();
-
-            ServiceID serviceId = item.serviceID;
-            Object service = item.service;
-            Entry[] attrs = item.attributeSets;
-
-            Class serviceType = service.getClass();
-
-            UUID serviceUUID = null;
-            Class serviceIface = null;
-
-            if( (IService.class).isAssignableFrom(serviceType) ) {
-
-                // Avoid remote calls by getting info from attrs
-                ServiceUUID serviceUUIDAttr = 
-                    (ServiceUUID)(EntryUtil.getEntryByType
-                        (attrs, ServiceUUID.class));
-                if(serviceUUIDAttr != null) {
-                    serviceUUID = serviceUUIDAttr.serviceUUID;
-                } else {
-                    if(service != null) {
-                        try {
-                            serviceUUID = 
-                            ((IService)service).getServiceUUID();
-                        } catch(IOException e) {
-                            if(logger.isTraceEnabled()) {
-                                logger.log(Level.TRACE, 
-                                           "failed to retrieve "
-                                           +"serviceUUID "
-                                           +"[service="+serviceType+", "
-                                            +"ID="+serviceId+"]", e);
-                            }
-                        }
-                    }
-                }
-
-                if( (IMetadataService.class).isAssignableFrom
-                                                 (serviceType) )
-                {
-                    serviceIface = IMetadataService.class;
-                } else if( (IDataService.class).isAssignableFrom
-                                             (serviceType) )
-                {
-                    serviceIface = IDataService.class;
-                } else if( (IClientService.class).isAssignableFrom
-                                                      (serviceType) )
-                {
-                    serviceIface = IClientService.class;
-                } else if( (ILoadBalancerService.class).isAssignableFrom
-                                                      (serviceType) )
-                {
-                    serviceIface = ILoadBalancerService.class;
-                } else if( (ITransactionService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    serviceIface = ITransactionService.class;
-
-                } else if( (IServicesManagerService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.DEBUG, "serviceRemoved "
-                                   +"[service=IServicesManagerService, "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                } else {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.WARN, "UNEXPECTED serviceRemoved "
-                                   +"[service="+serviceType+", "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                } 
-
-            } else if( (Service.class).isAssignableFrom(serviceType) ) {
-                serviceUUID = ((Service)service).getServiceUUID();
-                serviceIface = ((Service)service).getServiceIface();
-            } else {
-
-                if(logger.isDebugEnabled()) {
-                    logger.log(Level.WARN, "UNEXPECTED serviceRemoved "
-                                   +"[service="+serviceType+", "
-                                   +"ID="+serviceId+"]");
-                }
-                return;
-            }
-            if(logger.isDebugEnabled()) {
-                logger.log(Level.DEBUG, "serviceRemoved [service="
-                           +serviceIface+", ID="+serviceId+"]");
-            }
-
-            if(serviceUUID == null) return;
-
-//BTM            if(remoteShardMap != null) {
-//BTM                remoteShardMap.remove(serviceUUID);
-//BTM            }
-            if(shardMap != null) {
-                shardMap.remove(serviceUUID);
-            }
-        }
-
-	public void serviceChanged(ServiceDiscoveryEvent event) {
-
-            ServiceItem preItem  = event.getPreEventServiceItem();
-            ServiceItem postItem = event.getPostEventServiceItem();
-
-            ServiceID serviceId = postItem.serviceID;
-            Object service = postItem.service;
-
-            Class serviceType = service.getClass();
-
-            Entry[] preAttrs  = preItem.attributeSets;
-            Entry[] postAttrs = postItem.attributeSets; 
-
-            UUID serviceUUID = null;
-            Class serviceIface = null;
-
-            if( (IService.class).isAssignableFrom(serviceType) ) {
-
-                // Avoid remote calls by getting info from attrs
-                ServiceUUID serviceUUIDAttr = 
-                    (ServiceUUID)(EntryUtil.getEntryByType
-                        (preAttrs, ServiceUUID.class));
-                if(serviceUUIDAttr != null) {
-                    serviceUUID = serviceUUIDAttr.serviceUUID;
-                } else {
-                    if(service != null) {
-                        try {
-                            serviceUUID = 
-                            ((IService)service).getServiceUUID();
-                        } catch(IOException e) {
-                            if(logger.isTraceEnabled()) {
-                                logger.log(Level.TRACE, 
-                                           "failed to retrieve "
-                                           +"serviceUUID "
-                                           +"[service="+serviceType+", "
-                                            +"ID="+serviceId+"]", e);
-                            }
-                        }
-                    }
-                }
-
-                if( (IMetadataService.class).isAssignableFrom
-                                                 (serviceType) )
-                {
-                    serviceIface = IMetadataService.class;
-                } else if( (IDataService.class).isAssignableFrom
-                                             (serviceType) )
-                {
-                    serviceIface = IDataService.class;
-                } else if( (IClientService.class).isAssignableFrom
-                                                      (serviceType) )
-                {
-                    serviceIface = IClientService.class;
-                } else if( (ITransactionService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    serviceIface = ITransactionService.class;
-
-                } else if( (IServicesManagerService.class).isAssignableFrom
-                                                        (serviceType) )
-                {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.DEBUG, "serviceChanged "
-                                   +"[service=IServicesManagerService, "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                } else {
-                    if(logger.isDebugEnabled()) {
-                        logger.log(Level.WARN, "UNEXPECTED serviceChanged "
-                                   +"[service="+serviceType+", "
-                                   +"ID="+serviceId+"]");
-                    }
-                    return;
-                }
-            } else if( (Service.class).isAssignableFrom(serviceType) ) {
-                serviceUUID = ((Service)service).getServiceUUID();
-                serviceIface = ((Service)service).getServiceIface();
-            } else {
-                if(logger.isDebugEnabled()) {
-                    logger.log(Level.WARN, "UNEXPECTED serviceChanged "
-                                   +"[service="+serviceType+", "
-                                   +"ID="+serviceId+"]");
-                }
-                return;
-            }
-
-            if(logger.isDebugEnabled()) {
-                logger.log(Level.DEBUG, "serviceChanged [service="
-                           +serviceIface+", ID="+serviceId+"]");
-            }
         }
     }
-
 
     class MdsResourceManager extends ResourceManager {
-//BTM        private IBigdataFederation federation;
-        private IBigdataFederation indexStore;
 
-        MdsResourceManager(IBigdataFederation indexStore,
+        private IBigdataDiscoveryManagement discoveryManager;
+        private ILocalResourceManagement localResources;
+        private ScaleOutIndexManager indexManager;
+
+        MdsResourceManager(IBigdataDiscoveryManagement discoveryManager,
+                           ILocalResourceManagement localResources,
+                           ScaleOutIndexManager indexManager,
                            Properties properties)
         {
             super(properties);
-            this.indexStore = indexStore;
+            this.discoveryManager = discoveryManager;
+            this.localResources = localResources;
+            this.indexManager = indexManager;
         }
 
         @Override
-        public IBigdataFederation getFederation() {
-            return indexStore;
-//            throw new UnsupportedOperationException
-//                          ("EmbeddedShardLocator.getFederation");
+        public IBigdataDiscoveryManagement getDiscoveryManager() {
+            return discoveryManager;
+        }
+
+        @Override
+        public ILocalResourceManagement getLocalResourceManager() {
+            return localResources;
+        }
+
+        @Override
+        public ScaleOutIndexManager getIndexManager() {
+            return indexManager;
         }
             
         @Override

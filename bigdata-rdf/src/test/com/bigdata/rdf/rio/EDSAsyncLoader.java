@@ -43,6 +43,10 @@ import com.bigdata.rdf.store.ScaleOutTripleStore;
 import com.bigdata.service.EmbeddedClient;
 import com.bigdata.service.EmbeddedFederation;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IIndexManager;
+
 /**
  * <pre>
  * -server -Xmx1000m
@@ -138,8 +142,18 @@ public class EDSAsyncLoader {
 
                 System.out.println("Creating new KB: namespace=" + namespace);
 
-                tripleStore = new ScaleOutTripleStore(fed, namespace,
-                        ITx.UNISOLATED, properties);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                tripleStore = new ScaleOutTripleStore(fed, namespace,
+//BTM - PRE_CLIENT_SERVICE                        ITx.UNISOLATED, properties);
+                tripleStore =
+                    new ScaleOutTripleStore
+                            ((IIndexManager)fed,
+                             fed.getConcurrencyManager(),
+                             (IBigdataDiscoveryManagement)fed,
+                             namespace,
+                             ITx.UNISOLATED,
+                             properties);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 tripleStore.create();
 

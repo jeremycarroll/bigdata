@@ -13,17 +13,22 @@ import com.bigdata.mdi.PartitionLocator;
 import com.bigdata.mdi.MetadataIndex.MetadataIndexMetadata;
 import com.bigdata.service.ndx.RawDataServiceTupleIterator;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.metadata.EmbeddedShardLocator;
+import java.rmi.Remote;
+
 /**
  * An implementation that performs NO caching. All methods read through to the
  * remote metadata index. Basically, this hides the RMI requests.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
 public class NoCacheMetadataIndexView implements IMetadataIndex {
 
 //BTM    final private AbstractScaleOutFederation fed;
-final private IBigdataFederation fed;
+//BTM - PRE_CLIENT_SERVICE final private IBigdataFederation fed;
+    final private IBigdataDiscoveryManagement discoveryManager;
 
     final private String name;
 
@@ -31,10 +36,7 @@ final private IBigdataFederation fed;
 
     final private MetadataIndexMetadata mdmd;
 
-//BTM - BEGIN IDATA_SERVICE TO SHARD_SERVICE
-//BTM private IDataService remoteShardMgr = null;
-private ShardManagement shardMgr = null;
-//BTM - END IDATA_SERVICE TO SHARD_SERVICE
+//BTM - PRE_CLIENT_SERVICE    private ShardManagement shardMgr = null; //BTM - IDATA_SERVICE TO SHARD_SERVICE
 
     public MetadataIndexMetadata getIndexMetadata() {
 
@@ -43,9 +45,10 @@ private ShardManagement shardMgr = null;
     }
 
 //BTM    protected IMetadataService getMetadataService() {
-protected ShardLocator getMetadataService() {
+    protected ShardLocator getMetadataService() {
 
-        return fed.getMetadataService();
+//BTM - PRE_CLIENT_SERVICE        return fed.getMetadataService();
+        return discoveryManager.getMetadataService();
 
     }
 
@@ -56,35 +59,40 @@ protected ShardLocator getMetadataService() {
      * @param timestamp
      */
 //BTM    public NoCacheMetadataIndexView(AbstractScaleOutFederation fed,
-public NoCacheMetadataIndexView(IBigdataFederation fed,
-            String name, long timestamp, MetadataIndexMetadata mdmd) {
-
-        if (fed == null)
-            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICEpublic NoCacheMetadataIndexView(IBigdataFederation fed,
+//BTM - PRE_CLIENT_SERVICE            String name, long timestamp, MetadataIndexMetadata mdmd) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        if (fed == null)
+//BTM - PRE_CLIENT_SERVICE            throw new IllegalArgumentException();
+//BTM - PRE_CLIENT_SERVICE
+    public NoCacheMetadataIndexView
+               (IBigdataDiscoveryManagement discoveryManager,
+                String name,
+                long timestamp,
+                MetadataIndexMetadata mdmd)
+    {
+        if (discoveryManager == null) {
+            throw new NullPointerException("null discoveryManager");
+        }
+//BTM - PRE_CLIENT_SERVICE - END
         if (name == null)
             throw new IllegalArgumentException();
         if (mdmd == null)
             throw new IllegalArgumentException();
 
-        this.fed = fed;
-        
+//BTM - PRE_CLIENT_SERVICE        this.fed = fed;
+        this.discoveryManager = discoveryManager;
+
         this.name = name;
 
         this.timestamp = timestamp;
 
         this.mdmd = mdmd;
-//BTM
-ShardLocator mds = getMetadataService();
-if(mds == null) return;
 
-//BTM - BEGIN IDATA_SERVICE TO SHARD_SERVICE
-//BTM if(mds instanceof IDataService) {
-//BTM     this.remoteShardMgr = (IDataService)mds;
-//BTM } else if(mds instanceof ShardManagement) {
-//BTM     this.shardMgr = (ShardManagement)mds;
-//BTM }
-this.shardMgr = (ShardManagement)mds;
-//BTM - END IDATA_SERVICE TO SHARD_SERVICE
+//BTM - PRE_CLIENT_SERVICE        ShardLocator mds = getMetadataService();//BTM
+//BTM - PRE_CLIENT_SERVICE        if(mds == null) return;                 //BTM
+//BTM - PRE_CLIENT_SERVICE        this.shardMgr = (ShardManagement)mds;   //BTM - IDATA_SERVICE TO SHARD_SERVICE
     }
     
     // @todo re-fetch if READ_COMMITTED or UNISOLATED? it's very unlikely to change.
@@ -137,31 +145,41 @@ this.shardMgr = (ShardManagement)mds;
                 false/* exact */, false/*deleted*/, fromKey, toKey);
 
 //BTM        final Long rangeCount;
-Long rangeCount = null;
+        Long rangeCount = null; //BTM
         try {
-
 //BTM            rangeCount = (Long) getMetadataService().submit(timestamp,
 //BTM                    MetadataService.getMetadataIndexName(name), proc).get();
-String indexName = MetadataService.getMetadataIndexName(name);
 
-//BTM - BEGIN IDATA_SERVICE TO SHARD_SERVICE
-//BTM if(remoteShardMgr != null) {
-//BTM     rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
-//BTM } else if(shardMgr != null) {
-//BTM     rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
-//BTM }
-rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
-if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.rangeCount: null range count");
-//BTM - END IDATA_SERVICE TO SHARD_SERVICE
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  String indexName = MetadataService.getMetadataIndexName(name);
+            String indexName = null;
+            ShardLocator mds = getMetadataService();
+            ShardManagement shardMgr = (ShardManagement)mds;
+            if (mds instanceof Remote) {
+                indexName = MetadataService.getMetadataIndexName(name);
+            } else {
+                indexName = EmbeddedShardLocator.getMetadataIndexName(name);
+            }
+            if(indexName == null) {
+                throw new NullPointerException
+                              ("NoCacheMetadataIndexView.rangeCount "
+                               +"[null indexName]");
+            }
+//BTM - PRE_CLIENT_SERVICE - END
 
+//BTM - IDATA_SERVICE TO SHARD_SERVICE - BEGIN
+            rangeCount =
+                (Long) shardMgr.submit(timestamp, indexName, proc).get();
+            if(rangeCount == null) { //BTM - BEGIN
+                throw new NullPointerException
+                              ("NoCacheMetadataIndexView.rangeCount "
+                               +"[null range count]");
+            }
+//BTM - IDATA_SERVICE TO SHARD_SERVICE - END
         } catch (Exception e) {
-
             throw new RuntimeException(e);
-
         }
-
         return rangeCount.longValue();
-
     }
 
     public long rangeCountExact(final byte[] fromKey, final byte[] toKey) {
@@ -170,31 +188,42 @@ if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.
                 true/* exact */, false/*deleted*/, fromKey, toKey);
 
 //BTM        final Long rangeCount;
-Long rangeCount = null;
+        Long rangeCount = null; //BTM
         try {
 
 //BTM            rangeCount = (Long) getMetadataService().submit(timestamp,
 //BTM                    MetadataService.getMetadataIndexName(name), proc).get();
-String indexName = MetadataService.getMetadataIndexName(name);
 
-//BTM - BEGIN IDATA_SERVICE TO SHARD_SERVICE
-//BTM if(remoteShardMgr != null) {
-//BTM     rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
-//BTM } else if(shardMgr != null) {
-//BTM     rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
-//BTM }
-rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
-if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.rangeCountExact: null range count");
-//BTM - END IDATA_SERVICE TO SHARD_SERVICE
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  String indexName = MetadataService.getMetadataIndexName(name);
+            String indexName = null;
+            ShardLocator mds = getMetadataService();
+            ShardManagement shardMgr = (ShardManagement)mds;
+            if (mds instanceof Remote) {
+                indexName = MetadataService.getMetadataIndexName(name);
+            } else {
+                indexName = EmbeddedShardLocator.getMetadataIndexName(name);
+            }
+            if(indexName == null) {
+                throw new NullPointerException
+                              ("NoCacheMetadataIndexView.rangeCountExact "
+                               +"[null indexName]");
+            }
+//BTM - PRE_CLIENT_SERVICE - END
 
+//BTM - IDATA_SERVICE TO SHARD_SERVICE - BEGIN
+            rangeCount =
+                (Long) shardMgr.submit(timestamp, indexName, proc).get();
+            if(rangeCount == null) { //BTM - BEGIN
+                throw new NullPointerException
+                              ("NoCacheMetadataIndexView.rangeCountExact "
+                               +"[null range count]");
+            }
+//BTM - IDATA_SERVICE TO SHARD_SERVICE - END
         } catch (Exception e) {
-
             throw new RuntimeException(e);
-
         }
-
         return rangeCount.longValue();
-        
     }
     
     public long rangeCountExactWithDeleted(final byte[] fromKey, final byte[] toKey) {
@@ -203,31 +232,42 @@ if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.
                 true/* exact */, true/*deleted*/, fromKey, toKey);
 
 //BTM        final Long rangeCount;
-Long rangeCount = null;
+        Long rangeCount = null; //BTM
         try {
 
 //BTM            rangeCount = (Long) getMetadataService().submit(timestamp,
 //BTM                    MetadataService.getMetadataIndexName(name), proc).get();
-String indexName = MetadataService.getMetadataIndexName(name);
 
-//BTM - BEGIN IDATA_SERVICE TO SHARD_SERVICE
-//BTM if(remoteShardMgr != null) {
-//BTM     rangeCount = (Long) remoteShardMgr.submit(timestamp, indexName, proc).get();
-//BTM } else if(shardMgr != null) {
-//BTM     rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
-//BTM }
-rangeCount = (Long) shardMgr.submit(timestamp, indexName, proc).get();
-if(rangeCount == null) throw new NullPointerException("NoCacheMetadataIndexView.rangeCountExactWithDeleted: null range count");
-//BTM - END IDATA_SERVICE TO SHARD_SERVICE
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE  String indexName = MetadataService.getMetadataIndexName(name);
+            String indexName = null;
+            ShardLocator mds = getMetadataService();
+            ShardManagement shardMgr = (ShardManagement)mds;
+            if (mds instanceof Remote) {
+                indexName = MetadataService.getMetadataIndexName(name);
+            } else {
+                indexName = EmbeddedShardLocator.getMetadataIndexName(name);
+            }
+            if(indexName == null) {
+                throw new NullPointerException
+                       ("NoCacheMetadataIndexView.rangeCountExactWithDeleted "
+                        +"[null indexName]");
+            }
+//BTM - PRE_CLIENT_SERVICE - END
 
+//BTM - IDATA_SERVICE TO SHARD_SERVICE - BEGIN
+            rangeCount =
+                (Long) shardMgr.submit(timestamp, indexName, proc).get();
+            if(rangeCount == null) { //BTM - BEGIN
+                throw new NullPointerException
+                       ("NoCacheMetadataIndexView.rangeCountExactWithDeleted "
+                        +"[null range count]");
+            }
+//BTM - IDATA_SERVICE TO SHARD_SERVICE - END
         } catch (Exception e) {
-
             throw new RuntimeException(e);
-
         }
-
         return rangeCount.longValue();
-        
     }
     
     public ITupleIterator rangeIterator() {

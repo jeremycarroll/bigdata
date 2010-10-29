@@ -83,7 +83,8 @@ class KeyRangeDataServiceProcedureTask extends AbstractDataServiceProcedureTask 
 
         try {
         
-            if (depth > ndx.getFederation().getClient().getMaxStaleLocatorRetries()) {
+//BTM - PRE_CLIENT_SERVICE  if (depth > ndx.getFederation().getClient().getMaxStaleLocatorRetries()) {
+            if (depth > ndx.getMaxStaleLocatorRetries()) {
 
                 throw new RuntimeException("Retry count exceeded: ntries="
                         + depth);

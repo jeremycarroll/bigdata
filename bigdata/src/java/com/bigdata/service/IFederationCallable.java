@@ -22,49 +22,28 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
-/*
- * Created on Apr 23, 2009
- */
 
 package com.bigdata.service;
 
+import com.bigdata.journal.IScaleOutIndexStore;
 import java.io.Serializable;
-import java.util.concurrent.Callable;
 
 /**
  * Interface for {@link Callable}s which require access to the
- * {@link IBigdataFederation} when running on an {@link IRemoteExecutor}.
+ * scale out indices of a federation.
+ *
+ * @param <V> type of value returned by a call to the
+ *            <code>startFederationTask</code> method.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
  */
-public interface IFederationCallable extends Serializable {
+public interface IFederationCallable<V> extends Serializable {
 
     /**
-     * Invoked before the task is executed to provide a reference to the
-     * {@link IBigdataFederation} for the service on which the task is
-     * executing.
-     * 
-     * @param fed
-     *            The federation.
-     * 
-     * @throws IllegalArgumentException
-     *             if the argument is <code>null</code>
-     * @throws IllegalStateException
-     *             if {@link #setFederation(IBigdataFederation)} has already
-     *             been invoked and was set with a different value.
+     * Initiates the execution of the task implementing this
+     * interface.
+     *
+     * @throws Exception if the task does
      */
-    void setFederation(IBigdataFederation fed);
-
-    /**
-     * Return the {@link IBigdataFederation} reference.
-     * 
-     * @return The federation and never <code>null</code>.
-     * 
-     * @throws IllegalStateException
-     *             if {@link #setFederation(IBigdataFederation)} has not been
-     *             invoked.
-     */
-    IBigdataFederation getFederation();
-
+    V startFederationTask(IScaleOutIndexStore indexStore) throws Exception;
 }
