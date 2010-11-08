@@ -746,6 +746,7 @@ abstract public class StoreManager extends ResourceEvents implements
      */
     public boolean awaitRunning() {
 
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","*** StoreManager.awaitRunning >>> isOpen="+isOpen()+", isStarting="+isStarting());
         while (isOpen() && isStarting()) {
 
             try {
@@ -762,8 +763,10 @@ abstract public class StoreManager extends ResourceEvents implements
 
             }
 
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","*** StoreManager.awaitRunning >>> END LOOP: isOpen="+isOpen()+", isStarting="+isStarting());
         }
 
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","*** StoreManager.awaitRunning >>> RETURN isRunning="+isRunning()+"\n\n");
         return isRunning();
 
     }
@@ -1358,21 +1361,21 @@ if (!tmpDir.exists()) {//still does not exist, try again
 
                 try {
 
-System.out.println("\nStoreManager#Startup >>> start()");
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager#Startup >>> start()");
                     start();
 
                     // successful startup
-System.out.println("StoreManager#Startup >>> set isStarting to FALSE");
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager#Startup >>> set isStarting to FALSE");
                     starting.set(false);
                     
                     // Purge any resources that we no longer require.
-System.out.println("StoreManager#Startup >>> PURGE old resources during startup");
                     if(purgeOldResourcesDuringStartup)
                         purgeOldResources();
                     
                 } catch (Throwable ex) {
 
-System.out.println("StoreManager#Startup >>> EXCEPTION >>> "+ex);
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager#Startup >>> EXCEPTION >>> "+ex+"\n"+com.bigdata.util.Util.getThrowableStackTrace(ex)+"\n");
+
                     // avoid possibility that isRunning() could become true.
                     open.set(false);
 
@@ -1392,7 +1395,7 @@ System.out.println("StoreManager#Startup >>> EXCEPTION >>> "+ex);
                  * flag is turned off.
                  */
 
-System.out.println("StoreManager#Startup >>> FINALLY >>> set isStarting to FALSE");
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager#Startup >>> FINALLY >>> set isStarting to FALSE");
                 starting.set(false);
 
                 if (log.isInfoEnabled())
@@ -1430,30 +1433,29 @@ System.out.println("StoreManager#Startup >>> FINALLY >>> set isStarting to FALSE
         final private void start() throws InterruptedException {
 
             if (!isStarting()) {
-
                 throw new IllegalStateException();
-
             }
 
             /*
              * Verify that the concurrency manager has been set and wait a while
              * it if is not available yet.
              */
-			{
-				int nwaits = 0;
-				while (true) {
-					try {
-						getConcurrencyManager();
-						break;
-					} catch (IllegalStateException ex) {
-						Thread.sleep(100/* ms */);
-						if (++nwaits % 50 == 0)
-							log.warn("Waiting for concurrency manager");
-					}
-				}
-            }
+            {//begin block
+                int nwaits = 0;
+                while (true) {
+                    try {
+                        getConcurrencyManager();
+                        break;
+                    } catch (IllegalStateException ex) {
+                        Thread.sleep(100/* ms */);
+                        if (++nwaits % 50 == 0)
+                            log.warn("Waiting for concurrency manager");
+                    }
+                }//end loop
+            }//end block
 
-			try {
+//BTM - PRE_CLIENT_SERVICE            try {
+//BTM - PRE_CLIENT_SERVICE
 //BTM - BEGIN - PRE_CLIENT_SERVICE
 //BTM - PRE_CLIENT_SERVICE				final IBigdataFederation<?> fed = getFederation();
 //BTM - PRE_CLIENT_SERVICE				if (fed == null) {
@@ -1496,65 +1498,66 @@ System.out.println("StoreManager#Startup >>> FINALLY >>> set isStarting to FALSE
 //BTM - PRE_CLIENT_SERVICE    log.warn("\n"+stackTrace+"\n");
 //BTM - PRE_CLIENT_SERVICE}
 //BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            } catch (UnsupportedOperationException ex) {
+//BTM - PRE_CLIENT_SERVICE                log.warn("Federation not available - running in test case?");
+//BTM - PRE_CLIENT_SERVICE            }
 
 //BTM - maintain original logic for now
-                                final IBigdataDiscoveryManagement discoveryMgr =
+            try {
+                final IBigdataDiscoveryManagement discoveryMgr =
                                           getDiscoveryManager();
-				if (discoveryMgr == null) {
-                                    // Some of the unit tests do not start
-                                    // the txs until after the shard service.
-                                    // For those tests getDiscoveryManager()
-                                    // will return null during startup() of
-                                    // the shard service. To have a common
-                                    // code path, an exception is thrown
-                                    // here, but caught below.
-                                    throw new UnsupportedOperationException();
-                                }
-                                // Wait no more than N seconds for discovery
-                                int nWait = 30;
-                                boolean discoveredTxnSrvc = false;
-                                for(int i=0; i<nWait; i++) {
-                                    if (discoveryMgr.getTransactionService()
-                                                                    != null)
-                                    {
-                                        discoveredTxnSrvc = true;
-                                        break;
-                                    }
-                                    try { 
-                                        Thread.sleep(1000L); 
-                                    } catch(InterruptedException ie) { }
-                                        if (log.isDebugEnabled()) {
-                                            log.debug
-                                                ("waiting for transaction "
-                                                 +"service discovery");
-                                        }
-                                    }
-                                    if(discoveredTxnSrvc) {
-                                        if (log.isDebugEnabled()) {
-                                            log.debug
-                                                ("discovered transaction "
-                                                 +"service");
-                                        }
-                                    } else {
-                                        log.warn("transaction service "
-                                                 +"unreachable");
-StackTraceElement[] e = (Thread.currentThread()).getStackTrace();
-StringBuffer buf = new StringBuffer("    "+(e[0]).toString()+"\n");
-for(int i=1;i<e.length;i++) {
-    buf.append("    "+(e[i]).toString()+"\n");
-}
-String stackTrace = buf.toString();
-log.warn("\n"+stackTrace+"\n");
-                                    }//endif(discoveredTxnSrvc)
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.start >>> DISCOVERY MGR = "+discoveryMgr+"\n");
+                if (discoveryMgr == null) {
+                    // Some of the unit tests do not start
+                    // the txs until after the shard service.
+                    // For those tests getDiscoveryManager()
+                    // will return null during startup() of
+                    // the shard service. To have a common
+                    // code path, an exception is thrown
+                    // here, but caught below.
+
+                    throw new UnsupportedOperationException
+                                  ("null discoveryMgr");
+                }
+
+                // Wait no more than N seconds for discovery
+                int nWait = 120;
+                boolean discoveredTxnSrvc = false;
+                for(int i=0; i<nWait; i++) {
+                    if (discoveryMgr.getTransactionService() != null) {
+                        discoveredTxnSrvc = true;
+                        break;
+                    }
+                    try { 
+                        Thread.sleep(1000L); 
+                    } catch(InterruptedException ie) { }
+
+                    if (log.isDebugEnabled()) {
+                        log.debug("waiting for transaction "
+                                  +"service discovery");
+                    }
+                    if(discoveredTxnSrvc) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("discovered transaction service");
+                        }
+                    } else {
+                        log.warn("transaction service unreachable");
+                    }//endif(discoveredTxnSrvc)
+                }//endloop(nWait)
+//BTM if(discoveredTxnSrvc) {
+//BTM     com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.start >>> TRANSACTION SERVICE DISCOVERED");
+//BTM }else{
+//BTM     com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.start >>> TRANSACTION SERVICE UNREACHABLE\n");
+//BTM }
+            } catch (UnsupportedOperationException ex) {
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.start >>> FEDERATION UNAVAILABLE - test case?\n");
+                log.warn("Federation not available - running in test case?");
+            }
 //BTM - END - PRE_CLIENT_SERVICE
 
-			} catch (UnsupportedOperationException ex) {
-				log.warn("Federation not available - running in test case?");
-			}
-
-			/*
-			 * Look for pre-existing data files.
-			 */
+            /*
+             * Look for pre-existing data files.
+             */
             if (!isTransient) {
 
                 if (log.isInfoEnabled())
@@ -1562,7 +1565,9 @@ log.warn("\n"+stackTrace+"\n");
 
                 final Stats stats = new Stats();
 
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.start >>> scanDataDirectory [dataDir="+dataDir+"]");
                 scanDataDirectory(dataDir, stats);
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.start >>> SCAN DONE [dataDir="+dataDir+", stats="+stats+"]");
 
                 final int nbad = stats.badFiles.size();
 
@@ -2122,7 +2127,7 @@ log.warn("\n"+stackTrace+"\n");
     private void scanDataDirectory(File dir, Stats stats)
             throws InterruptedException {
 
-System.out.println("\nStoreManager.scanDataDirectory >>> dir="+dir);
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.scanDataDirectory >>> [dataDir="+dir+"]");
         if (dir == null)
             throw new IllegalArgumentException();
 
@@ -2138,11 +2143,12 @@ System.out.println("\nStoreManager.scanDataDirectory >>> dir="+dir);
 
             if (file.isDirectory()) {
 
-System.out.println("\nStoreManager.scanDataDirectory >>> dir="+file);
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager.scanDataDirectory >>> PROCESSING DIRECTORY [dir="+file+"]");
                 scanDataDirectory(file, stats);
 
             } else {
-System.out.println("\nStoreManager.scanDataDirectory >>> scanFile: "+file);
+
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager.scanDataDirectory >>> scanFile [file="+file+"]");
                 scanFile(file, stats);
 
             }
@@ -2152,7 +2158,6 @@ System.out.println("\nStoreManager.scanDataDirectory >>> scanFile: "+file);
     }
 
     private void scanFile(File file, Stats stats) throws InterruptedException {
-System.out.println("\nStoreManager.scanFile >>> "+file);
 
         if (Thread.interrupted())
             throw new InterruptedException();
@@ -2167,6 +2172,7 @@ System.out.println("\nStoreManager.scanFile >>> "+file);
 
         // #of bytes in the file as reported by the OS.
         final long len = file.length();
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.scanFile >>> [file="+file+", length="+len+"]");
 
         if (len > 0 && name.endsWith(Options.JNL)) {
 
@@ -2182,7 +2188,7 @@ System.out.println("\nStoreManager.scanFile >>> "+file);
 
             try {
 
-System.out.println("\nStoreManager.scanFile >>> NEW ManagedJournal: "+file);
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager.scanFile >>> JNL >>> NEW ManagedJournal");
                 tmp = new ManagedJournal(properties);
 
             } catch (Exception ex) {
@@ -2194,6 +2200,7 @@ System.out.println("\nStoreManager.scanFile >>> NEW ManagedJournal: "+file);
                 
                 stats.badFiles.add(file.getAbsolutePath());
 
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager.scanFile >>> JNL >>> EXCEPTION - "+ex+"\n"+com.bigdata.util.Util.getThrowableStackTrace(ex)+"\n");
                 return;
 
             }
@@ -2222,7 +2229,7 @@ System.out.println("\nStoreManager.scanFile >>> NEW ManagedJournal: "+file);
             final IndexSegmentStore segStore;
             try {
 
-System.out.println("\nStoreManager.scanFile >>> NEW IndexSegmentStore: "+file);
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager.scanFile >>> SEG >>> NEW IndexSegmentStore("+file+")");
                 segStore = new IndexSegmentStore(file);
 
             } catch (Exception ex) {
@@ -2234,6 +2241,7 @@ System.out.println("\nStoreManager.scanFile >>> NEW IndexSegmentStore: "+file);
 
                 stats.badFiles.add(file.getAbsolutePath());
 
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager.scanFile >>> SEG >>> EXCEPTION - "+ex+"\n"+com.bigdata.util.Util.getThrowableStackTrace(ex)+"\n");
                 return;
 
             }
@@ -2270,7 +2278,7 @@ System.out.println("\nStoreManager.scanFile >>> NEW IndexSegmentStore: "+file);
                     && (name.endsWith(Options.JNL) || name
                             .endsWith(Options.SEG))) {
 
-System.out.println("\nStoreManager.scanFile >>> Ignoring empty file: "+file);
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager.scanFile >>> Ignoring empty file: "+file);
                 log.warn("Ignoring empty file: " + file);
 
             } else {
@@ -2279,7 +2287,7 @@ System.out.println("\nStoreManager.scanFile >>> Ignoring empty file: "+file);
                  * This file is not relevant to the resource manager.
                  */
 
-System.out.println("\nStoreManager.scanFile >>> Ignoring irrelevant file: "+file);
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager.scanFile >>> Ignoring irrelevant file: "+file);
                 log.warn("Ignoring file: " + file);
 
             }
@@ -2305,7 +2313,7 @@ System.out.println("\nStoreManager.scanFile >>> Ignoring irrelevant file: "+file
 //        }
 
 //        addResource(resource, file.getAbsoluteFile());
-System.out.println("\nStoreManager.scanFile >>> addResource: file="+file);
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","StoreManager.scanFile >>> addResource: file="+file);
         addResource(resource, file);
 
     }
@@ -3349,7 +3357,7 @@ log.warn("\n*** StoreManager.purgeOldResources: lastCommitTime="+lastCommitTime+
 
                     this.releaseTime = txService.getReleaseTime();
 //BTM
-log.warn("\n*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseTime+"\n");
+log.warn("*** StoreManager.purgeOldResources: this.releaseTime="+this.releaseTime);
 
                 } else {
 

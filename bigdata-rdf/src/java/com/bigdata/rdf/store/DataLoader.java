@@ -1350,8 +1350,16 @@ public class DataLoader {
             
             System.out.println("Journal file: "+jnl.getFile());
 
-            AbstractTripleStore kb = (AbstractTripleStore) jnl
-                    .getResourceLocator().locate(namespace, ITx.UNISOLATED);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            AbstractTripleStore kb = (AbstractTripleStore) jnl
+//BTM - PRE_CLIENT_SERVICE                    .getResourceLocator().locate(namespace, ITx.UNISOLATED);
+            AbstractTripleStore kb =
+                (AbstractTripleStore) jnl.getResourceLocator().locate
+                                          (jnl,//Journal -> AbstractJournal -> IBTreeManager -> IIndexManager
+                                           jnl,//Journal -> IConcurrencyManager
+                                           jnl.getDiscoveryManager(),//returns null
+                                           namespace, ITx.UNISOLATED);
+//BTM - PRE_CLIENT_SERVICE - END
 
             if (kb == null) {
 

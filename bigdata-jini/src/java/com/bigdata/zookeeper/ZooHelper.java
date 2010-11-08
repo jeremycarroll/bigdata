@@ -320,8 +320,14 @@ public class ZooHelper {
     public static boolean isRunning(final InetAddress addr, final int clientPort) {
 
         try {
-
-            ZooHelper.ruok(addr, clientPort);
+//BTM - BEGIN
+//BTM            ZooHelper.ruok(addr, clientPort);
+            if (addr == null) {
+                ZooHelper.ruok(thisInetAddr, clientPort);
+            } else {
+                ZooHelper.ruok(addr, clientPort);
+            }
+//BTM - BEGIN
 
             if (log.isInfoEnabled())
                 log.info("Zookeeper running: " + addr.getCanonicalHostName()

@@ -97,6 +97,14 @@ protected ShardService dataService1;
         
         // when the data are persistent use the test to name the data directory.
         properties.setProperty(EmbeddedClient.Options.DATA_DIR, getName());
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        // AbstractFederation now creates a ResourceManager/StoreManager,
+        // which expects a data directory property
+        properties.setProperty
+            ( com.bigdata.resources.StoreManager.Options.DATA_DIR,
+              properties.getProperty(EmbeddedClient.Options.DATA_DIR) );
+//BTM - FOR_CLIENT_SERVICE - END
         
         // when the data are persistent use the test to name the data directory.
         properties.setProperty(DistributedTransactionService.Options.DATA_DIR,

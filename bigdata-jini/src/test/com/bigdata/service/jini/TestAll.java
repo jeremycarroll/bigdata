@@ -37,6 +37,8 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
 public class TestAll extends TestCase {
+
+protected static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(com.bigdata.service.jini.TestAll.class);
     
     public TestAll() {}
     

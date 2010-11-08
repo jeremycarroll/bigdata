@@ -121,7 +121,7 @@ class ServiceImpl implements PrivateInterface {
 
     private EmbeddedTransactionService embeddedTransactionService;
 
-    private Thread waitThread;
+//BTM    private Thread waitThread;
 
     /**
      * Constructor used to instantiate this service. This constructor is
@@ -425,8 +425,8 @@ logger.warn("YYYYY TRANSACTION SERVICE ServiceImpl: DESTROY CALLED");
                    +", locators="
                    +Util.writeArrayElementsToString(locatorsToJoin));
 
-        waitThread = new Util.WaitOnInterruptThread(logger);
-        waitThread.start();
+//BTM        waitThread = new Util.WaitOnInterruptThread(logger);
+//BTM        waitThread.start();
 
         readyState.ready();//ready to accept calls from clients
     }
@@ -476,10 +476,10 @@ logger.warn("YYYYY TRANSACTION SERVICE ServiceImpl: DESTROY CALLED");
                 serverExporter = null;
             }
 
-            waitThread.interrupt();
-            try {
-                waitThread.join();
-            } catch (InterruptedException e) {/*exiting, so swallow*/}
+//BTM            waitThread.interrupt();
+//BTM            try {
+//BTM                waitThread.join();
+//BTM            } catch (InterruptedException e) {/*exiting, so swallow*/}
 
             Util.cleanupOnExit(innerProxy, serverExporter, joinMgr, sdm, ldm);
 

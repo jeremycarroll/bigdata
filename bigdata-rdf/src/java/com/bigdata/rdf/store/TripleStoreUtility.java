@@ -471,10 +471,19 @@ public class TripleStoreUtility {
 
                 j1 = new Journal(properties);
 
-                ts1 = (AbstractTripleStore) j1.getResourceLocator().locate(
-                        namespace,
-                        TimestampUtility.asHistoricalRead(j1
-                                .getLastCommitTime()));
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE                ts1 = (AbstractTripleStore) j1.getResourceLocator().locate(
+//BTM - FOR_CLIENT_SERVICE                        namespace,
+//BTM - FOR_CLIENT_SERVICE                        TimestampUtility.asHistoricalRead(j1
+//BTM - FOR_CLIENT_SERVICE                                .getLastCommitTime()));
+                ts1 = (AbstractTripleStore) j1.getResourceLocator()
+                            .locate( j1,//Journal -> AbstractJournal -> IBTreeManager -> IIndexManager
+                                     j1,//Journal -> IConcurrencyManager
+                                     j1.getDiscoveryManager(),//returns null
+                                     namespace,
+                                     TimestampUtility.asHistoricalRead
+                                        (j1.getLastCommitTime() ));
+//BTM - FOR_CLIENT_SERVICE - END
 
             }
 
@@ -487,10 +496,19 @@ public class TripleStoreUtility {
 
                 j2 = new Journal(properties);
 
-                ts2 = (AbstractTripleStore) j2.getResourceLocator().locate(
-                        namespace,
-                        TimestampUtility.asHistoricalRead(j2
-                                .getLastCommitTime()));
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE                ts2 = (AbstractTripleStore) j2.getResourceLocator().locate(
+//BTM - FOR_CLIENT_SERVICE                        namespace,
+//BTM - FOR_CLIENT_SERVICE                        TimestampUtility.asHistoricalRead(j2
+//BTM - FOR_CLIENT_SERVICE                                .getLastCommitTime()));
+                ts2 = (AbstractTripleStore) j2.getResourceLocator()
+                            .locate( j2,//Journal -> AbstractJournal -> IBTreeManager -> IIndexManager
+                                     j2,//Journal -> IConcurrencyManager
+                                     j2.getDiscoveryManager(),//returns null
+                                     namespace,
+                                     TimestampUtility.asHistoricalRead
+                                        (j2.getLastCommitTime() ));
+//BTM - FOR_CLIENT_SERVICE - END
 
             }
 

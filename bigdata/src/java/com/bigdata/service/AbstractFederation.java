@@ -89,6 +89,7 @@ import com.bigdata.event.EventQueueSenderTask;
 import com.bigdata.journal.ConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.LocalTransactionManager;
+import java.io.File;
 
 /**
  * Abstract base class for {@link IBigdataFederation} implementations.
@@ -113,6 +114,7 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T>,
 //BTM - FOR_CLIENT_SERVICE - BEGIN
     protected ResourceManager fedResourceMgr;
     protected IConcurrencyManager fedConcurrencyMgr;
+private static int dataDirCounter = 0;
 //BTM - FOR_CLIENT_SERVICE - END
 
     /**
@@ -674,16 +676,50 @@ t = new ScaleOutIndexCounters(getScheduledExecutorService());
 //        tempStoreFactory = new TemporaryStoreFactory(this.client
 //                .getTempStoreMaxExtent());
 
-//BTM - FOR_CLIENT_SERVICE - BEGIN - for passing concurrencyMgr to getGlobalFileSystem and TemporaryStoreFactory.getTempStore
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE - NOTE: getGlobalFileSystem and TemporaryStoreFactory.getTempStore
+//BTM - FOR_CLIENT_SERVICE -       now expect a ConcurrencyManager to be passed into them.
+//BTM - FOR_CLIENT_SERVICE -       Thus, the code below was added to provide a ConcurrencyManager
+//BTM - FOR_CLIENT_SERVICE -       that this AbstractFederation can input when those methods
+//BTM - FOR_CLIENT_SERVICE -       are invoked. It is not expected that the ConcurrencyManager 
+//BTM - FOR_CLIENT_SERVICE -       created here will be employed in other places in the
+//BTM - FOR_CLIENT_SERVICE -       code. Note also that in order to create a ConcurrencyManager,
+//BTM - FOR_CLIENT_SERVICE -       a ResourceManager must first be created and, that ResourceManager
+//BTM - FOR_CLIENT_SERVICE -       expects the properties that are input to its constructor
+//BTM - FOR_CLIENT_SERVICE -       will include a valid value for the property named,
+//BTM - FOR_CLIENT_SERVICE -       "com.bigdata.resources.StoreManager.dataDir". Without this
+//BTM - FOR_CLIENT_SERVICE -       property, the StoreManager on which the ResourceManager
+//BTM - FOR_CLIENT_SERVICE -       is based will fail to start. Additionally, it is very
+//BTM - FOR_CLIENT_SERVICE -       important that the value to which that property is set
+//BTM - FOR_CLIENT_SERVICE -       be unique for each instance of the ResourceManager/StoreManager
+//BTM - FOR_CLIENT_SERVICE -       that is created; otherwise, the StoreManager will again
+//BTM - FOR_CLIENT_SERVICE -       fail to start, and will ultimately throw an 
+//BTM - FOR_CLIENT_SERVICE -       OverlappingFileLockException. Thus, to satisfy this
+//BTM - FOR_CLIENT_SERVICE -       requirement, the static variable named, 'dataDirCounter'
+//BTM - FOR_CLIENT_SERVICE -       is declared and incremented for each instantiation of 
+//BTM - FOR_CLIENT_SERVICE -       this class; which provides a unique token that is used 
+//BTM - FOR_CLIENT_SERVICE -       to modify the value of the system property relative to
+//BTM - FOR_CLIENT_SERVICE -       the other instances of the ResourceManager that are
+//BTM - FOR_CLIENT_SERVICE -       are created.
+        Properties resourceMgrProps = (Properties) (client.getProperties()).clone();
+        resourceMgrProps.setProperty
+                ("com.bigdata.resources.StoreManager.dataDir",
+                  System.getProperty("java.io.tmpdir")
+                  +File.separator
+                  +(FedResourceManager.class).getName()
+                  +File.separator
+                  +"StoreManager"
+                  +File.separator
+                  +"dataDir_"+(dataDirCounter++));
         this.fedResourceMgr =
              new FedResourceManager
                      ( (IBigdataDiscoveryManagement)this,
                        (ILocalResourceManagement)this,
                        (IIndexManager)this,
-                       client.getProperties() );
+                       resourceMgrProps );
         this.fedConcurrencyMgr =
              new ConcurrencyManager
-                 (client.getProperties(),
+                 (resourceMgrProps,
                   new LocalTransactionManager
                           ( (IBigdataDiscoveryManagement)this ),
                   this.fedResourceMgr);
@@ -798,7 +834,6 @@ if(shardService != null) {
         assertOpen();
 
         try {
-
             UUID indexUUID = getMetadataService().registerScaleOutIndex(
                     metadata, separatorKeys, dataServiceUUIDs);
 
@@ -839,22 +874,18 @@ return (IClientIndex)index;
 
     public void dropIndex(String name) {
 
-String dbgFlnm = "TestEmbeddedClient.txt";
         if (log.isInfoEnabled())
             log.info("name=" + name);
 
         assertOpen();
-com.bigdata.util.Util.printStr(dbgFlnm, "    AbstractFederation.dropIndex[name="+name+"] - assertOpen = OK");
 
         try {
 
-com.bigdata.util.Util.printStr(dbgFlnm, "    AbstractFederation.dropIndex - metadataService = "+getMetadataService());
             getMetadataService().dropScaleOutIndex(name);
 
             if (log.isInfoEnabled())
                 log.info("dropped scale-out index.");
             
-com.bigdata.util.Util.printStr(dbgFlnm, "    AbstractFederation.dropIndex - getIndexCache = "+getIndexCache());
             getIndexCache().dropIndexFromCache(name);
 
         } catch (Exception e) {
@@ -1752,7 +1783,7 @@ final private EventQueueSender sendEventsTask;
         this.shutdown();
     }
 
-    // For tests
+    // For tasks started by ClientService and for tests
 
     public IConcurrencyManager getConcurrencyManager() {
         return fedConcurrencyMgr;

@@ -320,7 +320,7 @@ public class JiniClient<T> extends AbstractScaleOutClient<T> {
         final Properties properties = new Properties();
 
         for (NV nv : tmp) {
-    
+
             properties.setProperty(nv.getName(), nv.getValue());
     
         }

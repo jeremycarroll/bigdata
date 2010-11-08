@@ -52,6 +52,10 @@ import com.bigdata.relation.RelationSchema;
 import com.bigdata.service.IBigdataFederation;
 import com.bigdata.sparse.SparseRowStore;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * Generic implementation relies on a ctor for the resource with the following
  * method signature:
@@ -181,7 +185,15 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
     }
 
     // @todo hotspot 2% total query time.
-    public T locate(final String namespace, final long timestamp) {
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE    public T locate(final String namespace, final long timestamp) {
+    public T locate(IIndexManager indexManager,
+                    IConcurrencyManager concurrencyManager,
+                    IBigdataDiscoveryManagement discoveryManager,
+                    final String namespace,
+                    final long timestamp)
+    {
+//BTM - FOR_CLIENT_SERVICE - END
 
         if (namespace == null)
             throw new IllegalArgumentException();
@@ -258,7 +270,14 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
                     }
                     
                     // pass request to delegate.
-                    resource = delegate.locate(namespace, timestamp);
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE                    resource = delegate.locate(namespace, timestamp);
+                    resource = delegate.locate(indexManager,
+                                               concurrencyManager,
+                                               discoveryManager,
+                                               namespace,
+                                               timestamp);
+//BTM - FOR_CLIENT_SERVICE - END
                     
                     if (resource != null) {
 
@@ -317,8 +336,17 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
             }
 
             // create a new instance of the relation.
-            resource = newInstance(cls, foundOn.get(), namespace, timestamp,
-                    properties);
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE            resource = newInstance(cls, foundOn.get(), namespace, timestamp,
+//BTM - FOR_CLIENT_SERVICE                    properties);
+            resource = newInstance(cls,
+                                   foundOn.get(),//indexManager
+                                   concurrencyManager,
+                                   discoveryManager,
+                                   namespace,
+                                   timestamp,
+                                   properties);
+//BTM - FOR_CLIENT_SERVICE - END
 
             // Add to the cache.
             put(resource);
@@ -544,9 +572,19 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
      * 
      * @return A new instance of the identifed resource.
      */
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE    protected T newInstance(final Class<? extends T> cls,
+//BTM - FOR_CLIENT_SERVICE            final IIndexManager indexManager, final String namespace,
+//BTM - FOR_CLIENT_SERVICE            final long timestamp, final Properties properties) {
     protected T newInstance(final Class<? extends T> cls,
-            final IIndexManager indexManager, final String namespace,
-            final long timestamp, final Properties properties) {
+                            final IIndexManager indexManager,
+                            final IConcurrencyManager concurrencyManager,
+                            final IBigdataDiscoveryManagement discoveryManager,
+                            final String namespace,
+                            final long timestamp,
+                            final Properties properties)
+    {
+//BTM - FOR_CLIENT_SERVICE - END
 
         if (cls == null)
             throw new IllegalArgumentException();
@@ -563,12 +601,24 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
         final Constructor<? extends T> ctor;
         try {
 
-            ctor = cls.getConstructor(new Class[] {//
-                            IIndexManager.class,//
-                            String.class,// relation namespace
-                            Long.class, // timestamp of the view
-                            Properties.class // configuration properties.
-                    });
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE            ctor = cls.getConstructor(new Class[] {//
+//BTM - FOR_CLIENT_SERVICE                            IIndexManager.class,//
+//BTM - FOR_CLIENT_SERVICE                            String.class,// relation namespace
+//BTM - FOR_CLIENT_SERVICE                            Long.class, // timestamp of the view
+//BTM - FOR_CLIENT_SERVICE                            Properties.class // configuration properties.
+//BTM - FOR_CLIENT_SERVICE                    });
+            ctor = cls.getConstructor
+                       (new Class[] 
+                            { IIndexManager.class,
+                              IConcurrencyManager.class,
+                              IBigdataDiscoveryManagement.class,
+                              String.class,    // relation namespace
+                              Long.class,      // timestamp of the view
+                              Properties.class // configuration properties.
+                            }
+                       );
+//BTM - FOR_CLIENT_SERVICE - END
 
         } catch (Exception e) {
 
@@ -580,12 +630,24 @@ public class DefaultResourceLocator<T extends ILocatableResource> extends
         final T r;
         try {
 
-            r = ctor.newInstance(new Object[] {//
-                    indexManager,//
-                    namespace, //
-                    timestamp, //
-                    properties //
-                    });
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE            r = ctor.newInstance(new Object[] {//
+//BTM - FOR_CLIENT_SERVICE                    indexManager,//
+//BTM - FOR_CLIENT_SERVICE                    namespace, //
+//BTM - FOR_CLIENT_SERVICE                    timestamp, //
+//BTM - FOR_CLIENT_SERVICE                    properties //
+//BTM - FOR_CLIENT_SERVICE                    });
+            r = ctor.newInstance
+                    (new Object[]
+                         { indexManager,
+                           concurrencyManager,
+                           discoveryManager,
+                           namespace,
+                           timestamp,
+                           properties
+                         }
+                    );
+//BTM - FOR_CLIENT_SERVICE - END
 
             r.init();
             

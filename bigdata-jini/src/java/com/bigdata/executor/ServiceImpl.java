@@ -30,6 +30,7 @@ import static com.bigdata.executor.Constants.*;
 import com.bigdata.attr.ServiceInfo;
 import com.bigdata.io.SerializerUtil;
 import com.bigdata.jini.start.BigdataZooDefs;
+import com.bigdata.jini.util.ConfigMath;
 import com.bigdata.service.IClientServiceCallable;
 import com.bigdata.service.IServiceShutdown.ShutdownType;
 import com.bigdata.service.MetadataIndexCachePolicy;
@@ -77,6 +78,7 @@ import net.jini.jeri.tcp.TcpServerEndpoint;
 import net.jini.lookup.JoinManager;
 import net.jini.lookup.ServiceDiscoveryManager;
 
+import java.io.File;
 import java.io.IOException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
@@ -126,6 +128,8 @@ class ServiceImpl implements PrivateInterface {
     private PrivateInterface innerProxy;// stub or dynamic proxy to this server
     private AdminProxy adminProxy;
 
+    private Set<Exporter> futureExporters = new HashSet<Exporter>();
+
     /* For this service's join state */
     private String[] groupsToJoin = DiscoveryGroupManagement.NO_GROUPS;
     private LookupLocator[] locatorsToJoin = new LookupLocator[0];
@@ -153,8 +157,8 @@ if(args == null) {
         try {
             init(args);
         } catch(Throwable e) {
-//BTM            Util.cleanupOnExit(innerProxy, serverExporter, joinMgr, sdm, ldm);
-Util.cleanupOnExit(innerProxy, serverExporter, joinMgr, ldm);
+            Util.cleanupOnExit
+                (innerProxy, serverExporter, futureExporters, joinMgr, sdm, ldm);
             Util.handleInitThrowable(e, logger);
         }
     }
@@ -164,7 +168,24 @@ Util.cleanupOnExit(innerProxy, serverExporter, joinMgr, ldm);
     public <T> Future<T> submit(IClientServiceCallable<T> task)
                              throws RemoteException
     {
-        return embeddedCallableExecutor.submit(task);
+	readyState.check();
+        Exporter exporter = null;
+        try {
+            exporter = Util.getExporter(config,
+                                        COMPONENT_NAME,
+                                        "futureExporter",
+                                        true,   //defaultEnableDgc
+                                        false); //defaultKeepAlive
+            synchronized(futureExporters) {
+                if(exporter != null) futureExporters.add(exporter);
+            }
+        } catch(ConfigurationException e) {
+            throw new RemoteException("while retrieving exporter for remote "
+                                       +"future from service configuration",
+                                       e);
+        }
+        return Util.wrapFuture
+                   (exporter, embeddedCallableExecutor.submit(task));
     }
 
     public void shutdown() throws RemoteException {
@@ -336,9 +357,12 @@ logger.warn("TTTTT CALLABLE EXECUTOR ServiceImpl: DESTROY CALLED");
         String persistDir = 
                (String)config.getEntry
                    (COMPONENT_NAME, "persistenceDirectory", String.class);
+        String dataDir = 
+            ConfigMath.getAbsolutePath(new File(persistDir,"data"));
 
         //properties object for the EmbeddedCallableExecutor
         Properties props = new Properties();
+        props.setProperty("com.bigdata.resources.StoreManager.dataDir", dataDir);
         int threadPoolSize = Config.getIntEntry(config,
                                                 COMPONENT_NAME,
                                                 "threadPoolSize",
@@ -398,6 +422,7 @@ logger.warn("TTTTT CALLABLE EXECUTOR ServiceImpl: DESTROY CALLED");
                                             "batchApiOnly",
                                             Boolean.class,
                                             DEFAULT_BATCH_API_ONLY);
+
         long taskTimeout = Config.getLongEntry(config,
                                                COMPONENT_NAME,
                                                "taskTimeout",
@@ -530,13 +555,24 @@ logger.warn("TTTTT CALLABLE EXECUTOR ServiceImpl: DESTROY CALLED");
                 serverExporter = null;
             }
 
+            Set<Exporter> removeSet = new HashSet<Exporter>();
+            synchronized(futureExporters) {
+                for(Exporter exporter : futureExporters) {
+                    if( Util.unexportRemoteObject(exporter) ) {
+                        exporter = null;
+                        removeSet.add(exporter);
+                    }
+                }
+                futureExporters.removeAll(removeSet);
+            }
+
 //BTM            waitThread.interrupt();
 //BTM            try {
 //BTM                waitThread.join();
 //BTM            } catch (InterruptedException e) {/*exiting, so swallow*/}
 
-//BTM            Util.cleanupOnExit(innerProxy, serverExporter, joinMgr, sdm, ldm);
-Util.cleanupOnExit(innerProxy, serverExporter, joinMgr, ldm);
+            Util.cleanupOnExit
+                (innerProxy, serverExporter, futureExporters, joinMgr, sdm, ldm);
 
             // Tell the ServiceStarter framework it's ok to release for gc
             if(lifeCycle != null)  {

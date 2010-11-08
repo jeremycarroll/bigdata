@@ -33,6 +33,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.bigdata.relation.IRelation;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+
 /**
  * A mapping between {@link String}s and {@link IResourceLocator}s.
  * This can be used to locate local, temporary or virtual relations.
@@ -77,7 +82,15 @@ public class ResourceLocatorMap<T extends ILocatableResource> implements IResour
         
     }
 
-    public T locate(String relationName, long timestamp) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public T locate(String relationName, long timestamp) {
+    public T locate(IIndexManager indexManager,
+                    IConcurrencyManager concurrencyManager,
+                    IBigdataDiscoveryManagement discoveryManager,
+                    String relationName,
+                    long timestamp)
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (relationName == null)
             throw new IllegalArgumentException();
@@ -90,7 +103,14 @@ public class ResourceLocatorMap<T extends ILocatableResource> implements IResour
 
         }
 
-        return relationLocator.locate(relationName, timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return relationLocator.locate(relationName, timestamp);
+        return relationLocator.locate(indexManager,
+                                      concurrencyManager,
+                                      discoveryManager,
+                                      relationName,
+                                      timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
 
     }
 

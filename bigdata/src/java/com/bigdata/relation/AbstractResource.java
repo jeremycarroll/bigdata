@@ -542,9 +542,18 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
 
                         }
 
-                        container = getIndexManager()
-                                .getResourceLocator()
-                                .locate(getContainerNamespace(), getTimestamp());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                        container = getIndexManager()
+//BTM - PRE_CLIENT_SERVICE                                .getResourceLocator()
+//BTM - PRE_CLIENT_SERVICE                                .locate(getContainerNamespace(), getTimestamp());
+                        container =
+                            getIndexManager().getResourceLocator()
+                                .locate( getIndexManager(),
+                                         getConcurrencyManager(),
+                                         getDiscoveryManager(),
+                                         getContainerNamespace(),
+                                         getTimestamp() );
+//BTM - PRE_CLIENT_SERVICE - END
 
                     }
 

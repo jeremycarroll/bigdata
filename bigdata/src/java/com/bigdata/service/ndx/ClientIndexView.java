@@ -1368,7 +1368,6 @@ public class ClientIndexView implements IScaleOutClientIndex {
     public void submit(final byte[] fromKey, final byte[] toKey,
             final IKeyRangeIndexProcedure proc, final IResultHandler resultHandler) {
 
-String dbgFlnm = "TestEmbeddedClient.txt";
         if (proc == null)
             throw new IllegalArgumentException();
 
@@ -1392,18 +1391,14 @@ String dbgFlnm = "TestEmbeddedClient.txt";
 
             try {
 
-com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit - ENTER submit [tx="+tx+", fromKey="+fromKey+", proc="+proc+", resultHandler="+resultHandler+"]");
                 submit(tx, fromKey, toKey, proc, resultHandler);
-com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit - EXIT submit [tx="+tx+", fromKey="+fromKey+", proc="+proc+", resultHandler="+resultHandler+"]");
 
             } finally {
 
                 try {
 
 //BTM - PRE_CLIENT_SERVICE  fed.getTransactionService().abort(tx);
-com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit - FINALLY: ABORT - ENTER");
                     discoveryManager.getTransactionService().abort(tx);
-com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit - FINALLY: ABORT - EXIT");
 
                 } catch (IOException ex) {
 
@@ -1439,8 +1434,6 @@ com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit - FINALLY: A
     void submit(final long ts, final byte[] fromKey,
             final byte[] toKey, final IKeyRangeIndexProcedure proc,
             final IResultHandler resultHandler) {
-String dbgFlnm = "TestEmbeddedClient.txt";
-com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 [ts="+ts+", fromKey="+fromKey+", toKey="+toKey+", proc="+proc+", resultHandler="+resultHandler+"]");
 
         // true iff the procedure is known to be parallelizable.
         final boolean parallel = proc instanceof IParallelizableIndexProcedure;
@@ -1483,7 +1476,6 @@ com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 [ts="+ts+"
 
         long nparts = 0;
 
-com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - ENTER WHILE LOOP");
         while (itr.hasNext()) {
 
             /*
@@ -1502,12 +1494,10 @@ com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - ENTER WH
             final ArrayList<AbstractDataServiceProcedureTask> tasks = new ArrayList<AbstractDataServiceProcedureTask>(
                     maxTasks);
 
-com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - ENTER FOR LOOP [maxTasks="+maxTasks+"]");
             for (int i = 0; i < maxTasks && itr.hasNext(); i++) {
 
                 final PartitionLocator locator = itr.next();
 
-com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - split #"+i);
                 final Split split = new Split(locator, 0/* fromIndex */, 0/* toIndex */);
 
                 // Note: task will constrain fromKey/toKey to partition.
@@ -1517,13 +1507,10 @@ com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - split #"
                 nparts++;
 
             }
-com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - EXIT FOR LOOP [nparts="+nparts+"]");
 
             runTasks(parallel, tasks);
 
         } // next (chunk of) locators.
-com.bigdata.util.Util.printStr(dbgFlnm, "    ClientIndexView.submit_1 - "
-                               +"Procedure " + proc.getClass().getName() + " mapped across " + nparts + " index partitions in " + (parallel ? "parallel" : "sequence"));
 
         if (log.isInfoEnabled())
             log.info("Procedure " + proc.getClass().getName()

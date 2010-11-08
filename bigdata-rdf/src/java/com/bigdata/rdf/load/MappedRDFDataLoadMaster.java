@@ -967,10 +967,17 @@ try {
 //BTM - PRE_CLIENT_SERVICE - BEGIN
 //BTM - PRE_CLIENT_SERVICE        tripleStore = (AbstractTripleStore) fed.getResourceLocator().locate(
 //BTM - PRE_CLIENT_SERVICE                jobState.namespace, ITx.UNISOLATED);
+//BTM        tripleStore =
+//BTM            (AbstractTripleStore) scaleOutIndexManager.getResourceLocator()
+//BTM                                                      .locate(jobState.namespace,
+//BTM                                                              ITx.UNISOLATED);
         tripleStore =
             (AbstractTripleStore) scaleOutIndexManager.getResourceLocator()
-                                                      .locate(jobState.namespace,
-                                                              ITx.UNISOLATED);
+                                      .locate(scaleOutIndexManager,
+                                              null, //IConcurrencyManager ==> BTM - not needed?
+                                              discoveryManager,
+                                              jobState.namespace,
+                                              ITx.UNISOLATED);
 //BTM - PRE_CLIENT_SERVICE - END
 
         if (tripleStore == null) {

@@ -766,9 +766,18 @@ abstract public class AbstractStepTask
 
             if (!c.containsKey(relationIdentifier)) {
 
-                final IRelation relation = (IRelation) indexManager
-                        .getResourceLocator().locate(relationIdentifier,
-                                timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final IRelation relation = (IRelation) indexManager
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator().locate(relationIdentifier,
+//BTM - PRE_CLIENT_SERVICE                                timestamp);
+                final IRelation relation =
+                      (IRelation) indexManager.getResourceLocator()
+                                              .locate(indexManager,
+                                                      concurrencyManager,
+                                                      discoveryManager,
+                                                      relationIdentifier,
+                                                      timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 
                 c.put(relationIdentifier, relation);
 
@@ -839,9 +848,18 @@ abstract public class AbstractStepTask
 
                     if (!c.containsKey(relationName)) {
 
-                        final IRelation relation = (IRelation) indexManager
-                                .getResourceLocator().locate(relationName,
-                                        timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                        final IRelation relation = (IRelation) indexManager
+//BTM - PRE_CLIENT_SERVICE                                .getResourceLocator().locate(relationName,
+//BTM - PRE_CLIENT_SERVICE                                        timestamp);
+                        final IRelation relation =
+                              (IRelation) indexManager.getResourceLocator()
+                                              .locate(indexManager,
+                                                      concurrencyManager,
+                                                      discoveryManager,
+                                                      relationName,
+                                                      timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
 
                         c.put(relationName, relation);
 

@@ -121,7 +121,7 @@ import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.accesspath.IBuffer;
 import com.bigdata.relation.accesspath.IRunnableBuffer;
 import com.bigdata.relation.accesspath.UnsynchronizedUnboundedChunkBuffer;
-import com.bigdata.service.AbstractFederation;
+//BTM - PRE_CLIENT_SERVICE import com.bigdata.service.AbstractFederation;
 import com.bigdata.service.Split;
 import com.bigdata.service.ndx.IScaleOutClientIndex;
 import com.bigdata.service.ndx.pipeline.DefaultDuplicateRemover;
@@ -139,6 +139,9 @@ import com.bigdata.util.concurrent.ThreadPoolExecutorBaseStatisticsTask;
 
 import cutthecrap.utils.striterators.Filter;
 import cutthecrap.utils.striterators.Striterator;
+
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.resources.ILocalResourceManagement;
 
 /**
  * Factory object for high-volume RDF data load.
@@ -1638,15 +1641,24 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
          * Set iff this is a federation based triple store. The various queue
          * statistics are reported only for this case.
          */
-        final AbstractFederation<?> fed;
-        if (tripleStore.getIndexManager() instanceof AbstractFederation) {
-
-            fed = (AbstractFederation<?>) tripleStore.getIndexManager();
-
-        } else {
-
-            fed = null;
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final AbstractFederation<?> fed;
+//BTM - PRE_CLIENT_SERVICE        if (tripleStore.getIndexManager() instanceof AbstractFederation) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            fed = (AbstractFederation<?>) tripleStore.getIndexManager();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        } else {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            fed = null;
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE - Maintain original logic
+        ScheduledExecutorService scheduledExecutorService = null;
+        if (tripleStore.getIndexManager() instanceof ILocalResourceManagement) {
+            scheduledExecutorService =
+                ((ILocalResourceManagement)(tripleStore.getIndexManager()))
+                                                      .getScheduledExecutor();
         }
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 
         /*
          * Note: This service must not reject tasks as long as the statement
@@ -1730,8 +1742,13 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
          * start sampling on the caller's service, or create a
          * ScheduledExecutorService within this factory class.
          */
-        serviceStatisticsTask = (fed == null ? null
-                : new ServiceStatisticsTask(fed.getScheduledExecutorService()));
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        serviceStatisticsTask = (fed == null ? null
+//BTM - PRE_CLIENT_SERVICE                : new ServiceStatisticsTask(fed.getScheduledExecutorService()));
+        serviceStatisticsTask =
+            (scheduledExecutorService == null ?
+                 null : new ServiceStatisticsTask(scheduledExecutorService) );
+//BTM - PRE_CLIENT_SERVICE - END
 
     } // ctor
 
@@ -2552,12 +2569,26 @@ public class AsynchronousStatementBufferFactory<S extends BigdataStatement, R>
         }
         
         // services
+//BTM - PRE_CLIENT_SERVICE - BEGIN            
+//BTM - PRE_CLIENT_SERVICE        {
+//BTM - PRE_CLIENT_SERVICE            counterSet.makePath("services").attach(
+//BTM - PRE_CLIENT_SERVICE                    serviceStatisticsTask.getCounters());
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE        }
+//BTM - PRE_CLIENT_SERVICE - NOTE: serviceStatisticsTask can be NULL
         {
-            
-            counterSet.makePath("services").attach(
-                    serviceStatisticsTask.getCounters());
-            
+            if ( (counterSet != null) && (serviceStatisticsTask != null) ) {
+                counterSet.makePath("services").attach
+                                         (serviceStatisticsTask.getCounters());
+            } else if (counterSet == null) {
+                log.warn("could not attach serviceStatisticsTask counters "
+                         +"[counterSet=null]");
+            } else {
+                log.warn("could not attach serviceStatisticsTask counters "
+                         +"[serviceStatisticsTask=null]");
+            }
         }
+//BTM - PRE_CLIENT_SERVICE - END            
 
 //        if(log.isInfoEnabled())
 //        { // @todo this is just for debugging problems with parser blocking.

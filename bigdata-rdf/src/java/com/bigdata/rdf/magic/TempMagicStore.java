@@ -195,9 +195,17 @@ public class TempMagicStore extends TempTripleStore {
     
     final public synchronized MagicRelation getMagicRelation(String symbol) {
         
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return (MagicRelation) getIndexManager().getResourceLocator()
+//BTM - PRE_CLIENT_SERVICE                .locate(getNamespace() + "." + symbol,
+//BTM - PRE_CLIENT_SERVICE                        getTimestamp());
         return (MagicRelation) getIndexManager().getResourceLocator()
-                .locate(getNamespace() + "." + symbol,
-                        getTimestamp());
+                                   .locate(getIndexManager(),
+                                           getConcurrencyManager(),
+                                           getDiscoveryManager(),
+                                           getNamespace() + "." + symbol,
+                                           getTimestamp());
+//BTM - PRE_CLIENT_SERVICE - END
 
     }
     

@@ -37,6 +37,7 @@ import junit.framework.TestSuite;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  */
 public class TestAll extends TestCase {
+protected static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(com.bigdata.service.jini.master.TestAll.class);
     
     public TestAll() {}
     
@@ -48,6 +49,7 @@ public class TestAll extends TestCase {
         final TestSuite suite = new TestSuite("master (job) execution");
 
         suite.addTestSuite(TestMappedRDFDataLoadMaster.class);
+
         suite.addTestSuite(TestMappedRDFDataLoadMasterRemote.class);
 
         return suite;

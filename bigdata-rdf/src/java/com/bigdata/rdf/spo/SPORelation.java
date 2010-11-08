@@ -1188,9 +1188,22 @@ final String name = Util.getIndexPartitionName(namespace + "." + keyOrder.getInd
         final ILocalBTreeView ndx = (ILocalBTreeView) indexManager
                 .getIndex(name, timestamp);
 
-        return new SPOAccessPath(indexManager, timestamp, predicate,
-                keyOrder, ndx, flags, getChunkOfChunksCapacity(),
-                getChunkCapacity(), getFullyBufferedReadThreshold()).init();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        return new SPOAccessPath(indexManager, timestamp, predicate,
+//BTM - PRE_CLIENT_SERVICE                keyOrder, ndx, flags, getChunkOfChunksCapacity(),
+//BTM - PRE_CLIENT_SERVICE                getChunkCapacity(), getFullyBufferedReadThreshold()).init();
+        return new SPOAccessPath( indexManager,
+                                  getConcurrencyManager(),
+                                  getDiscoveryManager(),
+                                  timestamp,
+                                  predicate,
+                                  keyOrder,
+                                  ndx,
+                                  flags,
+                                  getChunkOfChunksCapacity(),
+                                  getChunkCapacity(),
+                                  getFullyBufferedReadThreshold() ).init();
+//BTM - PRE_CLIENT_SERVICE - END
 
     }
     

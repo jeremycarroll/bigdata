@@ -552,7 +552,11 @@ public class ConfigDeployUtil {
                                             + File.separator + "bigdata"
                                             + File.separator + "util"
                                             + File.separator + "config";
+            //first resolve by user.dir
             retDir = new File( (new File(tmpPath)).getAbsolutePath() );
+            if( !retDir.exists() ) {//fallback assumes appDotHome
+                retDir = new File( rootDir, tmpPath );
+            }
 //maven_scaleout - retDir = new File("src/main/deploy/var/config/deploy");
         }
         return retDir;
@@ -590,28 +594,249 @@ public class ConfigDeployUtil {
         }
     }
 
+//BTM - NOTE: the orginal versions of str2int and str2long were
+//BTM -       replaced by Bob Resendes in changeset 3721 with the
+//BTM -       commented out versions shown below for reference.
+//BTM -       During testing for the ClientService smart proxy
+//BTM -       conversion work, the test TestBigdataClient failed
+//BTM -       with a NumberFormatException from str2long when
+//BTM -       when the new version str2long was used. Thus, at
+//BTM -       least temporarily, until the problem can be 
+//BTM -       diagnosed and fixed, the old versions of those
+//BTM -       methods are still be used below.
+//BTM     private static int str2int(String argx) {
+//BTM         Number n = null;
+//BTM         try {	
+//BTM //TODO - truncation can occur -- check for overflow
+//BTM             n = numberFormat.parse(argx);
+//BTM         } catch (ParseException e) {
+//BTM             throw new NumberFormatException("invalid integer: "+argx);
+//BTM         }
+//BTM         return n.intValue();
+//BTM     }
+//BTM 
+//BTM     private static long str2long(String argx) {
+//BTM         Number n = null;
+//BTM         try {	
+//BTM //TODO - truncation can occur -- check for overflow
+//BTM             n = numberFormat.parse(argx);
+//BTM         } catch (ParseException e) {
+//BTM             throw new NumberFormatException("invalid long: "+argx);
+//BTM         }
+//BTM         return n.longValue();
+//BTM     }
     private static int str2int(String argx) {
-        Number n = null;
-        try {	
-//TODO - truncation can occur -- check for overflow
-            n = numberFormat.parse(argx);
-        } catch (ParseException e) {
-            throw new NumberFormatException("invalid integer: "+argx);
+        long l;
+
+        if( argx.trim().equals(Integer.MAX_VALUE) ) return Integer.MAX_VALUE;
+        if( argx.trim().equals(Integer.MIN_VALUE) ) return Integer.MIN_VALUE;
+
+        l = str2long(argx);
+        if (l < Integer.MAX_VALUE && l > Integer.MIN_VALUE) {
+            return (int) l;
+        } else {
+            throw new NumberFormatException("Invalid number:"+argx
+                                            +"  --number out of range");
         }
-        return n.intValue();
     }
 
     private static long str2long(String argx) {
-        Number n = null;
-        try {	
-//TODO - truncation can occur -- check for overflow
-            n = numberFormat.parse(argx);
-        } catch (ParseException e) {
-            throw new NumberFormatException("invalid long: "+argx);
+
+        int minDigitNumBetwnComma = 3;
+
+        String arg = argx.trim();
+        arg = arg.replaceAll("\"", ""); // strip all quotes
+        int sz = arg.length();
+
+        if( arg.equals("Long.MAX_VALUE") ) return Long.MAX_VALUE;
+
+        if( arg.equals("Long.MIN_VALUE") ) return Long.MIN_VALUE;
+
+        int asterPos = -1;
+        String arg1 = null;
+        String arg2 = null;
+        if( (asterPos = arg.indexOf("*")) != -1) {
+            int dotPos = -1;
+            arg1 = arg.substring(0, asterPos).trim();
+            int denom1 = 1;
+            if( (dotPos = arg1.indexOf(".")) != -1) {
+                StringBuffer tmpBuf = new StringBuffer("1");
+                int hitNumber = 0;
+                for (int i = dotPos + 1; i < (arg1.length() - dotPos); i++) {
+                    if( Character.isDigit(arg1.charAt(i)) ) {
+                        tmpBuf.append("0");
+                    } else {
+                        break;
+                    }
+                }
+                denom1 = Integer.valueOf(tmpBuf.toString());
+                arg1 = arg1.substring(0, dotPos) + arg1.substring(dotPos + 1);
+            }
+
+            arg2 = arg.substring(asterPos + 1).trim();
+            int denom2 = 1;
+            if( (dotPos = arg2.indexOf(".")) != -1) {
+                StringBuffer tmpBuf = new StringBuffer("1");
+                for(int i = dotPos + 1; i <= (arg2.length() - dotPos); i++) {
+                    tmpBuf.append("0");
+                }
+
+                denom2 = Integer.valueOf(tmpBuf.toString());
+                arg2 = arg2.substring(0, dotPos) + arg2.substring(dotPos + 1);
+            }
+
+            long numerator = str2long(arg1) * str2long(arg2);
+            long denom = (denom1 * denom2);
+
+            if (numerator % denom != 0) {
+                throw new NumberFormatException(" Bad value passed in:" +
+                                                ((double) (numerator) /
+                                                 denom) +
+                                                ", expecting a long");
+            }
+            return (numerator / denom);
         }
-        return n.longValue();
+
+        char unit = arg.charAt(sz - 1);
+
+        String valScalar = arg.substring(0, (sz - 1)).trim();
+
+        long factor = 0l;
+
+        switch (Character.toUpperCase(unit)) {
+
+            case 'G':
+                factor = 1000000000l;
+                break;
+            case 'M':
+                factor = 1000000l;
+                break;
+            case 'K':
+                factor = 1000l;
+                break;
+            case 'B':
+                char unitPre = arg.charAt(sz - 2);
+                if (Character.isDigit(unitPre)) {
+                    factor = -1l;
+                } else {
+                    factor =
+                        (Character.toUpperCase(unitPre) ==
+                         'G' ? 1000000000l : (Character.toUpperCase(unitPre) ==
+                                          'M' ? 1000000l : (Character.
+                                                            toUpperCase
+                                                            (unitPre) ==
+                                                            'K' ? 1000l :
+                                                            -1l)));
+                    valScalar = arg.substring(0, (sz - 2)).trim();
+                }
+                break;
+
+            default:
+                if (Character.isDigit(unit)) {
+                    factor = 1l;
+                    valScalar = arg;
+                }
+        }
+        if (factor == -1l) {
+            throw new NumberFormatException("Invalid number:" + arg);
+        }
+
+        int comaPos = -1;
+        if( (comaPos = valScalar.indexOf(',')) != -1) {
+            if(valScalar.indexOf('.') != -1) {
+                throw new NumberFormatException("Invalid number:"+arg
+                                                +" both \",\" and decimal "
+                                                +"point are not supported");
+            }
+            if( comaPos != 0 && comaPos != (valScalar.length() - 1) ) {
+                String[]spltByComa = valScalar.split(",");
+                valScalar = "";
+                for (int i = spltByComa.length - 1; i >= 0; i--) {
+                    if(i > 0 && spltByComa[i].length() < minDigitNumBetwnComma)
+                    {
+                        throw new NumberFormatException("Invalid number:"+arg
+                                                        +"  unexpected comma "
+                                                        +"format");
+                    }
+                    valScalar = spltByComa[i] + valScalar;
+                }
+            } else {
+                throw new NumberFormatException("Invalid number:\"" +arg
+                                                +"\" -unexpected comma in "
+                                                +"position: "+comaPos);
+            }
+        }
+
+        int decimalPos = -1;
+        String valMultiplByFactor = null;
+        int numZero = 0;
+        try {
+            if( (decimalPos = valScalar.indexOf('.')) != -1) {
+                if (decimalPos != valScalar.lastIndexOf('.')) {
+                    throw new NumberFormatException("Invalid number:"
+                                                    +valScalar
+                                                    +"  --invalid decimal "
+                                                    +"number, bad value");
+                }
+
+                String facStr = String.valueOf(factor);
+                int numZeroFactor = facStr.length() - 1;
+                int numDigitsAfterDecimal =
+                    valScalar.length() - decimalPos - 1;
+                int countZero = 0;
+                for(int i = valScalar.length() - 1; i > decimalPos; i--) {
+
+                    if (valScalar.charAt(i) != '0')
+                        break;
+                    --numDigitsAfterDecimal;
+                    countZero++;
+                }
+                numZero = numZeroFactor - numDigitsAfterDecimal;
+                if (numZero == numDigitsAfterDecimal) {
+                    numZero = 0;
+                }
+                if(numZero < 0) {
+                    throw new NumberFormatException("Invalid number:"
+                                                    +valScalar
+                                                    +"  --invalid decimal "
+                                                    +"number, numzero="
+                                                    + numZero);
+                }
+
+                if(numZero >= 0) {
+                    StringBuffer tmpStrNum =
+                        new StringBuffer(20).
+                        append(valScalar.substring(0, decimalPos)).
+                        append(valScalar.substring(decimalPos + 1,
+                                                   decimalPos + 1 +
+                                                   numDigitsAfterDecimal));
+                    for(int i=0; i<numZero; i++) {
+                        tmpStrNum.append('0');
+                    }
+                    valMultiplByFactor = tmpStrNum.toString();
+                }
+
+            }
+        } catch(NumberFormatException nfe) {
+            throw new NumberFormatException("Invalid number:" +valScalar
+                                            +"  --invalid decimal number, "
+                                            +"numZero="+numZero);
+        }
+
+        long ret = -1l;
+
+        Long ll = ((decimalPos != -1) ? Long.valueOf(valMultiplByFactor)
+                   : (Long.valueOf(valScalar) * factor));
+        if( (ret = Long.valueOf(ll)) >= Long.MAX_VALUE
+            || ret <= Long.MIN_VALUE)
+        {
+            throw new NumberFormatException("Invalid number:"+arg
+                                            +"  --absolute value of number "
+                                            +"too big");
+        }
+        return ret;
     }
-    
+
     /**
      * Returns a reference to the <code>deploymenyProps</code> field.
      * If <code>null</code>, then the field is populated by looking for

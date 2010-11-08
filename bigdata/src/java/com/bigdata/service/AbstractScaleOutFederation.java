@@ -269,14 +269,14 @@ public abstract class AbstractScaleOutFederation<T>
         
         assertOpen();
 
-//BTM        return getMetadataIndexCache().getIndex(name, timestamp);
+        return getMetadataIndexCache().getIndex(name, timestamp);
 
-MetadataIndexCache cache = getMetadataIndexCache();
-IMetadataIndex index = cache.getIndex(name, timestamp);
-log.warn("\n>>>>AbstractScaleOutFederation.getMetadataIndex: name="+name+", timestamp="+timestamp+", metadataIndexCache="+cache+", metadataIndex="+index+"\n");
-return index;
+//BTM - PRE_CLIENT_SERVICE MetadataIndexCache cache = getMetadataIndexCache();
+//BTM - PRE_CLIENT_SERVICE IMetadataIndex index = cache.getIndex(name, timestamp);
+//BTM - PRE_CLIENT_SERVICE log.warn("\n>>>>AbstractScaleOutFederation.getMetadataIndex: name="+name+", timestamp="+timestamp+", metadataIndexCache="+cache+", metadataIndex="+index+"\n");
+//BTM - PRE_CLIENT_SERVICE return index;
     }
-    
+
     /**
      * Returns an iterator that will visit the {@link PartitionLocator}s for
      * the specified scale-out index key range.
@@ -477,8 +477,7 @@ return index;
         int ntries = 0;
         
         // updated each time through the loop.
-//BTM        IMetadataService metadataService = null;
-ShardLocator metadataService = null;
+        ShardLocator metadataService = null;
         
         // updated each time through the loop.
         UUID[] dataServiceUUIDs = null;
@@ -645,6 +644,20 @@ ShardLocator metadataService = null;
         }
 
     }
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN -----------------------------------------------------------
+//BTM - FOR_CLIENT_SERVICE - NOTE: this method was added to address trac issue #190
+    public void dropIndex(String name) {
+        super.dropIndex(name);
+        try {
+            getMetadataIndexCache().dropIndexFromCache(name);
+            getIndexCache().dropIndexFromCache(name);
+        } catch (Exception e) {//maintain same logic as super.dropIndex?
+            throw new RuntimeException( e );
+        }
+    }
+//BTM - FOR_CLIENT_SERVICE - END -------------------------------------------------------------
+    
 
 //BTM - PRE_CLIENT_SERVICE - BEGIN - moved to standalone classes -------------------------------------------------------------------
 //BTM - PRE_CLIENT_SERVICE     /**

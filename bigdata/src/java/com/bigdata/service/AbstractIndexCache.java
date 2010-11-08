@@ -105,14 +105,16 @@ log.warn("\nAbstractIndexCache.constructor >>> CACHE: capacity="+capacity+", TIM
         final NT nt = new NT(name, timestamp);
 
         // test cache before synchronization.
+log.warn("\nAbstractIndexCache.getIndex >>> 1a. ndx = indexCache.get("+nt+")\n");
         T ndx = indexCache.get(nt);
         
         if (ndx != null) {
 
+log.warn("\nAbstractIndexCache.getIndex >>> 1b. NOT NULL - ndx = "+ndx+")\n");
             return ndx;
             
         }
-log.warn("\nAbstractIndexCache.constructor >>> 1. ndx == NULL\n");
+log.warn("\nAbstractIndexCache.getIndex >>> 1b. ndx == NULL\n");
 
         /*
          * Acquire a lock for the index name and timestamp. This allows
@@ -123,25 +125,29 @@ log.warn("\nAbstractIndexCache.constructor >>> 1. ndx == NULL\n");
 
         try {
             
+log.warn("\nAbstractIndexCache.getIndex >>> 2a. ndx == indexCache.get("+nt+")\n");
             ndx = indexCache.get(nt);
 
             if (ndx == null) {
-log.warn("\nAbstractIndexCache.constructor >>> 2. ndx == NULL\n");
+log.warn("\nAbstractIndexCache.getIndex >>> 2b. ndx == NULL\n");
 
+log.warn("\nAbstractIndexCache.getIndex >>> 3a. ndx = newView("+nt+")\n");
                 if ((ndx = newView(name, timestamp)) == null) {
-log.warn("\nAbstractIndexCache.constructor >>> 3. newView -- indx == NULL\n");
 
                     if (INFO)
                         log.info("name=" + name + " @ "
                                 + timestamp + " : no such index.");
 
+log.warn("\nAbstractIndexCache.getIndex >>> 3b. newView("+nt+") = NULL >>> RETURN\n");
                     return null;
 
-                }
+                }//(newView == null)
+log.warn("\nAbstractIndexCache.getIndex >>> 3b. NOT NULL - newView("+nt+") = "+ndx+"\n");
 
                 // add to the cache.
 //                indexCache.put(nt, ndx, false/* dirty */);
                 indexCache.put(nt, ndx);
+log.warn("\nAbstractIndexCache.getIndex >>> 3c. indexCache.put("+nt+", "+ndx+")\n");
 
                 if (INFO)
                     log.info("name=" + name + " @ "
@@ -153,8 +159,9 @@ log.warn("\nAbstractIndexCache.constructor >>> 3. newView -- indx == NULL\n");
                     log.info("name=" + name + " @ "
                             + timestamp + " : cache hit.");
 
-            }
+            }//endif(ndx == null)
 
+log.warn("\nAbstractIndexCache.getIndex >>> 4. FINAL RETURN - ndx = "+ndx+"\n");
             return ndx;
 
         } finally {
@@ -191,8 +198,11 @@ log.warn("\nAbstractIndexCache.constructor >>> 3. newView -- indx == NULL\n");
                 final Map.Entry<NT, WeakReference<T>> entry = itr.next();
 
                 final T ndx = entry.getValue().get();
+log.warn("\nAbstractIndexCache.dropIndexFromCache >>> 1a. entry.getValue().get() = "+ndx+"\n");
+
                 
                 if(ndx == null) {
+log.warn("\nAbstractIndexCache.dropIndexFromCache >>> 1b. ndx = NULL >>> NEXT ndx\n");
                     
                     /*
                      * The entry under the key has been cleared so we just skip
@@ -220,15 +230,20 @@ log.warn("\nAbstractIndexCache.constructor >>> 3. newView -- indx == NULL\n");
                                     + name + " @ " + timestamp);
 
                         // remove from the cache.
-                        indexCache.remove(entry.getKey());
+//BTM                        indexCache.remove(entry.getKey());
+Object retVal = indexCache.remove(entry.getKey());
+log.warn("\nAbstractIndexCache.dropIndexFromCache >>> 2. indexCache.remove("+entry.getKey()+") >>> DROPPED [KEY="+entry.getKey()+", VAL="+retVal+"]\n");
 
-                    }
+                    }//endif(timestamp == ITx.UNISOLATED || ITx.READ_COMMITTED)
 
-                }
+                }//endif(name.equals(nt.getName)
 
-            }
+            }//end loop
 
-        }
+log.warn("\nAbstractIndexCache.dropIndexFromCache >>> 3a. VERIFY - getIndex("+name+", ITx.READ_COMMITTED) = "+getIndex(name, ITx.READ_COMMITTED)+"]");
+log.warn("AbstractIndexCache.dropIndexFromCache >>> 3b. VERIFY - getIndex("+name+", ITx.UNISOLATED) = "+getIndex(name, ITx.UNISOLATED)+"]\n");
+
+        }//end sync(indexCache)
 
     }
 

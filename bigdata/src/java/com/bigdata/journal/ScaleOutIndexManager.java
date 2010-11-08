@@ -276,7 +276,7 @@ public class ScaleOutIndexManager implements IScaleOutIndexManager {
         tempStoreFactory.closeAll();
     }
 
-    // Required IIndexManager
+    // Required by IIndexManager
 
     public void registerIndex(IndexMetadata metadata) {
         registerIndex(metadata, null);

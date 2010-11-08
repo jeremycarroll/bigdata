@@ -104,8 +104,8 @@ public class ServiceCache implements ServiceDiscoveryListener {
         if (log.isInfoEnabled())
             log.info("" + e + ", class="
                     + e.getPostEventServiceItem().toString());
-//BTM
-System.err.println("\n**** SERVICE ADDED: "+ ((e.getPostEventServiceItem()).service).getClass());
+
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\n**** SERVICE ADDED: "+ ((e.getPostEventServiceItem()).service).getClass()+" >>> id = "+(e.getPostEventServiceItem()).serviceID);
 
         serviceIdMap.put(e.getPostEventServiceItem().serviceID, e
                 .getPostEventServiceItem());
@@ -126,8 +126,8 @@ System.err.println("\n**** SERVICE ADDED: "+ ((e.getPostEventServiceItem()).serv
         if (log.isInfoEnabled())
             log.info("" + e + ", class="
                     + e.getPostEventServiceItem().toString());
-//BTM
-System.err.println("\n**** SERVICE CHANGED: "+ ((e.getPostEventServiceItem()).service).getClass());
+
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\n**** SERVICE CHANGED: "+ ((e.getPostEventServiceItem()).service).getClass()+" >>> id = "+(e.getPostEventServiceItem()).serviceID);
 
         serviceIdMap.put(e.getPostEventServiceItem().serviceID, e
                 .getPostEventServiceItem());
@@ -173,8 +173,8 @@ System.err.println("\n**** SERVICE CHANGED: "+ ((e.getPostEventServiceItem()).se
         if (log.isInfoEnabled())
             log.info("" + e + ", class="
                     + e.getPreEventServiceItem().toString());
-//BTM
-System.err.println("\n**** SERVICE REMOVED: "+ ((e.getPreEventServiceItem()).service).getClass());
+
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\n**** SERVICE REMOVED: "+ ((e.getPreEventServiceItem()).service).getClass()+" >>> id = "+(e.getPostEventServiceItem()).serviceID);
 
         serviceIdMap.remove(e.getPreEventServiceItem().serviceID);
 
@@ -201,6 +201,7 @@ System.err.println("\n**** SERVICE REMOVED: "+ ((e.getPreEventServiceItem()).ser
      */
     public ServiceItem getServiceItemByID(final ServiceID serviceID) {
         
+//BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\n**** ServiceCache.getServiceItemByID: key="+serviceID+", val="+serviceIdMap.get(serviceID));
         return serviceIdMap.get(serviceID);
         
     }

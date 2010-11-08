@@ -280,7 +280,8 @@ System.out.println("\nEmbeddedCallableExecutor >>> NEW StoreManager - END");
             }
             // submit the task and return its Future.
             return (localResources.getThreadPool()).submit
-                       ( new ClientTaskWrapper(indexMgr, localResources,
+                       ( new ClientTaskWrapper(indexMgr, concurrencyMgr,
+                                               localResources, discoveryMgr,
                                                this, task,
                                                zkAccessor.getZookeeper(),
                                                zkAcl, zkRoot) );

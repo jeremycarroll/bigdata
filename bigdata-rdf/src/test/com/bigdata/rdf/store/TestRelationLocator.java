@@ -81,10 +81,19 @@ public class TestRelationLocator extends AbstractTripleStoreTestCase {
         try {
 
             // we can locate the store.
-            final AbstractTripleStore foundStore = (AbstractTripleStore) store
-                    .getIndexManager()
-                    .getResourceLocator()
-                    .locate(store.getNamespace(), store.getTimestamp());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final AbstractTripleStore foundStore = (AbstractTripleStore) store
+//BTM - PRE_CLIENT_SERVICE                    .getIndexManager()
+//BTM - PRE_CLIENT_SERVICE                    .getResourceLocator()
+//BTM - PRE_CLIENT_SERVICE                    .locate(store.getNamespace(), store.getTimestamp());
+            final AbstractTripleStore foundStore =
+            (AbstractTripleStore) store.getIndexManager().getResourceLocator()
+                 .locate(store.getIndexManager(),
+                         store.getConcurrencyManager(),
+                         store.getDiscoveryManager(),
+                         store.getNamespace(),
+                         store.getTimestamp());
+//BTM - PRE_CLIENT_SERVICE - END
             
             assertNotNull(foundStore);
             

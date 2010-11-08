@@ -75,7 +75,12 @@ public class EventQueueSenderTask implements EventQueueSender {
         try {
             EventReceivingService serviceRef = 
               (EventReceivingService)(discoveryMgr.getLoadBalancerService());
-
+            if (serviceRef == null) {
+                logger.log(Level.WARN, "cannot send events to load "
+                       +"balancer from "+serviceName
+                       +" - load balancer unavailable");
+                return;
+            }
             final long begin = System.currentTimeMillis();//for logging
 
             final LinkedList<Event> queuedEvents = new LinkedList<Event>();

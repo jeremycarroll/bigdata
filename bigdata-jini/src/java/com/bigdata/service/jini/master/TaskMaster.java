@@ -120,14 +120,14 @@ abstract public class TaskMaster<S extends TaskMaster.JobState,
     final private static Logger log = Logger.getLogger(TaskMaster.class);
 
 //BTM - FOR_CLIENT_SERVICE - BEGIN
-    protected IScaleOutIndexManager scaleOutIndexManager;
-    protected ILocalResourceManagement localResourceManager;
-    protected IJiniDiscoveryManagement discoveryManager;
-    protected Configuration config;
+    protected transient IScaleOutIndexManager scaleOutIndexManager;
+    protected transient ILocalResourceManagement localResourceManager;
+    protected transient IJiniDiscoveryManagement discoveryManager;
+    protected transient Configuration config;
 
-    private ZooKeeperAccessor zookeeperAccessor;
-    private List<ACL> zookeeperAcl;
-    private String zookeeperRoot;
+    private transient ZooKeeperAccessor zookeeperAccessor;
+    private transient List<ACL> zookeeperAcl;
+    private transient String zookeeperRoot;
 //BTM - FOR_CLIENT_SERVICE - END
 
     /**

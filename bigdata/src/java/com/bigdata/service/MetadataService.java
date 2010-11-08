@@ -922,25 +922,29 @@ final private ShardService[] dataServices;
 
             super(concurrencyManager, ITx.UNISOLATED, metadataIndexName);
 
-            if (fed == null)
-                throw new IllegalArgumentException();
-
-            if (metadata == null)
-                throw new IllegalArgumentException();
-
-            if (separatorKeys == null)
-                throw new IllegalArgumentException();
-
-            if (separatorKeys.length == 0)
-                throw new IllegalArgumentException();
-
+            if (fed == null) {
+                throw new IllegalArgumentException("null fed");
+            }
+            if (metadata == null) {
+                throw new IllegalArgumentException("null metadata");
+            }
+            if (separatorKeys == null) {
+                throw new IllegalArgumentException("null separatorKeys");
+            }
+            if (separatorKeys.length == 0) {
+                throw new IllegalArgumentException
+                              ("separatorKeys.length = 0");
+            }
             if (dataServiceUUIDs != null) {
 
-                if (dataServiceUUIDs.length == 0)
-                    throw new IllegalArgumentException();
-
-                if (separatorKeys.length != dataServiceUUIDs.length)
-                    throw new IllegalArgumentException();
+                if (dataServiceUUIDs.length == 0) {
+                    throw new IllegalArgumentException
+                                  ("dataServiceUUIDs.length = 0");
+                }
+                if (separatorKeys.length != dataServiceUUIDs.length) {
+                    throw new IllegalArgumentException
+                        ("separatorKeys.length != dataServiceUUIDs.length");
+                }
 
             } else {
 
@@ -951,16 +955,14 @@ final private ShardService[] dataServices;
                 try {
 
                     // discover under-utilized data service UUIDs.
-LoadBalancer lbs = fed.getLoadBalancerService();
-dataServiceUUIDs = lbs.getUnderUtilizedDataServices(separatorKeys.length, separatorKeys.length, null);
-if(lbs instanceof IService) {
-    System.out.println("*\n$$$$ MetadataService: REMOTE load balancer");
-} else {
-    System.out.println("*\n$$$$ MetadataService: SMART_PROXY load balancer");
-}
-for(int k=0; k<dataServiceUUIDs.length; k++) {
-    System.out.println("\n$$$$ MetadataService:   dataServiceUUIDs["+k+"] = "+dataServiceUUIDs[k]);
-}
+//BTM - BEGIN
+                    LoadBalancer lbs = fed.getLoadBalancerService();
+                    dataServiceUUIDs =
+                        lbs.getUnderUtilizedDataServices
+                            (separatorKeys.length,//minCount
+                             separatorKeys.length,//maxCount
+                             null);//exclude
+//BTM - END
 //                    dataServiceUUIDs = fed.getLoadBalancerService().getUnderUtilizedDataServices(
 //                            separatorKeys.length, // minCount
 //                            separatorKeys.length, // maxCount
@@ -1022,7 +1024,8 @@ this.dataServices = new ShardService[dataServiceUUIDs.length];
 
                 if (uuid == null) {
 
-                    throw new IllegalArgumentException();
+                    throw new IllegalArgumentException
+                                  ("null dataServiceUUIDs["+i+"]");
 
                 }
 
@@ -1091,15 +1094,22 @@ final ShardService dataService = fed.getDataService(uuid);
             
             final PartitionLocator[] partitions = new PartitionLocator[npartitions];
             
-LoadBalancer lbs = fed.getLoadBalancerService();
-if(lbs instanceof IService) {
-    System.out.println("*\n$$$$ MetadataService: REMOTE load balancer");
-} else {
-    System.out.println("*\n$$$$ MetadataService: SMART_PROXY load balancer");
-}
-for(int k=0; k<dataServices.length; k++) {
-    System.out.println("\n$$$$ MetadataService:   dataServices["+k+"] = "+dataServices[k]);
-}
+//BTM - FOR DEBUGGING - BEGIN
+// LoadBalancer lbs = fed.getLoadBalancerService();
+// if(lbs instanceof IService) {
+//     com.bigdata.util.Util.printStr(dbgFlnm,"\n$$$$ MetadataService#RegisterScaleOutIndexTask.doTask: REMOTE load balancer");
+// } else {
+//     com.bigdata.util.Util.printStr(dbgFlnm,"\n$$$$ MetadataService#RegisterScaleOutIndexTask.doTask: SMART_PROXY load balancer");
+// }
+// if(dataServiceUUIDs == null) {
+//     com.bigdata.util.Util.printStr(dbgFlnm,"$$$$ MetadataService#RegisterScaleOutIndexTask.doTask: NULL dataServiceUUIDs");
+// } else {
+//     com.bigdata.util.Util.printStr(dbgFlnm,"$$$$ MetadataService#RegisterScaleOutIndexTask.doTask: dataServiceUUIDs.length = "+dataServiceUUIDs.length);
+//     for(int k=0; k<dataServiceUUIDs.length; k++) {
+//     com.bigdata.util.Util.printStr(dbgFlnm,"$$$$ MetadataService#RegisterScaleOutIndexTask.doTask:   dataServiceUUIDs["+k+"] = "+dataServiceUUIDs[k]);
+//     }
+// }
+//BTM - FOR DEBUGGING - END
 
             for (int i = 0; i < npartitions; i++) {
                 

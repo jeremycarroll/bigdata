@@ -54,6 +54,7 @@ import com.bigdata.service.CallableExecutor;
 import com.bigdata.service.ShardService;
 import com.bigdata.service.Service;
 import com.bigdata.shard.EmbeddedShardService;
+import java.util.ArrayList;
 import java.util.UUID;
 
 /**
@@ -158,6 +159,28 @@ public ShardService getDataService1(){
         }
         return null;
     }
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    public UUID getDataService0UUID(){
+        if(dsRemote0 != null) {
+            //AbstractServer provides local getServiceID
+            return  JiniUtil.serviceID2UUID(dsRemote0.getServiceID());
+        } else if( ds0 != null) {
+            return ((Service)ds0).getServiceUUID();
+        }
+        return null;
+    }
+
+    public UUID getDataService1UUID(){
+        if(dsRemote1 != null) {
+            //AbstractServer provides local getServiceID
+            return  JiniUtil.serviceID2UUID(dsRemote1.getServiceID());
+        } else if( ds1 != null) {
+            return ((Service)ds1).getServiceUUID();
+        }
+        return null;
+    }
+//BTM - FOR_CLIENT_SERVICE - END
 
     /**
      * The default configuration file for stand alone testing.
@@ -371,7 +394,6 @@ this(new String[] { CONFIG_STANDALONE.getPath() }, false);
 
         try {
 
-System.out.println("\nJiniServicesHelper >>> CALLING innerStart");
             innerStart();
             
         } catch (Throwable t) {
@@ -402,6 +424,8 @@ System.out.println("\nJiniServicesHelper >>> CALLING innerStart");
      */
     private void innerStart() throws InterruptedException,
             ConfigurationException, KeeperException {
+//BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> BEGIN START ----------------\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> BEGIN START ----------------\n");
 
         System.setSecurityManager(new SecurityManager());
 //BTM
@@ -451,6 +475,10 @@ try {
 }
         }
 
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        File fedDataDir = new File( (this.fedServiceDir)+File.separator+"dataDir" );
+//BTM - FOR_CLIENT_SERVICE - END
+
         /*
          * Setup a zookeeper instance.
          * 
@@ -484,6 +512,23 @@ try {
                 final String servers = "1=localhost:" + peerPort + ":"
                         + leaderPort;
 
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE                options = new String[] {
+//BTM - FOR_CLIENT_SERVICE                        // overrides the clientPort to be unique.
+//BTM - FOR_CLIENT_SERVICE                        QuorumPeerMain.class.getName()
+//BTM - FOR_CLIENT_SERVICE                                + "."
+//BTM - FOR_CLIENT_SERVICE                                + ZookeeperServerConfiguration.Options.CLIENT_PORT
+//BTM - FOR_CLIENT_SERVICE                                + "=" + clientPort,
+//BTM - FOR_CLIENT_SERVICE                        // overrides servers declaration.
+//BTM - FOR_CLIENT_SERVICE                        QuorumPeerMain.class.getName() + "."
+//BTM - FOR_CLIENT_SERVICE                                + ZookeeperServerConfiguration.Options.SERVERS
+//BTM - FOR_CLIENT_SERVICE                                + "=\"" + servers + "\"",
+//BTM - FOR_CLIENT_SERVICE                        // overrides the dataDir
+//BTM - FOR_CLIENT_SERVICE                        QuorumPeerMain.class.getName() + "."
+//BTM - FOR_CLIENT_SERVICE                                + ZookeeperServerConfiguration.Options.DATA_DIR
+//BTM - FOR_CLIENT_SERVICE                                + "=new java.io.File("
+//BTM - FOR_CLIENT_SERVICE                                + ConfigMath.q(zooDataDir.toString()) + ")"//
+//BTM - FOR_CLIENT_SERVICE                };
                 options = new String[] {
                         // overrides the clientPort to be unique.
                         QuorumPeerMain.class.getName()
@@ -500,6 +545,7 @@ try {
                                 + "=new java.io.File("
                                 + ConfigMath.q(zooDataDir.toString()) + ")"//
                 };
+//BTM - FOR_CLIENT_SERVICE - END
                 
                 System.err.println("options=" + Arrays.toString(options));
 
@@ -507,8 +553,12 @@ try {
                         .getInstance(concat(args, options));
 
                 // start zookeeper (a server instance).
+//BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER\n");
                 final int nstarted = ZookeeperProcessHelper.startZookeeper(
                         config, serviceListener);
+//BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER - DONE\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER - DONE\n");
 
                 if (nstarted != 1) {
 
@@ -551,17 +601,23 @@ try {
             // connect the client - this will get discovery running.
             final JiniFederation<?> fed = client.connect();
 
+//BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> WAITING FOR ZOOKEEPER CONNECTION [1 second] ...\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> WAITING FOR ZOOKEEPER CONNECTION [1 sec] ...\n");
             if (!fed.getZookeeperAccessor().awaitZookeeperConnected(1000,
                     TimeUnit.MILLISECONDS)) {
 
+//BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> NO ZOOKEEPER CONNECTION - FAIL\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> NO ZOOKEEPER CONNECTION - FAIL\n");
                 throw new RuntimeException("Zookeeper client not connected.");
 
-            }
+            }//endif(1st wait)
 
 //            zookeeper = fed.getZookeeper();
 
 //            zooConfig = fed.getZooConfig();
 
+//BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> ZOOKEEPER CONNECTED - OK\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> ZOOKEEPER CONNECTED - OK\n");
             fed.createKeyZNodes(fed.getZookeeper());
             
         }
@@ -637,16 +693,21 @@ if(serviceImplRemote) {
     }
     System.out.println("***");
 }
-
         {//begin ds1
 
             final File serviceDir = new File(fedServiceDir, "ds1");
             final File dataDir = new File(serviceDir, "data");
 
-System.err.println("\n---------- JiniServicesHelper (ds1): dataDir = "+dataDir+"\n");
+System.out.println("\n---------- JiniServicesHelper (ds1): dataDir = "+dataDir+"\n");
 
 if(serviceImplRemote) {
             final String[] overrides = new String[] {
+//                    JiniClient.class.getName()
+//                            + ".properties = new com.bigdata.util.NV[] {"
+//                            + " new NV(" + "com.bigdata.resources.StoreManager.Options.DATA_DIR" + ", "
+//                            + ConfigMath.q(ConfigMath.getAbsolutePath(dataDir))
+//                            + ")"
+//                            + "}",
                     /*
                      * Override the service directory.
                      */
@@ -676,6 +737,15 @@ if(serviceImplRemote) {
             System.err.println("overrides=" + Arrays.toString(overrides));
 
 //BTM            threadPool.execute(dataServer1 = new DataServer(concat(args, concat(overrides, options)), new FakeLifeCycle()));
+//    ArrayList<String> optionsDs1List = new ArrayList<String>();
+//    for(int k=0; k<options.length; k++) {
+//        if ( options[k].contains(JiniClient.class.getName()+".properties") ) {
+//            continue;
+//        }
+//        optionsDs1List.add(options[k]);
+//    }
+//    String[] optionsDs1 = optionsDs1List.toArray(new String[optionsDs1List.size()]);
+//    threadPool.execute(dsRemote1 = new DataServer(concat(args, concat(overrides, optionsDs1)), new FakeLifeCycle()));
     threadPool.execute(dsRemote1 = new DataServer(concat(args, concat(overrides, options)), new FakeLifeCycle()));
 
 } else {//smart proxy
@@ -706,7 +776,7 @@ if(serviceImplRemote) {
 
 //BTM - for debugging
     for(int i=0; i<ds1ServiceImplArgs.length; i++) {
-        System.err.println("**** BTM - JiniServicesHelper >>> ds1 >>> ds1ServiceImplArgs["+i+"] = "+ds1ServiceImplArgs[i]);
+        System.out.println("**** BTM - JiniServicesHelper >>> ds1 >>> ds1ServiceImplArgs["+i+"] = "+ds1ServiceImplArgs[i]);
     }
 System.out.println("\nJiniServicesHelper >>> NEW ShardServiceTask(ds1) - BEGIN");
     ds1 = new ShardServiceTask(ds1ServiceImplArgs);
@@ -719,11 +789,17 @@ System.out.println("\nJiniServicesHelper >>> NEW ShardServiceTask(ds1) - BEGIN")
             final File serviceDir = new File(fedServiceDir, "ds0");
             final File dataDir = new File(serviceDir, "data");
 
-System.err.println("\n---------- JiniServicesHelper (ds0): dataDir = "+dataDir+"\n");
+System.out.println("\n---------- JiniServicesHelper (ds0): dataDir = "+dataDir+"\n");
 
 if(serviceImplRemote) {
 
             final String[] overrides = new String[] {
+//                    JiniClient.class.getName()
+//                            + ".properties = new com.bigdata.util.NV[] {"
+//                            + " new NV(" + "com.bigdata.resources.StoreManager.Options.DATA_DIR" + ", "
+//                            + ConfigMath.q(ConfigMath.getAbsolutePath(dataDir))
+//                            + ")"
+//                            + "}",
                     /*
                      * Override the service directory.
                      */
@@ -753,6 +829,15 @@ if(serviceImplRemote) {
             System.err.println("overrides=" + Arrays.toString(overrides));
 
 //BTM            threadPool.execute(dataServer0 = new DataServer(concat(args, concat(overrides, options)), new FakeLifeCycle()));
+//    ArrayList<String> optionsDs0List = new ArrayList<String>();
+//    for(int k=0; k<options.length; k++) {
+//        if ( options[k].contains(JiniClient.class.getName()+".properties") ) {
+//            continue;
+//        }
+//        optionsDs0List.add(options[k]);
+//    }
+//    String[] optionsDs0 = optionsDs0List.toArray(new String[optionsDs0List.size()]);
+//    threadPool.execute(dsRemote0 = new DataServer(concat(args, concat(overrides, optionsDs0)), new FakeLifeCycle()));
     threadPool.execute(dsRemote0 = new DataServer(concat(args, concat(overrides, options)), new FakeLifeCycle()));
 
 } else {//smart proxy
@@ -783,7 +868,7 @@ if(serviceImplRemote) {
 
 //BTM - for debugging
     for(int i=0; i<ds0ServiceImplArgs.length; i++) {
-        System.err.println("**** BTM - JiniServicesHelper >>> ds0 >>> ds0ServiceImplArgs["+i+"] = "+ds0ServiceImplArgs[i]);
+        System.out.println("**** BTM - JiniServicesHelper >>> ds0 >>> ds0ServiceImplArgs["+i+"] = "+ds0ServiceImplArgs[i]);
     }
 System.out.println("\nJiniServicesHelper >>> NEW ShardServiceTask(ds0) - BEGIN");
     ds0 = new ShardServiceTask(ds0ServiceImplArgs);
@@ -805,9 +890,8 @@ System.out.println("\nJiniServicesHelper >>> NEW ShardServiceTask(ds0) - BEGIN")
 //BTM                args, options), new FakeLifeCycle()));
 //BTM
 //BTM -----------------------------------------------------------------------
-if(serviceImplRemote) {
-//BTM System.out.println("\n*** serviceImplRemote = "+serviceImplRemote+" JiniServicesHelper >>> [purely remote]");
 
+if(serviceImplRemote) {
         threadPool.execute(csRemote0 = new ClientServer(concat(
                 args, options), new FakeLifeCycle()));
 
@@ -880,6 +964,9 @@ if(sdm != null) sdm.terminate();
 if(ldm != null) ldm.terminate();
 //BTM -----------------------------------------------------------------------
 
+//BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> END START ----------------\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> END START ----------------\n");
+
     }
 
     /**
@@ -899,6 +986,8 @@ if(ldm != null) ldm.terminate();
      * These messages can be safely ignored IF they occur during this method.
      */
     public void destroy() {
+//BTM log.warn("\n---------------- JiniServicesHelper.destroy BEGIN DESTROY ----------------\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy BEGIN DESTROY ----------------\n");
 
         ZooKeeper zookeeper = null;
         
@@ -1019,7 +1108,11 @@ if (txnService0 != null) {
             try {
 
                 // clear out everything in zookeeper for this federation.
+//BTM log.warn("\n---------------- JiniServicesHelper.destroy BEGIN ZOOKEEPER DELETE\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy BEGIN ZOOKEEPER DELETE\n");
                 zookeeper.delete(zooConfig.zroot, -1/* version */);
+//BTM log.warn("\n---------------- JiniServicesHelper.destroy END ZOOKEEPER DELETE\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy END ZOOKEEPER DELETE\n");
                 
             } catch (Exception e) {
                 
@@ -1033,9 +1126,16 @@ if (txnService0 != null) {
         
         try {
          
+//BTM log.warn("\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+")\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+")\n");
+
             ZooHelper.kill(clientPort);
+
+//BTM log.warn("\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+") - DONE\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+") - DONE\n");
             
         } catch (Throwable t) {
+
             log.error("Could not kill zookeeper: clientPort=" + clientPort
                     + " : " + t, t);
         }
@@ -1090,7 +1190,9 @@ if( (Thread.currentThread()).isInterrupted() ) {
         }
         
         threadPool.shutdownNow();
-        
+
+//BTM log.warn("\n---------------- JiniServicesHelper.destroy >>> END DESTROY ----------------\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy >>> END DESTROY ----------------\n");
     }
 
     /**
@@ -1216,7 +1318,7 @@ if( (Thread.currentThread()).isInterrupted() ) {
 
     }
 
-//BTM -----------------------------------------------------------------------
+//BTM - BEGIN -----------------------------------------------------------------
     private ServiceID getServiceID(Class classType,
                                    net.jini.lookup.ServiceDiscoveryManager sdm)
     {
@@ -1229,7 +1331,8 @@ if( (Thread.currentThread()).isInterrupted() ) {
                               (null, new Class[] {classType}, null);
         net.jini.core.lookup.ServiceItem item = null;
         try {
-            item = sdm.lookup(tmpl, null, (20L*200L) );
+//BTM - original            item = sdm.lookup(tmpl, null, (20L*200L) );
+            item = sdm.lookup(tmpl, null, (30L*1000L) );
         } catch(Throwable t) { 
             t.printStackTrace();
         }
@@ -1338,9 +1441,23 @@ if( (Thread.currentThread()).isInterrupted() ) {
             Thread.currentThread().interrupt();
         }
         public UUID getServiceUUID() {
-            if(!ready) {
+            if (ready) {
+                return (this.shardService).getServiceUUID();
+            }
+            //service not ready, wait for startup to finish
+            int nWait = 1;
+            for (int i=0; i<nWait; i++) {
+                try {
+                    Thread.sleep(1L*1000L);
+                } catch (InterruptedException e) { }
+
+                if (ready) {
+                    return (this.shardService).getServiceUUID();
+                }
+            }
+            if(!ready) {//still not ready
                 throw new UnsupportedOperationException
-                              ("service not ready");
+                                  ("service not ready");
             }
             return (this.shardService).getServiceUUID();
         }
@@ -1416,7 +1533,7 @@ if( (Thread.currentThread()).isInterrupted() ) {
             Thread.currentThread().interrupt();
         }
     }
-//BTM -----------------------------------------------------------------------
+//BTM - END -------------------------------------------------------------------
 
     /**
      * Mock implementation used by some unit tests.

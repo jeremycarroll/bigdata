@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service;
 
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.resources.ILocalResourceManagement;
 
@@ -37,7 +39,9 @@ import java.util.concurrent.Callable;
 public class ClientTaskWrapper<T> implements Callable<T> {
 
     private IIndexManager indexMgr;
+    private IConcurrencyManager concurrencyMgr;
     private ILocalResourceManagement localResourceMgr;
+    private IBigdataDiscoveryManagement discoveryMgr;
     private CallableExecutor embeddedCallableExecutor;
     private IClientServiceCallable<T> task;
     private ZooKeeper zkClient;
@@ -45,7 +49,9 @@ public class ClientTaskWrapper<T> implements Callable<T> {
     private String zkRoot;
 
     public ClientTaskWrapper(IIndexManager indexManager,
+                             IConcurrencyManager concurrencyManager,
                              ILocalResourceManagement localResourceManager,
+                             IBigdataDiscoveryManagement discoveryManager,
                              CallableExecutor embeddedCallableExecutor,
                              IClientServiceCallable<T> task,
                              ZooKeeper zookeeperClient,
@@ -53,7 +59,9 @@ public class ClientTaskWrapper<T> implements Callable<T> {
                              String zookeeperRoot)
     {
         this.indexMgr = indexManager;
+        this.concurrencyMgr = concurrencyManager;
         this.localResourceMgr = localResourceManager;
+        this.discoveryMgr = discoveryManager;
         this.embeddedCallableExecutor = embeddedCallableExecutor;
         this.task = task;
         this.zkClient = zookeeperClient;
@@ -63,7 +71,8 @@ public class ClientTaskWrapper<T> implements Callable<T> {
 
     public T call() throws Exception {
         return task.startClientTask
-                       (indexMgr, localResourceMgr,
+                       (indexMgr, concurrencyMgr,
+                        localResourceMgr, discoveryMgr,
                         embeddedCallableExecutor,
                         zkClient, zkAcl, zkRoot);
     }

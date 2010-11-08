@@ -173,8 +173,15 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
     public BigdataSail getSail(IBigdataFederation fed, String namespace,
             long timestamp) {
 
-        ScaleOutTripleStore tripleStore = (ScaleOutTripleStore) fed
-                .getResourceLocator().locate(namespace, timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+        ScaleOutTripleStore tripleStore =
+            (ScaleOutTripleStore) fed.getResourceLocator()
+                 .locate((IIndexManager)fed,
+                         ((AbstractFederation)fed).getConcurrencyManager(),
+                         (IBigdataDiscoveryManagement)fed,
+                         namespace,
+                         timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (tripleStore == null) {
 
@@ -232,8 +239,17 @@ public class LoadClosureAndQueryTest implements IComparisonTest {
 
         final Journal journal = new Journal(properties);
 
-        LocalTripleStore tripleStore = (LocalTripleStore) journal
-                .getResourceLocator().locate(namespace, timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        LocalTripleStore tripleStore = (LocalTripleStore) journal
+//BTM - PRE_CLIENT_SERVICE                .getResourceLocator().locate(namespace, timestamp);
+        LocalTripleStore tripleStore =
+            (LocalTripleStore) journal.getResourceLocator()
+                 .locate(journal,//Journal -> AbstractJournal -> IBTreeManager -> IIndexManager
+                         journal,//Journal -> IConcurrencyManager
+                         journal.getDiscoveryManager(),//returns null                         
+                         namespace,
+                         timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (tripleStore == null) {
 

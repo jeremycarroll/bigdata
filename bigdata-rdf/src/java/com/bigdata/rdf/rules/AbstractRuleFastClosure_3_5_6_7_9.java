@@ -439,7 +439,15 @@ public abstract class AbstractRuleFastClosure_3_5_6_7_9 extends Rule {
 
                     final long timestamp = joinNexus.getReadTimestamp(/*database*/);
                    
-                    return (IRelation<ISPO>)resourceLocator.locate(database, timestamp);
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE                    return (IRelation<ISPO>)resourceLocator.locate(database, timestamp);
+                    return (IRelation<ISPO>)resourceLocator.locate
+                                (joinNexus.getIndexManager(),
+                                 joinNexus.getConcurrencyManager(),
+                                 joinNexus.getDiscoveryManager(),
+                                 database,//namespace
+                                 timestamp);
+//BTM - FOR_CLIENT_SERVICE - END
 
                 } else {
 
@@ -447,11 +455,26 @@ public abstract class AbstractRuleFastClosure_3_5_6_7_9 extends Rule {
 
                     final long timestamp1 = joinNexus.getReadTimestamp(/*focusStore*/);
 
-                    return new RelationFusedView<ISPO>(
-                            //
-                            (IRelation<ISPO>)resourceLocator.locate(database, timestamp0),
-                            (IRelation<ISPO>)resourceLocator.locate(focusStore, timestamp1))
-                            .init();
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE                    return new RelationFusedView<ISPO>(
+//BTM - FOR_CLIENT_SERVICE                            //
+//BTM - FOR_CLIENT_SERVICE                            (IRelation<ISPO>)resourceLocator.locate(database, timestamp0),
+//BTM - FOR_CLIENT_SERVICE                            (IRelation<ISPO>)resourceLocator.locate(focusStore, timestamp1))
+//BTM - FOR_CLIENT_SERVICE                            .init();
+                    return new RelationFusedView<ISPO>
+                               ( (IRelation<ISPO>)resourceLocator
+                                      .locate(joinNexus.getIndexManager(),
+                                              joinNexus.getConcurrencyManager(),
+                                              joinNexus.getDiscoveryManager(),
+                                              database,//namespace
+                                              timestamp0),
+                                 (IRelation<ISPO>)resourceLocator
+                                      .locate(joinNexus.getIndexManager(),
+                                              joinNexus.getConcurrencyManager(),
+                                              joinNexus.getDiscoveryManager(),
+                                              focusStore,
+                                              timestamp1) ).init();
+//BTM - FOR_CLIENT_SERVICE - END
 
                 }
                     // final IAccessPath accessPath = (focusStore == null //

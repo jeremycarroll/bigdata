@@ -41,9 +41,11 @@ import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 
+import com.bigdata.jini.start.config.ServiceConfiguration;
 import com.bigdata.jini.start.config.ZookeeperClientConfig;
 import com.bigdata.jini.start.process.ProcessHelper;
 import com.bigdata.jini.start.process.ZookeeperProcessHelper;
+import com.bigdata.jini.util.ConfigMath;
 import com.bigdata.resources.ResourceFileFilter;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
@@ -122,6 +124,24 @@ public class AbstractFedZooTestCase extends TestCase2 {
 
         config = ConfigurationProvider.getInstance(args);
 
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        File fedServiceDir = 
+            (File) config.getEntry
+                       ("com.bigdata.jini.start.config.ServiceConfiguration",
+                        "serviceDir", File.class);
+        File fedDataDir = 
+            new File( fedServiceDir+File.separator+"dataDir" );
+
+        String[] options = new String[] {
+            JiniClient.class.getName()
+                + ".properties = new com.bigdata.util.NV[] {"
+                + " new NV(" + "com.bigdata.resources.StoreManager.Options.DATA_DIR" + ", "
+                + ConfigMath.q(ConfigMath.getAbsolutePath(fedDataDir))
+                + ")"
+                + "}"
+            };
+//BTM - FOR_CLIENT_SERVICE - END
+
         // if necessary, start zookeeper (a server instance).
         ZookeeperProcessHelper.startZookeeper(config, listener);
 
@@ -130,7 +150,10 @@ public class AbstractFedZooTestCase extends TestCase2 {
          * for this test to succeed.
          */
         
-        fed = JiniClient.newInstance(args).connect();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        fed = JiniClient.newInstance(args).connect();
+        fed = JiniClient.newInstance(ServiceConfiguration.concat(args,options)).connect();
+//BTM - PRE_CLIENT_SERVICE - END
 
         /*
          * Create the federation zroot and config znodes.

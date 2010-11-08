@@ -2325,15 +2325,22 @@ log.warn("\n*** AbstractTask#IsolatedActionJournal: getIndex [name="+name+", tim
                 // unisolated view - will create if it does not exist.
 //BTM - PRE_CLIENT_SERVICE - BEGIN
 //BTM - PRE_CLIENT_SERVICE                return new GlobalFileSystemHelper(this).getGlobalFileSystem();
+//BTM - PRE_CLIENT_SERVICE            }
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            // read committed view IFF it exists otherwise [null]
+//BTM - PRE_CLIENT_SERVICE            return new GlobalFileSystemHelper(this).getReadCommitted();
                 return new GlobalFileSystemHelper(this)
                                .getGlobalFileSystem
                                     (concurrencyManager,
                                      resourceManager.getDiscoveryManager());
-//BTM - PRE_CLIENT_SERVICE - END
             }
 
             // read committed view IFF it exists otherwise [null]
-            return new GlobalFileSystemHelper(this).getReadCommitted();
+            return new GlobalFileSystemHelper(this)
+                           .getReadCommitted
+                                (concurrencyManager,
+                                 resourceManager.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
             
         }
 
@@ -2711,7 +2718,13 @@ log.warn("\n*** AbstractTask#ReadOnlyJournal: getIndex [name="+name+"] >>> Unsup
 
             };
 
-            return new GlobalFileSystemHelper(tmp).getReadCommitted();
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            return new GlobalFileSystemHelper(tmp).getReadCommitted();
+            return new GlobalFileSystemHelper(tmp)
+                           .getReadCommitted
+                                (concurrencyManager,
+                                 resourceManager.getDiscoveryManager());
+//BTM - PRE_CLIENT_SERVICE - END
             
         }
 

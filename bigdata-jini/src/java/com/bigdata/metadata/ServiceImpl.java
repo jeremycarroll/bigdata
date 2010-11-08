@@ -142,7 +142,7 @@ class ServiceImpl implements PrivateInterface {
 
     private EmbeddedShardLocator embeddedShardLocator;
 
-    private Thread waitThread;
+//BTM    private Thread waitThread;
 
     /* Constructor used by Service Starter Framework to start this service */
     public ServiceImpl(String[] args, LifeCycle lifeCycle) throws Exception {
@@ -631,8 +631,8 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                    +", locators="
                    +Util.writeArrayElementsToString(locatorsToJoin));
 
-        waitThread = new Util.WaitOnInterruptThread(logger);
-        waitThread.start();
+//BTM        waitThread = new Util.WaitOnInterruptThread(logger);
+//BTM        waitThread.start();
 
         readyState.ready();//ready to accept calls from clients
     }
@@ -693,10 +693,10 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                 futureExporters.removeAll(removeSet);
             }
 
-            waitThread.interrupt();
-            try {
-                waitThread.join();
-            } catch (InterruptedException e) {/*exiting, so swallow*/}
+//BTM            waitThread.interrupt();
+//BTM            try {
+//BTM                waitThread.join();
+//BTM            } catch (InterruptedException e) {/*exiting, so swallow*/}
 
             Util.cleanupOnExit
               (innerProxy, serverExporter, futureExporters, joinMgr, sdm, ldm);

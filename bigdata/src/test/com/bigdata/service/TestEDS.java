@@ -90,6 +90,14 @@ public class TestEDS extends
         // Disable index partition moves.
         properties.setProperty(OverflowManager.Options.MAXIMUM_MOVES_PER_TARGET,"0");
 
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        // AbstractFederation now creates a ResourceManager/StoreManager,
+        // which expects a data directory property
+        properties.setProperty
+            ( com.bigdata.resources.StoreManager.Options.DATA_DIR,
+              dataDir.getName() );
+//BTM - FOR_CLIENT_SERVICE - END
+
         return properties;
         
     }

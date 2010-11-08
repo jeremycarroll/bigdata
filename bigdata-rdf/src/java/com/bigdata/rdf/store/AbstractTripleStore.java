@@ -1562,9 +1562,18 @@ abstract public class AbstractTripleStore extends
     
         if (spoRelation == null) {
 
-            spoRelation = (SPORelation) getIndexManager().getResourceLocator()
-                    .locate(getNamespace() + "." + SPORelation.NAME_SPO_RELATION,
-                            getTimestamp());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            spoRelation = (SPORelation) getIndexManager().getResourceLocator()
+//BTM - PRE_CLIENT_SERVICE                    .locate(getNamespace() + "." + SPORelation.NAME_SPO_RELATION,
+//BTM - PRE_CLIENT_SERVICE                            getTimestamp());
+            spoRelation =
+                (SPORelation) getIndexManager().getResourceLocator()
+                 .locate( getIndexManager(),
+                          getConcurrencyManager(),
+                          getDiscoveryManager(),
+                          getNamespace() + "." + SPORelation.NAME_SPO_RELATION,
+                          getTimestamp() );
+//BTM - PRE_CLIENT_SERVICE - END
 
         }
 
@@ -1593,11 +1602,21 @@ abstract public class AbstractTripleStore extends
                 
             }
 
-            lexiconRelation = (LexiconRelation) getIndexManager()
-                    .getResourceLocator().locate(
-                            getNamespace() + "."
-                                    + LexiconRelation.NAME_LEXICON_RELATION, 
-                                    t);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            lexiconRelation = (LexiconRelation) getIndexManager()
+//BTM - PRE_CLIENT_SERVICE                    .getResourceLocator().locate(
+//BTM - PRE_CLIENT_SERVICE                            getNamespace() + "."
+//BTM - PRE_CLIENT_SERVICE                                    + LexiconRelation.NAME_LEXICON_RELATION, 
+//BTM - PRE_CLIENT_SERVICE                                    t);
+            lexiconRelation =
+                (LexiconRelation) getIndexManager().getResourceLocator()
+                     .locate( getIndexManager(),
+                              getConcurrencyManager(),
+                              getDiscoveryManager(),
+                              getNamespace() + "."
+                                  + LexiconRelation.NAME_LEXICON_RELATION, 
+                              t );
+//BTM - PRE_CLIENT_SERVICE - END
 
         }
 
@@ -1808,8 +1827,17 @@ abstract public class AbstractTripleStore extends
             
             if(view == null) {
                 
-                view = (AbstractTripleStore) getIndexManager().getResourceLocator()
-                        .locate(getNamespace(), ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                view = (AbstractTripleStore) getIndexManager().getResourceLocator()
+//BTM - PRE_CLIENT_SERVICE                        .locate(getNamespace(), ITx.READ_COMMITTED);
+                view =
+                   (AbstractTripleStore) getIndexManager().getResourceLocator()
+                       .locate( getIndexManager(),
+                                getConcurrencyManager(),
+                                getDiscoveryManager(),
+                                getNamespace(),
+                                 ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE - END
                 
                 readCommittedRef = new SoftReference<AbstractTripleStore>(view);
                 

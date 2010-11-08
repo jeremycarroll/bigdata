@@ -178,6 +178,10 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
         String FORCE_SYNC = "forceSync";
         
         String SKIP_ACL= "skipACL";
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        String MAX_CLIENT_CONNECTIONS= "maxClientCnxns";
+//BTM - FOR_CLIENT_SERVICE - END
         
     }
     
@@ -771,6 +775,49 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
             properties.setProperty(Options.DATA_LOG_DIR, dataLogDir.toString());
 
             properties.setProperty(Options.CLIENT_PORT, Integer.toString(clientPort));
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE - NOTE: the version of zookeeper bigdata is currently using (3.2.1)
+//BTM - FOR_CLIENT_SERVICE -       sets the default value of the config item 'maxClientCnxns' to
+//BTM - FOR_CLIENT_SERVICE -       10; which (as indicated in https://issues.apache.org/jira/browse/HBASE-1800)
+//BTM - FOR_CLIENT_SERVICE -       is the "maximum number of concurrent connections that a single 
+//BTM - FOR_CLIENT_SERVICE -       client, identified by IP address, may make to a single
+//BTM - FOR_CLIENT_SERVICE -       member of the ZooKeeper ensemble." The note referenced by 
+//BTM - FOR_CLIENT_SERVICE -       that link recommends that the value of that config item
+//BTM - FOR_CLIENT_SERVICE -       be set to a higher value to "avoid ... connection issues 
+//BTM - FOR_CLIENT_SERVICE -       [when] running standalone and pseudo-distributed".
+//BTM - FOR_CLIENT_SERVICE -       
+//BTM - FOR_CLIENT_SERVICE -       Various postings to ZooKeeper user lists indicate that the 
+//BTM - FOR_CLIENT_SERVICE -       default value is set low because clients can be incorrectly
+//BTM - FOR_CLIENT_SERVICE -       implemented to attempt "to create an infinite number of 
+//BTM - FOR_CLIENT_SERVICE -       sessions, which essentially [is a] DOS ...". Additionally,
+//BTM - FOR_CLIENT_SERVICE -       other postings in the various user list archives indicate 
+//BTM - FOR_CLIENT_SERVICE -       that ZooKeeper releases beyond 3.2.1, the default value for 
+//BTM - FOR_CLIENT_SERVICE -       'maxClientCnxns' will be to allow an unlimited number of 
+//BTM - FOR_CLIENT_SERVICE -       connections.
+//BTM - FOR_CLIENT_SERVICE -       
+//BTM - FOR_CLIENT_SERVICE -       Until the smart proxy implementation of the client service 
+//BTM - FOR_CLIENT_SERVICE -       was added, the default value of 'maxClientCnxns' did not 
+//BTM - FOR_CLIENT_SERVICE -       generally affect the tests being run. Once that implementation 
+//BTM - FOR_CLIENT_SERVICE -       was introduced, and the tests were run in a single junit VM, 
+//BTM - FOR_CLIENT_SERVICE -       it waw observed that the number of connection requests could 
+//BTM - FOR_CLIENT_SERVICE -       indeed exceed 10 at some point during the test run. Once the
+//BTM - FOR_CLIENT_SERVICE -       number of connections requested that value, a dominoe effect
+//BTM - FOR_CLIENT_SERVICE -       would occur, causing tests run after the test that hit the 
+//BTM - FOR_CLIENT_SERVICE -       limit to also fail. To see how this issue manifests itself,
+//BTM - FOR_CLIENT_SERVICE -       one can run the test TestBigdataClient, followed by the test
+//BTM - FOR_CLIENT_SERVICE -       TestMappedRDFDataLoadMaster, and then finally the test, 
+//BTM - FOR_CLIENT_SERVICE -       TestMappedRDFDataLoadMasterRemote. The last test will fail 
+//BTM - FOR_CLIENT_SERVICE -       with an exception message such as, "Zookeeper client not connected."
+//BTM - FOR_CLIENT_SERVICE -       
+//BTM - FOR_CLIENT_SERVICE -       Thus, to address the issue just described, the config item 
+//BTM - FOR_CLIENT_SERVICE -       below is set to 0 when starting ZooKeeper; which will allow 
+//BTM - FOR_CLIENT_SERVICE -       an unlimited number of connections and avoid the exception
+//BTM - FOR_CLIENT_SERVICE -       condition described
+
+            properties.setProperty(Options.MAX_CLIENT_CONNECTIONS, Integer.toString(0));
+
+//BTM - FOR_CLIENT_SERVICE - END
 
             /*
              * Write the properties into a flat text format.

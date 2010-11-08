@@ -220,8 +220,16 @@ final TransactionService txService = ((Journal) indexManager)
                 final long tx0 = txService.newTx(ITx.READ_COMMITTED);
 
                 // verify kb does not exist (can not be located).
-                assertNull(indexManager.getResourceLocator().locate(namespace,
-                        tx0));
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                assertNull(indexManager.getResourceLocator().locate(namespace,
+//BTM - PRE_CLIENT_SERVICE                        tx0));
+                assertNull( indexManager.getResourceLocator()
+                                .locate(indexManager,
+                                        initialKb.getConcurrencyManager(),
+                                        initialKb.getDiscoveryManager(),
+                                        namespace,
+                                        tx0) );
+//BTM - PRE_CLIENT_SERVICE - END
 
                 txService.abort(tx0);
 
@@ -233,8 +241,16 @@ final TransactionService txService = ((Journal) indexManager)
                 final long txCreate = txService.newTx(ITx.UNISOLATED);
 
                 // verify kb does not exist (can not be located).
-                assertNull(indexManager.getResourceLocator().locate(namespace,
-                        txCreate));
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                assertNull(indexManager.getResourceLocator().locate(namespace,
+//BTM - PRE_CLIENT_SERVICE                        txCreate));
+                assertNull( indexManager.getResourceLocator()
+                                .locate(indexManager,
+                                        initialKb.getConcurrencyManager(),
+                                        initialKb.getDiscoveryManager(),
+                                        namespace,
+                                        txCreate) );
+//BTM - PRE_CLIENT_SERVICE - END
 
                 // alternative ctor for unlocated kb instance : @todo
                 // parameterize for LTS vs ScaleOut
@@ -253,8 +269,17 @@ final TransactionService txService = ((Journal) indexManager)
              * Note: the lexicon is non-transactional. The URIs are defined here
              * for ease of reuse across the various code blocks below.
              */
-            final AbstractTripleStore unisolatedStore = ((AbstractTripleStore) indexManager
-                    .getResourceLocator().locate(namespace, ITx.UNISOLATED));
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final AbstractTripleStore unisolatedStore = ((AbstractTripleStore) indexManager
+//BTM - PRE_CLIENT_SERVICE                    .getResourceLocator().locate(namespace, ITx.UNISOLATED));
+            final AbstractTripleStore unisolatedStore =
+                      ((AbstractTripleStore) indexManager.getResourceLocator()
+                           .locate(indexManager,
+                                   initialKb.getConcurrencyManager(),
+                                   initialKb.getDiscoveryManager(),
+                                   namespace,
+                                   ITx.UNISOLATED));
+//BTM - PRE_CLIENT_SERVICE - END
             
             final BigdataValueFactory f = unisolatedStore.getValueFactory();
 
@@ -279,8 +304,17 @@ final TransactionService txService = ((Journal) indexManager)
                 // a tx reading from the most recent commit point on the db.
                 final long tx1 = txService.newTx(ITx.READ_COMMITTED);
 
-                final AbstractTripleStore tx1View = (AbstractTripleStore) indexManager
-                        .getResourceLocator().locate(namespace, tx1);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final AbstractTripleStore tx1View = (AbstractTripleStore) indexManager
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator().locate(namespace, tx1);
+                final AbstractTripleStore tx1View =
+                          (AbstractTripleStore) indexManager.getResourceLocator()
+                               .locate(indexManager,
+                                       initialKb.getConcurrencyManager(),
+                                       initialKb.getDiscoveryManager(),
+                                       namespace,
+                                       tx1);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 // no explicit statements in the kb.
                 assertEquals(0L, tx1View.getExplicitStatementCount(null/* c */));
@@ -291,11 +325,28 @@ final TransactionService txService = ((Journal) indexManager)
                 // another read/write tx.
                 final long tx3 = txService.newTx(ITx.UNISOLATED);
                 
-                final AbstractTripleStore tx2View = (AbstractTripleStore) indexManager
-                        .getResourceLocator().locate(namespace, tx2);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final AbstractTripleStore tx2View = (AbstractTripleStore) indexManager
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator().locate(namespace, tx2);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                final AbstractTripleStore tx3View = (AbstractTripleStore) indexManager
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator().locate(namespace, tx3);
+                final AbstractTripleStore tx2View =
+                          (AbstractTripleStore) indexManager.getResourceLocator()
+                               .locate(indexManager,
+                                       initialKb.getConcurrencyManager(),
+                                       initialKb.getDiscoveryManager(),
+                                       namespace,
+                                       tx2);
 
-                final AbstractTripleStore tx3View = (AbstractTripleStore) indexManager
-                        .getResourceLocator().locate(namespace, tx3);
+                final AbstractTripleStore tx3View =
+                          (AbstractTripleStore) indexManager.getResourceLocator()
+                               .locate(indexManager,
+                                       initialKb.getConcurrencyManager(),
+                                       initialKb.getDiscoveryManager(),
+                                       namespace,
+                                       tx3);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 {
                     // prepare the write set on [tx2].
@@ -329,14 +380,34 @@ final TransactionService txService = ((Journal) indexManager)
                 // a new tx reading from the most recent commit point on the db.
                 final long tx4 = txService.newTx(ITx.READ_COMMITTED);
 
-                final AbstractTripleStore tx4View = (AbstractTripleStore) indexManager
-                        .getResourceLocator().locate(namespace, tx4);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                final AbstractTripleStore tx4View = (AbstractTripleStore) indexManager
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator().locate(namespace, tx4);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                // a new tx reading from the most recent commit point on the db.
+//BTM - PRE_CLIENT_SERVICE                final long tx5 = txService.newTx(ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                final AbstractTripleStore tx5View = (AbstractTripleStore) indexManager
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator().locate(namespace, tx5);
+                final AbstractTripleStore tx4View =
+                    (AbstractTripleStore) indexManager.getResourceLocator()
+                         .locate(indexManager,
+                                 initialKb.getConcurrencyManager(),
+                                 initialKb.getDiscoveryManager(),
+                                 namespace,
+                                 tx4);
 
                 // a new tx reading from the most recent commit point on the db.
                 final long tx5 = txService.newTx(ITx.READ_COMMITTED);
 
-                final AbstractTripleStore tx5View = (AbstractTripleStore) indexManager
-                        .getResourceLocator().locate(namespace, tx5);
+                final AbstractTripleStore tx5View =
+                    (AbstractTripleStore) indexManager.getResourceLocator()
+                         .locate(indexManager,
+                                 initialKb.getConcurrencyManager(),
+                                 initialKb.getDiscoveryManager(),
+                                 namespace,
+                                 tx5);
+//BTM - PRE_CLIENT_SERVICE - END
 
                 // visible in the new read-only tx.
                 assertTrue(tx4View.hasStatement(john, loves, mary));

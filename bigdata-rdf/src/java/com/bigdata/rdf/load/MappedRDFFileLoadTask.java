@@ -28,6 +28,8 @@ import com.bigdata.service.jini.master.ClientLocator;
 import com.bigdata.service.jini.master.INotifyOutcome;
 
 //BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.resources.ILocalResourceManagement;
 import com.bigdata.service.CallableExecutor;
@@ -55,7 +57,7 @@ import java.util.List;
  * @param <V>
  *            The generic type of the client state (stored in zookeeper).
  */
-public class MappedRDFFileLoadTask<S extends JobState,
+ public class MappedRDFFileLoadTask<S extends JobState,
                                    V extends Serializable,
                                    L extends ClientLocator>
     extends AbstractAsynchronousClientTask<Void,V,L>//
@@ -178,7 +180,9 @@ public class MappedRDFFileLoadTask<S extends JobState,
 //BTM - PRE_CLIENT_SERVICE            throws InterruptedException {
 //BTM - PRE_CLIENT_SERVICE
     protected void setUp(IIndexManager indexMgr,
-                         ILocalResourceManagement localResourceMgr)
+                         IConcurrencyManager concurrencyMgr,
+                         ILocalResourceManagement localResourceMgr,
+                         IBigdataDiscoveryManagement discoveryMgr)
                    throws InterruptedException
     {
 //BTM - PRE_CLIENT_SERVICE - END
@@ -194,10 +198,17 @@ public class MappedRDFFileLoadTask<S extends JobState,
             if (log.isInfoEnabled())
                 log.info(toString());
             
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 //BTM - PRE_CLIENT_SERVICE  final AbstractTripleStore tripleStore = (AbstractTripleStore)federation.getResourceLocator().locate(jobState.namespace, ITx.UNISOLATED);
             final AbstractTripleStore tripleStore =
-                (AbstractTripleStore)indexMgr.getResourceLocator().locate
-                                         (jobState.namespace, ITx.UNISOLATED);
+                (AbstractTripleStore)indexMgr.getResourceLocator()
+                     .locate( indexMgr,
+                              concurrencyMgr,
+                              discoveryMgr,
+                              jobState.namespace,
+                              ITx.UNISOLATED );
+//BTM - PRE_CLIENT_SERVICE - END
+
 
             if (tripleStore == null) {
 
@@ -303,38 +314,77 @@ public class MappedRDFFileLoadTask<S extends JobState,
              * job master may have already sent a chunk of resources our
              * accept(chunk[]) method.
              */
-            {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE             {
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE   final CounterSet serviceRoot = federation.getServiceCounterSet();
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 final String relPath = jobState.jobName;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 // Create path to counter set.
+//BTM - PRE_CLIENT_SERVICE                 final CounterSet tmp = serviceRoot.makePath(relPath);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 final CounterSet tmpCounters =
+//BTM - PRE_CLIENT_SERVICE                                      statementBufferFactory.getCounters();
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //                if (log.isDebugEnabled())
+//BTM - PRE_CLIENT_SERVICE //                    log.debug("Attaching counters: locator=" + locator + " : "
+//BTM - PRE_CLIENT_SERVICE //                            + counters);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 // Attach counters [the counters are MOVEd to tmp].
+//BTM - PRE_CLIENT_SERVICE                 tmp.attach(tmpCounters, true/* replace */);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE                 // Note reference to the current counters for log messages.
+//BTM - PRE_CLIENT_SERVICE                 this.counters = tmp;
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //                if (log.isDebugEnabled())
+//BTM - PRE_CLIENT_SERVICE //                    log.debug("Attached counters: locator=" + locator + " :  "
+//BTM - PRE_CLIENT_SERVICE //                            + tmp);
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE //                if (log.isDebugEnabled())
+//BTM - PRE_CLIENT_SERVICE //                    log.debug("Service counters : locator=" + locator + " : "
+//BTM - PRE_CLIENT_SERVICE //                            + serviceRoot.getPath(relPath));
+//BTM - PRE_CLIENT_SERVICE 
+//BTM - PRE_CLIENT_SERVICE             }
+//////////////////////////
+            {//begin counter-processing block
+                try {
+                    final CounterSet serviceRoot =
+                              localResourceMgr.getServiceCounterSet();
+                    final String relPath = jobState.jobName;
 
-//BTM - PRE_CLIENT_SERVICE  final CounterSet serviceRoot = federation.getServiceCounterSet();
-                final CounterSet serviceRoot = localResourceMgr.getServiceCounterSet();
-
-                final String relPath = jobState.jobName;
-
-                // Create path to counter set.
-                final CounterSet tmp = serviceRoot.makePath(relPath);
-
-                final CounterSet tmpCounters =
+                    // Create path to counter set.
+                    final CounterSet tmp = serviceRoot.makePath(relPath);
+                    final CounterSet tmpCounters =
                                      statementBufferFactory.getCounters();
 
-//                if (log.isDebugEnabled())
-//                    log.debug("Attaching counters: locator=" + locator + " : "
-//                            + counters);
+//                    if (log.isDebugEnabled()) {
+//                        log.debug("Attaching counters: locator=" 
+//                                  + locator + " : " + counters);
+//                    }
 
-                // Attach counters [the counters are MOVEd to tmp].
-                tmp.attach(tmpCounters, true/* replace */);
+                    // Attach counters [the counters are MOVEd to tmp].
+                    tmp.attach(tmpCounters, true/* replace */);
 
-                // Note reference to the current counters for log messages.
-                this.counters = tmp;
+                    // Note reference to the current counters for log messages.
+                    this.counters = tmp;
 
-//                if (log.isDebugEnabled())
-//                    log.debug("Attached counters: locator=" + locator + " :  "
-//                            + tmp);
+//                    if (log.isDebugEnabled()) {
+//                        log.debug("Attached counters: locator=" + locator 
+//                                   + " :  " + tmp);
+//                    }
 
-//                if (log.isDebugEnabled())
-//                    log.debug("Service counters : locator=" + locator + " : "
-//                            + serviceRoot.getPath(relPath));
+//                    if (log.isDebugEnabled()) {
+//                        log.debug("Service counters : locator=" + locator 
+//                                  + " : " + serviceRoot.getPath(relPath));
+//                    }
+                } catch(Throwable t) {
+                    log.warn("MappedRDFFileLoadTask.setup: "
+                             +"exception while processing counters", t);
+                }
 
-            }
+            }//end counter-processing block
+//BTM - PRE_CLIENT_SERVICE - END
 
             /*
              * Update the flag and notify all blocked threads since they can now
@@ -360,7 +410,9 @@ public class MappedRDFFileLoadTask<S extends JobState,
 //BTM - PRE_CLIENT_SERVICE            ClientService clientService) throws Exception {
 //BTM - PRE_CLIENT_SERVICE
     public Void startClientTask(IIndexManager indexManager,
+                                IConcurrencyManager concurrencyManager,
                                 ILocalResourceManagement localResourceManager,
+                                IBigdataDiscoveryManagement discoveryManager,
                                 CallableExecutor embeddedCallableExecutor,
                                 ZooKeeper zookeeperClient,
                                 List<ACL> zookeeperAcl,
@@ -371,8 +423,13 @@ public class MappedRDFFileLoadTask<S extends JobState,
 
         try {
 
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 //BTM - PRE_CLIENT_SERVICE  setUp(federation);
-            setUp(indexManager, localResourceManager);
+            setUp(indexManager,
+                  concurrencyManager,
+                  localResourceManager,
+                  discoveryManager);
+//BTM - PRE_CLIENT_SERVICE - END
             
             /*
              * Wait until either (a) interrupted by the master using

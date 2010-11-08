@@ -25,6 +25,8 @@ import com.bigdata.zookeeper.ZLock;
 import com.bigdata.zookeeper.ZLockImpl;
 
 //BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IScaleOutIndexStore;
 import com.bigdata.resources.ILocalResourceManagement;
@@ -106,7 +108,9 @@ abstract public class AbstractClientTask<S extends TaskMaster.JobState,
 //BTM - PRE_CLIENT_SERVICE                             ClientService clientService) throws Exception {
 //BTM - PRE_CLIENT_SERVICE
     public U startClientTask(IIndexManager indexManager,
+                             IConcurrencyManager concurrencyManager,
                              ILocalResourceManagement localResourceManager,
+                             IBigdataDiscoveryManagement discoveryManager,
                              CallableExecutor embeddedCallableExecutor,
                              ZooKeeper zookeeperClient,
                              List<ACL> zookeeperAcl,

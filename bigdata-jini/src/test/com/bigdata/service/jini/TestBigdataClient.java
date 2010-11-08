@@ -49,6 +49,7 @@ import com.bigdata.service.ShardManagement;
 import com.bigdata.service.ShardService;
 import com.bigdata.service.Service;
 import com.bigdata.util.Util;
+import java.rmi.RemoteException;
 
 /**
  * Test suite for the {@link JiniClient}.
@@ -106,7 +107,6 @@ public class TestBigdataClient extends AbstractServerTestCase {
     public void tearDown() throws Exception {
 
         if (helper != null) {
-
             helper.destroy();
             
         }
@@ -158,21 +158,42 @@ public class TestBigdataClient extends AbstractServerTestCase {
         final IndexMetadata metadata = new IndexMetadata(name,UUID.randomUUID());
         
         metadata.setDeleteMarkers(true);
-//BTM
-ShardService dataService0 = helper.getDataService0();
-UUID dataService0UUID = null;
-if(dataService0 instanceof IService) {
-    dataService0UUID = ((IService)dataService0).getServiceUUID();
-} else {
-    dataService0UUID = ((Service)dataService0).getServiceUUID();
-}
-ShardService dataService1 = helper.getDataService1();
-UUID dataService1UUID = null;
-if(dataService1 instanceof IService) {
-    dataService1UUID = ((IService)dataService1).getServiceUUID();
-} else {
-    dataService1UUID = ((Service)dataService1).getServiceUUID();
-}
+
+//BTM - BEGIN ------------------------------------------------
+        int nWait = 3;
+        ShardService dataService0 = helper.getDataService0();
+        UUID dataService0UUID = null;
+
+        if (dataService0 == null) {
+            for(int i=0; i<nWait; i++) {
+                try { 
+                    Thread.sleep(1L*1000L); 
+                } catch (InterruptedException e) { }
+                dataService0 = helper.getDataService0();
+                if (dataService0 != null) break;
+            }
+        }
+        if (dataService0 != null) {
+            dataService0UUID = helper.getDataService0UUID();
+        }
+
+        ShardService dataService1 = helper.getDataService1();
+        UUID dataService1UUID = null;
+
+        if (dataService1 == null) {
+            for(int i=0; i<nWait; i++) {
+                try { 
+                    Thread.sleep(1L*1000L);
+                } catch (InterruptedException e) { }
+                dataService1 = helper.getDataService1();
+                if (dataService1 != null) break;
+            }
+        }
+        if (dataService1 != null) {
+            dataService1UUID = helper.getDataService1UUID();
+        }
+//BTM - END ---------------------------------------------------
+
         final UUID indexUUID = fed.registerIndex( metadata, //
                 // separator keys.
                 new byte[][] {
@@ -189,17 +210,14 @@ dataService1UUID
 
         final IIndex ndx = fed.getIndex(name, ITx.UNISOLATED);
 
-System.err.println("*** test_registerIndex2: assertEquals(indexUUID, ndx.getIndexMetadata().getIndexUUID()");
         assertEquals("indexUUID", indexUUID, ndx.getIndexMetadata().getIndexUUID());
 
         // verify partition 0 on dataService0
 //BTM        assertNotNull(helper.getDataService0().getIndexMetadata(DataService.getIndexPartitionName(name, 0), ITx.UNISOLATED));
-System.err.println("*** test_registerIndex2: assertNotNull 0");
 assertNotNull(((ShardManagement)dataService0).getIndexMetadata(Util.getIndexPartitionName(name, 0), ITx.UNISOLATED));
 
         // verify partition 1 on dataService1
 //BTM        assertNotNull(helper.getDataService1().getIndexMetadata(DataService.getIndexPartitionName(name, 1), ITx.UNISOLATED));
-System.err.println("*** test_registerIndex2: assertNotNull 1");
 assertNotNull(((ShardManagement)dataService1).getIndexMetadata(Util.getIndexPartitionName(name, 1), ITx.UNISOLATED));
 
         doBasicIndexTests(ndx);

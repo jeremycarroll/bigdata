@@ -19,12 +19,21 @@ import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 public class MagicAccessPath extends AbstractAccessPath<IMagicTuple> {
     
     private MagicTupleSerializer tupleSer;
     
     /** Relation (resolved lazily if not specified to the ctor). */
     private MagicRelation relation;
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    private IConcurrencyManager concurrencyManager;
+    private IBigdataDiscoveryManagement discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
 
     /**
      * Variant when the {@link SPORelation} has already been materialized.
@@ -46,9 +55,22 @@ public class MagicAccessPath extends AbstractAccessPath<IMagicTuple> {
             final IIndex ndx, final int flags, final int chunkOfChunksCapacity,
             final int chunkCapacity, final int fullyBufferedReadThreshold) {
 
-        this(relation.getIndexManager(), relation.getTimestamp(), predicate,
-                keyOrder, ndx, flags, chunkOfChunksCapacity, chunkCapacity,
-                fullyBufferedReadThreshold);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        this(relation.getIndexManager(), relation.getTimestamp(), predicate,
+//BTM - PRE_CLIENT_SERVICE                keyOrder, ndx, flags, chunkOfChunksCapacity, chunkCapacity,
+//BTM - PRE_CLIENT_SERVICE                fullyBufferedReadThreshold);
+        this(relation.getIndexManager(),
+             relation.getConcurrencyManager(),
+             relation.getDiscoveryManager(),
+             relation.getTimestamp(),
+             predicate,
+             keyOrder,
+             ndx,
+             flags,
+             chunkOfChunksCapacity,
+             chunkCapacity,
+             fullyBufferedReadThreshold);
+//BTM - PRE_CLIENT_SERVICE - END
 
         this.relation = relation;
         
@@ -69,16 +91,34 @@ public class MagicAccessPath extends AbstractAccessPath<IMagicTuple> {
      * @param chunkCapacity
      * @param fullyBufferedReadThreshold
      */
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public MagicAccessPath(final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            final long timestamp, final IPredicate<IMagicTuple> predicate,
+//BTM - PRE_CLIENT_SERVICE            final IKeyOrder<IMagicTuple> keyOrder, final IIndex ndx, final int flags,
+//BTM - PRE_CLIENT_SERVICE            final int chunkOfChunksCapacity, final int chunkCapacity,
+//BTM - PRE_CLIENT_SERVICE            final int fullyBufferedReadThreshold) {
     public MagicAccessPath(final IIndexManager indexManager,
-            final long timestamp, final IPredicate<IMagicTuple> predicate,
-            final IKeyOrder<IMagicTuple> keyOrder, final IIndex ndx, final int flags,
-            final int chunkOfChunksCapacity, final int chunkCapacity,
-            final int fullyBufferedReadThreshold) {
+                           final IConcurrencyManager concurrencyManager,
+                           final IBigdataDiscoveryManagement discoveryManager,
+                           final long timestamp,
+                           final IPredicate<IMagicTuple> predicate,
+                           final IKeyOrder<IMagicTuple> keyOrder,
+                           final IIndex ndx,
+                           final int flags,
+                           final int chunkOfChunksCapacity,
+                           final int chunkCapacity,
+                           final int fullyBufferedReadThreshold)
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         super(indexManager, timestamp, predicate, keyOrder, ndx, flags,
                 chunkOfChunksCapacity, chunkCapacity,
                 fullyBufferedReadThreshold);
         
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        this.concurrencyManager = concurrencyManager;
+        this.discoveryManager = discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
     }
     
     protected MagicTupleSerializer getTupleSerializer() {
@@ -136,8 +176,17 @@ public class MagicAccessPath extends AbstractAccessPath<IMagicTuple> {
         
         if (relation == null) {
             
-            relation = (MagicRelation) indexManager.getResourceLocator().locate(
-                    predicate.getOnlyRelationName(), timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            relation = (MagicRelation) indexManager.getResourceLocator().locate(
+//BTM - PRE_CLIENT_SERVICE                    predicate.getOnlyRelationName(), timestamp);
+            relation =
+                (MagicRelation) indexManager.getResourceLocator()
+                                    .locate(indexManager,
+                                            concurrencyManager,
+                                            discoveryManager,
+                                            predicate.getOnlyRelationName(),
+                                            timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
 
         }
 

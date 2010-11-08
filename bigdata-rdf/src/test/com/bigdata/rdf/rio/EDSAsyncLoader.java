@@ -135,8 +135,17 @@ public class EDSAsyncLoader {
 
             System.out.println("Opening KB: namespace=" + namespace);
 
-            ScaleOutTripleStore tripleStore = (ScaleOutTripleStore) fed
-                    .getResourceLocator().locate(namespace, ITx.UNISOLATED);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            ScaleOutTripleStore tripleStore = (ScaleOutTripleStore) fed
+//BTM - PRE_CLIENT_SERVICE                    .getResourceLocator().locate(namespace, ITx.UNISOLATED);
+            ScaleOutTripleStore tripleStore =
+                (ScaleOutTripleStore) fed.getResourceLocator()
+                     .locate((IIndexManager)fed,
+                             fed.getConcurrencyManager(),
+                             (IBigdataDiscoveryManagement)fed,
+                             namespace,
+                             ITx.UNISOLATED);
+//BTM - PRE_CLIENT_SERVICE - END
 
             if (tripleStore == null) {
 

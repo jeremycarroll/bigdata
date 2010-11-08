@@ -492,8 +492,17 @@ type (triple vs. NOT_EQUAL for example).
                     // get the proper relation for this predicate
                     IResourceLocator locator = 
                         focusStore.getIndexManager().getResourceLocator();
-                    MagicRelation relation = (MagicRelation) locator.locate(
-                            p.getOnlyRelationName(), focusStore.getTimestamp());
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE                    MagicRelation relation = (MagicRelation) locator.locate(
+//BTM - FOR_CLIENT_SERVICE                            p.getOnlyRelationName(), focusStore.getTimestamp());
+                    MagicRelation relation =
+                        (MagicRelation) locator.locate
+                             ( store.getIndexManager(),
+                               store.getConcurrencyManager(),
+                               store.getDiscoveryManager(),
+                               p.getOnlyRelationName(),
+                               focusStore.getTimestamp() );
+//BTM - FOR_CLIENT_SERVICE - END
                     MagicTuple tuple = new MagicTuple(p);
                     if (INFO) log.info("inserting magic tuple: " + tuple);
                     long numInserted = relation.insert(

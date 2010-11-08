@@ -98,7 +98,7 @@ public interface Constants {
          (IBigdataClient.Options.DEFAULT_CLIENT_MAX_PARALLEL_TASKS_PER_REQUEST);
 
     long LOWER_BOUND_TASK_TIMEOUT = 0;
-    long UPPER_BOUND_TASK_TIMEOUT = Integer.MAX_VALUE;
+    long UPPER_BOUND_TASK_TIMEOUT = Long.MAX_VALUE;
     long DEFAULT_TASK_TIMEOUT =
          Long.parseLong
          (IBigdataClient.Options.DEFAULT_CLIENT_TASK_TIMEOUT);

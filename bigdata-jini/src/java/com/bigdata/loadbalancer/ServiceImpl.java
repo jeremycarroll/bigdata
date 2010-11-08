@@ -120,7 +120,7 @@ class ServiceImpl implements PrivateInterface {
 
     private EmbeddedLoadBalancer embeddedLoadBalancer;
 
-    private Thread waitThread;
+//BTM    private Thread waitThread;
 
     /**
      * Constructor used to instantiate this service. This constructor is
@@ -419,8 +419,8 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
                    +", locators="
                    +Util.writeArrayElementsToString(locatorsToJoin));
 
-        waitThread = new Util.WaitOnInterruptThread(logger);
-        waitThread.start();
+//BTM        waitThread = new Util.WaitOnInterruptThread(logger);
+//BTM        waitThread.start();
 
         readyState.ready();//ready to accept calls from clients
     }
@@ -470,10 +470,10 @@ null,//BTM*** - remove uuid map when DataService converted to smart proxy?
                 serverExporter = null;
             }
 
-            waitThread.interrupt();
-            try {
-                waitThread.join();
-            } catch (InterruptedException e) {/*exiting, so swallow*/}
+//BTM            waitThread.interrupt();
+//BTM            try {
+//BTM                waitThread.join();
+//BTM            } catch (InterruptedException e) {/*exiting, so swallow*/}
 
             Util.cleanupOnExit(innerProxy,serverExporter,joinMgr,sdm,ldm);
 

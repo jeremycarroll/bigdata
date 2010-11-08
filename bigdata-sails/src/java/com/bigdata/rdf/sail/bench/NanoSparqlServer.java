@@ -101,6 +101,10 @@ import com.bigdata.util.httpd.NanoHTTPD;
 //BTM
 import com.bigdata.journal.TransactionService;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * A flyweight SPARQL endpoint using HTTP.
  * 
@@ -162,6 +166,11 @@ public class NanoSparqlServer extends AbstractHTTPD {
      * Provides access to the bigdata database.
      */
     private final IIndexManager indexManager;
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    private IConcurrencyManager concurrencyManager;
+    private IBigdataDiscoveryManagement discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
     
 	/**
 	 * @todo use to decide ASK, DESCRIBE, CONSTRUCT, SELECT, EXPLAIN, etc.
@@ -202,9 +211,18 @@ public class NanoSparqlServer extends AbstractHTTPD {
      */
     private final AtomicLong queryIdFactory = new AtomicLong(); 
     
-	public NanoSparqlServer(final Config config,
-			final IIndexManager indexManager) throws IOException,
-			SailException, RepositoryException {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE	public NanoSparqlServer(final Config config,
+//BTM - PRE_CLIENT_SERVICE			final IIndexManager indexManager) throws IOException,
+//BTM - PRE_CLIENT_SERVICE			SailException, RepositoryException {
+    public NanoSparqlServer
+               (final Config config,
+                final IIndexManager indexManager,
+                final IConcurrencyManager concurrencyManager,
+                final IBigdataDiscoveryManagement discoveryManager)
+               throws IOException, SailException, RepositoryException
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
 		super(config.port);
 
@@ -217,6 +235,11 @@ public class NanoSparqlServer extends AbstractHTTPD {
 		this.config = config;
 		
 		this.indexManager = indexManager;
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        this.concurrencyManager = concurrencyManager;
+        this.discoveryManager = discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
 		
 		// used to parse qeries.
         engine = new SPARQLParserFactory().getParser();
@@ -235,7 +258,7 @@ public class NanoSparqlServer extends AbstractHTTPD {
 
         }
 
-	}
+    }
 
 	/**
 	 * Return a list of the registered {@link AbstractTripleStore}s.
@@ -941,8 +964,17 @@ public class NanoSparqlServer extends AbstractHTTPD {
             throws RepositoryException {
         
         // resolve the default namespace.
-        final AbstractTripleStore tripleStore = (AbstractTripleStore) indexManager
-                .getResourceLocator().locate(namespace, timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final AbstractTripleStore tripleStore = (AbstractTripleStore) indexManager
+//BTM - PRE_CLIENT_SERVICE                .getResourceLocator().locate(namespace, timestamp);
+        final AbstractTripleStore tripleStore =
+                  (AbstractTripleStore) indexManager.getResourceLocator()
+                                            .locate(indexManager,
+                                                    concurrencyManager,
+                                                    discoveryManager,
+                                                    namespace,
+                                                    timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
 
         if (tripleStore == null) {
 
@@ -1417,7 +1449,15 @@ TransactionService txs = null;
             System.out.println("tx: " + config.timestamp);
 
 			// start the server.
-			server = new NanoSparqlServer(config, indexManager);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE			server = new NanoSparqlServer(config, indexManager);
+            server =
+                new NanoSparqlServer
+                 ( config,
+                   indexManager,
+                   jiniClient.getFederation().getConcurrencyManager(),
+                   (IBigdataDiscoveryManagement)(jiniClient.getFederation()) );
+//BTM - PRE_CLIENT_SERVICE - END
 
             /*
              * Install a shutdown hook so that the master will cancel any

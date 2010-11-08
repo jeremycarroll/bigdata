@@ -79,9 +79,16 @@ public class BigdataSailHelper {
                            final String namespace,
                            final long timestamp)
     {
+//BTM -        ScaleOutTripleStore tripleStore =
+//BTM -           (ScaleOutTripleStore) indexManager.getResourceLocator().locate
+//BTM -                                                       (namespace, timestamp);
         ScaleOutTripleStore tripleStore =
-           (ScaleOutTripleStore) indexManager.getResourceLocator().locate
-                                                       (namespace, timestamp);
+           (ScaleOutTripleStore) indexManager.getResourceLocator()
+                                             .locate(indexManager,
+                                                     concurrencyManager,
+                                                     discoveryManager,
+                                                     namespace,
+                                                     timestamp);
 //BTM - PRE_CLIENT_SERVICE - END
 
         if (tripleStore == null) {
@@ -142,8 +149,17 @@ public class BigdataSailHelper {
         System.err.println("createTime="+journal.getRootBlockView().getCreateTime());
         System.err.println("lastCommitTime="+journal.getLastCommitTime());
         
-        LocalTripleStore tripleStore = (LocalTripleStore) journal
-                .getResourceLocator().locate(namespace, timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        LocalTripleStore tripleStore = (LocalTripleStore) journal
+//BTM - PRE_CLIENT_SERVICE                .getResourceLocator().locate(namespace, timestamp);
+        LocalTripleStore tripleStore =
+            (LocalTripleStore) journal.getResourceLocator().locate
+                                   (journal,//Journal -> AbstractJournal -> IBTreeManager -> IIndexManager
+                                    journal,//Journal -> IConcurrencyManager
+                                    journal.getDiscoveryManager(),//returns null
+                                    namespace,
+                                    timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
         
         if (tripleStore == null) {
 

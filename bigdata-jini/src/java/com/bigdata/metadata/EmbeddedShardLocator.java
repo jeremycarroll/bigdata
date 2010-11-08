@@ -201,7 +201,7 @@ class EmbeddedShardLocator implements ShardLocator,
             new BigdataDiscoveryManager(sdm,
                                         embeddedTxnService,
                                         embeddedLoadBalancer,
-                                        null, //embeddedShardLocator
+                                        this, //embeddedShardLocator
                                         embeddedDataServiceMap,
                                         logger);
         this.localResources = 
@@ -628,7 +628,6 @@ logger.warn("\n*** EmbeddedShardLocator.rangeIterator: tx="+tx+", name="+name+",
             final String metadataIndexName = 
                              EmbeddedShardLocator.getMetadataIndexName
                                                       (scaleOutIndexName);
-
             final AbstractTask task = 
                 new RegisterScaleOutIndexTask(discoveryMgr,
                                               concurrencyMgr,
@@ -1274,12 +1273,10 @@ logger.warn("\nZZZZZ SHARD LOCATOR EmbeddedShardLocator.destroy POST-delete >>> 
         protected Object doTask() throws Exception {
             
             // the name of the metadata index itself.
-logger.warn("\n*** calling getOnlyResource");
             final String metadataName = getOnlyResource();
             
             // make sure there is no metadata index for that btree.
             try {
-logger.warn("\n*** calling getIndex("+metadataName+")");
                 getIndex(metadataName);
                 throw new IndexExistsException(metadataName);
             } catch(NoSuchIndexException ex) {

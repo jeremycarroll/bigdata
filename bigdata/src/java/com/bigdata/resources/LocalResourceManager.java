@@ -419,13 +419,17 @@ public class LocalResourceManager implements ILocalResourceManagement {
         }
 
         //false ==> allow in-progress tasks to complete
-        queueStatsTaskFuture.cancel(false);
+        if (queueStatsTaskFuture != null) {
+            queueStatsTaskFuture.cancel(false);
+        }
 
         Util.shutdownExecutorService
                  (scheduledExecutor, timeout,
                   serviceName+".scheduledExecutor", logger);
 
-        threadPool.shutdownNow();
+        if (threadPool != null) {
+            threadPool.shutdownNow();
+        }
 
         //send one last event report (same logic as in AbstractFederation)
         new EventQueueSenderTask

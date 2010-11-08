@@ -80,6 +80,7 @@ public class IndexCache extends AbstractIndexCache<IScaleOutClientIndex>{
     protected ClientIndexView newView(final String name, final long timestamp) {
         
 //BTM - PRE_CLIENT_SERVICE  final IMetadataIndex mdi = fed.getMetadataIndex(name, timestamp);
+log.warn("\nIndexCache.newView >>>> name="+name+", timestamp="+timestamp+", indexStore="+indexStore+"\n");
         final IMetadataIndex mdi =
                   indexStore.getMetadataIndex(name, timestamp);
 
@@ -121,7 +122,7 @@ log.warn("\nIndexCache.newView >>>> META_DATA INDEX = NULL\n");
 //BTM - PRE_CLIENT_SERVICE
 //BTM - PRE_CLIENT_SERVICE - because of different packages (com.bigdata.service vs com.bigdata.journal),
 //BTM - PRE_CLIENT_SERVICE - changed to public so that ScaleOutIndexManager can call dropIndexFromCache()
-//BTM - PRE_CLIENT_SERVICE - MetadataIndexCache it maintains
+//BTM - PRE_CLIENT_SERVICE - from the MetadataIndexCache it maintains
 //BTM - PRE_CLIENT_SERVICE
     public void dropIndexFromCache(String name,
                                    MetadataIndexCache metadataIndexCache)

@@ -50,6 +50,8 @@ import com.bigdata.service.ndx.pipeline.AbstractPendingSetMasterTask;
 import com.bigdata.service.ndx.pipeline.AbstractSubtask;
 
 //BTM - FOR_PRE_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.resources.ILocalResourceManagement;
 import com.bigdata.service.CallableExecutor;
@@ -115,7 +117,7 @@ HS extends ResourceBufferSubtaskStatistics //
     protected final long sinkChunkTimeoutNanos;
 
 //BTM - FOR_CLIENT_SERVICE
-    private ILocalResourceManagement localResourceManager;
+    private transient ILocalResourceManagement localResourceManager;
 
     /**
      * Internal state reflecting the resources which are in process. Resources
@@ -449,10 +451,11 @@ HS extends ResourceBufferSubtaskStatistics //
 //BTM - PRE_CLIENT_SERVICE        }
 //BTM - PRE_CLIENT_SERVICE
 //BTM - PRE_CLIENT_SERVICE    }
-
         public IAsynchronousClientTask startClientTask
                                (IIndexManager indexManager,
+                                IConcurrencyManager concurrencyManager,
                                 ILocalResourceManagement localResourceManager,
+                                IBigdataDiscoveryManagement discoveryManager,
                                 CallableExecutor embeddedCallableExecutor,
                                 ZooKeeper zookeeperClient,
                                 List<ACL> zookeeperAcl,
@@ -467,9 +470,9 @@ HS extends ResourceBufferSubtaskStatistics //
                        new BasicJeriExporter(TcpServerEndpoint.getInstance(0),
                                              new BasicILFactory(),
                                              ENABLE_DGC, KEEP_ALIVE);
-            Future futureStub = 
-                Util.wrapFuture( futureExporter,
-                                 embeddedCallableExecutor.submit(task) );
+            Future futureStub = futureStub =
+                   Util.wrapFuture( futureExporter,
+                                    embeddedCallableExecutor.submit(task) );
             task.setFuture(futureStub);
             return ((IAsynchronousClientTask)masterExporter.export(task));
         }

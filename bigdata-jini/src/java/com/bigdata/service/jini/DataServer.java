@@ -95,11 +95,11 @@ public class DataServer extends AbstractServer {
 
         super(args, lifeCycle);
 //BTM
-System.err.println("\n>>>> DataServer -----------------------------------------");
-for(int i=0; i<args.length; i++) {
-    System.err.println(">>>> DataServer args["+i+"] = "+args[i]);
-}
-System.err.println(">>>> DataServer -----------------------------------------\n");
+//com.bigdata.util.Util.printStr(dbgFlnm,"\n>>>> DataServer -----------------------------------------");
+//for(int i=0; i<args.length; i++) {
+//    com.bigdata.util.Util.printStr(dbgFlnm,">>>> DataServer args["+i+"] = "+args[i]);
+//}
+//com.bigdata.util.Util.printStr(dbgFlnm,">>>> DataServer -----------------------------------------\n");
     }
 
     /**

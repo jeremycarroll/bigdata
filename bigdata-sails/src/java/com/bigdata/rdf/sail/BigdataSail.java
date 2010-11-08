@@ -162,6 +162,8 @@ import cutthecrap.utils.striterators.Striterator;
 //BTM
 import com.bigdata.journal.TransactionService;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.relation.locator.IResourceLocator;
 /**
  * <p>
  * Sesame <code>2.x</code> integration.
@@ -638,8 +640,17 @@ final TransactionService txService =
             final long tx0 = txService.newTx(ITx.READ_COMMITTED);
 
             // verify kb does not exist (can not be located).
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE            final boolean create = 
+//BTM - FOR_CLIENT_SERVICE                journal.getResourceLocator().locate(namespace, tx0) == null;
             final boolean create = 
-                journal.getResourceLocator().locate(namespace, tx0) == null;
+                journal.getResourceLocator().locate
+                            ( lts.getIndexManager(),
+                              lts.getConcurrencyManager(),
+                              lts.getDiscoveryManager(),
+                              namespace,
+                              tx0 ) == null;
+//BTM - FOR_CLIENT_SERVICE - END
 
             txService.abort(tx0);
             
@@ -1172,10 +1183,21 @@ final TransactionService txService =
      */
     public BigdataSailConnection getReadOnlyConnection(long timestamp) {
         
-        AbstractTripleStore view = (AbstractTripleStore) database
-            .getIndexManager().getResourceLocator().locate(
-                    database.getNamespace(),
-                    TimestampUtility.asHistoricalRead(timestamp));
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE        AbstractTripleStore view = (AbstractTripleStore) database
+//BTM - FOR_CLIENT_SERVICE            .getIndexManager().getResourceLocator().locate(
+//BTM - FOR_CLIENT_SERVICE                    database.getNamespace(),
+//BTM - FOR_CLIENT_SERVICE                    TimestampUtility.asHistoricalRead(timestamp));
+        IIndexManager indexMgr = database.getIndexManager();
+        IResourceLocator locator = indexMgr.getResourceLocator();
+        AbstractTripleStore view =
+            (AbstractTripleStore) locator.locate
+                               (indexMgr,
+                                database.getConcurrencyManager(),
+                                database.getDiscoveryManager(),
+                                database.getNamespace(),
+                                TimestampUtility.asHistoricalRead(timestamp));
+//BTM - FOR_CLIENT_SERVICE - END
 
         return new BigdataSailConnection(view, null);
         
@@ -1229,8 +1251,18 @@ final TransactionService txService = ((Journal) indexManager)
                 
                 this.tx = txService.newTx(ITx.UNISOLATED);
 
-                final AbstractTripleStore txView = (AbstractTripleStore) indexManager
-                        .getResourceLocator().locate(namespace, tx);
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE                final AbstractTripleStore txView = (AbstractTripleStore) indexManager
+//BTM - FOR_CLIENT_SERVICE                        .getResourceLocator().locate(namespace, tx);
+                IResourceLocator locator = indexManager.getResourceLocator();
+                final AbstractTripleStore txView =
+                      (AbstractTripleStore) locator.locate
+                                            (indexManager,
+                                             database.getConcurrencyManager(),
+                                             database.getDiscoveryManager(),
+                                             namespace,
+                                             tx);
+//BTM - FOR_CLIENT_SERVICE - END
                 
                 attach(txView);
                 

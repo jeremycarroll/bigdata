@@ -37,6 +37,7 @@ import org.apache.log4j.Logger;
 import com.bigdata.Banner;
 
 //BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.resources.ILocalResourceManagement;
@@ -184,7 +185,9 @@ abstract public class ClientService extends AbstractService implements
             String zkRoot = fed.getZooConfig().zroot;
             return getFederation().getExecutorService().submit
                        ( new ClientTaskWrapper( (IIndexManager)fed,
+                                                fed.getConcurrencyManager(),
                                                 (ILocalResourceManagement)fed,
+                                                (IBigdataDiscoveryManagement)fed,
                                                 this,//embeddedCallableExecutor
                                                 task,
                                                 zkClient, zkAcl, zkRoot) );

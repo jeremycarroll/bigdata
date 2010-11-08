@@ -32,6 +32,11 @@ import com.bigdata.relation.IDatabase;
 import com.bigdata.relation.IRelation;
 import com.bigdata.service.IBigdataFederation;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+import com.bigdata.journal.IIndexManager;
+
 /**
  * An object that knows how to resolve a resource identifier (aka namespace) to
  * an {@link ILocatableResource} instance. "Locating" a relation means (a)
@@ -68,6 +73,13 @@ public interface IResourceLocator<T extends ILocatableResource> {
      *         <code>null</code> if the resource declaration could not be
      *         resolved.
      */
-    public T locate(String namespace, long timestamp);
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE    public T locate(String namespace, long timestamp);
+    public T locate(IIndexManager indexManager,
+                    IConcurrencyManager concurrencyManager,
+                    IBigdataDiscoveryManagement discoveryManager,
+                    String namespace,
+                    long timestamp);
+//BTM - FOR_CLIENT_SERVICE - END
     
 }

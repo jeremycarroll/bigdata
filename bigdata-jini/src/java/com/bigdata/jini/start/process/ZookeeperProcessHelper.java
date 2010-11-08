@@ -154,17 +154,15 @@ public class ZookeeperProcessHelper extends ProcessHelper {
         final ZookeeperServerConfiguration serverConfig = new ZookeeperServerConfiguration(
                 config);
 
-//BTM
-System.out.println("---- ZookeeperProcessHelper.startZookeeper: [localhost="+thisInetAddr.getHostName()+", clientPort="+serverConfig.clientPort+"] ----");
+//BTM log.warn("\n------------  ZookeeperProcessHelper.startZookeeper: [localhost="+thisInetAddr.getHostName()+", clientPort="+serverConfig.clientPort+"]\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n------------  ZookeeperProcessHelper.startZookeeper: [localhost="+thisInetAddr.getHostName()+", clientPort="+serverConfig.clientPort+"]\n");
+
         if (ZooHelper.isRunning(thisInetAddr, serverConfig.clientPort)) {
 
             if (log.isInfoEnabled())
                 log.info("Zookeeper already running: "
                         + thisInetAddr.getHostName()
                         + ":" + serverConfig.clientPort);
-//BTM
-System.out.println("---- ZookeeperProcessHelper.startZookeeper: Zookeeper ALREADY RUNNING on "+thisInetAddr.getHostName()+" ----");
-
             // will not consider start.
             return 0;
             
@@ -200,6 +198,8 @@ System.out.println("---- ZookeeperProcessHelper.startZookeeper: Zookeeper ALREAD
                     if (log.isInfoEnabled())
                         log.info("Will try to start: " + entry);
 
+//BTM log.warn("\n------------  ZookeeperProcessHelper.startZookeeper: Zookeeper Entry IS LOCAL HOST ["+entry+"] >>> newserviceStarter\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n------------  ZookeeperProcessHelper.startZookeeper: Zookeeper Entry IS LOCAL HOST ["+entry+"] >>> newServiceStarter\n");
                     serverConfig.newServiceStarter(listener, entry).call();
 
                     nstart++;
@@ -221,6 +221,8 @@ System.out.println("---- ZookeeperProcessHelper.startZookeeper: Zookeeper ALREAD
         if (log.isInfoEnabled())
             log.info("started=" + nstart + " instances");
 
+//BTM log.warn("\n------------  ZookeeperProcessHelper.startZookeeper: STARTED "+nstart+" ZOOKEEPER INSTANCE(S)\n");
+//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n------------  ZookeeperProcessHelper.startZookeeper: STARTED "+nstart+" ZOOKEEPER INSTANCE(S)\n");
         return nstart;
 
     }

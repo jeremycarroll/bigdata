@@ -40,6 +40,10 @@ import com.bigdata.relation.rule.IVariableOrConstant;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.IKeyOrder;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * {@link IAccessPath} implementation for an {@link SPORelation}.
  * 
@@ -52,6 +56,11 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
 
     /** Relation (resolved lazily if not specified to the ctor). */
     private SPORelation                 relation;
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+    private IConcurrencyManager concurrencyManager;
+    private IBigdataDiscoveryManagement discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
 
     /**
      * Variant when the {@link SPORelation} has already been materialized.
@@ -72,9 +81,22 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
             final IIndex ndx, final int flags, final int chunkOfChunksCapacity,
             final int chunkCapacity, final int fullyBufferedReadThreshold) {
 
-        this(relation.getIndexManager(), relation.getTimestamp(), predicate,
-                keyOrder, ndx, flags, chunkOfChunksCapacity, chunkCapacity,
-                fullyBufferedReadThreshold);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        this(relation.getIndexManager(), relation.getTimestamp(), predicate,
+//BTM - PRE_CLIENT_SERVICE                keyOrder, ndx, flags, chunkOfChunksCapacity, chunkCapacity,
+//BTM - PRE_CLIENT_SERVICE                fullyBufferedReadThreshold);
+        this(relation.getIndexManager(),
+             relation.getConcurrencyManager(),
+             relation.getDiscoveryManager(),
+             relation.getTimestamp(),
+             predicate,
+             keyOrder,
+             ndx,
+             flags,
+             chunkOfChunksCapacity,
+             chunkCapacity,
+             fullyBufferedReadThreshold);
+//BTM - PRE_CLIENT_SERVICE - END
 
         this.relation = relation;
 
@@ -95,16 +117,34 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
      * @param chunkCapacity
      * @param fullyBufferedReadThreshold
      */
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public SPOAccessPath(final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE            final long timestamp, final IPredicate<ISPO> predicate,
+//BTM - PRE_CLIENT_SERVICE            final IKeyOrder<ISPO> keyOrder, final IIndex ndx, final int flags,
+//BTM - PRE_CLIENT_SERVICE            final int chunkOfChunksCapacity, final int chunkCapacity,
+//BTM - PRE_CLIENT_SERVICE            final int fullyBufferedReadThreshold) {
     public SPOAccessPath(final IIndexManager indexManager,
-            final long timestamp, final IPredicate<ISPO> predicate,
-            final IKeyOrder<ISPO> keyOrder, final IIndex ndx, final int flags,
-            final int chunkOfChunksCapacity, final int chunkCapacity,
-            final int fullyBufferedReadThreshold) {
+                         final IConcurrencyManager concurrencyManager,
+                         final IBigdataDiscoveryManagement discoveryManager,
+                         final long timestamp,
+                         final IPredicate<ISPO> predicate,
+                         final IKeyOrder<ISPO> keyOrder,
+                         final IIndex ndx,
+                         final int flags,
+                         final int chunkOfChunksCapacity,
+                         final int chunkCapacity,
+                         final int fullyBufferedReadThreshold)
+    {
+//BTM - PRE_CLIENT_SERVICE - END
 
         super(indexManager, timestamp, predicate, keyOrder, ndx, flags,
                 chunkOfChunksCapacity, chunkCapacity,
                 fullyBufferedReadThreshold);
 
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        this.concurrencyManager = concurrencyManager;
+        this.discoveryManager = discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
     }
 
     /**
@@ -224,8 +264,17 @@ public class SPOAccessPath extends AbstractAccessPath<ISPO> {
 
         if (relation == null) {
 
-            relation = (SPORelation) indexManager.getResourceLocator().locate(
-                    predicate.getOnlyRelationName(), timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            relation = (SPORelation) indexManager.getResourceLocator().locate(
+//BTM - PRE_CLIENT_SERVICE                    predicate.getOnlyRelationName(), timestamp);
+            relation = 
+                (SPORelation) indexManager.getResourceLocator()
+                                  .locate(indexManager,
+                                          concurrencyManager,
+                                          discoveryManager,
+                                          predicate.getOnlyRelationName(),
+                                          timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
 
         }
 

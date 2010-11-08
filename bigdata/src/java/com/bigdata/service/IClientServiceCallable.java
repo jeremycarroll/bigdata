@@ -17,6 +17,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.service;
 
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.resources.ILocalResourceManagement;
 
@@ -50,7 +52,9 @@ public interface IClientServiceCallable<V> extends Serializable {
      * @throws Exception if unable to compute a result
      */
     V startClientTask(IIndexManager indexManager,
+                      IConcurrencyManager concurrencyManager,
                       ILocalResourceManagement localResourceManager,
+                      IBigdataDiscoveryManagement discoveryManager,
                       CallableExecutor embeddedCallableExecutor,
                       ZooKeeper zookeeperClient,
                       List<ACL> zookeeperAcl,

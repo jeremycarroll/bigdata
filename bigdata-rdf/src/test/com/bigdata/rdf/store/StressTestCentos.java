@@ -90,13 +90,23 @@ public class StressTestCentos extends AbstractTripleStoreTestCase {
                 
                 store.commit();
 
-                AbstractTripleStore readStore = (AbstractTripleStore) store
-                        .getIndexManager()
-                        .getResourceLocator()
-                        .locate(
-                                store.getNamespace(),
-                                TimestampUtility.asHistoricalRead(store
-                                        .getIndexManager().getLastCommitTime()));
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                AbstractTripleStore readStore = (AbstractTripleStore) store
+//BTM - PRE_CLIENT_SERVICE                        .getIndexManager()
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator()
+//BTM - PRE_CLIENT_SERVICE                        .locate(
+//BTM - PRE_CLIENT_SERVICE                                store.getNamespace(),
+//BTM - PRE_CLIENT_SERVICE                                TimestampUtility.asHistoricalRead(store
+//BTM - PRE_CLIENT_SERVICE                                        .getIndexManager().getLastCommitTime()));
+                AbstractTripleStore readStore =
+             (AbstractTripleStore) store.getIndexManager().getResourceLocator()
+                      .locate(store.getIndexManager(),
+                              store.getConcurrencyManager(),
+                              store.getDiscoveryManager(),
+                              store.getNamespace(),
+                              TimestampUtility.asHistoricalRead
+                                (store.getIndexManager().getLastCommitTime()));
+//BTM - PRE_CLIENT_SERVICE - END
 
                 /*
                  * Verify the #of statements in the most recently written graph.

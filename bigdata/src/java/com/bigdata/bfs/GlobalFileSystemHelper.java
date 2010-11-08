@@ -107,14 +107,30 @@ public class GlobalFileSystemHelper {
     /**
      * {@link ITx#READ_COMMITTED} view.
      */
-    public BigdataFileSystem getReadCommitted() {
-
-        if (INFO)
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE    public BigdataFileSystem getReadCommitted() {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        if (INFO)
+//BTM - PRE_CLIENT_SERVICE            log.info("");
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE        return (BigdataFileSystem) indexManager.getResourceLocator().locate(
+//BTM - PRE_CLIENT_SERVICE                GLOBAL_FILE_SYSTEM_NAMESPACE, ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE    }
+    public BigdataFileSystem getReadCommitted
+                                (IConcurrencyManager concurrencyManager,
+                                 IBigdataDiscoveryManagement discoveryManager)
+    {
+        if (INFO) {
             log.info("");
-
-        return (BigdataFileSystem) indexManager.getResourceLocator().locate(
-                GLOBAL_FILE_SYSTEM_NAMESPACE, ITx.READ_COMMITTED);
-
+        }
+        return (BigdataFileSystem) indexManager.getResourceLocator()
+                    .locate( indexManager,
+                             concurrencyManager,
+                             discoveryManager,
+                             GLOBAL_FILE_SYSTEM_NAMESPACE,
+                             ITx.READ_COMMITTED );
     }
+//BTM - PRE_CLIENT_SERVICE - END
 
 }

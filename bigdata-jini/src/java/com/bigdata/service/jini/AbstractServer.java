@@ -2120,7 +2120,6 @@ System.out.println(  "AAAAA AbstractServer.notifyZookeeper: NODE EXISTS ---> upd
                 throw new IllegalArgumentException();
             
             this.server = server;
-System.out.println("\nAAAAA AbstractServer.ShutdownThread constructor ---> server = "+this.server+"\n");
             
             setDaemon(true);
             
@@ -2139,7 +2138,6 @@ System.out.println("\nAAAAA AbstractServer.ShutdownThread constructor ---> serve
                  * service and termination of jini processing.
                  */
                 
-System.out.println("\nAAAAA AbstractServer.ShutdownThread run ---> server.shutdownNow [server = "+this.server+"]\n]");
                 server.shutdownNow(false/* destroy */);
                 
             } catch (Exception ex) {

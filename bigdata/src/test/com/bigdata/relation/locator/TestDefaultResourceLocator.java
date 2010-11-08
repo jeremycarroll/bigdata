@@ -137,17 +137,52 @@ public class TestDefaultResourceLocator extends TestCase2 {
             assertNotNull(mockRelation.getIndex());
 
             {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                /*
+//BTM - PRE_CLIENT_SERVICE                 * Should be locatable now since the writes on the global row
+//BTM - PRE_CLIENT_SERVICE                 * store are unisolated (ah!, but only if you are using the
+//BTM - PRE_CLIENT_SERVICE                 * concurrency control API)
+//BTM - PRE_CLIENT_SERVICE                 */
+//BTM - PRE_CLIENT_SERVICE                assertNotNull(store.getResourceLocator().locate(namespace,
+//BTM - PRE_CLIENT_SERVICE                        ITx.UNISOLATED));
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                // a request for the unisolated view gives us the same instance.
+//BTM - PRE_CLIENT_SERVICE                assertTrue(((MockRelation) store.getResourceLocator().locate(
+//BTM - PRE_CLIENT_SERVICE                        namespace, ITx.UNISOLATED)) == mockRelation);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                /*
+//BTM - PRE_CLIENT_SERVICE                 * the read-committed relation is also locatable since its in
+//BTM - PRE_CLIENT_SERVICE                 * the global row store but it will not see the indices until
+//BTM - PRE_CLIENT_SERVICE                 * (a) they have been created; and (b) there has been a commit
+//BTM - PRE_CLIENT_SERVICE                 * of the journal.
+//BTM - PRE_CLIENT_SERVICE                 */
+//BTM - PRE_CLIENT_SERVICE                assertNotNull(store.getResourceLocator().locate(namespace,
+//BTM - PRE_CLIENT_SERVICE                        ITx.READ_COMMITTED));
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                // a request for the read committed view is not the same
+//BTM - PRE_CLIENT_SERVICE                // instance as the unisolated view.
+//BTM - PRE_CLIENT_SERVICE                assertTrue(((MockRelation) store.getResourceLocator().locate(
+//BTM - PRE_CLIENT_SERVICE                        namespace, ITx.READ_COMMITTED)) != mockRelation);
+//BTM - PRE_CLIENT_SERVICE
                 /*
                  * Should be locatable now since the writes on the global row
                  * store are unisolated (ah!, but only if you are using the
                  * concurrency control API)
                  */
-                assertNotNull(store.getResourceLocator().locate(namespace,
-                        ITx.UNISOLATED));
+                assertNotNull(store.getResourceLocator()
+                                   .locate(store,//IIndexManager
+                                           store,//IConcurrencyManager
+                                           store.getDiscoveryManager(),
+                                           namespace,
+                                          ITx.UNISOLATED));
 
                 // a request for the unisolated view gives us the same instance.
-                assertTrue(((MockRelation) store.getResourceLocator().locate(
-                        namespace, ITx.UNISOLATED)) == mockRelation);
+                assertTrue(((MockRelation) store.getResourceLocator() 
+                               .locate(store,//IIndexManager
+                                       store,//IConcurrencyManager
+                                       store.getDiscoveryManager(),
+                                       namespace,
+                                       ITx.UNISOLATED)) == mockRelation);
 
                 /*
                  * the read-committed relation is also locatable since its in
@@ -155,26 +190,102 @@ public class TestDefaultResourceLocator extends TestCase2 {
                  * (a) they have been created; and (b) there has been a commit
                  * of the journal.
                  */
-                assertNotNull(store.getResourceLocator().locate(namespace,
-                        ITx.READ_COMMITTED));
+                assertNotNull(store.getResourceLocator()
+                                   .locate(store,//IIndexManager
+                                           store,//IConcurrencyManager
+                                           store.getDiscoveryManager(),
+                                           namespace,
+                                           ITx.READ_COMMITTED));
 
                 // a request for the read committed view is not the same
                 // instance as the unisolated view.
-                assertTrue(((MockRelation) store.getResourceLocator().locate(
-                        namespace, ITx.READ_COMMITTED)) != mockRelation);
-
+                assertTrue(((MockRelation) store.getResourceLocator()
+                               .locate(store,//IIndexManager
+                                       store,//IConcurrencyManager
+                                       store.getDiscoveryManager(),
+                                       namespace,
+                                       ITx.READ_COMMITTED)) != mockRelation);
+//BTM - PRE_CLIENT_SERVICE - END
             }
             
             {
-
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                // a request for the unisolated view shows that the index
+//BTM - PRE_CLIENT_SERVICE                // exists.
+//BTM - PRE_CLIENT_SERVICE                assertNotNull(((MockRelation) store.getResourceLocator()
+//BTM - PRE_CLIENT_SERVICE                        .locate(namespace, ITx.UNISOLATED)).getIndex());
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                // a request for the unisolated view gives us the same instance.
+//BTM - PRE_CLIENT_SERVICE                assertTrue(((MockRelation) store.getResourceLocator().locate(
+//BTM - PRE_CLIENT_SERVICE                        namespace, ITx.UNISOLATED)) == mockRelation);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                /*
+//BTM - PRE_CLIENT_SERVICE                 * @todo The read-committed view still does not see the relation
+//BTM - PRE_CLIENT_SERVICE                 * since there has not been a commit yet after the index was
+//BTM - PRE_CLIENT_SERVICE                 * created.
+//BTM - PRE_CLIENT_SERVICE                 */
+//BTM - PRE_CLIENT_SERVICE                if(false) {
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                assertNull(((MockRelation) store.getResourceLocator().locate(
+//BTM - PRE_CLIENT_SERVICE                        namespace, ITx.READ_COMMITTED)));
+//BTM - PRE_CLIENT_SERVICE            
+//BTM - PRE_CLIENT_SERVICE                final MockRelation readCommittedView1 = (MockRelation) store
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator().locate(namespace,
+//BTM - PRE_CLIENT_SERVICE                                ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                // same view before a commit.
+//BTM - PRE_CLIENT_SERVICE                assertTrue(readCommittedView1 == (MockRelation) store
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator().locate(namespace,
+//BTM - PRE_CLIENT_SERVICE                                ITx.READ_COMMITTED));
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                
+//BTM - PRE_CLIENT_SERVICE                // commit
+//BTM - PRE_CLIENT_SERVICE                store.commit();
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE                /*
+//BTM - PRE_CLIENT_SERVICE                 * should be a new read-committed view
+//BTM - PRE_CLIENT_SERVICE                 * 
+//BTM - PRE_CLIENT_SERVICE                 * FIXME cache must be defeated for read-committed!!! at least
+//BTM - PRE_CLIENT_SERVICE                 * if there HAS been a commit
+//BTM - PRE_CLIENT_SERVICE                 */
+//BTM - PRE_CLIENT_SERVICE                final MockRelation readCommittedView2 = (MockRelation) store
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator().locate(namespace,
+//BTM - PRE_CLIENT_SERVICE                                ITx.READ_COMMITTED);
+//BTM - PRE_CLIENT_SERVICE        
+//BTM - PRE_CLIENT_SERVICE                // different view after a commit.
+//BTM - PRE_CLIENT_SERVICE                assertTrue(readCommittedView1 != readCommittedView2);
+//BTM - PRE_CLIENT_SERVICE                
+//BTM - PRE_CLIENT_SERVICE                /*
+//BTM - PRE_CLIENT_SERVICE                 * The index is now visible to the read committed view.
+//BTM - PRE_CLIENT_SERVICE                 */
+//BTM - PRE_CLIENT_SERVICE                assertNull(readCommittedView2.getIndex());
+//BTM - PRE_CLIENT_SERVICE                
+//BTM - PRE_CLIENT_SERVICE                // still not visible to the old view.
+//BTM - PRE_CLIENT_SERVICE                assertNull(readCommittedView1.getIndex());
+//BTM - PRE_CLIENT_SERVICE                
+//BTM - PRE_CLIENT_SERVICE                // another request gives us the same view
+//BTM - PRE_CLIENT_SERVICE                assertTrue(readCommittedView2 == (MockRelation) store
+//BTM - PRE_CLIENT_SERVICE                        .getResourceLocator().locate(namespace,
+//BTM - PRE_CLIENT_SERVICE                                ITx.READ_COMMITTED));
+//BTM - PRE_CLIENT_SERVICE                
+//BTM - PRE_CLIENT_SERVICE                }
                 // a request for the unisolated view shows that the index
                 // exists.
                 assertNotNull(((MockRelation) store.getResourceLocator()
-                        .locate(namespace, ITx.UNISOLATED)).getIndex());
+                                 .locate(store,//IIndexManager
+                                         store,//IConcurrencyManager
+                                         store.getDiscoveryManager(),
+                                         namespace,
+                                         ITx.UNISOLATED)).getIndex());
 
                 // a request for the unisolated view gives us the same instance.
-                assertTrue(((MockRelation) store.getResourceLocator().locate(
-                        namespace, ITx.UNISOLATED)) == mockRelation);
+                assertTrue(((MockRelation) store.getResourceLocator()
+                              .locate(store,//IIndexManager
+                                      store,//IConcurrencyManager
+                                      store.getDiscoveryManager(),
+                                      namespace,
+                                      ITx.UNISOLATED)) == mockRelation);
 
                 /*
                  * @todo The read-committed view still does not see the relation
@@ -183,49 +294,70 @@ public class TestDefaultResourceLocator extends TestCase2 {
                  */
                 if(false) {
 
-                assertNull(((MockRelation) store.getResourceLocator().locate(
-                        namespace, ITx.READ_COMMITTED)));
+                    assertNull(((MockRelation) store.getResourceLocator()
+                                  .locate(store,//IIndexManager
+                                          store,//IConcurrencyManager
+                                          store.getDiscoveryManager(),
+                                          namespace,
+                                          ITx.READ_COMMITTED)));
             
-                final MockRelation readCommittedView1 = (MockRelation) store
-                        .getResourceLocator().locate(namespace,
-                                ITx.READ_COMMITTED);
+                    final MockRelation readCommittedView1 =
+                          (MockRelation) store.getResourceLocator()
+                              .locate(store,//IIndexManager
+                                      store,//IConcurrencyManager
+                                      store.getDiscoveryManager(),
+                                      namespace,
+                                      ITx.READ_COMMITTED);
 
-                // same view before a commit.
-                assertTrue(readCommittedView1 == (MockRelation) store
-                        .getResourceLocator().locate(namespace,
-                                ITx.READ_COMMITTED));
+                    // same view before a commit.
+                    assertTrue( readCommittedView1 ==
+                                 (MockRelation) store.getResourceLocator()
+                                      .locate(store,//IIndexManager
+                                              store,//IConcurrencyManager
+                                              store.getDiscoveryManager(),
+                                              namespace,
+                                              ITx.READ_COMMITTED) );
 
                 
-                // commit
-                store.commit();
+                    // commit
+                    store.commit();
 
-                /*
-                 * should be a new read-committed view
-                 * 
-                 * FIXME cache must be defeated for read-committed!!! at least
-                 * if there HAS been a commit
-                 */
-                final MockRelation readCommittedView2 = (MockRelation) store
-                        .getResourceLocator().locate(namespace,
-                                ITx.READ_COMMITTED);
+                    /*
+                     * should be a new read-committed view
+                     * 
+                     * FIXME cache must be defeated for read-committed!!! at least
+                     * if there HAS been a commit
+                     */
+                    final MockRelation readCommittedView2 =
+                              (MockRelation) store.getResourceLocator()
+                                   .locate(store,//IIndexManager
+                                           store,//IConcurrencyManager
+                                           store.getDiscoveryManager(),
+                                           namespace,
+                                           ITx.READ_COMMITTED);
         
-                // different view after a commit.
-                assertTrue(readCommittedView1 != readCommittedView2);
+                    // different view after a commit.
+                    assertTrue(readCommittedView1 != readCommittedView2);
                 
-                /*
-                 * The index is now visible to the read committed view.
-                 */
-                assertNull(readCommittedView2.getIndex());
+                    /*
+                     * The index is now visible to the read committed view.
+                     */
+                    assertNull(readCommittedView2.getIndex());
                 
-                // still not visible to the old view.
-                assertNull(readCommittedView1.getIndex());
+                    // still not visible to the old view.
+                    assertNull(readCommittedView1.getIndex());
                 
-                // another request gives us the same view
-                assertTrue(readCommittedView2 == (MockRelation) store
-                        .getResourceLocator().locate(namespace,
-                                ITx.READ_COMMITTED));
+                    // another request gives us the same view
+                    assertTrue( readCommittedView2 ==
+                                 (MockRelation) store.getResourceLocator()
+                                      .locate(store,//IIndexManager
+                                              store,//IConcurrencyManager
+                                              store.getDiscoveryManager(),
+                                              namespace,
+                                              ITx.READ_COMMITTED) );
                 
-                }
+                }//endif(false)
+//BTM - PRE_CLIENT_SERVICE - END
 
             }
             

@@ -280,13 +280,25 @@ public class RDFJoinNexus implements IJoinNexus {
 
         public RuleStats newInstance(IStep step) {
             
-            return new RDFRuleStats(step);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            return new RDFRuleStats(step);
+            return new RDFRuleStats(concurrencyManager,
+                                    discoveryManager,
+                                    step);
+//BTM - PRE_CLIENT_SERVICE - END
             
         }
 
         public RuleStats newInstance(IRuleState ruleState) {
          
-            return new RDFRuleStats(null, readTimestamp, ruleState);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            return new RDFRuleStats(null, readTimestamp, ruleState);
+            return new RDFRuleStats(null,//indexManager
+                                    concurrencyManager,
+                                    discoveryManager,
+                                    readTimestamp,
+                                    ruleState);
+//BTM - PRE_CLIENT_SERVICE - END
 
         }
         
@@ -302,12 +314,21 @@ public class RDFJoinNexus implements IJoinNexus {
          */
         public RuleStats newInstancex(IRuleState ruleState) {
             
-            return new RDFRuleStats(
-                    (indexManager instanceof IBigdataFederation ? null
-                            : indexManager), //
-                        readTimestamp, //
-                        ruleState//
-                        );
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            return new RDFRuleStats(
+//BTM - PRE_CLIENT_SERVICE                    (indexManager instanceof IBigdataFederation ? null
+//BTM - PRE_CLIENT_SERVICE                            : indexManager), //
+//BTM - PRE_CLIENT_SERVICE                        readTimestamp, //
+//BTM - PRE_CLIENT_SERVICE                        ruleState//
+//BTM - PRE_CLIENT_SERVICE                        );
+            return new RDFRuleStats
+                           ( (indexManager instanceof IBigdataFederation ?
+                                           null : indexManager),
+                             concurrencyManager,
+                             discoveryManager,
+                             readTimestamp,
+                             ruleState );
+//BTM - PRE_CLIENT_SERVICE - END
             
         }
         
@@ -321,8 +342,19 @@ public class RDFJoinNexus implements IJoinNexus {
 
         private final IIndexManager indexManager;
         private final long timestamp;
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        private final IConcurrencyManager concurrencyManager;
+        private final IBigdataDiscoveryManagement discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
+
         
-        public RDFRuleStats(IStep step) {
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public RDFRuleStats(IStep step) {
+        public RDFRuleStats(IConcurrencyManager concurrencyManager,
+                            IBigdataDiscoveryManagement discoveryManager,
+                            IStep step) {
+//BTM - PRE_CLIENT_SERVICE - END
 
             super(step);
 
@@ -330,6 +362,10 @@ public class RDFJoinNexus implements IJoinNexus {
             
             timestamp = 0L; // ignored.
             
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+            this.concurrencyManager = concurrencyManager;
+            this.discoveryManager = discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
         }
         
         /**
@@ -341,8 +377,16 @@ public class RDFJoinNexus implements IJoinNexus {
          * 
          * @param ruleState
          */
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        public RDFRuleStats(final IIndexManager indexManager,
+//BTM - PRE_CLIENT_SERVICE                final long timestamp, final IRuleState ruleState) {
         public RDFRuleStats(final IIndexManager indexManager,
-                final long timestamp, final IRuleState ruleState) {
+                            final IConcurrencyManager concurrencyManager,
+                            final IBigdataDiscoveryManagement discoveryManager,
+                            final long timestamp,
+                            final IRuleState ruleState)
+        {
+//BTM - PRE_CLIENT_SERVICE - END
 
             super(ruleState);
 
@@ -350,6 +394,10 @@ public class RDFJoinNexus implements IJoinNexus {
             
             this.timestamp = timestamp;
             
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+            this.concurrencyManager = concurrencyManager;
+            this.discoveryManager = discoveryManager;
+//BTM - FOR_CLIENT_SERVICE - END
         }
 
         @SuppressWarnings("unchecked")
@@ -362,9 +410,18 @@ public class RDFJoinNexus implements IJoinNexus {
                 
             }
 
-            final SPORelation spoRelation = (SPORelation) indexManager
-                    .getResourceLocator().locate(pred.getRelationName(0),
-                            timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final SPORelation spoRelation = (SPORelation) indexManager
+//BTM - PRE_CLIENT_SERVICE                    .getResourceLocator().locate(pred.getRelationName(0),
+//BTM - PRE_CLIENT_SERVICE                            timestamp);
+            final SPORelation spoRelation =
+                      (SPORelation) indexManager.getResourceLocator()
+                                        .locate(indexManager,
+                                                concurrencyManager,
+                                                discoveryManager,
+                                                pred.getRelationName(0),
+                                                timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
 
             final AbstractTripleStore db = spoRelation.getContainer();
 
@@ -702,8 +759,18 @@ public class RDFJoinNexus implements IJoinNexus {
         final long timestamp = (getAction().isMutation() ? getWriteTimestamp()
                 : getReadTimestamp(/*relationName*/));
 
-        final IRelation relation = (IRelation) resourceLocator.locate(
-                relationName, timestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final IRelation relation = (IRelation) resourceLocator.locate(
+//BTM - PRE_CLIENT_SERVICE                relationName, timestamp);
+        final IRelation relation =
+                  (IRelation) resourceLocator.locate
+                                  (getIndexManager(),
+                                   getConcurrencyManager(),
+                                   getDiscoveryManager(),
+                                   relationName,
+                                   timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
+
         
         if(DEBUG) {
             
@@ -737,8 +804,19 @@ public class RDFJoinNexus implements IJoinNexus {
 
             final String relationName = pred.getOnlyRelationName();
 
-            relation = (IRelation) resourceLocator.locate(relationName,
-                    readTimestamp);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            relation = (IRelation) resourceLocator.locate(relationName,
+//BTM - PRE_CLIENT_SERVICE                    readTimestamp);
+            relation =
+                (IRelation) resourceLocator.locate
+                                (getIndexManager(),
+                                 getConcurrencyManager(),
+                                 getDiscoveryManager(),
+                                 relationName,
+                                 readTimestamp);
+//BTM - PRE_CLIENT_SERVICE - END
+
+
                 
         } else if (nsources == 2) {
 
@@ -750,11 +828,29 @@ public class RDFJoinNexus implements IJoinNexus {
 //
 //            final long timestamp1 = getReadTimestamp(/*relationName1*/);
 
-            final IRelation relation0 = (IRelation) resourceLocator.locate(
-                    relationName0, readTimestamp);//timestamp0);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE            final IRelation relation0 = (IRelation) resourceLocator.locate(
+//BTM - PRE_CLIENT_SERVICE                    relationName0, readTimestamp);//timestamp0);
+//BTM - PRE_CLIENT_SERVICE
+//BTM - PRE_CLIENT_SERVICE            final IRelation relation1 = (IRelation) resourceLocator.locate(
+//BTM - PRE_CLIENT_SERVICE                    relationName1, readTimestamp);//timestamp1);
+            final IRelation relation0 =
+                      (IRelation) resourceLocator.locate
+                                      (getIndexManager(),
+                                       getConcurrencyManager(),
+                                       getDiscoveryManager(),
+                                       relationName0,
+                                       readTimestamp);//timestamp0);
 
-            final IRelation relation1 = (IRelation) resourceLocator.locate(
-                    relationName1, readTimestamp);//timestamp1);
+            final IRelation relation1 =
+                      (IRelation) resourceLocator.locate
+                                      (getIndexManager(),
+                                       getConcurrencyManager(),
+                                       getDiscoveryManager(),
+                                       relationName1,
+                                       readTimestamp);//timestamp1);
+//BTM - PRE_CLIENT_SERVICE - END
+
 
             relation = new RelationFusedView(relation0, relation1).init();
 
@@ -974,10 +1070,19 @@ public class RDFJoinNexus implements IJoinNexus {
         final long timestamp = getReadTimestamp();
 
         // Note: assumes that we are NOT using a view of two relations.
+//BTM - PRE_CLIENT_SERVICE - BEGIN
 //BTM - PRE_CLIENT_SERVICE  final IRelation relation = (IRelation) fed.getResourceLocator().locate(predicate.getOnlyRelationName(), timestamp);
+//BTM -         final IRelation relation =
+//BTM -                   (IRelation) indexManager.getResourceLocator().locate
+//BTM -                                   (predicate.getOnlyRelationName(), timestamp);
         final IRelation relation =
-                  (IRelation) indexManager.getResourceLocator().locate
-                                  (predicate.getOnlyRelationName(), timestamp);
+                  (IRelation) indexManager.getResourceLocator()
+                                      .locate(getIndexManager(),
+                                              getConcurrencyManager(),
+                                              getDiscoveryManager(),
+                                              predicate.getOnlyRelationName(),
+                                              timestamp);
+//BTM - PRE_CLIENT_SERVICE - END
 
         /*
          * Find the best access path for the predicate for that relation.
