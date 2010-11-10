@@ -317,7 +317,7 @@ abstract public class AbstractTransactionService extends AbstractService
      * until existing transactions (both read-write and read-only) are complete
      * (either aborted or committed).
      */
-    public void shutdown0() {
+    public void shutdown() {
 
         if(log.isInfoEnabled()) 
             log.info("");
@@ -338,8 +338,7 @@ abstract public class AbstractTransactionService extends AbstractService
             try {
 
                 // wait for running transactions to complete.
-//BTM - FOR_CLIENT_SERVICE               awaitRunningTx(10/* logTimeout */, TimeUnit.MILLISECONDS);
-awaitRunningTx(10L*1000L/* logTimeout */, TimeUnit.MILLISECONDS);
+                awaitRunningTx(10/* logTimeout */, TimeUnit.MILLISECONDS);
 
             } catch (InterruptedException ex) {
 
