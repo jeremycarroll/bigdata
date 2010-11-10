@@ -502,12 +502,7 @@ public class RDFJoinNexus implements IJoinNexus {
         if (indexManager == null)
             throw new IllegalArgumentException();
 //BTM - FOR_CLIENT_SERVICE - BEGIN
-        if (concurrencyManager == null) {
-            throw new IllegalArgumentException("null concurrencyManager");
-        }
-        if (discoveryManager == null) {
-            throw new IllegalArgumentException("null discoveryManager");
-        }
+        //allowed to be null
         this.concurrencyManager = concurrencyManager;
         this.discoveryManager = discoveryManager;
 //BTM - FOR_CLIENT_SERVICE - END

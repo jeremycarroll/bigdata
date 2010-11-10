@@ -163,6 +163,8 @@ import cutthecrap.utils.striterators.Striterator;
 import com.bigdata.journal.TransactionService;
 
 //BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
 import com.bigdata.relation.locator.IResourceLocator;
 /**
  * <p>
@@ -1224,6 +1226,13 @@ final TransactionService txService = ((Journal) indexManager)
                 .getTransactionManager().getTransactionService();
         
         final String namespace = database.getNamespace();
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+        final IConcurrencyManager concurrencyManager =
+                                database.getConcurrencyManager();
+        final IBigdataDiscoveryManagement discoveryManager =
+                                        database.getDiscoveryManager();
+//BTM - FOR_CLIENT_SERVICE - END
         
         final Lock readLock = lock.readLock();
         readLock.lock();
@@ -1255,11 +1264,12 @@ final TransactionService txService = ((Journal) indexManager)
 //BTM - FOR_CLIENT_SERVICE                final AbstractTripleStore txView = (AbstractTripleStore) indexManager
 //BTM - FOR_CLIENT_SERVICE                        .getResourceLocator().locate(namespace, tx);
                 IResourceLocator locator = indexManager.getResourceLocator();
+log.warn("\n*** concurrencyManager = "+concurrencyManager+", discoveryManager = "+discoveryManager+"\n");
                 final AbstractTripleStore txView =
                       (AbstractTripleStore) locator.locate
                                             (indexManager,
-                                             database.getConcurrencyManager(),
-                                             database.getDiscoveryManager(),
+                                             concurrencyManager,
+                                             discoveryManager,
                                              namespace,
                                              tx);
 //BTM - FOR_CLIENT_SERVICE - END

@@ -55,7 +55,7 @@ public class QuorumPeerStateV0 implements QuorumPeerState, Serializable {
     private int initLimit = 5;
     private int syncLimit = 2;
     private int electionAlg = 3;//0=udp, 3=tcp
-    private int maxClientCnxns = 10;
+    private int maxClientCnxns = 0;//0 ==> unlimited, 10 is default
 
     private Map<Long, QuorumPeerData> peerDataMap =
         new TreeMap<Long, QuorumPeerData>();//order by peerId

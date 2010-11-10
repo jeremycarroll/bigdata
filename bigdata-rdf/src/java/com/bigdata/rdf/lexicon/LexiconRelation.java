@@ -740,12 +740,31 @@ public class LexiconRelation extends AbstractRelation<BigdataValue>
                     final ITextIndexer tmp;
                     try {
                         final Class<?> vfc = determineTextIndexerClass();
-                        final Method gi = vfc.getMethod("getInstance",
-                                IIndexManager.class, String.class, Long.class,
-                                Properties.class);
-                        tmp = (ITextIndexer) gi.invoke(null/* object */,
-                                getIndexManager(), getNamespace(),
-                                getTimestamp(), getProperties());
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE                        final Method gi = vfc.getMethod("getInstance",
+//BTM - PRE_CLIENT_SERVICE                                IIndexManager.class, String.class, Long.class,
+//BTM - PRE_CLIENT_SERVICE                                Properties.class);
+//BTM - PRE_CLIENT_SERVICE                        tmp = (ITextIndexer) gi.invoke(null/* object */,
+//BTM - PRE_CLIENT_SERVICE                                getIndexManager(), getNamespace(),
+//BTM - PRE_CLIENT_SERVICE                                getTimestamp(), getProperties());
+                        final Method gi =
+                              vfc.getMethod("getInstance",
+                                            IIndexManager.class,
+                                            IConcurrencyManager.class,
+                                            IBigdataDiscoveryManagement.class,
+                                            String.class,
+                                            Long.class,
+                                            Properties.class);
+                        tmp =
+                            (ITextIndexer) gi.invoke
+                                               (null,//object
+                                                getIndexManager(),
+                                                getConcurrencyManager(),
+                                                getDiscoveryManager(),
+                                                getNamespace(),
+                                                getTimestamp(),
+                                                getProperties());
+//BTM - PRE_CLIENT_SERVICE - END
                         if(tmp instanceof ILocatableResource<?>) {
                         	((ILocatableResource<?>)tmp).init();
                         }

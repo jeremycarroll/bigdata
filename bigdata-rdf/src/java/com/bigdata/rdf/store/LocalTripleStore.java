@@ -36,6 +36,10 @@ import com.bigdata.journal.Journal;
 import com.bigdata.rdf.spo.SPORelation;
 import com.bigdata.relation.locator.DefaultResourceLocator;
 
+//BTM - FOR_CLIENT_SERVICE
+import com.bigdata.discovery.IBigdataDiscoveryManagement;
+import com.bigdata.journal.IConcurrencyManager;
+
 /**
  * A triple store based on the <em>bigdata</em> architecture. This class
  * offers extremely low latency for index operations. All indices are local
@@ -152,7 +156,7 @@ public class LocalTripleStore extends AbstractLocalTripleStore {
 //BTM - PRE_CLIENT_SERVICE - BEGIN
 //BTM - PRE_CLIENT_SERVICE - NOTE: the super class (AbstractLocalTripleStore --> AbstractTripleStore) now takes an
 //BTM - PRE_CLIENT_SERVICE -       IConcurrencyManager and an IBigdataDiscoveryManagment instance for scale out.
-//BTM - PRE_CLIENT_SERVICE -       It's not clear whether passing null for those parameters will be a problem 
+//BTM - PRE_CLIENT_SERVICE -       It's not clear whether passing null for those parameters will be a problem or
 //BTM - PRE_CLIENT_SERVICE -       not. Need to monitor the tests for NullPointerExceptions.
 //BTM - PRE_CLIENT_SERVICE
 //BTM - PRE_CLIENT_SERVICE        super(indexManager, namespace, timestamp, properties);
@@ -165,6 +169,31 @@ public class LocalTripleStore extends AbstractLocalTripleStore {
         store = (Journal) indexManager;
         
     }
+
+//BTM - FOR_CLIENT_SERVICE - BEGIN
+//BTM - FOR_CLIENT_SERVICE - NOTE: DefaultResourceLocator now uses reflection
+//BTM - FOR_CLIENT_SERVICE -       to invoke a constructor with the arguments
+//BTM - FOR_CLIENT_SERVICE -       specified below, rather than the original
+//BTM - FOR_CLIENT_SERVICE -       constructor shown above. This constructor
+//BTM - FOR_CLIENT_SERVICE -       was added to allow for that reflection case.
+    public LocalTripleStore
+               (final IIndexManager indexManager,
+                final IConcurrencyManager concurrencyManager,
+                final IBigdataDiscoveryManagement discoveryManager,
+                final String namespace,
+                final Long timestamp,
+                final Properties properties)
+    {
+        super(indexManager, 
+              concurrencyManager,
+              discoveryManager,
+              namespace,
+              timestamp,
+              properties);
+
+        store = (Journal) indexManager;
+    }
+//BTM - FOR_CLIENT_SERVICE - END
 
     /**
      * Create or re-open a triple store using a local embedded database.
