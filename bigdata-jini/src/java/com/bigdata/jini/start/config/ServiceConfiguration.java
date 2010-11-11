@@ -494,7 +494,6 @@ System.out.println("*** ServiceConfiguration: constructor - END");
          *             if the service detectably did not start.
          */
         public V call() throws Exception {
-System.out.println("*** ServiceConfiguration: call() [className="+className+"]");
 
             if (log.isInfoEnabled())
                 log.info("config: " + this);
@@ -532,7 +531,9 @@ System.out.println("*** ServiceConfiguration: call() [className="+className+"]")
                         TimeUnit.MILLISECONDS);
 
                 // attempt to detect a service start failure.
+System.out.println("\n*** ServiceConfiguration: call() [className="+className+"] >>> awaitServiceStart [timeout="+timeout+" ms] - BEGIN\n");
                 awaitServiceStart(processHelper, timeout, TimeUnit.MILLISECONDS);
+System.out.println("\n*** ServiceConfiguration: call() [className="+className+"] >>> awaitServiceStart [timeout="+timeout+" ms] - END\n");
 
             } catch (InterruptedException ex) {
 

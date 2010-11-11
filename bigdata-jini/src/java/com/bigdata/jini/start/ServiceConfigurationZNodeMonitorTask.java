@@ -323,7 +323,7 @@ System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: EVENT
         if (config.serviceCount != children.size()) {
 
             // adjust the #of logical service instances (blocks).
-System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: *** NEW LOGICAL SERVICE TASK");
+System.out.println("GGGG ServiceConfigurationZNodeMonitorTask.runWithLock: *** NEW LOGICAL SERVICE TASK >>> "+serviceConfigZPath);
             config.newLogicalServiceTask(fed, listener, serviceConfigZPath,
                     children).call();
 

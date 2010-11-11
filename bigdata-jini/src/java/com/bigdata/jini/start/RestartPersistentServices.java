@@ -19,6 +19,9 @@ import com.bigdata.jini.start.config.ManagedServiceConfiguration;
 import com.bigdata.service.jini.JiniFederation;
 import com.bigdata.util.InnerCause;
 
+//BTM - FOR_CLIENT_SERVICE
+import java.util.ArrayList;
+
 /**
  * Task restarts persistent physical services that should be running on this
  * host but which are not discoverable using jini (not found when we query for
@@ -154,7 +157,8 @@ public class RestartPersistentServices implements Callable<Boolean> {
                 + BigdataZooDefs.CONFIG;
 
         // these are the ServiceConfigurations.
-        final List<String> serviceConfigZNodes;
+//BTM - PRE_CLIENT_SERVICE        final List<String> serviceConfigZNodes;
+        List<String> serviceConfigZNodes;
         try {
             
             serviceConfigZNodes = zookeeper.getChildren(zconfig, false);
@@ -171,8 +175,109 @@ public class RestartPersistentServices implements Callable<Boolean> {
         if (log.isInfoEnabled())
 			log.info("Considering " + serviceConfigZNodes.size()
 					+ " service configurations");
-System.out.println("\n*********************************************************");
-System.out.println("*** RestartPersistentServices.runOnce: Considering " + serviceConfigZNodes.size()+ " service configurations");
+System.out.println("\n*** RestartPersistentServices - BEGIN *********************************************************\n");
+for (String serviceConfigZNode : serviceConfigZNodes) {
+    System.out.println("*** RestartPersistentServices.runOnce: serviceConfigZNode = "+ serviceConfigZNode);
+}
+System.out.println("\n*** RestartPersistentServices.runOnce: RE-ORDER - DATA SERVICE LAST\n");
+//BTM - FOR_CLIENT_SERVICE - BEGIN ---------------------------------------
+        // re-order because shard (data) service waits for transaction
+        // service and load balancer service
+        List<String> tmpList = new ArrayList<String>();
+
+        //1. transaction service(s)
+        for (String serviceConfigZNode : serviceConfigZNodes) {
+            if ( (serviceConfigZNode.equals
+                     ("com.bigdata.transaction.ServiceImpl")) ||
+                 (serviceConfigZNode.equals
+                     ("com.bigdata.service.jini.TransactionServer")) )
+            {
+                tmpList.add(serviceConfigZNode);
+            }
+        }
+        //2. load balancer service(s)
+        for (String serviceConfigZNode : serviceConfigZNodes) {
+            if ( serviceConfigZNode.equals
+                     ("com.bigdata.loadbalancer.ServiceImpl") ||
+                 (serviceConfigZNode.equals
+                     ("com.bigdata.service.jini.LoadBalancerServer")) )
+            {
+                tmpList.add(serviceConfigZNode);
+            }
+        }
+        //3. shard locator (metadata) service(s)
+        for (String serviceConfigZNode : serviceConfigZNodes) {
+            if ( serviceConfigZNode.equals
+                     ("com.bigdata.metadata.ServiceImpl") ||
+                 (serviceConfigZNode.equals
+                     ("com.bigdata.service.jini.MetadataServer")) )
+            {
+                tmpList.add(serviceConfigZNode);
+            }
+        }
+        //4. callable executor (client) service(s)
+        for (String serviceConfigZNode : serviceConfigZNodes) {
+            if ( serviceConfigZNode.equals
+                     ("com.bigdata.executor.ServiceImpl") ||
+                 (serviceConfigZNode.equals
+                     ("com.bigdata.service.jini.ClientServer")) )
+            {
+                tmpList.add(serviceConfigZNode);
+            }
+        }
+        //5. shard (data) service(s)
+        for (String serviceConfigZNode : serviceConfigZNodes) {
+            if ( serviceConfigZNode.equals
+                     ("com.bigdata.shard.ServiceImpl") ||
+                 (serviceConfigZNode.equals
+                     ("com.bigdata.service.jini.DataServer")) )
+            {
+                tmpList.add(serviceConfigZNode);
+            }
+        }
+        //6. add anything that's none of the above
+        for (String serviceConfigZNode : serviceConfigZNodes) {
+
+            if ( !(serviceConfigZNode.equals
+                     ("com.bigdata.transaction.ServiceImpl")) &&
+                 !(serviceConfigZNode.equals
+                     ("com.bigdata.service.jini.TransactionServer")) &&
+
+                 !(serviceConfigZNode.equals
+                     ("com.bigdata.loadbalancer.ServiceImpl")) &&
+                 !(serviceConfigZNode.equals
+                     ("com.bigdata.service.jini.LoadBalancerServer")) &&
+
+                 !(serviceConfigZNode.equals
+                     ("com.bigdata.metadata.ServiceImpl")) &&
+                 !(serviceConfigZNode.equals
+                     ("com.bigdata.service.jini.MetadataServer")) &&
+
+                 !(serviceConfigZNode.equals
+                     ("com.bigdata.executor.ServiceImpl")) &&
+                 !(serviceConfigZNode.equals
+                     ("com.bigdata.service.jini.ClientServer")) &&
+
+                 !(serviceConfigZNode.equals
+                     ("com.bigdata.shard.ServiceImpl")) &&
+                 !(serviceConfigZNode.equals
+                     ("com.bigdata.service.jini.DataServer")) )
+            {
+                tmpList.add(serviceConfigZNode);
+            }
+        }
+        if (tmpList.size() == serviceConfigZNodes.size()) {
+            serviceConfigZNodes = tmpList;
+        } else {
+            log.warn("reordered list size ["+tmpList.size()
+                     +"] != serviceConfigZNodes size ["
+                     +serviceConfigZNodes.size()+"]");
+        }
+System.out.println("*** RestartPersistentServices.runOnce: Considering " + serviceConfigZNodes.size()+ " service configurations\n");
+for (String serviceConfigZNode : serviceConfigZNodes) {
+    System.out.println("*** RestartPersistentServices.runOnce AFTER RE-ORDER: serviceConfigZNode = "+ serviceConfigZNode);
+}
+//BTM - FOR_CLIENT_SERVICE - END -------------------------------------
         
         for (String serviceConfigZNode : serviceConfigZNodes) {
 
@@ -253,7 +358,7 @@ System.out.println("*** RestartPersistentServices.runOnce >>>  monitorCreatePhys
             }
 
         }
-System.out.println("*********************************************************\n");
+System.out.println("\n*** RestartPersistentServices - END *********************************************************\n");
 
         // Success.
         return true;

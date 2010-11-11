@@ -1523,6 +1523,10 @@ if (!tmpDir.exists()) {//still does not exist, try again
                 // Wait no more than N seconds for discovery
                 int nWait = 120;
                 boolean discoveredTxnSrvc = false;
+                if (log.isDebugEnabled()) {
+                    log.debug("waiting for transaction "
+                              +"service discovery ...");
+                }
                 for(int i=0; i<nWait; i++) {
                     if (discoveryMgr.getTransactionService() != null) {
                         discoveredTxnSrvc = true;
@@ -1531,24 +1535,19 @@ if (!tmpDir.exists()) {//still does not exist, try again
                     try { 
                         Thread.sleep(1000L); 
                     } catch(InterruptedException ie) { }
+                }
 
+                if(discoveredTxnSrvc) {
                     if (log.isDebugEnabled()) {
-                        log.debug("waiting for transaction "
-                                  +"service discovery");
+                        log.debug("StoreManager - discovered "
+                                  +"transaction service");
                     }
-                    if(discoveredTxnSrvc) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("discovered transaction service");
-                        }
-                    } else {
-                        log.warn("transaction service unreachable");
-                    }//endif(discoveredTxnSrvc)
-                }//endloop(nWait)
-//BTM if(discoveredTxnSrvc) {
-//BTM     com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.start >>> TRANSACTION SERVICE DISCOVERED");
-//BTM }else{
-//BTM     com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.start >>> TRANSACTION SERVICE UNREACHABLE\n");
-//BTM }
+log.warn("DISCOVERED TRANSACTION SERVICE");
+                } else {
+                    log.warn("StoreManager - transaction "
+                             +"service unreachable");
+                }
+
             } catch (UnsupportedOperationException ex) {
 //BTM com.bigdata.util.Util.printStr("TestBigdataClientRemote.txt","\nStoreManager.start >>> FEDERATION UNAVAILABLE - test case?\n");
                 log.warn("Federation not available - running in test case?");

@@ -156,12 +156,14 @@ class EmbeddedShardService implements ShardService,
 //BTM - BEGIN - fields from AbstractFederation -------------------------------
     private ScheduledFuture<?> eventTaskFuture;
     private ScheduledFuture<?> lbsReportingTaskFuture;
+    private long lbsReportingPeriod;
     private AbstractHTTPD httpServer;
     private String httpServerUrl;//URL used to access the httpServer
     private int httpdPort;
 //BTM - END   - fields from AbstractFederation -------------------------------
 
-String dbgFlnm="EmbeddedShardService.out";
+    private ScheduledFuture deferredInitTaskFuture;
+    private boolean deferredInitDone = false;
 
     protected EmbeddedShardService
                   (final UUID serviceUUID,
@@ -236,116 +238,45 @@ String dbgFlnm="EmbeddedShardService.out";
                                                  maxStaleLocatorRetries,
                                                  logger,
                                                  this.properties);
-        String httpServerPath = 
-                   (this.localResources).getServiceCounterPathPrefix();
-        try {
-            this.httpServerUrl = 
-                "http://"
-                +AbstractStatisticsCollector.fullyQualifiedHostName
-                +":"+this.httpdPort+"/?path="
-                +URLEncoder.encode(httpServerPath, "UTF-8");
-        } catch(java.io.UnsupportedEncodingException e) {
-            logger.warn("failed to initialize httpServerUrl", e);
-        }
 
-System.out.println("\nEmbeddedShardService >>> NEW StoreManager - BEGIN");
-        this.resourceMgr = 
-            new ShardResourceManager(this,
-                                     this.discoveryMgr,
-                                     this.localResources,
-                                     this.indexMgr,
-                                     this.properties);
-System.out.println("\nEmbeddedShardService >>> NEW StoreManager - END");
+        this.lbsReportingPeriod = lbsReportingPeriod;
 
-        this.localTransactionMgr = new LocalTransactionManager(discoveryMgr);
-        this.concurrencyMgr = 
-            new ConcurrencyManager(this.properties,
-                                   this.localTransactionMgr,
-                                   this.resourceMgr);
-        //WARN: circular refs
-        (this.resourceMgr).setConcurrencyManager(this.concurrencyMgr);
-        (this.indexMgr).setConcurrencyManager(this.concurrencyMgr);
+        // Note that this service employs a StoreManager (in the
+        // ResourceManager) whose creation depends on the existence
+        // of a transaction service. Additionally, this service
+        // also employs counters dependent on the existence of 
+        // a load balancer to which the counters send events.
+        // Unfortunately, when the ServicesManagerService is used
+        // to start this service, these dependencies can cause
+        // problems for the ServicesManagerService. This is because
+        // the order the services are started by the ServicesManagerService
+        // can be random, and if this service is the first service
+        // the ServicesManagerService attempts to start (or whose
+        // starting is attempted before the transaction service 
+        // and/or the load balancer), then unless this service
+        // returns an indication to the ServicesManagerService that
+        // it has successfully started within the time period
+        // expected, the ServicesManagerService will declare that
+        // this service is faulty and kill the process in which
+        // this service was started. To address this issue, this
+        // service executes an instance of DeferredInitTask to
+        // create the ResourceManager and set up the counters and
+        // events asynchronously; which allows the transaction
+        // service and load balancer to be started and discovered
+        // after this service has been started by the 
+        // ServicesManagerService.
 
-//BTM - from AbstractFederation constructor and addScheduledTask
-
-        //start event queue/sender task (sends events every 2 secs)
-
-        long sendEventsDelay = 100L;//one-time initial delay
-        long sendEventsPeriod = 2000L;
-        this.eventTaskFuture = 
-            (localResources.getScheduledExecutor()).scheduleWithFixedDelay
-                                              (localResources.getEventQueueSender(),
-                                               sendEventsDelay,
-                                               sendEventsPeriod,
-                                               TimeUnit.MILLISECONDS);
-
-//BTM - from AbstractFederation - start deferred tasks
-
-        //start task to report counters to the load balancer
-
-        LoadBalancerReportingTask lbsReportingTask = 
-            new LoadBalancerReportingTask(this.resourceMgr,
-                                          this.concurrencyMgr,
-                                          this.localResources,
-                                          this.discoveryMgr,
-                                          logger);
-        this.lbsReportingTaskFuture = 
-            ((this.localResources).getScheduledExecutor())
+        deferredInitDone = deferredInit();
+        if (!deferredInitDone) {
+            DeferredInitTask deferredInitTask = new DeferredInitTask();
+            this.deferredInitTaskFuture = 
+                ((this.localResources).getScheduledExecutor())
                                       .scheduleWithFixedDelay
-                                          (lbsReportingTask,
-                                           lbsReportingPeriod,//initial delay
-                                           lbsReportingPeriod,
+                                          (deferredInitTask,
+                                           20L*1000L,//initial delay
+                                           30L*1000L,//period
                                            TimeUnit.MILLISECONDS);
-
-        //start an http daemon from which interested parties can query
-        //counter and/or statistics information with http get commands
-
-        try {
-            httpServer = 
-                new HttpReportingServer(this.httpdPort,
-                                        this.resourceMgr,
-                                        this.concurrencyMgr,
-                                        this.localResources,
-                                        logger);
-        } catch (IOException e) {
-            logger.error("failed to start http server "
-                         +"[port="+this.httpdPort
-                         +", path="+httpServerPath+"]", e);
-            return;
         }
-        if(httpServer != null) {
-            if( logger.isDebugEnabled() ) {
-                logger.debug("started http daemon "
-                             +"[access URL="+this.httpServerUrl+"]");
-            }
-            // add counter reporting the access url to load balancer
-            ((this.localResources).getServiceCounterSet())
-                .addCounter
-                     (IServiceCounters.LOCAL_HTTPD,
-                     new OneShotInstrument<String>(this.httpServerUrl));
-        }
-
-//BTM - BEGIN ScaleOutIndexManager
-//BTM -       The call to embeddedIndexStore.didStart was previously
-//BTM -       commented out during the data service conversion. But
-//BTM -       the method didStart() on the original EmbeddedIndexStore and
-//BTM -       AbstractFederation calls the private method setupCounters;
-//BTM -       which seems to be important for at least the shard (data)
-//BTM -       service. The tests still passed without calling that method,
-//BTM -       but we should consider calling it at this point (the problem
-//BTM -       is that it waits on the resource manager to finish
-//BTM -       initializing, which waits on the transaction service to be
-//BTM -       discovered). Setting up these counters seem to be important
-//BTM -       only for the shard (data) service rather than the other
-//BTM -       services. So we should consider adding setupCounters to this
-//BTM -       class, and calling it here instead of calling
-//BTM -       embeddedIndexStore.didStart() or AbstractFederation.didStart().
-//BTM -       
-//BTM        embeddedIndexStore.didStart();
-
-        setupCounters();
-
-//BTM - END ScaleOutIndexManager
     }
 
     // Required by Service interface
@@ -394,6 +325,11 @@ System.out.println("\nEmbeddedShardService >>> NEW StoreManager - END");
 logger.warn("SSSS SHARD SERVICE EmbeddedShardService.shutdown");
         if (!isOpen()) return;
 
+        //false ==> allow in-progress tasks to complete
+        if (deferredInitTaskFuture != null) {
+            deferredInitTaskFuture.cancel(false);
+        }
+
         if (concurrencyMgr != null) {
             concurrencyMgr.shutdown();
         }
@@ -404,9 +340,12 @@ logger.warn("SSSS SHARD SERVICE EmbeddedShardService.shutdown");
             resourceMgr.shutdown();
         }
 
-        //false ==> allow in-progress tasks to complete
-        lbsReportingTaskFuture.cancel(false);
-        eventTaskFuture.cancel(false);
+        if (lbsReportingTaskFuture != null) {
+            lbsReportingTaskFuture.cancel(false);
+        }
+        if (eventTaskFuture != null) {
+            eventTaskFuture.cancel(false);
+        }
 
         if (indexMgr != null) indexMgr.destroy();
         if (localResources != null) {
@@ -1026,6 +965,119 @@ logger.warn("\nSSSSS SHARD SERVICE EmbeddedShardService.destroy POST-delete >>> 
         return new File(resourceMgr.getDataDir(), "httpd.url");
     }
 
+    private boolean deferredInit() {
+
+        // StoreManager depends on the transaction service
+        if (discoveryMgr.getTransactionService() == null) return false;
+
+        if (this.resourceMgr == null) {
+System.out.println("\nEmbeddedShardService >>> NEW StoreManager - BEGIN");
+            this.resourceMgr = 
+                new ShardResourceManager(this,
+                                         this.discoveryMgr,
+                                         this.localResources,
+                                         this.indexMgr,
+                                         this.properties);
+System.out.println("\nEmbeddedShardService >>> NEW StoreManager - END");
+
+            this.localTransactionMgr =
+                     new LocalTransactionManager(discoveryMgr);
+            this.concurrencyMgr = 
+                new ConcurrencyManager(this.properties,
+                                       this.localTransactionMgr,
+                                       this.resourceMgr);
+            //WARN: circular refs
+            (this.resourceMgr).setConcurrencyManager(this.concurrencyMgr);
+            (this.indexMgr).setConcurrencyManager(this.concurrencyMgr);
+        }
+
+        // Events and counters depend on the load balancer
+        if (discoveryMgr.getLoadBalancerService() == null) return false;
+
+//BTM - from AbstractFederation - start deferred tasks
+
+        //start task to report counters to the load balancer
+
+        LoadBalancerReportingTask lbsReportingTask = 
+            new LoadBalancerReportingTask(this.resourceMgr,
+                                          this.concurrencyMgr,
+                                          this.localResources,
+                                          this.discoveryMgr,
+                                          logger);
+        this.lbsReportingTaskFuture = 
+            ((this.localResources).getScheduledExecutor())
+                                      .scheduleWithFixedDelay
+                                          (lbsReportingTask,
+                                           lbsReportingPeriod,//initial delay
+                                           lbsReportingPeriod,
+                                           TimeUnit.MILLISECONDS);
+
+        //start an http daemon from which interested parties can query
+        //counter and/or statistics information with http get commands
+
+        String httpServerPath = 
+                   (this.localResources).getServiceCounterPathPrefix();
+        try {
+            this.httpServerUrl = 
+                "http://"
+                +AbstractStatisticsCollector.fullyQualifiedHostName
+                +":"+this.httpdPort+"/?path="
+                +URLEncoder.encode(httpServerPath, "UTF-8");
+        } catch(java.io.UnsupportedEncodingException e) {
+            logger.warn("failed to initialize httpServerUrl", e);
+        }
+
+
+        try {
+            httpServer = 
+                new HttpReportingServer(this.httpdPort,
+                                        this.resourceMgr,
+                                        this.concurrencyMgr,
+                                        this.localResources,
+                                        logger);
+        } catch (IOException e) {
+            logger.error("failed to start http server "
+                         +"[port="+this.httpdPort
+                         +", path="+httpServerPath+"]", e);
+            return false;
+        }
+        if(httpServer != null) {
+            if( logger.isDebugEnabled() ) {
+                logger.debug("started http daemon "
+                             +"[access URL="+this.httpServerUrl+"]");
+            }
+            // add counter reporting the access url to load balancer
+            ((this.localResources).getServiceCounterSet())
+                .addCounter
+                     (IServiceCounters.LOCAL_HTTPD,
+                     new OneShotInstrument<String>(this.httpServerUrl));
+        }
+
+//BTM - BEGIN ScaleOutIndexManager Note
+//BTM -       The call to embeddedIndexStore.didStart was previously
+//BTM -       commented out during the data service conversion. But
+//BTM -       the method didStart() on the original EmbeddedIndexStore and
+//BTM -       AbstractFederation calls the private method setupCounters;
+//BTM -       which seems to be important for at least the shard (data)
+//BTM -       service. The tests still passed without calling that method,
+//BTM -       but we should consider calling it at this point (the problem
+//BTM -       is that it waits on the resource manager to finish
+//BTM -       initializing, which waits on the transaction service to be
+//BTM -       discovered). Setting up these counters seem to be important
+//BTM -       only for the shard (data) service rather than the other
+//BTM -       services. So we should consider adding setupCounters to this
+//BTM -       class, and calling it here instead of calling
+//BTM -       embeddedIndexStore.didStart() or AbstractFederation.didStart().
+//BTM -       
+//BTM        embeddedIndexStore.didStart();
+
+        setupCounters();
+
+//BTM - END ScaleOutIndexManager Note
+
+        return true;
+    }
+
     private void setupLoggingContext() {
 
         try {
@@ -1120,7 +1172,36 @@ logger.warn("\nSSSSS SHARD SERVICE EmbeddedShardService.destroy POST-delete >>> 
         }
     }
 
-//BTM - see the note at the end of this class' constructor
+    class DeferredInitTask implements Runnable {
+
+        public DeferredInitTask() { }
+
+        public void run() {
+            try {
+                if (!deferredInitDone) {
+System.out.println("\n*** EmbededShardService#DeferredInitTask: DO DEFERRED INIT \n");
+                    deferredInitDone = deferredInit();
+                } else {
+System.out.println("\n*** EmbededShardService#DeferredInitTask: DEFERRED INIT DONE >>> CANCELLING TASK\n");
+                    deferredInitDone = true;
+                    if (deferredInitTaskFuture != null) {
+                        deferredInitTaskFuture.cancel(false);
+                        deferredInitTaskFuture = null;
+                    }
+                }
+            } catch (Throwable t) {
+System.out.println("\n*** EmbededShardService#DeferredInitTask: EXCEPTION >>> "+t+"\n");
+                logger.error("deferred initialization failure", t);
+                deferredInitDone = true;
+                if (deferredInitTaskFuture != null) {
+                    deferredInitTaskFuture.cancel(false);
+                    deferredInitTaskFuture = null;
+                }
+            }
+        }
+    }
+
+//BTM - see the note at the end of the deferredInit method
 
     /**
      * Sets up shard service specific counters.
