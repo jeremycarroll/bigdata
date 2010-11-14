@@ -273,8 +273,8 @@ class EmbeddedShardService implements ShardService,
                 ((this.localResources).getScheduledExecutor())
                                       .scheduleWithFixedDelay
                                           (deferredInitTask,
-                                           20L*1000L,//initial delay
-                                           30L*1000L,//period
+                                           1L*1000L,//initial delay
+                                           3L*1000L,//period
                                            TimeUnit.MILLISECONDS);
         }
     }
@@ -318,7 +318,9 @@ class EmbeddedShardService implements ShardService,
      *       not complete within a timeout.
      */
     public boolean isOpen() {
-        return ( (concurrencyMgr != null) && (concurrencyMgr.isOpen()) );
+        return ( (concurrencyMgr != null)  &&
+                 (concurrencyMgr.isOpen()) &&
+                 deferredInitDone );
     }
 
     synchronized public void shutdown() {

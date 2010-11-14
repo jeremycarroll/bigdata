@@ -86,6 +86,7 @@ import net.jini.lookup.ServiceDiscoveryManager;
 
 import java.io.File;
 import java.io.IOException;
+import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -188,7 +189,7 @@ public UUID getServiceUUID() {
                     throws RemoteException, IOException,
                            InterruptedException, ExecutionException
     {
-	readyState.check();
+        readyCheck();
         embeddedShardService.registerIndex(name, metadata);
     }
 
@@ -196,14 +197,14 @@ public UUID getServiceUUID() {
                     throws RemoteException, IOException,
                            InterruptedException, ExecutionException
     {
-	readyState.check();
+        readyCheck();
         embeddedShardService.dropIndex(name);
     }
 
     public IBlock readBlock(IResourceMetadata resource, long addr)
                       throws RemoteException, IOException
     {
-	readyState.check();
+        readyCheck();
         return embeddedShardService.readBlock(resource, addr);
     }
 
@@ -211,7 +212,7 @@ public UUID getServiceUUID() {
                              throws RemoteException, IOException,
                                     InterruptedException, ExecutionException
     {
-	readyState.check();
+        readyCheck();
         return embeddedShardService.getIndexMetadata(name, timestamp);
     }
 
@@ -225,7 +226,7 @@ public UUID getServiceUUID() {
             throws RemoteException, IOException, 
                    InterruptedException, ExecutionException
     {
-	readyState.check();
+        readyCheck();
         return embeddedShardService.rangeIterator
                    (tx, name, fromKey, toKey, capacity, flags, filter);
     }
@@ -234,7 +235,7 @@ public UUID getServiceUUID() {
     public <T> Future<T> submit(IDataServiceCallable<T> task)
                                         throws RemoteException
     {
-	readyState.check();
+        readyCheck();
         Exporter exporter = null;
         try {
             exporter = Util.getExporter(config,
@@ -256,7 +257,7 @@ public UUID getServiceUUID() {
     public Future submit(long tx, String name, IIndexProcedure proc)
                       throws RemoteException
     {
-	readyState.check();
+        readyCheck();
         Exporter exporter = null;
         try {
             exporter = Util.getExporter(config,
@@ -279,19 +280,19 @@ public UUID getServiceUUID() {
     public boolean purgeOldResources(long timeout, boolean truncateJournal)
                        throws RemoteException, InterruptedException
     {
-	readyState.check();
+        readyCheck();
         return embeddedShardService.purgeOldResources(timeout,truncateJournal);
     }
 
     public void setReleaseTime(long releaseTime) 
                     throws RemoteException, IOException
     {
-	readyState.check();
+        readyCheck();
         embeddedShardService.setReleaseTime(releaseTime);
     }
 
     public void abort(long tx) throws RemoteException, IOException {
-	readyState.check();
+        readyCheck();
         embeddedShardService.abort(tx);
     }
 
@@ -299,14 +300,14 @@ public UUID getServiceUUID() {
              throws RemoteException, IOException,
                     InterruptedException, ExecutionException 
     {
-	readyState.check();
+        readyCheck();
         return embeddedShardService.singlePhaseCommit(tx);
     }
 
     public void prepare(long tx, long revisionTime)
              throws RemoteException, IOException, Throwable
     {
-	readyState.check();
+        readyCheck();
         embeddedShardService.prepare(tx, revisionTime);
     }
 
@@ -314,19 +315,19 @@ public UUID getServiceUUID() {
                     throws RemoteException, IOException,
                            InterruptedException, ExecutionException
     {
-	readyState.check();
+        readyCheck();
         embeddedShardService.forceOverflow(immediate, compactingMerge);
     }
 
     public long getAsynchronousOverflowCounter() 
                     throws RemoteException, IOException
     {
-	readyState.check();
+        readyCheck();
         return embeddedShardService.getAsynchronousOverflowCounter();
     }
 
     public boolean isOverflowActive() throws RemoteException, IOException {
-	readyState.check();
+        readyCheck();
         return embeddedShardService.isOverflowActive();
     }
 
@@ -668,9 +669,39 @@ logger.warn("SSSSS SHARD SERVICE ServiceImpl: DESTROY CALLED");
         readyState.ready();//ready to accept calls from clients
     }
 
+    // Private methods
+
+    // Throws NoSuchObjectException if the service has either
+    // not completed initialization and registration with the
+    // lookup service, or not created the concurrency manager
+    // and resource (which depends on discovering the transaction
+    // service)
+    private void readyCheck() {
+	readyState.check();//completed service init?
+
+        // created concurrency and resource managers?
+        if ( !embeddedShardService.isOpen() ) {
+            throw new RemoteExceptionWrapper
+                (new NoSuchObjectException("not ready"));
+        }
+    }
+
     private void shutdownDo(ShutdownType type) {
         (new ShutdownThread(type)).start();
     }
+
+    private void killDo(int status) {
+        String[] groups = ((DiscoveryGroupManagement)ldm).getGroups();
+        LookupLocator[] locs = ((DiscoveryLocatorManagement)ldm).getLocators();
+        logger.log(Level.INFO, killStr+" [groups="
+                   +Util.writeGroupArrayToString(groupsToJoin)
+                   +", locators="
+                   +Util.writeArrayElementsToString(locatorsToJoin)+"]");
+
+        System.exit(status);
+    }
+
+    // Nested classes
 
     /**
      * Used to shutdown the service asynchronously.
@@ -745,15 +776,15 @@ logger.warn("SSSSS SHARD SERVICE ServiceImpl: DESTROY CALLED");
         }
     }
 
-    private void killDo(int status) {
-        String[] groups = ((DiscoveryGroupManagement)ldm).getGroups();
-        LookupLocator[] locs = ((DiscoveryLocatorManagement)ldm).getLocators();
-        logger.log(Level.INFO, killStr+" [groups="
-                   +Util.writeGroupArrayToString(groupsToJoin)
-                   +", locators="
-                   +Util.writeArrayElementsToString(locatorsToJoin)+"]");
-
-        System.exit(status);
+    private static class RemoteExceptionWrapper extends RuntimeException {
+    	private static final long serialVersionUID = 1L;
+	private final RemoteException wrapped;
+	public RemoteExceptionWrapper(RemoteException wrapped) {
+	    this.wrapped = wrapped;
+	}
+	private Object writeReplace() {
+	    return wrapped;
+	}	
     }
 
     /**

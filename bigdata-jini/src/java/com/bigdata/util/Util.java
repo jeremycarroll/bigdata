@@ -73,6 +73,7 @@ import net.jini.lookup.ServiceDiscoveryEvent;
 import net.jini.lookup.ServiceDiscoveryManager;
 
 import java.io.IOException;
+import java.rmi.NoSuchObjectException;
 import java.rmi.Remote;
 import java.rmi.server.ExportException;
 import java.util.Collection;
@@ -108,6 +109,26 @@ public class Util {
             }
         }
         return min;
+    }
+
+    public static void delayMS(long nMS) {
+        try {
+            Thread.sleep(nMS);
+        } catch (InterruptedException e) { }
+    }
+
+    public static boolean causeNoSuchObject(Throwable t) {
+        if (t instanceof NoSuchObjectException) return true;
+
+        // test cause chain for NoSuchObjectException
+        Throwable cause = t.getCause();
+        while ( (cause != null) &&
+                !(cause instanceof NoSuchObjectException) )
+        {
+            cause = cause.getCause();
+        }
+        if (cause == null) return false;
+        return (cause instanceof NoSuchObjectException);
     }
 
     /* Convenience method that can be called when a service exits, or

@@ -1338,10 +1338,10 @@ logger.warn("\nZZZZZ SHARD LOCATOR EmbeddedShardLocator.destroy POST-delete >>> 
                         /*
                          * Note: By setting this to null we are indicating to
                          * the RegisterIndexTask on the data service that it
-                         * needs to set the resourceMetadata[] when the index is
-                         * actually registered based on the live journal as of
-                         * the when the task actually executes on the data
-                         * service.
+                         * needs to set the resourceMetadata[] when the index
+                         * is actually registered based on the live journal
+                         * as of the when the task actually executes on the
+                         * data service.
                          */
                            null,//[resources] Signal to the RegisterIndexTask.
                            null //[cause] Signal to RegisterIndexTask
@@ -1350,11 +1350,53 @@ logger.warn("\nZZZZZ SHARD LOCATOR EmbeddedShardLocator.destroy POST-delete >>> 
 //                          */
 //                         ,"createScaleOutIndex(name="+scaleOutIndexName+") "
                     ));
-                
-                dataServices[i].registerIndex
-                    (Util.getIndexPartitionName(scaleOutIndexName,
-                                                pmd.getPartitionId()),
-                     md);
+
+                // The shard service (as currently implemented) may not be
+                // completely initialized if it is just being started
+                // when this method is called (for example, in a test
+                // environment). This is because the shard service creates
+                // a StoreManager (via a Resource), which depends on
+                // discovering a transaction service; and it sets up 
+                // counters, which depend on discovering a load balancer.
+                // Thus, to address the case where the shard service is
+                // not yet ready, test for such a situation; and apply a 
+                // retry-to-failure strategy
+                boolean registered = false;
+                try {
+                    dataServices[i].registerIndex
+                        ( Util.getIndexPartitionName(scaleOutIndexName,
+                                                     pmd.getPartitionId()),
+                          md );
+                    registered = true;
+                } catch(Throwable t1) {
+                    if ( !Util.causeNoSuchObject(t1) ) {
+                        throw new Exception(t1);
+                    }
+                    //wait for data service to finish initializing
+                    int nWait = 5;
+                    for(int n=0; n<nWait; n++) {
+                        Util.delayMS(1000L);
+                        try {
+                            dataServices[i].registerIndex
+                                ( Util.getIndexPartitionName
+                                      (scaleOutIndexName,
+                                       pmd.getPartitionId()),
+                                  md );
+                            registered = true;
+                            break;
+                        } catch(Throwable t2) {
+                            if ( !Util.causeNoSuchObject(t2) ) {
+                                throw new Exception(t2);
+                            }
+                        }
+                    }
+                }
+                if (!registered) {// try one last time
+                    dataServices[i].registerIndex
+                        ( Util.getIndexPartitionName(scaleOutIndexName,
+                                                     pmd.getPartitionId()),
+                          md );
+                }
                 partitions[i] = pmd;
             }
 

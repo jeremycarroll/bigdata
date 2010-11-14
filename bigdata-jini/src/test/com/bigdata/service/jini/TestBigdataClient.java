@@ -132,7 +132,33 @@ public class TestBigdataClient extends AbstractServerTestCase {
 
         metadata.setDeleteMarkers(true);
 
-        fed.registerIndex(metadata);
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        fed.registerIndex(metadata);
+        boolean registered = false;
+        try {
+            fed.registerIndex(metadata);
+            registered = true;
+        } catch(Throwable t1) {
+            if ( !Util.causeNoSuchObject(t1) ) {
+                throw new Exception(t1);
+            }
+            //wait for data service to finish initializing
+            int nWait = 5;
+            for(int i=0; i<nWait; i++) {
+                Util.delayMS(1000L);
+                try {
+                    fed.registerIndex(metadata);
+                    registered = true;
+                    break;
+                } catch(Throwable t2) {
+                    if ( !Util.causeNoSuchObject(t2) ) {
+                        throw new Exception(t2);
+                    }
+                }
+            }
+        }
+        assertTrue("failed to register metadata", registered);
+//BTM - PRE_CLIENT_SERVICE - END
 
         final IIndex ndx = fed.getIndex(name, ITx.UNISOLATED);
 
@@ -166,9 +192,7 @@ public class TestBigdataClient extends AbstractServerTestCase {
 
         if (dataService0 == null) {
             for(int i=0; i<nWait; i++) {
-                try { 
-                    Thread.sleep(1L*1000L); 
-                } catch (InterruptedException e) { }
+                Util.delayMS(1000L);
                 dataService0 = helper.getDataService0();
                 if (dataService0 != null) break;
             }
@@ -182,9 +206,7 @@ public class TestBigdataClient extends AbstractServerTestCase {
 
         if (dataService1 == null) {
             for(int i=0; i<nWait; i++) {
-                try { 
-                    Thread.sleep(1L*1000L);
-                } catch (InterruptedException e) { }
+                Util.delayMS(1000L);
                 dataService1 = helper.getDataService1();
                 if (dataService1 != null) break;
             }
@@ -194,19 +216,60 @@ public class TestBigdataClient extends AbstractServerTestCase {
         }
 //BTM - END ---------------------------------------------------
 
-        final UUID indexUUID = fed.registerIndex( metadata, //
-                // separator keys.
-                new byte[][] {
-                    new byte[]{},
-                    TestKeyBuilder.asSortKey(500)
-                },//
-                // data service assignments.
-                new UUID[] { //
-//BTM                    helper.getDataService0().getServiceUUID(),//
-//BTM                    helper.getDataService1().getServiceUUID() //
-dataService0UUID,
-dataService1UUID
-                });
+//BTM - PRE_CLIENT_SERVICE - BEGIN
+//BTM - PRE_CLIENT_SERVICE        final UUID indexUUID = fed.registerIndex( metadata, //
+//BTM - PRE_CLIENT_SERVICE                // separator keys.
+//BTM - PRE_CLIENT_SERVICE                new byte[][] {
+//BTM - PRE_CLIENT_SERVICE                    new byte[]{},
+//BTM - PRE_CLIENT_SERVICE                    TestKeyBuilder.asSortKey(500)
+//BTM - PRE_CLIENT_SERVICE                },//
+//BTM - PRE_CLIENT_SERVICE                // data service assignments.
+//BTM - PRE_CLIENT_SERVICE                new UUID[] { //
+//BTM - PRE_CLIENT_SERVICE                    dataService0UUID,
+//BTM - PRE_CLIENT_SERVICE                    dataService1UUID
+//BTM - PRE_CLIENT_SERVICE                });
+        UUID indexUUID = null;
+        boolean registered = false;
+        try {
+            indexUUID =
+                fed.registerIndex
+                    ( metadata,
+                      new byte[][]
+                          { new byte[]{},
+                            TestKeyBuilder.asSortKey(500) },
+                      new UUID[] { dataService0UUID,
+                                   dataService1UUID }
+                    );
+            registered = true;
+        } catch(Throwable t1) {
+            if ( !Util.causeNoSuchObject(t1) ) {
+                throw new Exception(t1);
+            }
+            //wait for data service to finish initializing
+            nWait = 5;
+            for(int i=0; i<nWait; i++) {
+                Util.delayMS(1000L);
+                try {
+                    indexUUID =
+                        fed.registerIndex
+                            ( metadata,
+                              new byte[][]
+                                  { new byte[]{},
+                                    TestKeyBuilder.asSortKey(500) },
+                              new UUID[] { dataService0UUID,
+                                           dataService1UUID }
+                            );
+                    registered = true;
+                    break;
+                } catch(Throwable t2) {
+                    if ( !Util.causeNoSuchObject(t2) ) {
+                        throw new Exception(t2);
+                    }
+                }
+            }
+        }
+        assertTrue("failed to register metadata", registered);
+//BTM - PRE_CLIENT_SERVICE - END
 
         final IIndex ndx = fed.getIndex(name, ITx.UNISOLATED);
 
