@@ -38,4 +38,9 @@ public interface Constants {
     /* Name of this component; used in config entry retrieval and the logger.*/
     String COMPONENT_NAME = ((Constants.class).getPackage()).getName();
     String F_SEP          = System.getProperty("file.separator");
+
+    // Time (in seconds) to wait for discovery of other peers on 1st start up
+    long LOWER_BOUND_PEER_DISCOVERY_PERIOD = 1L;
+    long UPPER_BOUND_PEER_DISCOVERY_PERIOD = Long.MAX_VALUE;
+    long DEFAULT_PEER_DISCOVERY_PERIOD = 5L*60L;
 }

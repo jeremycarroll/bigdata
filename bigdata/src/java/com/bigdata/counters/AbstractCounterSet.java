@@ -217,6 +217,8 @@ if (logger.isEnabledFor(org.apache.log4j.Level.WARN)) {
             strBuf.append( new String(new byte[] {pathBytes[i]}) );
         }
     }
+
+//BTM - workaround for http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6935535
     logger.warn("***** AbstractCounterSet.getPath: CONTAINS SLASH-SLASH: path CONVERTED = "+strBuf.toString());
 }
 int slashSlashIndex = path.indexOf("//");

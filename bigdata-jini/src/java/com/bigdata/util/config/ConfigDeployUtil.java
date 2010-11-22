@@ -400,10 +400,10 @@ public class ConfigDeployUtil {
                             throws ConfigurationException
     {
         String validValuesStr = 
-            (String) getDeploymentProperties().get(parameter + STRINGVALS);
+               (String) getDeploymentProperties().get(parameter + STRINGVALS);
 
         if (validValuesStr != null) {
-            String[] validValues = validValuesStr.split(",");
+            String[] validValues = (validValuesStr.trim()).split(",");
             if (!Arrays.asList(validValues).contains(value)) {
                 throw new ConfigurationException
                               ("invalid string parameter ["+parameter+"] in "
@@ -417,11 +417,11 @@ public class ConfigDeployUtil {
                                 throws ConfigurationException
     {
         String validValuesStr = 
-            (String)(getDeploymentProperties().get(parameter + STRINGVALS));
+               (String)(getDeploymentProperties().get(parameter + STRINGVALS));
         String[] values = value.split(",");
 
         if (validValuesStr != null) {
-            String[] validValues = validValuesStr.split(",");
+            String[] validValues = (validValuesStr.trim()).split(",");
             List validValuesList = Arrays.asList(validValues);
             for (int i=0; i<values.length; i++) {
                 if (!validValuesList.contains(values[i])) {
@@ -434,6 +434,39 @@ public class ConfigDeployUtil {
         return values;
     }
 
+//NOTE: there seems to be a problem with NumberFormat.parse; in particular,
+//      with parsing strings representing integers. During testing
+//      there were numerous occasions where, when parsing a string value
+//      from the properties (from either default-deploy.properties or
+//      from deploy.properties), either a NumberFormatException or
+//      a ParseException would occur; even when the value being parsed
+//      was valid. These exceptions, which occurred randomly, typically
+//      would indicate that value being parsed was the empty string ("")
+//      for the case of a NumberFormatException, or the resulting parsed
+//      max (or min) value did not satisfy the desired criteria. For
+//      example, when a strvalue of "2181" was input, and the maximum
+//      value retrieved from the properties was "65353", upon parsing the
+//      string "65353", the value 1024 was returned; thus, because 1024
+//      is less than 2181, a ParseException was thrown. In other cases,
+//      although a NumberFormatException was thrown by the call to
+//      NumberFormat.parse because that method interpretted the string
+//      "65353" as the empty string.
+//
+//      Upon doing a search of the various bug databases and related
+//      user reports, there seems to be some indication that the
+//      parse method may at some point invoke the indexOf method on
+//      the string that is being parsed. Thus, the problem being
+//      described here may be related to JDK bug described at the url,
+//
+//      http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6935535
+//
+//      (Or it may be related to the locale being used by the tests that
+//      encountered this issue?)
+//
+//      As a work around, the validateInt and validateLong methods each
+//      parse the given string using Integer.parseInt and Long.parseLong
+//      respectively; at least until this issue is resolved.
+
     private static int validateInt(String parameter, String strvalue)
                            throws ConfigurationException
     {
@@ -445,33 +478,42 @@ public class ConfigDeployUtil {
         int value = str2int(strvalue);
 
         if (maxString != null) {
+/* see note ************************************************
             try {
-                int max = numberFormat.parse(maxString).intValue();          
-                if (value > max) {
-                    throw new ConfigurationException
-                                      ("parameter ["+parameter+"] "
-                                       +"exceeds maximum ["+max+"]");
-                }
+                int max = numberFormat.parse(maxString.trim()).intValue();
             } catch (ParseException e) {
                 throw new NumberFormatException
                               ("invalid maximum integer for parameter: "
                                +parameter);
             }
+************************************************************* */
+int max = Integer.parseInt(maxString.trim());
+            if (value > max) {
+                throw new ConfigurationException
+                          ("parameter ["+parameter+"] exceeds maximum "
+                           +"["+strvalue+" > "+max
+                           +" (maxString="+maxString+")]");
+            }
         }
         if (minString != null) {
+/* see note ************************************************
             try {
-                int min = numberFormat.parse(minString).intValue();          
-                if (value < min) {
-                    throw new ConfigurationException
-                                  ("parameter ["+parameter+"] "
-                                   +"is less than maximum ["+min+"]");
-                }
+                int min = numberFormat.parse(minString.trim()).intValue();
             } catch (ParseException e) {
                 throw new NumberFormatException
                               ("invalid minimum integer for parameter: "
                                +parameter);         	
             }
+************************************************************* */
+int min = Integer.parseInt(minString.trim());
+            if (value < min) {
+                throw new ConfigurationException
+                          ("parameter ["+parameter+"] is less than minimum "
+                           +"["+strvalue+" < "+min
+                           +" (minString="+minString+")]");
+            }
         }
+
         return value;
     }
 
@@ -486,32 +528,40 @@ public class ConfigDeployUtil {
         long value = str2long(strvalue);
 
         if (maxString != null) {
+/* see note ************************************************
             try {
-                long max = numberFormat.parse(maxString).longValue();          
-                if (value > max) {
-                    throw new ConfigurationException
-                                  ("parameter ["+parameter+"] "
-                                   +"exceeds maximum ["+max+"]");
-                }
+                long max = numberFormat.parse(maxString.trim()).longValue();
             } catch (ParseException e) {
                 throw new NumberFormatException
                               ("invalid maximum long for parameter: "
                                +parameter);
             }
+************************************************************* */
+long max = Long.parseLong(maxString.trim());
+            if (value > max) {
+                throw new ConfigurationException
+                          ("parameter ["+parameter+"] exceeds maximum "
+                           +"["+strvalue+" > "+max
+                           +" (maxString="+maxString+")]");
+            }
         }
         if (minString != null) {
+/* see note ************************************************
             try {
-                long min = numberFormat.parse(minString).longValue();          
-                if (value < min) {
-                    throw new ConfigurationException
-                                  ("parameter ["+parameter+"] "
-                                   +"is less than manimum ["+min+"]");
-                }
+                long min = numberFormat.parse(minString.trim()).longValue();
             } catch (ParseException e) {
                 throw new NumberFormatException
                               ("invalid minimum long for parameter: "
                                +parameter);         	
             }            
+************************************************************* */
+long min = Long.parseLong(minString.trim());
+            if (value < min) {
+                throw new ConfigurationException
+                          ("parameter ["+parameter+"] is less than minimum "
+                           +"["+strvalue+" < "+min
+                           +" (minString="+minString+")]");
+            }
         }
         return value;
     }
@@ -603,7 +653,7 @@ public class ConfigDeployUtil {
 //BTM -       when the new version str2long was used. Thus, at
 //BTM -       least temporarily, until the problem can be 
 //BTM -       diagnosed and fixed, the old versions of those
-//BTM -       methods are still be used below.
+//BTM -       methods are still being used below.
 //BTM     private static int str2int(String argx) {
 //BTM         Number n = null;
 //BTM         try {	

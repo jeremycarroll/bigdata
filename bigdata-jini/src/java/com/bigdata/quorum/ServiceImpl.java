@@ -31,6 +31,7 @@ import com.bigdata.attr.QuorumPeerAttr;
 import com.bigdata.attr.ServiceInfo;
 import com.bigdata.service.QuorumPeerService;
 import com.bigdata.service.QuorumPeerService.QuorumPeerData;
+import com.bigdata.util.EntryUtil;
 import com.bigdata.util.Util;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.LogUtil;
@@ -332,11 +333,22 @@ class ServiceImpl implements PrivateInterface {
         joinMgr = new JoinManager(outerProxy, serviceAttrs, serviceId, ldm,
                                   null, config);
 
-        if((peerState.getNQuorumPeers() > 1L) && (peerState.getPeerId() == 0L))
-        {
-            //discover all other peers to determine peer ids and server info
-            //so the entire quorum peer ensemble can be initialized & persisted
-            initQuorumPeerData(peerState, configStateInfo);
+        // If not standalone and if this is the very first time this
+        // service instance has started (that is, it has not previously
+        // persisted any state related to the other peers in the 
+        // ensemble), then attempt to discover all other peers in the
+        // ensemble to determine peer ids and server info so the entire
+        // quorum peer ensemble can be initialized & persisted.
+        if((peerState.getNQuorumPeers() > 1L)&&(peerState.getPeerId() == 0L)) {
+            long waitPeriod =
+                    Config.getLongEntry(config,
+                                        COMPONENT_NAME,
+                                        "peerDiscoveryPeriod",
+                                        DEFAULT_PEER_DISCOVERY_PERIOD, 
+                                        LOWER_BOUND_PEER_DISCOVERY_PERIOD, 
+                                        UPPER_BOUND_PEER_DISCOVERY_PERIOD);
+
+            initQuorumPeerData(peerState, configStateInfo, waitPeriod);
 
             //update the peerId of the QuorumPeerAttr
             QuorumPeerAttr tmplVal = new QuorumPeerAttr();
@@ -353,6 +365,18 @@ class ServiceImpl implements PrivateInterface {
         myidOut.println(peerState.getPeerId());
         myidOut.flush();
         myidOut.close();
+
+        // zookeeperJmxLog4j item is not part of the persisted state
+        Boolean defaultJmxLog4j =
+                   ConfigDeployUtil.getBoolean("federation.zookeeperJmxLog4j");
+        boolean zookeeperJmxLog4j = (Boolean)config.getEntry
+                                                        (COMPONENT_NAME,
+                                                         "zookeeperJmxLog4j",
+                                                         Boolean.class,
+                                                         defaultJmxLog4j);
+        if (!zookeeperJmxLog4j) {
+            System.setProperty("zookeeper.jmx.log4j.disable", "true");
+        }
 
         this.quorumPeerMainTaskExecutor = Executors.newFixedThreadPool(1);
         this.quorumPeerMainTask = new QuorumPeerMainTask(configStateInfo);
@@ -374,7 +398,8 @@ class ServiceImpl implements PrivateInterface {
     }
 
     private boolean initQuorumPeerData(QuorumPeerState peerState,
-                                       ConfigStateInfo configStateInfo) 
+                                       ConfigStateInfo configStateInfo,
+                                       long peerDiscoveryPeriod) 
         throws IOException, ConfigurationException
     {
         int nPeersInEnsemble = peerState.getNQuorumPeers();
@@ -387,21 +412,26 @@ class ServiceImpl implements PrivateInterface {
         Class[]   peerTmplTypes = new Class[] { QuorumPeerService.class };
 
         QuorumPeerAttr peerAttr = new QuorumPeerAttr();
-        //match on all ports
-        peerAttr.peerPort = peerState.getPeerPort();
-        peerAttr.electionPort = peerState.getElectionPort();
-        peerAttr.clientPort = peerState.getClientPort();
-        Entry[] peerTmplAttrs = new Entry[] { peerAttr };
 
+//BTM  Ports can all be different (which helps when running multiple
+//BTM  servers on the same node), so no need to do exact matching
+//BTM  on the client, peer, and election ports. Thus, discover all
+//BTM  servers in the ensemble by federation group and service type,
+//BTM  and wildcard the port values.
+
+//BTM        peerAttr.peerPort = peerState.getPeerPort();
+//BTM        peerAttr.electionPort = peerState.getElectionPort();
+//BTM        peerAttr.clientPort = peerState.getClientPort();
+
+        Entry[] peerTmplAttrs = new Entry[] { peerAttr };
         ServiceTemplate peerTmpl = new ServiceTemplate(peerTmplId,
                                                        peerTmplTypes,
                                                        peerTmplAttrs);
-
-        long nWait = 5L*60L*1000L;//wait 5 minutes, then give up
         ServiceItem[] peerItems = null;
         try {
             peerItems = sdm.lookup(peerTmpl, nPeersInEnsemble,
-                                   nPeersInEnsemble, null, nWait);
+                                   nPeersInEnsemble, null,
+                                   peerDiscoveryPeriod);
             if((peerItems == null) || (peerItems.length < nPeersInEnsemble)) {
                 return false;
             }
@@ -411,34 +441,63 @@ class ServiceImpl implements PrivateInterface {
 
         // Found all peers, including self. Set peerId based on serviceId:
         // "smallest" serviceId is set to 1, next "smallest" set to 2, etc.
+        // unless a discovered service already has a non-zero peerId field
+        // in its QuroumPeerAttr attribute.
         //
-        // Use TreeSet to order the proxyId's from lowest to highest
+        // Use TreeMap to order the proxyId's from lowest to highest
         // (the UUID elements provide a compareTo method for consistent
         // ordering).
-        Set<UUID> orderedProxyIdSet = new TreeSet<UUID>();
-        for(int i=0; i<peerItems.length; i++) {
-            orderedProxyIdSet.add
-                (((QuorumPeerService)(peerItems[i].service)).getServiceUUID());
-        }
+        //
+        // Also, while populating the ordered map, determine this service's
+        // own proxyId and peerId so they can be used later when constructing
+        // and persisting the map of QuorumPeerData.
+
         UUID thisProxyId = peerState.getProxyId();
         if(thisProxyId == null) {
             throw new NullPointerException("initQuorumPeerData: "
                                            +"null proxyId from peerState");
         }
+        Long thisPeerId = 0L;//will replace this with non-zero below
 
-        // Determine this service's own peerId and create an ordered map
-        // that maps each service's proxyId to its corresponding peerId
-        // so that the QuorumPeerData map can be constructed and persisted.
-        long thisPeerId = 0L;
+        // Populate the map with the ordered proxy id keys and either
+        // a non-zero peer id (indicating the discovered service had a
+        // previously initialized - and persisted - peerId) or 0 to
+        // indicate that the discovered service has been started for
+        // the very first time
+
         Map<UUID, Long> orderedPeerIdMap = new TreeMap<UUID, Long>();
-        Iterator<UUID> proxyItr = orderedProxyIdSet.iterator();
-        for(long peerId=1; proxyItr.hasNext(); peerId++) {
-            UUID nextProxyId = proxyItr.next();
-            orderedPeerIdMap.put(nextProxyId, peerId);
-            if( thisProxyId.equals(nextProxyId) ) {
-                thisPeerId = peerId;
+        for(int i=0; i<peerItems.length; i++) {
+            UUID proxyId =
+                 ((QuorumPeerService)(peerItems[i].service)).getServiceUUID();
+            Entry[] attrs = peerItems[i].attributeSets;
+            QuorumPeerAttr quorumPeerAttr =
+                EntryUtil.getEntryByType(attrs, QuorumPeerAttr.class);
+            Long peerId = (quorumPeerAttr == null ? 0L:quorumPeerAttr.peerId);
+            orderedPeerIdMap.put(proxyId, peerId);
+            logger.debug("PUT peerId >>> ["+proxyId+", "+peerId+"]");
+        }
+
+        // Replace any 0-valued peer ids from above with a non-zero value
+        // in the correct order.
+
+        Set<Map.Entry<UUID, Long>> orderedSet = orderedPeerIdMap.entrySet();
+        Iterator<Map.Entry<UUID, Long>> itr = orderedSet.iterator();
+        for(Long peerIdCntr=1L; itr.hasNext(); peerIdCntr++ ) {
+            Map.Entry<UUID, Long> pair = itr.next();
+            UUID curProxyId = pair.getKey();
+            Long curPeerId  = pair.getValue();
+            if (curPeerId == 0L) {
+                curPeerId = peerIdCntr;
+                orderedPeerIdMap.put(curProxyId, curPeerId);//replace
+                logger.debug("REPLACE peerId >>> "
+                             +"["+curProxyId+", "+curPeerId+"]");
+            }
+            if( thisProxyId.equals(curProxyId) ) {//determine own peerId
+                thisPeerId = curPeerId;
             }
         }
+
+        //verify this service's peerId was indeed determined above
         if(thisPeerId == 0) return false;
 
         peerState.setPeerId(thisPeerId);
@@ -462,6 +521,8 @@ class ServiceImpl implements PrivateInterface {
                 ( new InetSocketAddress(peerAddress, peerPort) );
             peerData.setElectionAddress
                 ( new InetSocketAddress(peerAddress, electionPort) );
+
+            peerDataMap.put(peerId, peerData);
         }
         peerState.setPeerDataMap(peerDataMap);
 
@@ -718,6 +779,7 @@ class ServiceImpl implements PrivateInterface {
                  (new Integer(peerState.getMaxClientCnxns())).toString());
 
             Map<Long, QuorumPeerData> peerDataMap = peerState.getPeerDataMap();
+            logger.debug("peerDataMap.size() = "+peerDataMap.size());
             for(QuorumPeerData peerData : peerDataMap.values()) {
                 long peerId = peerData.getPeerId();
                 InetSocketAddress pAddr = peerData.getPeerAddress();
@@ -728,6 +790,7 @@ class ServiceImpl implements PrivateInterface {
                 String serverKey = "server."+peerId;
                 String serverVal = peerAddr.getHostAddress()
                                    +":"+peerPort+":"+electionPort;
+                logger.debug("serverKey="+serverKey+", serverVal="+serverVal);
                 configProps.setProperty(serverKey, serverVal);
             }
             return configProps;
@@ -885,10 +948,10 @@ class ServiceImpl implements PrivateInterface {
 
                     //clientPort
 //for zookeeper 3.2.1
-                    this.peerState.setClientPort(zConfig.getClientPort());
+//                    this.peerState.setClientPort(zConfig.getClientPort());
 //for zookeeper 3.3.0+
-//                    this.peerState.setClientPort
-//                        (zConfig.getClientPortAddress().getPort());
+                    this.peerState.setClientPort
+                        (zConfig.getClientPortAddress().getPort());
 
                     //dataDir
                     this.peerState.setDataDir(zConfig.getDataDir());
@@ -977,6 +1040,7 @@ class ServiceImpl implements PrivateInterface {
                                 if( peerIdFound ) break;
                             }
                         }
+
                         this.peerState.setPeerDataMap(peerDataMap);
                         this.peerState.setNQuorumPeers(peerDataMap.size());
                     }
@@ -984,13 +1048,17 @@ class ServiceImpl implements PrivateInterface {
                 } else {//retrieve from jini config
 
                     logger.log(Level.DEBUG, "INITIAL START: "
-                               +"[use jini config]");
+                               +"[use deployment config]");
 
                     //clientPort
+                    Integer defaultClientPort =
+                        ConfigDeployUtil.getInt
+                            ("federation.zookeeperClientPort");
                     Integer zClientPort = 
                        (Integer)config.getEntry(COMPONENT_NAME,
                                                 "zookeeperClientPort",
-                                                Integer.class, 2181);
+                                                Integer.class,
+                                                defaultClientPort);
                     if(zClientPort == null) {
                         throw new ConfigurationException
                             ("null zookeeperClientPort");
@@ -998,7 +1066,9 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setClientPort(zClientPort);
 
                     //dataDir
-                    String defaultDataDir = "data";
+                    String defaultDataDir =
+                        ConfigDeployUtil.getString
+                            ("federation.zookeeperDataDir");
                     String zDataDir = persistBaseStr + F_SEP
                         + (String)config.getEntry(COMPONENT_NAME,
                                                   "zookeeperDataDir",
@@ -1011,7 +1081,9 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setDataDir(zDataDir);
 
                     //dataLogDir
-                    String defaultDataLogDir = "data.log";
+                    String defaultDataLogDir =
+                        ConfigDeployUtil.getString
+                            ("federation.zookeeperDataLogDir");
                     String zDataLogDir = persistBaseStr + F_SEP
                         + (String)config.getEntry
                                           (COMPONENT_NAME,
@@ -1025,10 +1097,14 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setDataLogDir(zDataLogDir);
 
                     //tickTime
+                    Integer defaultTickTime =
+                        ConfigDeployUtil.getInt
+                            ("federation.zookeepeTickTime");
                     Integer zTickTime = 
                        (Integer)config.getEntry(COMPONENT_NAME,
                                                 "zookeeperTickTime",
-                                                Integer.class, 2000);
+                                                Integer.class,
+                                                defaultTickTime);
                     if(zTickTime == null) {
                         throw new ConfigurationException
                             ("null zookeeperTickTime");
@@ -1036,6 +1112,9 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setTickTime(zTickTime);
 
                     //initLimit
+                    Integer defaultInitLimit =
+                        ConfigDeployUtil.getInt
+                            ("federation.zookeeperInitLimit");
                     Integer zInitLimit = 
                        (Integer)config.getEntry(COMPONENT_NAME,
                                                 "zookeeperInitLimit",
@@ -1047,10 +1126,14 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setInitLimit(zInitLimit);
 
                     //syncLimit
+                    Integer defaultSyncLimit =
+                        ConfigDeployUtil.getInt
+                            ("federation.zookeeperSyncLimit");
                     Integer zSyncLimit = 
                        (Integer)config.getEntry(COMPONENT_NAME,
                                                 "zookeeperSyncLimit",
-                                                Integer.class, 2);
+                                                Integer.class, 
+                                                defaultSyncLimit);
                     if(zSyncLimit == null) {
                         throw new ConfigurationException
                             ("null zookeeperSyncLimit");
@@ -1058,10 +1141,14 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setSyncLimit(zSyncLimit);
 
                     //electionAlg
+                    Integer defaultElectionAlg =
+                        ConfigDeployUtil.getInt
+                            ("federation.zookeeperElectionAlg");
                     Integer zElectionAlg = 
                        (Integer)config.getEntry(COMPONENT_NAME,
                                                 "zookeeperElectionAlg",
-                                                Integer.class, 3);
+                                                Integer.class,
+                                                defaultElectionAlg);
                     if(zElectionAlg == null) {
                         throw new ConfigurationException
                             ("null zookeeperElectionAlg");
@@ -1069,10 +1156,14 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setElectionAlg(zElectionAlg);
 
                     //maxClientCnxns
+                    Integer defaultMaxClientCnxns =
+                        ConfigDeployUtil.getInt
+                            ("federation.zookeeperMaxClientCnxns");
                     Integer zMaxClientCnxns = 
                         (Integer)config.getEntry(COMPONENT_NAME,
                                                  "zookeeperMaxClientCnxns",
-                                                 Integer.class, 10);
+                                                 Integer.class,
+                                                 defaultMaxClientCnxns);
                     if(zMaxClientCnxns == null) {
                         throw new ConfigurationException
                             ("null zookeeperMaxClientCnxns");
@@ -1080,10 +1171,11 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setMaxClientCnxns(zMaxClientCnxns);
 
                     // Because this is the first time this service is started,
-                    // and because the config is retrieved from a jini config,
-                    // there is no knowledge (yet) of the other zookeeper
-                    // servers, other than the total number of peers that
-                    // are expected to make up the ensemble. If the ensemble
+                    // and because the config is retrieved from a deployment
+                    // specific configuration, there is no knowledge (yet)
+                    // of the other zookeeper servers, other than the total
+                    // number of peers that are expected to make up the
+                    // ensemble (zookeeperEnsembleSize). If the ensemble
                     // will consist of only this service peer, then the
                     // peerConfigMap can be created and populated with this
                     // service's server information. But if the ensemble will
@@ -1092,21 +1184,31 @@ class ServiceImpl implements PrivateInterface {
                     // servers are discovered and a leader is elected.
 
                     //zookeeperNetwork (peerAddress)
-                    String zookeeperNetwork = NicUtil.getIpAddress("default.nic", ConfigDeployUtil.getString("node.serviceNetwork"), false);
+                    String zookeeperNetwork =
+                               NicUtil.getIpAddress
+                                   ("default.nic",
+                                    ConfigDeployUtil.getString
+                                        ("node.serviceNetwork"),
+                                    false);
 
                     if(zookeeperNetwork == null) {
                         throw new ConfigurationException
                             ("null zookeeperNetwork");
                     }
                     InetAddress peerAddress = 
-                       NicUtil.getInetAddress(zookeeperNetwork, 0, null, true);
+                       NicUtil.getInetAddress
+                                   (zookeeperNetwork, 0, null, true);
                     this.peerState.setPeerAddress(peerAddress);
 
                     //peerPort
+                    Integer defaultPeerPort =
+                        ConfigDeployUtil.getInt
+                            ("federation.zookeeperPeerPort");
                     Integer peerPort = 
                        (Integer)config.getEntry(COMPONENT_NAME,
                                                 "zookeeperPeerPort",
-                                                Integer.class, 2888);
+                                                Integer.class,
+                                                defaultPeerPort);
                     if(peerPort == null) {
                         throw new ConfigurationException
                             ("null zookeeperPeerPort");
@@ -1114,6 +1216,9 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setPeerPort(peerPort);
 
                     //electionPort
+                    Integer defaultElectionPort =
+                        ConfigDeployUtil.getInt
+                            ("federation.zookeeperElectionPort");
                     Integer electionPort = 
                        (Integer)config.getEntry(COMPONENT_NAME,
                                                 "zookeeperElectionPort",
@@ -1125,10 +1230,14 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setElectionPort(electionPort);
 
                     //nQuorumPeers
+                    Integer defaultEnsembleSize =
+                        ConfigDeployUtil.getInt
+                            ("federation.zookeeperEnsembleSize");
                     Integer nQuorumPeers = 
                        (Integer)config.getEntry(COMPONENT_NAME,
-                                                "nQuorumPeers",
-                                                Integer.class, 1);
+                                                "zookeeperEnsembleSize",
+                                                Integer.class,
+                                                defaultEnsembleSize);
                     if(nQuorumPeers == null) {
                         throw new ConfigurationException
                             ("null nQuorumPeers");
@@ -1140,7 +1249,18 @@ class ServiceImpl implements PrivateInterface {
                     this.peerState.setNQuorumPeers(nQuorumPeers);
 
                     if(nQuorumPeers > 1) {
-                        this.peerState.setPeerId(0L);//0 - no peers discovered
+
+                        // nQuorumPeers > 1 means that the ensemble is 
+                        // configured to not be standalone; in which case,
+                        // this service's peer id is initially set to 0
+                        // to indicate to this service's init method that
+                        // the initQuorumPeerData method must be invoked
+                        // to dicover the other peers so in the ensemble
+                        // so that each peer's id (myid) can be set to a
+                        // unique value between 1 and nQuorumPeers
+
+                        this.peerState.setPeerId(0L);
+
                     } else {//nQuorumPeers == 1, populate peerConfigMap
                         long peerId = 1L;
                         this.peerState.setPeerId(peerId);
