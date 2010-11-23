@@ -38,6 +38,7 @@ import static junit.framework.Assert.*;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
+import com.bigdata.jini.quorum.QuorumPeerManager;
 import com.bigdata.service.QuorumPeerService;
 import com.bigdata.util.Util;
 import com.bigdata.util.config.NicUtil;
@@ -71,7 +72,11 @@ import net.jini.security.ProxyPreparer;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.KeeperException.SessionExpiredException;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -198,7 +203,7 @@ public class QuorumPeerServiceTest extends TestCase {
     private static String[] groupsToDiscover = new String[] {"qaQuorumGroup"};
     private static LookupLocator[] locsToDiscover  = new LookupLocator[0];
     private static DiscoveryManagement ldm;
-    protected static ServiceDiscoveryManager sdm;
+    private static ServiceDiscoveryManager sdm;
     private static CacheListener cacheListener;
     private static LookupCache quorumCache;
 
@@ -467,9 +472,11 @@ public class QuorumPeerServiceTest extends TestCase {
         logger.debug("\n\n"+testName+" EXIT\n");
     }
 
-//    @Test(timeout=5000)
-    public void testGetSessionId() throws Exception {
-        testName = "testGetSessionId";
+    // Verifies that the ZooKeeper client can be used to connect to the
+    // ensemble within a given amount of time
+//    @Test(timeout=20000)
+    public void testZooKeeperConnect() throws Exception {
+        testName = "testZooKeeperConnect";
         testPassed = false;
         logger.info("\n\n-- "+testName+" ENTER ----------\n");
 
@@ -482,22 +489,68 @@ public class QuorumPeerServiceTest extends TestCase {
         String connectString = strBuf.toString();
         logger.info("connectString = "+connectString);
 
-        int sessionTimeout = 10000;//10 seconds
-        ZooKeeper zkClient =
-                      new ZooKeeper(connectString, sessionTimeout, null);
+        int sessionTimeout = 40*1000;//max when tickTime is 2000
+        ZooKeeper zkClient = new ZooKeeper(connectString,
+                                           sessionTimeout,
+                                           new ZookeeperEventListener());
+        ZooKeeper.States state = zkClient.getState();
+        logger.info("state[try #0] = "+state);
 
-        long sessionId = zkClient.getSessionId();
-        logger.info("sessionId = "+sessionId);
-
+        if ( !state.equals(ZooKeeper.States.CONNECTED) ) {
+            int nWait = 10;
+            for (int i=0; i<nWait; i++) {
+                Util.delayMS(1L*1000L);
+                state = zkClient.getState();
+                logger.info("state[try #"+(i+1)+"] = "+zkClient.getState());
+                if ( state.equals(ZooKeeper.States.CONNECTED) ) break;
+            }
+        }
+        if ( state.equals(ZooKeeper.States.CONNECTED) ) {
+            testPassed = true;
+        }
         zkClient.close();
+        logger.debug("\n\n"+testName+" EXIT\n");
+    }
+
+    // Verifies that the QuorumPeerManager class that wraps the ZooKeeper
+    // client can be used to discover and connect to the ensemble started
+    // by this test class.
+//    @Test(timeout=20000)
+    public void testQuorumPeerManagerConnect() throws Exception {
+        testName = "testQuorumPeerManagerConnect";
+        testPassed = false;
+        logger.info("\n\n-- "+testName+" ENTER ----------\n");
+
+        int sessionTimeout = 40*1000;//max when tickTime is 2000
+        QuorumPeerManager peerMgr =
+                          new QuorumPeerManager(sdm, sessionTimeout, logger);
+        assertTrue("failed on QuorumPeerManager instantiation "
+                   +"[null returned]", (peerMgr != null) );
+
+        ZooKeeper.States state = null;
+        try {
+            state = peerMgr.getState();
+        } catch(IOException e) {
+            logger.warn("failed on QuorumPeerManager instantiation", e);
+            return;
+        }
+        assertTrue("getState failed [null]", (state != null) );
+        logger.info("state = "+state);
+
+        assertTrue("getState failed [not connected]",
+                   state.equals(ZooKeeper.States.CONNECTED) );
 
         testPassed = true;
+        peerMgr.close();
         logger.debug("\n\n"+testName+" EXIT\n");
     }
 
     // Special test that is always the last test; to clearly distinguish the
     // logged output produced by the previous tests from the logged output
     // produced by the tearDown process.
+    //
+    // REMOVE this test when/if this test class is changed to use the
+    // @BeforeClass annotation.
     public void testLast() throws Exception {
         logger.info("\n\n-- BEGIN TEARDOWN ----------\n");
         lastTest = true;
@@ -761,7 +814,33 @@ public class QuorumPeerServiceTest extends TestCase {
         }
     }
 
-    static class ServiceStarterTask implements Runnable {
+    private static class ZookeeperEventListener implements Watcher {
+	public void process(WatchedEvent event) {
+            KeeperState eventState = event.getState();
+            switch (eventState) {
+                case Unknown:
+                    logger.warn
+                        ("zookeeper event [state="+eventState
+                         +", event="+event+"]");
+                    break;
+                case Disconnected:
+                    logger.info
+                        ("zookeeper event [state="+eventState+"]");;
+                    break;
+                case SyncConnected:
+                    logger.info
+                        ("zookeeper event [state="+eventState+"]");;
+                    break;
+                case Expired:
+                    logger.warn
+                        ("zookeeper event [state="+eventState+"]");
+                    break;
+            }
+
+	}
+    }
+
+    private static class ServiceStarterTask implements Runnable {
 
         private String serviceStateDir;
         private String ensembleSizeOverride;
