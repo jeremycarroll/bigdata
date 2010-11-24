@@ -122,4 +122,13 @@ Boolean.FALSE;
 Boolean.FALSE;
 //         Boolean.parseBoolean
 //         (IBigdataClient.Options.DEFAULT_COLLECT_PLATFORM_STATISTICS);
+
+    // ZooKeeper client session timeout in seconds. Note that for the
+    // typical tick time of 2 seconds per tick, the session timeout 
+    // should/will be set to a value between 4 and 40 seconds; because
+    // ZooKeeper requires that the session timeout always fall between
+    // 2 and 20 ticks.
+    int  LOWER_BOUND_ZK_SESSION_TIMEOUT = 1;
+    int  UPPER_BOUND_ZK_SESSION_TIMEOUT = Integer.MAX_VALUE;
+    int  DEFAULT_UPPER_BOUND_ZK_SESSION_TIMEOUT = 40;
 }

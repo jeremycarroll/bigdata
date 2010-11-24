@@ -33,6 +33,7 @@ import com.bigdata.btree.ResultSet;
 import com.bigdata.btree.filter.IFilterConstructor;
 import com.bigdata.btree.proc.IIndexProcedure;
 import com.bigdata.io.SerializerUtil;
+import com.bigdata.jini.quorum.QuorumPeerManager;
 import com.bigdata.jini.start.BigdataZooDefs;
 import com.bigdata.jini.util.ConfigMath;
 import com.bigdata.mdi.PartitionLocator;
@@ -141,8 +142,6 @@ class ServiceImpl implements PrivateInterface {
     private ServiceDiscoveryManager sdm;
 
     private EmbeddedShardLocator embeddedShardLocator;
-
-//BTM    private Thread waitThread;
 
     /* Constructor used by Service Starter Framework to start this service */
     public ServiceImpl(String[] args, LifeCycle lifeCycle) throws Exception {
@@ -440,11 +439,6 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
             serviceId = bootStateUtil.getServiceId();
             logger.debug("smsProxyId = null - service generated & persisted "
                          +"(or retreieved) its own proxy id ["+proxyId+"]");
-
-            setZookeeperConfigInfo(config);
-            zookeeperAccessor = 
-                    new ZooKeeperAccessor
-                            (zookeeperServers, zookeeperSessionTimeout);
         } else {//ServicesConfiguration pre-generated the proxy id
             proxyId = smsProxyId;
             serviceId = com.bigdata.jini.util.JiniUtil.uuid2ServiceID(proxyId);
@@ -590,6 +584,13 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                                             Boolean.FALSE);
 
         this.sdm = new ServiceDiscoveryManager(ldm, null, config);
+        if (zookeeperAccessor == null) {
+            setZookeeperConfigInfo(config, this.sdm);
+            zookeeperAccessor = 
+                    new ZooKeeperAccessor
+                            (zookeeperServers, zookeeperSessionTimeout);
+        }
+
         embeddedShardLocator = 
             new EmbeddedShardLocator
                     (proxyId, hostname,
@@ -630,9 +631,6 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                    +Util.writeGroupArrayToString(groupsToJoin)
                    +", locators="
                    +Util.writeArrayElementsToString(locatorsToJoin));
-
-//BTM        waitThread = new Util.WaitOnInterruptThread(logger);
-//BTM        waitThread.start();
 
         readyState.ready();//ready to accept calls from clients
     }
@@ -693,11 +691,12 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                 futureExporters.removeAll(removeSet);
             }
 
-//BTM            waitThread.interrupt();
-//BTM            try {
-//BTM                waitThread.join();
-//BTM            } catch (InterruptedException e) {/*exiting, so swallow*/}
-
+            if (zookeeperAccessor != null) {
+                try {
+                    zookeeperAccessor.close();
+                } catch(InterruptedException e) {//swallow
+                }
+            }
             Util.cleanupOnExit
               (innerProxy, serverExporter, futureExporters, joinMgr, sdm, ldm);
 
@@ -883,7 +882,22 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                     logger.debug("[main]: smsProxyId="+smsProxyId);
                 }
 
-                setZookeeperConfigInfo(smsConfig);
+                String[] tmpGroups = 
+                    (String[])smsConfig.getEntry
+                        ("com.bigdata.service.jini.JiniClient", "groups",
+                         String[].class, DiscoveryGroupManagement.NO_GROUPS);
+                LookupLocator[] tmpLocs = 
+                    (LookupLocator[])smsConfig.getEntry
+                        ("com.bigdata.service.jini.JiniClient", "locators",
+                         LookupLocator[].class, new LookupLocator[]{ });
+                DiscoveryManagement tmpLdm =
+                    new LookupDiscoveryManager(tmpGroups, tmpLocs, null);
+                ServiceDiscoveryManager tmpSdm =
+                    new ServiceDiscoveryManager(tmpLdm, null);
+
+                setZookeeperConfigInfo(smsConfig, tmpSdm);
+                tmpLdm.terminate();
+                tmpSdm.terminate();
                 zookeeperAccessor = 
                     new ZooKeeperAccessor
                             (zookeeperServers, zookeeperSessionTimeout);
@@ -906,7 +920,8 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                     ("[main]: logicalServiceZPath="+logicalServiceZPath);
                 if(physicalServiceZPath != null) {
                     byte[] data = SerializerUtil.serialize(smsEntries);
-                    ZooKeeper zookeeperClient = zookeeperAccessor.getZookeeper();
+                    ZooKeeper zookeeperClient =
+                                  zookeeperAccessor.getZookeeper();
                     logger.debug("[main]: zookeeper client created");
                     try {
                         zookeeperClient.create
@@ -916,7 +931,7 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
                                      +"[physicalServiceZPath="
                                      +physicalServiceZPath+"]");
                     } catch(NodeExistsException e) {
-                        zookeeperClient.setData(physicalServiceZPath, data, -1);
+                        zookeeperClient.setData(physicalServiceZPath,data,-1);
                         logger.debug("[main]: zookeeper znode updated "
                                      +"[physicalServiceZPath="
                                      +physicalServiceZPath+"]");
@@ -936,8 +951,10 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
         }
     }
 
-    private static void setZookeeperConfigInfo(Configuration zkConfig)
-                            throws ConfigurationException
+    private static void setZookeeperConfigInfo
+                            (Configuration zkConfig,
+                             ServiceDiscoveryManager srvcDiscMgr)
+                                 throws ConfigurationException, IOException
     {
         String zkComponent = "org.apache.zookeeper.ZooKeeper";
 
@@ -949,18 +966,11 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
         }
         logger.debug("zookeepeRoot="+zookeeperRoot);
 
-        zookeeperServers = 
-            (String)zkConfig.getEntry
-                                 (zkComponent, "servers", String.class, null);
-        if(zookeeperServers == null) {
-            throw new ConfigurationException
-                          ("zookeeper servers not specified");
-        }
-        logger.debug("zookeeperServers="+zookeeperServers);
-
-        zookeeperSessionTimeout = 
-            (Integer)zkConfig.getEntry
-                         (zkComponent, "sessionTimeout", int.class, 300000);
+        zookeeperSessionTimeout =
+            Config.getIntEntry(zkConfig, zkComponent, "sessionTimeout",
+                               DEFAULT_UPPER_BOUND_ZK_SESSION_TIMEOUT, 
+                               LOWER_BOUND_ZK_SESSION_TIMEOUT,
+                               UPPER_BOUND_ZK_SESSION_TIMEOUT);
         logger.debug("zookeeperSessionTimeout="+zookeeperSessionTimeout);
 
         ACL[] acl = (ACL[])zkConfig.getEntry
@@ -970,5 +980,22 @@ logger.warn("ZZZZZ SHARD LOCATOR ServiceImpl: DESTROY CALLED");
         }
         zookeeperAcl = Arrays.asList(acl);
         logger.debug("zookeeperAcl="+zookeeperAcl);
+
+//BTM - if config contains "servers" then by-pass dynamic discovery for now
+        zookeeperServers = 
+            (String)zkConfig.getEntry
+                             (zkComponent, "servers", String.class, null);
+        if(zookeeperServers == null) {
+            QuorumPeerManager tmpPeerMgr =
+                new QuorumPeerManager
+                        (srvcDiscMgr, zookeeperSessionTimeout, logger);
+            if (tmpPeerMgr == null) {
+                throw new IOException("zookeeper ensemble unavailable");
+            }
+            ZooKeeper.States zkState = tmpPeerMgr.getState();
+            logger.debug("zookeeper state="+zkState);
+            zookeeperServers = tmpPeerMgr.getConnectString();
+        }
+        logger.debug("zookeeperServers="+zookeeperServers);
     }
 }

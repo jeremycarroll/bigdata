@@ -331,6 +331,8 @@ public class LocalResourceManager implements ILocalResourceManagement {
                           + ICounterSet.pathSeparator
                           + IResourceManagerCounters.IndexManager );
 
+//BTM - FIX NullPointerException - BEGIN
+if (tmp3 != null) {
                 synchronized (tmp3) {
 
                     // Note: detach and then attach since that wipes out
@@ -355,6 +357,8 @@ public class LocalResourceManager implements ILocalResourceManagement {
                     }
                 }
             }//end live indices
+}//endif(tmp3 != null)
+//BTM - FIX NullPointerException - BEGIN
 
             lastReattachMillis = now;
 

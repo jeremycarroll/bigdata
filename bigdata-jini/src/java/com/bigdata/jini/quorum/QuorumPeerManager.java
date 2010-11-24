@@ -406,6 +406,11 @@ public class QuorumPeerManager {
         }
     }
 
+    // Other public methods defined by this class, not defined by ZooKeeper
+    public String getConnectString() {
+        return connectString;
+    }
+
     // Private methods
 
     private ZooKeeper getClient() throws IOException {
