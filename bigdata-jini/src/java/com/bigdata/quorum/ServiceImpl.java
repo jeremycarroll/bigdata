@@ -98,6 +98,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.rmi.RemoteException;
+import java.rmi.RMISecurityManager;
 import java.rmi.server.ExportException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -117,11 +118,20 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Backend (admin) zookeeper based implementation of the quorum peer service.
+ *
+ * Note: this class is currently declared public rather than the preferred
+ *       package protected scope. This is so that the JiniServicesHelper
+ *       utility can instantiate this class in the tests that are currently
+ *       implemented to interact directly with the service's backend;
+ *       as opposed to starting the service with the ServiceStarter and
+ *       then interacting with the service through the discovered service
+ *       frontend.
  */
+public
 class ServiceImpl implements PrivateInterface {
 
-    private static Logger logger = LogUtil.getLog4jLogger
-                                          ( (ServiceImpl.class).getName() ) ;
+    private static Logger logger = 
+        LogUtil.getLog4jLogger(COMPONENT_NAME);
     private static String shutdownStr;
     private static String killStr;
 
@@ -267,6 +277,9 @@ class ServiceImpl implements PrivateInterface {
 
     //Initialize the service from the config
     private void init(String[] args) throws Exception {
+        if(System.getSecurityManager() == null) {
+            System.setSecurityManager(new RMISecurityManager());
+        }
         config = ConfigurationProvider.getInstance
                                        ( args,
                                          (this.getClass()).getClassLoader() );
@@ -1386,6 +1399,118 @@ class ServiceImpl implements PrivateInterface {
             } catch (ClassNotFoundException e) {
                 return super.resolveClass(desc);
             }
+        }
+    }
+
+    /**
+     * This main() method is provided because it may be desirable (for
+     * testing or other reasons) to be able to start this service using
+     * a command line that is either manually entered in a command window
+     * or supplied to the java ProcessBuilder class for execution.
+     * <p>
+     * The mechanism that currently employs the ProcessBuilder class to
+     * execute a dynamically generated command line will be referred to
+     * as the 'ServiceConfiguration mechanism', which involves the use of
+     * the following ServiceConfiguration class hierarchy, 
+     * <p>
+     * <ul>
+     *   <li> ZookeeperConfiguration
+     *   <li> JavaServiceConfiguration
+     *   <li> ServiceConfiguration
+     * </ul>
+     * </p>
+     * The ServicesConfiguration mechanism may involve the use of the
+     * ServicesManagerService directly to execute this service, or it may
+     * involve the use of the junit framework to start this service. In
+     * either case, a command line is constructed from information that is 
+     * specified at each of the various ServiceConfiguration levels, and
+     * is ultimately executed in a ProcessBuilder instance (in the
+     * ProcessHelper class).
+     * <p>
+     * In order for this method to know whether or not the 
+     * ServiceConfiguration mechanism is being used to start the service,
+     * this method must be told that the ServiceConfiguration mechanism is
+     * being used. This is done by setting the system property named
+     * <code>usingServiceConfiguration</code> to any non-null value.
+     * <p>
+     * When the ServiceConfiguration mechanism is <i>not</i> used to start
+     * this service, this method assumes that the element at index 0
+     * of the args array references the path to the jini configuration
+     * file that will be input by this method to this service's constructor.
+     * On the other hand, when the ServiceConfiguration mechanism <i>is</i>
+     * used to start this service, the service's configuration is handled
+     * differently, as described below.
+     * <p>   
+     * When using the ServiceConfiguration mechanism, in addition to
+     * generating a command line to start the service, although an initial,
+     * pre-constructed jini configuration file is supplied (to the
+     * ServicesManagerService or the test framework, for example), a
+     * second jini configuration file is generated <i>on the fly</i> as
+     * well. When generating that new configuration file, a subset of the
+     * components and entries specified in the initial jini configuration
+     * are retrieved and placed in the new configuration being generated.
+     * It is that second, newly-generated configuration file that is input
+     * to this method through the args elements at index 0.
+     * <p>
+     * When the ServiceConfiguration mechanism is used to invoke this
+     * method, this method makes a number of assumptions. One assumption
+     * is that there is a component with name equal to the value,
+     * "org.apache.zookeeper.server.quorum.QuorumPeerMain", as well as
+     * either a component itself, or entries corresponding to a component,
+     * with name equal to the fully qualified name of this class (or both).
+     * Another assumption is that an entry named 'args' is associated with
+     * that component. The 'args' entry is assumed to be a <code>String</code>
+     * array in which one of the elments is specified to be a system
+     * property named 'config' whose value is equal to the path and
+     * filename of yet a third jini configuration file; that is, something
+     * of the form, "-Dconfig=<path-to-another-jini-config>". It is this
+     * third jini configuration file that the service will ultimately use
+     * to initialize itself when the ServiceConfiguration mechanism is
+     * being used to start the service. In that case then, this method
+     * will retrieve the path to the third jini configuration file from
+     * the configuration file supplied to this method in the args array
+     * at index 0, and then replace the element at index 0 with that
+     * path; so that when the service is instantiated (using this class'
+     * constructor), that third configuration file is made available to
+     * the service instance.
+     * <p>
+     * Note that, unlike the other service implementations, this service
+     * always generates its own service id the very first time it is
+     * started, persists that service id, and retrieves and reuses it
+     * on restarts.
+     * <p>
+     * Note that once an instance of this service implementation class
+     * has been created, that instance is stored in the <code>thisImpl</code>
+     * field to prevent the instance from being garbage collected until
+     * the service is actually shutdown.
+     */
+
+    private static ServiceImpl thisImpl;
+
+    public static void main(String[] args) {
+        logger.debug("[main]: appHome="+System.getProperty("appHome"));
+        try {
+            // If the system property with name "config" is set, then
+            // use the value of that property to override the value
+            // input in the first element of the args array
+            ArrayList<String> argsList = new ArrayList<String>();
+            int begIndx = 0;
+            String configFile = System.getProperty("config");
+            if(configFile != null) {
+                // Replace args[0] with config file location
+                argsList.add(configFile);
+                begIndx = 1;
+            }
+            for(int i=begIndx; i<args.length; i++) {
+                argsList.add(args[i]);
+            }
+            logger.debug("[main]: instantiating service [new ServiceImpl]");
+            thisImpl = new ServiceImpl
+                ( argsList.toArray(new String[argsList.size()]),
+                  new com.bigdata.service.jini.FakeLifeCycle() );
+        } catch(Throwable t) {
+            logger.log(Level.WARN,
+                       "failed to start callable executor service", t);
         }
     }
 }

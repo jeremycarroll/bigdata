@@ -153,12 +153,16 @@ public abstract class AbstractZooTestCase extends TestCase2 {
             
         if (log.isInfoEnabled())
             log.info(getName());
-        
+
         // find ports that are not in use.
         clientPort = getPort(2181/* suggestedPort */);
         final int peerPort = getPort(2888/* suggestedPort */);
         final int leaderPort = getPort(3888/* suggestedPort */);
-        final String servers = "1=localhost:" + peerPort + ":" + leaderPort;
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - PRE_ZOOKEEPER_SMART_PROXY        final String servers = "1=localhost:" + peerPort + ":" + leaderPort;
+        String hostname = com.bigdata.util.config.NicUtil.getIpAddress("default.nic", "default", true);
+        final String servers = "1="+hostname+":" + peerPort + ":" + leaderPort;
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 
         // create a temporary file for zookeeper's state.
         dataDir = File.createTempFile("test", ".zoo");
@@ -200,9 +204,14 @@ public abstract class AbstractZooTestCase extends TestCase2 {
         this.sessionTimeout = tickTime * 2;
 
         // if necessary, start zookeeper (a server instance).
-        ZookeeperProcessHelper.startZookeeper(config, listener);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - PRE_ZOOKEEPER_SMART_PROXY        ZookeeperProcessHelper.startZookeeper(config, listener);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+//BTM - PRE_ZOOKEEPER_SMART_PROXY        zookeeperAccessor = new ZooKeeperAccessor("localhost:" + clientPort, sessionTimeout);
 
-        zookeeperAccessor = new ZooKeeperAccessor("localhost:" + clientPort, sessionTimeout);
+        zookeeperAccessor = new ZooKeeperAccessor(hostname+":" + clientPort, sessionTimeout);
+        ZookeeperProcessHelper.startZookeeper(com.bigdata.quorum.ServiceImpl.class, config, listener);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
         
         zookeeper = zookeeperAccessor.getZookeeper();
         

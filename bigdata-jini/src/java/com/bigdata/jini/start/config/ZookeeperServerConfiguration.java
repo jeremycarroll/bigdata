@@ -257,15 +257,32 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
 
     }
 
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+    public Class classType;
+    private Configuration jiniConfig;
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
+
     /**
      * @param className
      * @param config
      * @throws ConfigurationException
      */
-    public ZookeeperServerConfiguration(final Configuration config)
-            throws ConfigurationException {
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - PRE_ZOOKEEPER_SMART_PROXY    public ZookeeperServerConfiguration(final Configuration config)
+//BTM - PRE_ZOOKEEPER_SMART_PROXY            throws ConfigurationException {
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+//BTM - PRE_ZOOKEEPER_SMART_PROXY        super(QuorumPeerMain.class.getName(), config);
+    public ZookeeperServerConfiguration(Class classType,
+                                        Configuration config)
+               throws ConfigurationException
+    {
 
-        super(QuorumPeerMain.class.getName(), config);
+        super(classType.getName(), config);
+        this.classType = classType;
+        this.jiniConfig = config;
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
+//BTM
+System.out.println("*** ZookeeperServerConfiguration: constructor ***");
 
         servers = (String) config.getEntry(Options.NAMESPACE, Options.SERVERS,
                 String.class);
@@ -455,6 +472,7 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
     public ZookeeperServiceStarter newServiceStarter(IServiceListener listener,
             ZookeeperServerEntry entry) {
 
+System.out.println("*** ZookeeperServerConfiguration ---> newServiceStarter ***");
         return new ZookeeperServiceStarter(listener, entry);
 
     }
@@ -511,6 +529,7 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
                 ZookeeperServerEntry entry) {
             
             super(listener);
+System.out.println("*** ZookeeperServerConfiguration.ZookeeperServiceStarter: constructor - BEGIN ***");
 
             if (entry == null)
                 throw new IllegalArgumentException();
@@ -524,6 +543,7 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
              */
             dataDir = new File(ZookeeperServerConfiguration.this.dataDir,
                     Integer.toString(entry.id)).getAbsoluteFile();
+System.out.println("*** ZookeeperServerConfiguration.ZookeeperServiceStarter: dataDir = "+dataDir);
 
             if (log.isInfoEnabled())
                 log.info(Options.DATA_DIR + "=" + dataDir);
@@ -536,6 +556,7 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
              */
             dataLogDir = new File(ZookeeperServerConfiguration.this.dataLogDir,
                     Integer.toString(entry.id)).getAbsoluteFile();
+System.out.println("*** ZookeeperServerConfiguration.ZookeeperServiceStarter: dataLogDir = "+dataLogDir);
 
             if (log.isInfoEnabled())
                 log.info(Options.DATA_LOG_DIR + "=" + dataLogDir);
@@ -544,9 +565,12 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
             configFile = new File(dataDir,
                     ZookeeperServerConfiguration.this.configFile)
                     .getAbsoluteFile();
+System.out.println("*** ZookeeperServerConfiguration.ZookeeperServiceStarter: generated configFile = "+configFile);
 
             // the server id is written on this file.
             myidFile = new File(dataDir, "myid");
+System.out.println("*** ZookeeperServerConfiguration.ZookeeperServiceStarter: myidFile = "+myidFile);
+System.out.println("*** ZookeeperServerConfiguration.ZookeeperServiceStarter: constructor - END ***");
 
         }
 
@@ -618,7 +642,14 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
                     /*
                      * Write the zookeeper server configuration file.
                      */
-                    writeZookeeperConfigFile();
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - PRE_ZOOKEEPER_SMART_PROXY                    writeZookeeperConfigFile();
+                    if ( (Options.NAMESPACE).equals(classType.getName()) ) {
+                        writeZookeeperConfigFile();
+                    } else {
+                        writeConfigFile();// Jini config file
+                    }
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 
                     /*
                      * Start the server.
@@ -682,7 +713,9 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
         
             // the configuration file.
             cmds.add(configFile.toString());
-            
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN
+            cmds.add("com.bigdata.quorum."+getGroups("groupsToJoin"));
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - END
         }
 
         @Override
@@ -859,6 +892,113 @@ public class ZookeeperServerConfiguration extends JavaServiceConfiguration {
 
         }
 
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN ------------------------------------
+        protected void writeConfigFile() throws IOException {
+
+            // 1. generate the contents to be written to the file
+            final String contents;
+            {
+                final StringWriter out = new StringWriter();
+                writeConfigFile(out);
+                out.flush();
+                contents = out.toString();
+            }
+
+            // 2. write the contents generated above to the file.
+            {
+                final Writer out2 =
+                      new OutputStreamWriter
+                              (new BufferedOutputStream
+                                       (new FileOutputStream(configFile)));
+                try {
+                    out2.write(contents);
+                    out2.flush();
+                } finally {
+                    out2.close();
+                }
+            }
+        }
+
+        protected void writeConfigFile(final Writer out) throws IOException {
+            // 1. Comments
+            writeComments(out);
+            out.write("\n");
+
+            // 2. import statements
+            for (String i : getImports()) {// write import statements
+                out.write("import " + i + ";\n");
+            }
+            out.write("\n");
+
+            // 3. Open component name
+            out.write("\n\n" + classType.getPackage().getName() + " {\n");
+            {
+                out.write("    "+Options.DATA_DIR+" = new File("+"\""+dataDir.toString()+"\""+");\n");
+                out.write("    "+Options.DATA_LOG_DIR+" = new File("+"\""+dataLogDir.toString()+"\""+");\n");
+                out.write("    "+Options.CLIENT_PORT+" = "+clientPort+";\n");
+                out.write("    "+Options.SERVERS+" = "+"\""+servers+"\""+";\n");
+                for(Map.Entry<String, String> entry : other.entrySet()) {
+                    String key = entry.getKey();
+                    String val = entry.getValue();
+                    out.write("    "+key+" = "+val+";\n");
+                }
+
+                out.write("    "+getGroups("groupsToJoin")+";\n");
+                out.write("    locsToJoin=new LookupLocator[]{ };\n");
+                out.write("    static discoveryManager = new LookupDiscoveryManager(groupsToJoin,locsToJoin,null,this);\n");
+            }// END BLOCK - 4. Close component name
+            out.write("}\n");
+        }
+
+        protected void writeComments(final Writer out) throws IOException {
+            out.write("// className=" + className + "\n");
+            out.write("// date=" + new java.util.Date() + "\n");
+        }
+
+        public String[] getImports() {
+            return new String[] 
+                   { "java.net.NetworkInterface",
+                     "com.sun.jini.config.ConfigUtil",
+                     "net.jini.constraint.BasicMethodConstraints",
+                     "net.jini.core.constraint.ConnectionRelativeTime",
+                     "net.jini.core.constraint.InvocationConstraints",
+                     "net.jini.jeri.BasicILFactory",
+                     "net.jini.jeri.BasicJeriExporter",
+                     "net.jini.jeri.tcp.TcpServerEndpoint",
+                     "net.jini.core.discovery.LookupLocator",
+                     "net.jini.discovery.LookupDiscoveryManager",
+                     "com.bigdata.util.config.NicUtil",
+                     "com.bigdata.util.config.ConfigDeployUtil"
+                   };
+        }
+
+        protected String getGroups(String entryName) {
+            String fedname = null;
+            String zrootname = null;//in some test configs
+            String defaultGroupName = "UNKNOWN";
+            try {
+                fedname = (String) jiniConfig.getEntry
+                                       ("bigdata", "fedname",
+                                        String.class, "fedname-unset");
+                zrootname = (String) jiniConfig.getEntry
+                                         ("bigdata", "zrootname",
+                                          String.class, null);
+            } catch(Exception e) {//swallow
+            }
+            if (fedname == null) fedname = defaultGroupName;
+
+            StringBuffer strBuf =
+                new StringBuffer(entryName+"=new String[]{");
+            strBuf.append( com.bigdata.jini.util.ConfigMath.q(fedname) );
+            if (zrootname != null) {
+                strBuf.append
+                    (","+com.bigdata.jini.util.ConfigMath.q(zrootname));
+            }
+            strBuf.append("}");
+
+            return strBuf.toString();
+        }
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - END --------------------------------------
     }
 
     /**

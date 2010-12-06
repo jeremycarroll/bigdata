@@ -176,7 +176,8 @@ public class TestServiceStarter extends AbstractFedZooTestCase {
         final ServiceItem serviceItem;
         IService proxy = null;
         Service smartProxy = null;
-        final String physicalServiceZPath;
+//BTM (12/06/2010)        final String physicalServiceZPath;
+String physicalServiceZPath = null;
         {
             
             final List<String> children = zookeeper.getChildren(
@@ -194,14 +195,52 @@ public class TestServiceStarter extends AbstractFedZooTestCase {
              * Note: You could explicitly build the correct zpath using the
              * serviceUUID obtained from the service proxy.
              */
-            physicalServiceZPath = logicalServiceZPath + "/"
-                    + children.get(0);
-
-            // get the serviceUUID from the physicalServiceZNode's data.
-            final UUID serviceUUID = (UUID) SerializerUtil
-                    .deserialize(zookeeper.getData(physicalServiceZPath,
-                            false/* watch */, new Stat()));
-            
+//BTM - BEGIN (12/06/2010) ----------------------------------------------
+//BTM   The note above appears to be no longer true. That is, 
+//BTM   at some point, the tests or infrastructure were changed
+//BTM   in such a way that there are now 2 children instead of
+//BTM   the 1 child the note above says is expected. Currently,
+//BTM   the children are masterElection and physicalServices,
+//BTM   but the code below that retrieves the serviceUUID from
+//BTM   zookeeper must retrieve it from the physicalServices
+//BTM   children, not the masterElection child. The original
+//BTM   code invoked children.get(0), assuming either there
+//BTM   was only 1 child or assuming that the physicalServices
+//BTM   child would always be placed at index 0 of the
+//BTM   children list above zookeeper.getChildren() was called.
+//BTM   Unfortunately, this is not alway the case. And when/if
+//BTM   an attempt is made to deserialize the serviceUUID using
+//BTM   the masterElection child, an EOF exception is encountered
+//BTM   because serviceUUID information was never stored under
+//BTM   the masterElection znode. To address this then, the
+//BTM   code below was changed to loop through the children
+//BTM   list, catching the exception and exiting when a
+//BTM   a valid serviceUUID is successfully deserialized.
+//BTM
+//BTM            physicalServiceZPath = logicalServiceZPath + "/"
+//BTM                    + children.get(0);
+//BTM            // get the serviceUUID from the physicalServiceZNode's data.
+//BTM            final UUID serviceUUID = (UUID) SerializerUtil
+//BTM                    .deserialize(zookeeper.getData(physicalServiceZPath,
+//BTM                            false/* watch */, new Stat()));
+//BTM
+            UUID serviceUUID = null;
+            for (String child : children) {
+                physicalServiceZPath = logicalServiceZPath+"/"+child;
+                try {
+                    serviceUUID =
+                        (UUID) SerializerUtil.deserialize
+                                  ( zookeeper.getData(physicalServiceZPath,
+                                                      false,//watch
+                                                      new Stat()) );
+                    break;
+                } catch(Exception e) {//swallow
+                }
+            }
+            assertTrue( "failed to deserialize serviceUUID "
+                        +"[children="+children+"]",
+                        (serviceUUID != null) );
+//BTM - END --------------------------------------------------------------
             serviceItem = discoverService(serviceUUID);
 
             // verify that the service item is registered with jini. 

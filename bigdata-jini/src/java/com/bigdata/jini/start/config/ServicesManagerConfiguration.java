@@ -225,7 +225,7 @@ System.out.println("*** ServicesManagerConfiguration.getConfigurations: Lookup S
             } else if (a.equals(QuorumPeerMain.class.getName())) {
 
 System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: QuorumPeerMain BEGIN");
-                    v.add(new ZookeeperServerConfiguration(config));
+                    v.add(new ZookeeperServerConfiguration(QuorumPeerMain.class, config));
 System.out.println("*** ServicesManagerConfiguration.getConfigurations: QuorumPeerMain END\n");
 
             } else if (a.equals(TransactionServer.class.getName())) {
@@ -260,6 +260,12 @@ System.out.println("*** ServicesManagerConfiguration.getConfigurations: ClientSe
 
 
 //BTM - BEGIN: smart proxy impls ------------------------------------------------------------
+
+            } else if (a.equals(com.bigdata.quorum.ServiceImpl.class.getName())) {
+
+System.out.println("\n*** ServicesManagerConfiguration.getConfigurations: com.bigdata.quorum.ServiceImpl BEGIN");
+                    v.add(new ZookeeperServerConfiguration(com.bigdata.quorum.ServiceImpl.class, config));
+System.out.println("*** ServicesManagerConfiguration.getConfigurations: com.bigdata.quorum.ServiceImpl END\n");
 
             } else if (a.equals(com.bigdata.transaction.ServiceImpl.class.getName())) {//transaction service
 

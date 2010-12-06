@@ -147,12 +147,22 @@ public class ZookeeperProcessHelper extends ProcessHelper {
      * 
      * @see ZookeeperServerConfiguration#newServiceStarter(IServiceListener, ZookeeperServerEntry)
      */
-    static public int startZookeeper(final Configuration config,
-            final IServiceListener listener) throws ConfigurationException,
-            IOException {
-
-        final ZookeeperServerConfiguration serverConfig = new ZookeeperServerConfiguration(
-                config);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - PRE_ZOOKEEPER_SMART_PROXY    static public int startZookeeper(final Configuration config,
+//BTM - PRE_ZOOKEEPER_SMART_PROXY            final IServiceListener listener) throws ConfigurationException,
+//BTM - PRE_ZOOKEEPER_SMART_PROXY            IOException {
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+//BTM - PRE_ZOOKEEPER_SMART_PROXY        final ZookeeperServerConfiguration serverConfig = new ZookeeperServerConfiguration(
+//BTM - PRE_ZOOKEEPER_SMART_PROXY                config);
+    static public int startZookeeper
+                          (final Class classType,
+                           final Configuration config,
+                           final IServiceListener listener)
+                          throws ConfigurationException, IOException
+    {
+        final ZookeeperServerConfiguration serverConfig =
+                  new ZookeeperServerConfiguration(classType, config);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 
 //BTM log.warn("\n------------  ZookeeperProcessHelper.startZookeeper: [localhost="+thisInetAddr.getHostName()+", clientPort="+serverConfig.clientPort+"]\n");
 //BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n------------  ZookeeperProcessHelper.startZookeeper: [localhost="+thisInetAddr.getHostName()+", clientPort="+serverConfig.clientPort+"]\n");

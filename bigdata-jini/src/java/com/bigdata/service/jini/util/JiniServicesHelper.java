@@ -555,8 +555,14 @@ try {
                 // start zookeeper (a server instance).
 //BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER\n");
 //BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER\n");
-                final int nstarted = ZookeeperProcessHelper.startZookeeper(
-                        config, serviceListener);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - PRE_ZOOKEEPER_SMART_PROXY                final int nstarted = ZookeeperProcessHelper.startZookeeper(
+//BTM - PRE_ZOOKEEPER_SMART_PROXY                        config, serviceListener);
+                final int nstarted =
+                    ZookeeperProcessHelper.startZookeeper
+                        (com.bigdata.quorum.ServiceImpl.class, //BTM - was QuorumPeerMain.class
+                         config, serviceListener);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 //BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER - DONE\n");
 //BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER - DONE\n");
 

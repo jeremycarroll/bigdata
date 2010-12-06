@@ -141,7 +141,12 @@ public class ServicesManagerStartupTask implements Callable<Void> {
             if (serviceConfig instanceof ZookeeperServerConfiguration) {
 System.out.println("\n---- ServicesManagerStartupTask.doStartup: startZookeeperService() ----");
 
-                startZookeeperService(config);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - PRE_ZOOKEEPER_SMART_PROXY                startZookeeperService(config);
+                startZookeeperService
+                    ( ((ZookeeperServerConfiguration)serviceConfig).classType,
+                       config );
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 
             }
 
@@ -227,23 +232,38 @@ System.out.println("\n*** ServicesManagerStartupTask.doStartup: Lookup Service D
      * 
      * @return <code>true</code> if an instance was started successfully.
      */
-    protected boolean startZookeeperService(final Configuration config)
-            throws ConfigurationException, IOException {
-
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - PRE_ZOOKEEPER_SMART_PROXY    protected boolean startZookeeperService(final Configuration config)
+//BTM - PRE_ZOOKEEPER_SMART_PROXY            throws ConfigurationException, IOException {
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+//BTM - PRE_ZOOKEEPER_SMART_PROXY        try {
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+//BTM - PRE_ZOOKEEPER_SMART_PROXY            return ZookeeperProcessHelper.startZookeeper(config, service) > 0;
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+//BTM - PRE_ZOOKEEPER_SMART_PROXY        } catch (Throwable t) {
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+//BTM - PRE_ZOOKEEPER_SMART_PROXY            log.error(
+//BTM - PRE_ZOOKEEPER_SMART_PROXY                    "Could not start zookeeper service: " + t, t);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+//BTM - PRE_ZOOKEEPER_SMART_PROXY            return false;
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+//BTM - PRE_ZOOKEEPER_SMART_PROXY        }
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+//BTM - PRE_ZOOKEEPER_SMART_PROXY    }
+//BTM - PRE_ZOOKEEPER_SMART_PROXY
+    protected boolean startZookeeperService
+                          (Class classType, Configuration config)
+                          throws ConfigurationException, IOException
+    {
         try {
-
-            return ZookeeperProcessHelper.startZookeeper(config, service) > 0;
-
+            return ZookeeperProcessHelper.startZookeeper
+                                             (classType, config, service) > 0;
         } catch (Throwable t) {
-
-            log.error(
-                    "Could not start zookeeper service: " + t, t);
-
+            log.error("Could not start zookeeper service: " + t, t);
             return false;
-
         }
-
     }
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 
     /**
      * If necessary, start the jini core services on this host.

@@ -50,6 +50,16 @@ import com.bigdata.resources.ResourceFileFilter;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniFederation;
 
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN
+import com.bigdata.service.QuorumPeerService;
+import com.sun.jini.admin.DestroyAdmin;
+import net.jini.admin.Administrable;
+import net.jini.core.lookup.ServiceItem;
+import net.jini.core.lookup.ServiceTemplate;
+import net.jini.discovery.DiscoveryGroupManagement;
+import net.jini.lookup.ServiceDiscoveryManager;
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - END
+
 /**
  * Abstract base class for unit tests requiring a running zookeeper and a
  * running federation as configured from a test resource.
@@ -143,7 +153,11 @@ public class AbstractFedZooTestCase extends TestCase2 {
 //BTM - FOR_CLIENT_SERVICE - END
 
         // if necessary, start zookeeper (a server instance).
-        ZookeeperProcessHelper.startZookeeper(config, listener);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - PRE_ZOOKEEPER_SMART_PROXY        ZookeeperProcessHelper.startZookeeper(config, listener);
+        ZookeeperProcessHelper.startZookeeper(com.bigdata.quorum.ServiceImpl.class, config, listener);
+//ZookeeperProcessHelper.startZookeeper(org.apache.zookeeper.server.quorum.QuorumPeerMain.class, config, listener);
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 
         /*
          * FIXME We need to start a jini lookup service for groups = {fedname}
@@ -170,6 +184,29 @@ public class AbstractFedZooTestCase extends TestCase2 {
     public void tearDown() throws Exception {
 
         System.err.println(getName() + ": tearing down zrootname=" + zrootname);
+
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN
+        // Graceful shutdown of QuorumPeerService
+        ServiceDiscoveryManager sdm = fed.getServiceDiscoveryManager();
+        DiscoveryGroupManagement ldm =
+            (DiscoveryGroupManagement)(sdm.getDiscoveryManager());
+        Class[] quorumServiceType =
+            new Class[] {com.bigdata.service.QuorumPeerService.class};
+        ServiceTemplate quorumServiceTmpl = 
+            new ServiceTemplate(null, quorumServiceType, null);
+        ServiceItem[] items =
+            sdm.lookup(quorumServiceTmpl, Integer.MAX_VALUE, null);
+
+        for (int i=0; i<items.length; i++) {
+            QuorumPeerService zk = (QuorumPeerService)(items[i].service);
+            try {
+                Object admin = ((Administrable)zk).getAdmin();
+                ((DestroyAdmin)admin).destroy();
+            } catch(Exception e) {
+                log.warn("failure on zookeeper destroy ["+zk+"]", e);
+            }
+        }
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - END
 
         // destroy any processes started by this test suite.
         for (ProcessHelper t : listener.running) {
