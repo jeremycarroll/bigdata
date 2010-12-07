@@ -58,6 +58,18 @@ import com.bigdata.jini.start.process.ZookeeperProcessHelper;
 import com.bigdata.jini.util.ConfigMath;
 import com.bigdata.resources.ResourceFileFilter;
 
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN
+import com.bigdata.service.QuorumPeerService;
+import com.sun.jini.admin.DestroyAdmin;
+import net.jini.admin.Administrable;
+import net.jini.core.discovery.LookupLocator;
+import net.jini.core.lookup.ServiceItem;
+import net.jini.core.lookup.ServiceTemplate;
+import net.jini.discovery.DiscoveryGroupManagement;
+import net.jini.discovery.LookupDiscoveryManager;
+import net.jini.lookup.ServiceDiscoveryManager;
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - END
+
 /**
  * Abstract base class for zookeeper integration tests.
  * 
@@ -147,6 +159,10 @@ public abstract class AbstractZooTestCase extends TestCase2 {
     // the chosen client port.
     int clientPort = -1;
     
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN
+    String hostname;
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - END
+
     public void setUp() throws Exception {
 
         try {
@@ -160,7 +176,7 @@ public abstract class AbstractZooTestCase extends TestCase2 {
         final int leaderPort = getPort(3888/* suggestedPort */);
 //BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
 //BTM - PRE_ZOOKEEPER_SMART_PROXY        final String servers = "1=localhost:" + peerPort + ":" + leaderPort;
-        String hostname = com.bigdata.util.config.NicUtil.getIpAddress("default.nic", "default", true);
+        hostname = com.bigdata.util.config.NicUtil.getIpAddress("default.nic", "default", true);
         final String servers = "1="+hostname+":" + peerPort + ":" + leaderPort;
 //BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 
@@ -254,6 +270,42 @@ public abstract class AbstractZooTestCase extends TestCase2 {
                 zookeeperAccessor.close();
 
             }
+
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN
+            // Gracefully shutdown QuorumPeerService
+            // For graceful shutdown of QuorumPeerService
+            LookupLocator[] locs =
+                new LookupLocator[]
+                        { new LookupLocator("jini://"+hostname) };
+            LookupDiscoveryManager ldm =
+                new LookupDiscoveryManager
+                        (DiscoveryGroupManagement.NO_GROUPS,
+                         locs, null);
+            //wait no more than N secs for lookup to be discovered
+            int nWait = 3;
+            for (int i=0; i<nWait; i++) {
+                if ( (ldm.getRegistrars()).length > 0 ) break;
+                com.bigdata.util.Util.delayMS(1L*1000L);
+            }
+            ServiceDiscoveryManager sdm =
+                new ServiceDiscoveryManager(ldm, null);
+            Class[] quorumServiceType =
+                new Class[] {QuorumPeerService.class};
+            ServiceTemplate quorumServiceTmpl = 
+                new ServiceTemplate(null, quorumServiceType, null);
+            ServiceItem[] items =
+                sdm.lookup(quorumServiceTmpl, Integer.MAX_VALUE, null);
+            for (int i=0; i<items.length; i++) {
+                QuorumPeerService zk = (QuorumPeerService)(items[i].service);
+                try {
+                    Object admin = ((Administrable)zk).getAdmin();
+                    ((DestroyAdmin)admin).destroy();
+                } catch(Exception e) {
+                    log.warn("failure on zookeeper destroy ["+zk+"]", e);
+                }
+            }
+            sdm.terminate();
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - END
 
             for (ProcessHelper h : listener.running) {
 

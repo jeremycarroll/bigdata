@@ -56,7 +56,6 @@ import com.sun.jini.admin.DestroyAdmin;
 import net.jini.admin.Administrable;
 import net.jini.core.lookup.ServiceItem;
 import net.jini.core.lookup.ServiceTemplate;
-import net.jini.discovery.DiscoveryGroupManagement;
 import net.jini.lookup.ServiceDiscoveryManager;
 //BTM - FOR_ZOOKEEPER_SMART_PROXY - END
 
@@ -188,10 +187,8 @@ public class AbstractFedZooTestCase extends TestCase2 {
 //BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN
         // Graceful shutdown of QuorumPeerService
         ServiceDiscoveryManager sdm = fed.getServiceDiscoveryManager();
-        DiscoveryGroupManagement ldm =
-            (DiscoveryGroupManagement)(sdm.getDiscoveryManager());
         Class[] quorumServiceType =
-            new Class[] {com.bigdata.service.QuorumPeerService.class};
+            new Class[] {QuorumPeerService.class};
         ServiceTemplate quorumServiceTmpl = 
             new ServiceTemplate(null, quorumServiceType, null);
         ServiceItem[] items =
