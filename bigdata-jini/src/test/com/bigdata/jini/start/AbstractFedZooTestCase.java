@@ -154,8 +154,7 @@ public class AbstractFedZooTestCase extends TestCase2 {
         // if necessary, start zookeeper (a server instance).
 //BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
 //BTM - PRE_ZOOKEEPER_SMART_PROXY        ZookeeperProcessHelper.startZookeeper(config, listener);
-        ZookeeperProcessHelper.startZookeeper(com.bigdata.quorum.ServiceImpl.class, config, listener);
-//ZookeeperProcessHelper.startZookeeper(org.apache.zookeeper.server.quorum.QuorumPeerMain.class, config, listener);
+        ZookeeperProcessHelper.startZookeeper(com.bigdata.quorum.ServiceImpl.class, config, listener);//was QuorumPeerMain.class
 //BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 
         /*

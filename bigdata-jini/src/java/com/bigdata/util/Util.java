@@ -47,6 +47,7 @@ import com.bigdata.service.proxy.ClientBuffer;
 import com.bigdata.service.proxy.ClientRunnableBuffer;
 import com.bigdata.util.config.ConfigDeployUtil;
 import com.bigdata.util.config.LogUtil;
+import com.bigdata.util.config.NicUtil;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -541,7 +542,6 @@ public class Util {
             throw new NullPointerException("null entryName");
         }
         Exporter exporter = null;
-        ServerEndpoint endpoint = TcpServerEndpoint.getInstance(0);
         InvocationLayerFactory ilFactory = new BasicILFactory();
         Exporter defaultExporter =
                      getExporter(defaultEnableDgc, defaultKeepAlive);
@@ -561,8 +561,17 @@ public class Util {
                                        boolean keepAlive)
 
     {
-        Exporter exporter = null;
-        ServerEndpoint endpoint = TcpServerEndpoint.getInstance(0);
+        ServerEndpoint endpoint = null;
+        try {
+            String exportIpAddr =
+                NicUtil.getIpAddress
+                    ( "default.nic", 
+                      ConfigDeployUtil.getString("node.serviceNetwork"),
+                      false );
+            endpoint = TcpServerEndpoint.getInstance(exportIpAddr, 0);
+        } catch(Exception e) {
+            endpoint = TcpServerEndpoint.getInstance(0);
+        }
         InvocationLayerFactory ilFactory = new BasicILFactory();
         return new BasicJeriExporter
                        (endpoint, ilFactory, enableDgc, keepAlive);

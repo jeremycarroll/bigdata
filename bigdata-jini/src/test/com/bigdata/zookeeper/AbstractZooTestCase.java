@@ -60,6 +60,7 @@ import com.bigdata.resources.ResourceFileFilter;
 
 //BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN
 import com.bigdata.service.QuorumPeerService;
+import com.bigdata.util.config.NicUtil;
 import com.sun.jini.admin.DestroyAdmin;
 import net.jini.admin.Administrable;
 import net.jini.core.discovery.LookupLocator;
@@ -176,7 +177,7 @@ public abstract class AbstractZooTestCase extends TestCase2 {
         final int leaderPort = getPort(3888/* suggestedPort */);
 //BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
 //BTM - PRE_ZOOKEEPER_SMART_PROXY        final String servers = "1=localhost:" + peerPort + ":" + leaderPort;
-        hostname = com.bigdata.util.config.NicUtil.getIpAddress("default.nic", "default", true);
+        hostname = NicUtil.getIpAddress("default.nic", "default", true);
         final String servers = "1="+hostname+":" + peerPort + ":" + leaderPort;
 //BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 

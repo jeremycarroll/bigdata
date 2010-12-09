@@ -155,8 +155,9 @@ public class TestMappedRDFDataLoadMaster extends TestCase2 {
         try {
 
             helper = new JiniServicesHelper(args, serviceImplRemote);
-
+System.out.println("\n\n------------------------------------- TestMappedRDFDataLoadMaster helper.start BEGIN --------\n");
             helper.start();
+System.out.println("\n\n------------------------------------- TestMappedRDFDataLoadMaster helper.start END_1 --------\n");
 
 //BTM - PRE_CLIENT_SERVICE - BEGIN
 //BTM - PRE_CLIENT_SERVICE            new MappedRDFDataLoadMaster(helper.getFederation()).execute();
@@ -172,6 +173,7 @@ public class TestMappedRDFDataLoadMaster extends TestCase2 {
 //BTM - PRE_CLIENT_SERVICE - END
 
         } finally {
+System.out.println("\n\n------------------------------------- TestMappedRDFDataLoadMaster helper.start END_2 --------\n");
 
             // delete the temp file containing the federation configuration.
             tempConfigFile.delete();

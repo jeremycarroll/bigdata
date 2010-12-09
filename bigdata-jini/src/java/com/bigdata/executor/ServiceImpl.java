@@ -457,7 +457,7 @@ logger.warn("TTTTT CALLABLE EXECUTOR ServiceImpl: DESTROY CALLED");
                                             Boolean.FALSE);
 
         this.sdm = new ServiceDiscoveryManager(ldm, null, config);
-        if (zookeeperAccessor == null) {
+        if ( (zookeeperAccessor == null) || !(zookeeperAccessor.isOpen()) ) {
             setZookeeperConfigInfo(config, this.sdm);
             zookeeperAccessor = 
                     new ZooKeeperAccessor

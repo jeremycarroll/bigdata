@@ -57,6 +57,16 @@ import com.bigdata.shard.EmbeddedShardService;
 import java.util.ArrayList;
 import java.util.UUID;
 
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN
+import com.bigdata.service.QuorumPeerService;
+import com.bigdata.util.config.NicUtil;
+import com.sun.jini.admin.DestroyAdmin;
+import net.jini.admin.Administrable;
+import net.jini.core.lookup.ServiceItem;
+import net.jini.core.lookup.ServiceTemplate;
+import net.jini.lookup.ServiceDiscoveryManager;
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - END
+
 /**
  * A helper class that starts all the necessary services for a Jini federation.
  * This is used when testing, but NOT for benchmarking performance. For
@@ -509,8 +519,12 @@ try {
                 clientPort = getPort(2181/* suggestedPort */);
                 final int peerPort = getPort(2888/* suggestedPort */);
                 final int leaderPort = getPort(3888/* suggestedPort */);
-                final String servers = "1=localhost:" + peerPort + ":"
-                        + leaderPort;
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - PRE_ZOOKEEPER_SMART_PROXY                final String servers = "1=localhost:" + peerPort + ":"
+//BTM - PRE_ZOOKEEPER_SMART_PROXY                        + leaderPort;
+                String hostname = NicUtil.getIpAddress("default.nic", "default", true);
+                final String servers = "1="+hostname+":" + peerPort + ":" + leaderPort;
+//BTM - PRE_ZOOKEEPER_SMART_PROXY - END
 
 //BTM - FOR_CLIENT_SERVICE - BEGIN
 //BTM - FOR_CLIENT_SERVICE                options = new String[] {
@@ -553,8 +567,7 @@ try {
                         .getInstance(concat(args, options));
 
                 // start zookeeper (a server instance).
-//BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER\n");
-//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER\n");
+System.out.println("\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER: args[0] = "+args[0]+"\n");
 //BTM - PRE_ZOOKEEPER_SMART_PROXY - BEGIN
 //BTM - PRE_ZOOKEEPER_SMART_PROXY                final int nstarted = ZookeeperProcessHelper.startZookeeper(
 //BTM - PRE_ZOOKEEPER_SMART_PROXY                        config, serviceListener);
@@ -563,8 +576,7 @@ try {
                         (com.bigdata.quorum.ServiceImpl.class, //BTM - was QuorumPeerMain.class
                          config, serviceListener);
 //BTM - PRE_ZOOKEEPER_SMART_PROXY - END
-//BTM log.warn("\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER - DONE\n");
-//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER - DONE\n");
+System.out.println("\n---------------- JiniServicesHelper.innerStart >>> START ZOOKEEPER - DONE\n");
 
                 if (nstarted != 1) {
 
@@ -995,21 +1007,91 @@ if(ldm != null) ldm.terminate();
 //BTM log.warn("\n---------------- JiniServicesHelper.destroy BEGIN DESTROY ----------------\n");
 //BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy BEGIN DESTROY ----------------\n");
 
-        ZooKeeper zookeeper = null;
-        
-        ZookeeperClientConfig zooConfig = null;
-        
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN ---------------------------------------------------
+//BTM - FOR_ZOOKEEPER_SMART_PROXY        ZooKeeper zookeeper = null;
+//BTM - FOR_ZOOKEEPER_SMART_PROXY        
+//BTM - FOR_ZOOKEEPER_SMART_PROXY        ZookeeperClientConfig zooConfig = null;
+//BTM - FOR_ZOOKEEPER_SMART_PROXY       
+//BTM - FOR_ZOOKEEPER_SMART_PROXY        if (client != null && client.isConnected()) {
+//BTM - FOR_ZOOKEEPER_SMART_PROXY
+//BTM - FOR_ZOOKEEPER_SMART_PROXY            zooConfig = client.getFederation().getZooConfig();
+//BTM - FOR_ZOOKEEPER_SMART_PROXY            
+//BTM - FOR_ZOOKEEPER_SMART_PROXY            zookeeper = client.getFederation().getZookeeper();
+//BTM - FOR_ZOOKEEPER_SMART_PROXY            
+//BTM - FOR_ZOOKEEPER_SMART_PROXY            client.disconnect(true/* immediateShutdown */);
+//BTM - FOR_ZOOKEEPER_SMART_PROXY
+//BTM - FOR_ZOOKEEPER_SMART_PROXY            client = null;
+//BTM - FOR_ZOOKEEPER_SMART_PROXY
+//BTM - FOR_ZOOKEEPER_SMART_PROXY        }
+//BTM - FOR_ZOOKEEPER_SMART_PROXY
+        ServiceItem[] items = null;
         if (client != null && client.isConnected()) {
 
-            zooConfig = client.getFederation().getZooConfig();
-            
-            zookeeper = client.getFederation().getZookeeper();
-            
+            // 1. Clear out everything in zookeeper
+            ZookeeperClientConfig zooConfig = client.getFederation().getZooConfig();
+            ZooKeeper zookeeper = client.getFederation().getZookeeper();
+            try {
+System.out.println("\n---------------- JiniServicesHelper.destroy BEGIN ZOOKEEPER DELETE");
+                zookeeper.delete(zooConfig.zroot, -1); // version
+System.out.println("---------------- JiniServicesHelper.destroy END ZOOKEEPER DELETE\n");
+            } catch (Exception e) {
+                log.warn("zroot=" + zooConfig.zroot + " : "+ e.getLocalizedMessage(), e);
+System.out.println("\n---------------- JiniServicesHelper.destroy END ZOOKEEPER DELETE\n");
+            }
+
+            //2. For graceful shutdown of QuorumPeerService
+            ServiceDiscoveryManager sdm =
+                client.getFederation().getServiceDiscoveryManager();
+            Class[] quorumServiceType =
+                new Class[] {QuorumPeerService.class};
+            ServiceTemplate quorumServiceTmpl = 
+                new ServiceTemplate(null, quorumServiceType, null);
+            items = sdm.lookup(quorumServiceTmpl, Integer.MAX_VALUE, null);
+            // Graceful shutdown of QuorumPeerService
+            if (items != null) {
+                for (int i=0; i<items.length; i++) {
+                    QuorumPeerService zk = (QuorumPeerService)(items[i].service);
+                    try {
+                        Object admin = ((Administrable)zk).getAdmin();
+System.out.println("\n---------------- JiniServicesHelper.destroy BEGIN QuorumPeerService DESTROY");
+                        ((DestroyAdmin)admin).destroy();
+System.out.println("---------------- JiniServicesHelper.destroy END QuorumPeerService DESTROY\n");
+                    } catch(Exception e) {
+                        log.warn("failure on zookeeper destroy ["+zk+"]", e);
+System.out.println("\n---------------- JiniServicesHelper.destroy END QuorumPeerService DESTROY\n");
+                    }
+                }
+            } else {//items == null
+                try {
+System.out.println("\n---------------- JiniServicesHelper.destroy BEGIN org.apache.zookeeper.server.quorum.QuorumPeerMain KILL");
+                    ZooHelper.kill(clientPort);
+System.out.println("---------------- JiniServicesHelper.destroy END org.apache.zookeeper.server.quorum.QuorumPeerMain KILL\n");
+                } catch(Exception e) {
+                    log.warn("failure on zookeeper kill "
+                             +"[clientPort="+clientPort+"]", e);
+System.out.println("\n---------------- JiniServicesHelper.destroy END org.apache.zookeeper.server.quorum.QuorumPeerMain KILL\n");
+                }
+            }
+
+            //3. Kill the process(es) in which zookeeper is running
+            for (ProcessHelper t : ((ServiceListener)serviceListener).running) {
+                if (t instanceof ZookeeperProcessHelper) {
+System.out.println("\n*** KILLING ProcessHelper: "+t+"\n");
+                    try {
+                        t.kill(true);
+                    } catch(Exception e) {
+                        log.error("exception during process ["+t+"]", e);
+                    }
+                }
+            }
+
+            //4. Disconnect
             client.disconnect(true/* immediateShutdown */);
-
             client = null;
-
         }
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - END -----------------------------------------------------
+
+
 
 //BTM        if (metadataServer0 != null) {
 //BTM
@@ -1109,42 +1191,47 @@ if (txnService0 != null) {
     txnService0 = null;
 }
 
-        if (zookeeper != null && zooConfig != null) {
-
-            try {
-
-                // clear out everything in zookeeper for this federation.
-//BTM log.warn("\n---------------- JiniServicesHelper.destroy BEGIN ZOOKEEPER DELETE\n");
-//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy BEGIN ZOOKEEPER DELETE\n");
-                zookeeper.delete(zooConfig.zroot, -1/* version */);
-//BTM log.warn("\n---------------- JiniServicesHelper.destroy END ZOOKEEPER DELETE\n");
-//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy END ZOOKEEPER DELETE\n");
-                
-            } catch (Exception e) {
-                
-                // ignore.
-                log.warn("zroot=" + zooConfig.zroot + " : "
-                        + e.getLocalizedMessage(), e);
-                
-            }
-            
-        }
-        
-        try {
-         
-//BTM log.warn("\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+")\n");
-//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+")\n");
-
-            ZooHelper.kill(clientPort);
-
-//BTM log.warn("\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+") - DONE\n");
-//BTM com.bigdata.util.Util.printStr("TestBigdata.debug","\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+") - DONE\n");
-            
-        } catch (Throwable t) {
-
-            log.error("Could not kill zookeeper: clientPort=" + clientPort
-                    + " : " + t, t);
-        }
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - BEGIN
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - Note: moved the shutdown/killing of zookeeper to beginning
+//BTM - FOR_ZOOKEEPER_SMART_PROXY -       of this method. Performing it here left the zookeeper
+//BTM - FOR_ZOOKEEPER_SMART_PROXY -       process still running; and when the new smart proxy
+//BTM - FOR_ZOOKEEPER_SMART_PROXY -       based QuorumPeerService is used instead of the
+//BTM - FOR_ZOOKEEPER_SMART_PROXY -       org.apache.zookeeper.server.quorum.QuorumPeerMain,
+//BTM - FOR_ZOOKEEPER_SMART_PROXY -       the process left running by the first test will
+//BTM - FOR_ZOOKEEPER_SMART_PROXY -       cause all subsequent tests to fail because of 
+//BTM - FOR_ZOOKEEPER_SMART_PROXY -       BindException (port already in use). Destroying
+//BTM - FOR_ZOOKEEPER_SMART_PROXY -       the service and killing the process, as is done
+//BTM - FOR_ZOOKEEPER_SMART_PROXY -       above, addresses this issue.
+//BTM - FOR_ZOOKEEPER_SMART_PROXY
+//BTM - FOR_ZOOKEEPER_SMART_PROXY         if (zookeeper != null && zooConfig != null) {
+//BTM - FOR_ZOOKEEPER_SMART_PROXY 
+//BTM - FOR_ZOOKEEPER_SMART_PROXY             try {
+//BTM - FOR_ZOOKEEPER_SMART_PROXY                 // clear out everything in zookeeper for this federation.
+//BTM - FOR_ZOOKEEPER_SMART_PROXY System.out.println("\n---------------- JiniServicesHelper.destroy BEGIN ZOOKEEPER DELETE\n");
+//BTM - FOR_ZOOKEEPER_SMART_PROXY                 zookeeper.delete(zooConfig.zroot, -1); // version
+//BTM - FOR_ZOOKEEPER_SMART_PROXY System.out.println("\n---------------- JiniServicesHelper.destroy END ZOOKEEPER DELETE\n");
+//BTM - FOR_ZOOKEEPER_SMART_PROXY             } catch (Exception e) {
+//BTM - FOR_ZOOKEEPER_SMART_PROXY                 
+//BTM - FOR_ZOOKEEPER_SMART_PROXY                 // ignore.
+//BTM - FOR_ZOOKEEPER_SMART_PROXY                 log.warn("zroot=" + zooConfig.zroot + " : "
+//BTM - FOR_ZOOKEEPER_SMART_PROXY                         + e.getLocalizedMessage(), e);
+//BTM - FOR_ZOOKEEPER_SMART_PROXY System.out.println("\n---------------- JiniServicesHelper.destroy END ZOOKEEPER DELETE\n");
+//BTM - FOR_ZOOKEEPER_SMART_PROXY                 
+//BTM - FOR_ZOOKEEPER_SMART_PROXY             }
+//BTM - FOR_ZOOKEEPER_SMART_PROXY             
+//BTM - FOR_ZOOKEEPER_SMART_PROXY         }
+//BTM - FOR_ZOOKEEPER_SMART_PROXY         
+//BTM - FOR_ZOOKEEPER_SMART_PROXY         try {
+//BTM - FOR_ZOOKEEPER_SMART_PROXY System.out.println("\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+")\n");
+//BTM - FOR_ZOOKEEPER_SMART_PROXY             ZooHelper.kill(clientPort);
+//BTM - FOR_ZOOKEEPER_SMART_PROXY System.out.println("\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+") - DONE\n");
+//BTM - FOR_ZOOKEEPER_SMART_PROXY         } catch (Throwable t) {
+//BTM - FOR_ZOOKEEPER_SMART_PROXY 
+//BTM - FOR_ZOOKEEPER_SMART_PROXY             log.error("Could not kill zookeeper: clientPort=" + clientPort
+//BTM - FOR_ZOOKEEPER_SMART_PROXY                     + " : " + t, t);
+//BTM - FOR_ZOOKEEPER_SMART_PROXY System.out.println("\n---------------- JiniServicesHelper.destroy >>> ZooHelper.kill(clientPort="+clientPort+") - DONE\n");
+//BTM - FOR_ZOOKEEPER_SMART_PROXY         }
+//BTM - FOR_ZOOKEEPER_SMART_PROXY - END
 
         if (zooDataDir != null && zooDataDir.exists()) {
             /*

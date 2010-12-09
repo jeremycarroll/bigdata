@@ -289,7 +289,13 @@ class ServiceImpl implements PrivateInterface {
         serviceId = configStateInfo.getServiceId();
 
         //Service export and proxy creation
-        ServerEndpoint endpoint = TcpServerEndpoint.getInstance(0);
+        String exportIpAddr = 
+            NicUtil.getIpAddress
+                ( "default.nic", 
+                  ConfigDeployUtil.getString("node.serviceNetwork"),
+                  false );
+        ServerEndpoint endpoint =
+            TcpServerEndpoint.getInstance(exportIpAddr, 0);
         InvocationLayerFactory ilFactory = new BasicILFactory();
         Exporter defaultExporter = new BasicJeriExporter(endpoint,
                                                          ilFactory,
