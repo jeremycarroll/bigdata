@@ -50,6 +50,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
@@ -57,6 +58,8 @@ import org.apache.zookeeper.data.Stat;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -93,6 +96,8 @@ public class QuorumPeerManager {
     private LookupCache quorumServiceCache;
     private Map<UUID, String> hostPortMap =
                                   new ConcurrentHashMap<UUID, String>();
+    private Map<UUID, QuorumPeerAttr> quorumPeerAttrMap =
+                                 new ConcurrentHashMap<UUID, QuorumPeerAttr>();
 
     private volatile String connectString = null;
     private volatile ZooKeeper zkClient;
@@ -147,9 +152,29 @@ public class QuorumPeerManager {
 
     // Wrapped methods from org.apache.zookeper.ZooKeeper client class
 
+    public long getSessionId() throws IOException {
+        checkTerminated();
+        return getClient().getSessionId();
+    }
+
+    public byte[] getSessionPasswd() throws IOException {
+        checkTerminated();
+        return getClient().getSessionPasswd();
+    }
+
+    public int getSessionTimeout() throws IOException {
+        checkTerminated();
+        return getClient().getSessionTimeout();
+    }
+
     public void addAuthInfo(String scheme, byte[] auth) throws IOException {
         checkTerminated();
         getClient().addAuthInfo(scheme, auth);
+    }
+
+    public void register(Watcher watcher) throws IOException {
+        checkTerminated();
+        getClient().register(watcher);
     }
 
     public void close() {
@@ -411,6 +436,50 @@ public class QuorumPeerManager {
         return connectString;
     }
 
+    // Need to keep the addresses in order with their respective ports
+    public List<List<String>> getServerInfo() {
+        List<List<String>> retList = new ArrayList<List<String>>();
+        Collection<QuorumPeerAttr> attrs = quorumPeerAttrMap.values();
+        if ( attrs.isEmpty() ) {
+            logger.debug("no zookeeper servers discovered");
+            return retList;
+        }
+        for (QuorumPeerAttr attr : attrs) {
+            String addr = (attr.address).getHostAddress();
+            String peerPort = String.valueOf(attr.peerPort);
+            String electionPort = String.valueOf(attr.electionPort);
+            List<String> subList = new ArrayList<String>();
+            subList.add(addr);
+            subList.add(peerPort);
+            subList.add(electionPort);
+            retList.add(subList);
+        }
+        return retList;
+    }
+
+    // Client ports should be the same for all zookeeper servers
+    public int getClientPort() {
+        Iterator<QuorumPeerAttr> itr = (quorumPeerAttrMap.values()).iterator();
+        if ( !itr.hasNext() ) {
+            logger.debug("no zookeeper servers discovered [clientPort=-1]");
+            return -1;
+        }
+
+        int port0 = (itr.next()).clientPort;
+
+        // client ports from each zookeeper server should be the same
+        boolean allEqual = true;
+        while( itr.hasNext() ) {
+            int port = (itr.next()).clientPort;
+            if (port != port0) allEqual = false;
+        }
+        if (!allEqual) {
+            logger.warn("not all zookeeper servers configured with same "
+                        +"client port - "+quorumPeerAttrMap.values());
+        }
+        return port0;
+    }
+
     // Private methods
 
     private ZooKeeper getClient() throws IOException {
@@ -528,10 +597,11 @@ public class QuorumPeerManager {
 
             if(logger.isDebugEnabled()) {
                 logger.log(Level.DEBUG, "1 of "+ensembleSize+" quorum peer(s) "
-                           +"DISCOVERED [addr="+peerAddr+", port="
-                           +clientPort+"]");
+                           +"DISCOVERED [addr="+peerAddr.getHostAddress()
+                           +", port="+clientPort+"]");
             }
-            hostPortMap.put(serviceUUID, peerAddr+":"+clientPort);
+            hostPortMap.put
+                (serviceUUID, peerAddr.getHostAddress()+":"+clientPort);
 
             // Build connectString when all expected peers found
             synchronized(syncObj) {
