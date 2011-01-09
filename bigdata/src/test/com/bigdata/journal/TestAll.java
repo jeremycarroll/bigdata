@@ -140,13 +140,15 @@ public class TestAll extends TestCase {
 
         suite.addTest( com.bigdata.rwstore.TestAll.suite() );
 
-        /*
-         * High Availability test suite.
-         * 
-         * Note: There is a separate test suite for DataService high
-         * availability and for the zookeeper HA integration.
-         */
-        suite.addTest(com.bigdata.journal.ha.TestAll.suite());
+//      /* @todo This has been moved up to the top-level for how to help
+//      * distinguish HA related build errors from Journal build errors.
+        
+//         * High Availability test suite.
+//         * 
+//         * Note: There is a separate test suite for DataService high
+//         * availability and for the zookeeper HA integration.
+//         */
+//        suite.addTest(com.bigdata.journal.ha.TestAll.suite());
 
         return suite;
 

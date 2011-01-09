@@ -101,6 +101,7 @@ public class TestAll extends TestCase {
         // Note: this has a dependency on the quorum package.
         suite.addTest(com.bigdata.io.writecache.TestAll.suite());
         suite.addTest( com.bigdata.journal.TestAll.suite() );
+        suite.addTest( com.bigdata.journal.ha.TestAll.suite() );
         suite.addTest( com.bigdata.resources.TestAll.suite() );
         suite.addTest( com.bigdata.mdi.TestAll.suite() );
         suite.addTest( com.bigdata.service.TestAll.suite() );
