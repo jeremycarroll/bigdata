@@ -941,14 +941,26 @@ public class DataLoader {
      * Loads data from the <i>source</i>. The caller is responsible for closing
      * the <i>source</i> if there is an error.
      * 
+     * @param totals
+     *            Used to report out the total {@link LoadStats}.
      * @param source
      *            A {@link Reader} or {@link InputStream}.
      * @param baseURL
+     *            The baseURI (optional, when not specified the name of the each
+     *            file load is converted to a URL and used as the baseURI for
+     *            that file).
      * @param rdfFormat
+     *            The format of the file (optional, when not specified the
+     *            format is deduced for each file in turn using the
+     *            {@link RDFFormat} static methods).
+     * @param defaultGraph
+     *            The value that will be used for the graph/context co-ordinate
+     *            when loading data represented in a triple format into a quad
+     *            store.
      * @param endOfBatch
-     * @return
+     *            Signal indicates the end of a batch.
      */
-    protected void loadData3(final LoadStats totals, final Object source,
+    public void loadData3(final LoadStats totals, final Object source,
             final String baseURL, final RDFFormat rdfFormat,
             final String defaultGraph, final boolean endOfBatch) throws IOException {
 
