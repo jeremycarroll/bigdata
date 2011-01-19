@@ -14,6 +14,7 @@ import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.internal.XSDDoubleIV;
+import com.bigdata.rdf.lexicon.ITextIndexer;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.spo.ISPO;
 import com.bigdata.rdf.spo.SPO;
@@ -21,7 +22,6 @@ import com.bigdata.rdf.spo.SPOKeyOrder;
 import com.bigdata.rdf.spo.SPOPredicate;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.BD;
-import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.rule.IPredicate;
 import com.bigdata.relation.rule.ISolutionExpander;
@@ -139,14 +139,28 @@ public class FreeTextSearchExpander implements ISolutionExpander<ISPO> {
             if (hiterator == null) {
                 assert database!=null;
                 assert query != null;
-                if (database.getLexiconRelation().getSearchEngine() == null)
+                
+                final ITextIndexer textNdx = 
+                	database.getLexiconRelation().getSearchEngine();
+                
+                if (textNdx == null)
                     throw new UnsupportedOperationException(
                             "No free text index?");
+                
 //                final long begin = System.nanoTime();
-                hiterator = database.getLexiconRelation()
-                        .getSearchEngine().search(query.getLabel(),
+                
+                String s = query.getLabel();
+                final boolean prefixMatch;
+                if (s.indexOf('*') >= 0) {
+                	prefixMatch = true;
+                	s = s.replaceAll("\\*", "");
+                } else {
+                	prefixMatch = false;
+                }
+                
+                hiterator = textNdx.search(s,
                                 query.getLanguage(), 
-                                false/* prefixMatch */,
+                                prefixMatch,
                                 minRelevance == null ? 0d : minRelevance.doubleValue()/* minCosine */, 
                                 maxHits == null ? 10000 : maxHits.intValue()+1/* maxRank */,
                                 1000L/* timeout */, TimeUnit.MILLISECONDS);

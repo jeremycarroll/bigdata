@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.search;
 
-import info.aduna.i18n.languagetag.IanaLanguageTag;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
