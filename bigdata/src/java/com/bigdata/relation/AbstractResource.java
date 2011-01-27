@@ -222,7 +222,7 @@ abstract public class AbstractResource<E> implements IMutableResource<E> {
         /**
          * Default for {@link #CHUNK_OF_CHUNKS_CAPACITY} 
          */
-        String DEFAULT_CHUNK_OF_CHUNKS_CAPACITY = "1000";
+        String DEFAULT_CHUNK_OF_CHUNKS_CAPACITY = "10";
 
         /**
          * <p>

@@ -38,6 +38,7 @@ import com.bigdata.relation.accesspath.AbstractAccessPath;
 import com.bigdata.relation.accesspath.AbstractUnsynchronizedArrayBuffer;
 import com.bigdata.relation.accesspath.BlockingBuffer;
 import com.bigdata.relation.accesspath.BufferClosedException;
+import com.bigdata.relation.accesspath.IAbstractAccessPath;
 import com.bigdata.relation.accesspath.IAccessPath;
 import com.bigdata.relation.accesspath.IAsynchronousIterator;
 import com.bigdata.relation.accesspath.IBlockingBuffer;
@@ -1409,7 +1410,7 @@ abstract public class JoinTask implements Callable<Void> {
          */
         protected byte[] getFromKey() {
 
-            return ((AbstractAccessPath<?>) accessPath).getFromKey();
+            return ((IAbstractAccessPath)  accessPath).getFromKey();
 
         }
 

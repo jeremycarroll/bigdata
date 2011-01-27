@@ -33,6 +33,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
@@ -82,7 +83,7 @@ import cutthecrap.utils.striterators.Striterator;
  *       the elements we do not want from the key-range scan - the filtering
  *       should of course be done at the {@link IDataService}.
  */
-abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
+abstract public class AbstractAccessPath<R> implements IAccessPath<R>,IAbstractAccessPath {
 
     static final protected Logger log = Logger.getLogger(IAccessPath.class);
     
@@ -1027,7 +1028,7 @@ abstract public class AbstractAccessPath<R> implements IAccessPath<R> {
          * once the elements were materialized on the client.
          */
         final BlockingBuffer<R[]> buffer = new BlockingBuffer<R[]>(
-                chunkOfChunksCapacity);
+                chunkOfChunksCapacity,chunkCapacity,10,TimeUnit.MILLISECONDS);
 
         final ExecutorService executorService = indexManager
                 .getExecutorService();
