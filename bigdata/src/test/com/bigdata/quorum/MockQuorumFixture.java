@@ -292,8 +292,10 @@ public class MockQuorumFixture {
                     runOnce();
                 } catch (InterruptedException t) {
                     log.warn("Dispatcher exiting : " + t);
+                    break;
                 } catch (Throwable t) {
                     log.error(t, t);
+                    break;
                 }
             }
         }
@@ -755,6 +757,7 @@ public class MockQuorumFixture {
                         runOnce();
                     } catch (InterruptedException e) {
                         log.warn("Shutdown : " + e);
+                        break;
                     }
                 }
             }
