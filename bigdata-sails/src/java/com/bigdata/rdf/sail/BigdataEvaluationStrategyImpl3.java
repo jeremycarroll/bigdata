@@ -1932,11 +1932,35 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
     }
 
     private IValueExpression<? extends IV> toVE(final Compare compare) {
-    	final IValueExpression<? extends IV> iv1 = 
+    	final IValueExpression<? extends IV> left = 
     		toVE(compare.getLeftArg());
-    	final IValueExpression<? extends IV> iv2 = 
+    	final IValueExpression<? extends IV> right = 
     		toVE(compare.getRightArg());
-        return new CompareBOp(iv1, iv2, compare.getOperator());
+    	
+    	/*
+    	 * If the term is a Constant<URI> and the op is EQ or NE then we can 
+    	 * do a sameTerm optimization.
+    	 */
+    	final CompareOp op = compare.getOperator();
+    	if (op == CompareOp.EQ || op == CompareOp.NE) {
+    	
+	    	if (left instanceof Constant) {
+	    		final IV iv = ((Constant<? extends IV>) left).get();
+	    		if (iv.isURI()) {
+	    			return new SameTermBOp(left, right, op); 
+	    		}
+	    	}
+    	
+	    	if (right instanceof Constant) {
+	    		final IV iv = ((Constant<? extends IV>) right).get();
+	    		if (iv.isURI()) {
+	    			return new SameTermBOp(left, right, op); 
+	    		}
+	    	}
+	    	
+    	}
+    	
+        return new CompareBOp(left, right, compare.getOperator());
     }
 
     private IValueExpression<? extends IV> toVE(final Bound bound) {
