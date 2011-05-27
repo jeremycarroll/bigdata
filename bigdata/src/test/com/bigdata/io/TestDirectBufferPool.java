@@ -37,17 +37,6 @@ import junit.framework.TestCase2;
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
- * 
- *          TODO Unit test to verify that a pool will reject a buffer not
- *          acquired from that pool.
- * 
- *          TODO Write a unit test to verify that buffers (up to the size of the
- *          pool, but not more than 10) are recycled when they are released
- *          (that is, they are made available again to subsequent acquires).
- * 
- *          <pre>
- * final int limit = Math.min(10, DirectBufferPool.INSTANCE.getPoolCapacity());
- * </pre>
  */
 public class TestDirectBufferPool extends TestCase2 {
 
@@ -65,15 +54,13 @@ public class TestDirectBufferPool extends TestCase2 {
     }
 
     @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-        DirectBufferPoolTestHelper.checkBufferPools(this);
-    }
-
-    @Override
     protected void tearDown() throws Exception {
+
+        // Verify that all allocated buffers were released.
         DirectBufferPoolTestHelper.checkBufferPools(this);
+        
         super.tearDown();
+        
     }
 
     public void test_allocateRelease() throws InterruptedException {
@@ -122,7 +109,24 @@ public class TestDirectBufferPool extends TestCase2 {
      */
     public void test_buffersRecycled() throws InterruptedException {
 
+        /*
+         * Acquire/release one buffer before we look at the pool size. This
+         * should give us at least one available buffer in the pool. That way
+         * when we run through the allocation loop the pool size should not
+         * change.
+         */
+        {
+            ByteBuffer b = null;
+            try {
+                b = DirectBufferPool.INSTANCE.acquire();
+            } finally {
+                if (b != null)
+                    DirectBufferPool.INSTANCE.release(b);
+            }
+        }
+
         final int poolSizeBefore = DirectBufferPool.INSTANCE.getPoolSize();
+
         for (int i = 0; i < 10; i++) {
             ByteBuffer b = null;
             try {
@@ -135,6 +139,9 @@ public class TestDirectBufferPool extends TestCase2 {
                     DirectBufferPool.INSTANCE.release(b);
             }
         }
+
+        // pool size remains constant.
+        assertEquals(poolSizeBefore, DirectBufferPool.INSTANCE.getPoolSize());
 
     }
 
@@ -164,6 +171,35 @@ public class TestDirectBufferPool extends TestCase2 {
                 if (log.isInfoEnabled())
                     log.info("Ignoring expected exception: " + ex);
             }
+        }
+
+    }
+
+    /**
+     * Unit test to verify that a pool will reject a buffer not acquired from
+     * that pool.
+     */
+    public void test_rejectBufferFromAnotherPool() throws InterruptedException {
+
+        // A distinct pool with the same buffer capacity
+        final DirectBufferPool testPool = new DirectBufferPool("test",
+                1/* poolCapacity */, DirectBufferPool.INSTANCE
+                        .getBufferCapacity());
+
+        ByteBuffer b = null;
+        try {
+            b = DirectBufferPool.INSTANCE.acquire();
+            try {
+                testPool.release(b);
+                fail("Release should not be permitted to a different pool. Expecting: "
+                        + IllegalArgumentException.class);
+            } catch (IllegalArgumentException ex) {
+                if (log.isInfoEnabled())
+                    log.info("Ignoring expected exception: " + ex);
+            }
+        } finally {
+            if (b != null)
+                DirectBufferPool.INSTANCE.release(b);
         }
 
     }

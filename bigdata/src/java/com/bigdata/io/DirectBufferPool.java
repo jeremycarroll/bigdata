@@ -2,6 +2,7 @@ package com.bigdata.io;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -63,6 +64,77 @@ public class DirectBufferPool {
             .getLogger(DirectBufferPool.class);
 
     /**
+     * Object tracking state for allocated buffer instances. This is used to
+     * reject double-release of a buffer back to the pool, which is critical.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
+     */
+    private static class BufferState {
+     
+        /**
+         * The buffer instance.
+         */
+        private final ByteBuffer buf;
+
+        /**
+         * <code>true</code> iff the buffer is currently acquired.
+         */
+        private boolean acquired;
+
+//        /**
+//         * The #of times this buffer has been acquired.
+//         */
+//        private long nacquired = 0L;
+        
+        BufferState(final ByteBuffer buf, final boolean acquired) {
+            if (buf == null)
+                throw new IllegalArgumentException();
+            this.buf = buf;
+            this.acquired = acquired;
+        }
+        
+        /**
+         * The hash code depends only on the object id (NOT the buffer's data).
+         * <p>
+         * Note: {@link ByteBuffer#hashCode()} is a very heavy operator whose
+         * result depends on the data actually in the buffer at the time the
+         * operation is evaluated!
+         */
+        public int hashCode() {
+            return super.hashCode();
+        }
+
+        /**
+         * Equality depends only on a reference checks.
+         * <p>
+         * Note: {@link ByteBuffer#equals(Object)} is very heavy operator whose
+         * result depends on the data actually in the buffer at the time the
+         * operation is evaluated!
+         */
+        public boolean equals(Object o) {
+            if (this == o) {
+                // Same BufferState, must be the same buffer.
+                return true;
+            }
+            if (!(o instanceof BufferState)) {
+                return false;
+            }
+            if (this.buf == ((BufferState) o).buf) {
+                return true;
+            }
+            /*
+             * We have two distinct BufferState references for the same
+             * ByteBuffer reference. This is an error. There should be a
+             * one-to-one correspondence.
+             */
+            throw new AssertionError();
+        }
+        
+        
+    }
+    
+    /**
      * The name of the buffer pool.
      */
     final private String name;
@@ -73,22 +145,18 @@ public class DirectBufferPool {
      * Note: This is NOT a weak reference collection since the JVM will leak
      * native memory.
      */
-    final private BlockingQueue<ByteBuffer> pool;
+    final private BlockingQueue<BufferState> pool;
 
     /**
-     * Used to recognize {@link ByteBuffer}s allocated by this pool so that
-     * we can refuse offered buffers that were allocated elsewhere (a
-     * paranoia feature which could be dropped).
+     * Used to recognize {@link ByteBuffer}s allocated by this pool so that we
+     * can refuse offered buffers that were allocated elsewhere (a paranoia
+     * feature which could be dropped).
      * <p>
-     * Note: YOU CAN NOT use a hash-based collection here. hashCode() and
-     * equals() for a {@link ByteBuffer} are very heavy operations that are
-     * dependent on the data actually in the buffer at the time the
-     * operation is evaluated!
-     * <p>
-     * Note: if you set [allocated := null] in the ctor then tests of the
-     * allocated list are disabled.
+     * Note: {@link LinkedHashSet} is used here for its fast iterator semantics
+     * since we need to do a linear scan of this collection in
+     * {@link #getBufferState(ByteBuffer)}.
      */
-    final private List<ByteBuffer> allocated;
+    final private LinkedHashSet<BufferState> allocated;
 
     /**
      * The number {@link ByteBuffer}s allocated (must use {@link #lock} for
@@ -358,10 +426,10 @@ public class DirectBufferPool {
 
         this.bufferCapacity = bufferCapacity;
 
-        this.allocated = null; // Note: disables assertion
-        //            this.allocated = new LinkedList<ByteBuffer>();
+        // Note: This is required in order to detect double-opens.
+        this.allocated = new LinkedHashSet<BufferState>();
 
-        this.pool = new LinkedBlockingQueue<ByteBuffer>(poolCapacity);
+        this.pool = new LinkedBlockingQueue<BufferState>(poolCapacity);
 
         pools.add(this);
         
@@ -442,17 +510,19 @@ public class DirectBufferPool {
             }
 
             // the head of the pool must exist.
-            final ByteBuffer b = pool.take();
+            final BufferState state = pool.take();
 
+            if (state.acquired)
+                throw new RuntimeException("Buffer already acquired");
+            
+            state.acquired = true;
             acquired++;
             totalAcquireCount.increment();
-            
-            assertOurBuffer(b);
 
             // limit -> capacity; pos-> 0; mark cleared.
-            b.clear();
+            state.buf.clear();
 
-            return b;
+            return state.buf;
 
         } finally {
 
@@ -515,15 +585,19 @@ public class DirectBufferPool {
 
         try {
 
-            assertOurBuffer(b);
+            final BufferState state = getBufferState(b);
 
-            if (pool.contains(b))
+            // Check for double-release!
+            if (!state.acquired) {
+                log.error("Buffer already released.");
                 throw new IllegalArgumentException("buffer already released.");
-            
+            }
+
             // add to the pool.
-            if(!pool.offer(b, timeout, units))
+            if(!pool.offer(state, timeout, units))
                 return false;
 
+            state.acquired = false;
             acquired--;
             totalReleaseCount.increment();
             
@@ -591,15 +665,14 @@ public class DirectBufferPool {
             // update the pool size.
             size++;
 
+            // wrap with state metadata.
+            final BufferState state = new BufferState(b, false/* acquired */);
+
             // add to the set of known buffers
-            if (allocated != null) {
-
-                allocated.add(b);
-
-            }
+            allocated.add(state);
 
             // add to the pool.
-            pool.add(b);
+            pool.add(state);
 
             /*
              * There is now a buffer in the pool and the caller will get it
@@ -658,8 +731,9 @@ public class DirectBufferPool {
      * {@link DirectBufferPool}.
      * 
      * @param b
+     *            The buffer.
      */
-    private void assertOurBuffer(final ByteBuffer b) {
+    private BufferState getBufferState(final ByteBuffer b) {
 
         assert lock.isHeldByCurrentThread();
 
@@ -672,18 +746,17 @@ public class DirectBufferPool {
         if(!b.isDirect())
             throw new IllegalArgumentException("not direct");
         
-        if (allocated == null) {
+        /*
+         * Linear scan for a BufferState object having that ByteBuffer
+         * reference.
+         */
+        for (BufferState x : allocated) {
 
-            // test is disabled.
-
-            return;
-
-        }
-
-        for (ByteBuffer x : allocated) {
-
-            if (x == b)
-                return;
+            if (x.buf == b) {
+                
+                return x;
+                
+            }
 
         }
 
