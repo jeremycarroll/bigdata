@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.io;
 
+import java.nio.ByteBuffer;
+
 import junit.framework.TestCase;
 
 /**
@@ -51,11 +53,45 @@ public class TestDirectBufferPool extends TestCase {
         super(arg0);
     }
 
-    /** @todo write tests. */
-    public void test_nothing() {
-        
-//        fail("No tests written yet.");
-        
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        DirectBufferPoolTestHelper.checkBufferPools(this);
     }
-    
+
+    @Override
+    protected void tearDown() throws Exception {
+        DirectBufferPoolTestHelper.checkBufferPools(this);
+        super.tearDown();
+    }
+
+    public void test_allocateRelease() throws InterruptedException {
+
+        final int poolSizeBefore = DirectBufferPool.INSTANCE.getPoolSize();
+        final int poolAcquiredBefore = DirectBufferPool.INSTANCE
+                .getAcquiredBufferCount();
+
+        final ByteBuffer b = DirectBufferPool.INSTANCE.acquire();
+
+        final int poolSizeDuring = DirectBufferPool.INSTANCE.getPoolSize();
+        final int poolAcquiredDuring = DirectBufferPool.INSTANCE
+                .getAcquiredBufferCount();
+
+        assertEquals(poolSizeBefore + 1, poolSizeDuring);
+        assertEquals(poolAcquiredBefore + 1, poolAcquiredDuring);
+
+        DirectBufferPool.INSTANCE.release(b);
+
+        final int poolSizeAfter = DirectBufferPool.INSTANCE.getPoolSize();
+        final int poolAcquiredAfter = DirectBufferPool.INSTANCE
+                .getAcquiredBufferCount();
+
+        // the pool size does not decrease.
+        assertEquals(poolSizeBefore + 1, poolSizeAfter);
+
+        // the #of acquired buffers does decrease.
+        assertEquals(poolAcquiredBefore, poolAcquiredAfter);
+
+    }
+
 }

@@ -14,10 +14,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.counters.CAT;
 import com.bigdata.counters.CounterSet;
 import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
-import com.bigdata.journal.DiskOnlyStrategy;
+import com.bigdata.journal.IBufferStrategy;
 import com.bigdata.journal.TemporaryRawStore;
 import com.bigdata.journal.TransientBufferStrategy;
 import com.bigdata.rawstore.Bytes;
@@ -36,7 +37,7 @@ import com.bigdata.rawstore.Bytes;
  * direct buffer for the operation which transfers the data from the
  * {@link TransientBufferStrategy} to disk. Therefore the data is copied into a
  * temporary buffer allocated from this pool and then the buffer is either
- * handed off to the {@link DiskOnlyStrategy} for use as its write cache (in
+ * handed off to the {@link IBufferStrategy} for use as its write cache (in
  * which case the {@link TemporaryRawStore} holds a reference to the buffer and
  * releases it back to those pool when it is finalized) or the buffer is
  * immediately released back to this pool.
@@ -65,8 +66,10 @@ public class DirectBufferPool {
      * The name of the buffer pool.
      */
     final private String name;
-    
+
     /**
+     * A pool of direct {@link ByteBuffer}s which may be acquired.
+     * <p>
      * Note: This is NOT a weak reference collection since the JVM will leak
      * native memory.
      */
@@ -89,10 +92,21 @@ public class DirectBufferPool {
 
     /**
      * The number {@link ByteBuffer}s allocated (must use {@link #lock} for
-     * updates or reads to be atomic).
+     * updates or reads to be atomic). This counter is incremented each time a
+     * buffer is allocated. Since we do not free buffers when they are released
+     * (to prevent an effective JVM memory leak) this counter is never
+     * decremented.
      */
     private int size = 0;
 
+    /**
+     * The #of {@link ByteBuffer}s which are currently acquired (must use
+     * {@link #lock} for updates or reads to be atomic). This counter is
+     * incremented when a buffer is acquired and decremented when a buffer
+     * is released.
+     */
+    private int acquired = 0;
+    
     /**
      * The maximum #of {@link ByteBuffer}s that will be allocated. 
      */
@@ -114,10 +128,39 @@ public class DirectBufferPool {
     private final Condition bufferRelease = lock.newCondition();
 
     /**
+     * Package private counter of the total #of acquired buffers in all pools.
+     * This is used to check for memory leaks in the test suites. The value is
+     * reset before/after each test.
+     */
+    static final CAT totalAcquireCount = new CAT();
+    static final CAT totalReleaseCount = new CAT();
+    
+    /**
      * The name of this buffer pool instance.
      */
     public String getName() {
         return name;
+    }
+
+    /**
+     * The #of {@link ByteBuffer}s which are currently acquired. This counter is
+     * incremented when a buffer is acquired and decremented when a buffer is
+     * released.
+     */
+    public int getAcquiredBufferCount() {
+        
+        lock.lock();
+
+        try {
+
+            return acquired;
+
+        } finally {
+
+            lock.unlock();
+
+        }
+        
     }
     
     /**
@@ -355,7 +398,7 @@ public class DirectBufferPool {
             
             // The TimeoutException should not be thrown.
             throw new AssertionError(e);
-            
+           
         }
 
     }
@@ -401,6 +444,9 @@ public class DirectBufferPool {
             // the head of the pool must exist.
             final ByteBuffer b = pool.take();
 
+            acquired++;
+            totalAcquireCount.increment();
+            
             assertOurBuffer(b);
 
             // limit -> capacity; pos-> 0; mark cleared.
@@ -454,6 +500,9 @@ public class DirectBufferPool {
             if(!pool.offer(b, timeout, units))
                 return false;
 
+            acquired--;
+            totalReleaseCount.increment();
+            
             /*
              * Signal ONE thread that there is a buffer available.
              * 
@@ -631,6 +680,8 @@ public class DirectBufferPool {
         int bufferPoolCount = 0;
         // #of buffers currently allocated across all buffer pools.
         int bufferInUseCount = 0;
+        // #of buffers currently acquired across all buffer pools.
+        int totalAcquired = 0;
         // #of bytes currently allocated across all buffer pools.
         final AtomicLong totalBytesUsed = new AtomicLong(0L);
         // For each buffer pool.
@@ -643,11 +694,14 @@ public class DirectBufferPool {
             final int poolCapacity = p.getPoolCapacity();
             
             final int bufferCapacity = p.getBufferCapacity();
+
+            final int acquired = p.getAcquiredBufferCount();
             
             final long bytesUsed = poolSize * bufferCapacity;
             
             bufferPoolCount++;
             bufferInUseCount += poolSize;
+            totalAcquired += acquired;
             totalBytesUsed.addAndGet(bytesUsed);
 
             c.addCounter("poolCapacity", new OneShotInstrument<Integer>(
@@ -655,6 +709,12 @@ public class DirectBufferPool {
 
             c.addCounter("bufferCapacity", new OneShotInstrument<Integer>(
                     bufferCapacity));
+
+            c.addCounter("acquired", new Instrument<Integer>() {
+                public void sample() {
+                    setValue(acquired);
+                }
+            });
 
             c.addCounter("poolSize", new Instrument<Integer>() {
                 public void sample() {
@@ -676,7 +736,10 @@ public class DirectBufferPool {
         /*
          * Totals.
          */
-        
+
+        tmp.addCounter("totalAcquired", new OneShotInstrument<Integer>(
+                totalAcquired));
+
         tmp.addCounter("bufferPoolCount", new OneShotInstrument<Integer>(
                 bufferPoolCount));
 
