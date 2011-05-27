@@ -463,12 +463,18 @@ public class DirectBufferPool {
     }
 
     /**
-     * Release a direct {@link ByteBuffer} allocated by this pool back to
-     * the pool.
+     * Release a direct {@link ByteBuffer} allocated by this pool back to the
+     * pool.
      * 
      * @param b
      *            The buffer.
-     *            
+     * 
+     * @throws IllegalArgumentException
+     *             if the buffer is <code>null</code>.
+     * @throws IllegalArgumentException
+     *             if the buffer does not belong to this pool.
+     * @throws IllegalArgumentException
+     *             if the buffer has already been released.
      * @throws InterruptedException
      */
     public void release(final ByteBuffer b) throws InterruptedException {
@@ -481,8 +487,23 @@ public class DirectBufferPool {
 
     }
 
-    public boolean release(final ByteBuffer b, long timeout, TimeUnit units)
-            throws InterruptedException {
+    /**
+     * Release a direct {@link ByteBuffer} allocated by this pool back to the
+     * pool.
+     * 
+     * @param b
+     *            The buffer.
+     * 
+     * @throws IllegalArgumentException
+     *             if the buffer is <code>null</code>.
+     * @throws IllegalArgumentException
+     *             if the buffer does not belong to this pool.
+     * @throws IllegalArgumentException
+     *             if the buffer has already been released.
+     * @throws InterruptedException
+     */
+    public boolean release(final ByteBuffer b, final long timeout,
+            final TimeUnit units) throws InterruptedException {
 
         if(log.isInfoEnabled())
             log.info("");
@@ -496,6 +517,9 @@ public class DirectBufferPool {
 
             assertOurBuffer(b);
 
+            if (pool.contains(b))
+                throw new IllegalArgumentException("buffer already released.");
+            
             // add to the pool.
             if(!pool.offer(b, timeout, units))
                 return false;
@@ -635,7 +659,7 @@ public class DirectBufferPool {
      * 
      * @param b
      */
-    private void assertOurBuffer(ByteBuffer b) {
+    private void assertOurBuffer(final ByteBuffer b) {
 
         assert lock.isHeldByCurrentThread();
 

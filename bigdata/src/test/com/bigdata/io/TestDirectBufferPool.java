@@ -30,15 +30,26 @@ package com.bigdata.io;
 
 import java.nio.ByteBuffer;
 
-import junit.framework.TestCase;
+import junit.framework.TestCase2;
 
 /**
  * Test suite for {@link DirectBufferPool}.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
+ * 
+ *          TODO Unit test to verify that a pool will reject a buffer not
+ *          acquired from that pool.
+ * 
+ *          TODO Write a unit test to verify that buffers (up to the size of the
+ *          pool, but not more than 10) are recycled when they are released
+ *          (that is, they are made available again to subsequent acquires).
+ * 
+ *          <pre>
+ * final int limit = Math.min(10, DirectBufferPool.INSTANCE.getPoolCapacity());
+ * </pre>
  */
-public class TestDirectBufferPool extends TestCase {
+public class TestDirectBufferPool extends TestCase2 {
 
     /**
      * 
@@ -71,16 +82,25 @@ public class TestDirectBufferPool extends TestCase {
         final int poolAcquiredBefore = DirectBufferPool.INSTANCE
                 .getAcquiredBufferCount();
 
-        final ByteBuffer b = DirectBufferPool.INSTANCE.acquire();
+        final int poolSizeDuring;
+        final int poolAcquiredDuring;
+        {
+            ByteBuffer b = null;
+            try {
+                b = DirectBufferPool.INSTANCE.acquire();
 
-        final int poolSizeDuring = DirectBufferPool.INSTANCE.getPoolSize();
-        final int poolAcquiredDuring = DirectBufferPool.INSTANCE
-                .getAcquiredBufferCount();
+                poolSizeDuring = DirectBufferPool.INSTANCE.getPoolSize();
+                poolAcquiredDuring = DirectBufferPool.INSTANCE
+                        .getAcquiredBufferCount();
 
-        assertEquals(poolSizeBefore + 1, poolSizeDuring);
-        assertEquals(poolAcquiredBefore + 1, poolAcquiredDuring);
+                assertEquals(poolSizeBefore + 1, poolSizeDuring);
+                assertEquals(poolAcquiredBefore + 1, poolAcquiredDuring);
 
-        DirectBufferPool.INSTANCE.release(b);
+            } finally {
+                if (b != null)
+                    DirectBufferPool.INSTANCE.release(b);
+            }
+        }
 
         final int poolSizeAfter = DirectBufferPool.INSTANCE.getPoolSize();
         final int poolAcquiredAfter = DirectBufferPool.INSTANCE
@@ -91,6 +111,60 @@ public class TestDirectBufferPool extends TestCase {
 
         // the #of acquired buffers does decrease.
         assertEquals(poolAcquiredBefore, poolAcquiredAfter);
+
+    }
+
+    /**
+     * Test verifies that a pool will not allocate a new buffer when it can
+     * recycle one instead.
+     * 
+     * @throws InterruptedException
+     */
+    public void test_buffersRecycled() throws InterruptedException {
+
+        final int poolSizeBefore = DirectBufferPool.INSTANCE.getPoolSize();
+        for (int i = 0; i < 10; i++) {
+            ByteBuffer b = null;
+            try {
+                b = DirectBufferPool.INSTANCE.acquire();
+                // pool size remains constant.
+                assertEquals(poolSizeBefore, DirectBufferPool.INSTANCE
+                        .getPoolSize());
+            } finally {
+                if (b != null)
+                    DirectBufferPool.INSTANCE.release(b);
+            }
+        }
+
+    }
+
+    /**
+     * Unit test to verify that a pool will reject an attempt to
+     * "double release" a buffer (only currently acquired buffers can be
+     * released).
+     * 
+     * @throws InterruptedException
+     */
+    public void test_doubleRelease() throws InterruptedException {
+
+        ByteBuffer b = null;
+        try {
+            b = DirectBufferPool.INSTANCE.acquire();
+        } finally {
+            if (b != null)
+                DirectBufferPool.INSTANCE.release(b);
+        }
+
+        if (b != null) {
+            try {
+                // Attempt to double-release the buffer.
+                DirectBufferPool.INSTANCE.release(b);
+                fail("Expecting: " + IllegalArgumentException.class);
+            } catch (IllegalArgumentException ex) {
+                if (log.isInfoEnabled())
+                    log.info("Ignoring expected exception: " + ex);
+            }
+        }
 
     }
 
