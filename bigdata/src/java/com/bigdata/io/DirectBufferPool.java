@@ -522,6 +522,12 @@ public class DirectBufferPool {
             // limit -> capacity; pos-> 0; mark cleared.
             state.buf.clear();
 
+            if (log.isTraceEnabled()) {
+                final Throwable t = new RuntimeException(
+                        "Stack trace of buffer acquisition");
+                log.trace(t, t);
+            }
+            
             return state.buf;
 
         } finally {
@@ -617,6 +623,12 @@ public class DirectBufferPool {
              * is doubtless more robust.
              */
             bufferRelease.signal();
+
+            if (log.isTraceEnabled()) {
+                final Throwable t = new RuntimeException(
+                        "Stack trace of buffer release");
+                log.trace(t, t);
+            }
 
             return true;
             
