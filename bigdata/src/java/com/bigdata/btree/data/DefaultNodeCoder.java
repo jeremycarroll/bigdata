@@ -743,14 +743,25 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
 				return b.getInt(O_childEntryCount + index * Bytes.SIZEOF_INT);
 
             } else {
-            	// Note: O_childEntryCount is [nbits], which is one byte.
-				final long min = b.getLong(O_childEntryCount + 1/*nbits*/);
+                // Note: O_childEntryCount is [nbits], which is one byte.
+                final long min = b.getLong(O_childEntryCount + 1/* nbits */);
+
+                final long bitpos = ((O_childEntryCount + 1 + Bytes.SIZEOF_LONG) << 3)
+                        + ((long) index * childEntryCountBits);
+
+//                if (childEntryCountBits <= 32) {
+//
+//                    final long bitIndex = (b.off() << 3) + bitpos;
+//
+//                    final int deltat = BytesUtil.getBits(b.array(),
+//                            (int) bitIndex, childEntryCountBits);
+//
+//                    return min + deltat;
+//
+//                }
 
                 final InputBitStream ibs = b.getInputBitStream();
                 try {
-
-					final long bitpos = ((O_childEntryCount + 1 + Bytes.SIZEOF_LONG) << 3)
-							+ ((long) index * childEntryCountBits);
 
                     ibs.position(bitpos);
 
