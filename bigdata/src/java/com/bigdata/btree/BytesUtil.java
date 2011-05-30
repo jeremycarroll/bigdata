@@ -1146,7 +1146,7 @@ public class BytesUtil {
 		long v = 0L; // buffer for up to 5 source bytes.
 		final int nbytes = toByteOffset - fromByteOffset + 1;
 		for (int i = fromByteOffset, j = 1; i <= toByteOffset; i++, j++) {
-			final int x = 0xFF & a[i]; // next byte.
+			final long x = 0xFF & a[i]; // next byte.
 			final int shift = ((nbytes - j) << 3); //  
 			v += (x << shift); // mask off high bits and shift into buf.
 		} // next byte in the byte[].
