@@ -1112,7 +1112,7 @@ public class BytesUtil {
 	 * @return The integer extracted from the specified bit range.
 	 */
 	public static int getBits(final byte[] a, final int off, final int len) {
-	
+		
 		if (a == null)
 			throw new IllegalArgumentException();
 		if (off < 0)
@@ -1146,9 +1146,9 @@ public class BytesUtil {
 		long v = 0L; // buffer for up to 5 source bytes.
 		final int nbytes = toByteOffset - fromByteOffset + 1;
 		for (int i = fromByteOffset, j = 1; i <= toByteOffset; i++, j++) {
-			final byte x = a[i]; // next byte.
+			final int x = 0xFF & a[i]; // next byte.
 			final int shift = ((nbytes - j) << 3); //  
-			v |= (x << shift); // mask off high bits and shift into buf.
+			v += (x << shift); // mask off high bits and shift into buf.
 		} // next byte in the byte[].
 		final int last = off + len - 1; // index of the last bit (inclusive).
 		final int rshift = 7 - (last % 8); // final right shift to word align.
