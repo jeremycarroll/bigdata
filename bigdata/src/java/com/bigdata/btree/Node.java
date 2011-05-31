@@ -2661,6 +2661,8 @@ public class Node extends AbstractNode<Node> implements INodeData {
 		 * construct, such as a Queue or the UnisolatedReadWriteIndex, which
 		 * imposes a memory barrier when passing a B+Tree instance between
 		 * threads.
+		 * 
+		 * See http://www.cs.umd.edu/~pugh/java/memoryModel/archive/1096.html
 		 */
         AbstractNode child;
         {//synchronized (childRefs) {
