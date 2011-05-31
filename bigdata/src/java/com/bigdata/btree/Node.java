@@ -2649,11 +2649,19 @@ public class Node extends AbstractNode<Node> implements INodeData {
      */
     AbstractNode _getChild(final int index, final LoadChildRequest req) {
 
-        /*
-         * Make sure that the child is not reachable. It could have been
-         * concurrently set even if the caller had tested this and we do not
-         * want to read through to the backing store unless we need to.
-         */
+		/*
+		 * Make sure that the child is not reachable. It could have been
+		 * concurrently set even if the caller had tested this and we do not
+		 * want to read through to the backing store unless we need to.
+		 * 
+		 * Note: synchronizing on childRefs[] should not be necessary. For a
+		 * read-only B+Tree, the synchronization is provided by the Memoizer
+		 * pattern. For a mutable B+Tree, the synchronization is provided by the
+		 * single-threaded contract for mutation and by the requirement to use a
+		 * construct, such as a Queue or the UnisolatedReadWriteIndex, which
+		 * imposes a memory barrier when passing a B+Tree instance between
+		 * threads.
+		 */
         AbstractNode child;
         {//synchronized (childRefs) {
 
