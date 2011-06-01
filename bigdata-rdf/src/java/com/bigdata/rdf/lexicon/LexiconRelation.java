@@ -2496,8 +2496,8 @@ public class LexiconRelation extends AbstractRelation<BigdataValue>
 
         }
 
-        assert value.getIV() == iv : "expecting iv=" + iv + ", but found "
-                + value.getIV();
+//        assert value.getIV() == iv : "expecting iv=" + iv + ", but found "
+//                + value.getIV();
         //        value.setTermId( id );
 
         return value;
