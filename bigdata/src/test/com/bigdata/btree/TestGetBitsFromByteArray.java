@@ -384,8 +384,8 @@ public class TestGetBitsFromByteArray extends TestCase2 {
         
         final Random r = new Random();
 
-        // #of
-        final int limit = 1000;
+        // #of iterations
+        final long limit = 1000000;
 
         // Note: length is guaranteed to be LT int32 bits so [int] index is Ok.
         final int len = r.nextInt(Bytes.kilobyte32 * 8) + 1;
