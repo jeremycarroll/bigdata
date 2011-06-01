@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
@@ -95,6 +96,20 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IMRMW {
      */
     private final long createTime;
 
+    /**
+     * The #of open {@link TemporaryRawStore}s (JVM wide). This is package
+     * private. It is used to chase down unit tests which are not closing() the
+     * store.
+     */
+    final static AtomicInteger nopen = new AtomicInteger();
+
+    /**
+     * The #of closed {@link TemporaryRawStore}s (JVM wide). This is package
+     * private. It is used to chase down unit tests which are not
+     * {@link #close() closing} the store.
+     */
+    final static AtomicInteger nclose = new AtomicInteger();
+    
     /**
      * Return an empty {@link File} created using the temporary file name
      * mechanism. The file name will begin with <code>bigdata</code> and end
@@ -293,6 +308,8 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IMRMW {
 //                Long.valueOf(Options.DEFAULT_MINIMUM_EXTENSION), 
                 md);
 
+        nopen.incrementAndGet();
+        
     }
 
     /**
@@ -353,6 +370,8 @@ public class TemporaryRawStore extends AbstractRawWormStore implements IMRMW {
                     throw new IllegalStateException();
 
                 buf.destroy();
+
+                nclose.incrementAndGet();
 
             } finally {
 
