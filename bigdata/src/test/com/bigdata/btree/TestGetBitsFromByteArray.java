@@ -376,8 +376,6 @@ public class TestGetBitsFromByteArray extends TestCase2 {
      * {@link BytesUtil#getBits(byte[], int, int)} is compared on a number of
      * randomly selected bit slices.
      * 
-     * TODO Could be a performance comparison.
-     * 
      * @throws IOException 
      */
     public void test_stress_InputBitStream_compatible() throws IOException {
