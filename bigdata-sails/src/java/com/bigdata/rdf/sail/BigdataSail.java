@@ -1450,14 +1450,20 @@ public class BigdataSail extends SailBase implements Sail {
         return queryEngine;
         
     }
-    
+
     /**
      * Inner class implements the {@link SailConnection}. Some additional
      * functionality is available on this class, including
      * {@link #computeClosure()}.
      * 
-     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
+     *         Thompson</a>
+     * 
+     *         TODO This should be made into a static class. As it is, there is
+     *         a possibility for subtle errors introduced by inheritence of
+     *         variables from the {@link BigdataSail}. For example, this was
+     *         causing a problem with the {@link #close()} method on this class
+     *         and on the classes derived from this class.
      */
     public class BigdataSailConnection implements NotifyingSailConnection {
 
