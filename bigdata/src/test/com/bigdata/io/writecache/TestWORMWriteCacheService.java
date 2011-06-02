@@ -868,10 +868,10 @@ public class TestWORMWriteCacheService extends TestCase3 {
      */
     private boolean skipHATest() {
     	
-//    	log.warn("Test not run.  See https://sourceforge.net/apps/trac/bigdata/ticket/235");
-//
-//        return true;
-        return false;
+    	log.warn("Test not run.  See https://sourceforge.net/apps/trac/bigdata/ticket/235");
+
+        return true;
+//        return false;
         
     }
 
