@@ -92,9 +92,9 @@ public class TestBigdataSailWithSids extends AbstractBigdataSailTestCase {
 
         suite.addTestSuite(TestSids.class);
 
-		suite.addTestSuite(com.bigdata.rdf.sail.contrib.TestRollbacks.class);
-		suite.addTestSuite(com.bigdata.rdf.sail.contrib.TestRollbacksTx.class);
-        suite.addTestSuite(com.bigdata.rdf.sail.contrib.TestRollbacksTM.class);
+		suite.addTestSuite(com.bigdata.rdf.sail.TestRollbacks.class);
+		suite.addTestSuite(com.bigdata.rdf.sail.TestRollbacksTx.class);
+        suite.addTestSuite(com.bigdata.rdf.sail.TestRollbacksTM.class);
 
         suite.addTestSuite(com.bigdata.rdf.sail.TestMillisecondPrecisionForInlineDateTimes.class);
 
