@@ -199,7 +199,7 @@
 </target>
 
 <target name="bundle" description="Bundles all dependencies for easier deployments and releases (does not bundle the bigdata jar).">
-<copy toDir="${build.dir}/lib" flatten="true">
+     <copy toDir="${build.dir}/lib" flatten="true">
 	<fileset dir="${bigdata.dir}/bigdata/lib">
 		<include name="**/*.jar" />
 		<include name="**/*.so" />
@@ -211,16 +211,20 @@
 		<!-- The BytesUtil JNI class is not recommended at this time (no performance gain). -->
 		<exclude name="**/*BytesUtil*" />
 	</fileset>
-	<fileset dir="${bigdata.dir}/bigdata-jini/lib">
-		<include name="**/*.jar" />
-	</fileset>
 	<fileset dir="${bigdata.dir}/bigdata-rdf/lib">
 		<include name="**/*.jar" />
 	</fileset>
 	<fileset dir="${bigdata.dir}/bigdata-sails/lib">
 		<include name="**/*.jar" />
 	</fileset>
-</copy>
+     </copy>
+     <!-- Do NOT flatten the jini jars. We need the to preserve the -->
+     <!-- lib, lib-dl, and lib-ext distinctions.                    -->
+     <copy toDir="${build.dir}/lib" flatten="false">
+	<fileset dir="${bigdata.dir}/bigdata-jini/lib">
+		<include name="**/*.jar" />
+	</fileset>
+     </copy>
 </target>
 
 	<!-- 
@@ -1026,6 +1030,8 @@ ${postInstallMessage}</echo>
 
     <target name="ant-install-prepare" depends="jar, bundle"
             description="Stage all files (src, lib, config, etc.) needed for ant based install.">
+
+      <!-- stage source files. -->
       <copy toDir="${build.dir}/bigdata/src">
         <fileset dir="${bigdata.dir}/bigdata/src" />
       </copy>
@@ -1045,11 +1051,11 @@ ${postInstallMessage}</echo>
         <fileset dir="${bigdata.dir}/lgpl-utils/src" />
       </copy>
 
+      <!-- stage library dependencies. -->
       <mkdir dir="${build.dir}/bigdata/lib" />
       <copy toDir="${build.dir}/bigdata/lib">
         <fileset dir="${bigdata.dir}/bigdata/lib" />
       </copy>
-
       <mkdir dir="${build.dir}/bigdata-jini/lib" />
       <copy toDir="${build.dir}/bigdata-jini/lib">
         <fileset dir="${bigdata.dir}/bigdata-jini/lib" />
@@ -1058,7 +1064,6 @@ ${postInstallMessage}</echo>
       <copy toDir="${build.dir}/bigdata-rdf/lib">
         <fileset dir="${bigdata.dir}/bigdata-rdf/lib" />
       </copy>
-
       <mkdir dir="${build.dir}/bigdata-sails/lib" />
       <copy toDir="${build.dir}/bigdata-sails/lib">
         <fileset dir="${bigdata.dir}/bigdata-sails/lib" />
