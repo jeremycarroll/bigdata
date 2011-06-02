@@ -2426,6 +2426,12 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
             
         }
 
+        public ILocalTransactionManager getLocalTransactionManager() {
+            
+            return delegate.getLocalTransactionManager();
+            
+        }
+
         public IResourceLockService getResourceLockService() {
             
             return delegate.getResourceLockService();
@@ -2845,6 +2851,12 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
             
         }
         
+        public ILocalTransactionManager getLocalTransactionManager() {
+            
+            return delegate.getLocalTransactionManager();
+            
+        }
+
         public IResourceLockService getResourceLockService() {
             
             return delegate.getResourceLockService();
