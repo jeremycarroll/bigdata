@@ -24,22 +24,26 @@ package com.bigdata.rdf.sail.contrib;
 
 import java.util.Properties;
 
+import com.bigdata.rdf.axioms.NoAxioms;
+import com.bigdata.rdf.axioms.RdfsAxioms;
 import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.vocab.NoVocabulary;
+import com.bigdata.rdf.vocab.RDFSVocabulary;
 
 /**
  * Concrete instance of {@link TestRollbacks} which overrides the properties to
- * enable full transaction support in the SAIL.
+ * enable truth maintenance support in the SAIL.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class TestRollbacksTx extends TestRollbacks {
+public class TestRollbacksTM extends TestRollbacks {
 
-	public TestRollbacksTx() {
+	public TestRollbacksTM() {
 		super();
 	}
 	
-	public TestRollbacksTx(String name) {
+	public TestRollbacksTM(String name) {
 		super(name);
 	}
 	
@@ -48,8 +52,12 @@ public class TestRollbacksTx extends TestRollbacks {
         
     	final Properties props = super.getProperties();
 
-        // transactions are ON in this version of this class.
-        props.setProperty(BigdataSail.Options.ISOLATABLE_INDICES, "true");
+        props.setProperty(BigdataSail.Options.AXIOMS_CLASS,
+                RdfsAxioms.class.getName());
+        props.setProperty(BigdataSail.Options.VOCABULARY_CLASS,
+                RDFSVocabulary.class.getName());
+        props.setProperty(BigdataSail.Options.TRUTH_MAINTENANCE, "true");
+        props.setProperty(BigdataSail.Options.JUSTIFY, "true");
         
         return props;
 

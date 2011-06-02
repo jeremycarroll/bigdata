@@ -245,9 +245,9 @@ public class TestRollbacks extends QuadsTestCase {
             RepositoryConnection conn = null;
             try {
 				int counter2 = 0;
-				conn = repo.getConnection();
-				conn.setAutoCommit(false);           	
-                while (firstCause.get() == null&&counter<maxCounter) {
+                conn = repo.getConnection();
+                conn.setAutoCommit(false);
+                while (firstCause.get() == null && counter < maxCounter) {
                     if (writer)
                         writer(conn);
                     else

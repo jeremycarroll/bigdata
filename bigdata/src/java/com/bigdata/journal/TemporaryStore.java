@@ -34,6 +34,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Logger;
+
 import com.bigdata.bfs.BigdataFileSystem;
 import com.bigdata.bfs.GlobalFileSystemHelper;
 import com.bigdata.btree.BTree;
@@ -63,6 +65,8 @@ import com.bigdata.util.concurrent.DaemonThreadFactory;
  * @version $Id$
  */
 public class TemporaryStore extends TemporaryRawStore implements IBTreeManager {
+
+    private static final Logger log = Logger.getLogger(TemporaryStore.class);
 
     /**
      * The size of the live index cache for the {@link Name2Addr} instance.

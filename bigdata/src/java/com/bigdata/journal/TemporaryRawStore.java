@@ -62,10 +62,8 @@ import com.bigdata.relation.locator.ILocatableResource;
  */
 public class TemporaryRawStore extends AbstractRawWormStore implements IMRMW {
 
-    protected static final Logger log = Logger.getLogger(TemporaryRawStore.class);
+    private static final Logger log = Logger.getLogger(TemporaryRawStore.class);
 
-//    protected static final boolean INFO = log.isInfoEnabled();
-    
     /**
      * Note: various things must be synchronized on {@link #buf} in order to
      * serialize reads, writes, etc. This is because it is {@link #buf} on which
