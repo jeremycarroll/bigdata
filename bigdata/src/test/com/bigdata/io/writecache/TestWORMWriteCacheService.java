@@ -852,9 +852,10 @@ public class TestWORMWriteCacheService extends TestCase3 {
      */
     private boolean skipReorganizePipelineTest() {
         
-        log.warn("Test not run.  See https://sourceforge.net/apps/trac/bigdata/ticket/235");
-        
-        return true;
+//        log.warn("Test not run.  See https://sourceforge.net/apps/trac/bigdata/ticket/235");
+//        
+//        return true;
+        return false;
         
     }
     
@@ -867,10 +868,11 @@ public class TestWORMWriteCacheService extends TestCase3 {
      */
     private boolean skipHATest() {
     	
-    	log.warn("Test not run.  See https://sourceforge.net/apps/trac/bigdata/ticket/235");
-
-        return true;
-
+//    	log.warn("Test not run.  See https://sourceforge.net/apps/trac/bigdata/ticket/235");
+//
+//        return true;
+        return false;
+        
     }
 
     /**
