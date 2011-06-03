@@ -19,12 +19,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+*/
 
 package com.bigdata.rdf.sail;
 
 import java.io.IOException;
 import java.util.Properties;
+import java.util.Set;
 
 import org.openrdf.OpenRDFException;
 import org.openrdf.model.Statement;
@@ -105,7 +106,7 @@ public class TestTicket276 extends QuadsTestCase {
 		props.setProperty(BigdataSail.Options.ALLOW_SESAME_QUERY_EVALUATION,
 				"false");
 		props.setProperty(
-				com.bigdata.rdf.store.AbstractTripleStore.Options.STATEMENT_IDENTIFIERS,
+				BigdataSail.Options.STATEMENT_IDENTIFIERS,
 				"false");
 
 		return props;
@@ -133,13 +134,13 @@ public class TestTicket276 extends QuadsTestCase {
 			RDFHandlerException {
 		try {
 			repo.initialize();
-			RepositoryConnection conn = repo.getConnection();
+			final RepositoryConnection conn = repo.getConnection();
 			try {
-	            ValueFactory vf = conn.getValueFactory();
+	            final ValueFactory vf = conn.getValueFactory();
 				addData(conn);
 
-				final String query = "SELECT ?x { ?x ?a ?t . ?x ?lookup ?l  }";
-				TupleQuery q = conn.prepareTupleQuery(QueryLanguage.SPARQL,
+				final String query = "SELECT ?x { ?x ?a ?t . ?x ?lookup ?l }";
+				final TupleQuery q = conn.prepareTupleQuery(QueryLanguage.SPARQL,
 						query);
 				q.setBinding(
 						"a",
@@ -147,9 +148,13 @@ public class TestTicket276 extends QuadsTestCase {
 				q.setBinding("t", vf.createURI("os:class/Location"));
 				q.setBinding("lookup", vf.createURI("os:prop/lookupName"));
 				q.setBinding("l", vf.createLiteral("amsterdam"));
-				TupleQueryResult tqr = q.evaluate();
-				while (tqr.hasNext())
-					System.out.println(tqr.next().getBindingNames());
+				final TupleQueryResult tqr = q.evaluate();
+                while (tqr.hasNext()) {
+                    final Set<String> bindingNames = tqr.next()
+                            .getBindingNames();
+                    if (log.isInfoEnabled())
+                        log.info("bindingNames=" + bindingNames);
+				}
 				tqr.close();
 			} finally {
 				conn.close();
