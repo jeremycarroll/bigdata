@@ -1501,8 +1501,19 @@ abstract public class AbstractTripleStore extends
                 {
                     final LexiconRelation lex = getLexiconRelation();
 
-                    if (lex != null)
+                    if (lex != null
+                            && lex.getIndexManager() == getIndexManager()) {
+
+                        /*
+                         * Destroy the lexicon, but only if it is backed by the
+                         * same index manager. (This prevents a lexicon on the
+                         * database from being destroyed when a statements-only
+                         * instance on a temporary store is destroyed.
+                         */
                         lex.destroy();
+                        
+                    }
+                    
                 }
 
                 lexiconRelation = null;
