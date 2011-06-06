@@ -105,6 +105,7 @@ import com.bigdata.rdf.internal.constraints.AndBOp;
 import com.bigdata.rdf.internal.constraints.CompareBOp;
 import com.bigdata.rdf.internal.constraints.DatatypeBOp;
 import com.bigdata.rdf.internal.constraints.EBVBOp;
+import com.bigdata.rdf.internal.constraints.FalseBOp;
 import com.bigdata.rdf.internal.constraints.FuncBOp;
 import com.bigdata.rdf.internal.constraints.IsBNodeBOp;
 import com.bigdata.rdf.internal.constraints.IsBoundBOp;
@@ -113,6 +114,7 @@ import com.bigdata.rdf.internal.constraints.IsURIBOp;
 import com.bigdata.rdf.internal.constraints.LangBOp;
 import com.bigdata.rdf.internal.constraints.LangMatchesBOp;
 import com.bigdata.rdf.internal.constraints.MathBOp;
+import com.bigdata.rdf.internal.constraints.TrueBOp;
 import com.bigdata.rdf.internal.constraints.MathBOp.MathOp;
 import com.bigdata.rdf.internal.constraints.NotBOp;
 import com.bigdata.rdf.internal.constraints.OrBOp;
@@ -1924,11 +1926,32 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
     }
 
     private IValueExpression<? extends IV> toVE(SameTerm sameTerm) {
-    	final IValueExpression<? extends IV> iv1 = 
+    	final IValueExpression<? extends IV> left = 
     		toVE(sameTerm.getLeftArg());
-    	final IValueExpression<? extends IV> iv2 = 
+    	final IValueExpression<? extends IV> right = 
     		toVE(sameTerm.getRightArg());
-        return new SameTermBOp(iv1, iv2);
+    	
+    	/*
+    	 * If a constant operand in the SameTerm op uses a value not found
+    	 * in the database, we must defer to the CompareBOp, which can perform
+    	 * value comparisons.  SameTermBOp only works on IVs. 
+    	 */
+    	
+    	if (left instanceof Constant) {
+    		final IV iv = ((Constant<? extends IV>) left).get();
+    		if (iv.isTermId() && iv.getTermId() == TermId.NULL) {
+    			return new CompareBOp(left, right, CompareOp.EQ); 
+    		}
+    	}
+    	
+    	if (right instanceof Constant) {
+    		final IV iv = ((Constant<? extends IV>) right).get();
+    		if (iv.isTermId() && iv.getTermId() == TermId.NULL) {
+    			return new CompareBOp(left, right, CompareOp.EQ); 
+    		}
+    	}
+    	
+        return new SameTermBOp(left, right);
     }
 
     private IValueExpression<? extends IV> toVE(final Compare compare) {
@@ -1939,25 +1962,39 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
     	
     	/*
     	 * If the term is a Constant<URI> and the op is EQ or NE then we can 
-    	 * do a sameTerm optimization.
+    	 * do a sameTerm optimization. The URI constant must be a real term
+    	 * in the database.
     	 */
     	final CompareOp op = compare.getOperator();
     	if (op == CompareOp.EQ || op == CompareOp.NE) {
     	
 	    	if (left instanceof Constant) {
 	    		final IV iv = ((Constant<? extends IV>) left).get();
-	    		if (iv.isURI()) {
+	    		if (iv.isURI() && iv.getTermId() != TermId.NULL) {
 	    			return new SameTermBOp(left, right, op); 
 	    		}
 	    	}
     	
 	    	if (right instanceof Constant) {
 	    		final IV iv = ((Constant<? extends IV>) right).get();
-	    		if (iv.isURI()) {
+	    		if (iv.isURI() && iv.getTermId() != TermId.NULL) {
 	    			return new SameTermBOp(left, right, op); 
 	    		}
 	    	}
 	    	
+    	}
+    	
+    	if (log.isDebugEnabled()) {
+    		log.debug(left == right);
+    		log.debug(left.equals(right));
+    	}
+    	
+    	if (left.equals(right)) {
+    		if (compare.getOperator() == CompareOp.EQ) {
+    			return TrueBOp.INSTANCE;
+    		} else {
+    			return FalseBOp.INSTANCE;
+    		}
     	}
     	
         return new CompareBOp(left, right, compare.getOperator());

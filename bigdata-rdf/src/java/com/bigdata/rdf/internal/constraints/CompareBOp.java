@@ -41,6 +41,7 @@ import com.bigdata.bop.PipelineOp;
 import com.bigdata.rdf.error.SparqlTypeErrorException;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.IVUtility;
+import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.model.BigdataValue;
 
 /**
@@ -133,7 +134,10 @@ public class CompareBOp extends XSDBooleanIVValueExpression
     	// probably would never hit this because of SameTermOp
     	if (op == CompareOp.EQ && left.isTermId() && right.isTermId()) {
     		
-    		if (left.getTermId() == right.getTermId())
+    		final long tid1 = left.getTermId();
+    		final long tid2 = right.getTermId();
+    		
+    		if (tid1 == tid2 && tid1 != TermId.NULL && tid2 != TermId.NULL)
     			return true;
     		
     	}

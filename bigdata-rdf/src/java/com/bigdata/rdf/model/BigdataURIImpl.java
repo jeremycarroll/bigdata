@@ -50,6 +50,8 @@ package com.bigdata.rdf.model;
 import org.openrdf.model.URI;
 import org.openrdf.model.util.URIUtil;
 
+import com.bigdata.rdf.internal.TermId;
+
 /**
  * A URI. Use {@link BigdataValueFactory} to create instances of this class.
  * 
@@ -173,6 +175,7 @@ public class BigdataURIImpl extends BigdataResourceImpl implements BigdataURI {
         
 		if ((o instanceof BigdataValue) //
 				&& getIV() != null//
+				&& getIV().getTermId() != TermId.NULL
 				&& ((BigdataValue) o).getIV() != null//
 				&& ((BigdataValue) o).getValueFactory() == getValueFactory()) {
 
