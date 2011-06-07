@@ -163,10 +163,21 @@ public abstract class ProxyTestCase<S extends IIndexManager>
     			info.append(t.getName() + "\n");
     		}
     		
-    		fail("Threads left active after task, startupCount: " 
+    		String failMessage = "Threads left active after task, startupCount: " 
     				+ startupActiveThreads
     				+ ", teardownCount: " + tearDownActiveThreads
-    				+ ", threads: " + info);
+    				+ ", threads: " + info;
+    		// Wait upto 2 seconds for threads to die off
+    		for (int i = 0; i < 20; i++) {
+    			Thread.currentThread().sleep(100);
+    			if (grp.activeCount() != startupActiveThreads)
+    				break;
+    		}
+    		
+    		if (grp.activeCount() != startupActiveThreads)
+    			fail(failMessage);  
+    		else
+    			log.warn(failMessage);
     	}
     	
     	super.tearDown();
