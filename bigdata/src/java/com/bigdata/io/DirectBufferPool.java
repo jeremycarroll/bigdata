@@ -76,8 +76,19 @@ public class DirectBufferPool {
          * {@link BufferState} object.
          */
         private ByteBuffer buf;
-        
+
+        /**
+         * The stack trace where the {@link ByteBuffer} was acquired IFF DEBUG
+         * and otherwise <code>null</code>.
+         */
         private final Throwable allocationStack;
+
+        /**
+         * The stack trace where the {@link ByteBuffer} was released IFF DEBUG
+         * and otherwise <code>null</code>. This is guarded by the monitor of
+         * the {@link BufferState} object.
+         */
+        private Throwable releaseStack;
         
         BufferState(final ByteBuffer buf) {
 
@@ -149,13 +160,22 @@ public class DirectBufferPool {
                     if (DEBUG) {
                         log.error("Double release: AllocationTrace"
                                 + allocationStack);
-                        log.error("Double release: ReleaseStack"
-                                + new RuntimeException("ReleaseStack"));
+                        if (releaseStack != null)
+                            log.error("Double release: FirstReleaseStack: ",
+                                    releaseStack);
+                        log.error("Double release: DoubleReleaseStack"
+                                + new RuntimeException("DoubleReleaseStack"));
                     }
                     throw new IllegalStateException();
                 }
                 DirectBufferPool.this.release(buf, timeout, units);
                 buf = null;
+                if (DEBUG) {
+                    /*
+                     * The stack frame where the ByteBuffer was released.
+                     */
+                    releaseStack = new RuntimeException("ReleaseTrace");
+                }
             }
             
 		}
