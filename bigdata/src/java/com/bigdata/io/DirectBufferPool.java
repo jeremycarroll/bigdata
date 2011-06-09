@@ -165,7 +165,6 @@ public class DirectBufferPool {
      * native memory.
      */
     final private BlockingQueue<ByteBuffer> pool;
-    final private ArrayList<ByteBuffer> acquiredBuffers;
 
     /**
      * The number {@link ByteBuffer}s allocated (must use {@link #lock} for
@@ -437,8 +436,6 @@ public class DirectBufferPool {
 
         this.pool = new LinkedBlockingQueue<ByteBuffer>(poolCapacity);
         
-        this.acquiredBuffers = new ArrayList<ByteBuffer>();
-
         pools.add(this);
         
     }
@@ -519,7 +516,6 @@ public class DirectBufferPool {
 
             // the head of the pool must exist.
             final ByteBuffer buf = pool.take();
-            acquiredBuffers.add(buf);
 
             acquired++;
             totalAcquireCount.increment();
@@ -558,7 +554,7 @@ public class DirectBufferPool {
      *             if the buffer has already been released.
      * @throws InterruptedException
      */
-    final protected void release(final ByteBuffer b) throws InterruptedException {
+    final private void release(final ByteBuffer b) throws InterruptedException {
 
         if (!release(b, Long.MAX_VALUE, TimeUnit.MILLISECONDS)) {
 
@@ -596,10 +592,6 @@ public class DirectBufferPool {
 
         try {
             // add to the pool.
-        	if (!acquiredBuffers.contains(b)) 
-        		throw new IllegalArgumentException("Buffer not managed by this pool or already released");
-        	acquiredBuffers.remove(b);
-        	
             if(!pool.offer(b, timeout, units))
                 return false;
 
