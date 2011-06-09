@@ -158,13 +158,13 @@ public class DirectBufferPool {
             synchronized (this) {
                 if (buf == null) {
                     if (DEBUG) {
-                        log.error("Double release: AllocationTrace"
-                                + allocationStack);
+                        log.error("Double release: AllocationTrace",
+                                allocationStack);
                         if (releaseStack != null)
-                            log.error("Double release: FirstReleaseStack: ",
+                            log.error("Double release: FirstReleaseStack",
                                     releaseStack);
-                        log.error("Double release: DoubleReleaseStack"
-                                + new RuntimeException("DoubleReleaseStack"));
+                        log.error("Double release: DoubleReleaseStack",
+                                new RuntimeException("DoubleReleaseStack"));
                     }
                     throw new IllegalStateException();
                 }
