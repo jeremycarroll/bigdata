@@ -855,6 +855,8 @@ public class DirectBufferPool {
             final int bufferCapacity = p.getBufferCapacity();
 
             final int acquired = p.getAcquiredBufferCount();
+
+            final long nleaked = p.leaked.get();
             
             final long bytesUsed = poolSize * bufferCapacity;
             
@@ -875,6 +877,12 @@ public class DirectBufferPool {
                 }
             });
 
+            c.addCounter("leaked", new Instrument<Long>() {
+                public void sample() {
+                    setValue(nleaked);
+                }
+            });
+        
             c.addCounter("poolSize", new Instrument<Integer>() {
                 public void sample() {
                     setValue(poolSize);
