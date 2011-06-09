@@ -160,9 +160,11 @@ public class DirectBufferPool {
                     if (DEBUG) {
                         log.error("Double release: AllocationTrace",
                                 allocationStack);
-                        if (releaseStack != null)
+                        if (releaseStack == null)
                             log.error("Double release: FirstReleaseStack",
                                     releaseStack);
+                        else
+                            log.error("Double release: FirstReleaseStack NOT available");
                         log.error("Double release: DoubleReleaseStack",
                                 new RuntimeException("DoubleReleaseStack"));
                     }
