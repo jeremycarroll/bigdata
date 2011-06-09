@@ -56,7 +56,17 @@ public class TestDirectBufferPoolAllocator extends TestCase2 {
         super(name);
     }
 
-    final DirectBufferPool pool = DirectBufferPool.INSTANCE;
+    private final DirectBufferPool pool = DirectBufferPool.INSTANCE;
+
+    @Override
+    protected void tearDown() throws Exception {
+
+        // Verify that all allocated buffers were released.
+        DirectBufferPoolTestHelper.checkBufferPools(this);
+        
+        super.tearDown();
+        
+    }
 
     /**
      * Opens and closes the allocator.

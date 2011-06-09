@@ -1,9 +1,7 @@
 package com.bigdata.io;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -74,14 +72,18 @@ public class DirectBufferPool {
     private class BufferState implements IBufferAccess {
      
         /**
-         * The buffer instance.
+         * The buffer instance. This is guarded by the monitor of the
+         * {@link BufferState} object.
          */
         private ByteBuffer buf;
         
         BufferState(final ByteBuffer buf) {
+
             if (buf == null)
                 throw new IllegalArgumentException();
+            
             this.buf = buf;
+            
         }
         
         /**
@@ -123,33 +125,38 @@ public class DirectBufferPool {
 
         // Implement IDirectBuffer methods
 		public ByteBuffer buffer() {
-			return buf;
+			synchronized(this) {
+			    return buf;
+			}
 		}
 
 		public void release() throws InterruptedException {
 			release(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
 		}
 
-		public void release(long timeout, TimeUnit units) throws InterruptedException {
-			if (buf != null) {
-				DirectBufferPool.this.release(buf, timeout, units);
-				buf = null;
-			} else {
-				throw new IllegalStateException("Buffer has already been released");
-			}
+        public void release(long timeout, TimeUnit units)
+                throws InterruptedException {
+
+            synchronized (this) {
+                if (buf == null) {
+                    throw new IllegalStateException();
+                }
+                DirectBufferPool.this.release(buf, timeout, units);
+                buf = null;
+            }
+            
 		}
         
 		protected void finalize() {
 			if (buf != null) {
 				try {
+	                log.error("Buffer release on finalize");
 					DirectBufferPool.this.release(buf);
 				} catch (InterruptedException e) {
 					// ignore
 				}
-				log.warn("Buffer released on finalize");
 			} 
 		}
-        
         
     }
     
