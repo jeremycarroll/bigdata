@@ -1362,11 +1362,6 @@ public abstract class AbstractJournal implements IJournal/* , ITimestampService 
 			deleteResources();
 
 		}
-
-        int cl = nclose.incrementAndGet();
-        if (cl > nopen.get()) {
-        	throw new IllegalStateException("More calls to close than open!");
-        }
         
 	}
 
