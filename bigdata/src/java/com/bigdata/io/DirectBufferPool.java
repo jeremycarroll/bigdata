@@ -1,6 +1,7 @@
 package com.bigdata.io;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -164,6 +165,7 @@ public class DirectBufferPool {
      * native memory.
      */
     final private BlockingQueue<ByteBuffer> pool;
+    final private ArrayList<ByteBuffer> acquiredBuffers;
 
     /**
      * The number {@link ByteBuffer}s allocated (must use {@link #lock} for
@@ -434,6 +436,8 @@ public class DirectBufferPool {
         this.bufferCapacity = bufferCapacity;
 
         this.pool = new LinkedBlockingQueue<ByteBuffer>(poolCapacity);
+        
+        this.acquiredBuffers = new ArrayList<ByteBuffer>();
 
         pools.add(this);
         
@@ -515,6 +519,7 @@ public class DirectBufferPool {
 
             // the head of the pool must exist.
             final ByteBuffer buf = pool.take();
+            acquiredBuffers.add(buf);
 
             acquired++;
             totalAcquireCount.increment();
@@ -591,6 +596,10 @@ public class DirectBufferPool {
 
         try {
             // add to the pool.
+        	if (!acquiredBuffers.contains(b)) 
+        		throw new IllegalArgumentException("Buffer not managed by this pool or already released");
+        	acquiredBuffers.remove(b);
+        	
             if(!pool.offer(b, timeout, units))
                 return false;
 
@@ -670,7 +679,7 @@ public class DirectBufferPool {
 
             // add to the pool.
             pool.add(b);
-
+            
             /*
              * There is now a buffer in the pool and the caller will get it
              * since they hold the lock.
