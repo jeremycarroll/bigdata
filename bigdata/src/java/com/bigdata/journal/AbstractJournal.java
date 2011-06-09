@@ -1123,7 +1123,7 @@ public abstract class AbstractJournal implements IJournal/* , ITimestampService 
 	 * 
 	 * @see #shutdownNow()
 	 */
-	public void shutdown() {
+	synchronized public void shutdown() {
 
 		// Note: per contract for shutdown.
 		if (!isOpen())
@@ -1363,6 +1363,7 @@ public abstract class AbstractJournal implements IJournal/* , ITimestampService 
 
 		}
         
+        nclose.incrementAndGet();
 	}
 
 	/**
