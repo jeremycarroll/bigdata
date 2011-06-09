@@ -195,7 +195,7 @@ public class DirectBufferPool {
                 buf = this.buf;
                 this.buf = null;
                 nacquired = DirectBufferPool.this.acquired;
-                if (buf != null && releaseStack != null) {
+                if (buf != null && releaseStack == null) {
                     releaseStack = new RuntimeException("ReleasedInFinalizer");
                 }
             }
