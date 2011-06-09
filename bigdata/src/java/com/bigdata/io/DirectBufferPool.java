@@ -16,7 +16,6 @@ import org.apache.log4j.Logger;
 
 import com.bigdata.counters.CAT;
 import com.bigdata.counters.CounterSet;
-import com.bigdata.counters.Instrument;
 import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.journal.IBufferStrategy;
 import com.bigdata.journal.TemporaryRawStore;
@@ -182,7 +181,34 @@ public class DirectBufferPool {
             }
             
 		}
-        
+
+        /*
+         * Note: It is apparent that the JVM can order things such that the
+         * finalize() method can be called before an invocation of release() on
+         * the BufferState object. Presumably this arises when a set of
+         * references are all due to be finalized because none of them are more
+         * than weakly reachable from a GC root. At that point, the JVM is faced
+         * with the (impossible) task of ordering their finalizer() invocations.
+         * Since object references are (in general) an undirected graph, it
+         * seems that Java will invoke the finalizers on those references in
+         * some undefined (and perhaps not definable) order. This can lead to a
+         * "double-release" siutation where the first release was the JVM
+         * invoking the finalizer and the second release was a different
+         * finalizer invoking release() on this BufferState object.
+         * 
+         * Given this state of affairs, the "right" thing to do is write the
+         * finalizer defensively for a concurrent environment. It should
+         * atomically release the buffer back to the pool and clear the buffer
+         * reference. We should then ignore the double-release request rather
+         * than throwing out an IllegalStateException.
+         * 
+         * This appears to be the right thing to do if the application holds a
+         * hard reference to the BufferState object until it has release()ed the
+         * buffer. If the application fails to hold that hard reference, then
+         * putting the ByteBuffer back on the pool will cause concurrent data
+         * modification problems within the ByteBuffer. Applications MUST verify
+         * that they correctly hold that hard reference!
+         */
 		protected void finalize() throws Throwable {
             /*
              * Ultra paranoid block designed to ensure that we do not double
@@ -227,6 +253,11 @@ public class DirectBufferPool {
                         allocationStack);
             } else {
                 log.error("Buffer release on finalize.");
+                /*
+                 * TODO We do not currently set this.buf = buf if we are
+                 * interrupted in release(buf) here, so this is not acid. But
+                 * maybe we should accept the memory leak on that code path?
+                 */
                 DirectBufferPool.this.release(buf);
             }
         }
@@ -871,32 +902,16 @@ public class DirectBufferPool {
             c.addCounter("bufferCapacity", new OneShotInstrument<Integer>(
                     bufferCapacity));
 
-            c.addCounter("acquired", new Instrument<Integer>() {
-                public void sample() {
-                    setValue(acquired);
-                }
-            });
+            c.addCounter("acquired", new OneShotInstrument<Integer>(acquired));
 
-            c.addCounter("leaked", new Instrument<Long>() {
-                public void sample() {
-                    setValue(nleaked);
-                }
-            });
+            c.addCounter("leaked", new OneShotInstrument<Long>(nleaked));
         
-            c.addCounter("poolSize", new Instrument<Integer>() {
-                public void sample() {
-                    setValue(poolSize);
-                }
-            });
+            c.addCounter("poolSize", new OneShotInstrument<Integer>(poolSize));
 
             /*
              * #of bytes allocated and held by the DirectBufferPool.
              */
-            c.addCounter("bytesUsed", new Instrument<Long>() {
-                public void sample() {
-                    setValue(bytesUsed);
-                }
-            });
+            c.addCounter("bytesUsed", new OneShotInstrument<Long>(bytesUsed));
         
         } // next DirectBufferPool
 
@@ -913,11 +928,8 @@ public class DirectBufferPool {
         tmp.addCounter("bufferInUseCount", new OneShotInstrument<Integer>(
                 bufferInUseCount));
 
-        tmp.addCounter("totalBytesUsed", new Instrument<Long>() {
-            public void sample() {
-                setValue(totalBytesUsed.get());
-            }
-        });
+        tmp.addCounter("totalBytesUsed", new OneShotInstrument<Long>(
+                totalBytesUsed.get()));
 
         return tmp;
 
