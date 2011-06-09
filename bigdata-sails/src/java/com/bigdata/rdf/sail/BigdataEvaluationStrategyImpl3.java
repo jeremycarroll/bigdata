@@ -573,15 +573,15 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
             return super.evaluate(filter, bs);
         }
         
-        if (filter.getArg() instanceof StatementPattern) {
-        	// no need to run a query for this, a simple access path scan will do
-            return super.evaluate(filter, bs);
-        }
-
         if (log.isInfoEnabled()) {
             log.info("evaluating top-level Filter operator");
         }
         
+//        if (filter.getArg() instanceof StatementPattern) {
+//        	// no need to run a query for this, a simple access path scan will do
+//            return super.evaluate(filter, bs);
+//        }
+
         try {
             
             return evaluateNatively(filter, bs);
