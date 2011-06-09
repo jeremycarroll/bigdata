@@ -192,7 +192,7 @@ public class DirectBufferPool {
          * Since object references are (in general) an undirected graph, it
          * seems that Java will invoke the finalizers on those references in
          * some undefined (and perhaps not definable) order. This can lead to a
-         * "double-release" siutation where the first release was the JVM
+         * "double-release" situation where the first release was the JVM
          * invoking the finalizer and the second release was a different
          * finalizer invoking release() on this BufferState object.
          * 
