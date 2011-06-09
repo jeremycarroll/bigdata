@@ -629,10 +629,10 @@ public class TestNestedOptionals extends QuadsTestCase {
             final SOpTreeBuilder stb = new SOpTreeBuilder();
             final SOpTree tree = stb.collectSOps(tupleExpr);
             
-            if (INFO) {
-                System.err.println(query);
+            if (log.isInfoEnabled()) {
+                log.info(query);
                 for (SOp bop : tree) {
-                    System.err.println(bop);    
+                    log.info(bop);    
                 }
             }
               

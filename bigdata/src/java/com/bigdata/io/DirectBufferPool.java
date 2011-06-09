@@ -167,9 +167,11 @@ public class DirectBufferPool {
              * another finalized.
              */
 		    final ByteBuffer buf;
+		    final int nacquired;
 		    synchronized(this) {
                 buf = this.buf;
                 this.buf = null;
+                nacquired = DirectBufferPool.this.acquired;
             }
             if (buf == null)
                 return;
@@ -192,7 +194,10 @@ public class DirectBufferPool {
                  * using the same ByteBuffer, each of which believes that they
                  * "own" the reference).
                  */
-                log.error("Buffer release on finalize: AllocationStack",
+                leaked.increment();
+                final long nleaked = leaked.get();
+                log.error("Buffer release on finalize (nacquired=" + nacquired
+                        + ",nleaked=" + nleaked + "): AllocationStack",
                         allocationStack);
             } else {
                 log.error("Buffer release on finalize.");
@@ -231,6 +236,12 @@ public class DirectBufferPool {
      * is released.
      */
     private int acquired = 0;
+
+    /**
+     * The #of buffers leaked out of {@link BufferState#finalize()} when
+     * {@link #DEBUG} is <code>true</code>.
+     */
+    private final CAT leaked = new CAT();
     
     /**
      * The maximum #of {@link ByteBuffer}s that will be allocated. 
