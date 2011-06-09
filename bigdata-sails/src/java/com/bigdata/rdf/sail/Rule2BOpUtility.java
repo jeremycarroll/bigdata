@@ -598,7 +598,7 @@ public class Rule2BOpUtility {
 				constraints[i] = rule.getConstraint(i);
 			}
 
-			final int nknownBound = knownBound.size();
+			final int nknownBound = knownBound != null ? knownBound.size() : 0;
 			
 			// figure out which constraints are attached to which
 			// predicates.
