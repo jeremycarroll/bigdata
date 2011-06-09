@@ -160,28 +160,45 @@ public class DirectBufferPool {
             
 		}
         
-		protected void finalize() {
-			if (buf != null) {
-				try {
-                    if (DEBUG) {
-                        /*
-                         * Note: This code path WILL NOT return the buffer to
-                         * the pool. This is deliberate. When DEBUG is true we
-                         * do not permit a buffer which was not correctly
-                         * release to be reused.
-                         */
-                        log.error(
-                                "Buffer release on finalize: AllocationStack",
-                                allocationStack);
-                    } else {
-                        log.error("Buffer release on finalize.");
-                        DirectBufferPool.this.release(buf);
-                    }
-				} catch (InterruptedException e) {
-					// ignore
-				}
-			} 
-		}
+		protected void finalize() throws Throwable {
+            /*
+             * Ultra paranoid block designed to ensure that we do not double
+             * release the ByteBuffer to the owning pool via the action of
+             * another finalized.
+             */
+		    final ByteBuffer buf;
+		    synchronized(this) {
+                buf = this.buf;
+                this.buf = null;
+            }
+            if (buf == null)
+                return;
+            if (DEBUG) {
+                /*
+                 * Note: This code path WILL NOT return the buffer to the pool.
+                 * This is deliberate. When DEBUG is true we do not permit a
+                 * buffer which was not correctly release to be reused.
+                 * 
+                 * Note: A common cause of this is that the caller is holding
+                 * onto the acquired ByteBuffer object rather than the
+                 * IBufferAccess object. This permits the IBufferAccess
+                 * reference to be finalized. When the IBufferAccess object is
+                 * finalized, it will attempt to release the buffer (except in
+                 * DEBUG mode). However, if the caller is holding onto the
+                 * ByteBuffer then this is an error which can rapidly lead to
+                 * corrupt data through concurrent modification (what happens is
+                 * that the ByteBuffer is handed out to another thread in
+                 * response to another acquire() and we now have two threads
+                 * using the same ByteBuffer, each of which believes that they
+                 * "own" the reference).
+                 */
+                log.error("Buffer release on finalize: AllocationStack",
+                        allocationStack);
+            } else {
+                log.error("Buffer release on finalize.");
+                DirectBufferPool.this.release(buf);
+            }
+        }
         
     }
     
