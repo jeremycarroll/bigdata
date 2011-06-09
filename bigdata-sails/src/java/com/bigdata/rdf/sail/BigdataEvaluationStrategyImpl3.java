@@ -72,8 +72,9 @@ import org.openrdf.query.algebra.Union;
 import org.openrdf.query.algebra.ValueConstant;
 import org.openrdf.query.algebra.ValueExpr;
 import org.openrdf.query.algebra.Var;
+import org.openrdf.query.algebra.evaluation.QueryBindingSet;
 import org.openrdf.query.algebra.evaluation.impl.EvaluationStrategyImpl;
-import org.openrdf.query.algebra.evaluation.iterator.FilterIterator;
+import org.openrdf.query.algebra.evaluation.iterator.ProjectionIterator;
 import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
 
 import com.bigdata.bop.BOp;
@@ -114,7 +115,6 @@ import com.bigdata.rdf.internal.constraints.IsURIBOp;
 import com.bigdata.rdf.internal.constraints.LangBOp;
 import com.bigdata.rdf.internal.constraints.LangMatchesBOp;
 import com.bigdata.rdf.internal.constraints.MathBOp;
-import com.bigdata.rdf.internal.constraints.TrueBOp;
 import com.bigdata.rdf.internal.constraints.MathBOp.MathOp;
 import com.bigdata.rdf.internal.constraints.NotBOp;
 import com.bigdata.rdf.internal.constraints.OrBOp;
@@ -123,6 +123,7 @@ import com.bigdata.rdf.internal.constraints.RegexBOp;
 import com.bigdata.rdf.internal.constraints.SPARQLConstraint;
 import com.bigdata.rdf.internal.constraints.SameTermBOp;
 import com.bigdata.rdf.internal.constraints.StrBOp;
+import com.bigdata.rdf.internal.constraints.TrueBOp;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.sail.BigdataSail.Options;
@@ -332,6 +333,23 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
      */
     private Properties queryHints;
     
+    /**
+     * Override to prune incoming bindings that are not part of the projection
+     * out of the result set.
+     */
+	public CloseableIteration<BindingSet, QueryEvaluationException> evaluate(
+			final Projection projection,
+			final BindingSet bindings)
+		throws QueryEvaluationException
+	{
+		CloseableIteration<BindingSet, QueryEvaluationException> result;
+		result = this.evaluate(projection.getArg(), bindings);
+		
+		QueryBindingSet empty = new QueryBindingSet();
+		result = new ProjectionIterator(projection, result, empty);
+		return result;
+	}
+
     /**
      * This is the top-level method called by the SAIL to evaluate a query.
      * The TupleExpr parameter here is guaranteed to be the root of the operator
@@ -887,14 +905,14 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
 		 * 
 		 * [1] https://sourceforge.net/apps/trac/bigdata/ticket/230
 		 */
-		if (sesameFilters != null) {
-			for (Filter f : sesameFilters) {
-				if (log.isDebugEnabled()) {
-					log.debug("attaching sesame filter: " + f);
-				}
-				result = new FilterIterator(f, result, this);
-			}
-		}
+//		if (sesameFilters != null) {
+//			for (Filter f : sesameFilters) {
+//				if (log.isDebugEnabled()) {
+//					log.debug("attaching sesame filter: " + f);
+//				}
+//				result = new FilterIterator(f, result, this);
+//			}
+//		}
 		
 //		System.err.println("results");
 //		while (result.hasNext()) {
