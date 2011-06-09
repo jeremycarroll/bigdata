@@ -77,12 +77,17 @@ public class DirectBufferPool {
          */
         private ByteBuffer buf;
         
+        private final Throwable allocationStack;
+        
         BufferState(final ByteBuffer buf) {
 
             if (buf == null)
                 throw new IllegalArgumentException();
             
             this.buf = buf;
+            
+            this.allocationStack = (DEBUG ? new RuntimeException("Allocation")
+                    : null);
             
         }
         
@@ -104,7 +109,7 @@ public class DirectBufferPool {
          * result depends on the data actually in the buffer at the time the
          * operation is evaluated!
          */
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) {
                 // Same BufferState, must be the same buffer.
                 return true;
@@ -113,19 +118,21 @@ public class DirectBufferPool {
                 return false;
             }
             if (this.buf == ((BufferState) o).buf) {
-                return true;
+                /*
+                 * We have two distinct BufferState references for the same
+                 * ByteBuffer reference. This is an error. There should be a
+                 * one-to-one correspondence.
+                 */
+                throw new AssertionError();
             }
-            /*
-             * We have two distinct BufferState references for the same
-             * ByteBuffer reference. This is an error. There should be a
-             * one-to-one correspondence.
-             */
-            throw new AssertionError();
+            return false;
         }
 
         // Implement IDirectBuffer methods
-		public ByteBuffer buffer() {
-			synchronized(this) {
+        public ByteBuffer buffer() {
+            synchronized (this) {
+                if (buf == null)
+                    throw new IllegalStateException();
 			    return buf;
 			}
 		}
@@ -139,6 +146,12 @@ public class DirectBufferPool {
 
             synchronized (this) {
                 if (buf == null) {
+                    if (DEBUG) {
+                        log.error("Double release: AllocationTrace"
+                                + allocationStack);
+                        log.error("Double release: ReleaseStack"
+                                + new RuntimeException("ReleaseStack"));
+                    }
                     throw new IllegalStateException();
                 }
                 DirectBufferPool.this.release(buf, timeout, units);
@@ -150,8 +163,20 @@ public class DirectBufferPool {
 		protected void finalize() {
 			if (buf != null) {
 				try {
-	                log.error("Buffer release on finalize");
-					DirectBufferPool.this.release(buf);
+                    if (DEBUG) {
+                        /*
+                         * Note: This code path WILL NOT return the buffer to
+                         * the pool. This is deliberate. When DEBUG is true we
+                         * do not permit a buffer which was not correctly
+                         * release to be reused.
+                         */
+                        log.error(
+                                "Buffer release on finalize: AllocationStack",
+                                allocationStack);
+                    } else {
+                        log.error("Buffer release on finalize.");
+                        DirectBufferPool.this.release(buf);
+                    }
 				} catch (InterruptedException e) {
 					// ignore
 				}
@@ -330,9 +355,23 @@ public class DirectBufferPool {
          * The default capacity of the allocated buffers.
          */
         String DEFAULT_BUFFER_CAPACITY = "" + Bytes.megabyte32 * 1;
+
+        /**
+         * Option to use conservative assumptions about buffer release and to
+         * report allocation stack traces for undesired events (double-release,
+         * never released, etc).
+         */
+        String DEBUG = DirectBufferPool.class.getName() + ".debug";
+
+        String DEFAULT_DEBUG = "true";
         
     }
 
+    /**
+     * @see Options#DEBUG
+     */
+    private final static boolean DEBUG;
+    
     /**
      * A JVM-wide pool of direct {@link ByteBuffer}s used for a variety of
      * purposes with a default {@link Options#BUFFER_CAPACITY} of
@@ -370,12 +409,15 @@ public class DirectBufferPool {
         if (log.isInfoEnabled())
             log.info(Options.BUFFER_CAPACITY + "=" + bufferCapacity);
 
+        DEBUG = Boolean.valueOf(System.getProperty(Options.DEBUG,
+                Options.DEFAULT_DEBUG));
+        
         INSTANCE = new DirectBufferPool(//
                 "default",//
                 poolCapacity,//
                 bufferCapacity//
                 );
-
+        
 //        INSTANCE_10M = new DirectBufferPool(//
 //                "10M",//
 //                Integer.MAX_VALUE, // poolCapacity
