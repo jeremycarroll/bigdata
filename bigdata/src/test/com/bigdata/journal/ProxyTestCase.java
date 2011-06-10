@@ -168,10 +168,11 @@ public abstract class ProxyTestCase<S extends IIndexManager>
 	    		grp.enumerate(threads);
 	    		final StringBuilder info = new StringBuilder();
 	    		boolean first = true;
-	    		for(Thread t: threads) {
+                for (Thread t : threads) {
+                    if (t == null)
+                        continue;
 	    		    if(!first)
 	    		        info.append(',');
-	    		    // Note: t.getName() can return [null]!
                     info.append("[" + t.getName() + "]");
                     first = false;
 	    		}
