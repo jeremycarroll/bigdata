@@ -894,14 +894,14 @@ public class FullTextIndex extends AbstractRelation {
      * @return A {@link Iterator} which may be used to traverse the search
      *         results in order of decreasing relevance to the query.
      * 
-     * @see Options#INDEXER_TIMEOUT
+     * @deprecated Only used by the test suite.
      */
     public Hiterator search(final String query, final String languageCode) {
 
         return search(query, languageCode, false/* prefixMatch */);
         
     }
-
+    /** @deprecated Only used by the test suite. */
     public Hiterator search(final String query, final String languageCode,
             final boolean prefixMatch) {
 

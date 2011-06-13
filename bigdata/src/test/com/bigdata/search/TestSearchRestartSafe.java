@@ -130,7 +130,7 @@ public class TestSearchRestartSafe extends ProxyTestCase<IIndexManager> {
 
                 final Hiterator<?> itr = ndx.search(text, languageCode);
 
-                assertEquals(2, itr.size());
+                assertEquals(1, itr.size());// Note: 2nd result pruned by cosine.
 
                 assertTrue(itr.hasNext());
 
@@ -138,9 +138,9 @@ public class TestSearchRestartSafe extends ProxyTestCase<IIndexManager> {
 
                 System.err.println("hit1:" + hit1);
 
-                /*
-                 * Note: with cosine computation only the first hit is visited.
-                 */
+//                /*
+//                 * Note: with cosine computation only the first hit is visited.
+//                 */
 
                 assertFalse(itr.hasNext());
 
@@ -159,7 +159,7 @@ public class TestSearchRestartSafe extends ProxyTestCase<IIndexManager> {
 
                 final Hiterator<?> itr = ndx.search(text, languageCode);
 
-                assertEquals(2, itr.size());
+                assertEquals(1, itr.size()); // Note: 2nd result pruned by cosine.
 
                 assertTrue(itr.hasNext());
 
@@ -167,9 +167,9 @@ public class TestSearchRestartSafe extends ProxyTestCase<IIndexManager> {
 
                 System.err.println("hit1:" + hit1);
 
-                /*
-                 * Note: with cosine computation only the first hit is visited.
-                 */
+//                /*
+//                 * Note: with cosine computation only the first hit is visited.
+//                 */
 
                 assertFalse(itr.hasNext());
 

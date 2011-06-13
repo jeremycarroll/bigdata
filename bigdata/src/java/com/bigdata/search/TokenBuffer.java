@@ -280,6 +280,9 @@ public class TokenBuffer {
             log.info("count=" + count + ", ndocs=" + ndocs + ", nfields="
                     + nfields + ", nterms=" + nterms);
 
+        // Normalize the last document/field in the buffer
+        buffer[count - 1].normalize();
+
         /*
          * Generate keys[] and vals[].
          */
