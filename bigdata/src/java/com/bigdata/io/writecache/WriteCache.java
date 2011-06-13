@@ -1761,10 +1761,16 @@ abstract public class WriteCache implements IWriteCache {
 		 */
 		public void resetRecordMapFromBuffer(final ByteBuffer buf, final Map<Long, RecordMetadata> recordMap) {
 			recordMap.clear();
+			final int sp = buf.position();
+			
 			int pos = 0;
+			buf.limit(sp);
 			while (pos < buf.limit()) {
 				buf.position(pos);
 				long addr = buf.getLong();
+				if (addr == 0L) { // end of content
+					break;
+				}
 				int sze = buf.getInt();
 				if (sze == 0 /* deleted */) {
 					recordMap.remove(addr); // should only happen if previous write already made to the buffer
@@ -1775,7 +1781,7 @@ abstract public class WriteCache implements IWriteCache {
 				pos += 12 + sze; // hop over buffer info (addr + sze) and then
 									// data
 			}
-		}
+	}
 
 	}
 
@@ -2244,7 +2250,7 @@ abstract public class WriteCache implements IWriteCache {
 		writeLock.lockInterruptibly();
 
 		try {
-			resetRecordMapFromBuffer(buf.get().buffer(), recordMap);
+			resetRecordMapFromBuffer(buf.get().buffer().duplicate(), recordMap);
 		} finally {
 			writeLock.unlock();
 		}
