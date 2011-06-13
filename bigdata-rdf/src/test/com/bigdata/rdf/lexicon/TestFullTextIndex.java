@@ -232,7 +232,7 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
                     });
 
             assertExpectedHits(store, "GOOD DAY", "en", //
-                    .4f, // minCosine
+                    .5f, // minCosine
                     new BigdataValue[] {//
                     f.createLiteral("good day", "en"), //
                     });
@@ -282,7 +282,7 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
                         });
 
                 assertExpectedHits(store, "GOOD DAY", "en", //
-                        .4f, // minCosine
+                        .5f, // minCosine
                         new BigdataValue[] {//
                         f.createLiteral("good day", "en"), //
                         });
@@ -432,7 +432,7 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
                     });
 
             assertExpectedHits(store, "GOOD DAY", "en", //
-                    .4f, // minCosine
+                    .5f, // minCosine
                     new BigdataValue[] {//
                     f.createLiteral("good day", "en"), //
                     });
@@ -502,7 +502,7 @@ public class TestFullTextIndex extends AbstractTripleStoreTestCase {
                         });
 
                 assertExpectedHits(store, "GOOD DAY", "en", //
-                        .4f, // minCosine
+                        .5f, // minCosine
                         new BigdataValue[] {//
                         f.createLiteral("good day", "en"), //
                         });
