@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.bop.engine;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.Map;
@@ -40,6 +42,7 @@ import com.bigdata.bop.BOpUtility;
 import com.bigdata.bop.IPredicate;
 import com.bigdata.bop.join.PipelineJoin;
 import com.bigdata.bop.join.PipelineJoin.PipelineJoinStats;
+import com.bigdata.counters.render.XHTMLRenderer;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.sail.QueryHints;
 import com.bigdata.rdf.sail.Rule2BOpUtility;
@@ -417,4 +420,367 @@ public class QueryLog {
 
     }
 
+    public static void getTableHeaderXHTML(final IRunningQuery q, final Writer w)
+            throws IOException {
+
+        // header row.
+        w.write("<tr\n>");
+        /*
+         * Common columns for the overall query and for each pipeline operator.
+         */
+        w.write("<th>queryId</th>");
+        w.write("<th>tag</th>");
+        w.write("<th>beginTime</th>");
+        w.write("<th>doneTime</th>");
+        w.write("<th>deadline</th>");
+        w.write("<th>elapsed</th>");
+        w.write("<th>serviceId</th>");
+        w.write("<th>cause</th>");
+        w.write("<th>bop</th>");
+        /*
+         * Columns for each pipeline operator.
+         */
+        w.write("<th>evalOrder</th>"); // [0..n-1]
+        w.write("<th>bopId</th>");
+        w.write("<th>predId</th>");
+        w.write("<th>evalContext</th>");
+        w.write("<th>controller</th>");
+        // metadata considered by the static optimizer.
+        w.write("<th>staticBestKeyOrder</th>"); // original key order assigned
+                                                // by static optimizer.
+        w.write("<th>nvars</th>"); // #of variables in the predicate for a join.
+        w.write("<th>fastRangeCount</th>"); // fast range count used by the
+                                            // static optimizer.
+        // dynamics (aggregated for totals as well).
+        w.write("<th>fanIO</th>");
+        w.write("<th>sumMillis</th>"); // cumulative milliseconds for eval of
+                                       // this operator.
+        w.write("<th>opCount</th>"); // cumulative #of invocations of tasks for
+                                     // this operator.
+        w.write("<th>chunksIn</th>");
+        w.write("<th>unitsIn</th>");
+        w.write("<th>chunksOut</th>");
+        w.write("<th>unitsOut</th>");
+        w.write("<th>joinRatio</th>"); // expansion rate multiplier in the
+                                       // solution count.
+        w.write("<th>accessPathDups</th>");
+        w.write("<th>accessPathCount</th>");
+        w.write("<th>accessPathRangeCount</th>");
+        w.write("<th>accessPathChunksIn</th>");
+        w.write("<th>accessPathUnitsIn</th>");
+        // dynamics based on elapsed wall clock time.
+        w.write("<th>solutions/ms</th>");
+        w.write("<th>mutations/ms</th>");
+        //
+        // cost model(s)
+        //
+        w.write("</tr\n>");
+
+    }
+
+    /**
+     * Write the table rows.
+     * 
+     * @param q
+     *            The query.
+     * @param w
+     *            Where to write the rows.
+     *            
+     * @throws IOException
+     */
+    public static void getTableRowsXHTML(final IRunningQuery q, final Writer w)
+            throws IOException {
+
+        final Integer[] order = BOpUtility.getEvaluationOrder(q.getQuery());
+
+        int orderIndex = 0;
+        
+        for (Integer bopId : order) {
+
+            getTableRowXHTML(q, w, orderIndex, bopId, false/* summary */);
+            
+            orderIndex++;
+            
+        }
+
+    }
+
+    private static final String TD = "<td>";
+    private static final String TDx = "</td\n>";
+    
+    /**
+     * Return a tabular representation of the query {@link RunState}.
+     * 
+     * @param q
+     *            The {@link IRunningQuery}.
+     * @param evalOrder
+     *            The evaluation order for the operator.
+     * @param bopId
+     *            The identifier for the operator.
+     * @param summary
+     *            <code>true</code> iff the summary for the query should be
+     *            written.
+     * @return The row of the table.
+     */
+    static private void getTableRowXHTML(final IRunningQuery q, final Writer w,
+            final int evalOrder, final Integer bopId, final boolean summary)
+            throws IOException {
+
+        final DateFormat dateFormat = DateFormat.getDateTimeInstance(
+                DateFormat.FULL, DateFormat.FULL);
+        
+        // The elapsed time for the query (wall time in milliseconds).
+        final long elapsed = q.getElapsed();
+        
+        // The serviceId on which the query is running : null unless scale-out.
+        final UUID serviceId = q.getQueryEngine().getServiceUUID();
+        
+        // The thrown cause : null unless the query was terminated abnormally.
+        final Throwable cause = q.getCause();
+        
+        w.write("<tr\n>");
+        w.write(TD + cdata(q.getQueryId().toString()) + TDx);
+        w.write(TD
+                + cdata(q.getQuery().getProperty(QueryHints.TAG,
+                        QueryHints.DEFAULT_TAG)) + TDx);
+        w.write(TD + dateFormat.format(new Date(q.getStartTime())) + TDx);
+        w.write(TD + cdata(dateFormat.format(new Date(q.getDoneTime()))) + TDx);
+        w.write(TD);
+        if (q.getDeadline() != Long.MAX_VALUE)
+            w.write(cdata(dateFormat.format(new Date(q.getDeadline()))));
+        w.write(TDx);
+        w.write(TD + cdata(Long.toString(elapsed)) + TDx);
+        w.write(TD + (serviceId == null ? NA : serviceId.toString()) + TDx);
+        w.write(TD);
+        if (cause != null)
+            w.write(cause.getLocalizedMessage());
+        w.write(TDx);
+
+        final Map<Integer, BOp> bopIndex = q.getBOpIndex();
+        final Map<Integer, BOpStats> statsMap = q.getStats();
+        final BOp bop = bopIndex.get(bopId);
+
+        // the operator.
+        w.write(TD);
+        if (summary) {
+            /*
+             * The entire query (recursively).
+             */
+            w.write(cdata(BOpUtility.toString(q.getQuery())));//.replace('\n', ' ')));
+            w.write(TDx);
+            w.write(TD);
+            w.write("total"); // summary line.
+        } else {
+            // Otherwise show just this bop.
+            w.write(cdata(bopIndex.get(bopId).toString()));
+            w.write(TDx);
+            w.write(TD);
+            w.write(evalOrder); // eval order for this bop.
+        }
+        w.write(TDx);
+        
+        w.write(TD);
+        w.write(Integer.toString(bopId));
+        w.write(TDx);
+        {
+            /*
+             * Show the predicate identifier if this is a Join operator.
+             * 
+             * @todo handle other kinds of join operators when added using a
+             * shared interface.
+             */
+            final IPredicate<?> pred = (IPredicate<?>) bop
+                    .getProperty(PipelineJoin.Annotations.PREDICATE);
+            w.write(TD);
+            if (pred != null) {
+                w.write(Integer.toString(pred.getId()));
+            }
+            w.write(TDx);
+        }
+        w.write(TD);
+        w.write(cdata(bop.getEvaluationContext().toString()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(cdata(bop.getProperty(BOp.Annotations.CONTROLLER,
+                BOp.Annotations.DEFAULT_CONTROLLER).toString()));
+        w.write(TDx);
+
+        /*
+         * Static optimizer metadata.
+         * 
+         * FIXME Should report [nvars] be the expected asBound #of variables
+         * given the assigned evaluation order and the expectation of propagated
+         * bindings (optionals may leave some unbound).
+         */
+        {
+
+            @SuppressWarnings("unchecked")
+            final IPredicate pred = (IPredicate<?>) bop
+                    .getProperty(PipelineJoin.Annotations.PREDICATE);
+            
+            if (pred != null) {
+            
+                final IKeyOrder<?> keyOrder = (IKeyOrder<?>) pred
+                        .getProperty(Rule2BOpUtility.Annotations.ORIGINAL_INDEX);
+                
+                final Long rangeCount = (Long) pred
+                        .getProperty(Rule2BOpUtility.Annotations.ESTIMATED_CARDINALITY);
+
+                // keyorder
+                w.write(TD);
+                if (keyOrder != null)
+                    w.write(keyOrder.toString());
+                w.write(TDx);
+
+                // nvars
+                w.write(TD);
+                if (keyOrder != null)
+                    w.write(pred.getVariableCount(keyOrder));
+                w.write(TDx);
+
+                // rangeCount
+                w.write(TD);
+                if (rangeCount != null)
+                    w.write(Long.toString(rangeCount));
+                w.write(TDx);
+
+            } else {
+                // keyorder
+                w.write(TD);
+                w.write(TDx);
+                // nvars
+                w.write(TD);
+                w.write(TDx);
+                // rangeCount
+                w.write(TD);
+                w.write(TDx);
+            }
+        }
+
+        /*
+         * Dynamics.
+         */
+        
+        int fanIO = 0; // @todo aggregate from RunState.
+
+        final PipelineJoinStats stats = new PipelineJoinStats();
+        if(summary) {
+            // Aggregate the statistics for all pipeline operators.
+            for (BOpStats t : statsMap.values()) {
+                stats.add(t);
+            }
+        } else {
+            // Just this operator.
+            final BOpStats tmp = statsMap.get(bopId);
+            if (tmp != null)
+                stats.add(tmp);
+        }
+        final long unitsIn = stats.unitsIn.get();
+        final long unitsOut = stats.unitsOut.get();
+        w.write(TDx);
+        w.write(TD);
+        w.write(Integer.toString(fanIO));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.elapsed.get()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.opCount.get()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.chunksIn.get()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.unitsIn.get()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.chunksOut.get()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.unitsOut.get()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(unitsIn == 0 ? NA : Double.toString(unitsOut / (double) unitsIn));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.accessPathDups.get()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.accessPathCount.get()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.accessPathRangeCount.get()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.accessPathChunksIn.get()));
+        w.write(TDx);
+        w.write(TD);
+        w.write(Long.toString(stats.accessPathUnitsIn.get()));
+        w.write(TDx);
+
+        /*
+         * Use the total elapsed time for the query (wall time).
+         */
+        // solutions/ms
+        w.write(TD);
+        w.write(cdata(elapsed == 0 ? "0" : Long.toString(stats.unitsOut.get()
+                / elapsed)));
+        w.write(TDx);
+        // mutations/ms : @todo mutations/ms.
+        w.write(TD);
+        w.write(TDx);
+//      w.write(elapsed==0?0:stats.unitsOut.get()/elapsed);
+
+        w.write("</tr\n>");
+
+    }
+    
+    /**
+     * Format the data as an (X)HTML table. The table will include a header
+     * which declares the columns, a detail row for each operator, and a summary
+     * row for the query as a whole.
+     * 
+     * @param q
+     *            The query.
+     * @param w
+     *            Where to write the table.
+     * 
+     * @throws IOException
+     */
+    public static void getXHTMLTable(final IRunningQuery q, final Writer w)
+            throws IOException {
+
+        // the table start tag.
+        {
+            /*
+             * Summary for the table.
+             */
+            final String summary = "Query details";
+
+            /*
+             * Format the entire table now that we have all the data on hand.
+             */
+
+            w.write("<table border=\"1\" summary=\"" + attrib(summary)
+                    + "\"\n>");
+
+        }
+        
+        getTableHeaderXHTML(q, w);
+
+        getTableRowsXHTML(q, w);
+        	    
+	}
+	
+    private static String cdata(String s) {
+        
+        return XHTMLRenderer.cdata(s);
+        
+    }
+
+    private static String attrib(String s) {
+        
+        return XHTMLRenderer.attrib(s);
+        
+    }
 }

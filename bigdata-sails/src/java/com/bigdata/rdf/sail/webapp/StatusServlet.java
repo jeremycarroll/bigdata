@@ -1,6 +1,7 @@
 package com.bigdata.rdf.sail.webapp;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -14,7 +15,9 @@ import javax.servlet.http.HttpServletResponse;
 import com.bigdata.bop.BOpUtility;
 import com.bigdata.bop.engine.IRunningQuery;
 import com.bigdata.bop.engine.QueryEngine;
+import com.bigdata.bop.engine.QueryLog;
 import com.bigdata.bop.fed.QueryEngineFactory;
+import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.sail.webapp.BigdataRDFContext.RunningQuery;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.util.HTMLUtility;
@@ -69,6 +72,9 @@ public class StatusServlet extends BigdataRDFServlet {
         // IRunningQuery objects currently running on the query controller.
         final boolean showRunningQueries = req
                 .getParameter("showRunningQueries") != null;
+
+        final boolean showRunningQueryStats = req
+                .getParameter("showRunningQueryStats") != null;
 
         // Information about the KB (stats, properties).
         final boolean showKBInfo = req.getParameter("showKBInfo") != null;
@@ -205,6 +211,10 @@ public class StatusServlet extends BigdataRDFServlet {
 
                 final Iterator<IRunningQuery> itr = ages.values().iterator();
 
+                final StringWriter w = showRunningQueryStats ? new StringWriter(
+                        Bytes.kilobyte32 * 8)
+                        : null;
+               
                 while (itr.hasNext()) {
 
                     final IRunningQuery query = itr.next();
@@ -226,7 +236,23 @@ public class StatusServlet extends BigdataRDFServlet {
                             HTMLUtility.escapeForXHTML(BOpUtility
                                     .toString(query.getQuery())));
 
-                }
+                    if (showRunningQueryStats) {
+                        
+                        // Format as a table.
+                        QueryLog.getXHTMLTable(query, w);
+
+                        // Extract as String
+                        final String s = w.getBuffer().toString();
+
+                        // Add into the HTML document.
+                        current.text(s);
+
+                        // Clear the buffer.
+                        w.getBuffer().setLength(0);
+
+                    }
+                    
+                } // next IRunningQuery.
 
             }
 

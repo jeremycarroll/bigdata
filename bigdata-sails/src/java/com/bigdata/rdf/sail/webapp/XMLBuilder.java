@@ -117,7 +117,7 @@ public class XMLBuilder {
 		}
 	}
 	
-	class Node {
+	public class Node {
 		boolean m_open = true;
 		String m_tag;
 		Node m_parent;
