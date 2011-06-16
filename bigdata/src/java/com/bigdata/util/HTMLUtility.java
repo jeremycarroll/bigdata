@@ -107,6 +107,10 @@ public class HTMLUtility {
                 sb.append("&#39;");
                 break;
 
+            case '/':
+                sb.append("&#47;");
+                break;
+
             case '&':
                 sb.append("&amp;");
                 break;

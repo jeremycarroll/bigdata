@@ -308,7 +308,16 @@ public class QueryLog {
 			final IPredicate<?> pred = (IPredicate<?>) bop
 					.getProperty(PipelineJoin.Annotations.PREDICATE);
 			if (pred != null) {
-				sb.append(Integer.toString(pred.getId()));
+				try {
+					final int predId = pred.getId();
+					sb.append(Integer.toString(predId));
+				} catch (IllegalStateException ex) {
+					/*
+					 * All predicates SHOULD have a bopId, but this catches the
+					 * error if one does not.
+					 */
+					sb.append(NA);
+				}
 			}
 		}
 		sb.append('\t');
@@ -469,8 +478,8 @@ public class QueryLog {
         w.write("<th>accessPathChunksIn</th>");
         w.write("<th>accessPathUnitsIn</th>");
         // dynamics based on elapsed wall clock time.
-        w.write("<th>solutions/ms</th>");
-        w.write("<th>mutations/ms</th>");
+        w.write("<th>");w.write(cdata("solutions/ms"));w.write("</th>");
+        w.write("<th>");w.write(cdata("mutations/ms"));w.write("</th>");
         //
         // cost model(s)
         //
@@ -550,7 +559,7 @@ public class QueryLog {
             w.write(cdata(dateFormat.format(new Date(q.getDeadline()))));
         w.write(TDx);
         w.write(TD + cdata(Long.toString(elapsed)) + TDx);
-        w.write(TD + (serviceId == null ? NA : serviceId.toString()) + TDx);
+        w.write(TD); w.write(cdata(serviceId == null ? NA : serviceId.toString()));w.write(TDx);
         w.write(TD);
         if (cause != null)
             w.write(cause.getLocalizedMessage());
@@ -561,23 +570,41 @@ public class QueryLog {
         final BOp bop = bopIndex.get(bopId);
 
         // the operator.
-        w.write(TD);
         if (summary) {
             /*
              * The entire query (recursively).
              */
-            w.write(cdata(BOpUtility.toString(q.getQuery())));//.replace('\n', ' ')));
+        	final String queryStr = BOpUtility.toString(q.getQuery());
+            w.write(TD);
+            w.write("<a href=\"#\" title=\"");
+            w.write(attrib(queryStr));// the entire query as a tooltip.
+            w.write("\"\n>");
+            // A slice of the query inline on the page.
+			w.write(cdata(queryStr.substring(0/* begin */, Math.min(64, queryStr
+					.length()))));
+			w.write("...");
+            w.write("</a>");
             w.write(TDx);
             w.write(TD);
             w.write("total"); // summary line.
+            w.write(TDx);
         } else {
             // Otherwise show just this bop.
-            w.write(cdata(bopIndex.get(bopId).toString()));
+        	final String queryStr = bopIndex.get(bopId).toString();
+            w.write(TD);
+            w.write("<a href=\"#\" title=\"");
+            w.write(attrib(queryStr));// the entire query as a tooltip.
+            w.write("\"\n>");
+            // A slice of the query inline on the page.
+			w.write(cdata(queryStr.substring(0/* begin */, Math.min(64, queryStr
+					.length()))));
+			w.write("...");
+            w.write("</a>");
             w.write(TDx);
             w.write(TD);
-            w.write(evalOrder); // eval order for this bop.
+            w.write(Integer.toString(evalOrder)); // eval order for this bop.
+            w.write(TDx);
         }
-        w.write(TDx);
         
         w.write(TD);
         w.write(Integer.toString(bopId));
@@ -593,7 +620,16 @@ public class QueryLog {
                     .getProperty(PipelineJoin.Annotations.PREDICATE);
             w.write(TD);
             if (pred != null) {
-                w.write(Integer.toString(pred.getId()));
+				try {
+					final int predId = pred.getId();
+					w.write(Integer.toString(predId));
+				} catch (IllegalStateException ex) {
+					/*
+					 * All predicates SHOULD have a bopId, but this catches the
+					 * error if one does not.
+					 */
+					w.write(cdata(NA));
+				}
             }
             w.write(TDx);
         }
@@ -635,7 +671,7 @@ public class QueryLog {
                 // nvars
                 w.write(TD);
                 if (keyOrder != null)
-                    w.write(pred.getVariableCount(keyOrder));
+                    w.write(Integer.toString(pred.getVariableCount(keyOrder)));
                 w.write(TDx);
 
                 // rangeCount
@@ -677,7 +713,6 @@ public class QueryLog {
         }
         final long unitsIn = stats.unitsIn.get();
         final long unitsOut = stats.unitsOut.get();
-        w.write(TDx);
         w.write(TD);
         w.write(Integer.toString(fanIO));
         w.write(TDx);
@@ -700,7 +735,7 @@ public class QueryLog {
         w.write(Long.toString(stats.unitsOut.get()));
         w.write(TDx);
         w.write(TD);
-        w.write(unitsIn == 0 ? NA : Double.toString(unitsOut / (double) unitsIn));
+        w.write(cdata(unitsIn == 0 ? NA : Double.toString(unitsOut / (double) unitsIn)));
         w.write(TDx);
         w.write(TD);
         w.write(Long.toString(stats.accessPathDups.get()));
@@ -734,21 +769,37 @@ public class QueryLog {
         w.write("</tr\n>");
 
     }
-    
+
     /**
-     * Format the data as an (X)HTML table. The table will include a header
-     * which declares the columns, a detail row for each operator, and a summary
-     * row for the query as a whole.
-     * 
+     * Write a summary row for the query.  The table element, header, and footer
+     * must be written separately.
      * @param q
-     *            The query.
      * @param w
-     *            Where to write the table.
-     * 
+     * @param sb
      * @throws IOException
      */
-    public static void getXHTMLTable(final IRunningQuery q, final Writer w)
-            throws IOException {
+	static public void getSummaryRowXHTML(final IRunningQuery q,
+			final Writer w, final StringBuilder sb) throws IOException {
+
+		getTableRowXHTML(q, w, -1/* orderIndex */, q.getQuery().getId(), true/* summary */);
+
+    }
+
+	/**
+	 * Format the data as an (X)HTML table. The table will include a header
+	 * which declares the columns, a detail row for each operator (optional),
+	 * and a summary row for the query as a whole.
+	 * 
+	 * @param q
+	 *            The query.
+	 * @param w
+	 *            Where to write the table.
+	 * @param summaryOnly
+	 *            When <code>true</code> only the summary row will be written.
+	 * @throws IOException
+	 */
+	public static void getTableXHTML(final IRunningQuery q, final Writer w,
+			final boolean summaryOnly) throws IOException {
 
         // the table start tag.
         {
@@ -768,8 +819,18 @@ public class QueryLog {
         
         getTableHeaderXHTML(q, w);
 
-        getTableRowsXHTML(q, w);
-        	    
+    	if(summaryOnly) {
+
+    		getSummaryRowXHTML(q, w, sb);
+    		
+    	} else {
+    		
+    		getTableRowsXHTML(q, w);
+    		
+    	}
+
+    	w.write("</table\n>");
+    	
 	}
 	
     private static String cdata(String s) {
@@ -783,4 +844,5 @@ public class QueryLog {
         return XHTMLRenderer.attrib(s);
         
     }
+
 }

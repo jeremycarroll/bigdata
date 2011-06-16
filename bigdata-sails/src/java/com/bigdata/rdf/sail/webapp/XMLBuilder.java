@@ -44,6 +44,7 @@ import java.io.Writer;
  */
 public class XMLBuilder {
     
+	private final boolean xml;
 	private final Writer m_writer;
 	
 //	private boolean m_pp = false;
@@ -57,16 +58,7 @@ public class XMLBuilder {
 	}
 	
 	public XMLBuilder(boolean xml, OutputStream outstr) throws IOException {
-
-	    if (outstr == null) {
-            m_writer = new StringWriter();
-        } else {
-            m_writer = new OutputStreamWriter(outstr);
-        }
-		
-		if (xml) {
-			m_writer.write("<?xml version=\"1.0\"?>");
-		}
+		this(xml,null/*encoding*/,outstr);
 	}
 	
 	public XMLBuilder(boolean xml, String encoding) throws IOException {
@@ -77,6 +69,8 @@ public class XMLBuilder {
 	
 	public XMLBuilder(boolean xml, String encoding, OutputStream outstr) throws IOException {
         
+		this.xml = xml;
+		
 	    if (outstr == null) {
             m_writer = new StringWriter();
         } else {
@@ -84,7 +78,16 @@ public class XMLBuilder {
         }
 		
 		if (xml) {
-			m_writer.write("<?xml version=\"1.0\" encoding=\"" + encoding + "\"?>");
+			if(encoding!=null) {
+				m_writer.write("<?xml version=\"1.0\" encoding=\"" + encoding + "\"?>");
+			} else {
+				m_writer.write("<?xml version=\"1.0\"?>");
+			}
+		} else {
+			// TODO Note the optional encoding for use in a meta tag.
+			m_writer.write("<!DOCTYPE HTML PUBLIC");
+			m_writer.write(" \"-//W3C//DTD HTML 4.01 Transitional//EN\"");
+			m_writer.write(" \"http://www.w3.org/TR/html4/loose.dtd\">");
 		}
 		
 	}
@@ -167,11 +170,35 @@ public class XMLBuilder {
 			return tmp.close();
 		}
 		
+		/**
+		 * Close the open element.
+		 * @return The parent element.
+		 * @throws IOException
+		 */
 		public Node close() throws IOException {
+			return close(!xml);
+		}
+
+		/**
+		 * Close the open element.
+		 * 
+		 * @param simpleEnd
+		 *            When <code>true</code> an open tag without a body will be
+		 *            closed by a single &gt; symbol rather than the XML style
+		 *            &47;&gt;.
+		 * 
+		 * @return The parent element.
+		 * @throws IOException
+		 */
+		public Node close(final boolean simpleEnd) throws IOException {
 			assert(m_open);
 			
 			if (emptyBody()) {
-				m_writer.write("/>");
+				if(simpleEnd) {
+					m_writer.write(">");
+				} else {
+					m_writer.write("/>");
+				}
 			} else {
 				m_writer.write("</" + m_tag + ">");
 			}

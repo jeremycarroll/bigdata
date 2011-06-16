@@ -21,6 +21,7 @@ import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.sail.webapp.BigdataRDFContext.RunningQuery;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.util.HTMLUtility;
+import com.bigdata.util.InnerCause;
 
 /**
  * A status page for the service.
@@ -73,8 +74,11 @@ public class StatusServlet extends BigdataRDFServlet {
         final boolean showRunningQueries = req
                 .getParameter("showRunningQueries") != null;
 
-        final boolean showRunningQueryStats = req
-                .getParameter("showRunningQueryStats") != null;
+		final boolean showRunningQueryStats = req
+				.getParameter("showRunningQueryStats") != null;
+
+		final boolean showRunningQueryDetailStats = req
+				.getParameter("showRunningQueryDetailStats") != null;
 
         // Information about the KB (stats, properties).
         final boolean showKBInfo = req.getParameter("showKBInfo") != null;
@@ -84,7 +88,15 @@ public class StatusServlet extends BigdataRDFServlet {
 
         final HTMLBuilder doc = new HTMLBuilder();
 
-        XMLBuilder.Node current = doc.root("html").node("body");
+		XMLBuilder.Node current = doc.root("html");
+		{
+			current = current.node("head");
+			current.node("meta").attr("http-equiv", "Content-Type").attr(
+					"content", "text/html;charset=utf-8").close();
+			current.node("title").text("bigdata&#174;").close();
+			current = current.close();// close the head.
+		}
+		current = current.node("body");
 
         current.node("p", "Accepted query count="
                 + getBigdataRDFContext().getQueryIdFactory().get());
@@ -177,7 +189,8 @@ public class StatusServlet extends BigdataRDFServlet {
 
         }
 
-        if (showRunningQueries) {
+		if (showRunningQueries || showRunningQueryStats
+				|| showRunningQueryDetailStats) {
 
             /*
              * Show the queries which are currently executing (actually running
@@ -195,25 +208,41 @@ public class StatusServlet extends BigdataRDFServlet {
 
             for (UUID queryId : queryIds) {
 
-                final IRunningQuery query = queryEngine
-                        .getRunningQuery(queryId);
+				final IRunningQuery query;
+				try {
+					query = queryEngine.getRunningQuery(queryId);
 
-                if (query == null) {
-                    // Already terminated.
-                    continue;
-                }
+					if (query == null) {
+						
+						// Already terminated.
+						continue;
+						
+					}
+					
+				} catch (RuntimeException e) {
+					
+					if (InnerCause.isInnerCause(e, InterruptedException.class)) {
+					
+						// Already terminated.
+						continue;
+						
+					}
+					
+					throw new RuntimeException(e);
+					
+				}
 
-                ages.put(query.getElapsed(), query);
+				ages.put(query.getElapsed(), query);
 
-            }
+			}
 
             {
 
                 final Iterator<IRunningQuery> itr = ages.values().iterator();
 
-                final StringWriter w = showRunningQueryStats ? new StringWriter(
-                        Bytes.kilobyte32 * 8)
-                        : null;
+				final StringWriter w = showRunningQueryStats
+						|| showRunningQueryDetailStats ? new StringWriter(
+						Bytes.kilobyte32 * 8) : null;
                
                 while (itr.hasNext()) {
 
@@ -224,22 +253,22 @@ public class StatusServlet extends BigdataRDFServlet {
                         continue;
                     }
 
-                    /*
-                     * @todo The runstate and stats could be formatted into an
-                     * HTML table ala QueryLog or RunState.
-                     */
-                    current = current.node("p",
-                            "age=" + query.getElapsed() + "ms").node("p",
-                            "queryId=" + query.getQueryId()).node("p",
-                            HTMLUtility.escapeForXHTML(query.toString())).node(
-                            "p",
-                            HTMLUtility.escapeForXHTML(BOpUtility
-                                    .toString(query.getQuery())));
+					if (showRunningQueries) {
+						current = current.node("p",
+								"age=" + query.getElapsed() + "ms").node("p",
+								"queryId=" + query.getQueryId()).node("p",
+								HTMLUtility.escapeForXHTML(query.toString()))
+								.node(
+										"p",
+										HTMLUtility.escapeForXHTML(BOpUtility
+												.toString(query.getQuery())));
+					}
 
-                    if (showRunningQueryStats) {
-                        
-                        // Format as a table.
-                        QueryLog.getXHTMLTable(query, w);
+                    if (showRunningQueryStats || showRunningQueryDetailStats) {
+
+						// Format as a table.
+						QueryLog.getTableXHTML(query, w,
+								!showRunningQueryDetailStats);
 
                         // Extract as String
                         final String s = w.getBuffer().toString();
