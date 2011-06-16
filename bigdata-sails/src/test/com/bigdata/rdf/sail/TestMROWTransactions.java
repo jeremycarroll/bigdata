@@ -20,12 +20,11 @@ import org.openrdf.model.impl.URIImpl;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryResult;
 
+import com.bigdata.counters.CAT;
 import com.bigdata.journal.BufferMode;
-import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
 import com.bigdata.rdf.axioms.NoAxioms;
-import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.sail.BigdataSail.Options;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.BD;
@@ -232,8 +231,8 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 		for (int i = 0; i < npreds; i++) {
 			preds[i] = uri("pred:" + i);
 		}
-		final AtomicInteger writes = new AtomicInteger();
-		final AtomicInteger reads = new AtomicInteger();
+		final CAT writes = new CAT();
+		final CAT reads = new CAT();
 		try {
 
 			// Writer task adds nwrites statements then commits
@@ -245,19 +244,35 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 				}
 
 				public Long call() throws Exception {
-					try {
+                    try {
+                        final boolean isQuads = origStore.isQuads();
+                        Thread.sleep(r.nextInt(2000) + 500);
+                        try {
 
-						for (int i = 0; i < nwrites; i++) {
-							origStore.addStatement(subs[r.nextInt(nuris)], preds[r.nextInt(npreds)], subs[r.nextInt(nuris)]);
-							writes.incrementAndGet();
-						}
+                            for (int i = 0; i < nwrites; i++) {
+                                origStore
+                                        .addStatement(
+                                                subs[r.nextInt(nuris)],
+                                                preds[r.nextInt(npreds)],
+                                                subs[r.nextInt(nuris)],
+                                                isQuads ? subs[r.nextInt(nuris)]
+                                                        : null);
+                                writes.increment();
+//                                System.out.print('.');
+                            }
+                            System.out.println("\n");
 
-					} finally {
-						origStore.commit();
-					}
-
-					return null;
-				}
+                        } finally {
+                            origStore.commit();
+                            if(log.isInfoEnabled()) {
+                                log.info("Commit");
+                            }
+                        }
+                    } catch (Throwable t) {
+                        log.error(t, t);
+                    }
+                    return null;
+                }
 
 			}
 
@@ -269,25 +284,32 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 					this.nreads = nwrites;
 				}
 
-				public Long call() throws Exception {
-					Long txId = ((Journal) origStore.getIndexManager()).newTx(ITx.READ_COMMITTED);
+                public Long call() throws Exception {
+                    try {
+                        final Long txId = ((Journal) origStore
+                                .getIndexManager()).newTx(ITx.READ_COMMITTED);
 
-					try {
-						AbstractTripleStore readstore = (AbstractTripleStore) origStore.getIndexManager()
-								.getResourceLocator().locate(origStore.getNamespace(), txId);
+                        try {
+                            AbstractTripleStore readstore = (AbstractTripleStore) origStore
+                                    .getIndexManager().getResourceLocator()
+                                    .locate(origStore.getNamespace(), txId);
 
-						for (int i = 0; i < nreads; i++) {
-							BigdataStatementIterator stats = readstore.getStatements(subs[r.nextInt(nuris)], null, null);
-							while (stats.hasNext()) {
-								stats.next();
-								reads.incrementAndGet();
-							}
-						}
+                            for (int i = 0; i < nreads; i++) {
+                                BigdataStatementIterator stats = readstore
+                                        .getStatements(subs[r.nextInt(nuris)],
+                                                null, null);
+                                while (stats.hasNext()) {
+                                    stats.next();
+                                    reads.increment();
+                                }
+                            }
 
-					} finally {
-						((Journal) origStore.getIndexManager()).abort(txId);
-					}
-
+                        } finally {
+                            ((Journal) origStore.getIndexManager()).abort(txId);
+                        }
+                    } catch (Throwable t) {
+                        log.error(t, t);
+                    }
 					return null;
 				}
 
@@ -295,9 +317,9 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 
 			// let's schedule a few writers and readers (more than needed)
 			for (int i = 0; i < 2000; i++) {
-				writers.submit(new Writer(300));
+			    writers.submit(new Writer(300/*nwrite*/));
 				for (int rdrs = 0; rdrs < 20; rdrs++) {
-					readers.submit(new Reader(20));
+					readers.submit(new Reader(20/*nread*/));
 				}
 			}
 			
