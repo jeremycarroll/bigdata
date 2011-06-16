@@ -43,9 +43,11 @@ import org.openrdf.sail.SailException;
 
 import com.bigdata.bop.BufferAnnotations;
 import com.bigdata.bop.IPredicate;
+import com.bigdata.bop.engine.IRunningQuery;
 import com.bigdata.bop.engine.QueryEngine;
 import com.bigdata.bop.join.PipelineJoin;
 import com.bigdata.btree.IndexMetadata;
+import com.bigdata.io.NullOutputStream;
 import com.bigdata.journal.IBufferStrategy;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
@@ -55,9 +57,11 @@ import com.bigdata.journal.TimestampUtility;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailBooleanQuery;
 import com.bigdata.rdf.sail.BigdataSailGraphQuery;
+import com.bigdata.rdf.sail.BigdataSailQuery;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import com.bigdata.rdf.sail.BigdataSailTupleQuery;
+import com.bigdata.rdf.sail.QueryHints;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.relation.AbstractResource;
 import com.bigdata.relation.RelationSchema;
@@ -78,8 +82,14 @@ public class BigdataRDFContext extends BigdataBaseContext {
     static private final transient Logger log = Logger
             .getLogger(BigdataRDFContext.class);
 
+    /**
+     * URL Query parameter used to request the explanation of a query rather
+     * than its results.
+     */
+    protected static final String EXPLAIN = "explain";
+    
 	private final SparqlEndpointConfig m_config;
-	private final QueryParser m_engine;
+	private final QueryParser m_queryParser;
 
     /**
      * A thread pool for running accepted queries against the
@@ -128,7 +138,7 @@ public class BigdataRDFContext extends BigdataBaseContext {
 		m_config = config;
 
 		// used to parse queries.
-		m_engine = new SPARQLParserFactory().getParser();
+		m_queryParser = new SPARQLParserFactory().getParser();
 
         if (config.queryThreadPoolSize == 0) {
 
@@ -282,17 +292,33 @@ public class BigdataRDFContext extends BigdataBaseContext {
          */
         protected final String baseURI;
 
+//		/**
+//		 * Set to the timestamp as reported by {@link System#nanoTime()} when
+//		 * the query begins to execute.
+//		 */
+//        final AtomicLong beginTime = new AtomicLong();
+        
         /**
          * The queryId as assigned by the SPARQL end point (rather than the
          * {@link QueryEngine}).
          */
         protected final Long queryId;
-        
-        /**
-         * The queryId used by the {@link QueryEngine}.
-         */
-        protected final UUID queryId2;
 
+		/**
+		 * The queryId used by the {@link QueryEngine}. If the application has
+		 * not specified this using {@link QueryHints#QUERYID} then this is
+		 * assigned and set on the query using {@link QueryHints#QUERYID}. This
+		 * decision can not be made until we parse the query so the behavior is
+		 * handled by the subclasses.
+		 */
+        volatile protected UUID queryId2;
+
+		/**
+		 * When true, provide an "explanation" for the query (query plan, query
+		 * evaluation statistics) rather than the results of the query.
+		 */
+		final boolean explain;
+		
         /**
          * 
          * @param namespace
@@ -354,9 +380,10 @@ public class BigdataRDFContext extends BigdataBaseContext {
             this.charset = charset;
             this.fileExt = fileExt;
             this.req = req;
+			this.explain = req.getParameter(EXPLAIN) != null;
             this.os = os;
             this.queryId = Long.valueOf(m_queryIdFactory.incrementAndGet());
-            this.queryId2 = UUID.randomUUID();
+//            this.queryId2 = UUID.randomUUID();
 
             /*
              * Setup the baseURI for this request. It will be set to the
@@ -408,6 +435,39 @@ public class BigdataRDFContext extends BigdataBaseContext {
 
         }
 
+		/**
+		 * Sets {@link #queryId2} to the {@link UUID} which will be associated
+		 * with the {@link IRunningQuery}. If {@link QueryHints#QUERYID} has
+		 * already been used by the application to specify the {@link UUID} then
+		 * that {@link UUID} is noted. Otherwise, a random {@link UUID} is
+		 * generated and assigned to the query by binding it on the query hints.
+		 * <p>
+		 * Note: This is also responsible for noticing the time at which the
+		 * query begins to execute and storing the {@link RunningQuery} in the
+		 * {@link #m_queries} map.
+		 * 
+		 * @param query
+		 *            The query.
+		 */
+		protected void setQueryId(final BigdataSailQuery query) {
+			assert queryId2 == null; // precondition.
+			// Note the begin time for the query.
+			final long begin =  System.nanoTime();
+			// Figure out the effective UUID under which the query will run.
+			final String queryIdStr = query.getQueryHints().getProperty(
+					QueryHints.QUERYID);
+			if (queryIdStr == null) {
+				queryId2 = UUID.randomUUID();
+				query.getQueryHints().setProperty(QueryHints.QUERYID,
+						queryId2.toString());
+			} else {
+				queryId2 = UUID.fromString(queryIdStr);
+			}
+			// Stuff it in the map of running queries.
+            m_queries.put(queryId, new RunningQuery(queryId.longValue(),
+                    queryId2, queryStr, begin));
+		}
+
         /**
          * Execute the query.
          * 
@@ -422,28 +482,40 @@ public class BigdataRDFContext extends BigdataBaseContext {
                 OutputStream os) throws Exception;
 
         final public Void call() throws Exception {
-            final long begin = System.nanoTime();
 			BigdataSailRepositoryConnection cxn = null;
             try {
                 cxn = getQueryConnection(namespace, timestamp);
-                m_queries.put(queryId, new RunningQuery(queryId.longValue(),
-                        queryId2, queryStr, begin));
                 if(log.isTraceEnabled())
                     log.trace("Query running...");
 //                try {
-                doQuery(cxn, os);
+    			if(explain) {
+					/*
+					 * The data goes to a bit bucket and we send an
+					 * "explanation" of the query evaluation back to the caller.
+					 * 
+					 * Note: The trick is how to get hold of the IRunningQuery
+					 * object. It is created deep within the Sail when we
+					 * finally submit a query plan to the query engine. We have
+					 * the queryId (on queryId2), so we can look up the
+					 * IRunningQuery in [m_queries] while it is running, but
+					 * once it is terminated the IRunningQuery will have been
+					 * cleared from the internal map maintained by the
+					 * QueryEngine, at which point we can not longer find it.
+					 */
+    				doQuery(cxn, new NullOutputStream());
+    			} else {
+    				doQuery(cxn, os);
+                    os.flush();
+                    os.close();
+    			}
+            	if(log.isTraceEnabled())
+            	    log.trace("Query done.");
 //                } catch(Throwable t) {
 //                	/*
 //                	 * Log the query and the exception together.
 //                	 */
 //					log.error(t.getLocalizedMessage() + ":\n" + queryStr, t);
 //                }
-            	if(log.isTraceEnabled())
-            	    log.trace("Query done - flushing results.");
-                os.flush();
-                os.close();
-                if(log.isTraceEnabled())
-                    log.trace("Query done - output stream closed.");
                 return null;
 //            } catch (Throwable t) {
 //                // launder and rethrow the exception.
@@ -493,6 +565,9 @@ public class BigdataRDFContext extends BigdataBaseContext {
             final BigdataSailBooleanQuery query = cxn.prepareBooleanQuery(
                     QueryLanguage.SPARQL, queryStr, baseURI);
         
+            // Figure out the UUID under which the query will execute.
+            setQueryId(query);
+            
             // Override query if data set protocol parameters were used.
             overrideDataset(query);
 
@@ -534,6 +609,9 @@ public class BigdataRDFContext extends BigdataBaseContext {
 			final BigdataSailTupleQuery query = cxn.prepareTupleQuery(
 					QueryLanguage.SPARQL, queryStr, baseURI);
 
+            // Figure out the UUID under which the query will execute.
+            setQueryId(query);
+			
 			// Override query if data set protocol parameters were used.
 			overrideDataset(query);
 			
@@ -574,6 +652,9 @@ public class BigdataRDFContext extends BigdataBaseContext {
 			final BigdataSailGraphQuery query = cxn.prepareGraphQuery(
 					QueryLanguage.SPARQL, queryStr, baseURI);
 
+            // Figure out the UUID under which the query will execute.
+            setQueryId(query);
+            
 			// Override query if data set protocol parameters were used.
             overrideDataset(query);
 
@@ -647,12 +728,18 @@ public class BigdataRDFContext extends BigdataBaseContext {
          * Therefore, we are in the position of having to parse the query here
          * and then again when it is executed.]
          */
-        final ParsedQuery q = m_engine.parseQuery(queryStr, null/*baseURI*/);
+        final ParsedQuery q = m_queryParser.parseQuery(queryStr, null/*baseURI*/);
         
         if(log.isDebugEnabled())
             log.debug(q.toString());
         
         final QueryType queryType = QueryType.fromQuery(queryStr);
+
+		/*
+		 * When true, provide an "explanation" for the query (query plan, query
+		 * evaluation statistics) rather than the results of the query.
+		 */
+		final boolean explain = req.getParameter(EXPLAIN) != null;
 
         /*
          * CONNEG for the MIME type.
@@ -667,7 +754,8 @@ public class BigdataRDFContext extends BigdataBaseContext {
          * has some stuff related to generating Accept headers in their
          * RDFFormat which could bear some more looking into in this regard.)
          */
-        final String acceptStr = req.getHeader("Accept");
+		final String acceptStr = explain ? "text/html" : req
+				.getHeader("Accept");
 
         switch (queryType) {
         case ASK: {

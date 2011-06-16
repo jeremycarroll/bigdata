@@ -58,6 +58,8 @@ import com.bigdata.striterator.IKeyOrder;
 public class QueryLog {
 
     private static final String NA = "N/A";
+    private static final String TD = "<td>";
+    private static final String TDx = "</td\n>";
     
 	protected static final transient Logger log = Logger
             .getLogger(QueryLog.class);
@@ -429,8 +431,58 @@ public class QueryLog {
 
     }
 
-    public static void getTableHeaderXHTML(final IRunningQuery q, final Writer w)
-            throws IOException {
+	/**
+	 * Format the data as an (X)HTML table. The table will include a header
+	 * which declares the columns, a detail row for each operator (optional),
+	 * and a summary row for the query as a whole.
+	 * 
+	 * @param queryStr
+	 *            The original text of the query (e.g., a SPARQL query)
+	 *            (optional).
+	 * @param q
+	 *            The {@link IRunningQuery}.
+	 * @param w
+	 *            Where to write the table.
+	 * @param summaryOnly
+	 *            When <code>true</code> only the summary row will be written.
+	 * @param maxBopLength
+	 *            The maximum length to display from {@link BOp#toString()} and
+	 *            ZERO (0) to display everything.  Data longer than this value
+	 *            will be accessible from a flyover, but not directly visible
+	 *            in the page.
+	 * @throws IOException
+	 */
+	public static void getTableXHTML(final String queryStr,
+			final IRunningQuery q, final Writer w, final boolean summaryOnly,
+			final int maxBopLength)
+			throws IOException {
+
+		// the table start tag.
+		w.write("<table border=\"1\" summary=\"" + attrib("Query Statistics")
+				+ "\"\n>");
+        
+        getTableHeaderXHTML(q, w);
+
+    	if(summaryOnly) {
+
+    		getSummaryRowXHTML(queryStr, q, w, maxBopLength);
+    		
+    	} else {
+
+    		// Summary first.
+    		getSummaryRowXHTML(queryStr, q, w, maxBopLength);
+
+    		// Then the detail rows.
+    		getTableRowsXHTML(queryStr, q, w, maxBopLength);
+    		
+    	}
+
+    	w.write("</table\n>");
+    	
+	}
+	
+	public static void getTableHeaderXHTML(final IRunningQuery q, final Writer w)
+			throws IOException {
 
         // header row.
         w.write("<tr\n>");
@@ -445,6 +497,7 @@ public class QueryLog {
         w.write("<th>elapsed</th>");
         w.write("<th>serviceId</th>");
         w.write("<th>cause</th>");
+        w.write("<th>query</th>");
         w.write("<th>bop</th>");
         /*
          * Columns for each pipeline operator.
@@ -487,18 +540,26 @@ public class QueryLog {
 
     }
 
-    /**
-     * Write the table rows.
-     * 
-     * @param q
-     *            The query.
-     * @param w
-     *            Where to write the rows.
-     *            
-     * @throws IOException
-     */
-    public static void getTableRowsXHTML(final IRunningQuery q, final Writer w)
-            throws IOException {
+	/**
+	 * Write the table rows.
+	 * 
+	 * @param queryStr
+	 *            The query text (optional).
+	 * @param q
+	 *            The {@link IRunningQuery}.
+	 * @param w
+	 *            Where to write the rows.
+	 * @param maxBopLength
+	 *            The maximum length to display from {@link BOp#toString()} and
+	 *            ZERO (0) to display everything. Data longer than this value
+	 *            will be accessible from a flyover, but not directly visible in
+	 *            the page.
+	 * 
+	 * @throws IOException
+	 */
+	public static void getTableRowsXHTML(final String queryStr,
+			final IRunningQuery q, final Writer w, final int maxBopLength)
+			throws IOException {
 
         final Integer[] order = BOpUtility.getEvaluationOrder(q.getQuery());
 
@@ -506,34 +567,41 @@ public class QueryLog {
         
         for (Integer bopId : order) {
 
-            getTableRowXHTML(q, w, orderIndex, bopId, false/* summary */);
-            
+			getTableRowXHTML(queryStr, q, w, orderIndex, bopId,
+					false/* summary */, maxBopLength);
+
             orderIndex++;
             
         }
 
     }
 
-    private static final String TD = "<td>";
-    private static final String TDx = "</td\n>";
-    
-    /**
-     * Return a tabular representation of the query {@link RunState}.
-     * 
-     * @param q
-     *            The {@link IRunningQuery}.
-     * @param evalOrder
-     *            The evaluation order for the operator.
-     * @param bopId
-     *            The identifier for the operator.
-     * @param summary
-     *            <code>true</code> iff the summary for the query should be
-     *            written.
-     * @return The row of the table.
-     */
-    static private void getTableRowXHTML(final IRunningQuery q, final Writer w,
-            final int evalOrder, final Integer bopId, final boolean summary)
-            throws IOException {
+	/**
+	 * Return a tabular representation of the query {@link RunState}.
+	 * 
+	 * @param queryStr
+	 *            The query text (optional).
+	 * @param q
+	 *            The {@link IRunningQuery}.
+	 * @param evalOrder
+	 *            The evaluation order for the operator.
+	 * @param bopId
+	 *            The identifier for the operator.
+	 * @param summary
+	 *            <code>true</code> iff the summary for the query should be
+	 *            written.
+	 * @param maxBopLength
+	 *            The maximum length to display from {@link BOp#toString()} and
+	 *            ZERO (0) to display everything.  Data longer than this value
+	 *            will be accessible from a flyover, but not directly visible
+	 *            in the page.
+	 *            
+	 * @return The row of the table.
+	 */
+	static private void getTableRowXHTML(final String queryStr,
+			final IRunningQuery q, final Writer w, final int evalOrder,
+			final Integer bopId, final boolean summary, final int maxBopLength)
+			throws IOException {
 
         final DateFormat dateFormat = DateFormat.getDateTimeInstance(
                 DateFormat.FULL, DateFormat.FULL);
@@ -564,24 +632,29 @@ public class QueryLog {
         if (cause != null)
             w.write(cause.getLocalizedMessage());
         w.write(TDx);
-
+        
         final Map<Integer, BOp> bopIndex = q.getBOpIndex();
         final Map<Integer, BOpStats> statsMap = q.getStats();
         final BOp bop = bopIndex.get(bopId);
 
         // the operator.
         if (summary) {
+            w.write(TD);
+			w.write(queryStr == null ? cdata(NA) : prettyPrintSparql(queryStr));
+            w.write(TDx);
             /*
              * The entire query (recursively).
              */
-        	final String queryStr = BOpUtility.toString(q.getQuery());
+        	final String bopStr = BOpUtility.toString(q.getQuery());
             w.write(TD);
             w.write("<a href=\"#\" title=\"");
-            w.write(attrib(queryStr));// the entire query as a tooltip.
+            w.write(attrib(bopStr));// the entire query as a tooltip.
             w.write("\"\n>");
-            // A slice of the query inline on the page.
-			w.write(cdata(queryStr.substring(0/* begin */, Math.min(64, queryStr
-					.length()))));
+			// A slice of the query inline on the page or everything if
+			// maxBopLength<=0.
+			w.write(cdata(bopStr.substring(0/* begin */,
+					maxBopLength <= 0 ? bopStr.length() : Math.min(
+							maxBopLength, bopStr.length()))));
 			w.write("...");
             w.write("</a>");
             w.write(TDx);
@@ -589,14 +662,17 @@ public class QueryLog {
             w.write("total"); // summary line.
             w.write(TDx);
         } else {
+            w.write(TD);
+            w.write("...");// elide the original query string on a detail row.
+            w.write(TDx);
             // Otherwise show just this bop.
-        	final String queryStr = bopIndex.get(bopId).toString();
+        	final String bopStr = bopIndex.get(bopId).toString();
             w.write(TD);
             w.write("<a href=\"#\" title=\"");
-            w.write(attrib(queryStr));// the entire query as a tooltip.
+            w.write(attrib(bopStr));// the entire query as a tooltip.
             w.write("\"\n>");
             // A slice of the query inline on the page.
-			w.write(cdata(queryStr.substring(0/* begin */, Math.min(64, queryStr
+			w.write(cdata(bopStr.substring(0/* begin */, Math.min(64, bopStr
 					.length()))));
 			w.write("...");
             w.write("</a>");
@@ -773,66 +849,25 @@ public class QueryLog {
     /**
      * Write a summary row for the query.  The table element, header, and footer
      * must be written separately.
-     * @param q
-     * @param w
-     * @param sb
+     * @param queryStr The original query text (optional).
+     * @param q The {@link IRunningQuery}.
+     * @param w Where to write the data.
+	 * @param maxBopLength
+	 *            The maximum length to display from {@link BOp#toString()} and
+	 *            ZERO (0) to display everything.  Data longer than this value
+	 *            will be accessible from a flyover, but not directly visible
+	 *            in the page.
      * @throws IOException
      */
-	static public void getSummaryRowXHTML(final IRunningQuery q,
-			final Writer w, final StringBuilder sb) throws IOException {
+	static public void getSummaryRowXHTML(final String queryStr,
+			final IRunningQuery q, final Writer w, final int maxBopLength)
+			throws IOException {
 
-		getTableRowXHTML(q, w, -1/* orderIndex */, q.getQuery().getId(), true/* summary */);
+		getTableRowXHTML(queryStr, q, w, -1/* orderIndex */, q.getQuery()
+				.getId(), true/* summary */, maxBopLength);
 
     }
 
-	/**
-	 * Format the data as an (X)HTML table. The table will include a header
-	 * which declares the columns, a detail row for each operator (optional),
-	 * and a summary row for the query as a whole.
-	 * 
-	 * @param q
-	 *            The query.
-	 * @param w
-	 *            Where to write the table.
-	 * @param summaryOnly
-	 *            When <code>true</code> only the summary row will be written.
-	 * @throws IOException
-	 */
-	public static void getTableXHTML(final IRunningQuery q, final Writer w,
-			final boolean summaryOnly) throws IOException {
-
-        // the table start tag.
-        {
-            /*
-             * Summary for the table.
-             */
-            final String summary = "Query details";
-
-            /*
-             * Format the entire table now that we have all the data on hand.
-             */
-
-            w.write("<table border=\"1\" summary=\"" + attrib(summary)
-                    + "\"\n>");
-
-        }
-        
-        getTableHeaderXHTML(q, w);
-
-    	if(summaryOnly) {
-
-    		getSummaryRowXHTML(q, w, sb);
-    		
-    	} else {
-    		
-    		getTableRowsXHTML(q, w);
-    		
-    	}
-
-    	w.write("</table\n>");
-    	
-	}
-	
     private static String cdata(String s) {
         
         return XHTMLRenderer.cdata(s);
@@ -845,4 +880,31 @@ public class QueryLog {
         
     }
 
+    private static String prettyPrintSparql(String s) {
+
+//    	return cdata(s);
+//    	
+//    }
+    
+    	s = s.replace("\n", " ");
+    	
+    	s = s.replace("PREFIX", "\nPREFIX");
+    	s = s.replace("select", "\nselect");
+    	s = s.replace("where", "\nwhere");
+    	s = s.replace("{","{\n");
+    	s = s.replace("}","\n}");
+    	s = s.replace(" ."," .\n"); // TODO Must not match within quotes (literals) or <> (URIs).
+//    	s = s.replace("||","||\n");
+//    	s = s.replace("&&","&&\n");
+    	
+    	s = cdata(s);
+    	
+    	s = s.replace("\n", "<br>");
+    	
+//    	return "<pre>"+s+"</pre>";
+    	
+    	return s;
+    	
+    }
+    
 }

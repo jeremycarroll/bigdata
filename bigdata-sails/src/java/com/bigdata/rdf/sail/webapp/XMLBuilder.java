@@ -169,9 +169,10 @@ public class XMLBuilder {
 			
 			return tmp.close();
 		}
-		
+
 		/**
 		 * Close the open element.
+		 * 
 		 * @return The parent element.
 		 * @throws IOException
 		 */
@@ -185,7 +186,7 @@ public class XMLBuilder {
 		 * @param simpleEnd
 		 *            When <code>true</code> an open tag without a body will be
 		 *            closed by a single &gt; symbol rather than the XML style
-		 *            &47;&gt;.
+		 *            &#47;&gt;.
 		 * 
 		 * @return The parent element.
 		 * @throws IOException
@@ -200,7 +201,7 @@ public class XMLBuilder {
 					m_writer.write("/>");
 				}
 			} else {
-				m_writer.write("</" + m_tag + ">");
+				m_writer.write("</" + m_tag + "\n>");
 			}
 			
 			m_open = false;
