@@ -1481,7 +1481,7 @@ abstract public class WriteCacheService implements IWriteCache {
 					// A duplicate may also be indicative of an allocation
 					//	error, which we need to be pretty strict about!
 					if (old == cache) {
-						throw new AssertionError("Record already in cache: offset=" + offset);
+					    throw new AssertionError("Record already in cache: offset=" + offset+" "+addrDebugInfo(offset));
 					}
 
 					return true;
@@ -1535,7 +1535,7 @@ abstract public class WriteCacheService implements IWriteCache {
 						 */
 						if (recordMap.put(offset, cache) != null) {
 							// The record should not already be in the cache.
-							throw new AssertionError("Record already in cache: offset=" + offset);
+							throw new AssertionError("Record already in cache: offset=" + offset+" "+addrDebugInfo(offset));
 						}
 
 						return true;
@@ -1613,7 +1613,7 @@ abstract public class WriteCacheService implements IWriteCache {
 
 							// This must be the only occurrence of this record.
 							if (recordMap.put(offset, cache) != null) {
-								throw new AssertionError("Record already in cache: offset=" + offset);
+								throw new AssertionError("Record already in cache: offset=" + offset+" "+addrDebugInfo(offset));
 							}
 
 							return true;
