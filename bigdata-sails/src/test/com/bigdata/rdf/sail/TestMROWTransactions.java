@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.openrdf.model.BNode;
 import org.openrdf.model.Resource;
@@ -65,9 +66,12 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 		props.setProperty(BigdataSail.Options.VOCABULARY_CLASS, NoVocabulary.class.getName());
 		props.setProperty(BigdataSail.Options.JUSTIFY, "false");
 		props.setProperty(BigdataSail.Options.TEXT_INDEX, "false");
+		props.setProperty(Options.WRITE_CACHE_BUFFER_COUNT, "3");
 
 		// ensure using RWStore
 		props.setProperty(Options.BUFFER_MODE, BufferMode.DiskRW.toString());
+		// props.setProperty(Options.CREATE_TEMP_FILE, "false");
+		// props.setProperty(Options.FILE, "/Volumes/SSDData/csem.jnl");
 
 		return props;
 
@@ -174,8 +178,8 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 			// let's schedule a few writers and readers
 			for (int i = 0; i < 500; i++) {
 				writers.submit(new Writer(500));
-				for (int rdrs = 0; rdrs < 60; rdrs++) {
-					readers.submit(new Reader(20));
+				for (int rdrs = 0; rdrs < 20; rdrs++) {
+					readers.submit(new Reader(50));
 				}
 			}
 
@@ -233,6 +237,7 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 		}
 		final CAT writes = new CAT();
 		final CAT reads = new CAT();
+		final AtomicReference<Exception> failex = new AtomicReference<Exception>(null);
 		try {
 
 			// Writer task adds nwrites statements then commits
@@ -246,7 +251,7 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 				public Long call() throws Exception {
                     try {
                         final boolean isQuads = origStore.isQuads();
-                        Thread.sleep(r.nextInt(2000) + 500);
+                        // Thread.sleep(r.nextInt(2000) + 500);
                         try {
 
                             for (int i = 0; i < nwrites; i++) {
@@ -268,6 +273,9 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
                                 log.info("Commit");
                             }
                         }
+                    } catch (IllegalStateException ise) {
+                    	failex.compareAndSet(null, ise);
+                        log.error(ise, ise);
                     } catch (Throwable t) {
                         log.error(t, t);
                     }
@@ -304,6 +312,8 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
                                 }
                             }
 
+                        } catch (IllegalStateException ise) {
+                        	failex.compareAndSet(null, ise);
                         } finally {
                             ((Journal) origStore.getIndexManager()).abort(txId);
                         }
@@ -317,18 +327,25 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 
 			// let's schedule a few writers and readers (more than needed)
 			for (int i = 0; i < 2000; i++) {
-			    writers.submit(new Writer(300/*nwrite*/));
-				for (int rdrs = 0; rdrs < 20; rdrs++) {
+			    writers.submit(new Writer(500/*nwrite*/));
+				for (int rdrs = 0; rdrs < 60; rdrs++) {
 					readers.submit(new Reader(20/*nread*/));
 				}
 			}
 			
 			// let the writers run riot for a time
-			Thread.sleep(60 * 1000);
+			Thread.sleep(30 * 1000);
 			writers.shutdownNow();
 			readers.shutdownNow();
 			writers.awaitTermination(5, TimeUnit.SECONDS);
 			readers.awaitTermination(5, TimeUnit.SECONDS);
+			{
+				Exception ex = failex.get();
+				if (ex != null) {
+					log.error(failex.get());
+					fail("Test failed", ex);
+				}
+			}
 			System.out.println("Statements written: " + writes.get() + ", read: " + reads.get());
 		} finally {
 
