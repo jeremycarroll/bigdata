@@ -64,7 +64,7 @@ public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 		props.setProperty(BigdataSail.Options.VOCABULARY_CLASS, NoVocabulary.class.getName());
 		props.setProperty(BigdataSail.Options.JUSTIFY, "false");
 		props.setProperty(BigdataSail.Options.TEXT_INDEX, "false");
-		props.setProperty(Options.WRITE_CACHE_BUFFER_COUNT, "3");
+//		props.setProperty(Options.WRITE_CACHE_BUFFER_COUNT, "3");
 
 		// ensure using RWStore
 		props.setProperty(Options.BUFFER_MODE, BufferMode.DiskRW.toString());
