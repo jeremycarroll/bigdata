@@ -2037,7 +2037,13 @@ abstract public class WriteCacheService implements IWriteCache {
 				}
 			}
 		}
-		
+        /*
+         * Note: I've added in the write cache service counters here for
+         * information about the maximum #of buffers from the pool which have
+         * been in use, #of flushes, etc.
+         */
+		ret.append(":");
+		ret.append(getCounters().toString());
 		return ret.toString();
 	}
 
