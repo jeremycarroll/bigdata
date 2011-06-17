@@ -2,7 +2,8 @@ package com.bigdata.rdf.sail.webapp;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringWriter;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.UUID;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -19,8 +20,8 @@ import com.bigdata.bop.engine.QueryLog;
 import com.bigdata.bop.fed.QueryEngineFactory;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.TimestampUtility;
-import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.sail.webapp.BigdataRDFContext.AbstractQueryTask;
+import com.bigdata.util.HTMLUtility;
 import com.bigdata.util.InnerCause;
 
 /**
@@ -192,8 +193,16 @@ public class QueryServlet extends BigdataRDFServlet {
 			getBigdataRDFContext().queryService.execute(ft);
 
 			if (explain) {
-				// Send an explanation instead of the query results.
-				explainQuery(queryStr, queryTask, ft, os);
+				final Writer w = new OutputStreamWriter(os, queryTask.charset);
+				try {
+					// Send an explanation instead of the query results.
+					explainQuery(queryStr, queryTask, ft, w);
+				} finally {
+					w.flush();
+					w.close();
+					os.flush();
+					os.close();
+				}
 			} else {
 				// Wait for the Future.
 				ft.get();
@@ -222,11 +231,11 @@ public class QueryServlet extends BigdataRDFServlet {
 	 */
 	private void explainQuery(final String queryStr,
 			final AbstractQueryTask queryTask, final FutureTask<Void> ft,
-			final OutputStream os) throws Exception {
-
+			final Writer w) throws Exception {
+		
 		/*
-		 * Spin until either we have the IRunningQuery or the Future of the
-		 * query is done (in which case we won't get it).
+		 * Spin until either we have the UUID of the IRunningQuery or the Future
+		 * of the query is done.
 		 */
 		if(log.isDebugEnabled())
 			log.debug("Will build explanation");
@@ -240,49 +249,44 @@ public class QueryServlet extends BigdataRDFServlet {
 				// Ignore.
 			}
 			if (queryTask.queryId2 != null) {
+				// Got it.
 				queryId2 = queryTask.queryId2;
 				break;
 			}
 		}
-		if (queryId2 != null) {
-			if(log.isDebugEnabled())
-				log.debug("Resolving IRunningQuery: queryId2=" + queryId2);
-			final IIndexManager indexManager = getBigdataRDFContext()
-					.getIndexManager();
-			final QueryEngine queryEngine = QueryEngineFactory
-					.getQueryController(indexManager);
-			while (!ft.isDone() && q == null) {
-				try {
-					// Wait a bit for the IRunningQuery to *start*.
-					ft.get(1/* timeout */, TimeUnit.MILLISECONDS);
-				} catch(TimeoutException ex) {
-					// Ignore.
-				}
-				// Resolve the IRunningQuery.
-				try {
-					q = queryEngine.getRunningQuery(queryId2);
-				} catch (RuntimeException ex) {
-					if (InnerCause.isInnerCause(ex, InterruptedException.class)) {
-						// Ignore. Query terminated normally, but we don't have
-						// it.
-					} else {
-						// Ignore. Query has error, but we will get err from
-						// Future.
-					}
+
+		if(ft.isDone()) {
+			/*
+			 * If the query is done, the check for an error before we build up
+			 * the explanation document.
+			 */
+			ft.get();
+			
+			/*
+			 * No error and the Future is done. The UUID of the IRunningQuery
+			 * MUST have been assigned. If we do not have it yet, then check
+			 * once more. If it is not set then that is an error.
+			 */
+			if (queryTask.queryId2 != null) {
+				// Check once more. 
+				queryId2 = queryTask.queryId2;
+				if (queryId2 == null) {
+					/*
+					 * This should have been assigned unless the query failed
+					 * during the setup.
+					 */
+					throw new AssertionError();
 				}
 			}
-			if (q != null)
-				if(log.isDebugEnabled())
-					log.debug("Resolved IRunningQuery: query=" + q);
 		}
-		
-		// wait for the Future (will toss any exceptions).
-		ft.get();
+		assert queryId2 != null;
 
 		/*
 		 * Build the explanation.
+		 * 
+		 * Note: The query may still be executing while we do this.
 		 */
-		final HTMLBuilder doc = new HTMLBuilder();
+		final HTMLBuilder doc = new HTMLBuilder(queryTask.charset.name(), w);
 		{
 
 			XMLBuilder.Node current = doc.root("html");
@@ -295,37 +299,93 @@ public class QueryServlet extends BigdataRDFServlet {
 			}
 			current = current.node("body");
 
-			if (q != null) {
-				// Format query statistics as a table.
-				final StringWriter w = new StringWriter(
-						8 * Bytes.kilobyte32);
-				QueryLog.getTableXHTML(queryStr, q, w,
-						true/* showQueryDetails */, 64/* maxBopLength */);
+			current.node("h2", "SPARQL").node("p",
+					HTMLUtility.escapeForXHTML(queryTask.queryStr));
 
-				// Add into the HTML document.
-				current.text(w.toString());
-			} else {
-				current.node("p",
-						"Query ran too quickly to collect statistics.");
+			current.node("h2", "Parsed Query").node("pre",
+					HTMLUtility.escapeForXHTML(queryTask.sailQuery.toString()));
+			
+			/*
+			 * Spin until we get the IRunningQuery reference or the query is
+			 * done, in which case we won't get it.
+			 */
+			if (queryId2 != null) {
+				if(log.isDebugEnabled())
+					log.debug("Resolving IRunningQuery: queryId2=" + queryId2);
+				final IIndexManager indexManager = getBigdataRDFContext()
+						.getIndexManager();
+				final QueryEngine queryEngine = QueryEngineFactory
+						.getQueryController(indexManager);
+				while (!ft.isDone() && q == null) {
+					try {
+						// Wait a bit for the IRunningQuery to *start*.
+						ft.get(1/* timeout */, TimeUnit.MILLISECONDS);
+					} catch(TimeoutException ex) {
+						// Ignore.
+					}
+					// Resolve the IRunningQuery.
+					try {
+						q = queryEngine.getRunningQuery(queryId2);
+					} catch (RuntimeException ex) {
+						if (InnerCause.isInnerCause(ex, InterruptedException.class)) {
+							// Ignore. Query terminated normally, but we don't have
+							// it.
+						} else {
+							// Ignore. Query has error, but we will get err from
+							// Future.
+						}
+					}
+				}
+				if (q != null)
+					if(log.isDebugEnabled())
+						log.debug("Resolved IRunningQuery: query=" + q);
+			}
+			
+			// wait for the Future (will toss any exceptions).
+			ft.get();
+
+			{
+				current.node("h2",
+						"Query Evaluation Statistics").node("p");
+				if (q != null) {
+					/*
+					 * Format query statistics as a table.
+					 * 
+					 * Note: This is writing on the Writer so it goes directly
+					 * into the HTML document we are building for the client.
+					 */
+					QueryLog.getTableXHTML(queryStr, q, w,
+							true/* showQueryDetails */, 64/* maxBopLength */);
+
+//					// Add into the HTML document.
+//					statsNode.text(w.toString());
+				} else {
+					/*
+					 * This can happen if we fail to get the IRunningQuery
+					 * reference before the query terminates.  E.g., if the
+					 * query runs too quickly there is a data race and the
+					 * reference may not be available anymore.
+					 */
+					current
+							.text("Not available.");
+				}
 			}
 			doc.closeAll(current);
 		}
 
-		/*
-		 * Send the response.
-		 * 
-		 * TODO It would be better to stream this rather than buffer it in
-		 * RAM. That also opens up the opportunity for real-time updates for
-		 * long-running (analytic) queries, incremental information from the
-		 * runtime query optimizer, etc.
-		 */
-		if(log.isDebugEnabled())
-			log.debug("Sending explanation.");
-		os.write(doc.toString().getBytes("UTF-8"));
-        os.flush();
-        os.close();
-		if(log.isDebugEnabled())
-			log.debug("Sent explanation.");
+//		/*
+//		 * Send the response.
+//		 * 
+//		 * TODO It would be better to stream this rather than buffer it in
+//		 * RAM. That also opens up the opportunity for real-time updates for
+//		 * long-running (analytic) queries, incremental information from the
+//		 * runtime query optimizer, etc.
+//		 */
+//		if(log.isDebugEnabled())
+//			log.debug("Sending explanation.");
+//		os.write(doc.toString().getBytes("UTF-8"));
+//		if(log.isDebugEnabled())
+//			log.debug("Sent explanation.");
 
     }
     

@@ -264,7 +264,8 @@ public class BigdataRDFContext extends BigdataBaseContext {
         protected final QueryType queryType;
         
         /**
-         * The negotiated MIME type to be used for the query response.
+         * The negotiated MIME type to be used for the query response (this
+         * does not include the charset encoding).
          */
         protected final String mimeType;
 
@@ -313,6 +314,15 @@ public class BigdataRDFContext extends BigdataBaseContext {
 		 */
         volatile protected UUID queryId2;
 
+		/**
+		 * The parsed query. It will be one of the {@link BigdataSailQuery}
+		 * implementations. They all extend {@link AbstractQuery}.
+		 * <p>
+		 * Note: This field is made visible by the volatile write on
+		 * {@link #queryId2}.
+		 */
+        protected AbstractQuery sailQuery;
+        
 		/**
 		 * When true, provide an "explanation" for the query (query plan, query
 		 * evaluation statistics) rather than the results of the query.
@@ -435,24 +445,53 @@ public class BigdataRDFContext extends BigdataBaseContext {
 
         }
 
-		/**
-		 * Sets {@link #queryId2} to the {@link UUID} which will be associated
-		 * with the {@link IRunningQuery}. If {@link QueryHints#QUERYID} has
-		 * already been used by the application to specify the {@link UUID} then
-		 * that {@link UUID} is noted. Otherwise, a random {@link UUID} is
-		 * generated and assigned to the query by binding it on the query hints.
+        /**
+         * 
 		 * <p>
 		 * Note: This is also responsible for noticing the time at which the
 		 * query begins to execute and storing the {@link RunningQuery} in the
 		 * {@link #m_queries} map.
 		 * 
-		 * @param query
-		 *            The query.
-		 */
-		protected void setQueryId(final BigdataSailQuery query) {
-			assert queryId2 == null; // precondition.
+         * @param query
+         */
+        protected void setupQuery(final AbstractQuery query) {
+
 			// Note the begin time for the query.
 			final long begin =  System.nanoTime();
+			
+        	// Figure out the UUID under which the query will execute.
+        	final UUID queryId2 = setQueryId((BigdataSailQuery)query);
+            
+            // Override query if data set protocol parameters were used.
+			overrideDataset(query);
+            
+			// Set the query object.
+			this.sailQuery = query;
+			
+			// Set the IRunningQuery's UUID (volatile write!) 
+			this.queryId2 = queryId2;
+			
+			// Stuff it in the map of running queries.
+            m_queries.put(queryId, new RunningQuery(queryId.longValue(),
+                    queryId2, queryStr, begin));
+
+        }
+
+		/**
+		 * Determines the {@link UUID} which will be associated with the
+		 * {@link IRunningQuery}. If {@link QueryHints#QUERYID} has already been
+		 * used by the application to specify the {@link UUID} then that
+		 * {@link UUID} is noted. Otherwise, a random {@link UUID} is generated
+		 * and assigned to the query by binding it on the query hints.
+		 * 
+		 * @param query
+		 *            The query.
+		 * 
+		 * @return The {@link UUID} which will be associated with the
+		 *         {@link IRunningQuery}.
+		 */
+		protected UUID setQueryId(final BigdataSailQuery query) {
+			assert queryId2 == null; // precondition.
 			// Figure out the effective UUID under which the query will run.
 			final String queryIdStr = query.getQueryHints().getProperty(
 					QueryHints.QUERYID);
@@ -463,9 +502,7 @@ public class BigdataRDFContext extends BigdataBaseContext {
 			} else {
 				queryId2 = UUID.fromString(queryIdStr);
 			}
-			// Stuff it in the map of running queries.
-            m_queries.put(queryId, new RunningQuery(queryId.longValue(),
-                    queryId2, queryStr, begin));
+            return queryId2;
 		}
 
         /**
@@ -564,13 +601,9 @@ public class BigdataRDFContext extends BigdataBaseContext {
 
             final BigdataSailBooleanQuery query = cxn.prepareBooleanQuery(
                     QueryLanguage.SPARQL, queryStr, baseURI);
-        
-            // Figure out the UUID under which the query will execute.
-            setQueryId(query);
-            
-            // Override query if data set protocol parameters were used.
-            overrideDataset(query);
 
+            setupQuery(query);
+            
             // Note: getQueryTask() verifies that format will be non-null.
             final BooleanQueryResultFormat format = BooleanQueryResultWriterRegistry
                     .getInstance().getFileFormatForMIMEType(mimeType);
@@ -609,11 +642,7 @@ public class BigdataRDFContext extends BigdataBaseContext {
 			final BigdataSailTupleQuery query = cxn.prepareTupleQuery(
 					QueryLanguage.SPARQL, queryStr, baseURI);
 
-            // Figure out the UUID under which the query will execute.
-            setQueryId(query);
-			
-			// Override query if data set protocol parameters were used.
-			overrideDataset(query);
+            setupQuery(query);
 			
             // Note: getQueryTask() verifies that format will be non-null.
             final TupleQueryResultFormat format = TupleQueryResultWriterRegistry
@@ -652,11 +681,7 @@ public class BigdataRDFContext extends BigdataBaseContext {
 			final BigdataSailGraphQuery query = cxn.prepareGraphQuery(
 					QueryLanguage.SPARQL, queryStr, baseURI);
 
-            // Figure out the UUID under which the query will execute.
-            setQueryId(query);
-            
-			// Override query if data set protocol parameters were used.
-            overrideDataset(query);
+			setupQuery(query);
 
             /*
              * FIXME An error thrown here (such as if format is null and we do

@@ -1,7 +1,8 @@
 package com.bigdata.rdf.sail.webapp;
 
 import java.io.IOException;
-import java.io.StringWriter;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -17,7 +18,6 @@ import com.bigdata.bop.engine.IRunningQuery;
 import com.bigdata.bop.engine.QueryEngine;
 import com.bigdata.bop.engine.QueryLog;
 import com.bigdata.bop.fed.QueryEngineFactory;
-import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.sail.webapp.BigdataRDFContext.RunningQuery;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.util.HTMLUtility;
@@ -95,7 +95,11 @@ public class StatusServlet extends BigdataRDFServlet {
         // bigdata namespaces known to the index manager.
         final boolean showNamespaces = req.getParameter("showNamespaces") != null;
 
-        final HTMLBuilder doc = new HTMLBuilder();
+        resp.setContentType(MIME_TEXT_HTML);
+        final Writer w = new OutputStreamWriter(resp.getOutputStream(), "UTF-8");
+        try {
+        
+        final HTMLBuilder doc = new HTMLBuilder("UTF-8", w);
 
 		XMLBuilder.Node current = doc.root("html");
 		{
@@ -240,7 +244,7 @@ public class StatusServlet extends BigdataRDFServlet {
 			final Iterator<IRunningQuery> itr = runningQueryAge.values()
 					.iterator();
 
-			final StringWriter w = new StringWriter(Bytes.kilobyte32 * 8);
+//			final StringWriter w = new StringWriter(Bytes.kilobyte32 * 8);
 
 			while (itr.hasNext()) {
 
@@ -258,26 +262,33 @@ public class StatusServlet extends BigdataRDFServlet {
 				final String queryStr = acceptedQuery == null ? "N/A"
 						: acceptedQuery.query;
 
-				// Format as a table.
+				// Format as a table, writing onto the response.
 				QueryLog.getTableXHTML(queryStr, query, w, !showQueryDetails,
 						maxBopLength);
 
-				// Extract as String
-				final String s = w.getBuffer().toString();
-
-				// Add into the HTML document.
-				current.text(s);
-
-				// Clear the buffer.
-				w.getBuffer().setLength(0);
+//				// Extract as String
+//				final String s = w.getBuffer().toString();
+//
+//				// Add into the HTML document.
+//				current.text(s);
+//
+//				// Clear the buffer.
+//				w.getBuffer().setLength(0);
 
 			} // next IRunningQuery.
 
 		}
 
         doc.closeAll(current);
+        
+        } finally {
+        	
+        	w.flush();
+        	w.close();
+        	
+        }
 
-        buildResponse(resp, HTTP_OK, MIME_TEXT_HTML, doc.toString());
+//        buildResponse(resp, HTTP_OK, MIME_TEXT_HTML, doc.toString());
 
     }
 

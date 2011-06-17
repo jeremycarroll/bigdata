@@ -1,9 +1,6 @@
 package com.bigdata.rdf.sail.webapp;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.StringWriter;
 import java.io.Writer;
 
 /**
@@ -23,7 +20,7 @@ import java.io.Writer;
  *    </div>
  *  </xml>
  *  
- *  XMLBuilder.Node closed = new XMLBuilder(false)
+ *  XMLBuilder.Node closed = new XMLBuilder(false,writer)
  *  	.root("xml")
  *  		.node("div")
  *  			.attr("attr", "attr1")
@@ -49,42 +46,59 @@ public class XMLBuilder {
 	
 //	private boolean m_pp = false;
 	
-	public XMLBuilder() throws IOException {
-		this(true, (OutputStream) null);
-	}
-	
-	public XMLBuilder(boolean xml) throws IOException {
-		this(xml, (OutputStream) null);
-	}
-	
-	public XMLBuilder(boolean xml, OutputStream outstr) throws IOException {
-		this(xml,null/*encoding*/,outstr);
-	}
-	
-	public XMLBuilder(boolean xml, String encoding) throws IOException {
+//	public XMLBuilder() throws IOException {
+//
+//		this(true, (OutputStream) null);
+//		
+//	}
+//	
+//	public XMLBuilder(boolean xml) throws IOException {
+//
+//		this(xml, (OutputStream) null);
+//		
+//	}
+//	
+//	public XMLBuilder(final boolean xml, final OutputStream outstr)
+//			throws IOException {
+//
+//		this(xml, null/* encoding */, outstr);
+//		
+//	}
+//	
+//	public XMLBuilder(final boolean xml, final String encoding)
+//			throws IOException {
+//
+//	    this(xml, encoding, (OutputStream) null);
+//	    
+//	}
 
-	    this(xml, encoding, (OutputStream) null);
-	    
+	public XMLBuilder(final Writer w) throws IOException {
+
+		this(true/* xml */, null/* encoding */, w/* writer */);
+		
 	}
 	
-	public XMLBuilder(boolean xml, String encoding, OutputStream outstr) throws IOException {
-        
+	public XMLBuilder(final boolean xml, final String encoding,
+			final Writer w) throws IOException {
+
+		if(w == null)
+			throw new IllegalArgumentException();
+		
 		this.xml = xml;
 		
-	    if (outstr == null) {
-            m_writer = new StringWriter();
-        } else {
-            m_writer = new OutputStreamWriter(outstr);
-        }
+		this.m_writer  = w;
 		
 		if (xml) {
-			if(encoding!=null) {
+			if (encoding != null) {
 				m_writer.write("<?xml version=\"1.0\" encoding=\"" + encoding + "\"?>");
 			} else {
 				m_writer.write("<?xml version=\"1.0\"?>");
 			}
 		} else {
-			// TODO Note the optional encoding for use in a meta tag.
+			/*
+			 * Note: The optional encoding should also be included in a meta tag
+			 * for an HTML document.
+			 */
 			m_writer.write("<!DOCTYPE HTML PUBLIC");
 			m_writer.write(" \"-//W3C//DTD HTML 4.01 Transitional//EN\"");
 			m_writer.write(" \"http://www.w3.org/TR/html4/loose.dtd\">");
@@ -99,9 +113,10 @@ public class XMLBuilder {
 //	private void initWriter(OutputStream outstr) {
 //	}
 
-	public String toString() {
-		return m_writer.toString();
-	}
+	// Note: This method assumed that m_writer was a StringWriter!!!
+//	public String toString() {
+//		return m_writer.toString();
+//	}
 	
 	public Node root(String name) throws IOException {
 		return new Node(name, null);
