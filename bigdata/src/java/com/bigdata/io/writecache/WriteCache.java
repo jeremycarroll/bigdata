@@ -129,11 +129,11 @@ abstract public class WriteCache implements IWriteCache {
 	 * prevents {@link #acquire()} during critical sections such as
 	 * {@link #flush(boolean, long, TimeUnit)}, {@link #reset()}, and
 	 * {@link #close()}.
-	 * <p>
-	 * Note: To avoid lock ordering problems, acquire the read lock before you
-	 * increment the latch and acquire the write lock before you await the
-	 * latch.
 	 */
+//    * <p>
+//    * Note: To avoid lock ordering problems, acquire the read lock before you
+//    * increment the latch and acquire the write lock before you await the
+//    * latch.
 	final private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
@@ -1287,11 +1287,11 @@ abstract public class WriteCache implements IWriteCache {
 	 * reuse it to receive more writes.
 	 * <p>
 	 * Note: Keep private unless strong need for override since you can not call
-	 * this method without holding the write lock and having the {@link #latch}
-	 * at zero.
+	 * this method without holding the write lock
 	 * 
 	 * @param tmp
 	 */
+	// ... and having the {@link #latch} at zero.
 	private void _resetState(final ByteBuffer tmp) {
 
 		if (tmp == null)
@@ -1805,7 +1805,7 @@ abstract public class WriteCache implements IWriteCache {
 	 * with a full buffer where there is not room for the dummy "remove" prefix.
 	 * Whilst we could of course ensure that a buffer with less than the space
 	 * required for prefixWrites should be moved immediately to the dirtlyList,
-	 * there would still exist the possibillity that the clear could be
+	 * there would still exist the possibility that the clear could be
 	 * requested on a buffer already on the dirtyList. It looks like this should
 	 * not matter, since each buffer update can be considered as an atomic
 	 * update even if the set of writes are individually not atomic (the updates
@@ -1826,7 +1826,7 @@ abstract public class WriteCache implements IWriteCache {
 	 * @throws InterruptedException
 	 * @throws IllegalStateException
 	 */
-	public void clearAddrMap(final long addr) throws IllegalStateException, InterruptedException {
+	/*public*/ void clearAddrMap(final long addr) throws IllegalStateException, InterruptedException {
 		final RecordMetadata entry = recordMap.remove(addr);
 		if (prefixWrites) {
 			// final int pos = entry.bufferOffset - 12;
@@ -1876,7 +1876,7 @@ abstract public class WriteCache implements IWriteCache {
 	}
 
 	protected void registerWriteStatus(long offset, int length, char action) {
-		// NOP to be overidden for debug if required
+		// NOP to be overridden for debug if required
 	}
 
 	boolean m_written = false;
