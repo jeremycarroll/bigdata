@@ -1052,6 +1052,9 @@ abstract public class WriteCache implements IWriteCache {
 				final boolean ret = writeOnChannel(view, getFirstOffset(), Collections.unmodifiableMap(recordMap),
 						remaining);
 
+				if(!ret)
+				    throw new TimeoutException();
+				
 				counters.nflush++;
 
 				if (ret && reset) {
