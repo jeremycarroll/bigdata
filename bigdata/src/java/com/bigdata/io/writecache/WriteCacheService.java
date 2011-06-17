@@ -2123,7 +2123,7 @@ abstract public class WriteCacheService implements IWriteCache {
 
 			root.addCounter("maxDirty", new Instrument<Integer>() {
 				public void sample() {
-					setValue(ndirty);
+					setValue(maxdirty);
 				}
 			});
 
