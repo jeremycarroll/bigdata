@@ -647,16 +647,20 @@ public class QueryLog {
              */
         	final String bopStr = BOpUtility.toString(q.getQuery());
             w.write(TD);
-            w.write("<a href=\"#\" title=\"");
-            w.write(attrib(bopStr));// the entire query as a tooltip.
-            w.write("\"\n>");
+			if (maxBopLength != 0) {
+				w.write("<a href=\"#\" title=\"");
+				w.write(attrib(bopStr));// the entire query as a tooltip.
+				w.write("\"\n>");
+			}
 			// A slice of the query inline on the page or everything if
 			// maxBopLength<=0.
 			w.write(cdata(bopStr.substring(0/* begin */,
 					maxBopLength <= 0 ? bopStr.length() : Math.min(
 							maxBopLength, bopStr.length()))));
-			w.write("...");
-            w.write("</a>");
+			if (maxBopLength != 0) {
+				w.write("...");
+				w.write("</a>");
+			}
             w.write(TDx);
             w.write(TD);
             w.write("total"); // summary line.
@@ -668,14 +672,19 @@ public class QueryLog {
             // Otherwise show just this bop.
         	final String bopStr = bopIndex.get(bopId).toString();
             w.write(TD);
-            w.write("<a href=\"#\" title=\"");
-            w.write(attrib(bopStr));// the entire query as a tooltip.
-            w.write("\"\n>");
+            if(maxBopLength!=0) {
+            	w.write("<a href=\"#\" title=\"");
+            	w.write(attrib(bopStr));// the entire query as a tooltip.
+            	w.write("\"\n>");
+            }
             // A slice of the query inline on the page.
-			w.write(cdata(bopStr.substring(0/* begin */, Math.min(64, bopStr
-					.length()))));
-			w.write("...");
-            w.write("</a>");
+			w.write(cdata(bopStr.substring(0/* begin */,
+					maxBopLength <= 0 ? bopStr.length() : Math.min(
+							maxBopLength, bopStr.length()))));
+			if (maxBopLength != 0) {
+				w.write("...");
+				w.write("</a>");
+			}
             w.write(TDx);
             w.write(TD);
             w.write(Integer.toString(evalOrder)); // eval order for this bop.

@@ -473,7 +473,7 @@ public class BigdataRDFContext extends BigdataBaseContext {
 			
 			// Stuff it in the map of running queries.
             m_queries.put(queryId, new RunningQuery(queryId.longValue(),
-                    queryId2, queryStr, begin));
+                    queryId2, queryStr, begin, this));
 
         }
 
@@ -835,22 +835,30 @@ public class BigdataRDFContext extends BigdataBaseContext {
 		 */
 		final UUID queryId2;
 
-		/** The query. */
-		final String query;
+		/**
+		 * The task executing the query.
+		 */
+		final AbstractQueryTask queryTask;
+		
+//		/** The query. */
+//		final String query;
 		
 		/** The timestamp when the query was accepted (ns). */
 		final long begin;
 
 		public RunningQuery(final long queryId, final UUID queryId2,
-				final String query, final long begin) {
+				final String query, final long begin,
+				final AbstractQueryTask queryTask) {
 
 			this.queryId = queryId;
 
 			this.queryId2 = queryId2;
 			
-			this.query = query;
+//			this.query = query;
 
 			this.begin = begin;
+			
+			this.queryTask = queryTask;
 
 		}
 
