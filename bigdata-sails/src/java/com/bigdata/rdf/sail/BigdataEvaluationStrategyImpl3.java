@@ -1974,7 +1974,8 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
     			
     			if (iv.isURI() && !(right instanceof DatatypeBOp)) {
     				
-    				return new FalseBOp(new SameTermBOp(left, right));
+//    				return new FalseBOp(new SameTermBOp(left, right));
+    				return FalseBOp.INSTANCE;
     				
     			} else {
     				
@@ -1994,7 +1995,8 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
     			
     			if (iv.isURI() && !(left instanceof DatatypeBOp)) {
     				
-    				return new FalseBOp(new SameTermBOp(left, right));
+//    				return new FalseBOp(new SameTermBOp(left, right));
+    				return FalseBOp.INSTANCE;
     				
     			} else {
     				
@@ -2050,7 +2052,8 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
     			
     	    	if (!(op == CompareOp.EQ || op == CompareOp.NE)) {
     	    		
-    	    		return new SparqlTypeErrorBOp(new CompareBOp(left, right, op));
+//    	    		return new SparqlTypeErrorBOp(new CompareBOp(left, right, op));
+    	    		return SparqlTypeErrorBOp.INSTANCE;
     	    		
     	    	}
     	    	
@@ -2064,11 +2067,13 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
     	    			
     	        		if (op == CompareOp.EQ) {
     	        			
-    	        			return new FalseBOp(new CompareBOp(left, right, op));
+//    	        			return new FalseBOp(new CompareBOp(left, right, op));
+    	        			return FalseBOp.INSTANCE;
     	        			
     	        		} else {
     	        			
-    	        			return new TrueBOp(new CompareBOp(left, right, op));
+//    	        			return new TrueBOp(new CompareBOp(left, right, op));
+    	        			return TrueBOp.INSTANCE;
     	        			
     	        		}
     	    			
@@ -2089,7 +2094,8 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
     			
     	    	if (!(op == CompareOp.EQ || op == CompareOp.NE)) {
     	    		
-    	    		return new SparqlTypeErrorBOp(new CompareBOp(left, right, op));
+//    	    		return new SparqlTypeErrorBOp(new CompareBOp(left, right, op));
+    	    		return SparqlTypeErrorBOp.INSTANCE;
     	    		
     	    	}
     	    	
@@ -2103,11 +2109,13 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
     	    			
     	        		if (op == CompareOp.EQ) {
     	        			
-    	        			return new FalseBOp(new CompareBOp(left, right, op));
+//    	        			return new FalseBOp(new CompareBOp(left, right, op));
+    	        			return FalseBOp.INSTANCE;
     	        			
     	        		} else {
     	        			
-    	        			return new TrueBOp(new CompareBOp(left, right, op));
+//    	        			return new TrueBOp(new CompareBOp(left, right, op));
+    	        			return TrueBOp.INSTANCE;
     	        			
     	        		}
     	    			
