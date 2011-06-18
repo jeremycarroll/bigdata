@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.bop.BOpUtility;
 import com.bigdata.bop.engine.IRunningQuery;
 import com.bigdata.bop.engine.QueryEngine;
 import com.bigdata.bop.engine.QueryLog;
@@ -348,6 +349,12 @@ public class QueryServlet extends BigdataRDFServlet {
 				current.node("h2",
 						"Query Evaluation Statistics").node("p");
 				if (q != null) {
+
+					current.node("h2", "BOP Plan").node(
+							"pre",
+							HTMLUtility.escapeForXHTML(BOpUtility
+									.toString(q.getQuery())));
+
 					/*
 					 * Format query statistics as a table.
 					 * 
