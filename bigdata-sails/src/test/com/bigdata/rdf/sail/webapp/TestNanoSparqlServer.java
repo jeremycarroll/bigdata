@@ -661,18 +661,26 @@ public class TestNanoSparqlServer extends TestCase2 {
 		// connect.
 		conn.connect();
 
-		final int rc = conn.getResponseCode();
+        try {
 
-		if (rc < 200 || rc >= 300) {
-		
-		    throw new IOException(conn.getResponseMessage());
-		    
-		}
-		
-		final String txt = getStreamContents(conn.getInputStream());
-		
-        if (log.isInfoEnabled())
-            log.info(txt);
+            final int rc = conn.getResponseCode();
+
+            if (rc < 200 || rc >= 300) {
+
+                throw new IOException(conn.getResponseMessage());
+
+            }
+
+            final String txt = getStreamContents(conn.getInputStream());
+
+            if (log.isInfoEnabled())
+                log.info(txt);
+
+        } finally {
+
+            conn.disconnect();
+
+        }
 
 	}
 
