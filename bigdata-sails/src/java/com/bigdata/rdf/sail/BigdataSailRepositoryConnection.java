@@ -19,8 +19,6 @@ import com.bigdata.journal.TimestampUtility;
 import com.bigdata.rdf.changesets.IChangeLog;
 import com.bigdata.rdf.changesets.IChangeRecord;
 import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
-import com.bigdata.rdf.sail.bench.NanoSparqlClient;
-import com.bigdata.rdf.sail.bench.NanoSparqlClient.QueryType;
 import com.bigdata.rdf.store.AbstractTripleStore;
 
 /**
@@ -81,7 +79,7 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
                 baseURI);
 
 		final boolean describe = ql == QueryLanguage.SPARQL
-				&& NanoSparqlClient.QueryType.fromQuery(qs) == QueryType.DESCRIBE;
+				&& QueryType.fromQuery(qs) == QueryType.DESCRIBE;
 
 		return new BigdataSailGraphQuery(parsedQuery, this, queryHints,
 				describe);
@@ -157,7 +155,7 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
 		} else if (parsedQuery instanceof ParsedGraphQuery) {
 
 			final boolean describe = ql == QueryLanguage.SPARQL
-					&& NanoSparqlClient.QueryType.fromQuery(qs) == QueryType.DESCRIBE;
+					&& QueryType.fromQuery(qs) == QueryType.DESCRIBE;
 
 			return new BigdataSailGraphQuery((ParsedGraphQuery) parsedQuery,
 					this, queryHints, describe);

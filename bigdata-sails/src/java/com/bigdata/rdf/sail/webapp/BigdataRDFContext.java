@@ -62,6 +62,7 @@ import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import com.bigdata.rdf.sail.BigdataSailTupleQuery;
 import com.bigdata.rdf.sail.QueryHints;
+import com.bigdata.rdf.sail.QueryType;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.relation.AbstractResource;
 import com.bigdata.relation.RelationSchema;

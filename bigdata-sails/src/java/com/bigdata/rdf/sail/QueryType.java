@@ -1,4 +1,4 @@
-package com.bigdata.rdf.sail.webapp;
+package com.bigdata.rdf.sail;
 
 import java.util.Arrays;
 
@@ -12,7 +12,9 @@ public enum QueryType {
     private final int order;
 
     private QueryType(final int order) {
+        
         this.order = order;
+        
     }
 
     private static QueryType getQueryType(final int order) {
@@ -44,10 +46,42 @@ public enum QueryType {
             this.queryType = queryType;
         }
 
-        /** Sort into descending offset. */
+        /** Sort into ascending offset. */
         public int compareTo(final QueryType.P o) {
-            return o.offset - offset;
+            
+            return offset - o.offset;
+            
         }
+        
+        public int hashCode() {
+        
+            return offset;
+            
+        }
+        
+        public boolean equals(final Object o) {
+            
+            if (this == o)
+                return true;
+            
+            if (o instanceof P) {
+            
+                final P t = (P) o;
+                
+                return this.offset == t.offset && this.queryType == t.queryType;
+                
+            }
+
+            return false;
+            
+        }
+        
+        public String toString() {
+         
+            return "{offset=" + offset + ",type=" + queryType + "}";
+            
+        }
+        
     }
 
     /**
