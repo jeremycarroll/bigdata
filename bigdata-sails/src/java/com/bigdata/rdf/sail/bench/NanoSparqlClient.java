@@ -65,7 +65,9 @@ import org.openrdf.rio.rdfxml.RDFXMLParser;
 
 import com.bigdata.counters.CAT;
 import com.bigdata.jsr166.LinkedBlockingQueue;
+import com.bigdata.rdf.sail.IBigdataParsedQuery;
 import com.bigdata.rdf.sail.QueryType;
+import com.bigdata.rdf.sail.sparql.BigdataSPARQLParser;
 
 /**
  * A flyweight utility for issuing queries to an http SPARQL endpoint.
@@ -270,11 +272,14 @@ public class NanoSparqlClient {
 				conn.setUseCaches(opts.useCaches);
 				conn.setReadTimeout(opts.timeout);
 
-				/*
-				 * Set an appropriate Accept header for the query.
-				 */
-				final QueryType queryType = opts.queryType = QueryType
-						.fromQuery(opts.queryStr);
+                /*
+                 * Set an appropriate Accept header for the query.
+                 */
+                final ParsedQuery parsedQuery = new BigdataSPARQLParser()
+                        .parseQuery(opts.queryStr, opts.baseURI);
+
+                final QueryType queryType = opts.queryType = ((IBigdataParsedQuery) parsedQuery)
+                        .getQueryType();
 
 				switch(queryType) {
 				case DESCRIBE:

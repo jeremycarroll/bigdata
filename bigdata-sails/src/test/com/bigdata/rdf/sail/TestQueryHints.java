@@ -38,29 +38,31 @@ import org.openrdf.model.impl.URIImpl;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryLanguage;
 
 import com.bigdata.bop.PipelineOp;
+import com.bigdata.rdf.sail.sparql.BigdataSPARQLParser;
 import com.bigdata.rdf.store.BD;
 
 /**
- * Unit test for {@link QueryHintsUtility}.
+ * Unit test for {@link BigdataSPARQLParser}'s ability to report the
+ * {@link QueryHints} associated with a SPARQL query.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
- * @version $Id$
+ * @version $Id: TestQueryHintsUtility.java 4739 2011-06-20 12:42:13Z
+ *          thompsonbry $
  */
-public class TestQueryHintsUtility extends TestCase2 {
+public class TestQueryHints extends TestCase2 {
 
     /**
      * 
      */
-    public TestQueryHintsUtility() {
+    public TestQueryHints() {
     }
 
     /**
      * @param name
      */
-    public TestQueryHintsUtility(String name) {
+    public TestQueryHints(String name) {
         super(name);
     }
 
@@ -75,8 +77,6 @@ public class TestQueryHintsUtility extends TestCase2 {
             
         }
 
-        final QueryLanguage ql = QueryLanguage.SPARQL;
-
         final String baseURI = "http://www.bigdata.com/sparql";
 
         final URI a = new URIImpl("_:A");
@@ -89,8 +89,8 @@ public class TestQueryHintsUtility extends TestCase2 {
                 + ">\n"//
                 + "SELECT * " + "WHERE { " + "  <" + a + "> ?p ?o " + "}";
 
-        final Properties actual = QueryHintsUtility.parseQueryHints(ql, qs,
-                baseURI);
+        final Properties actual = ((IBigdataParsedQuery) new BigdataSPARQLParser()
+                .parseQuery(qs, baseURI)).getQueryHints();
 
         assertSameProperties(expected, actual);
 
@@ -106,8 +106,6 @@ public class TestQueryHintsUtility extends TestCase2 {
             expected.put("com.bigdata.fullScanTreshold","1000");
             
         }
-
-        final QueryLanguage ql = QueryLanguage.SPARQL;
 
         final String baseURI = "http://www.bigdata.com/sparql";
 
@@ -126,8 +124,8 @@ public class TestQueryHintsUtility extends TestCase2 {
             "  ?x bd:likes bd:RDF " +//
             "}";
 
-        final Properties actual = QueryHintsUtility.parseQueryHints(ql, qs,
-                baseURI);
+        final Properties actual = ((IBigdataParsedQuery) new BigdataSPARQLParser()
+                .parseQuery(qs, baseURI)).getQueryHints();
 
         assertSameProperties(expected, actual);
 

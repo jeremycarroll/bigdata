@@ -82,7 +82,7 @@ public class TestAll extends TestCase {
         final TestSuite suite = new TestSuite("Sesame 2.x integration");
 
         // test suite for extracting query hints from a SPARQL query.
-        suite.addTestSuite(TestQueryHintsUtility.class);
+        suite.addTestSuite(TestQueryHints.class);
      
         // test suite for utility to extract the type of a SPARQL query.
         suite.addTestSuite(TestQueryType.class);

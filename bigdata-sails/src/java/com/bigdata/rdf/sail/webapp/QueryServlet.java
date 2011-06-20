@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
+import org.openrdf.query.MalformedQueryException;
 
 import com.bigdata.bop.BOpUtility;
 import com.bigdata.bop.engine.IRunningQuery;
@@ -122,8 +123,23 @@ public class QueryServlet extends BigdataRDFServlet {
 			
 			final boolean explain = req.getParameter(BigdataRDFContext.EXPLAIN) != null;
 
-			final AbstractQueryTask queryTask = context.getQueryTask(namespace,
-					timestamp, queryStr, req, os);
+			final AbstractQueryTask queryTask;
+            try {
+                /*
+                 * Attempt to construct a task which we can use to evaluate the
+                 * query.
+                 */
+                queryTask = context.getQueryTask(namespace, timestamp,
+                        queryStr, req, os);
+            } catch (MalformedQueryException ex) {
+                /*
+                 * Send back a BAD REQUEST (400) along with the text of the
+                 * syntax error message.
+                 */
+                resp.sendError(HttpServletResponse.SC_BAD_REQUEST, ex
+                        .getLocalizedMessage());
+                return;
+            }
 
             final FutureTask<Void> ft = new FutureTask<Void>(queryTask);
 

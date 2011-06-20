@@ -19,6 +19,7 @@ import com.bigdata.journal.TimestampUtility;
 import com.bigdata.rdf.changesets.IChangeLog;
 import com.bigdata.rdf.changesets.IChangeRecord;
 import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
+import com.bigdata.rdf.sail.sparql.BigdataSPARQLParser;
 import com.bigdata.rdf.store.AbstractTripleStore;
 
 /**
@@ -72,17 +73,28 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
             final String qs, final String baseURI) 
             throws MalformedQueryException {
 
-		final ParsedGraphQuery parsedQuery = QueryParserUtil.parseGraphQuery(
-				ql, qs, baseURI);
+        final SailQuery sailQuery = prepareQuery(ql, qs, baseURI);
+        
+        if(sailQuery.getParsedQuery() instanceof ParsedGraphQuery) {
+            
+            return (BigdataSailGraphQuery) sailQuery;
+            
+        }
 
-        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql, qs,
-                baseURI);
-
-		final boolean describe = ql == QueryLanguage.SPARQL
-				&& QueryType.fromQuery(qs) == QueryType.DESCRIBE;
-
-		return new BigdataSailGraphQuery(parsedQuery, this, queryHints,
-				describe);
+        // Wrong type of query.
+        throw new IllegalArgumentException();
+        
+//		final ParsedGraphQuery parsedQuery = QueryParserUtil.parseGraphQuery(
+//				ql, qs, baseURI);
+//
+//        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql, qs,
+//                baseURI);
+//
+//		final boolean describe = ql == QueryLanguage.SPARQL
+//				&& QueryType.fromQuery(qs) == QueryType.DESCRIBE;
+//
+//		return new BigdataSailGraphQuery(parsedQuery, this, queryHints,
+//				describe);
 
     }
 
@@ -95,16 +107,27 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
 	 */
     @Override
 	public BigdataSailTupleQuery prepareTupleQuery(final QueryLanguage ql,
-			final String queryString, final String baseURI)
+			final String qs, final String baseURI)
 			throws MalformedQueryException {
 
-		final ParsedTupleQuery parsedQuery = QueryParserUtil.parseTupleQuery(
-				ql, queryString, baseURI);
+        final SailQuery sailQuery = prepareQuery(ql, qs, baseURI);
+        
+        if(sailQuery.getParsedQuery() instanceof ParsedTupleQuery) {
+            
+            return (BigdataSailTupleQuery) sailQuery;
+            
+        }
 
-        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql,
-                queryString, baseURI);
+        // Wrong type of query.
+        throw new IllegalArgumentException();
 
-		return new BigdataSailTupleQuery(parsedQuery, this, queryHints);
+//		final ParsedTupleQuery parsedQuery = QueryParserUtil.parseTupleQuery(
+//				ql, queryString, baseURI);
+//
+//        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql,
+//                queryString, baseURI);
+//
+//		return new BigdataSailTupleQuery(parsedQuery, this, queryHints);
 
     }
 
@@ -117,35 +140,64 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
 	 */
     @Override
 	public BigdataSailBooleanQuery prepareBooleanQuery(final QueryLanguage ql,
-			final String queryString, final String baseURI)
+			final String qs, final String baseURI)
 			throws MalformedQueryException {
 
-		final ParsedBooleanQuery parsedQuery = QueryParserUtil
-				.parseBooleanQuery(ql, queryString, baseURI);
+        final SailQuery sailQuery = prepareQuery(ql, qs, baseURI);
+        
+        if(sailQuery.getParsedQuery() instanceof ParsedBooleanQuery) {
+            
+            return (BigdataSailBooleanQuery) sailQuery;
+            
+        }
 
-        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql,
-                queryString, baseURI);
+        // Wrong type of query.
+        throw new IllegalArgumentException();
 
-		return new BigdataSailBooleanQuery(parsedQuery, this, queryHints);
+//		final ParsedBooleanQuery parsedQuery = QueryParserUtil
+//				.parseBooleanQuery(ql, queryString, baseURI);
+//
+//        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql,
+//                queryString, baseURI);
+//
+//		return new BigdataSailBooleanQuery(parsedQuery, this, queryHints);
 
     }
 
-	/**
-	 * {@inheritDoc}
-	 * <p>
-	 * Overridden to capture query hints from SPARQL queries. Query hints are
-	 * embedded in query strings as namespaces. See {@link QueryHints#PREFIX}
-	 * for more information.
-	 */
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Overridden to capture query hints from SPARQL queries. Query hints are
+     * embedded in query strings as namespaces. See {@link QueryHints#PREFIX}
+     * for more information.
+     * <p>
+     * Note: In order to ensure that all code paths captures this information,
+     * all the other "prepare query" methods on this class delegate to this
+     * implementation.
+     */
 	@Override
 	public SailQuery prepareQuery(final QueryLanguage ql, final String qs,
 			final String baseURI) throws MalformedQueryException {
 
-		final ParsedQuery parsedQuery = QueryParserUtil.parseQuery(ql, qs,
-				baseURI);
-
-        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql, qs,
-                baseURI);
+		final ParsedQuery parsedQuery;
+		final Properties queryHints;
+		final boolean describe;
+		if(QueryLanguage.SPARQL == ql) {
+		    /*
+		     * Make sure that we go through the overridden SPARQL parser.
+		     */
+            parsedQuery = new BigdataSPARQLParser().parseQuery(qs, baseURI);
+            queryHints = ((IBigdataParsedQuery) parsedQuery).getQueryHints();
+            describe = QueryType.DESCRIBE == ((IBigdataParsedQuery) parsedQuery)
+                    .getQueryType();
+		} else {
+		    /*
+		     * Not a SPARQL query.
+		     */
+            parsedQuery = QueryParserUtil.parseQuery(ql, qs, baseURI);
+            queryHints = new Properties();
+            describe = false;
+		}
 
 		if (parsedQuery instanceof ParsedTupleQuery) {
 
@@ -153,9 +205,6 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
 					this, queryHints);
 
 		} else if (parsedQuery instanceof ParsedGraphQuery) {
-
-			final boolean describe = ql == QueryLanguage.SPARQL
-					&& QueryType.fromQuery(qs) == QueryType.DESCRIBE;
 
 			return new BigdataSailGraphQuery((ParsedGraphQuery) parsedQuery,
 					this, queryHints, describe);
