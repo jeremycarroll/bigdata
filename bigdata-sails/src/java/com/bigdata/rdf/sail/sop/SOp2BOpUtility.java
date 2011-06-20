@@ -105,7 +105,7 @@ public class SOp2BOpUtility {
      * A Union always appears as a single Sesame operator within a group. Its
      * children are the things being Unioned together.
      */
-    private static boolean isUnion(final SOpGroup sopGroup) {
+    public static boolean isUnion(final SOpGroup sopGroup) {
     	
     	if (sopGroup.size() == 1) {
     		final SOp sop = sopGroup.getSingletonSOp();
@@ -173,7 +173,7 @@ public class SOp2BOpUtility {
     	
     }
     
-    private static boolean isOptional(final SOpGroup sopGroup) {
+    public static boolean isOptional(final SOpGroup sopGroup) {
     	
     	if (sopGroup.size() == 0) {
     		throw new IllegalArgumentException();
