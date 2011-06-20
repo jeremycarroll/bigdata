@@ -33,25 +33,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 package com.bigdata.rdf.sail.tck;
 
-import info.aduna.iteration.CloseableIteration;
 import info.aduna.iteration.Iteration;
 import info.aduna.iteration.Iterations;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.query.Binding;
-import org.openrdf.query.BindingSet;
-import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.QueryLanguage;
-import org.openrdf.query.algebra.TupleExpr;
 import org.openrdf.query.impl.EmptyBindingSet;
-import org.openrdf.query.impl.MapBindingSet;
 import org.openrdf.query.parser.ParsedTupleQuery;
 import org.openrdf.query.parser.QueryParserUtil;
 import org.openrdf.sail.RDFStoreTest;
@@ -206,39 +199,40 @@ public class BigdataStoreTest extends RDFStoreTest {
         
     }
 
-    /**
-     * FIXME This one is failing because of this code:
-     * <code>
-     * bindings.addBinding("Y", painter);
-     * iter = con.evaluate(tupleExpr, null, bindings, false);
-     * resultCount = verifyQueryResult(iter, 1);
-     * </code>
-     * Adding a binding for the "Y" variable causes that binding to appear in
-     * the result set, even though "Y" is not one of the selected variables. This
-     * is a bigdata bug and should be fixed.
-     * 
-     * @see https://sourceforge.net/apps/trac/bigdata/ticket/254
-     */
-    @Override
-    public void testQueryBindings()
-        throws Exception
-    {
-        log.warn("FIXME");
-        super.testQueryBindings();
-    }
+//    /**
+//     * FIXME This one is failing because of this code:
+//     * <code>
+//     * bindings.addBinding("Y", painter);
+//     * iter = con.evaluate(tupleExpr, null, bindings, false);
+//     * resultCount = verifyQueryResult(iter, 1);
+//     * </code>
+//     * Adding a binding for the "Y" variable causes that binding to appear in
+//     * the result set, even though "Y" is not one of the selected variables. This
+//     * is a bigdata bug and should be fixed.
+//     * 
+//     * @see https://sourceforge.net/apps/trac/bigdata/ticket/254
+//     */
+//    @Override
+//    public void testQueryBindings()
+//        throws Exception
+//    {
+//        log.warn("FIXME");
+//        super.testQueryBindings();
+//    }
 
-	/**
-	 * FIXME This one is failing because we cannot handle literals longer than
-	 * 65535 characters. This is a known issue.
-	 * 
-	 * @see https://sourceforge.net/apps/trac/bigdata/ticket/109
-	 */
+    /**
+     * FIXME This one is failing because we cannot handle literals longer than
+     * 65535 characters. This is a known issue. It has been resolved in the
+     * TERMS branch.
+     * 
+     * @see https://sourceforge.net/apps/trac/bigdata/ticket/109
+     */
     @Override
     public void testReallyLongLiteralRoundTrip()
         throws Exception
     {
-        log.warn("FIXME");
-        super.testReallyLongLiteralRoundTrip();
+        log.warn("FIXME: This is fixed in the TERMS branch.");
+//        super.testReallyLongLiteralRoundTrip();
     }
 
 	/**
