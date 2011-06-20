@@ -294,7 +294,7 @@ public class DirectBufferPool {
                         + ",nleaked=" + nleaked + "): AllocationStack",
                         allocationStack);
             } else {
-                log.error("Buffer release on finalize.");
+//                log.error("Buffer release on finalize."); // NB: NOT an error.
                 /*
                  * TODO We do not currently set this.buf = buf if we are
                  * interrupted in release(buf) here, so this is not acid. But
