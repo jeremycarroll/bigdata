@@ -1,8 +1,6 @@
 package com.bigdata.rdf.sail;
 
-import java.util.Map;
 import java.util.Properties;
-import java.util.StringTokenizer;
 
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
@@ -11,9 +9,6 @@ import org.openrdf.query.parser.ParsedGraphQuery;
 import org.openrdf.query.parser.ParsedQuery;
 import org.openrdf.query.parser.ParsedTupleQuery;
 import org.openrdf.query.parser.QueryParserUtil;
-import org.openrdf.query.parser.sparql.ast.ASTQueryContainer;
-import org.openrdf.query.parser.sparql.ast.ParseException;
-import org.openrdf.query.parser.sparql.ast.SyntaxTreeBuilder;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailQuery;
 import org.openrdf.repository.sail.SailRepositoryConnection;
@@ -26,9 +21,6 @@ import com.bigdata.rdf.changesets.IChangeRecord;
 import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 import com.bigdata.rdf.sail.bench.NanoSparqlClient;
 import com.bigdata.rdf.sail.bench.NanoSparqlClient.QueryType;
-import com.bigdata.rdf.sail.sparql.BaseDeclProcessor;
-import com.bigdata.rdf.sail.sparql.PrefixDeclProcessor;
-import com.bigdata.rdf.sail.sparql.StringEscapesProcessor;
 import com.bigdata.rdf.store.AbstractTripleStore;
 
 /**
@@ -85,7 +77,8 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
 		final ParsedGraphQuery parsedQuery = QueryParserUtil.parseGraphQuery(
 				ql, qs, baseURI);
 
-		final Properties queryHints = parseQueryHints(ql, qs, baseURI);
+        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql, qs,
+                baseURI);
 
 		final boolean describe = ql == QueryLanguage.SPARQL
 				&& NanoSparqlClient.QueryType.fromQuery(qs) == QueryType.DESCRIBE;
@@ -110,7 +103,8 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
 		final ParsedTupleQuery parsedQuery = QueryParserUtil.parseTupleQuery(
 				ql, queryString, baseURI);
 
-		final Properties queryHints = parseQueryHints(ql, queryString, baseURI);
+        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql,
+                queryString, baseURI);
 
 		return new BigdataSailTupleQuery(parsedQuery, this, queryHints);
 
@@ -131,7 +125,8 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
 		final ParsedBooleanQuery parsedQuery = QueryParserUtil
 				.parseBooleanQuery(ql, queryString, baseURI);
 
-		final Properties queryHints = parseQueryHints(ql, queryString, baseURI);
+        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql,
+                queryString, baseURI);
 
 		return new BigdataSailBooleanQuery(parsedQuery, this, queryHints);
 
@@ -151,7 +146,8 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
 		final ParsedQuery parsedQuery = QueryParserUtil.parseQuery(ql, qs,
 				baseURI);
 
-		final Properties queryHints = parseQueryHints(ql, qs, baseURI);
+        final Properties queryHints = QueryHintsUtility.parseQueryHints(ql, qs,
+                baseURI);
 
 		if (parsedQuery instanceof ParsedTupleQuery) {
 
@@ -322,59 +318,7 @@ public class BigdataSailRepositoryConnection extends SailRepositoryConnection {
         }
 
     }
-    
-    /**
-     * Parse query hints from a query string.  Query hints are embedded in the 
-     * query string via special namespaces.      
-     * See {@link QueryHints#PREFIX} for more information.
-     */
-	private Properties parseQueryHints(final QueryLanguage ql,
-			final String queryString, final String baseURI)
-			throws MalformedQueryException {
-        try {
-            final Properties queryHints = new Properties();
-            // currently only supporting SPARQL
-            if (ql == QueryLanguage.SPARQL) {
-                // the next four lines were taken directly from
-                // org.openrdf.query.parser.sparql.SPARQLParser.parseQuery(String queryStr, String baseURI)
-                final ASTQueryContainer qc = SyntaxTreeBuilder.parseQuery(queryString);
-                StringEscapesProcessor.process(qc);
-                BaseDeclProcessor.process(qc, baseURI);
-				final Map<String, String> prefixes = PrefixDeclProcessor
-						.process(qc);
-                // iterate the namespaces
-                for (Map.Entry<String, String> prefix : prefixes.entrySet()) {
-                    // if we see one that matches the magic namespace, try
-                    // to parse it
-                    if (prefix.getKey().equalsIgnoreCase(QueryHints.PREFIX)) {
-                        String hints = prefix.getValue();
-                        // has to have a # and it can't be at the end
-                        int i = hints.indexOf('#');
-                        if (i < 0 || i == hints.length()-1) {
-                            throw new MalformedQueryException("bad query hints: " + hints);
-                        }
-                        hints = hints.substring(i+1);
-                        // properties are separated by &
-                        final StringTokenizer st = new StringTokenizer(hints, "&");
-                        while (st.hasMoreTokens()) {
-                            String hint = st.nextToken();
-                            i = hint.indexOf('=');
-                            if (i < 0 || i == hint.length()-1) {
-                                throw new MalformedQueryException("bad query hint: " + hint);
-                            }
-                            final String key = hint.substring(0, i);
-                            final String val = hint.substring(i+1);
-                            queryHints.put(key, val);
-                        }
-                    }
-                }
-            }
-            return queryHints;
-        } catch (ParseException e) {
-            throw new MalformedQueryException(e.getMessage(), e);
-        }
-    }
-    
+
     /**
      * Set the change log on the SAIL connection.  See {@link IChangeLog} and
      * {@link IChangeRecord}.

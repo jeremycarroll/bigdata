@@ -80,7 +80,10 @@ public class TestAll extends TestCase {
         }
         
         final TestSuite suite = new TestSuite("Sesame 2.x integration");
-       
+
+        // unit tests for extracting query hints from a SPARQL query.
+        suite.addTestSuite(TestQueryHintsUtility.class);
+        
         // bootstrap tests for the BigdataSail
         suite.addTestSuite(TestBootstrapBigdataSail.class);
 
