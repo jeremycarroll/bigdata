@@ -71,6 +71,17 @@ public class TestQueryType extends TestCase2 {
 
     }
 
+    public void test_select_with_ask_in_PREFIX() {
+        
+        final String s = 
+            "prefix bd: <"+BD.NAMESPACE+"> " +
+            "prefix foo: <http://www.bigdata.com/test/ask/ns> " +
+            "select ?p ?o where {<http://blablabla.com/ask_something> ?p ?o}";
+
+        assertEquals(QueryType.SELECT, QueryType.fromQuery(s));
+
+    }
+
     public void test_describe() {
     
         final String s = 

@@ -1,86 +1,23 @@
 package com.bigdata.rdf.sail;
 
-import java.util.Arrays;
+import org.openrdf.query.parser.sparql.ast.ASTAskQuery;
+import org.openrdf.query.parser.sparql.ast.ASTConstructQuery;
+import org.openrdf.query.parser.sparql.ast.ASTDescribeQuery;
+import org.openrdf.query.parser.sparql.ast.ASTQuery;
+import org.openrdf.query.parser.sparql.ast.ASTQueryContainer;
+import org.openrdf.query.parser.sparql.ast.ASTSelectQuery;
+import org.openrdf.query.parser.sparql.ast.ParseException;
+import org.openrdf.query.parser.sparql.ast.SyntaxTreeBuilder;
+import org.openrdf.query.parser.sparql.ast.TokenMgrError;
 
 /**
  * Helper class to figure out the type of a query.
  */
 public enum QueryType {
 
-    ASK(0), DESCRIBE(1), CONSTRUCT(2), SELECT(3);
+    ASK, DESCRIBE, CONSTRUCT, SELECT;
 
-    private final int order;
-
-    private QueryType(final int order) {
-        
-        this.order = order;
-        
-    }
-
-    private static QueryType getQueryType(final int order) {
-        switch (order) {
-        case 0:
-            return ASK;
-        case 1:
-            return DESCRIBE;
-        case 2:
-            return CONSTRUCT;
-        case 3:
-            return SELECT;
-        default:
-            throw new IllegalArgumentException("order=" + order);
-        }
-    }
-
-    /**
-     * Used to note the offset at which a keyword was found.
-     */
-    static private class P implements Comparable<QueryType.P> {
-
-        final int offset;
-
-        final QueryType queryType;
-
-        public P(final int offset, final QueryType queryType) {
-            this.offset = offset;
-            this.queryType = queryType;
-        }
-
-        /** Sort into ascending offset. */
-        public int compareTo(final QueryType.P o) {
-            
-            return offset - o.offset;
-            
-        }
-        
-        public int hashCode() {
-        
-            return offset;
-            
-        }
-        
-        public boolean equals(final Object o) {
-            
-            if (this == o)
-                return true;
-            
-            if (o instanceof P) {
-            
-                final P t = (P) o;
-                
-                return this.offset == t.offset && this.queryType == t.queryType;
-                
-            }
-
-            return false;
-            
-        }
-        
-        public String toString() {
-         
-            return "{offset=" + offset + ",type=" + queryType + "}";
-            
-        }
+    private QueryType() {
         
     }
 
@@ -94,44 +31,22 @@ public enum QueryType {
      * @return The query type.
      */
     static public QueryType fromQuery(final String queryStr) {
-
-        // force all to lower case.
-        final String s = queryStr.toUpperCase();
-
-        final int ntypes = QueryType.values().length;
-
-        final QueryType.P[] p = new QueryType.P[ntypes];
-
-        int nmatch = 0;
-        for (int i = 0; i < ntypes; i++) {
-
-            final QueryType queryType = getQueryType(i);
-
-            final int offset = s.indexOf(queryType.toString());
-
-            if (offset == -1)
-                continue;
-
-            p[nmatch++] = new P(offset, queryType);
-
+        
+        try {
+            final ASTQueryContainer queryContainer = SyntaxTreeBuilder
+                    .parseQuery(queryStr);
+            final ASTQuery query = queryContainer.getQuery();
+            if(query instanceof ASTSelectQuery) return QueryType.SELECT;
+            if(query instanceof ASTDescribeQuery) return QueryType.DESCRIBE;
+            if(query instanceof ASTConstructQuery) return QueryType.CONSTRUCT;
+            if(query instanceof ASTAskQuery) return QueryType.ASK;
+            throw new RuntimeException(queryContainer.toString());
+        } catch (TokenMgrError ex) {
+            throw new RuntimeException(ex);
+        } catch (ParseException ex) {
+            throw new RuntimeException(ex);
         }
-
-        if (nmatch == 0) {
-
-            throw new RuntimeException(
-                    "Could not determine the query type: " + queryStr);
-
-        }
-
-        Arrays.sort(p, 0/* fromIndex */, nmatch/* toIndex */);
-
-        final QueryType.P tmp = p[0];
-
-        // System.out.println("QueryType: offset=" + tmp.offset + ", type="
-        // + tmp.queryType);
-
-        return tmp.queryType;
 
     }
-
+    
 }
