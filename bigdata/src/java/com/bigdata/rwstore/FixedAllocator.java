@@ -557,7 +557,16 @@ public class FixedAllocator implements Allocator {
 
 			final int block = offset/nbits;
 			
-			m_sessionActive = m_store.isSessionProtected();
+			/**
+			 * When a session is released any m_sessionActive FixedAllocators
+			 * should be atomically released.
+			 * However, if any state allowed a call to free once the store
+			 * is not session protected, this must NOT overwrite m_sessionActive
+			 * if it is already set since a commit would reset the transient bits
+			 * without first clearing addresses them from the writeCacheService
+			 */
+			
+			m_sessionActive = m_sessionActive || m_store.isSessionProtected();
 
 			try {
 				if (((AllocBlock) m_allocBlocks.get(block))

@@ -130,10 +130,6 @@ abstract public class WriteCache implements IWriteCache {
 	 * {@link #flush(boolean, long, TimeUnit)}, {@link #reset()}, and
 	 * {@link #close()}.
 	 */
-//    * <p>
-//    * Note: To avoid lock ordering problems, acquire the read lock before you
-//    * increment the latch and acquire the write lock before you await the
-//    * latch.
 	final private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
@@ -651,7 +647,8 @@ abstract public class WriteCache implements IWriteCache {
 		// header block.
 
 		if (m_written) { // should be clean, NO WAY should this be written to!
-			log.warn("Writing to CLEAN cache: " + hashCode());
+			log.error("Writing to CLEAN cache: " + hashCode());
+			throw new IllegalStateException("Writing to CLEAN cache: " + hashCode());
 		}
 
 		if (data == null)
@@ -1051,21 +1048,27 @@ abstract public class WriteCache implements IWriteCache {
 				// write the data on the disk file.
 				final boolean ret = writeOnChannel(view, getFirstOffset(), Collections.unmodifiableMap(recordMap),
 						remaining);
-
-				if(!ret)
-				    throw new TimeoutException();
 				
+				if (!ret) {
+					throw new IllegalStateException("Unable to flush WriteCache");
+				}
+
 				counters.nflush++;
 
-				if (ret && reset) {
+				if (reset) {
 
 					/*
 					 * Atomic reset while holding the lock to prevent new
 					 * records from being written onto the buffer concurrently.
+					 * 
+					 * FIXME: If the WriteCache is used directly then this makes
+					 * sense, but if called from WriteCacheService then this must
+					 * always clear the "master" recordMap of the WriteCacheService
+					 * 
 					 */
-
+					
 					reset();
-
+					
 				}
 
 				return ret;
@@ -1191,6 +1194,41 @@ abstract public class WriteCache implements IWriteCache {
 	 */
 	public void reset() throws InterruptedException {
 
+		final Iterator<Long> entries = recordMap.keySet().iterator();
+		
+		if (serviceRecordMap != null && entries.hasNext()) {
+			if (log.isInfoEnabled())
+				log.info("resetting existing WriteCache: nrecords=" + recordMap.size() + ", hashCode=" + hashCode());
+
+			while (entries.hasNext()) {
+				final Long addr = entries.next();
+
+				/*
+				 * We need to guard against the possibility that the entry in
+				 * the service record map has been updated concurrently such
+				 * that it now points to a different WriteCache instance. This
+				 * is possible (for the RWStore) if a recently freed record has
+				 * been subsequently reallocated on a different WriteCache.
+				 * Using the conditional remove on ConcurrentMap guards against
+				 * this.
+				 */
+				boolean removed = serviceRecordMap.remove(addr, this);
+				
+				registerWriteStatus(addr, 0, removed ? 'R' : 'L');
+
+			}
+
+		} else {
+			if (log.isInfoEnabled())
+				log.info("clean WriteCache: hashCode=" + hashCode()); // debug
+																		// to
+																		// see
+																		// recycling
+			if (m_written) {
+				log.warn("Written WriteCache but with no records");
+			}
+		}
+
 		final Lock writeLock = lock.writeLock();
 
 		writeLock.lockInterruptibly();
@@ -1294,7 +1332,6 @@ abstract public class WriteCache implements IWriteCache {
 	 * 
 	 * @param tmp
 	 */
-	// ... and having the {@link #latch} at zero.
 	private void _resetState(final ByteBuffer tmp) {
 
 		if (tmp == null)
@@ -1865,24 +1902,26 @@ abstract public class WriteCache implements IWriteCache {
                             }
                     }
                 } // synchronized(tmp)
+        		
+        		/*
+        		 * Fix up the debug flag when last address is cleared.
+        		 */
+        		if (m_written && recordMap.isEmpty()) {
+        			m_written = false;
+        		}
 			} finally {
 				release();
 			}
 		}
-		
-		/*
-		 * Fix up the debug flag when last address is cleared.
-		 */
-		if (m_written && recordMap.isEmpty()) {
-			m_written = false;
-		}
 	}
 
 	protected void registerWriteStatus(long offset, int length, char action) {
-		// NOP to be overridden for debug if required
+		// NOP to be overidden for debug if required
 	}
 
 	boolean m_written = false;
+	
+	ConcurrentMap<Long, WriteCache> serviceRecordMap;
 
 	private long lastOffset;
 
@@ -1890,7 +1929,7 @@ abstract public class WriteCache implements IWriteCache {
 	 * Called to clear the WriteCacheService map of references to this
 	 * WriteCache.
 	 * 
-	 * @param recordMap
+	 * @param serviceRecordMap
 	 *            the map of the WriteCacheService that associates an address
 	 *            with a WriteCache
 	 * @param fileExtent
@@ -1900,40 +1939,8 @@ abstract public class WriteCache implements IWriteCache {
 	public void resetWith(final ConcurrentMap<Long, WriteCache> serviceRecordMap, final long fileExtent)
 			throws InterruptedException {
 
-		final Iterator<Long> entries = recordMap.keySet().iterator();
-		if (entries.hasNext()) {
-			if (log.isInfoEnabled())
-				log.info("resetting existing WriteCache: nrecords=" + recordMap.size() + ", hashCode=" + hashCode());
-
-			while (entries.hasNext()) {
-				final Long addr = entries.next();
-
-				/*
-				 * We need to guard against the possibility that the entry in
-				 * the service record map has been updated concurrently such
-				 * that it now points to a different WriteCache instance. This
-				 * is possible (for the RWStore) if a recently freed record has
-				 * been subsequently reallocated on a different WriteCache.
-				 * Using the conditional remove on ConcurrentMap guards against
-				 * this.
-				 */
-				boolean removed = serviceRecordMap.remove(addr, this);
-				
-				registerWriteStatus(addr, 0, removed ? 'R' : 'L');
-
-			}
-
-		} else {
-			if (log.isInfoEnabled())
-				log.info("clean WriteCache: hashCode=" + hashCode()); // debug
-																		// to
-																		// see
-																		// recycling
-			if (m_written) {
-				log.warn("Written WriteCache but with no records");
-			}
-		}
-
+		this.serviceRecordMap = serviceRecordMap;
+		
 		reset(); // must ensure reset state even if cache already empty
 
 		setFileExtent(fileExtent);
