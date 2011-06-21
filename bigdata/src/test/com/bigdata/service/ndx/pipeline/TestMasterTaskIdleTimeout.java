@@ -461,7 +461,7 @@ public class TestMasterTaskIdleTimeout extends AbstractMasterTestCase {
                                      * Verify the sink WAS NOT closed by an idle
                                      * timeout.
                                      * 
-                                     * Note: I have seen this assertion
+                                     * TODO I have seen this assertion
                                      * triggered occasionally. However, on
                                      * re-trial it generally succeeds [I think
                                      * that this was related to the visibility
