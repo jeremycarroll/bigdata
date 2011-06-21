@@ -27,8 +27,6 @@ package com.bigdata.io;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
-import sun.nio.ch.DirectBuffer;
-
 /**
  * Interface for access to, and release of, a direct {@link ByteBuffer} managed
  * by the {@link DirectBufferPool}. A "direct" buffer is a region from the C
@@ -41,7 +39,7 @@ import sun.nio.ch.DirectBuffer;
  * {@link IBufferAccess} object <em>MUST</em> hold a hard reference to that
  * {@link IBufferAccess} while they are using the associated memory block.
  * Failure to follow this pattern WILL result in the backing {@link ByteBuffer}
- * being returned to the {@link DirectBuffer} while the application is still
+ * being returned to the {@link DirectBufferPool} while the application is still
  * using the {@link ByteBuffer} (GC will drive this). This situation will lead
  * to corruption for data stored within the {@link ByteBuffer} if the buffer
  * recycled and handed off once again via {@link DirectBufferPool#acquire()}.
