@@ -565,8 +565,9 @@ public class FixedAllocator implements Allocator {
 			 * if it is already set since a commit would reset the transient bits
 			 * without first clearing addresses them from the writeCacheService
 			 */
-			
-			m_sessionActive = m_sessionActive || m_store.isSessionProtected();
+			final boolean tmp = m_sessionActive;
+			m_sessionActive = m_store.isSessionProtected();
+			if (tmp && !m_sessionActive) throw new AssertionError();
 
 			try {
 				if (((AllocBlock) m_allocBlocks.get(block))
@@ -866,7 +867,7 @@ public class FixedAllocator implements Allocator {
 		m_statsBucket = b;
 	}
 
-	public void releaseSession(RWWriteCacheService cache) {
+	void releaseSession(RWWriteCacheService cache) {
 		if (m_context != null) {
 			throw new IllegalStateException("Calling releaseSession on shadowed allocator");
 		}
