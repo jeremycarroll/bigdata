@@ -341,8 +341,9 @@ public class TestHierarchicalZNodeWatcher extends AbstractZooTestCase implements
 
         while ((e = watcher.queue.poll()) != null) {
             
-            System.err.println("mockEvent: "+e);
-            
+            if (log.isInfoEnabled())
+                log.info("mockEvent: " + e);
+
         }
         
 //        // put into a set.

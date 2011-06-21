@@ -103,7 +103,7 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
         MonitorCreatePhysicalServiceLocksTask task1 = new MonitorCreatePhysicalServiceLocksTask(
                 fed, listener);
 
-        final Future f1 = fed.getExecutorService().submit(task1);
+        final Future<Void> f1 = fed.getExecutorService().submit(task1);
 
         assertFalse(f1.isDone());
         
@@ -111,7 +111,7 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
         ServiceConfigurationZNodeMonitorTask task = new ServiceConfigurationZNodeMonitorTask(
                 fed, listener, TransactionServer.class.getName());
 
-        final Future f = fed.getExecutorService().submit(task);
+        final Future<Void> f = fed.getExecutorService().submit(task);
         
         assertFalse(f.isDone());
         
@@ -121,11 +121,13 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
          * Note: This should trigger the watcher. In turn, then watcher should
          * create an instance of the service on our behalf.
          */
-        log.info("Creating zpath: " + serviceConfigurationZPath);
+        if(log.isInfoEnabled())
+            log.info("Creating zpath: " + serviceConfigurationZPath);
         zookeeper.create(serviceConfigurationZPath, SerializerUtil
                 .serialize(new TransactionServerConfiguration(config)), acl,
                 CreateMode.PERSISTENT);
-        log.info("Created zpath: " + serviceConfigurationZPath);
+        if(log.isInfoEnabled())
+            log.info("Created zpath: " + serviceConfigurationZPath);
 
         /*
          * Verify that a logicalService znode was created for that configuration
@@ -135,7 +137,8 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
         // pause a moment.
         Thread.sleep(1000/*ms*/);
 
-        log.info("logicalServices: "
+        if(log.isInfoEnabled())
+            log.info("logicalServices: "
                 + zookeeper.getChildren(serviceConfigurationZPath, false));
         
         assertEquals(1, zookeeper.getChildren(serviceConfigurationZPath, false)
