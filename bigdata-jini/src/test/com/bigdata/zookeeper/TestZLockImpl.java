@@ -170,6 +170,9 @@ public class TestZLockImpl extends AbstractZooTestCase {
 
             Thread.sleep(10/* ms */);
 
+            // The first lock should remain help through this loop.
+            assertTrue(lock1.isLockHeld());
+
             if (ft.isDone()) {
                 // Task should not be done yet. If done, check for error.
                 ft.get();
@@ -188,18 +191,21 @@ public class TestZLockImpl extends AbstractZooTestCase {
 
         log.info("Released lock1.");
 
-        // wait until the other thread gains the lock.
-        for (int i = 0; i < 10 && !lock2.isLockHeld(); i++) {
+        // Wait a little bit for the task to gain the lock.
+        ft.get(2000, TimeUnit.MILLISECONDS);
 
-            Thread.sleep(10/* ms */);
-
-            if (ft.isDone()) {
-                // Task should not be done yet. If done, check for error.
-                ft.get();
-                throw new AssertionError();
-            }
-            
-        }
+//        // wait until the other thread gains the lock.
+//        for (int i = 0; i < 10 && !lock2.isLockHeld(); i++) {
+//
+//            Thread.sleep(10/* ms */);
+//
+//            if (ft.isDone()) {
+//                // Task should not be done yet. If done, check for error.
+//                ft.get();
+//                throw new AssertionError();
+//            }
+//            
+//        }
 
         log.info("Verifying lock2 is held.");
 
@@ -221,9 +227,6 @@ public class TestZLockImpl extends AbstractZooTestCase {
         // queue is empty.
         assertEquals(0, zookeeper.getChildren(zpath, false).size());
 
-        // No errors.
-        ft.get(2000, TimeUnit.MILLISECONDS);
-        
         log.info("Test done.");
 
     }

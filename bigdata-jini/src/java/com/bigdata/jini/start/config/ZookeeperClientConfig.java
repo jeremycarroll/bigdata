@@ -47,7 +47,7 @@ public class ZookeeperClientConfig {
         String ZROOT = "zroot";
 
         /**
-         * The "sessionTimeout" in millseconds for a {@link ZooKeeper} client.
+         * The "sessionTimeout" in milliseconds for a {@link ZooKeeper} client.
          * 
          * @see ZooKeeper#ZooKeeper(String, int, org.apache.zookeeper.Watcher)
          */
