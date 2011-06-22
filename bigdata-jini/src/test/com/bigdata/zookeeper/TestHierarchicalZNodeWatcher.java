@@ -134,7 +134,7 @@ public class TestHierarchicalZNodeWatcher extends AbstractZooTestCase implements
         zookeeper.create(zroot, new byte[0], acl, CreateMode.PERSISTENT);
 
         // look for the create event.
-        e= watcher.queue.poll(1000, TimeUnit.MILLISECONDS);
+        e= watcher.queue.poll(super.sessionTimeout, TimeUnit.MILLISECONDS);
 
         assertNotNull(e);
 
@@ -151,8 +151,12 @@ public class TestHierarchicalZNodeWatcher extends AbstractZooTestCase implements
         zookeeper.delete(zroot, -1/*version*/);
         
         // look for the delete event.
-        e = watcher.queue.poll(1000, TimeUnit.MILLISECONDS);
+        e = watcher.queue.poll(super.sessionTimeout, TimeUnit.MILLISECONDS);
 
+        /* FIXME There is a stochastic CI failure at the following assertion.
+         * I have increased the poll timeout to the sessionTimeout to see if
+         * that makes the problem go away. BT 6/22/2011.
+         */
         assertNotNull(e);
 
         assertEquals(zroot,e.getPath());

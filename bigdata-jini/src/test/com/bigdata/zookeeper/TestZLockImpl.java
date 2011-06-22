@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -45,6 +46,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
 
+import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 
 /**
@@ -90,7 +92,7 @@ public class TestZLockImpl extends AbstractZooTestCase {
         try {
             /*
              * verify no such node (should be unique and therefore not
-             * preexist).
+             * pre-existing).
              */
             zookeeper.getChildren(zpath, false);
             fail("zpath exists: " + zpath);
@@ -372,7 +374,7 @@ public class TestZLockImpl extends AbstractZooTestCase {
     public void test_notReentrant() throws KeeperException,
             InterruptedException {
 
-        // a node that is guarenteed to be unique w/in the test namespace.
+        // a node that is guaranteed to be unique w/in the test namespace.
         final String zpath = "/test/" + getName() + UUID.randomUUID();
 
         final ZLockImpl zlock = ZLockImpl.getLock(zookeeper, zpath, acl);
@@ -518,9 +520,6 @@ public class TestZLockImpl extends AbstractZooTestCase {
 
         final int ntasks = 4;
 
-        final ExecutorService service = Executors.newFixedThreadPool(ntasks,
-                DaemonThreadFactory.defaultThreadFactory());
-
         final LinkedList<Callable<Void>> tasks = new LinkedList<Callable<Void>>();
 
         for (int i = 0; i < ntasks; i++) {
@@ -562,8 +561,13 @@ public class TestZLockImpl extends AbstractZooTestCase {
         }
 
         final List<Future<Void>> futures = new LinkedList<Future<Void>>();
+        final ExecutorService service = Executors.newFixedThreadPool(ntasks,
+                DaemonThreadFactory.defaultThreadFactory());
         try {
 
+            // Minimize the latency of getting new threads running.
+            ((ThreadPoolExecutor) service).prestartAllCoreThreads();
+            
             // obtain a lock object.
             final ZLockImpl zlock = ZLockImpl.getLock(zookeeper, zpath, acl);
 
@@ -602,7 +606,7 @@ public class TestZLockImpl extends AbstractZooTestCase {
 
             } finally {
 
-                // note: should quitely succeed if the lock was destroyed.
+                // note: should quietly succeed if the lock was destroyed.
                 zlock.unlock();
 
             }
@@ -627,7 +631,9 @@ public class TestZLockImpl extends AbstractZooTestCase {
                 
                 final Throwable cause = ex.getCause();
 
-                if (cause != null && cause instanceof InterruptedException) {
+                if (cause != null
+                        && InnerCause.isInnerCause(cause,
+                                InterruptedException.class)) {
 
                     /*
                      * When the lock znode is destroyed, the other processes
@@ -648,7 +654,7 @@ public class TestZLockImpl extends AbstractZooTestCase {
                 }
 
                 /*
-                 * Rethrow the execption.
+                 * Rethrow the exception.
                  * 
                  * Note: If any of the tasks gains the lock, then it will throw
                  * an AssertionFailedError.
