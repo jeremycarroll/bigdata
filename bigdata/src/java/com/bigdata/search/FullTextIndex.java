@@ -1390,11 +1390,23 @@ public class FullTextIndex extends AbstractRelation {
         final ConcurrentHashMap<Long/*docId*/,Hit> hits;
         {
        
-            // @todo use size of collection as upper bound.
-            final int initialCapacity = Math.min(maxRank,10000);
+			/*
+			 * Note: Initial capacity COULD be set based on the max across the
+			 * range counts of the different search terms. However, it can not
+			 * be usefully set to the min(maxRank,10000) as we will buffer ALL
+			 * hits in this map before pruning those selected by min/max rank.
+			 */
+            final int initialCapacity = 256;//Math.min(maxRank,10000);
             
-            hits = new ConcurrentHashMap<Long, Hit>(initialCapacity);
-            
+			/*
+			 * Note: The actual concurrency will be the #of distinct query
+			 * tokens.
+			 */
+        	final int concurrencyLevel = qdata.distinctTermCount();
+
+        	hits = new ConcurrentHashMap<Long, Hit>(initialCapacity,
+					.75f/* loadFactor */, concurrencyLevel);
+
         }
 
         // run the queries.
