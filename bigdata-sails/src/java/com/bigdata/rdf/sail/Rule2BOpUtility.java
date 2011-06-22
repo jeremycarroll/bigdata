@@ -80,6 +80,8 @@ import com.bigdata.bop.rdf.filter.StripContextFilter;
 import com.bigdata.bop.rdf.join.DataSetJoin;
 import com.bigdata.bop.rdf.join.InlineMaterializeOp;
 import com.bigdata.bop.solutions.SliceOp;
+import com.bigdata.journal.ITx;
+import com.bigdata.journal.TimestampUtility;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.NotMaterializedException;
 import com.bigdata.rdf.internal.TermId;
@@ -1064,8 +1066,20 @@ public class Rule2BOpUtility {
           	    log.debug("adding 2nd conditional routing op: " + condOp2);
             }
             
-            final Predicate lexPred = LexPredicate.reverseInstance(
-            		db.getLexiconRelation().getNamespace(), v);
+			final Predicate lexPred;
+			{
+				/*
+				 * Note: Use the timestamp of the triple store view unless this
+				 * is a read/write transaction, in which case we need to use the
+				 * unisolated view in order to see any writes which it may have
+				 * performed (lexicon writes are always unisolated).
+				 */
+				long timestamp = db.getTimestamp();
+				if (TimestampUtility.isReadWriteTx(timestamp))
+					timestamp = ITx.UNISOLATED;
+				lexPred = LexPredicate.reverseInstance(db.getLexiconRelation()
+						.getNamespace(), timestamp, v);
+			}
             
             if (log.isDebugEnabled()) {
           	    log.debug("lex pred: " + lexPred);
