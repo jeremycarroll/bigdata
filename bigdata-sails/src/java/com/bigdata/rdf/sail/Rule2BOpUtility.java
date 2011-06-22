@@ -65,6 +65,7 @@ import com.bigdata.bop.ap.Predicate;
 import com.bigdata.bop.ap.filter.DistinctFilter;
 import com.bigdata.bop.bindingSet.HashBindingSet;
 import com.bigdata.bop.bset.ConditionalRoutingOp;
+import com.bigdata.bop.bset.EndOp;
 import com.bigdata.bop.bset.StartOp;
 import com.bigdata.bop.controller.AbstractSubqueryOp;
 import com.bigdata.bop.controller.Steps;
@@ -87,12 +88,12 @@ import com.bigdata.rdf.internal.NotMaterializedException;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.internal.constraints.INeedsMaterialization;
-import com.bigdata.rdf.internal.constraints.INeedsMaterialization.Requirement;
 import com.bigdata.rdf.internal.constraints.IsInlineBOp;
 import com.bigdata.rdf.internal.constraints.IsMaterializedBOp;
 import com.bigdata.rdf.internal.constraints.NeedsMaterializationBOp;
 import com.bigdata.rdf.internal.constraints.SPARQLConstraint;
 import com.bigdata.rdf.internal.constraints.TryBeforeMaterializationConstraint;
+import com.bigdata.rdf.internal.constraints.INeedsMaterialization.Requirement;
 import com.bigdata.rdf.lexicon.LexPredicate;
 import com.bigdata.rdf.spo.DefaultGraphSolutionExpander;
 import com.bigdata.rdf.spo.ISPO;
@@ -266,12 +267,12 @@ public class Rule2BOpUtility {
                  * controller so the results will be streamed back to the query
                  * controller in scale-out.
                  */
-                tmp = new SliceOp(new BOp[] { tmp }, NV.asMap(//
+                tmp = new EndOp(new BOp[] { tmp }, NV.asMap(//
                         new NV(BOp.Annotations.BOP_ID, idFactory
                                 .incrementAndGet()), //
                         new NV(BOp.Annotations.EVALUATION_CONTEXT,
-                                BOpEvaluationContext.CONTROLLER),//
-                        new NV(PipelineOp.Annotations.SHARED_STATE,true)//
+                                BOpEvaluationContext.CONTROLLER)//
+//                        new NV(PipelineOp.Annotations.SHARED_STATE,true)//
                         ));
 
             }

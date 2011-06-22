@@ -54,6 +54,8 @@ import com.bigdata.bop.NV;
 import com.bigdata.bop.PipelineOp;
 import com.bigdata.bop.ap.Predicate;
 import com.bigdata.bop.bset.ConditionalRoutingOp;
+import com.bigdata.bop.bset.CopyOp;
+import com.bigdata.bop.bset.EndOp;
 import com.bigdata.bop.bset.StartOp;
 import com.bigdata.bop.controller.SubqueryHashJoinOp;
 import com.bigdata.bop.controller.SubqueryOp;
@@ -390,12 +392,12 @@ public class SOp2BOpUtility {
 			 * with SliceOp which interactions with SubqueryOp to allow
 			 * incorrect termination under some circumstances.
 			 */
-            left = new SliceOp(new BOp[] { left }, NV.asMap(//
+            left = new EndOp(new BOp[] { left }, NV.asMap(//
 					new NV(BOp.Annotations.BOP_ID, idFactory
 							.incrementAndGet()), //
 					new NV(BOp.Annotations.EVALUATION_CONTEXT,
-							BOpEvaluationContext.CONTROLLER),//
-					new NV(PipelineOp.Annotations.SHARED_STATE, true)//
+							BOpEvaluationContext.CONTROLLER)//
+//					new NV(PipelineOp.Annotations.SHARED_STATE, true)//
 			));
         }
     	
@@ -781,11 +783,11 @@ public class SOp2BOpUtility {
 
         }
         
-        final PipelineOp slice = new SliceOp(new BOp[] { left }, NV.asMap(//
+        final PipelineOp slice = new EndOp(new BOp[] { left }, NV.asMap(//
 				new NV(BOp.Annotations.BOP_ID, idFactory.incrementAndGet()), //
 				new NV(BOp.Annotations.EVALUATION_CONTEXT,
-						BOpEvaluationContext.CONTROLLER),//
-				new NV(PipelineOp.Annotations.SHARED_STATE, true)//
+						BOpEvaluationContext.CONTROLLER)//
+//				new NV(PipelineOp.Annotations.SHARED_STATE, true)//
 		));
         
         return slice;
