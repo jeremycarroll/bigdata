@@ -173,7 +173,7 @@ public class TestHierarchicalZNodeWatcher extends AbstractZooTestCase implements
         zookeeper.create(zroot, new byte[0], acl, CreateMode.PERSISTENT);
 
         // look for the create event.
-        e = watcher.queue.poll(1000, TimeUnit.MILLISECONDS);
+        e = watcher.queue.poll(super.sessionTimeout, TimeUnit.MILLISECONDS);
 
         assertNotNull(e);
 
@@ -196,7 +196,7 @@ public class TestHierarchicalZNodeWatcher extends AbstractZooTestCase implements
         zookeeper.delete(zroot, -1/*version*/);
 
         // look for the delete event.
-        e = watcher.queue.poll(1000, TimeUnit.MILLISECONDS);
+        e = watcher.queue.poll(super.sessionTimeout, TimeUnit.MILLISECONDS);
 
         assertNull(e);
 
@@ -242,7 +242,7 @@ public class TestHierarchicalZNodeWatcher extends AbstractZooTestCase implements
         zookeeper.create(zroot + "/" + "red", new byte[0], acl,
                 CreateMode.PERSISTENT);
 
-        e = watcher.queue.poll(1000,TimeUnit.MILLISECONDS);
+        e = watcher.queue.poll(super.sessionTimeout,TimeUnit.MILLISECONDS);
         assertNotNull(e);
         assertEquals(zroot,e.getPath());
         assertEquals(Event.EventType.NodeChildrenChanged,e.getType());
@@ -250,7 +250,7 @@ public class TestHierarchicalZNodeWatcher extends AbstractZooTestCase implements
         zookeeper.create(zroot + "/" + "blue", new byte[0], acl,
                 CreateMode.PERSISTENT);
 
-//        e = watcher.queue.poll(1000,TimeUnit.MILLISECONDS);
+//        e = watcher.queue.poll(super.sessionTimeout,TimeUnit.MILLISECONDS);
 //        assertNotNull(e);
 //        assertEquals(zroot+"/"+"red",e.getPath());
 //        assertEquals(Event.EventType.NodeCreated,e.getType());
@@ -273,7 +273,7 @@ public class TestHierarchicalZNodeWatcher extends AbstractZooTestCase implements
                 new byte[] { 1 }, -1/* version */);
         
         // verify event.
-        e = watcher.queue.poll(1000,TimeUnit.MILLISECONDS);
+        e = watcher.queue.poll(super.sessionTimeout,TimeUnit.MILLISECONDS);
         assertNotNull(e);
         assertEquals(zroot + "/" + "blue" + "/" + "green",e.getPath());
         assertEquals(Event.EventType.NodeDataChanged,e.getType());
