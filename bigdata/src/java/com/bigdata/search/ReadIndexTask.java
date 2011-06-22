@@ -249,12 +249,13 @@ public class ReadIndexTask implements Callable<Object> {
             final DataInputBuffer dis = tuple.getValueStream();
             final int termFreq = dis.readShort();
             final double termWeight = dis.readDouble();
-            
-            if (log.isDebugEnabled())
-                log.debug("hit: term=" + queryTerm + ", docId=" + docId
-                        + ", termFreq=" + termFreq + ", termWeight="
-                        + termWeight + ", product="
-                        + (queryTermWeight * termWeight));
+
+//            Note: log test shows up in profiler.
+//            if (log.isDebugEnabled())
+//                log.debug("hit: term=" + queryTerm + ", docId=" + docId
+//                        + ", termFreq=" + termFreq + ", termWeight="
+//                        + termWeight + ", product="
+//                        + (queryTermWeight * termWeight));
             
             /*
              * Play a little magic to get the docId in the hit set without race

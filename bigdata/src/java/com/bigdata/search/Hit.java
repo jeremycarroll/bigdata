@@ -75,12 +75,12 @@ public class Hit implements IHit, Comparable<Hit>{
 
         }
 
-        if(log.isDebugEnabled()) {
-        
-            log.debug("docId=" + docId + ", term: " + term + ", nterms="
-                    + nterms + ", weight=" + weight + ", cosine=" + cosine);
-            
-        }
+//        if(log.isDebugEnabled()) {
+//        
+//            log.debug("docId=" + docId + ", term: " + term + ", nterms="
+//                    + nterms + ", weight=" + weight + ", cosine=" + cosine);
+//            
+//        }
 
     }
 

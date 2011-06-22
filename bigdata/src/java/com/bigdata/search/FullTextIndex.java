@@ -1446,9 +1446,10 @@ public class FullTextIndex extends AbstractRelation {
 	        	
 	        	final Hit hit = it.next().getValue();
 	        	
-		        if (log.isInfoEnabled()) {
-		        	log.info("hit terms: " + hit.getTermCount());
-		        }
+	        	// Note: log test in loop shows up in profiler.
+//		        if (log.isInfoEnabled()) {
+//		        	log.info("hit terms: " + hit.getTermCount());
+//		        }
 		        
 	        	if (hit.getTermCount() != nterms) {
 	        		it.remove();
