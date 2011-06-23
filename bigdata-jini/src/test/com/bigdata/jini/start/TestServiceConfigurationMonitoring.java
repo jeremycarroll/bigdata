@@ -99,7 +99,7 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
                 + BigdataZooDefs.ZSLASH
                 + TransactionServer.class.getName();
         
-        // create monitor task that will compete for locks and start procsses.
+        // create monitor task that will compete for locks and start processes.
         MonitorCreatePhysicalServiceLocksTask task1 = new MonitorCreatePhysicalServiceLocksTask(
                 fed, listener);
 
@@ -107,10 +107,15 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
 
         assertFalse(f1.isDone());
         
-        // create monitor task for a specific service config node.
+        // create monitor task for a specific service configuration node.
         ServiceConfigurationZNodeMonitorTask task = new ServiceConfigurationZNodeMonitorTask(
                 fed, listener, TransactionServer.class.getName());
 
+        /*
+         * Note: This task will log out an ERROR since the znode that it is
+         * monitoring does not yet exist.  However, the task will retry and
+         * notice once that znode is created.
+         */
         final Future<Void> f = fed.getExecutorService().submit(task);
         
         assertFalse(f.isDone());
@@ -123,9 +128,11 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
          */
         if(log.isInfoEnabled())
             log.info("Creating zpath: " + serviceConfigurationZPath);
+       
         zookeeper.create(serviceConfigurationZPath, SerializerUtil
                 .serialize(new TransactionServerConfiguration(config)), acl,
                 CreateMode.PERSISTENT);
+        
         if(log.isInfoEnabled())
             log.info("Created zpath: " + serviceConfigurationZPath);
 
@@ -135,7 +142,7 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
          */
         
         // pause a moment.
-        Thread.sleep(1000/*ms*/);
+        Thread.sleep(fed.getZooConfig().sessionTimeout/*ms*/);
 
         if(log.isInfoEnabled())
             log.info("logicalServices: "
@@ -170,6 +177,8 @@ public class TestServiceConfigurationMonitoring extends AbstractFedZooTestCase {
          * FIXME verify service is created, discover and query that service and
          * verify that it is the instance that we wanted, then shutdown service
          * and then verify service restart re-creates the same ephemeral node.
+         * 
+         * Could actually invoke a method on the service as well.
          */
         
         // verify a process was started.
