@@ -203,29 +203,22 @@ public class BigdataOpenRDFBindingSetsResolverator
             
             final BigdataValue outVal = map.get(value);
 
-            /*
-             * TODO An alternative to using a DummyIV would be to drop the
-             * BindingSet if there are any Values in it which are not known to
-             * the database.
-             */
-            if (outVal != null) {
+            assert outVal != null;
 
-                final Constant<?> c;
+            final Constant<?> c;
+            
+            if (outVal.getIV() == null) {
+
+                c = new Constant(DummyIV.INSTANCE);
                 
-                if (outVal.getIV() == null) {
-
-                    c = new Constant(DummyIV.INSTANCE);
-                    
-                } else {
-                    
-                    c = new Constant(outVal.getIV());
-                    
-                }
+            } else {
                 
-                out.set(Var.var(name), c);
-
+                c = new Constant(outVal.getIV());
+                
             }
             
+            out.set(Var.var(name), c);
+
         }
         
         return out;
