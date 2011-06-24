@@ -146,7 +146,7 @@ public class BigdataSPARQLParser implements QueryParser {
     static private Properties getQueryHints(final ASTQueryContainer qc)
             throws MalformedQueryException {
         
-        Properties queryHints = null;
+        final Properties queryHints = new Properties();
         
         final Map<String, String> prefixes = PrefixDeclProcessor.process(qc);
         
@@ -174,10 +174,6 @@ public class BigdataSPARQLParser implements QueryParser {
                     }
                     final String key = hint.substring(0, i);
                     final String val = hint.substring(i + 1);
-                    if (queryHints == null) {
-                        // Lazily instantiate.
-                        queryHints = new Properties();
-                    }
                     queryHints.put(key, val);
                 }
             }
