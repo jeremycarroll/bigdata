@@ -243,6 +243,8 @@ public class FixedAllocator implements Allocator {
 
     			boolean protectTransients = m_sessionActive || m_store.isSessionProtected();
     			
+                assert m_sessionActive || m_freeTransients == transientbits();
+    			
                 final Iterator<AllocBlock> iter = m_allocBlocks.iterator();
                 while (iter.hasNext()) {
                     final AllocBlock block = iter.next();
@@ -594,7 +596,6 @@ public class FixedAllocator implements Allocator {
 					m_freeBits++;
 					checkFreeList();
 				} else {
-					m_freeTransients++;
 					
 					if (m_sessionActive) {
 						boolean assertsEnabled = false;
@@ -607,6 +608,9 @@ public class FixedAllocator implements Allocator {
 							}
 							assert sessionFrees <= sessionBits : "sessionFrees: " + sessionFrees + " > sessionBits: " + sessionBits;	
 						}
+						m_freeTransients++; // remove after proven failure
+					} else {
+						m_freeTransients++;
 					}
 						
 				}
@@ -918,9 +922,6 @@ public class FixedAllocator implements Allocator {
 	
 				
 				m_freeBits = freebits();
-				final int freebits = freebits();
-				if (m_freeBits > freebits)
-					log.error("m_freeBits too high: " + m_freeBits + " > (calc): " + freebits);
 				
 				m_freeTransients = transientbits();
 				
