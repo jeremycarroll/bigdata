@@ -211,6 +211,12 @@ public class TestSearch extends ProxyTestCase<IIndexManager> {
             this.cosine = cosine;
             
         }
+
+        public int getRank() {
+        	
+        	return 0;
+        	
+        }
         
         public double getCosine() {
             
