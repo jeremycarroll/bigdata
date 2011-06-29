@@ -55,6 +55,7 @@ import org.openrdf.model.Value;
 import com.bigdata.btree.DefaultTupleSerializer;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
+import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.IKeyBuilderFactory;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.keys.ThreadLocalKeyBuilderFactory;
@@ -86,14 +87,38 @@ public class Term2IdTupleSerializer extends DefaultTupleSerializer {
      */
     private static final long serialVersionUID = 1486882823994548034L;
 
-    /**
-     * Used to serialize term identifiers.
-     * <p>
-     * Note: While this object is not thread-safe, the mutable B+Tree is
-     * restricted to a single writer so it does not have to be thread-safe.
-     */
-    final transient private DataOutputBuffer idbuf = new DataOutputBuffer(
-            Bytes.SIZEOF_LONG);
+//    /**
+//     * Used to serialize term identifiers.
+//     * <p>
+//     * Note: While this object is not thread-safe, the mutable B+Tree is
+//     * restricted to a single writer so it does not have to be thread-safe.
+//     */
+//    final transient private DataOutputBuffer idbuf = new DataOutputBuffer(
+//            Bytes.SIZEOF_LONG);
+
+//    /**
+//     * A thread-local {@link IKeyBuilder} instance for the {@link IV} values.
+//     */
+//    final private IKeyBuilder getValueBuilder() {
+//
+//        if(threadLocalKeyBuilderFactory == null) {
+//            
+//            /*
+//             * This can happen if you use the de-serialization ctor by mistake.
+//             */
+//            
+//            throw new IllegalStateException();
+//            
+//        }
+//        
+//        return threadLocalKeyBuilderFactory.getKeyBuilder();
+//
+//    }
+//    /**
+//     * The {@link #delegateKeyBuilderFactory} wrapped up in thread-local
+//     * factory.
+//     */
+//    private transient IKeyBuilderFactory threadLocalKeyBuilderFactory;
 
     /**
      * De-serialization ctor.
@@ -179,23 +204,30 @@ public class Term2IdTupleSerializer extends DefaultTupleSerializer {
      * @param obj
      *            A term identifier expressed as a {@link TermId}.
      */
-    public byte[] serializeVal(Object obj) {
+    public byte[] serializeVal(final Object obj) {
 
-        try {
+//        try {
             
-            IV iv = (IV) obj;
+        final IV<?,?> iv = (IV<?,?>) obj;
 
-            final byte[] key = iv.encode(KeyBuilder.newInstance()).getKey();
-            
-            idbuf.reset().write(key);
-            
-            return idbuf.toByteArray();
-            
-        } catch(IOException ex) {
-            
-            throw new RuntimeException(ex);
-            
-        }
+        /*
+         * Note: reusing the same KeyBuilder as the keys, but that is Ok since
+         * the IV encoding does not rely on the Unicode properties and the 
+         * KeyBuilder is a thread-local instance so there is no contention for
+         * it.
+         */
+        final byte[] key = iv.encode(getKeyBuilder()).getKey();
+
+        return key;
+//            idbuf.reset().write(key);
+//            
+//            return idbuf.toByteArray();
+//            
+//        } catch(IOException ex) {
+//            
+//            throw new RuntimeException(ex);
+//            
+//        }
         
     }
 
