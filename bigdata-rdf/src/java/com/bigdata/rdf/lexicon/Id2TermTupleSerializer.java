@@ -74,13 +74,15 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<IV, BigdataVa
      */
     transient private BigdataValueSerializer<BigdataValue> valueSer;
     
+    private static transient final int INITIAL_CAPACITY = 128;
+
     /**
      * Used to serialize RDF {@link Value}s.
      * <p>
      * Note: While this object is not thread-safe, the mutable B+Tree is
      * restricted to a single writer so it does not have to be thread-safe.
      */
-    final transient private DataOutputBuffer buf = new DataOutputBuffer(Bytes.SIZEOF_LONG);
+    final transient private DataOutputBuffer buf = new DataOutputBuffer(INITIAL_CAPACITY);
 
     transient private BigdataValueFactory valueFactory;
 
@@ -169,7 +171,7 @@ public class Id2TermTupleSerializer extends DefaultTupleSerializer<IV, BigdataVa
      */
     public byte[] serializeKey(final Object obj) {
 
-        return id2key((TermId) obj);
+        return id2key((TermId<?>) obj);
         
     }
 
