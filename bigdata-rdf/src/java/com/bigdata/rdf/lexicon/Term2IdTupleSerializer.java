@@ -51,17 +51,13 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Properties;
+
 import org.openrdf.model.Value;
+
 import com.bigdata.btree.DefaultTupleSerializer;
 import com.bigdata.btree.ITuple;
 import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
-import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.IKeyBuilderFactory;
-import com.bigdata.btree.keys.KeyBuilder;
-import com.bigdata.btree.keys.ThreadLocalKeyBuilderFactory;
-import com.bigdata.btree.raba.codec.IRabaCoder;
-import com.bigdata.io.DataOutputBuffer;
-import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.IVUtility;
 import com.bigdata.rdf.internal.TermId;
