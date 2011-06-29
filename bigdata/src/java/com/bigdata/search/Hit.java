@@ -23,6 +23,9 @@ public class Hit implements IHit, Comparable<Hit>{
     /** Net cosine for the reporting terms. */
     private double cosine;
     
+    /** Rank order for this hit */
+    private int rank;
+    
     /**
      * Ctor used in conjunction with a {@link ConcurrentHashMap} to insert
      * objects into the result set.
@@ -41,6 +44,12 @@ public class Hit implements IHit, Comparable<Hit>{
 
     }
 
+    synchronized void setRank(final int rank) {
+        
+        this.rank = rank;
+
+    }
+
     /**
      * The #of terms for which a hit was reported for this document.
      */
@@ -53,6 +62,12 @@ public class Hit implements IHit, Comparable<Hit>{
     synchronized public double getCosine() {
         
         return cosine;
+
+    }
+
+    synchronized public int getRank() {
+        
+        return rank;
 
     }
 

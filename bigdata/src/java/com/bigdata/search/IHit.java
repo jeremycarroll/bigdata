@@ -45,5 +45,10 @@ public interface IHit {
      * The document associated with the search result.
      */
     public long getDocId();
+    
+    /**
+     * The rank of this hit within the context of the search.
+     */
+    public int getRank();
 
 }
