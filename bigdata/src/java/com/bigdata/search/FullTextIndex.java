@@ -1229,7 +1229,11 @@ public class FullTextIndex extends AbstractRelation {
 	
 	                log.warn("No terms after stopword extraction: query=" + query);
 	
-	                return cache.put(cacheKey, new Hit[] {});
+	                a = new Hit[] {};
+	                
+	                cache.put(cacheKey, a);
+	                
+	                return a; 
 	
 	            }
 	            
@@ -1333,7 +1337,11 @@ public class FullTextIndex extends AbstractRelation {
 		                    + query + "]");
 	        	}
 	            
-                return cache.put(cacheKey, new Hit[] {});
+                a = new Hit[] {};
+                
+                cache.put(cacheKey, a);
+                
+                return a; 
                 
 	        }
 	        
