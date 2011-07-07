@@ -288,8 +288,9 @@ public class Term2IdWriteProc extends AbstractKeyArrayIndexProcedure implements
         // used to serialize term identifiers.
         final DataOutputBuffer idbuf = new DataOutputBuffer();
         
-		final TermIdEncoder encoder = readOnly ? null : new TermIdEncoder(
-				scaleOutTermIdBitsToReverse);
+        final TermIdEncoder encoder = readOnly ? null
+                : scaleOutTermIdBitsToReverse == 0 ? null : new TermIdEncoder(
+                        scaleOutTermIdBitsToReverse);
         
         // #of new terms (#of writes on the index).
         int nnew = 0;
@@ -322,10 +323,17 @@ public class Term2IdWriteProc extends AbstractKeyArrayIndexProcedure implements
                     ivs[i] = null;
 
                 } else {
+
+                    /*
+                     * Assign a term identifier.
+                     * 
+                     * Note: The TermIdEncoder is ONLY used in scale-out.
+                     */
                     
-                    // assign a term identifier.
-                    final long termId = encoder.encode(
-                            counter.incrementAndGet());
+                    final long ctr = counter.incrementAndGet();
+                    
+                    final long termId = encoder == null ? ctr : encoder
+                            .encode(ctr);
                     
                     ivs[i] = new TermId(VTE(code), termId);
                     
@@ -354,11 +362,18 @@ public class Term2IdWriteProc extends AbstractKeyArrayIndexProcedure implements
 
                     } else {
 
-                        // assign a term identifier.
-                        final long termId = encoder.encode(
-                                counter.incrementAndGet());
+                        /*
+                         * Assign a term identifier.
+                         * 
+                         * Note: The TermIdEncoder is ONLY used in scale-out.
+                         */
+                        
+                        final long ctr = counter.incrementAndGet();
+                        
+                        final long termId = encoder == null ? ctr : encoder
+                                .encode(ctr);
 
-                        final TermId iv = new TermId(VTE(code), termId);
+                        final TermId<?> iv = new TermId(VTE(code), termId);
                         
                         if (DEBUG && enableGroundTruth) {
 
