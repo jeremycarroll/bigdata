@@ -43,6 +43,7 @@ import org.openrdf.model.impl.BooleanLiteralImpl;
 
 import com.bigdata.cache.WeakValueCache;
 import com.bigdata.rdf.internal.IV;
+import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.util.CanonicalFactory;
 
@@ -453,7 +454,7 @@ public class BigdataValueFactoryImpl implements BigdataValueFactory {
 
 			final IV<?, ?> iv = v1.getIV();
 
-			if (iv == null || iv.isTermId() && iv.getTermId() != 0L) {
+			if (iv == null || !iv.isTermId() || iv.getTermId() != TermId.NULL) {
 
 				/*
 				 * A value from the same value factory whose IV is either
