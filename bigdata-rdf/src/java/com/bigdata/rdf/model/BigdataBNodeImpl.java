@@ -49,6 +49,7 @@ package com.bigdata.rdf.model;
 
 import org.openrdf.model.BNode;
 
+import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.rio.StatementBuffer;
 import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -134,8 +135,8 @@ public class BigdataBNodeImpl extends BigdataResourceImpl implements
             return false;
         
 		if ((o instanceof BigdataValue) //
-				&& getIV() != null//
-				&& ((BigdataValue) o).getIV() != null//
+				&& isRealIV()
+				&& ((BigdataValue)o).isRealIV()
 				&& ((BigdataValue) o).getValueFactory() == getValueFactory()) {
 
 			return getIV().equals(((BigdataValue) o).getIV());
