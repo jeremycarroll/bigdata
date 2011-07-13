@@ -35,6 +35,7 @@ import net.jini.config.ConfigurationException;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.config.Configuration;
 import com.bigdata.journal.ITx;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.ScaleOutTripleStore;
@@ -59,18 +60,25 @@ public class CreateKB {
     protected static final String COMPONENT = CreateKB.class.getName();
 
 	/**
-	 * Configuration options understood by this utility. These options must be
-	 * specified for the {@value CreateKB#COMPONENT} component in the jini
-	 * configuration file.
+	 * Configuration options understood by this utility. 
 	 */
     public interface ConfigurationOptions {
 
 		/**
-		 * The KB namespace.
+		 * The KB namespace. This option must be specified for the
+		 * {@value CreateKB#COMPONENT} in the {@link Configuration}.
 		 */
 		String NAMESPACE = "namespace";
 
-		/** An {@link NV}[] providing the configuration properties for the KB. */
+		/**
+		 * An {@link NV}[] providing the configuration properties for the KB.
+		 * This option must be specified for the
+		 * {@link com.bigdata.service.jini.JiniClient} component in the
+		 * {@link Configuration}. The {@link NV}[] will be translated into a
+		 * {@link Properties} object by the {@link JiniClient}.
+		 * 
+		 * @see JiniClient
+		 */
 		String PROPERTIES = "properties";
 
     }
