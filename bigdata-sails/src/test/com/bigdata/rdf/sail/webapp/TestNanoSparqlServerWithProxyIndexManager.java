@@ -352,6 +352,11 @@ public class TestNanoSparqlServerWithProxyIndexManager<S extends IIndexManager> 
 	 * embedded {@link NanoSparqlServer} instance will be created for each test
 	 * run. Each test will run against a distinct KB instance within a unique
 	 * bigdata namespace on the same backing {@link IIndexManager}.
+	 * <p>
+	 * When run for CI, this can be executed as:
+	 * <pre>
+	 * ... -Djava.security.policy=policy.all TestNanoSparqlServerWithProxyIndexManager triples /nas/bigdata/benchmark/config/bigdataStandalone.config
+	 * </pre>
 	 * 
 	 * @param args
 	 *            <code>
