@@ -45,7 +45,11 @@ import com.bigdata.service.jini.master.TaskMaster;
 import com.bigdata.util.NV;
 
 /**
- * Utility to create a scale-out KB instance.
+ * Utility to create a scale-out KB instance.  You must specify an appropriate
+ * security policy. For example:
+ * <pre>
+ * -Djava.security.policy=policy.all
+ * </pre>
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
@@ -202,10 +206,9 @@ public class CreateKB {
 
         });
         
-        final boolean created;
         try {
 
-			created = new CreateKB(fed).createTripleStore();
+			new CreateKB(fed).createTripleStore();
         	
         } finally {
         
@@ -213,8 +216,6 @@ public class CreateKB {
 
         }
         
-		System.exit(created ? 0 : 1);
-
     }
 
 }
