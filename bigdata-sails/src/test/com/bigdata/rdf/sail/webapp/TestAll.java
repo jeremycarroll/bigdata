@@ -30,6 +30,8 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
+import com.bigdata.rdf.sail.webapp.TestNanoSparqlServerWithProxyIndexManager.TestMode;
+
 /**
  * Test suite.
  * 
@@ -58,7 +60,10 @@ public class TestAll extends TestCase {
        
         suite.addTestSuite(TestXMLBuilder.class);
         
-        suite.addTestSuite(TestNanoSparqlServer.class);
+//        suite.addTestSuite(TestNanoSparqlServer.class);
+        suite.addTest(TestNanoSparqlServerWithProxyIndexManager.suite(TestMode.triples));
+        suite.addTest(TestNanoSparqlServerWithProxyIndexManager.suite(TestMode.sids));
+        suite.addTest(TestNanoSparqlServerWithProxyIndexManager.suite(TestMode.quads));
         
         return suite;
 

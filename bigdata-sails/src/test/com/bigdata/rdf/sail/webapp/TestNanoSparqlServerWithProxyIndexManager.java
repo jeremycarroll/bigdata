@@ -27,19 +27,12 @@ import com.bigdata.service.jini.JiniFederation;
  * Test suite for {@link RESTServlet} (SPARQL end point and REST API for RDF
  * data).
  * 
- * TODO Add unit tests which excercise the full text index.
+ * TODO Add unit tests which exercise the full text index.
  * 
- * TODO Support sids and quads modes; triples+tm, sids+tm. The test suite is not
- * yet able to handle anything other than triples because some of the tests have
- * assumptions built in concerning the data model and the lack of truth
- * maintenance. Also, none of the tests are "SIDS" aware so they are not testing
- * SIDs semantics even if they are passing. A SIDs aware test would have to
- * examine interchange and query with SIDs.
- * 
- * @todo Test default-graph-uri(s) and named-graph-uri(s). [To test this, it
- *       might help to refactor into unit tests for QUERY, INSERT, DELETE, and
- *       UPDATE and unit tests for TRIPLES (w/ and w/o inferences), SIDS, and
- *       QUADS]
+ * TODO Add unit tests which are specific to sids and quads modes. These tests
+ * should look at the semantics of interchange of sids or quads specific data;
+ * queries which exercise the context position; and the default-graph and
+ * named-graph URL query parameters for quads.
  * 
  * @todo How is the REST API supposed to handle INSERT w/ body and DELETE w/
  *       body against a quad store?
@@ -139,7 +132,16 @@ public class TestNanoSparqlServerWithProxyIndexManager<S extends IIndexManager> 
 	 */
 	public static Test suite() {
 
-		return suite(getTemporaryJournal(), TestMode.triples);
+		return suite(TestMode.triples);
+
+	}
+	
+	/**
+	 * Return suite running in the specified mode against a temporary journal.
+	 */
+	public static Test suite(final TestMode testMode) {
+
+		return suite(getTemporaryJournal(), testMode);
 
 	}
 	
@@ -192,6 +194,8 @@ public class TestNanoSparqlServerWithProxyIndexManager<S extends IIndexManager> 
     @Override
 	public Properties getProperties() {
 
+//    	System.err.println("testMode="+testMode);
+    	
 	    final Properties properties = new Properties();
 
 		switch (testMode) {
@@ -382,8 +386,8 @@ public class TestNanoSparqlServerWithProxyIndexManager<S extends IIndexManager> 
 
 		final TestMode testMode = TestMode.valueOf(args[0]);
 
-		if (testMode != TestMode.triples)
-			fail("Unsupported test mode: " + testMode);
+//		if (testMode != TestMode.triples)
+//			fail("Unsupported test mode: " + testMode);
 		
 		final File propertyFile = new File(args[1]);
 
