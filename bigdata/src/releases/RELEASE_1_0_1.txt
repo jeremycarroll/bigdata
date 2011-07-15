@@ -45,6 +45,9 @@ Bug fixes:
 
  - https://sourceforge.net/apps/trac/bigdata/ticket/351 (SPOs not serializable
    in scale-out).
+   
+ - https://sourceforge.net/apps/trac/bigdata/ticket/225 (OSX requires specialized
+   performance counter collection classes
 
 New features in 1.0.x release:
 
