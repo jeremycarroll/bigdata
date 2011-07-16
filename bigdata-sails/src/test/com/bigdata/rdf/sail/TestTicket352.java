@@ -115,11 +115,19 @@ public class TestTicket352 extends QuadsTestCase {
 		
 		final CloseableIteration<? extends BindingSet, QueryEvaluationException> results;
 		
-		if (useIteration)
-			results = conn.evaluate(query, null, new QueryBindingSet(),
+		if (useIteration) {
+
+			// the caller is providing a set of solutions as inputs.
+			final QueryBindingSet emptyQueryBindingSet = new QueryBindingSet();
+			
+			results = conn.evaluate(query, null, emptyQueryBindingSet,
 					new Iter(bindings), false, null);
-		else
+		} else {
+
+			// w/o the caller providing a set of solutions as inputs.
 			results = conn.evaluate(query, null, bindings, false);
+		
+		}
 		
 		while (results.hasNext()) {
 		
