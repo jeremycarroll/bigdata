@@ -18,6 +18,8 @@ import com.bigdata.bop.Var;
 import com.bigdata.bop.bindingSet.ListBindingSet;
 import com.bigdata.rdf.internal.DummyIV;
 import com.bigdata.rdf.internal.IV;
+import com.bigdata.rdf.internal.TermId;
+import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
@@ -209,7 +211,25 @@ public class BigdataOpenRDFBindingSetsResolverator
             
             if (outVal.getIV() == null) {
 
-                c = new Constant(DummyIV.INSTANCE);
+            	/*
+            	 * This DummyIV.INSTANCE pattern is no good. What is happening
+            	 * here is that we have an unknown term in the query or in the
+            	 * incoming binding sets. This is ok. What we need to do in this
+            	 * case is stamp a fresh dummy internal value, set this as the
+            	 * IV on the unknown BigdataValue, and most importantly cache
+            	 * the unknown BigdataValue on the dummy IV so that a) it
+            	 * can be accessed and used in the query and b) we don't try
+            	 * to re-materialize it later (and fail).
+            	 */
+//                c = new Constant(DummyIV.INSTANCE);
+            	
+            	final IV dummy = new TermId(VTE.valueOf(outVal), TermId.NULL);
+            	
+            	outVal.setIV(dummy);
+            	
+            	dummy.setValue(outVal);
+            	
+            	c = new Constant(dummy);
                 
             } else {
                 

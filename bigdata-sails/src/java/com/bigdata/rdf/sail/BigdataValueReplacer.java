@@ -48,8 +48,9 @@ import org.openrdf.query.impl.DatasetImpl;
 import org.openrdf.query.impl.MapBindingSet;
 import org.openrdf.sail.SailException;
 
-import com.bigdata.rdf.internal.DummyIV;
 import com.bigdata.rdf.internal.IV;
+import com.bigdata.rdf.internal.TermId;
+import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -225,6 +226,12 @@ public class BigdataValueReplacer {
                      if(log.isInfoEnabled())
                          log.info("Not in knowledge base: " + term);
                      
+                	final IV dummy = new TermId(VTE.valueOf(term), TermId.NULL);
+                	
+                	term.setIV(dummy);
+                	
+                	dummy.setValue(term);
+                	
                  } else {
                  
                 	 iv.setValue(term);
@@ -364,16 +371,30 @@ public class BigdataValueReplacer {
 //                        log.info("Not in knowledge base: " + val2);
 //
 //                }
-                                
-                if(val2.getIV() == null) {
-                    /*
-                     * The Value is not in the database, so assign it a mock IV.
-                     * This IV will not match anything during query. However, we
-                     * can not simply fail the query since an OPTIONAL or UNION
-                     * might have solutions even though this Value is not known.
-                     */
-                    val2.setIV(DummyIV.INSTANCE);
-                }
+
+                /*
+                 * This is no good.  We need to create a mock IV and cache the
+                 * unknown value on it so that it can be used in filter evaluation.
+                 */
+//                if(val2.getIV() == null) {
+//                    /*
+//                     * The Value is not in the database, so assign it a mock IV.
+//                     * This IV will not match anything during query. However, we
+//                     * can not simply fail the query since an OPTIONAL or UNION
+//                     * might have solutions even though this Value is not known.
+//                     */
+//                    val2.setIV(DummyIV.INSTANCE);
+//                }
+                
+//                if (val2.getIV() == null) {
+//                	
+//                	final IV dummy = new TermId(VTE.valueOf(val2), TermId.NULL);
+//                	
+//                	dummy.setValue(val2);
+//                	
+//                	val2.setIV(dummy);
+//                	
+//                }
                 
                 // rewrite the constant in the query.
                 bindings2.addBinding(binding.getName(), val2);

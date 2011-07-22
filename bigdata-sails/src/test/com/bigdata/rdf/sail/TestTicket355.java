@@ -130,9 +130,11 @@ public class TestTicket355 extends QuadsTestCase {
 				final ValueFactory vf = conn.getValueFactory();
 				conn.add(vf.createURI("os:subject"), vf.createURI("os:prop"), vf.createLiteral("value"));
 
-				String query = "SELECT ?subj WHERE { "
-						+ "?subj <os:prop> ?val . "
-						+ "FILTER(STR(?val) != ?arg)}";
+				String query = 
+					"SELECT ?subj WHERE { "
+					+ "?subj <os:prop> ?val . "
+					+ "FILTER(STR(?val) != ?arg)}";
+				
 				TupleQuery tq = conn.prepareTupleQuery(QueryLanguage.SPARQL, query);
 				tq.setBinding("arg", vf.createLiteral("notValue"));
 				TupleQueryResult tqr = tq.evaluate();
