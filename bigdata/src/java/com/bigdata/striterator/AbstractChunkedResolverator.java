@@ -185,7 +185,6 @@ abstract public class AbstractChunkedResolverator<E,F,S> implements ICloseableIt
      * a queue.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     private class ChunkConsumerTask implements Callable<Long> {
 
@@ -209,23 +208,38 @@ abstract public class AbstractChunkedResolverator<E,F,S> implements ICloseableIt
 
                 long nchunks = 0;
                 long nelements = 0;
-                
-                while (src.hasNext()) {
 
-                    // fetch the next chunk.
+                // while buffer (aka sink) is open and source has more data.
+                while (buffer.isOpen() && src.hasNext()) {
+
+                    // fetch the next chunk (already available).
                     final E[] chunk = src.nextChunk();
 
+                    if (!buffer.isOpen()) {
+                        /*
+                         * Asynchronous close of the sink. By checking
+                         * buffer.isOpen() here and in the while() clause, we
+                         * will notice a closed sink more rapidly and close
+                         * the source in a more timely manner.
+                         * 
+                         * @see https://sourceforge.net/apps/trac/bigdata/ticket/361
+                         */
+                        break;
+                    }
+                    
                     final F[] converted = resolveChunk(chunk);
                     
                     assert converted.length == chunk.length;
                     
+                    // Note: Throws BufferClosedException if closed.
                     buffer.add(converted);
 
                     nchunks++;
                     nelements += chunk.length;
                     
                     if (log.isDebugEnabled())
-                        log.debug("nchunks="+nchunks+", chunkSize="+chunk.length);
+                        log.debug("nchunks=" + nchunks + ", chunkSize="
+                                + chunk.length);
 
                 }
 
@@ -233,7 +247,8 @@ abstract public class AbstractChunkedResolverator<E,F,S> implements ICloseableIt
                     
                 if (log.isInfoEnabled())
                     log.info("Finished: nchunks=" + nchunks + ", nelements="
-                            + nelements + ", elapsed=" + elapsed + "ms");
+                            + nelements + ", elapsed=" + elapsed
+                            + "ms, sink.open" + buffer.isOpen());
 
                 return nelements;
                 
@@ -338,11 +353,20 @@ abstract public class AbstractChunkedResolverator<E,F,S> implements ICloseableIt
             log.info("lastIndex=" + lastIndex + ", chunkSize="
                     + (chunk != null ? "" + chunk.length : "N/A"));
 
-		/*
-		 * Asynchronous close by the consumer of the producer's buffer. This
-		 * will cause the ChunkConsumerTask to abort if it is still running and
-		 * that will cause the [src] to be closed.
-		 */
+        /*
+         * Explicitly close the source since we will not be reading anything
+         * more from it.
+         * 
+         * @see https://sourceforge.net/apps/trac/bigdata/ticket/361
+         */
+        src.close();
+
+        /*
+         * Close the sink as well. The thread draining the sink's iterator will
+         * notice that it has been closed. It will still drain anything already
+         * buffered in the sink, but then the iterator() will report that no
+         * more data is available rather than blocking.
+         */
         buffer.close();
 
         chunk = null;
