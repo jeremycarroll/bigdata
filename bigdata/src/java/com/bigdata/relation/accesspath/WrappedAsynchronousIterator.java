@@ -49,6 +49,8 @@ import com.bigdata.striterator.ICloseableIterator;
  */
 public class WrappedAsynchronousIterator<E,F> implements IAsynchronousIterator<E> {
 
+//    private static final Logger log = Logger.getLogger(WrappedAsynchronousIterator.class);
+    
     private transient boolean open = true;
 
     private final IChunkedIterator<F> src;
@@ -79,7 +81,17 @@ public class WrappedAsynchronousIterator<E,F> implements IAsynchronousIterator<E
 
     public boolean hasNext() {
 
-        return open && src.hasNext();
+        if(open && src.hasNext())
+            return true;
+
+        /*
+         * Explicit close so we close the source as well when this is exhausted.
+         * 
+         * @see https://sourceforge.net/apps/trac/bigdata/ticket/361
+         */
+        close();
+        
+        return false;
 
     }
 
@@ -110,7 +122,8 @@ public class WrappedAsynchronousIterator<E,F> implements IAsynchronousIterator<E
             open = false;
             
 //            if (src instanceof ICloseableIterator<?>) {
-            
+//            if (log.isDebugEnabled())
+//                log.debug("Close", new RuntimeException());
             ((ICloseableIterator<?>) src).close();
             
 //            }

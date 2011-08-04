@@ -30,6 +30,8 @@ public class RunningQueryCloseableIteration<E extends BindingSet, X extends Quer
 	 * return <code>true</code>.
 	 */
 	private E current = null;
+	
+	private boolean open = true;
 
 	public RunningQueryCloseableIteration(final IRunningQuery runningQuery,
 			final CloseableIteration<E, X> src) {
@@ -40,12 +42,26 @@ public class RunningQueryCloseableIteration<E extends BindingSet, X extends Quer
 	}
 
 	public void close() throws X {
-		runningQuery.cancel(true/* mayInterruptIfRunning */);
-		src.close();
+        if (open) {
+            open = false;
+            runningQuery.cancel(true/* mayInterruptIfRunning */);
+            src.close();
+        }
 	}
 
-	public boolean hasNext() throws X {
+    public boolean hasNext() throws X {
 
+        if (open && _hasNext())
+            return true;
+
+        close();
+
+        return false;
+	    
+	}
+	
+	private boolean _hasNext() throws X {
+	    
 		if (current != null) {
 			// Already buffered.
 			return true;

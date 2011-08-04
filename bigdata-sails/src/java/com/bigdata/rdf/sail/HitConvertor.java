@@ -46,8 +46,9 @@ public class HitConvertor implements
     final private Set<URI> graphs;
     
     private BigdataValue next;
+
+    private boolean open = true;
     
-    @SuppressWarnings("unchecked")
     public HitConvertor(final AbstractTripleStore database,
             final Iterator<IHit> src, final Var svar, final BindingSet bindings) {
         
@@ -104,7 +105,7 @@ public class HitConvertor implements
      * @param value
      *            The value.
      */
-    protected boolean isValid(BigdataValue value) {
+    protected boolean isValid(final BigdataValue value) {
         
         if (graphs != null) {
             // check each graph to see if the literal appears in a statement
@@ -123,11 +124,28 @@ public class HitConvertor implements
     
     public void close() throws QueryEvaluationException {
 
-        src.close();
+        if (open) {
+
+            open = false;
+            
+            src.close();
+            
+        }
         
     }
 
     public boolean hasNext() throws QueryEvaluationException {
+
+        if (open && _hasNext())
+            return true;
+        
+        close();
+        
+        return false;
+        
+    }
+    
+    private boolean _hasNext() throws QueryEvaluationException {
 
         if (next != null)
             return true;
@@ -149,7 +167,6 @@ public class HitConvertor implements
         return false;
 
     }
-    
     
     /**
      * Binds the next {@link BigdataValue} (must be a Literal).
