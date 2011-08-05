@@ -51,7 +51,7 @@ public class WrappedAsynchronousIterator<E,F> implements IAsynchronousIterator<E
 
 //    private static final Logger log = Logger.getLogger(WrappedAsynchronousIterator.class);
     
-    private transient boolean open = true;
+    private transient volatile boolean open = true;
 
     private final IChunkedIterator<F> src;
     
@@ -121,13 +121,8 @@ public class WrappedAsynchronousIterator<E,F> implements IAsynchronousIterator<E
 
             open = false;
             
-//            if (src instanceof ICloseableIterator<?>) {
-//            if (log.isDebugEnabled())
-//                log.debug("Close", new RuntimeException());
-            ((ICloseableIterator<?>) src).close();
+            src.close();
             
-//            }
-        
         }
         
     }

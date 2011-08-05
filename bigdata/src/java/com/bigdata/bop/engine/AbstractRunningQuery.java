@@ -165,6 +165,15 @@ abstract public class AbstractRunningQuery implements IRunningQuery {
      */
     final private IQueryClient clientProxy;
 
+    /**
+     * The original message which kicked off this query on the query controller.
+     * This is NOT required when the query is materialized on another node and
+     * MAY be <code>null</code>, but the original message used to kick off the
+     * query on the query controller MUST be provided so we can ensure that the
+     * source iteration is always closed when the query is cancelled.
+     */
+    final private IChunkMessage<IBindingSet> realSource;
+    
     /** The query. */
     final private PipelineOp query;
 
@@ -452,6 +461,13 @@ abstract public class AbstractRunningQuery implements IRunningQuery {
      *            other than the query controller itself.
      * @param query
      *            The query.
+     * @param realSource
+     *            The original message which kicked off this query on the query
+     *            controller. This is NOT required when the query is
+     *            materialized on another node and MAY be <code>null</code>, but
+     *            the original message used to kick off the query on the query
+     *            controller MUST be provided so we can ensure that the source
+     *            iteration is always closed when the query is cancelled.
      * 
      * @throws IllegalArgumentException
      *             if any argument is <code>null</code>.
@@ -465,7 +481,8 @@ abstract public class AbstractRunningQuery implements IRunningQuery {
      */
     public AbstractRunningQuery(final QueryEngine queryEngine,
             final UUID queryId, final boolean controller,
-            final IQueryClient clientProxy, final PipelineOp query) {
+            final IQueryClient clientProxy, final PipelineOp query,
+            final IChunkMessage<IBindingSet> realSource) {
 
         if (queryEngine == null)
             throw new IllegalArgumentException();
@@ -489,6 +506,8 @@ abstract public class AbstractRunningQuery implements IRunningQuery {
 
         this.query = query;
 
+        this.realSource = realSource;
+        
         this.bopIndex = BOpUtility.getIndex(query);
 
         /*
@@ -1027,6 +1046,10 @@ abstract public class AbstractRunningQuery implements IRunningQuery {
                 /*
                  * Do additional cleanup exactly once.
                  */
+                if (realSource != null)
+                    realSource.release();
+                // close() IAsynchronousIterators for accepted messages.
+                releaseAcceptedMessages();
                 // cancel any running operators for this query on this node.
                 cancelled |= cancelRunningOperators(mayInterruptIfRunning);
                 if (controller) {
@@ -1087,6 +1110,23 @@ abstract public class AbstractRunningQuery implements IRunningQuery {
      */
     abstract protected boolean cancelRunningOperators(
             final boolean mayInterruptIfRunning);
+
+    /**
+     * Close the {@link IAsynchronousIterator} for any {@link IChunkMessage}s
+     * which have been <em>accepted</em> for this queue on this node (internal
+     * API).
+     * <p>
+     * Note: This must be invoked while holding a lock which is exclusive with
+     * the lock used to hand off {@link IChunkMessage}s to operator tasks
+     * otherwise we could wind up invoking {@link IAsynchronousIterator#close()}
+     * from on an {@link IAsynchronousIterator} running in a different thread.
+     * That would cause visibility problems in the close() semantics unless the
+     * {@link IAsynchronousIterator} is thread-safe for close (e.g., volatile
+     * write, synchronized, etc.). The appropriate lock for this is
+     * {@link AbstractRunningQuery#lock}. This method is only invoked out of
+     * {@link AbstractRunningQuery#cancel(boolean)} which owns that lock.
+     */
+    abstract protected void releaseAcceptedMessages();
 
     // {
     // boolean cancelled = false;

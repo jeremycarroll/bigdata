@@ -134,9 +134,10 @@ public class StandaloneChainedRunningQuery extends AbstractRunningQuery {
      */
     public StandaloneChainedRunningQuery(final QueryEngine queryEngine,
             final UUID queryId, final boolean controller,
-            final IQueryClient clientProxy, final PipelineOp query) {
+            final IQueryClient clientProxy, final PipelineOp query,
+            final IChunkMessage<IBindingSet> realSource) {
 
-        super(queryEngine, queryId, controller, clientProxy, query);
+        super(queryEngine, queryId, controller, clientProxy, query, realSource);
 
         this.operatorQueues = new ConcurrentHashMap<Integer/* bopId */, MultiplexBlockingBuffer<IBindingSet[]>>();
 
@@ -410,6 +411,25 @@ public class StandaloneChainedRunningQuery extends AbstractRunningQuery {
         
     }
 
+    /*
+     * TODO Review this. I made the change at a time when we were not using the
+     * StandaloneRunningQueryClass. It is responsible for invoking
+     * message.release(), which is is not really doing.
+     * 
+     * @see https://sourceforge.net/apps/trac/bigdata/ticket/361
+     */
+    @Override
+    protected void releaseAcceptedMessages() {
+        
+        for (MultiplexBlockingBuffer<IBindingSet[]> buffer : operatorQueues
+                .values()) {
+
+            buffer.flushAndCloseAll();
+            
+        }
+        
+    }
+    
     /**
      * Handles various handshaking with the {@link AbstractRunningQuery} and the
      * {@link RunState} for the query.

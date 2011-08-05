@@ -236,11 +236,11 @@ public class QueryEngine implements IQueryPeer, IQueryClient {
          * <pre>
          * public MyRunningQuery(QueryEngine queryEngine, UUID queryId,
          *             boolean controller, IQueryClient clientProxy,
-         *             PipelineOp query)
+         *             PipelineOp query, IChunkMessage<IBindingSet> realSource)
          * </pre>
          * 
          * Note that classes derived from {@link QueryEngine} may override
-         * {@link QueryEngine#newRunningQuery(QueryEngine, UUID, boolean, IQueryClient, PipelineOp)}
+         * {@link QueryEngine#newRunningQuery(QueryEngine, UUID, boolean, IQueryClient, PipelineOp, IChunkMessage)}
          * in which case they might not support this option.
          */
         String RUNNING_QUERY_CLASS = (QueryEngine.class.getName()
@@ -719,51 +719,58 @@ public class QueryEngine implements IQueryPeer, IQueryClient {
         public void run() {
             if(log.isInfoEnabled())
                 log.info("Running: " + this);
-            while (true) {
-                try {
-                    final AbstractRunningQuery q = queue.take();
-                    if (!q.isDone())
-                        q.consumeChunk();
-                } catch (InterruptedException e) {
-                    /*
-                     * Note: Uncomment the stack trace here if you want to find
-                     * where the query was interrupted.
-                     * 
-                     * Note: If you want to find out who interrupted the query,
-                     * then you can instrument BlockingBuffer#close() in
-                     * PipelineOp#newBuffer(stats).
-                     */
-                    if (log.isInfoEnabled())
-                        log.info("Interrupted."
-//                            ,e
-                            );
-                    return;
-                } catch (Throwable t) {
-                    // log and continue
-                    log.error(t, t);
-                    continue;
-                }
+            try {
+                while (true) {
+                    try {
+                        final AbstractRunningQuery q = queue.take();
+                        if (!q.isDone())
+                            q.consumeChunk();
+                    } catch (InterruptedException e) {
+                        /*
+                         * Note: Uncomment the stack trace here if you want to
+                         * find where the query was interrupted.
+                         * 
+                         * Note: If you want to find out who interrupted the
+                         * query, then you can instrument BlockingBuffer#close()
+                         * in PipelineOp#newBuffer(stats).
+                         */
+                        if (log.isInfoEnabled())
+                            log.info("Interrupted."
+    //                            ,e
+                                );
+                        return;
+                    } catch (Throwable t) {
+                        // log and continue
+                        log.error(t, t);
+                        continue;
+                    }
+                } // while(true)
+            } finally {
+                if (log.isInfoEnabled())
+                    log.info("QueryEngineTask is done.");
             }
         }
     } // QueryEngineTask
 
-	/**
-	 * Add a chunk of intermediate results for consumption by some query. The
-	 * chunk will be attached to the query and the query will be scheduled for
-	 * execution.
-	 * 
-	 * @param msg
-	 *            A chunk of intermediate results.
-	 * 
-	 * @return <code>true</code> if the chunk was accepted. This will return
-	 *         <code>false</code> if the query is done (including cancelled) or
-	 *         the query engine is shutdown.
-	 * 
-	 * @throws IllegalArgumentException
-	 *             if the chunk is <code>null</code>.
-	 * @throws IllegalStateException
-	 *             if the chunk is not materialized.
-	 */
+    /**
+     * Add a chunk of intermediate results for consumption by some query. The
+     * chunk will be attached to the query and the query will be scheduled for
+     * execution.
+     * 
+     * @param msg
+     *            A chunk of intermediate results.
+     * 
+     * @return <code>true</code> if the chunk was accepted. This will return
+     *         <code>false</code> if the query is done (including cancelled) or
+     *         the query engine is shutdown. The {@link IChunkMessage} will have
+     *         been {@link IChunkMessage#release() released} if it was not
+     *         accepted.
+     * 
+     * @throws IllegalArgumentException
+     *             if the chunk is <code>null</code>.
+     * @throws IllegalStateException
+     *             if the chunk is not materialized.
+     */
     protected boolean acceptChunk(final IChunkMessage<IBindingSet> msg) {
         
         if (msg == null)
@@ -784,12 +791,14 @@ public class QueryEngine implements IQueryPeer, IQueryClient {
 		// add chunk to the query's input queue on this node.
 		if (!q.acceptChunk(msg)) {
 			// query is no longer running.
+		    msg.release();
 			return false;
 			
 		}
 
 		if(!isRunning()) {
 			// query engine is no longer running.
+		    msg.release();
 			return false;
 			
 		}
@@ -829,12 +838,16 @@ public class QueryEngine implements IQueryPeer, IQueryClient {
         // stop the query engine.
         final Future<?> f = engineFuture.get();
         if (f != null) {
+            if(log.isInfoEnabled())
+                log.info("Cancelling engineFuture: "+this);
             f.cancel(true/* mayInterruptIfRunning */);
         }
 
         // stop the service on which we ran the query engine.
         final ExecutorService s = engineService.get();
         if (s != null) {
+            if(log.isInfoEnabled())
+                log.info("Terminating engineService: "+this);
             s.shutdownNow();
         }
         
@@ -861,12 +874,17 @@ public class QueryEngine implements IQueryPeer, IQueryClient {
         
         // stop the query engine.
         final Future<?> f = engineFuture.get();
-        if (f != null)
+        if (f != null) {
+            if (log.isInfoEnabled())
+                log.info("Cancelling engineFuture: " + this);
             f.cancel(true/* mayInterruptIfRunning */);
-
+        }
+        
         // stop the service on which we ran the query engine.
         final ExecutorService s = engineService.get();
         if (s != null) {
+            if (log.isInfoEnabled())
+                log.info("Terminating engineService: "+this);
             s.shutdownNow();
         }
         
@@ -1097,7 +1115,7 @@ public class QueryEngine implements IQueryPeer, IQueryClient {
 
         final AbstractRunningQuery runningQuery = newRunningQuery(
                 /* this, */queryId, true/* controller */,
-                getProxy()/* queryController */, query);
+                getProxy()/* queryController */, query, msg/*realSource*/);
 
         final long timeout = query.getProperty(BOp.Annotations.TIMEOUT,
                 BOp.Annotations.DEFAULT_TIMEOUT);
@@ -1162,7 +1180,7 @@ public class QueryEngine implements IQueryPeer, IQueryClient {
         
         // tell query to consume the initial chunk.
         acceptChunk(msg);
-
+        
         return runningQuery;
 
     }
@@ -1401,7 +1419,7 @@ public class QueryEngine implements IQueryPeer, IQueryClient {
 	protected AbstractRunningQuery newRunningQuery(
             /*final QueryEngine queryEngine,*/ final UUID queryId,
             final boolean controller, final IQueryClient clientProxy,
-            final PipelineOp query) {
+            final PipelineOp query, final IChunkMessage<IBindingSet> realSource) {
 
         final String className = query.getProperty(
                 Annotations.RUNNING_QUERY_CLASS,
@@ -1426,11 +1444,11 @@ public class QueryEngine implements IQueryPeer, IQueryClient {
             final Constructor<? extends IRunningQuery> ctor = cls
                     .getConstructor(new Class[] { QueryEngine.class,
                             UUID.class, Boolean.TYPE, IQueryClient.class,
-                            PipelineOp.class });
+                            PipelineOp.class, IChunkMessage.class });
 
             // save reference.
             runningQuery = ctor.newInstance(new Object[] { this, queryId,
-                    controller, clientProxy, query });
+                    controller, clientProxy, query, realSource });
 
         } catch (Exception ex) {
 

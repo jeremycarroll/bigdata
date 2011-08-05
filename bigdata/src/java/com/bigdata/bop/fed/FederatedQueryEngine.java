@@ -431,7 +431,7 @@ public class FederatedQueryEngine extends QueryEngine {
 
             final FederatedRunningQuery q = newRunningQuery(
                     /*FederatedQueryEngine.this,*/ queryId, false/* controller */,
-                    msg.getQueryController(), query);
+                    msg.getQueryController(), query, msg);
 
             return (FederatedRunningQuery) putIfAbsent(queryId, q);
 
@@ -445,7 +445,7 @@ public class FederatedQueryEngine extends QueryEngine {
         
         final FederatedRunningQuery q = newRunningQuery(/*this, */queryId,
                 false/* controller */, queryDecl.getQueryController(),
-                queryDecl.getQuery());
+                queryDecl.getQuery(), null/*realSource*/);
         
         putIfAbsent(queryId, q);
 
@@ -522,10 +522,10 @@ public class FederatedQueryEngine extends QueryEngine {
     protected FederatedRunningQuery newRunningQuery(
             /*final QueryEngine queryEngine,*/ final UUID queryId,
             final boolean controller, final IQueryClient clientProxy,
-            final PipelineOp query) {
+            final PipelineOp query, final IChunkMessage<IBindingSet> realSource) {
 
         return new FederatedRunningQuery(this/*queryEngine*/, queryId, controller,
-                clientProxy, query);
+                clientProxy, query, realSource);
 
     }
 
@@ -563,6 +563,18 @@ public class FederatedQueryEngine extends QueryEngine {
                 proxy = dataService.getQueryEngine();
             } catch (IOException e) {
                 throw new RuntimeException(e);
+            }
+
+            if (proxy == null) {
+
+                /*
+                 * Note: Presumably this is due to the concurrent tear down of
+                 * the peer.
+                 */
+                
+                throw new RuntimeException("No query engine on service: "
+                        + serviceUUID);
+
             }
 
             IQueryPeer tmp = proxyMap.putIfAbsent(serviceUUID, proxy);

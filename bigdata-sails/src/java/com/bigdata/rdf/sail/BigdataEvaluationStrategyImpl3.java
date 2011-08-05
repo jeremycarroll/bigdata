@@ -143,7 +143,6 @@ import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.BD;
 import com.bigdata.rdf.store.BigdataBindingSetResolverator;
 import com.bigdata.rdf.store.BigdataOpenRDFBindingSetsResolverator;
-import com.bigdata.relation.accesspath.AccessPath;
 import com.bigdata.relation.accesspath.ElementFilter;
 import com.bigdata.relation.accesspath.IAsynchronousIterator;
 import com.bigdata.relation.accesspath.IBuffer;
@@ -162,7 +161,6 @@ import com.bigdata.search.IHit;
 import com.bigdata.striterator.ChunkedWrappedIterator;
 import com.bigdata.striterator.Dechunkerator;
 import com.bigdata.striterator.DistinctFilter;
-import com.bigdata.striterator.IChunkedIterator;
 import com.bigdata.striterator.IChunkedOrderedIterator;
 import com.bigdata.striterator.ICloseableIterator;
 
@@ -1103,6 +1101,8 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
 				// ensure query is halted.
 				runningQuery.cancel(true/* mayInterruptIfRunning */);
 			}
+		    // ensure source is closed on error path.
+		    source.close();
 			/*
 			 * Note: Do not wrap as a different exception type. The caller is
 			 * looking for this.
@@ -1113,6 +1113,8 @@ public class BigdataEvaluationStrategyImpl3 extends EvaluationStrategyImpl
 				// ensure query is halted.
 				runningQuery.cancel(true/* mayInterruptIfRunning */);
 			}
+            // ensure source is closed on error path.
+            source.close();
 			throw new QueryEvaluationException(t);
 		}
     	

@@ -240,9 +240,10 @@ public class FederatedRunningQuery extends ChunkedRunningQuery {
      */
     public FederatedRunningQuery(final FederatedQueryEngine queryEngine,
             final UUID queryId, final boolean controller,
-            final IQueryClient clientProxy, final PipelineOp query) {
+            final IQueryClient clientProxy, final PipelineOp query,
+            final IChunkMessage<IBindingSet> realSource) {
 
-        super(queryEngine, queryId, /*begin, */controller, clientProxy, query);
+        super(queryEngine, queryId, /*begin, */controller, clientProxy, query, realSource);
 
         /*
          * Note: getServiceUUID() should be a smart proxy method and thus not

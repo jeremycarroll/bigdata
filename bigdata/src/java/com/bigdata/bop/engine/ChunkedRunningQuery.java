@@ -178,9 +178,9 @@ public class ChunkedRunningQuery extends AbstractRunningQuery {
      */
     public ChunkedRunningQuery(final QueryEngine queryEngine, final UUID queryId,
             final boolean controller, final IQueryClient clientProxy,
-            final PipelineOp query) {
+            final PipelineOp query, final IChunkMessage<IBindingSet> realSource) {
 
-        super(queryEngine, queryId, controller, clientProxy, query);
+        super(queryEngine, queryId, controller, clientProxy, query, realSource);
         
         this.operatorFutures = new ConcurrentHashMap<BSBundle, ConcurrentHashMap<ChunkFutureTask,ChunkFutureTask>>();
         
@@ -216,6 +216,7 @@ public class ChunkedRunningQuery extends AbstractRunningQuery {
 
             if (isDone()) {
             	// The query is no longer running.
+                msg.release();
             	return false;
                 //throw new RuntimeException(ERR_QUERY_DONE, future.getCause());
             }
@@ -261,6 +262,9 @@ public class ChunkedRunningQuery extends AbstractRunningQuery {
         } catch(InterruptedException ex) {
         	
         	// wrap interrupt thrown out of queue.put(msg);
+            
+            msg.release();
+            
         	throw new RuntimeException(ex);
         	
         } finally {
@@ -518,6 +522,11 @@ public class ChunkedRunningQuery extends AbstractRunningQuery {
 			 * for this operator.
 			 */
 			final List<IChunkMessage<IBindingSet>> accepted = new LinkedList<IChunkMessage<IBindingSet>>();
+			try {
+            /*
+             * Note: Once we drain these messages from the work queue we are
+             * responsible for calling release() on them.
+             */
 			queue.drainTo(accepted, pipelined ? maxMessagesPerTask
 					: Integer.MAX_VALUE);
 			// #of messages accepted from the work queue.
@@ -545,11 +554,15 @@ public class ChunkedRunningQuery extends AbstractRunningQuery {
 			 * task.
 			 */
             int nassigned = 1;
+            final Iterator<IChunkMessage<IBindingSet>> mitr = accepted.iterator();
 			final IMultiSourceAsynchronousIterator<IBindingSet[]> source = new MultiSourceSequentialAsynchronousIterator<IBindingSet[]>(//
-            		accepted.remove(0).getChunkAccessor().iterator()//
+//            		accepted.remove(0).getChunkAccessor().iterator()//
+			        mitr.next().getChunkAccessor().iterator()//
             		);
-            for (IChunkMessage<IBindingSet> msg : accepted) {
-                source.add(msg.getChunkAccessor().iterator());
+//            for (IChunkMessage<IBindingSet> msg : accepted) {
+//          source.add(msg.getChunkAccessor().iterator());
+			while(mitr.hasNext()) {
+			    source.add(mitr.next().getChunkAccessor().iterator());
                 nassigned++;
 			}
 			if (nassigned != naccepted)
@@ -578,6 +591,17 @@ public class ChunkedRunningQuery extends AbstractRunningQuery {
 						+ naccepted+", runState="+runStateString());
 			getQueryEngine().execute(cft);
 			return true;
+			} catch(Throwable t) {
+                try {
+                    // Ensure messages are released().
+                    for (IChunkMessage<IBindingSet> msg : accepted)
+                        msg.release();
+                } catch (Throwable t2) {
+                    log.error(t2, t2);
+                }
+                // wrap and rethrow cause.
+	            throw new RuntimeException(t);
+			}
         } finally {
             lock.unlock();
         }
@@ -1111,6 +1135,17 @@ public class ChunkedRunningQuery extends AbstractRunningQuery {
 					throw new Exception(t);
 				}
 				// otherwise ignore exception (normal completion).
+			} finally {
+                /*
+                 * Ensure that the source is closed.
+                 * 
+                 * TODO This is not being guarded by a lock so we might not
+                 * safely publish the state change to the source iterator when
+                 * it is closed.
+                 */
+                final IAsynchronousIterator<IBindingSet[]> src = context
+                        .getSource();
+                src.close();
 			}
             // Done.
             return null;
@@ -1459,6 +1494,31 @@ public class ChunkedRunningQuery extends AbstractRunningQuery {
      
         return cancelled;
         
+    }
+
+    @Override
+    protected void releaseAcceptedMessages() {
+
+        for (Map.Entry<BSBundle, BlockingQueue<IChunkMessage<IBindingSet>>> e : operatorQueues
+                .entrySet()) {
+
+            final BlockingQueue<IChunkMessage<IBindingSet>> queue = e.getValue();
+
+            if (queue.isEmpty())
+                continue;
+            
+            final LinkedList<IChunkMessage<IBindingSet>> c = new LinkedList<IChunkMessage<IBindingSet>>();
+
+            queue.drainTo(c);
+
+            for (IChunkMessage<IBindingSet> msg : c) {
+
+                msg.release();
+                
+            }
+            
+        }
+     
     }
 
 //    @Override

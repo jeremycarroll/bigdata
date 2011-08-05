@@ -24,6 +24,8 @@ public class RunningQueryCloseableIterator<E extends IBindingSet>
 	 */
 	private E current = null;
 
+	private volatile boolean open = true;
+	
 	public RunningQueryCloseableIterator(final IRunningQuery runningQuery,
 			final ICloseableIterator<E> src) {
 
@@ -33,12 +35,26 @@ public class RunningQueryCloseableIterator<E extends IBindingSet>
 	}
 
 	public void close() {
-		runningQuery.cancel(true/* mayInterruptIfRunning */);
-		src.close();
+        if (open) {
+            open = false;
+            runningQuery.cancel(true/* mayInterruptIfRunning */);
+            src.close();
+        }
 	}
 
 	public boolean hasNext() {
 
+	    if(open && _hasNext())
+	        return true;
+	    
+	    close();
+	    
+	    return false;
+	    
+	}
+	
+	private boolean _hasNext() {
+	    
 		if (current != null) {
 			// Already buffered.
 			return true;
