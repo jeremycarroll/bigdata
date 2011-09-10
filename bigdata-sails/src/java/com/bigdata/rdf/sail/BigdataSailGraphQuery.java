@@ -251,7 +251,7 @@ public class BigdataSailGraphQuery extends SailGraphQuery
             
             CloseableIteration<? extends BindingSet, QueryEvaluationException> bindingsIter = sailCon
                     .evaluate(tupleExpr, getActiveDataset(), getBindings(),
-                            null/* bindingSets */, getIncludeInferred(),
+                            getIncludeInferred(),
                             queryHints);
             
             // Filters out all partial and invalid matches

@@ -66,7 +66,7 @@ public class BigdataSailTupleQuery extends SailTupleQuery
 					.getSailConnection();
 
             bindingsIter = sailCon.evaluate(tupleExpr, getActiveDataset(),
-                    getBindings(), null/* bindingSets */, getIncludeInferred(),
+                    getBindings(), getIncludeInferred(),
                     queryHints);
 
 			bindingsIter = enforceMaxQueryTime(bindingsIter);
