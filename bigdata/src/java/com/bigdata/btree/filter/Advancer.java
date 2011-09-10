@@ -184,7 +184,9 @@ abstract public class Advancer<E> extends FilterBase implements ITupleFilter<E> 
                  * the source cursor (not the local cursor).
                  */
                 
-                log.warn("Exhausted - advanced beyond key range constraint: " + ex);
+            	if (log.isInfoEnabled()) {
+            		log.info("Exhausted - advanced beyond key range constraint: " + ex);
+            	}
                 
                 exhausted = true;
                 
