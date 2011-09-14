@@ -677,9 +677,12 @@ abstract public class AbstractTransactionService extends AbstractService
 
             try {
 
-                final long tx = assignTransactionIdentifier(timestamp);
+                final AtomicLong readCommitTime = new AtomicLong();
 
-                activateTx(new TxState(tx));
+                final long tx = assignTransactionIdentifier(timestamp,
+                        readCommitTime);
+
+                activateTx(new TxState(tx, readCommitTime.get()));
 
                 return tx;
 
@@ -1212,7 +1215,10 @@ abstract public class AbstractTransactionService extends AbstractService
      * 
      * @param timestamp
      *            The timestamp.
-     * 
+     * @param readCommitTime
+     *            The commit point against which the transaction will read. This
+     *            is set as a side-effect on the caller's argument.
+     *            
      * @return The assigned transaction identifier.
      * 
      * @throws InterruptedException
@@ -1222,9 +1228,12 @@ abstract public class AbstractTransactionService extends AbstractService
      *             if a timeout occurs while awaiting a start time which would
      *             satisfy the request.
      */
-    protected long assignTransactionIdentifier(final long timestamp)
+    final protected long assignTransactionIdentifier(final long timestamp,
+            final AtomicLong readCommitTime)
             throws InterruptedException, TimeoutException {
         
+        final long lastCommitTime = getLastCommitTime();
+
         if (timestamp == ITx.UNISOLATED) {
 
             /*
@@ -1240,11 +1249,12 @@ abstract public class AbstractTransactionService extends AbstractService
              * the moment when we assigned this transaction identifier.
              */
 
+            // The transaction will read from the most recent commit point.
+            readCommitTime.set(lastCommitTime);
+            
             return -nextTimestamp();
 
         }
-
-        final long lastCommitTime = getLastCommitTime();
 
 //		if (timestamp > lastTimestamp) {
 //
@@ -1268,6 +1278,9 @@ abstract public class AbstractTransactionService extends AbstractService
              * READ_COMMITTED.
              */
             
+            // The transaction will read from the most recent commit point.
+            readCommitTime.set(lastCommitTime);
+            
             return nextTimestamp();
             
         }
@@ -1284,6 +1297,9 @@ abstract public class AbstractTransactionService extends AbstractService
              * Note: If [lastCommitTime == 0], we will still issue the next
              * timestamp.
              */
+
+            // The transaction will read from the most recent commit point.
+            readCommitTime.set(lastCommitTime);
 
             return nextTimestamp();
             
@@ -1307,7 +1323,7 @@ abstract public class AbstractTransactionService extends AbstractService
             
         }
         
-        return getStartTime(timestamp);
+        return getStartTime(timestamp, readCommitTime);
 
     }
 
@@ -1321,11 +1337,15 @@ abstract public class AbstractTransactionService extends AbstractService
      * 
      * @param timestamp
      *            The timestamp (identifies the desired commit point).
+     * @param readCommitTime
+     *            The commit point against which the transaction will read. This
+     *            is set as a side-effect on the caller's argument.
      * 
      * @return A distinct timestamp not in use by any transaction that will read
      *         from the same commit point.
      */
-    protected long getStartTime(final long timestamp)
+    final protected long getStartTime(final long timestamp,
+            final AtomicLong readCommitTime)
             throws InterruptedException, TimeoutException {
 
         /*
@@ -1334,6 +1354,9 @@ abstract public class AbstractTransactionService extends AbstractService
          */
         final long commitTime = findCommitTime(timestamp);
 
+        // The transaction will read from this commit point (-1 iff no commits yet).
+        readCommitTime.set(commitTime);
+        
         if (commitTime == -1L) {
 
             /*
@@ -1853,6 +1876,14 @@ abstract public class AbstractTransactionService extends AbstractService
         public final long tx;
         
         /**
+         * The commit time associated with the commit point against which this
+         * transaction will read. This will be <code>-1</code> IFF there are no
+         * commit points yet. Otherwise it is a real commit time associated with
+         * some existing commit point.
+         */
+        public final long readCommitTime;
+        
+        /**
          * <code>true</code> iff the transaction is read-only.
          */
         public final boolean readOnly;
@@ -2048,7 +2079,15 @@ abstract public class AbstractTransactionService extends AbstractService
          */
         final protected ReentrantLock lock = new ReentrantLock();
         
-        protected TxState(final long tx) {
+        /**
+         * 
+         * @param tx
+         *            The assigned transaction identifier.
+         * @param readCommitTime
+         *            The commit time associated with the commit point against
+         *            which this transaction will read.
+         */
+        protected TxState(final long tx, final long readCommitTime) {
             
             if (tx == ITx.UNISOLATED)
                 throw new IllegalArgumentException();
@@ -2057,6 +2096,8 @@ abstract public class AbstractTransactionService extends AbstractService
                 throw new IllegalArgumentException();
             
             this.tx = tx;
+            
+            this.readCommitTime = readCommitTime;
             
             this.readOnly = TimestampUtility.isReadOnly(tx);
                        
