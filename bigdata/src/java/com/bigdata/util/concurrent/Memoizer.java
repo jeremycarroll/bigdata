@@ -84,7 +84,7 @@ abstract public class Memoizer<A, V> implements Computable<A, V> {
                 if (f == null) {
                     willRun = true; // Note: MUST set before running!
                     f = ft;
-                    ft.run(); // call to c.compute() happens here.
+                    ft.run(); // call to c.compute() happens here; MAY throw out RuntimeException but WILL set exception on FutureTask.
                 }
             }
             try {
@@ -97,7 +97,7 @@ abstract public class Memoizer<A, V> implements Computable<A, V> {
 				 * Wrap the exception to indicate whether or not the interrupt
 				 * occurred in the thread of the caller that executed the
 				 * FutureTask in its thread. This is being done as an aid to
-				 * diagosing situations where f.get() throws out an
+				 * diagnosing situations where f.get() throws out an
 				 * InterruptedException.
 				 */
 				final InterruptedException e2 = new InterruptedException(
@@ -105,9 +105,9 @@ abstract public class Memoizer<A, V> implements Computable<A, V> {
 				e2.initCause(e);
 				throw e2;
             } catch (ExecutionException e) {
-                if (!willRun
-                        && InnerCause.isInnerCause(e,
-                                InterruptedException.class)) {
+                if (!willRun) {
+//                        && InnerCause.isInnerCause(e,
+//                                InterruptedException.class)) {
                     /*
                      * Since the task was executed by another thread (ft.run()),
                      * remove the interrupted task and retry.
