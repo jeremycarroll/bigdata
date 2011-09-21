@@ -158,9 +158,29 @@ public class BuildInfo {
 	<!-- I set the target to 1.5 to support deployment on non-1.6 JVMs. -->
 	<target name="compile" depends="prepare, buildinfo">
 		<mkdir dir="${build.dir}" />
-		<javac destdir="${build.dir}/classes" classpathref="build.classpath" debug="${javac.debug}" debuglevel="${javac.debuglevel}" verbose="${javac.verbose}" encoding="${javac.encoding}">
+	    <echo>javac</echo>
+	    <echo>    destdir="${build.dir}"</echo>
+	    <echo>    fork="yes"</echo>
+	    <echo>    memorymaximumsize="1g"</echo>
+	    <echo>    debug="yes"</echo>
+	    <echo>    debuglevel="${javac.debuglevel}"</echo>
+	    <echo>    verbose="${javac.verbose}"</echo>
+	    <echo>    encoding="${javac.encoding}"</echo>
+	    <echo>    source="${javac.source}"</echo>
+	    <echo>    target="${javac.target}"</echo>
+		<javac classpathref="build.classpath"
+		       destdir="${build.dir}/classes"
+			   fork="yes"
+			   memorymaximumsize="1g"
+			   debug="${javac.debug}"
+			   debuglevel="${javac.debuglevel}"
+			   verbose="${javac.verbose}"
+			   encoding="${javac.encoding}"
+			   source="${javac.source}"
+	           target="${javac.target}"
+			   includeantruntime="false"
+			>
 			<!-- note: must also specify -bootclasspath and -extdirs when cross-compiling -->
-			<!-- target="${javac.target}" source="${javac.source}" -->
 			<src path="${bigdata.dir}/bigdata/src/java" />
 			<src path="${bigdata.dir}/bigdata-jini/src/java" />
 			<src path="${bigdata.dir}/bigdata-rdf/src/java" />
@@ -196,7 +216,39 @@ public class BuildInfo {
 			<fileset dir="${bigdata.dir}/bigdata-sails/src/resources/sesame-server">
 				<include name="META-INF/**" />
 			</fileset>
+			<!-- Copy WAR resources for the embedded NanoSparqlServer -->
+			<fileset dir="." includes="bigdata-war/src/**"/>
+			<!-- Copy the bigdata license. -->
+			<fileset file="${bigdata.dir}/LICENSE.txt"/>
 		</copy>
+		<!-- Copy licenses for any project from which have imported something. -->
+		<mkdir dir="${build.dir}/classes/LEGAL"/>
+		<copy toDir="${build.dir}/classes/LEGAL" flatten="true">
+			<fileset file="${bigdata.dir}/bigdata/LEGAL/apache-license-2_0.txt"/>
+			<fileset file="${bigdata.dir}/bigdata-rdf/LEGAL/sesame2.x-license.txt"/>
+		</copy>
+	  <!-- Generate a combined NOTICE file for anything which we imported
+	  	   into the source tree from which the JAR was generated. -->
+	  <concat destfile="${build.dir}/classes/NOTICE" fixlastline="true" overwrite="yes">
+	  	<filterchain>
+	      <fixcrlf/>
+		</filterchain>
+	  	<header filtering="yes" trimleading="yes">
+	  	          Combined NOTICE files for bigdata JAR source code.
+	  	          ==================================================
+	    </header>
+		<fileset file="${bigdata.dir}/NOTICE"/>
+		<fileset file="${bigdata.dir}/bigdata/LEGAL/NOTICE"/>
+		<fileset file="${bigdata.dir}/bigdata-rdf/LEGAL/NOTICE"/>
+		<fileset file="${bigdata.dir}/bigdata-sails/LEGAL/NOTICE"/>
+		<fileset file="${bigdata.dir}/bigdata-jini/LEGAL/NOTICE"/>
+	  	<footer filtering="yes" trimleading="yes">
+				  ==================================================
+				  Source code for included Open Source software is available
+				  from the respective websites of the copyright holders of the
+				  included software.
+		</footer>
+	  </concat>
 	</target>
 
 	<!-- Builds the bigdata JAR and bundles it together with all of its dependencies in the ${build.dir}/lib directory. -->
@@ -211,15 +263,13 @@ public class BuildInfo {
 	<target name="jar" depends="compile" description="Generates the jar (see also bundleJar).">
 		<jar destfile="${build.dir}/${version}.jar">
 			<fileset dir="${build.dir}/classes" excludes="test/**" />
-			<!-- Copy WAR resources for the embedded NanoSparqlServer -->
-			<fileset dir="." includes="bigdata-war/src/**"/>
 			<manifest>
 				<!--<attribute name="Main-Class" value="com/bigdata/rdf/rio/TestRioIntegration"/>-->
 			</manifest>
 		</jar>
 	</target>
 
-	<!-- This generates an osgi bundle jar, and does not bundled the dependencies.
+	<!-- This generates an osgi bundle jar, but does not bundle the dependencies.
 		 See 'bundleJar'. -->
 	<target name="osgi" depends="compile, bundle" description="Generates the osgi bundle jar (see also bundleJar).">
 		<taskdef resource="aQute/bnd/ant/taskdef.properties" classpath="bigdata/lib/bnd-0.0.384.jar" />
@@ -234,7 +284,6 @@ public class BuildInfo {
 				<attribute name="Bundle-DocURL" value="http://www.bigdata.com" />
 				<attribute name="Bundle-Description" value="Bigdata Source" />
 			</manifest>
-			<fileset dir="bigdata/src/java" />
 			<fileset dir="bigdata/src/java" />
 			<fileset dir="bigdata-jini/src/java" />
 			<fileset dir="bigdata-rdf/src/java" />
@@ -251,7 +300,7 @@ public class BuildInfo {
 		<bndwrap jars="${build.dir}/lib/jgrapht-jdk1.5-0.7.1.jar" output="${build.dir}/bundles/jgrapht-jdk1.5-0.7.1.jar" definitions="${basedir}/osgi/" />
 		<bndwrap jars="${build.dir}/lib/lgpl-utils-1.0.6-020610.jar" output="${build.dir}/bundles/lgpl-utils-1.0.6-020610.jar" definitions="${basedir}/osgi/" />
 		<bndwrap jars="${build.dir}/lib/high-scale-lib-v1.1.2.jar" output="${build.dir}/bundles/high-scale-lib-v1.1.2.jar" definitions="${basedir}/osgi/" />
-		<bndwrap jars="${build.dir}/lib/openrdf-sesame-2.3.0-onejar.jar" output="${build.dir}/bundles/openrdf-sesame-2.3.0.jar" definitions="${basedir}/osgi/" />
+		<bndwrap jars="${build.dir}/lib/openrdf-sesame-${sesame.version}-onejar.jar" output="${build.dir}/bundles/openrdf-sesame-${sesame.version}.jar" definitions="${basedir}/osgi/" />
 		<bndwrap jars="${build.dir}/lib/apache/zookeeper-${zookeeper.version}.jar" output="${build.dir}/bundles/zookeeper-${zookeeper.version}.jar" definitions="${basedir}/osgi/" />
 		<bndwrap jars="${build.dir}/lib/nxparser-6-22-2010.jar" output="${build.dir}/bundles/nxparser-2010.6.22.jar" definitions="${basedir}/osgi/" />
 	</target>
@@ -265,28 +314,42 @@ public class BuildInfo {
 		 -->
 	<target name="javadoc" depends="prepare" if="javadoc">
 		<mkdir dir="${build.dir}/docs/api" />
-		<javadoc destdir="${build.dir}/docs/api" defaultexcludes="yes" author="true" version="true" use="true" overview="../bigdata/overview.html" windowtitle="bigdata&#174;" classpathref="build.classpath">
+		<javadoc destdir="${build.dir}/docs/api" defaultexcludes="yes"
+			      author="true" version="true" use="true"
+			    overview="${bigdata.dir}/overview.html"
+			 windowtitle="bigdata&#174;"
+			classpathref="build.classpath"
+			>
 			<arg value="-J-Xmx1000m" />
 			<packageset dir="${bigdata.dir}/bigdata/src/java" />
+			<packageset dir="${bigdata.dir}/bigdata/src/samples" />
 			<packageset dir="${bigdata.dir}/bigdata-jini/src/java" />
 			<packageset dir="${bigdata.dir}/bigdata-rdf/src/java" />
+			<packageset dir="${bigdata.dir}/bigdata-rdf/src/samples" />
 			<packageset dir="${bigdata.dir}/bigdata-sails/src/java" />
 			<packageset dir="${bigdata.dir}/bigdata-sails/src/samples" />
 			<packageset dir="${bigdata.dir}/ctc-striterators/src/java" />
 			<doctitle>
 				<![CDATA[<h1>bigdata&#174;</h1>]]></doctitle>
 		<bottom>
-			<![CDATA[<i>Copyright &#169; 2006-2009 SYSTAP, LLC. All Rights Reserved.</i>]]></bottom>
+			<![CDATA[<i>Copyright &#169; 2006-2011 SYSTAP, LLC. All Rights Reserved.</i>]]></bottom>
 	<tag name="todo" scope="all" description="TODO:" />
 	<tag name="issue" scope="all" description="ISSUE:" />
 	<!--tag name="FIXME" scope="all" description="FIXME:"/-->
-	<link href="http://java.sun.com/j2se/1.5.0/docs/api/" />
-	<link href="http://openrdf.org/doc/sesame/api/" />
+	<link href="http://download.oracle.com/javase/6/docs/api/" />
+	<link href="http://www.openrdf.org/doc/sesame2/api/" />
+	<link href="http://lucene.apache.org/java/3_0_0/api/"/>
 </javadoc>
 </target>
 
 <target name="bundle" description="Bundles all dependencies for easier deployments and releases (does not bundle the bigdata jar).">
-     <copy toDir="${build.dir}/lib" flatten="true">
+	<!-- Copy all of the LEGAL directories.  Do not flatten to avoid collisions. -->
+    <copy toDir="${build.dir}/LEGAL" flatten="false">
+	  <fileset dir="${bigdata.dir}">
+		<include name="**/LEGAL/*" />
+	  </fileset>
+	</copy>
+    <copy toDir="${build.dir}/lib" flatten="true">
 	<fileset dir="${bigdata.dir}/bigdata/lib">
 		<include name="**/*.jar" />
 		<include name="**/*.so" />
@@ -312,6 +375,59 @@ public class BuildInfo {
 		<include name="**/*.jar" />
 	</fileset>
      </copy>
+</target>
+
+<!--    
+    Note: you can not filter the files in the source jars using 
+    zipgroupfileset.  And you can not specify a wildcard of source files
+    using zipfileset.  This leaves you with the choice of either creating
+    an uberjar and the filtering out the notice files or filtering out
+    the notice files for each source jar explicitly.
+    -->
+<target name="gather-copyright-notice-files"
+    	description="Locate combine all NOTICE(.txt) files for dependencies.">
+  <!-- Build an uber 'notice.jar' file from which we can later extract the
+	   individual NOTICE files.  This excludes the bigdata JAR to avoid
+	   recursively including the aggregated NOTICE file in that JAR.  -->
+  <jar destfile="${build.dir}/notice.jar">
+  	<zipgroupfileset dir="${build.dir}/lib"
+  		includes="*.jar"
+  	    excludes="bigdata-${version}.jar"
+	/>
+  </jar>
+  <!-- Generate a combined NOTICE file. -->
+  <concat destfile="${build.dir}/NOTICE" fixlastline="true" overwrite="yes">
+  	<filterchain>
+      <fixcrlf/>
+	</filterchain>
+  	<header filtering="yes" trimleading="yes">
+        Combined NOTICE files for bigdata WAR.
+        ======================================
+    </header>
+  	<!-- NOTICE files for modules used to generate the bigdata JAR. -->
+	<fileset file="${bigdata.dir}/NOTICE"/>
+	<fileset file="${bigdata.dir}/bigdata/LEGAL/NOTICE"/>
+	<fileset file="${bigdata.dir}/bigdata-rdf/LEGAL/NOTICE"/>
+	<fileset file="${bigdata.dir}/bigdata-sails/LEGAL/NOTICE"/>
+	<fileset file="${bigdata.dir}/bigdata-jini/LEGAL/NOTICE"/>
+	<!-- Reach into the uber 'notice.jar' and pull out all notice files for 
+	     dependencies. -->
+	<zipfileset src="${build.dir}/notice.jar">
+  		<patternset>
+  			<include name="NOTICE" />
+  			<include name="NOTICE.txt" />
+  			<include name="META-INF/NOTICE" />
+  			<include name="META-INF/NOTICE.txt" />
+  		</patternset>
+	</zipfileset>
+  	<footer filtering="yes" trimleading="yes">
+			  ==================================================
+			  Source code for included Open Source software is available
+			  from the respective websites of the copyright holders of the
+			  included software.
+	</footer>
+  </concat>
+  <delete file="${build.dir}/notice.jar"/>
 </target>
 
 	<!-- 
@@ -351,7 +467,7 @@ public class BuildInfo {
 	</target>
 
 	<!--depends="bundleJar"-->
-	<target name="war" depends="bundleJar, autojar-strip-fastutil" 
+	<target name="war" depends="bundleJar, autojar-strip-fastutil, gather-copyright-notice-files" 
 		description="Generates a WAR artifact.">
 		<delete file="${build.dir}/bigdata.war"/>
 		<echo message="Building WAR"/>
@@ -361,10 +477,17 @@ public class BuildInfo {
 		  <fileset dir="bigdata-war/src/html"/>
 		  <fileset dir="bigdata-war/src/jsp"/>
 		  <fileset dir="bigdata-war/src/images"/>
+          <!-- Copy the bigdata license. -->
+		  <file file="${bigdata.dir}/LICENSE.txt"/>
+          <!-- Copy all of the LEGAL directories. -->
+		  <fileset dir="${build.dir}" includes="LEGAL/**/*"/>
+		  <!-- Copy the aggregated NOTICE files. -->
+		  <file file="${build.dir}/NOTICE"/>
+		  <!-- Basic RWStore configuration. -->
 		  <file file="bigdata-war/src/resources/RWStore.properties"/>
 		  <!-- bigdata jar plus some dependencies as filtered by autojar.
 		  <lib file="${build.dir}/bigdataPlus.jar"/> -->
-		  <!-- The stripped version of fasutil. -->
+		  <!-- The stripped version of fastutil. -->
 		  <lib file="${build.dir}/fastutil-stripped.jar"/>
 		  <lib dir="${build.dir}/lib">
 		  	<exclude name="fastutil*.jar"/>
@@ -389,7 +512,7 @@ public class BuildInfo {
 		  	<!-- zookeeper only used in scale-out. -->
 	  		<exclude name="apache/zookeeper*.jar"/>
 	  		<!-- jini only used in scale-out. -->
-		  	<exclude name="jini/**.jar"/>
+		  	<exclude name="jini/**/*.jar"/>
 		  </lib>
 		  <classes file="bigdata-war/src/resources/log4j.properties"/>
 		</war>
@@ -803,7 +926,16 @@ ${postInstallMessage}</echo>
 
 <target name="scale-out-sample" description="Run the scale-out sample code.">
 
-<javac destdir="${build.dir}/classes" classpathref="build.classpath" debug="${javac.debug}" debuglevel="${javac.debuglevel}" verbose="${javac.verbose}" encoding="${javac.encoding}">
+<javac destdir="${build.dir}/classes"
+	   classpathref="build.classpath"
+	   debug="${javac.debug}"
+	   debuglevel="${javac.debuglevel}"
+	   verbose="${javac.verbose}"
+	   encoding="${javac.encoding}"
+	   source="${javac.source}"
+       target="${javac.target}"
+	   includeantruntime="false"
+	>
 	<src path="${bigdata.dir}/bigdata-sails/src/samples" />
 </javac>
 <!-- copy resources. -->
@@ -888,7 +1020,7 @@ ${postInstallMessage}</echo>
             tofile="${dist.lib}/lgplutils.jar" />
       <copy file="${bigdata.lib}/unimi/fastutil-5.1.5.jar"
             tofile="${dist.lib}/fastutil.jar" />
-      <copy file="${bigdata.lib}/icu/icu4j-3_6.jar"
+      <copy file="${bigdata.lib}/icu/icu4j-${icu.version}.jar"
             tofile="${dist.lib}/icu4j.jar" />
       <copy file="${bigdata.lib}/apache/log4j-1.2.15.jar"
             tofile="${dist.lib}/log4j.jar" />
@@ -903,31 +1035,31 @@ ${postInstallMessage}</echo>
             tofile="${dist.lib}/iris.jar" />
       <copy file="${bigdata-rdf.lib}/jgrapht-jdk1.5-0.7.1.jar"
             tofile="${dist.lib}/jgrapht.jar" />
-      <copy file="${bigdata-rdf.lib}/openrdf-sesame-2.3.0-onejar.jar"
+      <copy file="${bigdata-rdf.lib}/openrdf-sesame-${sesame.version}-onejar.jar"
             tofile="${dist.lib}/openrdf-sesame.jar" />
-      <copy file="${bigdata-rdf.lib}/slf4j-api-1.4.3.jar"
+      <copy file="${bigdata-rdf.lib}/slf4j-api-${slf4j.version}.jar"
             tofile="${dist.lib}/slf4j.jar" />
-      <copy file="${bigdata-rdf.lib}/slf4j-log4j12-1.4.3.jar"
+      <copy file="${bigdata-rdf.lib}/slf4j-log4j12-${slf4j.version}.jar"
             tofile="${dist.lib}/slf4j-log4j.jar" />
 
       <!-- jetty library -->
-      <copy file="${bigdata-jetty.lib}/jetty-continuation-7.2.2.v20101205.jar"
+      <copy file="${bigdata-jetty.lib}/jetty-continuation-${jetty.version}.jar"
 	        tofile="${dist.lib}/jetty-continuation.jar" />
-	  <copy file="${bigdata-jetty.lib}/jetty-http-7.2.2.v20101205.jar"
+	  <copy file="${bigdata-jetty.lib}/jetty-http-${jetty.version}.jar"
 	        tofile="${dist.lib}/jetty-http.jar" />
-	  <copy file="${bigdata-jetty.lib}/jetty-io-7.2.2.v20101205.jar"
+	  <copy file="${bigdata-jetty.lib}/jetty-io-${jetty.version}.jar"
 	        tofile="${dist.lib}/jetty-io.jar" />
-	  <copy file="${bigdata-jetty.lib}/jetty-server-7.2.2.v20101205.jar"
+	  <copy file="${bigdata-jetty.lib}/jetty-server-${jetty.version}.jar"
 	        tofile="${dist.lib}/jetty-server.jar" />
-  	  <copy file="${bigdata-jetty.lib}/jetty-util-7.2.2.v20101205.jar"
+  	  <copy file="${bigdata-jetty.lib}/jetty-util-${jetty.version}.jar"
   	        tofile="${dist.lib}/jetty-util.jar" />
-  	  <copy file="${bigdata-jetty.lib}/jetty-webapp-7.2.2.v20101205.jar"
+  	  <copy file="${bigdata-jetty.lib}/jetty-webapp-${jetty.version}.jar"
   	        tofile="${dist.lib}/jetty-webapp.jar" />
-  	  <copy file="${bigdata-jetty.lib}/jetty-servlet-7.2.2.v20101205.jar"
+  	  <copy file="${bigdata-jetty.lib}/jetty-servlet-${jetty.version}.jar"
   	        tofile="${dist.lib}/jetty-servlet.jar" />
-  	  <copy file="${bigdata-jetty.lib}/jetty-security-7.2.2.v20101205.jar"
+  	  <copy file="${bigdata-jetty.lib}/jetty-security-${jetty.version}.jar"
   	        tofile="${dist.lib}/jetty-security.jar" />
-  	  <copy file="${bigdata-jetty.lib}/jetty-xml-7.2.2.v20101205.jar"
+  	  <copy file="${bigdata-jetty.lib}/jetty-xml-${jetty.version}.jar"
   	        tofile="${dist.lib}/jetty-xml.jar" />
 	  <copy file="${bigdata-jetty.lib}/servlet-api-2.5.jar"
 	        tofile="${dist.lib}/servlet-api.jar" />
@@ -1481,8 +1613,8 @@ ${postInstallMessage}</echo>
 
       <property name="junit.jar" location="${bigdata.lib}/junit-3.8.1.jar" />
       <property name="cweb-junit-ext.jar" location="${bigdata.lib}/cweb-junit-ext-1.1-b3-dev.jar" />
-      <property name="sesame-sparql-test.jar" location="${bigdata-sails.lib}/sesame-sparql-testsuite-2.3.0.jar" />
-      <property name="sesame-store-test.jar" location="${bigdata-sails.lib}/sesame-store-testsuite-2.3.0.jar" />
+      <property name="sesame-sparql-test.jar" location="${bigdata-sails.lib}/sesame-sparql-testsuite-${sesame.version}.jar" />
+      <property name="sesame-store-test.jar" location="${bigdata-sails.lib}/sesame-store-testsuite-${sesame.version}.jar" />
 
       <property name="classes.test.dir" location="${classes.dir}/test" />
       <mkdir dir="${classes.test.dir}" />
@@ -1509,9 +1641,9 @@ ${postInstallMessage}</echo>
 </echo>
       <echo>    nowarn="no"
 </echo>
-      <echo>    source="1.5"
+      <echo>    source="${javac.source}"
 </echo>
-      <echo>    target="1.5"
+      <echo>    target="${javac.target}"
 </echo>
       <echo>    verbose="${javac.verbose}"
 </echo>
@@ -1522,10 +1654,12 @@ ${postInstallMessage}</echo>
              deprecation="no"
              destdir="${classes.test.dir}"
              nowarn="no"
-             source="1.5"
-             target="1.5"
+             source="${javac.source}"
+             target="${javac.target}"
              classpath="${javac.test.classpath}"
-             verbose="${javac.verbose}">
+             verbose="${javac.verbose}"
+      		 includeantruntime="false"
+      	>
 
         <src path="${bigdata.dir}/bigdata/src/test" />
         <src path="${bigdata.dir}/bigdata-jini/src/test" />
@@ -2202,7 +2336,16 @@ ${postInstallMessage}</echo>
 
 <target name="samples.compile" depends="compile">
 <mkdir dir="${build.dir}/samples/classes" />
-<javac destdir="${build.dir}/samples/classes" classpathref="samples.build.classpath" debug="${javac.debug}" debuglevel="${javac.debuglevel}" verbose="${javac.verbose}" encoding="${javac.encoding}">
+<javac destdir="${build.dir}/samples/classes"
+	   classpathref="samples.build.classpath"
+	   debug="${javac.debug}"
+	   debuglevel="${javac.debuglevel}"
+	   verbose="${javac.verbose}"
+	   encoding="${javac.encoding}"
+       source="${javac.source}"
+       target="${javac.target}"
+	   includeantruntime="false"
+	>
 	<src path="${bigdata.dir}/bigdata-sails/src/samples" />
 	<compilerarg value="-version" />
 </javac>
