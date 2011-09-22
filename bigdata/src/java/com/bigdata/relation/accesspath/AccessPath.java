@@ -504,12 +504,8 @@ public class AccessPath<R> implements IAccessPath<R> {
                 if (indexLocalFilter != null)
                     tmp.addFilter(indexLocalFilter);
                 
-                tmp.addFilter(new TupleFilter(){
-                    private static final long serialVersionUID = 1L;
-                    @Override
-                    protected boolean isValid(ITuple tuple) {
-                        return sameVarConstraint.isValid(tuple.getObject());
-                    }});
+                tmp.addFilter(new SameVariableConstraintTupleFilter<R>(
+                        sameVarConstraint));
 
                 this.indexLocalFilter = tmp;
                 
