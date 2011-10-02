@@ -511,11 +511,11 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
 
     }
 
-    final /*synchronized*/ public CounterSet getCounters() {
+    final synchronized public CounterSet getCounters() {
 
-//        if (countersRoot == null) {
+        if (countersRoot == null) {
 
-        final CounterSet countersRoot = new CounterSet();
+        countersRoot = new CounterSet();
         {
 
             final AbstractStatisticsCollector tmp = statisticsCollector;
@@ -552,12 +552,12 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
                     serviceRoot, getServiceName(), getServiceIface(), client
                             .getProperties());
 
-//        }
+        }
 
         return countersRoot;
         
     }
-//    private CounterSet countersRoot;
+    private CounterSet countersRoot;
     private CounterSet serviceRoot;
 
     public CounterSet getHostCounterSet() {
@@ -1157,7 +1157,16 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
                 } catch (InterruptedException e) {
                 }
             }
-            
+                        
+	    /*
+	     * Start collecting performance counters (if enabled).
+	     *
+	     * Note: This needs to be done first since the counters from the
+	     * platform will otherwise not be incorporated into those
+	     * reported by the federation.
+	     */
+            startPlatformStatisticsCollection();
+
             /*
              * start collection on various work queues.
              * 
@@ -1168,9 +1177,6 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
              * @todo have it collect using the same scheduled thread pool.
              */
             startQueueStatisticsCollection();
-            
-            // start collecting performance counters (if enabled).
-            startPlatformStatisticsCollection();
 
 //            // notify the load balancer of this service join.
 //            notifyJoin();
@@ -1438,6 +1444,11 @@ abstract public class AbstractFederation<T> implements IBigdataFederation<T> {
                 return;
 
             }
+
+	    if(serviceUUID.equals(loadBalancerService.getServiceUUID())) {
+		// Do not notify ourselves.
+		return;
+	    }
 
 			/*
 			 * @todo When sending all counters, this is probably worth
