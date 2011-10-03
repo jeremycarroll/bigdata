@@ -32,8 +32,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import org.apache.log4j.Logger;
-
 import com.bigdata.btree.DefaultTupleSerializer;
 import com.bigdata.btree.IRangeQuery;
 import com.bigdata.btree.ITuple;
@@ -71,7 +69,7 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 
     private static final long serialVersionUID = 2893830958762265104L;
     
-    private static final transient Logger log = Logger.getLogger(SPOTupleSerializer.class);
+//    private static final transient Logger log = Logger.getLogger(SPOTupleSerializer.class);
     
     /**
      * The natural order for the index.
@@ -83,10 +81,10 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
      */
     private boolean sids;
     
-    /**
-     * Used to format the value.
-     */
-    private final transient ByteArrayBuffer buf = new ByteArrayBuffer(0);
+//    /**
+//     * Used to format the value.
+//     */
+//    private final transient ByteArrayBuffer buf = new ByteArrayBuffer(0);
 
     public SPOKeyOrder getKeyOrder() {
 
@@ -172,7 +170,7 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
         if (spo == null)
             throw new IllegalArgumentException();
 
-		return serializeVal(buf,
+		return serializeVal(//buf,
 				spo.isOverride(), spo.getUserFlag(), spo.getStatementType());
 
 	}
@@ -183,9 +181,6 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 	 * bit. If the statement identifier is non-null then it will be included in
 	 * the returned byte[].
 	 * 
-	 * @param buf
-	 *            A buffer supplied by the caller. The buffer will be reset
-	 *            before the value is written on the buffer.
 	 * @param override
 	 *            <code>true</code> iff you want the
 	 *            {@link StatementEnum#MASK_OVERRIDE} bit set (this is only set
@@ -200,11 +195,14 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 	 * @return The value that would be written into a statement index for this
 	 *         {@link SPO}.
 	 */
-	public static byte[] serializeVal(final ByteArrayBuffer buf,
+//    * @param buf
+//    *            A buffer supplied by the caller. The buffer will be reset
+//    *            before the value is written on the buffer.
+	public byte[] serializeVal(//final ByteArrayBuffer buf,
 			final boolean override, final boolean userFlag,
 			final StatementEnum type) {
 		
-		buf.reset();
+//		buf.reset();
 
 		// optionally set the override and user flag bits on the value.
 		final byte b = (byte) 
@@ -213,10 +211,12 @@ public class SPOTupleSerializer extends DefaultTupleSerializer<SPO,SPO> {
 				| (userFlag ? StatementEnum.MASK_USER_FLAG : 0x0)
 				);
 
-		buf.putByte(b);
+//		buf.putByte(b);
+//
+//		return buf.toByteArray();
 
-		return buf.toByteArray();
-
+		return new byte[]{b};
+		
 	}
 
 	public SPO deserialize(final ITuple tuple) {
