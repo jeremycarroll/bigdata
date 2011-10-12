@@ -44,12 +44,16 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.helpers.StatementCollector;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
 
+import com.bigdata.journal.IIndexManager;
+import com.bigdata.journal.Journal;
+import com.bigdata.journal.StoreTypeEnum;
 import com.bigdata.rdf.model.BigdataStatement;
 import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
-import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 import com.bigdata.rdf.store.BD;
+import com.bigdata.service.AbstractTransactionService;
 
 /**
  * Demonstrate how to use bigdata.  You are free to use this code for whatever
@@ -279,8 +283,14 @@ public class SampleCode {
      * @param repo
      * @throws Exception
      */
-    public void executeFreeTextQuery(Repository repo) throws Exception {
-        
+    public boolean executeFreeTextQuery(Repository repo) throws Exception {
+        if (((BigdataSailRepository) repo).getDatabase().getLexiconRelation()
+                .getSearchEngine() == null) {
+            /*
+             * Only if the free text index exists.
+             */
+            return false;
+        }
         RepositoryConnection cxn = repo.getConnection();
         cxn.setAutoCommit(false);
         try {
@@ -304,7 +314,7 @@ public class SampleCode {
         String query = "select ?x where { ?x <"+BD.SEARCH+"> \"Yell\" . }";
         executeSelectQuery(repo, query, QueryLanguage.SPARQL);
         // will match A, C, and D
-        
+        return true;
     }
 
     /**
@@ -313,8 +323,12 @@ public class SampleCode {
      * @param repo
      * @throws Exception
      */
-    public void executeProvenanceQuery(Repository repo) throws Exception {
+    public boolean executeProvenanceQuery(Repository repo) throws Exception {
         
+        if(!((BigdataSailRepository)repo).getDatabase().isStatementIdentifiers()) {
+            // IFF the KB is using the provenance mode,
+            return false;
+        }
         RepositoryConnection cxn = repo.getConnection();
         cxn.setAutoCommit(false);
         try {
@@ -376,44 +390,83 @@ public class SampleCode {
         executeConstructQuery(repo, query, QueryLanguage.SPARQL);
         // should see the provenance information for { Mike loves RDF }
         
+        return true;
+        
     }
 
     /**
      * Demonstrate execution of historical query using a read-only transaction.
+     * <p>
+     * Note: Bigdata preserves historical commit points until their release age
+     * expires. This behavior is controlled by the deployment mode (RW, WORM, or
+     * cluster) and by
+     * {@link AbstractTransactionService.Options#MIN_RELEASE_AGE}. Except for
+     * the WORM deployment mode, you MUST guard a historical commit point on
+     * which you want to read using a read-lock. The read-lock itself is just a
+     * read-only connection. It can be obtained for any historical commit point
+     * that you want to "pin" and can be released once you are no longer need to
+     * "pin" that commit point.
+     * <p>
+     * The read-lock is not required for the WORM deployment because it never
+     * releases historical commit points.
      * 
      * @param repo
      * @throws Exception
      */
-    public void executeHistoricalQuery(Repository repo) throws Exception {
+    public void executeHistoricalQuery(final Repository repo) throws Exception {
 
         if (!(repo instanceof BigdataSailRepository)) {
             return;
         }
         
-        URI MIKE = new URIImpl(BD.NAMESPACE+"Mike");
-        URI BRYAN = new URIImpl(BD.NAMESPACE+"Bryan");
-        URI PERSON = new URIImpl(BD.NAMESPACE+"Person");
+        final IIndexManager indexManager = ((BigdataSailRepository) repo)
+                .getDatabase().getIndexManager();
         
-        RepositoryConnection cxn = repo.getConnection();
-        cxn.setAutoCommit(false);
+        final boolean isJournal = indexManager instanceof Journal;
+        
+        final boolean isWorm = isJournal
+                && ((Journal) indexManager).getBufferStrategy().getBufferMode()
+                        .getStoreType() == StoreTypeEnum.WORM;
+
+        final URI MIKE = new URIImpl(BD.NAMESPACE+"Mike");
+        final URI BRYAN = new URIImpl(BD.NAMESPACE+"Bryan");
+        final URI PERSON = new URIImpl(BD.NAMESPACE+"Person");
+        
+        final RepositoryConnection cxn = repo.getConnection();
         try {
+            cxn.setAutoCommit(false);
+
             cxn.remove((Resource)null, (URI)null, (Value)null);
             cxn.commit();
             
             cxn.add(MIKE, RDF.TYPE, PERSON);
             cxn.commit();
 
-            long time = System.currentTimeMillis();
+            final long time = System.currentTimeMillis();
             
-            Thread.sleep(1000);
+            // Need a readLock connection if not a Worm store
+            final RepositoryConnection readLock = isWorm ? null :
+                ((BigdataSailRepository) repo).getReadOnlyConnection();
             
-            cxn.add(BRYAN, RDF.TYPE, PERSON);
-            cxn.commit();
+            final RepositoryConnection history;
+            try {
+
+                Thread.sleep(1000);
+
+                cxn.add(BRYAN, RDF.TYPE, PERSON);
+                cxn.commit();
+
+                history = ((BigdataSailRepository) repo)
+                        .getReadOnlyConnection(time);
+
+            } finally {
+                
+                if (readLock != null)
+                    readLock.close();
+                
+            }
             
-            RepositoryConnection history = 
-                ((BigdataSailRepository) repo).getReadOnlyConnection(time);
-            
-            String query = 
+            final String query = 
                 "select ?s " +
                 "where { " +
                 "  ?s <"+RDF.TYPE+"> <"+PERSON+"> " +
@@ -622,12 +675,13 @@ public class SampleCode {
      */
     public static void main(final String[] args) {
         // use one of our pre-configured option-sets or "modes"
-        final String propertiesFile = "fullfeature.properties";
-        // final String propertiesFile = "rdfonly.properties";
-        // final String propertiesFile = "fastload.properties";
-        // final String propertiesFile = "quads.properties";
+//        final String propertiesFile = "fullfeature.properties";
+//         final String propertiesFile = "rdfonly.properties";
+//         final String propertiesFile = "fastload.properties";
+         final String propertiesFile = "quads.properties";
         try {
-            SampleCode sampleCode = new SampleCode();
+            
+            final SampleCode sampleCode = new SampleCode();
 
             log.info("Reading properties from file: " + propertiesFile);
 
@@ -640,40 +694,57 @@ public class SampleCode {
                  */
                 final File journal = File.createTempFile("bigdata", ".jnl");
                 log.info(journal.getAbsolutePath());
-                // journal.deleteOnExit();
                 properties.setProperty(BigdataSail.Options.FILE, journal
                         .getAbsolutePath());
             }
+            if (properties
+                    .getProperty(AbstractTransactionService.Options.MIN_RELEASE_AGE) == null) {
+                // Retain old commit points for at least 60s.
+                properties.setProperty(
+                        AbstractTransactionService.Options.MIN_RELEASE_AGE,
+                        "60000");
+            }
             
             // instantiate a sail
-            BigdataSail sail = new BigdataSail(properties);
-            Repository repo = new BigdataSailRepository(sail);
-            repo.initialize();
+            final BigdataSail sail = new BigdataSail(properties);
+            final Repository repo = new BigdataSailRepository(sail);
+            try {
             
-            // demonstrate some basic functionality
-            URI MIKE = new URIImpl("http://www.bigdata.com/rdf#Mike");
-            sampleCode.loadSomeData(repo);
-            System.out.println("Loaded sample data.");
-            sampleCode.readSomeData(repo, MIKE);
-            sampleCode.executeSelectQuery(repo, "select ?p ?o where { <"+MIKE.toString()+"> ?p ?o . }", QueryLanguage.SPARQL);
-            System.out.println("Did SELECT query.");
-            sampleCode.executeConstructQuery(repo, "construct { <"+MIKE.toString()+"> ?p ?o . } where { <"+MIKE.toString()+"> ?p ?o . }", QueryLanguage.SPARQL);
-            System.out.println("Did CONSTRUCT query.");
-            sampleCode.executeFreeTextQuery(repo);
-            System.out.println("Did free text query.");
-            sampleCode.executeProvenanceQuery(repo);
-            System.out.println("Did provenance query.");
-            sampleCode.executeHistoricalQuery(repo);
-            System.out.println("Did historical query.");
-            
-            System.out.println("done.");
-            
-            repo.shutDown();
-            
-            // run one of the LUBM tests
-            //sampleCode.doU10(); // I see loaded: 1752215 in 116563 millis: 15032 stmts/sec, what do you see?
-            //sampleCode.doU1();
-            
+                repo.initialize();
+
+                // demonstrate some basic functionality
+                final URI MIKE = new URIImpl(
+                        "http://www.bigdata.com/rdf#Mike");
+                sampleCode.loadSomeData(repo);
+                System.out.println("Loaded sample data.");
+                sampleCode.readSomeData(repo, MIKE);
+                sampleCode.executeSelectQuery(repo,
+                        "select ?p ?o where { <" + MIKE.toString()
+                                + "> ?p ?o . }", QueryLanguage.SPARQL);
+                System.out.println("Did SELECT query.");
+                sampleCode.executeConstructQuery(repo,
+                        "construct { <" + MIKE.toString()
+                                + "> ?p ?o . } where { <" + MIKE.toString()
+                                + "> ?p ?o . }", QueryLanguage.SPARQL);
+                System.out.println("Did CONSTRUCT query.");
+                if (sampleCode.executeFreeTextQuery(repo)) {
+                    System.out.println("Did free text query.");
+                }
+                if (sampleCode.executeProvenanceQuery(repo)) {
+                    System.out.println("Did provenance query.");
+                }
+                sampleCode.executeHistoricalQuery(repo);
+                System.out.println("Did historical query.");
+
+                System.out.println("done.");
+
+                // run one of the LUBM tests
+                // sampleCode.doU10(); // I see loaded: 1752215 in 116563 millis: 15032 stmts/sec, what do you see?
+                // sampleCode.doU1();
+
+            } finally {
+                repo.shutDown();
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
