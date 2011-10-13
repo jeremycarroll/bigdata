@@ -30,7 +30,7 @@ import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
  * @author martyncutcher
  */
 public class InsertServlet extends BigdataRDFServlet {
-	
+    
     /**
      * 
      */
@@ -42,71 +42,71 @@ public class InsertServlet extends BigdataRDFServlet {
         
     }
 
-	/**
-	 * <p>
-	 * Perform an HTTP-POST, which corresponds to the basic CRUD operation
-	 * "create" according to the generic interaction semantics of HTTP REST. The
-	 * operation will be executed against the target namespace per the URI.
-	 * </p>
-	 * 
-	 * <pre>
-	 * POST [/namespace/NAMESPACE]
-	 * ...
-	 * Content-Type: 
-	 * ...
-	 * 
-	 * BODY
-	 * </pre>
-	 * <p>
-	 * Where <code>BODY</code> is the new RDF content using the representation
-	 * indicated by the <code>Content-Type</code>.
-	 * </p>
-	 * <p>
-	 * -OR-
-	 * </p>
-	 * 
-	 * <pre>
-	 * POST [/namespace/NAMESPACE] ?uri=URL
-	 * </pre>
-	 * <p>
-	 * Where <code>URI</code> identifies a resource whose RDF content will be
-	 * inserted into the database. The <code>uri</code> query parameter may
-	 * occur multiple times. All identified resources will be loaded within a
-	 * single native transaction. Bigdata provides snapshot isolation so you can
-	 * continue to execute queries against the last commit point while this
-	 * operation is executed.
-	 * </p>
-	 */
+    /**
+     * <p>
+     * Perform an HTTP-POST, which corresponds to the basic CRUD operation
+     * "create" according to the generic interaction semantics of HTTP REST. The
+     * operation will be executed against the target namespace per the URI.
+     * </p>
+     * 
+     * <pre>
+     * POST [/namespace/NAMESPACE]
+     * ...
+     * Content-Type: 
+     * ...
+     * 
+     * BODY
+     * </pre>
+     * <p>
+     * Where <code>BODY</code> is the new RDF content using the representation
+     * indicated by the <code>Content-Type</code>.
+     * </p>
+     * <p>
+     * -OR-
+     * </p>
+     * 
+     * <pre>
+     * POST [/namespace/NAMESPACE] ?uri=URL
+     * </pre>
+     * <p>
+     * Where <code>URI</code> identifies a resource whose RDF content will be
+     * inserted into the database. The <code>uri</code> query parameter may
+     * occur multiple times. All identified resources will be loaded within a
+     * single native transaction. Bigdata provides snapshot isolation so you can
+     * continue to execute queries against the last commit point while this
+     * operation is executed.
+     * </p>
+     */
     @Override
-	protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
-		try {
-			if (req.getParameter("uri") != null) {
-				doPostWithURIs(req, resp);
-				return;
-			} else {
-				doPostWithBody(req, resp);
-				return;
-			}
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
+        try {
+            if (req.getParameter("uri") != null) {
+                doPostWithURIs(req, resp);
+                return;
+            } else {
+                doPostWithBody(req, resp);
+                return;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-	/**
-	 * POST with request body containing statements to be inserted.
-	 * 
-	 * @param req
-	 *            The request.
-	 * 
-	 * @return The response.
-	 * 
-	 * @throws Exception
-	 */
-	private void doPostWithBody(final HttpServletRequest req,
-			final HttpServletResponse resp) throws Exception {
+    /**
+     * POST with request body containing statements to be inserted.
+     * 
+     * @param req
+     *            The request.
+     * 
+     * @return The response.
+     * 
+     * @throws Exception
+     */
+    private void doPostWithBody(final HttpServletRequest req,
+            final HttpServletResponse resp) throws Exception {
 
-	    final long begin = System.currentTimeMillis();
-	    
+        final long begin = System.currentTimeMillis();
+        
         final String baseURI = req.getRequestURL().toString();
         
         final String namespace = getNamespace(req);
@@ -138,8 +138,8 @@ public class InsertServlet extends BigdataRDFServlet {
             buildResponse(resp, HTTP_INTERNALERROR, MIME_TEXT_PLAIN,
                     "Parser factory not found: Content-Type="
                             + contentType + ", format=" + format);
-        	
-        	return;
+            
+            return;
 
         }
 
@@ -209,37 +209,37 @@ public class InsertServlet extends BigdataRDFServlet {
 
     }
 
-	/**
-	 * POST with URIs of resources to be inserted (loads the referenced
-	 * resources).
-	 * 
-	 * @param req
-	 *            The request.
-	 * 
-	 * @return The response.
-	 * 
-	 * @throws Exception
-	 */
-	private void doPostWithURIs(final HttpServletRequest req,
-			final HttpServletResponse resp) throws Exception {
+    /**
+     * POST with URIs of resources to be inserted (loads the referenced
+     * resources).
+     * 
+     * @param req
+     *            The request.
+     * 
+     * @return The response.
+     * 
+     * @throws Exception
+     */
+    private void doPostWithURIs(final HttpServletRequest req,
+            final HttpServletResponse resp) throws Exception {
 
-	    final long begin = System.currentTimeMillis();
-	    
-		final String namespace = getNamespace(req);
+        final long begin = System.currentTimeMillis();
+        
+        final String namespace = getNamespace(req);
 
-		final String[] uris = req.getParameterValues("uri");
+        final String[] uris = req.getParameterValues("uri");
 
-		if (uris == null)
-			throw new UnsupportedOperationException();
+        if (uris == null)
+            throw new UnsupportedOperationException();
 
-		if (uris.length == 0) {
+        if (uris.length == 0) {
 
             final long elapsed = System.currentTimeMillis() - begin;
             
             reportModifiedCount(resp, 0L/* nmodified */, elapsed);
 
-        	return;
-        	
+            return;
+            
         }
 
         if (log.isInfoEnabled())
@@ -283,28 +283,32 @@ public class InsertServlet extends BigdataRDFServlet {
 
                         final String contentType = hconn.getContentType();
 
-                        final RDFFormat format = RDFFormat
-                                .forMIMEType(contentType);
-
+                        RDFFormat format = RDFFormat.forMIMEType(contentType);
+                        
+                        if(format == null) {
+                            // Try to get the RDFFormat from the URL's file path.
+                            format = RDFFormat.forFileName(url.getFile());
+                        }
+                        
                         if (format == null) {
-                        	buildResponse(resp, HTTP_BADREQUEST,
+                            buildResponse(resp, HTTP_BADREQUEST,
                                     MIME_TEXT_PLAIN,
                                     "Content-Type not recognized as RDF: "
                                             + contentType);
-                        	
-                        	return;
+                            
+                            return;
                         }
 
                         final RDFParserFactory rdfParserFactory = RDFParserRegistry
                                 .getInstance().get(format);
 
                         if (rdfParserFactory == null) {
-                        	buildResponse(resp, HTTP_INTERNALERROR,
+                            buildResponse(resp, HTTP_INTERNALERROR,
                                     MIME_TEXT_PLAIN,
                                     "Parser not found: Content-Type="
                                             + contentType);
-                        	
-                        	return;
+                            
+                            return;
                         }
 
                         final RDFParser rdfParser = rdfParserFactory
@@ -380,7 +384,7 @@ public class InsertServlet extends BigdataRDFServlet {
 
     }
     
-	/**
+    /**
      * Helper class adds statements to the sail as they are visited by a parser.
      */
     static class AddStatementHandler extends RDFHandlerBase {
