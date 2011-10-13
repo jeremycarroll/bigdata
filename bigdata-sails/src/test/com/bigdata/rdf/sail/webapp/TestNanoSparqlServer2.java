@@ -2,9 +2,11 @@ package com.bigdata.rdf.sail.webapp;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.LineNumberReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringWriter;
@@ -51,6 +53,7 @@ import org.openrdf.query.resultio.TupleQueryResultParserRegistry;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.RDFParseException;
 import org.openrdf.rio.RDFParser;
 import org.openrdf.rio.RDFParserFactory;
 import org.openrdf.rio.RDFParserRegistry;
@@ -88,126 +91,126 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
      */
     private static final String packagePath = "bigdata-sails/src/test/com/bigdata/rdf/sail/webapp/";
 
-    /**
-     * A jetty {@link Server} running a {@link NanoSparqlServer} instance which
-     * is running against that {@link #m_indexManager}.
-     */
-    private Server m_fixture;
+	/**
+	 * A jetty {@link Server} running a {@link NanoSparqlServer} instance which
+	 * is running against that {@link #m_indexManager}.
+	 */
+	private Server m_fixture;
 
-    /**
-     * The namespace of the {@link AbstractTripleStore} instance against which
-     * the test is running. A unique namespace is used for each test run, but
-     * the namespace is based on the test name.
-     */
-    private String namespace;
-    
-    /**
-     * The effective {@link NanoSparqlServer} http end point.
-     */
-    private String m_serviceURL;
+	/**
+	 * The namespace of the {@link AbstractTripleStore} instance against which
+	 * the test is running. A unique namespace is used for each test run, but
+	 * the namespace is based on the test name.
+	 */
+	private String namespace;
+	
+	/**
+	 * The effective {@link NanoSparqlServer} http end point.
+	 */
+	private String m_serviceURL;
 
-    /**
-     * The request path for the REST API under test.
-     */
-    final private static String requestPath = "/sparql";
+	/**
+	 * The request path for the REST API under test.
+	 */
+	final private static String requestPath = "/sparql";
 
-    public TestNanoSparqlServer2() {
+	public TestNanoSparqlServer2() {
+		
+	}
+
+	public TestNanoSparqlServer2(final String name) {
+
+		super(name);
+
+	}
+
+	private AbstractTripleStore createTripleStore(
+			final IIndexManager indexManager, final String namespace,
+			final Properties properties) {
         
-    }
+		if(log.isInfoEnabled())
+			log.info("KB namespace=" + namespace);
 
-    public TestNanoSparqlServer2(final String name) {
+		// Locate the resource declaration (aka "open"). This tells us if it
+		// exists already.
+		AbstractTripleStore tripleStore = (AbstractTripleStore) indexManager
+				.getResourceLocator().locate(namespace, ITx.UNISOLATED);
 
-        super(name);
+		if (tripleStore != null) {
 
-    }
+			fail("exists: " + namespace);
+			
+		}
 
-    private AbstractTripleStore createTripleStore(
-            final IIndexManager indexManager, final String namespace,
-            final Properties properties) {
-        
-        if(log.isInfoEnabled())
-            log.info("KB namespace=" + namespace);
+		/*
+		 * Create the KB instance.
+		 */
 
-        // Locate the resource declaration (aka "open"). This tells us if it
-        // exists already.
-        AbstractTripleStore tripleStore = (AbstractTripleStore) indexManager
-                .getResourceLocator().locate(namespace, ITx.UNISOLATED);
+		if (log.isInfoEnabled()) {
+			log.info("Creating KB instance: namespace="+namespace);
+			log.info("Properties=" + properties.toString());
+		}
 
-        if (tripleStore != null) {
+		if (indexManager instanceof Journal) {
 
-            fail("exists: " + namespace);
-            
-        }
+	        // Create the kb instance.
+			tripleStore = new LocalTripleStore(indexManager, namespace,
+					ITx.UNISOLATED, properties);
 
-        /*
-         * Create the KB instance.
-         */
+		} else {
 
-        if (log.isInfoEnabled()) {
-            log.info("Creating KB instance: namespace="+namespace);
-            log.info("Properties=" + properties.toString());
-        }
-
-        if (indexManager instanceof Journal) {
-
-            // Create the kb instance.
-            tripleStore = new LocalTripleStore(indexManager, namespace,
-                    ITx.UNISOLATED, properties);
-
-        } else {
-
-            tripleStore = new ScaleOutTripleStore(indexManager, namespace,
-                    ITx.UNISOLATED, properties);
-        }
+			tripleStore = new ScaleOutTripleStore(indexManager, namespace,
+					ITx.UNISOLATED, properties);
+		}
 
         // create the triple store.
         tripleStore.create();
 
         if(log.isInfoEnabled())
-            log.info("Created tripleStore: " + namespace);
+        	log.info("Created tripleStore: " + namespace);
 
         // New KB instance was created.
         return tripleStore;
 
     }
 
-    private void dropTripleStore(final IIndexManager indexManager,
-            final String namespace) {
+	private void dropTripleStore(final IIndexManager indexManager,
+			final String namespace) {
 
-        if(log.isInfoEnabled())
-            log.info("KB namespace=" + namespace);
+		if(log.isInfoEnabled())
+			log.info("KB namespace=" + namespace);
 
-        // Locate the resource declaration (aka "open"). This tells us if it
-        // exists already.
-        final AbstractTripleStore tripleStore = (AbstractTripleStore) indexManager
-                .getResourceLocator().locate(namespace, ITx.UNISOLATED);
+		// Locate the resource declaration (aka "open"). This tells us if it
+		// exists already.
+		final AbstractTripleStore tripleStore = (AbstractTripleStore) indexManager
+				.getResourceLocator().locate(namespace, ITx.UNISOLATED);
 
-        if (tripleStore != null) {
+		if (tripleStore != null) {
 
-            if (log.isInfoEnabled())
-                log.info("Destroying: " + namespace);
+			if (log.isInfoEnabled())
+				log.info("Destroying: " + namespace);
 
-            tripleStore.destroy();
-            
-        }
+			tripleStore.destroy();
+			
+		}
 
-    }
-    
-    TestMode testMode = null;
-    
-    @Override
-    public void setUp() throws Exception {
-        
-        super.setUp();
-        
-        final Properties properties = getProperties();
+	}
+	
+	TestMode testMode = null;
+	
+	@Override
+	public void setUp() throws Exception {
+	    
+		super.setUp();
+		
+		final Properties properties = getProperties();
 
-        // guaranteed distinct namespace for the KB instance.
-        namespace = getName() + UUID.randomUUID();
+		// guaranteed distinct namespace for the KB instance.
+		namespace = getName() + UUID.randomUUID();
 
-        final IIndexManager m_indexManager = getIndexManager();
-        
-        // Create the triple store instance.
+		final IIndexManager m_indexManager = getIndexManager();
+		
+		// Create the triple store instance.
         final AbstractTripleStore tripleStore = createTripleStore(m_indexManager,
                 namespace, properties);
         
@@ -218,7 +221,7 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
         } else {
             testMode = TestMode.triples;
         }
-        
+		
         final Map<String, String> initParams = new LinkedHashMap<String, String>();
         {
 
@@ -228,14 +231,14 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
             
         }
         // Start server for that kb instance.
-        m_fixture = NanoSparqlServer.newInstance(0/* port */, m_indexManager,
-                initParams);
+		m_fixture = NanoSparqlServer.newInstance(0/* port */, m_indexManager,
+				initParams);
 
         m_fixture.start();
 
-        final int port = m_fixture.getConnectors()[0].getLocalPort();
+		final int port = m_fixture.getConnectors()[0].getLocalPort();
 
-        // log.info("Getting host address");
+		// log.info("Getting host address");
 
         final String hostAddr = NicUtil.getIpAddress("default.nic", "default",
                 true/* loopbackOk */);
@@ -254,83 +257,83 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
     }
 
     @Override
-    public void tearDown() throws Exception {
+	public void tearDown() throws Exception {
 
-        log.info("tearing down test");
+		log.info("tearing down test");
 
-        if (m_fixture != null) {
+		if (m_fixture != null) {
 
-            m_fixture.stop();
+			m_fixture.stop();
 
-            m_fixture = null;
+			m_fixture = null;
 
-        }
+		}
 
-        final IIndexManager m_indexManager = getIndexManager();
-        
-        if (m_indexManager != null && namespace != null) {
+		final IIndexManager m_indexManager = getIndexManager();
+		
+		if (m_indexManager != null && namespace != null) {
 
-            dropTripleStore(m_indexManager, namespace);
+			dropTripleStore(m_indexManager, namespace);
 
-        }
-        
-//      m_indexManager = null;
+		}
+		
+//		m_indexManager = null;
 
-        namespace = null;
-        
-        m_serviceURL = null;
+		namespace = null;
+		
+		m_serviceURL = null;
 
-        log.info("tear down done");
-        
-        super.tearDown();
+		log.info("tear down done");
+		
+		super.tearDown();
 
-    }
+	}
 
     /**
      * Returns a view of the triple store using the sail interface.
      */
     protected BigdataSail getSail() {
 
-        final AbstractTripleStore tripleStore = (AbstractTripleStore) getIndexManager()
-                .getResourceLocator().locate(namespace, ITx.UNISOLATED);
+		final AbstractTripleStore tripleStore = (AbstractTripleStore) getIndexManager()
+				.getResourceLocator().locate(namespace, ITx.UNISOLATED);
 
         return new BigdataSail(tripleStore);
 
     }
 
-    public void test_startup() throws Exception {
+	public void test_startup() throws Exception {
 
-        assertTrue("open", m_fixture.isRunning());
-        
-    }
-    
-    /**
-     * Options for the query.
-     */
-    private static class QueryOptions {
+	    assertTrue("open", m_fixture.isRunning());
+	    
+	}
+	
+	/**
+	 * Options for the query.
+	 */
+	private static class QueryOptions {
 
-        /** The URL of the SPARQL end point. */
-        public String serviceURL = null;
-        
-        /** The HTTP method (GET, POST, etc). */
-        public String method = "GET";
+		/** The URL of the SPARQL end point. */
+		public String serviceURL = null;
+		
+		/** The HTTP method (GET, POST, etc). */
+		public String method = "GET";
 
-        /**
+		/**
          * The SPARQL query (this is a short hand for setting the
          * <code>query</code> URL query parameter).
          */
-        public String queryStr = null;
+		public String queryStr = null;
+		
+		/** Request parameters to be formatted as URL query parameters. */
+		public Map<String,String[]> requestParams;
         
-        /** Request parameters to be formatted as URL query parameters. */
-        public Map<String,String[]> requestParams;
-        
-        /** The accept header. */
+		/** The accept header. */
         public String acceptHeader = //
         BigdataRDFServlet.MIME_SPARQL_RESULTS_XML + ";q=1" + //
         "," + //
         RDFFormat.RDFXML.getDefaultMIMEType() + ";q=1"//
         ;
-        
+		
         /**
          * The Content-Type (iff there will be a request body).
          */
@@ -341,10 +344,10 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
          */
         public byte[] data = null;
         
-        /** The connection timeout (ms) -or- ZERO (0) for an infinite timeout. */
-        public int timeout = 0;
+		/** The connection timeout (ms) -or- ZERO (0) for an infinite timeout. */
+		public int timeout = 0;
 
-    }
+	}
 
     /**
      * Add any URL query parameters.
@@ -374,8 +377,8 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
 //                    : ("&default-graph-uri=" + URLEncoder.encode(
 //                            opts.defaultGraphUri, "UTF-8")));
 
-    }
-    
+	}
+	
     private HttpURLConnection doConnect(final String urlString,
             final String method) throws Exception {
 
@@ -433,13 +436,13 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
             log.debug(opts.queryStr);
         }
 
-        HttpURLConnection conn = null;
-        try {
+		HttpURLConnection conn = null;
+		try {
 
-//          conn = doConnect(urlString.toString(), opts.method);
-            final URL url = new URL(urlString.toString());
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod(opts.method);
+//		    conn = doConnect(urlString.toString(), opts.method);
+	        final URL url = new URL(urlString.toString());
+	        conn = (HttpURLConnection) url.openConnection();
+	        conn.setRequestMethod(opts.method);
             conn.setDoOutput(true);
             conn.setDoInput(true);
             conn.setUseCaches(false);
@@ -466,27 +469,27 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
                 
             }
             
-            // connect.
-            conn.connect();
+			// connect.
+			conn.connect();
 
-            return conn;
+			return conn;
 
-        } catch (Throwable t) {
-            /*
-             * If something goes wrong, then close the http connection.
-             * Otherwise, the connection will be closed by the caller.
-             */
-            try {
-                // clean up the connection resources
-                if (conn != null)
-                    conn.disconnect();
-            } catch (Throwable t2) {
-                // ignored.
-            }
-            throw new RuntimeException(t);
-        }
+		} catch (Throwable t) {
+			/*
+			 * If something goes wrong, then close the http connection.
+			 * Otherwise, the connection will be closed by the caller.
+			 */
+			try {
+				// clean up the connection resources
+				if (conn != null)
+					conn.disconnect();
+			} catch (Throwable t2) {
+				// ignored.
+			}
+			throw new RuntimeException(t);
+		}
 
-    }
+	}
 
     protected HttpURLConnection checkResponseCode(final HttpURLConnection conn)
             throws IOException {
@@ -506,36 +509,36 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
         return conn;
     }
     
-    /**
-     * Builds a graph from an RDF result set (statements, not binding sets).
-     * 
-     * @param conn
-     *            The connection from which to read the results.
-     * 
-     * @return The graph
-     * 
-     * @throws Exception
-     *             If anything goes wrong.
-     */
-    protected Graph buildGraph(final HttpURLConnection conn) throws Exception {
+	/**
+	 * Builds a graph from an RDF result set (statements, not binding sets).
+	 * 
+	 * @param conn
+	 *            The connection from which to read the results.
+	 * 
+	 * @return The graph
+	 * 
+	 * @throws Exception
+	 *             If anything goes wrong.
+	 */
+	protected Graph buildGraph(final HttpURLConnection conn) throws Exception {
 
         checkResponseCode(conn);
         
-        try {
+		try {
 
-            final String baseURI = "";
+			final String baseURI = "";
 
-            final String contentType = conn.getContentType();
+			final String contentType = conn.getContentType();
 
             if (contentType == null)
                 fail("Not found: Content-Type");
             
-            final RDFFormat format = RDFFormat.forMIMEType(contentType);
+			final RDFFormat format = RDFFormat.forMIMEType(contentType);
 
             if (format == null)
                 fail("RDFFormat not found: Content-Type=" + contentType);
 
-            final RDFParserFactory factory = RDFParserRegistry.getInstance().get(format);
+			final RDFParserFactory factory = RDFParserRegistry.getInstance().get(format);
 
             if (factory == null)
                 fail("RDFParserFactory not found: Content-Type=" + contentType
@@ -543,30 +546,30 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
 
             final Graph g = new GraphImpl();
 
-            final RDFParser rdfParser = factory.getParser();
-            
-            rdfParser.setValueFactory(new ValueFactoryImpl());
+			final RDFParser rdfParser = factory.getParser();
+			
+			rdfParser.setValueFactory(new ValueFactoryImpl());
 
-            rdfParser.setVerifyData(true);
+			rdfParser.setVerifyData(true);
 
-            rdfParser.setStopAtFirstError(true);
+			rdfParser.setStopAtFirstError(true);
 
-            rdfParser.setDatatypeHandling(RDFParser.DatatypeHandling.IGNORE);
+			rdfParser.setDatatypeHandling(RDFParser.DatatypeHandling.IGNORE);
 
-            rdfParser.setRDFHandler(new StatementCollector(g));
+			rdfParser.setRDFHandler(new StatementCollector(g));
 
-            rdfParser.parse(conn.getInputStream(), baseURI);
+			rdfParser.parse(conn.getInputStream(), baseURI);
 
-            return g;
+			return g;
 
-        } finally {
+		} finally {
 
-            // terminate the http connection.
-            conn.disconnect();
+			// terminate the http connection.
+			conn.disconnect();
 
-        }
+		}
 
-    }
+	}
 
     /**
      * Parse a SPARQL result set for an ASK query.
@@ -616,18 +619,18 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
 
     }
 
-    /**
-     * Counts the #of results in a SPARQL result set.
-     * 
-     * @param conn
-     *            The connection from which to read the results.
-     * 
-     * @return The #of results.
-     * 
-     * @throws Exception
-     *             If anything goes wrong.
-     */
-    protected long countResults(final HttpURLConnection conn) throws Exception {
+	/**
+	 * Counts the #of results in a SPARQL result set.
+	 * 
+	 * @param conn
+	 *            The connection from which to read the results.
+	 * 
+	 * @return The #of results.
+	 * 
+	 * @throws Exception
+	 *             If anything goes wrong.
+	 */
+	protected long countResults(final HttpURLConnection conn) throws Exception {
 
         checkResponseCode(conn);
         
@@ -647,44 +650,44 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
             if (factory == null)
                 fail("No factory for Content-Type: " + contentType);
 
-            final TupleQueryResultParser parser = factory.getParser();
+			final TupleQueryResultParser parser = factory.getParser();
 
-            final AtomicLong nsolutions = new AtomicLong();
+	        final AtomicLong nsolutions = new AtomicLong();
 
-            parser.setTupleQueryResultHandler(new TupleQueryResultHandlerBase() {
-                // Indicates the end of a sequence of solutions.
-                public void endQueryResult() {
-                    // connection close is handled in finally{}
-                }
+			parser.setTupleQueryResultHandler(new TupleQueryResultHandlerBase() {
+				// Indicates the end of a sequence of solutions.
+				public void endQueryResult() {
+					// connection close is handled in finally{}
+				}
 
-                // Handles a solution.
-                public void handleSolution(final BindingSet bset) {
-                    if (log.isDebugEnabled())
-                        log.debug(bset.toString());
-                    nsolutions.incrementAndGet();
-                }
+				// Handles a solution.
+				public void handleSolution(final BindingSet bset) {
+					if (log.isDebugEnabled())
+						log.debug(bset.toString());
+					nsolutions.incrementAndGet();
+				}
 
-                // Indicates the start of a sequence of Solutions.
-                public void startQueryResult(List<String> bindingNames) {
-                }
-            });
+				// Indicates the start of a sequence of Solutions.
+				public void startQueryResult(List<String> bindingNames) {
+				}
+			});
 
-            parser.parse(conn.getInputStream());
+			parser.parse(conn.getInputStream());
 
-            if (log.isInfoEnabled())
-                log.info("nsolutions=" + nsolutions);
+			if (log.isInfoEnabled())
+				log.info("nsolutions=" + nsolutions);
 
-            // done.
-            return nsolutions.longValue();
+			// done.
+			return nsolutions.longValue();
 
-        } finally {
+		} finally {
 
-            // terminate the http connection.
-            conn.disconnect();
+			// terminate the http connection.
+			conn.disconnect();
 
-        }
+		}
 
-    }
+	}
 
     /**
      * Class representing the result of a mutation operation against the REST
@@ -766,15 +769,15 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
     }
 
     /**
-     * Issue a "status" request against the service. 
-     */
-    public void test_STATUS() throws Exception {
+	 * Issue a "status" request against the service. 
+	 */
+	public void test_STATUS() throws Exception {
 
         final HttpURLConnection conn = doConnect(m_serviceURL + "/status",
                 "GET");
 
-        // connect.
-        conn.connect();
+		// connect.
+		conn.connect();
 
         try {
 
@@ -797,31 +800,31 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
 
         }
 
-    }
+	}
 
     private String getStreamContents(final InputStream inputStream)
             throws IOException {
 
         final Reader rdr = new InputStreamReader(inputStream);
-        
-        final StringBuffer sb = new StringBuffer();
-        
-        final char[] buf = new char[512];
-        
-        while (true) {
-        
-            final int rdlen = rdr.read(buf);
-            
-            if (rdlen == -1)
-                break;
-            
-            sb.append(buf, 0, rdlen);
-            
-        }
-        
-        return sb.toString();
+		
+	    final StringBuffer sb = new StringBuffer();
+		
+	    final char[] buf = new char[512];
+	    
+		while (true) {
+		
+		    final int rdlen = rdr.read(buf);
+			
+		    if (rdlen == -1)
+				break;
+			
+		    sb.append(buf, 0, rdlen);
+		    
+		}
+		
+		return sb.toString();
 
-    }
+	}
 
     /**
      * Generates some statements and serializes them using the specified
@@ -922,26 +925,26 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
      * Select everything in the kb using a GET. There will be no solutions
      * (assuming that we are using a told triple kb or quads kb w/o axioms).
      */
-    public void test_GET_SELECT_ALL() throws Exception {
+	public void test_GET_SELECT_ALL() throws Exception {
 
-        final String queryStr = "select * where {?s ?p ?o}";
+		final String queryStr = "select * where {?s ?p ?o}";
 
-        final QueryOptions opts = new QueryOptions();
-        opts.serviceURL = m_serviceURL;
-        opts.queryStr = queryStr;
-        opts.method = "GET";
+		final QueryOptions opts = new QueryOptions();
+		opts.serviceURL = m_serviceURL;
+		opts.queryStr = queryStr;
+		opts.method = "GET";
 
-        opts.acceptHeader = TupleQueryResultFormat.SPARQL.getDefaultMIMEType();
-        assertEquals(0, countResults(doSparqlQuery(opts, requestPath)));
+		opts.acceptHeader = TupleQueryResultFormat.SPARQL.getDefaultMIMEType();
+		assertEquals(0, countResults(doSparqlQuery(opts, requestPath)));
 
-        // TODO JSON parser is not bundled by openrdf.
+		// TODO JSON parser is not bundled by openrdf.
 //        opts.acceptHeader = TupleQueryResultFormat.JSON.getDefaultMIMEType();
 //        assertEquals(0, countResults(doSparqlQuery(opts, requestPath)));
 
         opts.acceptHeader = TupleQueryResultFormat.BINARY.getDefaultMIMEType();
         assertEquals(0, countResults(doSparqlQuery(opts, requestPath)));
 
-    }
+	}
 
     /**
      * Select everything in the kb using a POST. There will be no solutions
@@ -1065,6 +1068,64 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
     public void test_POST_INSERT_withBody_TRIX() throws Exception {
 
         doInsertWithBodyTest("POST", 23, requestPath, RDFFormat.TRIX);
+        
+    }
+
+    // TODO Write test for UPDATE where we override the default context using
+    // the context-uri.
+    public void test_POST_INSERT_triples_with_BODY_and_defaultContext()
+            throws Exception {
+
+        if(TestMode.quads != testMode)
+            return;
+
+        // Load the resource into the KB.
+        doInsertByBody("POST", requestPath, packagePath
+                + "insert_triples_with_defaultContext.ttl", new URIImpl(
+                "http://example.org"));
+        
+        // Verify that the data were inserted into the appropriate context.
+        {
+            final QueryOptions opts = new QueryOptions();
+            opts.serviceURL = m_serviceURL;
+            opts.method = "GET";
+            opts.queryStr = "select * { GRAPH <http://example.org> {?s ?p ?p} }";
+            assertEquals(7, countResults(doSparqlQuery(opts, requestPath)));
+        }
+
+    }
+    
+    public void test_POST_INSERT_triples_with_URI_and_defaultContext() throws Exception {
+
+        if(TestMode.quads != testMode)
+            return;
+        
+        // Load the resource into the KB.
+        {
+            final QueryOptions opts = new QueryOptions();
+            opts.serviceURL = m_serviceURL;
+            opts.method = "POST";
+            opts.requestParams = new LinkedHashMap<String, String[]>();
+            // set the resource to load.
+            opts.requestParams.put("uri", new String[] { new File(packagePath
+                    + "insert_triples_with_defaultContext.ttl").toURI()
+                    .toString() });
+            // set the default context.
+            opts.requestParams.put("context-uri",
+                    new String[] { "http://example.org" });
+            assertEquals(
+                    7,
+                    getMutationResult(doSparqlQuery(opts, requestPath)).mutationCount);
+        }
+
+        // Verify that the data were inserted into the appropriate context.
+        {
+            final QueryOptions opts = new QueryOptions();
+            opts.serviceURL = m_serviceURL;
+            opts.method = "GET";
+            opts.queryStr = "select * { GRAPH <http://example.org> {?s ?p ?p} }";
+            assertEquals(7, countResults(doSparqlQuery(opts, requestPath)));
+        }
         
     }
 
@@ -1430,36 +1491,36 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
         
     }
 
-    private void doDeleteWithQuery(final String servlet, final String query) {
-        HttpURLConnection conn = null;
-        try {
+	private void doDeleteWithQuery(final String servlet, final String query) {
+		HttpURLConnection conn = null;
+		try {
 
-            final URL url = new URL(m_serviceURL + servlet + "?query="
-                    + URLEncoder.encode(query, "UTF-8"));
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("DELETE");
-            conn.setDoOutput(true);
-            conn.setDoInput(true);
-            conn.setUseCaches(false);
-            conn.setReadTimeout(0);
+			final URL url = new URL(m_serviceURL + servlet + "?query="
+					+ URLEncoder.encode(query, "UTF-8"));
+			conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("DELETE");
+			conn.setDoOutput(true);
+			conn.setDoInput(true);
+			conn.setUseCaches(false);
+			conn.setReadTimeout(0);
 
-            conn.connect();
+			conn.connect();
 
-            if (log.isInfoEnabled())
-                log.info(conn.getResponseMessage());
+			if (log.isInfoEnabled())
+				log.info(conn.getResponseMessage());
 
-            final int rc = conn.getResponseCode();
-            
-            if (rc < 200 || rc >= 300) {
-                throw new IOException(conn.getResponseMessage());
-            }
+			final int rc = conn.getResponseCode();
+			
+			if (rc < 200 || rc >= 300) {
+				throw new IOException(conn.getResponseMessage());
+			}
 
-        } catch (Throwable t) {
-            // clean up the connection resources
-            if (conn != null)
-                conn.disconnect();
-            throw new RuntimeException(t);
-        }
+		} catch (Throwable t) {
+			// clean up the connection resources
+			if (conn != null)
+				conn.disconnect();
+			throw new RuntimeException(t);
+		}
     }
 
     private MutationResult doDeleteWithAccessPath(//
@@ -1527,71 +1588,71 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
             final RDFFormat format) throws Exception {
 
         HttpURLConnection conn = null;
-        try {
+		try {
 
             final URL url = new URL(m_serviceURL + servlet + "?delete");
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
-            conn.setDoInput(true);
-            conn.setUseCaches(false);
-            conn.setReadTimeout(0);
+			conn.setDoOutput(true);
+			conn.setDoInput(true);
+			conn.setUseCaches(false);
+			conn.setReadTimeout(0);
 
             conn
                     .setRequestProperty("Content-Type", format
                             .getDefaultMIMEType());
 
             final byte[] data = genNTRIPLES(ntriples, format);
-            
+			
             conn.setRequestProperty("Content-Length", ""
                     + Integer.toString(data.length));
 
-            final OutputStream os = conn.getOutputStream();
-            try {
-                os.write(data);
-                os.flush();
-            } finally {
-                os.close();
-            }
+			final OutputStream os = conn.getOutputStream();
+			try {
+			    os.write(data);
+				os.flush();
+			} finally {
+				os.close();
+			}
 
-            if (log.isInfoEnabled())
-                log.info(conn.getResponseMessage());
+			if (log.isInfoEnabled())
+				log.info(conn.getResponseMessage());
 
-            final int rc = conn.getResponseCode();
-            
-            if (rc < 200 || rc >= 300) {
-                throw new IOException(conn.getResponseMessage());
-            }
+			final int rc = conn.getResponseCode();
+			
+			if (rc < 200 || rc >= 300) {
+				throw new IOException(conn.getResponseMessage());
+			}
 
-        } catch (Throwable t) {
-            // clean up the connection resources
-            if (conn != null)
-                conn.disconnect();
-            throw new RuntimeException(t);
-        }
+		} catch (Throwable t) {
+			// clean up the connection resources
+			if (conn != null)
+				conn.disconnect();
+			throw new RuntimeException(t);
+		}
 
         // Verify the mutation count.
         assertEquals(ntriples, getMutationResult(conn).mutationCount);
 
     }
 
-    /**
-     * Test of POST w/ BODY having data to be loaded.
-     */
+	/**
+	 * Test of POST w/ BODY having data to be loaded.
+	 */
     private void doInsertWithBodyTest(final String method, final int ntriples,
             final String servlet, final RDFFormat format) throws Exception {
 
-        HttpURLConnection conn = null;
-        try {
+		HttpURLConnection conn = null;
+		try {
 
-            final URL url = new URL(m_serviceURL + servlet);
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod(method);
-            conn.setDoOutput(true);
-            conn.setDoInput(true);
-            conn.setUseCaches(false);
-            conn.setReadTimeout(0);
-            
+			final URL url = new URL(m_serviceURL + servlet);
+			conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod(method);
+			conn.setDoOutput(true);
+			conn.setDoInput(true);
+			conn.setUseCaches(false);
+			conn.setReadTimeout(0);
+			
             conn.setRequestProperty("Content-Type", format
                             .getDefaultMIMEType());
 
@@ -1600,49 +1661,49 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
             conn.setRequestProperty("Content-Length", Integer.toString(data
                     .length));
 
-            final OutputStream os = conn.getOutputStream();
-            try {
-                os.write(data);
-                os.flush();
-            } finally {
-                os.close();
-            }
-            // conn.connect();
+			final OutputStream os = conn.getOutputStream();
+			try {
+			    os.write(data);
+				os.flush();
+			} finally {
+				os.close();
+			}
+			// conn.connect();
 
-            final int rc = conn.getResponseCode();
+			final int rc = conn.getResponseCode();
 
             if (log.isInfoEnabled()) {
                 log.info("*** RESPONSE: " + rc + " for " + method);
 //                log.info("*** RESPONSE: " + getResponseBody(conn));
             }
 
-            if (rc < 200 || rc >= 300) {
+			if (rc < 200 || rc >= 300) {
 
-                throw new IOException(conn.getResponseMessage());
-                
-            }
+			    throw new IOException(conn.getResponseMessage());
+			    
+			}
 
-        } catch (Throwable t) {
-            // clean up the connection resources
-            if (conn != null)
-                conn.disconnect();
-            throw new RuntimeException(t);
-        }
+		} catch (Throwable t) {
+			// clean up the connection resources
+			if (conn != null)
+				conn.disconnect();
+			throw new RuntimeException(t);
+		}
 
         // Verify the mutation count.
         assertEquals(ntriples, getMutationResult(conn).mutationCount);
-        
-        // Verify the expected #of statements in the store.
-        {
-            final String queryStr = "select * where {?s ?p ?o}";
+		
+		// Verify the expected #of statements in the store.
+		{
+			final String queryStr = "select * where {?s ?p ?o}";
 
-            final QueryOptions opts = new QueryOptions();
-            opts.serviceURL = m_serviceURL;
-            opts.queryStr = queryStr;
-            opts.method = "GET";
+			final QueryOptions opts = new QueryOptions();
+			opts.serviceURL = m_serviceURL;
+			opts.queryStr = queryStr;
+			opts.method = "GET";
 
-            assertEquals(ntriples, countResults(doSparqlQuery(opts, requestPath)));
-        }
+			assertEquals(ntriples, countResults(doSparqlQuery(opts, requestPath)));
+		}
 
     }
 
@@ -1650,7 +1711,7 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
      * Insert a resource into the {@link NanoSparqlServer}.  This is used to
      * load resources in the test package into the server.
      */
-    private void doInsertbyURL(final String method, final String servlet,
+    private MutationResult doInsertbyURL(final String method, final String servlet,
             final String resource) throws Exception {
 
         final String uri = new File(resource).toURI().toString();
@@ -1665,8 +1726,7 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
             opts.requestParams = new LinkedHashMap<String, String[]>();
             opts.requestParams.put("uri", new String[] { uri });
 
-            final MutationResult result = getMutationResult(doSparqlQuery(opts,
-                    requestPath));
+            return getMutationResult(doSparqlQuery(opts, requestPath));
 
         } catch (Throwable t) {
             // clean up the connection resources
@@ -1677,6 +1737,204 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
 
     }
 
+    /**
+     * Read the contents of a file.
+     * 
+     * @param file
+     *            The file.
+     * @return It's contents.
+     */
+    private static String readFromFile(final File file) throws IOException {
+
+        final LineNumberReader r = new LineNumberReader(new FileReader(file));
+
+        try {
+
+            final StringBuilder sb = new StringBuilder();
+
+            String s;
+            while ((s = r.readLine()) != null) {
+
+                if (r.getLineNumber() > 1)
+                    sb.append("\n");
+
+                sb.append(s);
+
+            }
+
+            return sb.toString();
+
+        } finally {
+
+            r.close();
+
+        }
+
+    }
+    
+    private static Graph readGraphFromFile(final File file) throws RDFParseException, RDFHandlerException, IOException {
+        
+        final RDFFormat format = RDFFormat.forFileName(file.getName());
+        
+        final RDFParserFactory rdfParserFactory = RDFParserRegistry
+                .getInstance().get(format);
+
+        if (rdfParserFactory == null) {
+            throw new RuntimeException("Parser not found: file=" + file
+                    + ", format=" + format);
+        }
+
+        final RDFParser rdfParser = rdfParserFactory
+                .getParser();
+
+        rdfParser.setValueFactory(new ValueFactoryImpl());
+
+        rdfParser.setVerifyData(true);
+
+        rdfParser.setStopAtFirstError(true);
+
+        rdfParser
+                .setDatatypeHandling(RDFParser.DatatypeHandling.IGNORE);
+
+        final StatementCollector rdfHandler = new StatementCollector();
+        
+        rdfParser.setRDFHandler(rdfHandler);
+
+        /*
+         * Run the parser, which will cause statements to be
+         * inserted.
+         */
+
+        final FileReader r = new FileReader(file);
+        try {
+            rdfParser.parse(r, file.toURI().toString()/* baseURL */);
+        } finally {
+            r.close();
+        }
+        
+        final Graph g = new GraphImpl();
+        
+        g.addAll(rdfHandler.getStatements());
+
+        return g;
+
+    }
+    
+    /**
+     * Write a graph on a buffer suitable for sending as an HTTP request body.
+     * 
+     * @param format
+     *            The RDF Format to use.
+     * @param g
+     *            The graph.
+     *            
+     * @return The serialized data.
+     * 
+     * @throws RDFHandlerException
+     */
+    static private byte[] writeOnBuffer(final RDFFormat format, final Graph g)
+            throws RDFHandlerException {
+
+        final RDFWriterFactory writerFactory = RDFWriterRegistry.getInstance()
+                .get(format);
+
+        if (writerFactory == null)
+            fail("RDFWriterFactory not found: format=" + format);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        final RDFWriter writer = writerFactory.getWriter(baos);
+
+        writer.startRDF();
+
+        for (Statement stmt : g) {
+
+            writer.handleStatement(stmt);
+
+        }
+
+        writer.endRDF();
+
+        return baos.toByteArray();
+
+    }
+    
+    /**
+     * Reads a resource and sends it using an INSERT with BODY request to be
+     * loaded into the database.
+     * 
+     * @param method
+     * @param servlet
+     * @param resource
+     * @return
+     * @throws Exception
+     */
+    private MutationResult doInsertByBody(final String method,
+            final String servlet, final String resource,
+            final URI defaultContext) throws Exception {
+
+        final RDFFormat rdfFormat = RDFFormat.forFileName(resource);
+        
+        final Graph g = readGraphFromFile(new File(resource));
+
+        final byte[] wireData = writeOnBuffer(rdfFormat, g);
+        
+        HttpURLConnection conn = null;
+        try {
+
+            final URL url = new URL(m_serviceURL
+                    + servlet
+                    + (defaultContext == null ? ""
+                            : ("?context-uri=" + URLEncoder.encode(
+                                    defaultContext.stringValue(), "UTF-8"))));
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod(method);
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            conn.setUseCaches(false);
+            conn.setReadTimeout(0);
+
+            conn.setRequestProperty("Content-Type",
+                    rdfFormat.getDefaultMIMEType());
+
+            final byte[] data = wireData;
+
+            conn.setRequestProperty("Content-Length",
+                    Integer.toString(data.length));
+
+            final OutputStream os = conn.getOutputStream();
+            try {
+                os.write(data);
+                os.flush();
+            } finally {
+                os.close();
+            }
+            // conn.connect();
+
+            final int rc = conn.getResponseCode();
+
+            if (log.isInfoEnabled()) {
+                log.info("*** RESPONSE: " + rc + " for " + method);
+                // log.info("*** RESPONSE: " + getResponseBody(conn));
+            }
+
+            if (rc < 200 || rc >= 300) {
+
+                throw new IOException(conn.getResponseMessage());
+
+            }
+
+            return getMutationResult(conn);
+
+        } catch (Throwable t) {
+            // clean up the connection resources
+            if (conn != null)
+                conn.disconnect();
+            throw new RuntimeException(t);
+        }
+
+    }
+    
     private static String getResponseBody(final HttpURLConnection conn)
             throws IOException {
 
