@@ -68,6 +68,7 @@ import org.xml.sax.ext.DefaultHandler2;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.ITx;
 import com.bigdata.journal.Journal;
+import com.bigdata.rdf.rio.NQuadsParser;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
@@ -1268,6 +1269,69 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
     }
 
     /**
+     * Test for POST of an NQuads resource by a URL.
+     */
+    public void test_POST_INSERT_NQuads_by_URL()
+            throws Exception {
+
+        if(TestMode.quads != testMode)
+            return;
+
+        // Verify nothing in the KB.
+        {
+            final String queryStr = "ASK where {?s ?p ?o}";
+
+            final QueryOptions opts = new QueryOptions();
+            opts.serviceURL = m_serviceURL;
+            opts.queryStr = queryStr;
+            opts.method = "GET";
+
+            opts.acceptHeader = BooleanQueryResultFormat.SPARQL
+                    .getDefaultMIMEType();
+            assertEquals(false, askResults(doSparqlQuery(opts, requestPath)));
+        }
+
+        // #of statements in that RDF file.
+        final long expectedStatementCount = 7;
+        
+        // Load the resource into the KB.
+        {
+            final QueryOptions opts = new QueryOptions();
+            opts.serviceURL = m_serviceURL;
+            opts.method = "POST";
+            opts.requestParams = new LinkedHashMap<String, String[]>();
+            opts.requestParams
+                    .put("uri",
+                            new String[] { "file:bigdata-sails/src/test/com/bigdata/rdf/sail/webapp/quads.nq" });
+
+            final MutationResult result = getMutationResult(doSparqlQuery(opts,
+                    requestPath));
+
+            assertEquals(expectedStatementCount, result.mutationCount);
+
+        }
+
+        /*
+         * Verify KB has the loaded data.
+         */
+        {
+            final String queryStr = "SELECT * where {?s ?p ?o}";
+
+            final QueryOptions opts = new QueryOptions();
+            opts.serviceURL = m_serviceURL;
+            opts.queryStr = queryStr;
+            opts.method = "GET";
+
+            opts.acceptHeader = BooleanQueryResultFormat.SPARQL
+                    .getDefaultMIMEType();
+
+            assertEquals(expectedStatementCount, countResults(doSparqlQuery(
+                    opts, requestPath)));
+        }
+
+    }
+    
+    /**
      * Test the ESTCARD method (fast range count).
      */
     public void test_ESTCARD() throws Exception {
@@ -2200,6 +2264,25 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
     }
     
     /**
+     * Load and return a graph from a resource.
+     * 
+     * @param resource
+     *            The resource.
+     * 
+     * @return The graph.
+     */
+    private Graph loadGraphFromResource(final String resource)
+            throws RDFParseException, RDFHandlerException, IOException {
+
+//        final RDFFormat rdfFormat = RDFFormat.forFileName(resource);
+
+        final Graph g = readGraphFromFile(new File(resource));
+
+        return g;
+
+    }
+
+    /**
      * Reads a resource and sends it using an INSERT with BODY request to be
      * loaded into the database.
      * 
@@ -2275,6 +2358,78 @@ public class TestNanoSparqlServer2<S extends IIndexManager> extends ProxyTestCas
 
     }
     
+    /**
+     * Reads a resource and sends it using an INSERT with BODY request to be
+     * loaded into the database.
+     * 
+     * @param method
+     * @param servlet
+     * @param resource
+     * @return
+     * @throws Exception
+     */
+    private MutationResult doInsertByBody(final String method,
+            final String servlet, final RDFFormat rdfFormat, final Graph g,
+            final URI defaultContext) throws Exception {
+
+        final byte[] wireData = writeOnBuffer(rdfFormat, g);
+
+        HttpURLConnection conn = null;
+        try {
+
+            final URL url = new URL(m_serviceURL
+                    + servlet
+                    + (defaultContext == null ? ""
+                            : ("?context-uri=" + URLEncoder.encode(
+                                    defaultContext.stringValue(), "UTF-8"))));
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod(method);
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            conn.setUseCaches(false);
+            conn.setReadTimeout(0);
+
+            conn.setRequestProperty("Content-Type",
+                    rdfFormat.getDefaultMIMEType());
+
+            final byte[] data = wireData;
+
+            conn.setRequestProperty("Content-Length",
+                    Integer.toString(data.length));
+
+            final OutputStream os = conn.getOutputStream();
+            try {
+                os.write(data);
+                os.flush();
+            } finally {
+                os.close();
+            }
+            // conn.connect();
+
+            final int rc = conn.getResponseCode();
+
+            if (log.isInfoEnabled()) {
+                log.info("*** RESPONSE: " + rc + " for " + method);
+                // log.info("*** RESPONSE: " + getResponseBody(conn));
+            }
+
+            if (rc < 200 || rc >= 300) {
+
+                throw new IOException(conn.getResponseMessage());
+
+            }
+
+            return getMutationResult(conn);
+
+        } catch (Throwable t) {
+            // clean up the connection resources
+            if (conn != null)
+                conn.disconnect();
+            throw new RuntimeException(t);
+        }
+
+    }
+
     private static String getResponseBody(final HttpURLConnection conn)
             throws IOException {
 
