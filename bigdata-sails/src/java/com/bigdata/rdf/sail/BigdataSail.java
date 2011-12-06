@@ -898,22 +898,42 @@ public class BigdataSail extends SailBase implements Sail {
         
     }
     
-
+    /**
+     * Constructor used to wrap an existing {@link AbstractTripleStore}
+     * instance.
+     * 
+     * @param database
+     *            The instance.
+     */
+    public BigdataSail(final AbstractTripleStore database) {
+     
+        this(database, database);
+        
+    }
     
     /**
-     * Core ctor.  You must use this variant for a scale-out triple store.
+     * Core ctor. You must use this variant for a scale-out triple store.
      * <p>
-     * To create a {@link BigdataSail} backed by an
-     * {@link IBigdataFederation} use the {@link ScaleOutTripleStore} ctor and
-     * then {@link AbstractTripleStore#create()} the triple store if it does not
+     * To create a {@link BigdataSail} backed by an {@link IBigdataFederation}
+     * use the {@link ScaleOutTripleStore} ctor and then
+     * {@link AbstractTripleStore#create()} the triple store if it does not
      * exist.
      * 
      * @param database
      *            An existing {@link AbstractTripleStore}.
+     * @param mainDatabase
+     *            When <i>database</i> is a {@link TempTripleStore}, this is the
+     *            {@link AbstractTripleStore} used to resolve the
+     *            {@link QueryEngine}. Otherwise it must be the same object as
+     *            the <i>database</i>.
      */
-    public BigdataSail(final AbstractTripleStore database) {
+    public BigdataSail(final AbstractTripleStore database,
+            final AbstractTripleStore mainDatabase) {
         
         if (database == null)
+            throw new IllegalArgumentException();
+
+        if (mainDatabase == null)
             throw new IllegalArgumentException();
     
         // default to false here and overwritten by some ctor variants.
@@ -1057,7 +1077,7 @@ public class BigdataSail extends SailBase implements Sail {
         namespaces = 
             Collections.synchronizedMap(new LinkedHashMap<String, String>());
 
-        queryEngine = QueryEngineFactory.getQueryController(database
+        queryEngine = QueryEngineFactory.getQueryController(mainDatabase
                 .getIndexManager());
         
     }
