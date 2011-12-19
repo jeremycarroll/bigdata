@@ -933,12 +933,21 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
                  * The bloom filter is enabled, is loaded and is dirty, so write
                  * it on the store now.
                  */
+            	
+            	final long oldAddr = filter.getAddr();
+            	if (oldAddr != IRawStore.NULL) {
+            		this.getBtreeCounters().bytesReleased += store.getByteCount(oldAddr);
 
+            		store.delete(oldAddr);
+            	}
+            	
                 filter.write(store);
 
             }
             
         }
+        
+        // TODO: Ensure indexMetadata is recycled
         
         if (metadata.getMetadataAddr() == 0L) {
             
@@ -949,6 +958,20 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
             
             metadata.write(store);
             
+        }
+        
+        // delete old checkpoint data       
+        final long oldAddr = checkpoint != null ? checkpoint.addrCheckpoint : IRawStore.NULL;
+        if (oldAddr != IRawStore.NULL) {
+       		this.getBtreeCounters().bytesReleased += store.getByteCount(oldAddr);
+        	store.delete(oldAddr);
+        }
+        
+        // delete old root data if changed
+        final long oldRootAddr = checkpoint != null ? checkpoint.getRootAddr() : IRawStore.NULL;
+        if (oldRootAddr != IRawStore.NULL && oldRootAddr != root.identity) {
+       		this.getBtreeCounters().bytesReleased += store.getByteCount(oldRootAddr);
+        	store.delete(oldRootAddr);
         }
         
         // create new checkpoint record.
@@ -1253,6 +1276,9 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
 
         assertNotReadOnly();
 
+        /*
+         * FIXME simplify conditionals - mgc
+         */
         if (!getIndexMetadata().getDeleteMarkers()
                 && getStore() instanceof RWStrategy) {
 

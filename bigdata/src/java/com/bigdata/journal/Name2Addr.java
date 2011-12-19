@@ -630,7 +630,6 @@ public class Name2Addr extends BTree {
                 
                 // update persistent mapping.
                 insert(key, EntrySerializer.INSTANCE.serialize( entry ));
-
             }
             
         }
