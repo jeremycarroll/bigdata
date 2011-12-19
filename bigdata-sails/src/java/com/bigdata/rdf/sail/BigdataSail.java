@@ -2721,10 +2721,14 @@ public class BigdataSail extends SailBase implements Sail {
         /**
          * Commit the write set.
          * <p>
-         * Note: The semantics depend on the {@link Options#STORE_CLASS}.  See
+         * Note: The semantics depend on the {@link Options#STORE_CLASS}. See
          * {@link ITripleStore#commit()}.
+         * 
+         * @return The timestamp associated with the commit point. This will be
+         *         <code>0L</code> if the write set was empty such that nothing
+         *         was committed.
          */
-        public synchronized void commit() throws SailException {
+        public synchronized long commit2() throws SailException {
 
             assertWritableConn();
 
@@ -2738,13 +2742,27 @@ public class BigdataSail extends SailBase implements Sail {
             
             flushStatementBuffers(true/* assertions */, true/* retractions */);
             
-            database.commit();
+            final long commitTime = database.commit();
             
             if (changeLog != null) {
                 
                 changeLog.transactionCommited();
                 
             }
+            
+            return commitTime;
+            
+        }
+
+        /**
+         * Commit the write set.
+         * <p>
+         * Note: The semantics depend on the {@link Options#STORE_CLASS}.  See
+         * {@link ITripleStore#commit()}.
+         */
+        final public synchronized void commit() throws SailException {
+            
+            commit2();
             
         }
         
@@ -3656,6 +3674,8 @@ public class BigdataSail extends SailBase implements Sail {
         }
 
         /**
+         * {@inheritDoc}
+         * <p>
          * A specialized commit that goes through the transaction service
          * available on the journal's transaction manager.  Once the commit
          * happens, a new read/write transaction is automatically started
@@ -3666,7 +3686,7 @@ public class BigdataSail extends SailBase implements Sail {
          * lexicon to never be committed.  Probably not a significant issue.
          */
         @Override
-        public synchronized void commit() throws SailException {
+        public synchronized long commit2() throws SailException {
 
             /*
              * don't double commit, but make a note that writes to the lexicon
@@ -3688,9 +3708,11 @@ public class BigdataSail extends SailBase implements Sail {
             
             try {
             
-                txService.commit(tx);
+                final long commitTime = txService.commit(tx);
                 
                 newTx();
+                
+                return commitTime;
             
             } catch(IOException ex) {
                     
@@ -3832,11 +3854,14 @@ public class BigdataSail extends SailBase implements Sail {
 
         /**
          * NOP
+         * 
+         * @return <code>0L</code> since nothing was committed.
          */
         @Override
-        public synchronized void commit() throws SailException {
+        public synchronized long commit2() throws SailException {
 
             // NOP.
+            return 0L; // Nothing committed.
             
         }
         
