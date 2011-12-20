@@ -2323,6 +2323,13 @@ public class RWStore implements IStore, IBufferedWriter {
         // Note: Invoked from unit test w/o the lock...
 //        if (!m_allocationLock.isHeldByCurrentThread())
 //            throw new IllegalMonitorStateException();
+    	
+    	/**
+    	 * if session protected then do not free any deferrals!
+    	 */  	
+    	if (this.m_activeTxCount > 0 || this.m_contexts.size() > 0) {
+    		return 0;
+    	}
 		
         if (journal != null) {
 		
