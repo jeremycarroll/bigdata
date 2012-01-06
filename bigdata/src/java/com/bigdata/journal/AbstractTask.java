@@ -2517,6 +2517,10 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
             return delegate.getOffset(addr);
         }
 
+        public long getPhysicalAddress(final long addr) {
+            return delegate.getPhysicalAddress(addr);
+        }
+
         public Properties getProperties() {
             return delegate.getProperties();
         }
@@ -2952,6 +2956,10 @@ public abstract class AbstractTask<T> implements Callable<T>, ITask<T> {
 
         public long getOffset(long addr) {
             return delegate.getOffset(addr);
+        }
+
+        public long getPhysicalAddress(final long addr) {
+            return delegate.getPhysicalAddress(addr);
         }
 
         public Properties getProperties() {
