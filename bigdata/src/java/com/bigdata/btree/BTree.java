@@ -933,13 +933,22 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
                  * The bloom filter is enabled, is loaded and is dirty, so write
                  * it on the store now.
                  */
-            	
-            	final long oldAddr = filter.getAddr();
-            	if (oldAddr != IRawStore.NULL) {
-            		this.getBtreeCounters().bytesReleased += store.getByteCount(oldAddr);
-
-            		store.delete(oldAddr);
-            	}
+                /*
+                 * TODO The code to recycle the old checkpoint addr, the old
+                 * root addr, and the old bloom filter has been disabled in
+                 * writeCheckpoint2 and AbstractBTree#insert pending the
+                 * resolution of ticket #440. This is being done to minimize
+                 * the likelyhood that the underlying bug for that ticket
+                 * can be tripped by the code.
+                 * 
+                 * @see https://sourceforge.net/apps/trac/bigdata/ticket/440
+                 */
+//            	final long oldAddr = filter.getAddr();
+//            	if (oldAddr != IRawStore.NULL) {
+//            		this.getBtreeCounters().bytesReleased += store.getByteCount(oldAddr);
+//
+//            		store.delete(oldAddr);
+//            	}
             	
                 filter.write(store);
 
@@ -960,19 +969,29 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
             
         }
         
-        // delete old checkpoint data       
-        final long oldAddr = checkpoint != null ? checkpoint.addrCheckpoint : IRawStore.NULL;
-        if (oldAddr != IRawStore.NULL) {
-       		this.getBtreeCounters().bytesReleased += store.getByteCount(oldAddr);
-        	store.delete(oldAddr);
-        }
-        
-        // delete old root data if changed
-        final long oldRootAddr = checkpoint != null ? checkpoint.getRootAddr() : IRawStore.NULL;
-        if (oldRootAddr != IRawStore.NULL && oldRootAddr != root.identity) {
-       		this.getBtreeCounters().bytesReleased += store.getByteCount(oldRootAddr);
-        	store.delete(oldRootAddr);
-        }
+        /*
+         * TODO The code to recycle the old checkpoint addr, the old
+         * root addr, and the old bloom filter has been disabled in
+         * writeCheckpoint2 and AbstractBTree#insert pending the
+         * resolution of ticket #440. This is being done to minimize
+         * the likelyhood that the underlying bug for that ticket
+         * can be tripped by the code.
+         * 
+         * @see https://sourceforge.net/apps/trac/bigdata/ticket/440
+         */
+//        // delete old checkpoint data       
+//        final long oldAddr = checkpoint != null ? checkpoint.addrCheckpoint : IRawStore.NULL;
+//        if (oldAddr != IRawStore.NULL) {
+//       		this.getBtreeCounters().bytesReleased += store.getByteCount(oldAddr);
+//        	store.delete(oldAddr);
+//        }
+//        
+//        // delete old root data if changed
+//        final long oldRootAddr = checkpoint != null ? checkpoint.getRootAddr() : IRawStore.NULL;
+//        if (oldRootAddr != IRawStore.NULL && oldRootAddr != root.identity) {
+//       		this.getBtreeCounters().bytesReleased += store.getByteCount(oldRootAddr);
+//        	store.delete(oldRootAddr);
+//        }
         
         // create new checkpoint record.
         checkpoint = metadata.newCheckpoint(this);
