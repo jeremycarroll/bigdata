@@ -43,6 +43,20 @@ public class XSDFloatIV<V extends BigdataLiteral> extends
 
     private final float value;
 
+    public IV<V, Float> clone(final boolean clearCache) {
+
+        final XSDFloatIV<V> tmp = new XSDFloatIV<V>(value);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+
     public XSDFloatIV(final float value) {
         
         super(DTE.XSDFloat);

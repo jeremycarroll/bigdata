@@ -253,12 +253,46 @@ public interface IV<V extends BigdataValue, T> extends Serializable,
 	 */
 	V getValue() throws NotMaterializedException;
 
-	/**
-	 * Drop the cached {@link BigdataValue}. This is a NOP if the cache is
-	 * empty.
-	 */
-	void dropValue();
-	
+//  /**
+//  * Drop the cached {@link BigdataValue}. This is a NOP if the cache is
+//  * empty.
+//  * 
+//  * @deprecated There is a concurrency problem with this method for any IV for
+//  * which we are sharing the reference among multiple threads. That includes
+//  * the Vocabulary IVs and anything served out of the termCache. Probably the
+//  * method should be dropped. It was intended for us in scale-out and is not
+//  * currently invoked. Most of the time when we do not need the materialized
+//  * Value any longer, we will simply drop the variable. The exception is
+//  * BLOBs in scale-out. There we could replace the IV (if it was materialized
+//  * in advance of its last necessary usage) with an IV that has a blob
+//  * reference (or just send the blob reference rather than the blob).
+//  */
+//   void dropValue();
+
+    /**
+     * Return a copy of this {@link IV}.
+     * <p>
+     * Note: This method exists to defeat the hard reference from the {@link IV}
+     * to the cached {@link BigdataValue} in order to avoid a memory leak when
+     * the {@link IV} is used as the key in a weak value cache whose value is
+     * the {@link BigdataValue}. Therefore, certain {@link IV} implementations
+     * MAY return <i>this</i> when they are used for limited collections. The
+     * vocabulary IVs are the primary example. For the same reason, we do not
+     * need to recursively break the link from the {@link IV} to the
+     * {@link BigdataValue} for {@link IV}s which embed other {@link IV}s.
+     * 
+     * @param clearCache
+     *            When <code>true</code> the cached reference (if any) will NOT
+     *            be set on the copy.
+     * 
+     * @return The copy.
+     * 
+     * @see https://sourceforge.net/apps/trac/bigdata/ticket/437 (Thread-local
+     *      cache combined with unbounded thread pools causes effective memory
+     *      leak)
+     */
+    IV<V, T> clone(boolean clearCache);
+
 	/**
 	 * Returns true if the RDF {@link BigdataValue} has been pre-materialized
 	 * and cached on this {@link IV}.

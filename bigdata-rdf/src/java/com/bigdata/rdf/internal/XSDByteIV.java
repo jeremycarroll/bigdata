@@ -42,6 +42,20 @@ public class XSDByteIV<V extends BigdataLiteral> extends
     
     private final byte value;
 
+    public IV<V, Byte> clone(final boolean clearCache) {
+
+        final XSDByteIV<V> tmp = new XSDByteIV<V>(value);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+
     public XSDByteIV(final byte value) {
         
         super(DTE.XSDByte);

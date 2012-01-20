@@ -47,6 +47,16 @@ public class DummyIV extends AbstractIV {
 
     final public static transient IV INSTANCE = new DummyIV();
     
+    /**
+     * Returns <i>this</i>.
+     */
+    @Override
+    public IV clone(final boolean clearCache) {
+    
+        return this;
+    
+    }
+
     private DummyIV() {
         super(VTE.BNODE, false/* inline */, false/* extension */, DTE.XSDBoolean);
     }

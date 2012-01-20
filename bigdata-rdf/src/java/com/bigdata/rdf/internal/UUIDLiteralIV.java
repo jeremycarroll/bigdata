@@ -47,6 +47,20 @@ public class UUIDLiteralIV<V extends BigdataLiteral> extends
     
     private final UUID value;
 
+    public IV<V, UUID> clone(final boolean clearCache) {
+
+        final UUIDLiteralIV<V> tmp = new UUIDLiteralIV<V>(value);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+    
     public UUIDLiteralIV(final UUID value) {
         
         super(DTE.UUID);

@@ -43,6 +43,20 @@ public class XSDShortIV<V extends BigdataLiteral> extends
     
     private final short value;
 
+    public IV<V, Short> clone(final boolean clearCache) {
+
+        final XSDShortIV<V> tmp = new XSDShortIV<V>(value);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+
     public XSDShortIV(final short value) {
         
         super(DTE.XSDShort);

@@ -52,6 +52,20 @@ public class TermId<V extends BigdataValue/* URI,BNode,Literal,SID */>
     /** The term identifier. */
     private final long termId;
     
+    public IV<V, Void> clone(final boolean clearCache) {
+
+        final TermId<V> tmp = new TermId<V>(flags, termId);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+
     /**
      * Constructor for a term identifier when you are decoding and already have
      * the flags.
@@ -101,17 +115,17 @@ public class TermId<V extends BigdataValue/* URI,BNode,Literal,SID */>
 
     }
 
-    /**
-     * Callers must explicitly populate the value cache for a {@link TermId}.
-     * <p>
-     * {@inheritDoc}
-     */
-    @Override
-    final public V setValue(V v) {
-    	
-    	return super.setValue(v);
-    	
-    }
+//    /**
+//     * Callers must explicitly populate the value cache for a {@link TermId}.
+//     * <p>
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    final public V setValue(V v) {
+//    	
+//    	return super.setValue(v);
+//    	
+//    }
     
     /**
      * Operation is not supported. You MUST explicitly set the value cache. 

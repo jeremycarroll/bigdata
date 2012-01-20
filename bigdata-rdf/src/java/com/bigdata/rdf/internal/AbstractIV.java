@@ -200,7 +200,7 @@ public abstract class AbstractIV<V extends BigdataValue, T>
      * @see VTE
      * @see DTE
      */
-    private final byte flags;
+    protected final byte flags;
 
     /**
      * The RDF Value type (URI, BNode, Literal or Statement) and the data type
@@ -670,7 +670,7 @@ public abstract class AbstractIV<V extends BigdataValue, T>
 	 *            
 	 * @return The argument.
 	 */
-	public V setValue(final V v) {
+	final public V setValue(final V v) {
 
 		return (this.cache = v);
 		
@@ -686,11 +686,11 @@ public abstract class AbstractIV<V extends BigdataValue, T>
 		
 	}
 	
-	final public void dropValue() {
-		
-		this.cache = null;
-		
-	}
+//	final public void dropValue() {
+//		
+//		this.cache = null;
+//		
+//	}
 	
 	/**
 	 * Return <code>true</code> if cached or <code>false</code> if not.

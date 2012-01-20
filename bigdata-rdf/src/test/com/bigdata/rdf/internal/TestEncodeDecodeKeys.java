@@ -228,11 +228,15 @@ public class TestEncodeDecodeKeys extends TestCase2 {
                         return 0;
                     }
                     
-                    public int compareTo(Object o) {
+//                    public int compareTo(Object o) {
+//                        throw new UnsupportedOperationException();
+//                    }
+
+                    protected int _compareTo(IV o) {
                         throw new UnsupportedOperationException();
                     }
 
-                    protected int _compareTo(IV o) {
+                    public IV<?, ?> clone(boolean clearCache) {
                         throw new UnsupportedOperationException();
                     }
 
@@ -363,8 +367,8 @@ public class TestEncodeDecodeKeys extends TestCase2 {
         /*
          * Decode
          */
+        final IV<?, ?>[] a = decodeStatementKey(key, e.length);
         {
-            final IV<?, ?>[] a = decodeStatementKey(key, e.length);
 
             for (int i = 0; i < e.length; i++) {
 
@@ -376,10 +380,72 @@ public class TestEncodeDecodeKeys extends TestCase2 {
                 }
 
             }
-
-            return a;
             
         }
+
+        /*
+         * clone(true)
+         */
+        {
+    
+            for (int i = 0; i < e.length; i++) {
+    
+                final IV<?,?> expected = e[i];
+    
+                final IV<?, ?> actual = expected.clone(true);
+    
+                if (!expected.equals(actual)) {
+    
+                    fail("Clone problem: expected=" + expected + ", actual="
+                            + actual);
+
+                }
+    
+                if (expected.hashCode() != actual.hashCode()) {
+    
+                    fail("hashCodes differ @ index=" + Integer.toString(i)
+                            + " : expected=" + expected + "(hash="
+                            + expected.hashCode() + ")" + ", actual=" + actual
+                            + "(hash=" + actual.hashCode() + ")");
+    
+                }
+    
+            }
+            
+        }
+    
+        /*
+         * clone(false)
+         */
+        {
+    
+            for (int i = 0; i < e.length; i++) {
+    
+                final IV<?,?> expected = e[i];
+    
+                final IV<?, ?> actual = expected.clone(false);
+    
+                if (!expected.equals(actual)) {
+    
+                    fail("Clone problem: expected=" + expected + ", actual="
+                            + actual);
+
+                }
+    
+                if (expected.hashCode() != actual.hashCode()) {
+    
+                    fail("hashCodes differ @ index=" + Integer.toString(i)
+                            + " : expected=" + expected + "(hash="
+                            + expected.hashCode() + ")" + ", actual=" + actual
+                            + "(hash=" + actual.hashCode() + ")");
+    
+                }
+    
+            }
+            
+        }
+    
+        return a;
 
     }
 

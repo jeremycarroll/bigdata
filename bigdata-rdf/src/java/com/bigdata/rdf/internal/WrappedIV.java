@@ -53,6 +53,25 @@ public class WrappedIV implements IV {
 	
 	private volatile transient BigdataValue altVal;
 	
+    /*
+     * Note: altVal is basically the [cache]. This implementation assumes that
+     * the cached value should be cleared when it is inserted into the
+     * termsCache.  MikeP needs to review this.
+     */
+    public IV clone(final boolean clearCache) {
+
+        final WrappedIV tmp = new WrappedIV(iv, null/*altVal*/);
+
+        if (!clearCache) {
+
+            tmp.setValue(altVal);
+            
+        }
+        
+        return tmp;
+
+    }
+    
     public WrappedIV(final IV iv, final BigdataValue altVal) {
         this.iv = iv;
         this.altVal = altVal;
@@ -78,9 +97,9 @@ public class WrappedIV implements IV {
 		return altVal != null;
 	}
 
-	public void dropValue() {
-		altVal = null;
-	}
+//	public void dropValue() {
+//		altVal = null;
+//	}
 
 	// delegate everything else
 	

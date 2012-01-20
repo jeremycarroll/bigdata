@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.internal;
 
 import java.util.UUID;
+
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.store.AbstractTripleStore;
@@ -50,6 +51,20 @@ public class UUIDBNodeIV<V extends BigdataBNode> extends
     private static final long serialVersionUID = -4560216387427028030L;
     
     private final UUID id;
+    
+    public IV<V, UUID> clone(final boolean clearCache) {
+
+        final UUIDBNodeIV<V> tmp = new UUIDBNodeIV<V>(id);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
     
     public UUIDBNodeIV(final UUID id) {
 

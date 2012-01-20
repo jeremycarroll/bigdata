@@ -43,6 +43,20 @@ public class XSDIntIV<V extends BigdataLiteral> extends
     
     private final int value;
 
+    public IV<V, Integer> clone(final boolean clearCache) {
+
+        final XSDIntIV<V> tmp = new XSDIntIV<V>(value);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+
     public XSDIntIV(final int value) {
         
         super(DTE.XSDInt);

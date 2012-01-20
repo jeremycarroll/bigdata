@@ -50,6 +50,20 @@ public class NumericBNodeIV<V extends BigdataBNode> extends
     
     private final int id;
     
+    public IV<V, Integer> clone(final boolean clearCache) {
+
+        final NumericBNodeIV<V> tmp = new NumericBNodeIV<V>(id);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+
     public NumericBNodeIV(final int id) {
 
         super(DTE.XSDInt);

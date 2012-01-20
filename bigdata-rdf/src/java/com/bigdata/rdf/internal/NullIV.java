@@ -45,4 +45,14 @@ class NullIV extends TermId {
         super(VTE.BNODE, TermId.NULL);
     }
 
+    /**
+     * Returns <i>this</i>.
+     */
+    @Override
+    public IV clone(final boolean clearCache) {
+    
+        return this;
+    
+    }
+
 }

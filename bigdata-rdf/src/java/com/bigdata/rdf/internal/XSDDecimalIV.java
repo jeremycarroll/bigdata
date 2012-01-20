@@ -44,6 +44,23 @@ public class XSDDecimalIV<V extends BigdataLiteral> extends
     private final BigDecimal value;
     private transient int byteLength;
 
+    public IV<V, BigDecimal> clone(final boolean clearCache) {
+
+        final XSDDecimalIV<V> tmp = new XSDDecimalIV<V>(value);
+
+        // propagate transient state if available.
+        tmp.byteLength = byteLength;
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+
     public XSDDecimalIV(final BigDecimal value) {
         
         super(DTE.XSDDecimal);

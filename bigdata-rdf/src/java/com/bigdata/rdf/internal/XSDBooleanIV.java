@@ -51,6 +51,20 @@ public class XSDBooleanIV<V extends BigdataLiteral> extends
     
     private final boolean value;
 
+    public IV<V, Boolean> clone(final boolean clearCache) {
+
+        final XSDBooleanIV<V> tmp = new XSDBooleanIV<V>(value);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+
     public XSDBooleanIV(final boolean value) {
         
         super(DTE.XSDBoolean);

@@ -42,6 +42,20 @@ public class XSDDoubleIV<V extends BigdataLiteral> extends
     private static final long serialVersionUID = 1L;
     
     private final double value;
+    
+    public IV<V, Double> clone(final boolean clearCache) {
+
+        final XSDDoubleIV<V> tmp = new XSDDoubleIV<V>(value);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
 
     public XSDDoubleIV(final double value) {
         

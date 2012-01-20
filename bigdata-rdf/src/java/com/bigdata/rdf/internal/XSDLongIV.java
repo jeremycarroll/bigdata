@@ -43,6 +43,20 @@ public class XSDLongIV<V extends BigdataLiteral> extends
     
     private final long value;
 
+    public IV<V, Long> clone(final boolean clearCache) {
+
+        final XSDLongIV<V> tmp = new XSDLongIV<V>(value);
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+
     public XSDLongIV(final long value) {
         
         super(DTE.XSDLong);

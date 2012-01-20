@@ -44,6 +44,23 @@ public class XSDIntegerIV<V extends BigdataLiteral> extends
     private final BigInteger value;
     private transient int byteLength;
 
+    public IV<V, BigInteger> clone(final boolean clearCache) {
+
+        final XSDIntegerIV<V> tmp = new XSDIntegerIV<V>(value);
+
+        // propagate transient state if available.
+        tmp.byteLength = byteLength;
+
+        if (!clearCache) {
+
+            tmp.setValue(getValueCache());
+            
+        }
+        
+        return tmp;
+
+    }
+
     public XSDIntegerIV(final BigInteger value) {
         
         super(DTE.XSDInteger);

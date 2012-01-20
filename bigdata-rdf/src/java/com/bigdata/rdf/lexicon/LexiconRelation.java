@@ -60,7 +60,6 @@ import com.bigdata.bop.IBindingSet;
 import com.bigdata.bop.IPredicate;
 import com.bigdata.bop.IVariableOrConstant;
 import com.bigdata.bop.ap.Predicate;
-import com.bigdata.bop.ap.filter.BOpResolver;
 import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.IIndex;
 import com.bigdata.btree.IRangeQuery;
@@ -90,7 +89,6 @@ import com.bigdata.rdf.internal.ILexiconConfiguration;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.IVUtility;
 import com.bigdata.rdf.internal.LexiconConfiguration;
-import com.bigdata.rdf.internal.NotMaterializedException;
 import com.bigdata.rdf.internal.TermId;
 import com.bigdata.rdf.model.BigdataBNode;
 import com.bigdata.rdf.model.BigdataLiteral;
@@ -100,8 +98,6 @@ import com.bigdata.rdf.model.BigdataValueFactory;
 import com.bigdata.rdf.model.BigdataValueFactoryImpl;
 import com.bigdata.rdf.rio.IStatementBuffer;
 import com.bigdata.rdf.rio.StatementBuffer;
-import com.bigdata.rdf.spo.ISPO;
-import com.bigdata.rdf.spo.SPO;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.rdf.store.IRawTripleStore;
 import com.bigdata.relation.AbstractRelation;
@@ -410,11 +406,12 @@ public class LexiconRelation extends AbstractRelation<BigdataValue>
                 /*
                  * Unshared for any other view of the triple store.
                  */
-                termCache = new ConcurrentWeakValueCacheWithBatchedUpdates<IV, BigdataValue>(//
+                termCache = new TermCache<IV<?,?>, BigdataValue>(//
+                        new ConcurrentWeakValueCacheWithBatchedUpdates<IV<?,?>, BigdataValue>(//
                         termCacheCapacity, // queueCapacity
                         .75f, // loadFactor (.75 is the default)
                         16 // concurrency level (16 is the default)
-                );
+                ));
 
             }
             
@@ -2307,21 +2304,23 @@ public class LexiconRelation extends AbstractRelation<BigdataValue>
      *       Or perhaps this can be rolled into the {@link ValueFactory} impl
      *       along with the reverse bnodes mapping?
      */
-    final private ConcurrentWeakValueCacheWithBatchedUpdates<IV, BigdataValue> termCache;
+//    final private ConcurrentWeakValueCacheWithBatchedUpdates<IV, BigdataValue> termCache;
+    final private ITermCache<IV<?,?>,BigdataValue> termCache;
     
     /**
      * Factory used for {@link #termCache} for read-only views of the lexicon.
      */
-    static private CanonicalFactory<NT/* key */, ConcurrentWeakValueCacheWithBatchedUpdates<IV, BigdataValue>, Integer/* state */> termCacheFactory = new CanonicalFactory<NT, ConcurrentWeakValueCacheWithBatchedUpdates<IV, BigdataValue>, Integer>(
+    static private CanonicalFactory<NT/* key */, ITermCache<IV<?,?>, BigdataValue>, Integer/* state */> termCacheFactory = new CanonicalFactory<NT, ITermCache<IV<?,?>, BigdataValue>, Integer>(
             1/* queueCapacity */) {
         @Override
-        protected ConcurrentWeakValueCacheWithBatchedUpdates<IV, BigdataValue> newInstance(
+        protected ITermCache<IV<?,?>, BigdataValue> newInstance(
                 NT key, Integer termCacheCapacity) {
-            return new ConcurrentWeakValueCacheWithBatchedUpdates<IV, BigdataValue>(//
+            return new TermCache<IV<?,?>,BigdataValue>(//
+                    new ConcurrentWeakValueCacheWithBatchedUpdates<IV<?,?>, BigdataValue>(//
                     termCacheCapacity.intValue(),// backing hard reference LRU queue capacity.
                     .75f, // loadFactor (.75 is the default)
                     16 // concurrency level (16 is the default)
-            );
+            ));
         }
     };
     
