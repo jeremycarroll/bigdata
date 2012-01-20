@@ -9,7 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.cache.HardReferenceQueueWithBatchingUpdates.IBatchedUpdateListener;
+import com.bigdata.BigdataStatics;
+
 
 /**
  * A low-contention/high concurrency weak value cache. This class can offer
@@ -47,11 +48,11 @@ import com.bigdata.cache.HardReferenceQueueWithBatchingUpdates.IBatchedUpdateLis
 public class ConcurrentWeakValueCacheWithBatchedUpdates<K, V> implements
         IConcurrentWeakValueCache<K, V> {
 
-    protected static transient final Logger log = Logger.getLogger(ConcurrentWeakValueCacheWithBatchedUpdates.class);
+    private static transient final Logger log = Logger.getLogger(ConcurrentWeakValueCacheWithBatchedUpdates.class);
     
-    protected static transient final boolean INFO = log.isInfoEnabled();
+//    private static transient final boolean INFO = log.isInfoEnabled();
 
-    protected static transient final boolean DEBUG = log.isDebugEnabled();
+    private static transient final boolean DEBUG = log.isDebugEnabled();
     
     /**
      * A concurrency-savvy map.
@@ -273,11 +274,13 @@ public class ConcurrentWeakValueCacheWithBatchedUpdates<K, V> implements
             throw new IllegalArgumentException();
         
         this.queue = new HardReferenceQueueWithBatchingUpdates<V>(//
+                BigdataStatics.threadLocalBuffers,// threadLocalBuffers
+                16,  // concurrencyLevel
                 queue, // sharedQueue
                 10, // threadLocalQueueNScan
                 64, // threadLocalQueueCapacity
                 32, // threadLocalTryLockSize
-                new IBatchedUpdateListener() {
+                new IBatchedUpdateListener<V>() {
                     /**
                      * Since processing the ReferenceQueue requires a lock, we
                      * let the thread which batches the access order updates
@@ -688,11 +691,11 @@ public class ConcurrentWeakValueCacheWithBatchedUpdates<K, V> implements
         }
         
         if( counter > 1 ) {
-            
-            if( INFO ) {
-                
+
+            if (log.isInfoEnabled()) {
+
                 log.info("Removed " + counter + " cleared references");
-                
+
             }
             
         }

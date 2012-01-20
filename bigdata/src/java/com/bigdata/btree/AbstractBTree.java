@@ -1053,6 +1053,8 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
              */
             
             return new HardReferenceQueueWithBatchingUpdates<PO>(//
+                    BigdataStatics.threadLocalBuffers, // threadLocalBuffers
+                    16,// concurrencyLevel
                     new HardReferenceQueue<PO>(new DefaultEvictionListener(),
                             metadata.getWriteRetentionQueueCapacity(), 0/* nscan */),
 //                    new DefaultEvictionListener(),//
