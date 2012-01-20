@@ -2036,6 +2036,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
                      * 
                      * @see https://sourceforge.net/apps/trac/bigdata/ticket/440
                      */
+                    filter.disable();
 //                    final long curAddr = filter.disable();
 //                    if (curAddr != IRawStore.NULL)
 //                        store.delete(curAddr);
