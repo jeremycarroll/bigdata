@@ -933,24 +933,24 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
                  * The bloom filter is enabled, is loaded and is dirty, so write
                  * it on the store now.
                  */
-                /*
-                 * TODO The code to recycle the old checkpoint addr, the old
-                 * root addr, and the old bloom filter has been disabled in
-                 * writeCheckpoint2 and AbstractBTree#insert pending the
-                 * resolution of ticket #440. This is being done to minimize
-                 * the likelyhood that the underlying bug for that ticket
-                 * can be tripped by the code.
-                 * 
-                 * @see https://sourceforge.net/apps/trac/bigdata/ticket/440
-                 */
-//            	final long oldAddr = filter.getAddr();
-//            	if (oldAddr != IRawStore.NULL) {
-//            		this.getBtreeCounters().bytesReleased += store.getByteCount(oldAddr);
-//
-//            		store.delete(oldAddr);
-//            	}
-            	
-                filter.write(store);
+//                /*
+//                 * TODO The code to recycle the old checkpoint addr, the old
+//                 * root addr, and the old bloom filter has been disabled in
+//                 * writeCheckpoint2 and AbstractBTree#insert pending the
+//                 * resolution of ticket #440. This is being done to minimize
+//                 * the likelyhood that the underlying bug for that ticket
+//                 * can be tripped by the code.
+//                 * 
+//                 * @see https://sourceforge.net/apps/trac/bigdata/ticket/440
+//                 */
+            	final long oldAddr = filter.getAddr();
+            	if (oldAddr != IRawStore.NULL) {
+            		this.getBtreeCounters().bytesReleased += store.getByteCount(oldAddr);
+
+            		store.delete(oldAddr);
+            	}
+//            	
+//                filter.write(store);
 
             }
             
