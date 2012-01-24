@@ -949,8 +949,8 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
 
             		store.delete(oldAddr);
             	}
-//            	
-//                filter.write(store);
+            	
+                filter.write(store);
 
             }
             
