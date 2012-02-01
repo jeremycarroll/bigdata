@@ -41,15 +41,12 @@ import com.bigdata.io.ByteArrayBuffer;
 import com.bigdata.journal.AbstractJournal;
 import com.bigdata.journal.ICommitter;
 import com.bigdata.journal.IIndexManager;
-import com.bigdata.journal.Name2Addr;
 import com.bigdata.journal.RWStrategy;
-import com.bigdata.journal.Name2Addr.Entry;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.mdi.JournalMetadata;
 import com.bigdata.mdi.LocalPartitionMetadata;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rawstore.IRawStore;
-import com.bigdata.rdf.lexicon.TermIdEncoder;
 
 /**
  * <p>
@@ -647,25 +644,6 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
         
     }
     
-    /**
-     * Sets the lastCommitTime.
-     * <p>
-     * Note: The lastCommitTime is set by a combination of the
-     * {@link AbstractJournal} and {@link Name2Addr} based on the actual
-     * commitTime of the commit during which an {@link Entry} for that index was
-     * last committed. It is set for both historical index reads and unisolated
-     * index reads using {@link Entry#commitTime}. The lastCommitTime for an
-     * unisolated index will advance as commits are performed with that index.
-     * 
-     * @param lastCommitTime
-     *            The timestamp of the last committed state of this index.
-     * 
-     * @throws IllegalArgumentException
-     *             if lastCommitTime is ZERO (0).
-     * @throws IllegalStateException
-     *             if the timestamp is less than the previous value (it is
-     *             permitted to advance but not to go backwards).
-     */
     final public void setLastCommitTime(final long lastCommitTime) {
         
         if (lastCommitTime == 0L)
@@ -761,7 +739,7 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
      * 
      * @return <code>true</code> if anything was written.
      */
-    final public boolean flush() {
+    final private boolean flush() {
 
         assertNotTransient();
         assertNotReadOnly();
@@ -857,19 +835,13 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
 //    }
     
     /**
-     * Checkpoint operation {@link #flush()}es dirty nodes, the optional
+     * {@inheritDoc}
+     * <p>
+     * This checkpoint operation {@link #flush()}es dirty nodes, the optional
      * {@link IBloomFilter} (if dirty), the {@link IndexMetadata} (if dirty),
      * and then writes a new {@link Checkpoint} record on the backing store,
      * saves a reference to the current {@link Checkpoint} and returns the
      * address of that {@link Checkpoint} record.
-     * <p>
-     * Note: A checkpoint by itself is NOT an atomic commit. The commit protocol
-     * is at the store level and uses {@link Checkpoint}s to ensure that the
-     * state of the {@link BTree} is current on the backing store.
-     * 
-     * @return The address at which the {@link Checkpoint} record for the
-     *         {@link BTree} was written onto the store. The {@link BTree} can
-     *         be reloaded from this {@link Checkpoint} record.
      * 
      * @see #writeCheckpoint2(), which returns the {@link Checkpoint} record
      *      itself.
@@ -884,23 +856,82 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
     }
 
     /**
-     * Checkpoint operation {@link #flush()}es dirty nodes, the optional
-     * {@link IBloomFilter} (if dirty), the {@link IndexMetadata} (if dirty),
-     * and then writes a new {@link Checkpoint} record on the backing store,
-     * saves a reference to the current {@link Checkpoint} and returns the
-     * address of that {@link Checkpoint} record.
-     * <p>
-     * Note: A checkpoint by itself is NOT an atomic commit. The commit protocol
-     * is at the store level and uses {@link Checkpoint}s to ensure that the
-     * state of the {@link BTree} is current on the backing store.
-     * 
-     * @return The {@link Checkpoint} record for the {@link BTree} was written
-     *         onto the store. The {@link BTree} can be reloaded from this
-     *         {@link Checkpoint} record.
+     * {@inheritDoc}
      * 
      * @see #load(IRawStore, long)
      */
     final public Checkpoint writeCheckpoint2() {
+        
+        assertNotTransient();
+        assertNotReadOnly();
+
+		/*
+		 * Note: Acquiring this lock provides for atomicity of the checkpoint of
+		 * the BTree during the commit protocol. Without this lock, users of the
+		 * UnisolatedReadWriteIndex could be concurrently modifying the BTree
+		 * while we are attempting to snapshot it for the commit.
+		 * 
+		 * Note: An alternative design would declare a global read/write lock
+		 * for mutation of the indices in addition to the per-BTree read/write
+		 * lock provided by UnisolatedReadWriteIndex. Rather than taking the
+		 * per-BTree write lock here, we would take the global write lock in the
+		 * AbstractJournal's commit protocol, e.g., commitNow(). The global read
+		 * lock would be taken by UnisolatedReadWriteIndex before taking the
+		 * per-BTree write lock. This is effectively a hierarchical locking
+		 * scheme and could provide a workaround if deadlocks are found to occur
+		 * due to lock ordering problems with the acquisition of the
+		 * UnisolatedReadWriteIndex lock (the absence of lock ordering problems
+		 * really hinges around UnisolatedReadWriteLocks not being taken for
+		 * more than one index at a time.)
+		 *
+		 * @see https://sourceforge.net/apps/trac/bigdata/ticket/278
+		 * @see https://sourceforge.net/apps/trac/bigdata/ticket/284
+		 * @see https://sourceforge.net/apps/trac/bigdata/ticket/288
+		 * @see https://sourceforge.net/apps/trac/bigdata/ticket/343
+		 * @see https://sourceforge.net/apps/trac/bigdata/ticket/440
+		 */
+		final Lock lock = new UnisolatedReadWriteIndex(this).writeLock();
+		try {
+
+			if (/* autoCommit && */needsCheckpoint()) {
+
+				/*
+				 * Flush the btree, write a checkpoint record, and return the
+				 * address of that checkpoint record. The [checkpoint] reference
+				 * is also updated.
+				 */
+
+				return _writeCheckpoint2();
+
+			}
+
+			/*
+			 * There have not been any writes on this btree or auto-commit is
+			 * disabled.
+			 * 
+			 * Note: if the application has explicitly invoked writeCheckpoint()
+			 * then the returned address will be the address of that checkpoint
+			 * record and the BTree will have a new checkpoint address made
+			 * restart safe on the backing store.
+			 */
+
+			return checkpoint;
+
+		} finally {
+
+			lock.unlock();
+
+		}
+
+    }
+    
+    /**
+	 * Core implementation invoked by {@link #writeCheckpoint2()} while holding
+	 * the lock - <strong>DO NOT INVOKE THIS METHOD DIRECTLY</strong>.
+	 * 
+	 * @return the checkpoint.
+	 */
+    private final Checkpoint _writeCheckpoint2() {
         
         assertNotTransient();
         assertNotReadOnly();
@@ -933,6 +964,7 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
                  * The bloom filter is enabled, is loaded and is dirty, so write
                  * it on the store now.
                  */
+            	
 //                /*
 //                 * TODO The code to recycle the old checkpoint addr, the old
 //                 * root addr, and the old bloom filter has been disabled in
@@ -943,12 +975,7 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
 //                 * 
 //                 * @see https://sourceforge.net/apps/trac/bigdata/ticket/440
 //                 */
-            	final long oldAddr = filter.getAddr();
-            	if (oldAddr != IRawStore.NULL) {
-            		this.getBtreeCounters().bytesReleased += store.getByteCount(oldAddr);
-
-            		store.delete(oldAddr);
-            	}
+            	recycle(filter.getAddr());
             	
                 filter.write(store);
 
@@ -968,7 +995,7 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
             metadata.write(store);
             
         }
-        
+  
         /*
          * TODO The code to recycle the old checkpoint addr, the old
          * root addr, and the old bloom filter has been disabled in
@@ -979,19 +1006,11 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
          * 
          * @see https://sourceforge.net/apps/trac/bigdata/ticket/440
          */
-//        // delete old checkpoint data       
-//        final long oldAddr = checkpoint != null ? checkpoint.addrCheckpoint : IRawStore.NULL;
-//        if (oldAddr != IRawStore.NULL) {
-//       		this.getBtreeCounters().bytesReleased += store.getByteCount(oldAddr);
-//        	store.delete(oldAddr);
-//        }
-//        
-//        // delete old root data if changed
-//        final long oldRootAddr = checkpoint != null ? checkpoint.getRootAddr() : IRawStore.NULL;
-//        if (oldRootAddr != IRawStore.NULL && oldRootAddr != root.identity) {
-//       		this.getBtreeCounters().bytesReleased += store.getByteCount(oldRootAddr);
-//        	store.delete(oldRootAddr);
-//        }
+        // delete old checkpoint data       
+        recycle(checkpoint != null ? checkpoint.addrCheckpoint : IRawStore.NULL);
+         
+        // delete old root data if changed
+        recycle(checkpoint != null ? checkpoint.getRootAddr() : IRawStore.NULL);
         
         // create new checkpoint record.
         checkpoint = metadata.newCheckpoint(this);
@@ -1015,12 +1034,6 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
         
     }
     
-    /**
-     * Returns the most recent {@link Checkpoint} record for this {@link BTree}.
-     * 
-     * @return The most recent {@link Checkpoint} record for this {@link BTree}
-     *         and never <code>null</code>.
-     */
     final public Checkpoint getCheckpoint() {
 
         if (checkpoint == null)
@@ -1030,6 +1043,25 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
         
     }
     
+    final public long getRecordVersion() {
+    	
+    	return recordVersion;
+
+    }
+    
+    final public long getMetadataAddr() {
+
+    	return metadata.getMetadataAddr();
+
+    }
+    
+    final public long getRootAddr() {
+    	
+		return (root == null ? getCheckpoint().getRootAddr() : root
+				.getIdentity());
+		
+    }
+        
 //    /**
 //     * Return true iff the state of this B+Tree has been modified since the last
 //     * {@link Checkpoint} record associated with the given address.
@@ -1213,67 +1245,10 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
      */
     public long handleCommit(final long commitTime) {
 
-        assertNotTransient();
-        assertNotReadOnly();
-
-		/*
-		 * Note: Acquiring this lock provides for atomicity of the checkpoint of
-		 * the BTree during the commit protocol. Without this lock, users of the
-		 * UnisolatedReadWriteIndex could be concurrently modifying the BTree
-		 * while we are attempting to snapshot it for the commit.
-		 * 
-		 * Note: An alternative design would declare a global read/write lock
-		 * for mutation of the indices in addition to the per-BTree read/write
-		 * lock provided by UnisolatedReadWriteIndex. Rather than taking the
-		 * per-BTree write lock here, we would take the global write lock in the
-		 * AbstractJournal's commit protocol, e.g., commitNow(). The global read
-		 * lock would be taken by UnisolatedReadWriteIndex before taking the
-		 * per-BTree write lock. This is effectively a hierarchical locking
-		 * scheme and could provide a workaround if deadlocks are found to occur
-		 * due to lock ordering problems with the acquisition of the
-		 * UnisolatedReadWriteIndex lock (the absence of lock ordering problems
-		 * really hinges around UnisolatedReadWriteLocks not being taken for
-		 * more than one index at a time.)
-		 * 
-		 * @see https://sourceforge.net/apps/trac/bigdata/ticket/288
-		 * 
-		 * @see https://sourceforge.net/apps/trac/bigdata/ticket/278
-		 */
-		final Lock lock = new UnisolatedReadWriteIndex(this).writeLock();
-		try {
-
-			if (/* autoCommit && */needsCheckpoint()) {
-
-				/*
-				 * Flush the btree, write a checkpoint record, and return the
-				 * address of that checkpoint record. The [checkpoint] reference
-				 * is also updated.
-				 */
-
-				return writeCheckpoint();
-
-			}
-
-			/*
-			 * There have not been any writes on this btree or auto-commit is
-			 * disabled.
-			 * 
-			 * Note: if the application has explicitly invoked writeCheckpoint()
-			 * then the returned address will be the address of that checkpoint
-			 * record and the BTree will have a new checkpoint address made
-			 * restart safe on the backing store.
-			 */
-
-			return checkpoint.addrCheckpoint;
-
-		} finally {
-
-			lock.unlock();
-
-		}
-
+    	return writeCheckpoint2().getCheckpointAddr();
+    	
     }
-    
+
     /**
      * Remove all entries in the B+Tree.
      * <p>
@@ -1777,6 +1752,9 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
 					+ store.toString(addrCheckpoint), t);
 		}
 
+//        if (checkpoint.getIndexType() != IndexTypeEnum.BTree)
+//            throw new RuntimeException("Not a BTree checkpoint: " + checkpoint);
+		
 		/*
 		 * Read metadata record from store.
 		 */
@@ -1921,9 +1899,9 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
             
             return counter;
             
-        } // class Counter
+        }
         
-    }
+    } // class Counter
 
     /**
      * Places the counter values into a namespace formed by the partition
@@ -1970,7 +1948,17 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
             
             if (tmp >= MAX_LOCAL_COUNTER) {
 
-                throw new RuntimeException("Counter overflow");
+				/*
+				 * Note: Checkpoint MUST persist the raw counter in scale-out
+				 * this code will observe the partitionId in the high word and
+				 * throw an exception. The whole point of this check is to
+				 * verify that the underlying index local counter has not
+				 * overflowed. Checkpoint must persistent the raw counter for us
+				 * to do test this.
+				 */
+				throw new RuntimeException("Counter overflow: counter=" + tmp
+						+ ", pid=" + getPartitionId(tmp) + ", ctr="
+						+ getLocalCounter(tmp));
                 
             }
 
@@ -2091,7 +2079,6 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      */
     protected static class Stack {
 
@@ -2267,7 +2254,6 @@ public class BTree extends AbstractBTree implements ICommitter {// ILocalBTreeVi
      * Note: The {@link MutableBTreeTupleCursor} does register such listeners.
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      */
     public class LeafCursor implements ILeafCursor<Leaf> {
 

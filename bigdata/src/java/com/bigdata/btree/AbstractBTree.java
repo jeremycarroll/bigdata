@@ -64,11 +64,10 @@ import com.bigdata.btree.proc.ISimpleIndexProcedure;
 import com.bigdata.btree.view.FusedView;
 import com.bigdata.cache.HardReferenceQueue;
 import com.bigdata.cache.HardReferenceQueueWithBatchingUpdates;
+import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.cache.IHardReferenceQueue;
 import com.bigdata.cache.RingBuffer;
-import com.bigdata.cache.IGlobalLRU.ILRUCache;
 import com.bigdata.counters.CounterSet;
-import com.bigdata.counters.ICounterSet;
 import com.bigdata.counters.OneShotInstrument;
 import com.bigdata.io.AbstractFixedByteArrayBuffer;
 import com.bigdata.io.ByteArrayBuffer;
@@ -354,7 +353,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan
      *         Thompson</a>
-     * @version $Id$
      */
     static class ChildMemoizer extends
             Memoizer<LoadChildRequest/* request */, AbstractNode<?>/* child */> {
@@ -380,13 +378,12 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 //        }
 
         /**
-         * Called by the thread which atomically sets the
-         * {@link AbstractNode#childRefs} element to the computed
-         * {@link AbstractNode}. At that point a reference exists to the child
-         * on the parent.
+         * Called by the thread which atomically sets the {@link Node#childRefs}
+         * element to the computed {@link AbstractNode}. At that point a
+         * reference exists to the child on the parent.
          * 
          * @param req
-         *            The requst.
+         *            The request.
          */
         void removeFromCache(final LoadChildRequest req) {
 
@@ -736,6 +733,8 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
     }
 
 	/**
+	 * {@inheritDoc}
+	 * <p>
 	 * Return some "statistics" about the btree including both the static
 	 * {@link CounterSet} and the {@link BTreeCounters}s.
 	 * <p>
@@ -758,7 +757,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 	 *       state (keys, values, and other arrays). report estimated heap
 	 *       consumption here.
 	 */
-    public ICounterSet getCounters() {
+    public CounterSet getCounters() {
 
 		final CounterSet counterSet = new CounterSet();
 		{
@@ -2026,6 +2025,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
                      * maximum #of index entries for which the bloom filter will
                      * have an acceptable error rate.
                      */
+                    
 //                    /*
 //                     * TODO The code to recycle the old checkpoint addr, the old
 //                     * root addr, and the old bloom filter has been disabled in
@@ -2037,9 +2037,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 //                     * @see https://sourceforge.net/apps/trac/bigdata/ticket/440
 //                     */
 //                    filter.disable();
-                    final long curAddr = filter.disable();
-                    if (curAddr != IRawStore.NULL)
-                        store.delete(curAddr);
+                    recycle(filter.disable());
                     
                     log.warn("Bloom filter disabled - maximum error rate would be exceeded"
                                     + ": entryCount="
@@ -2417,13 +2415,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * IRangeQuery
      */
 
-    /**
-     * Return the exact tuple count for the half-open key range.
-     * <p>
-     * Note: When the index uses delete markers this requires a key-range scan.
-     * If delete markers are not being used, then the cost is equal to the cost
-     * of {@link #rangeCount(byte[], byte[])}.
-     */
     final public long rangeCountExact(final byte[] fromKey, final byte[] toKey) {
 
         if (!metadata.getDeleteMarkers()) {
@@ -2494,6 +2485,8 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
     }
     
     /**
+     * {@inheritDoc}
+     * <p>
      * This method computes the #of entries in the half-open range using
      * {@link AbstractNode#indexOf(Object)}. Since it does not scan the tuples
      * it can not differentiate between deleted and undeleted tuples for an
@@ -2692,29 +2685,30 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 
     }
 
-    /**
-     * Core implementation.
-     * <p>
-     * Note: If {@link IRangeQuery#CURSOR} is specified the returned iterator
-     * supports traversal with concurrent modification by a single-threaded
-     * process (the {@link BTree} is NOT thread-safe for writers). Write are
-     * permitted iff {@link AbstractBTree} allows writes.
-     * <p>
-     * Note: {@link IRangeQuery#REVERSE} is handled here by wrapping the
-     * underlying {@link ITupleCursor}.
-     * <p>
-     * Note: {@link IRangeQuery#REMOVEALL} is handled here by wrapping the
-     * iterator.
-     * <p>
-     * Note:
-     * {@link FusedView#rangeIterator(byte[], byte[], int, int, IFilter)}
-     * is also responsible for constructing an {@link ITupleIterator} in a
-     * manner similar to this method. If you are updating the logic here, then
-     * check the logic in that method as well!
-     * 
-     * @todo add support to the iterator construct for filtering by a tuple
-     *       revision timestamp range.
-     */
+	/**
+	 * {@inheritDoc}
+	 * <p>
+	 * Core implementation.
+	 * <p>
+	 * Note: If {@link IRangeQuery#CURSOR} is specified the returned iterator
+	 * supports traversal with concurrent modification by a single-threaded
+	 * process (the {@link BTree} is NOT thread-safe for writers). Write are
+	 * permitted iff {@link AbstractBTree} allows writes.
+	 * <p>
+	 * Note: {@link IRangeQuery#REVERSE} is handled here by wrapping the
+	 * underlying {@link ITupleCursor}.
+	 * <p>
+	 * Note: {@link IRangeQuery#REMOVEALL} is handled here by wrapping the
+	 * iterator.
+	 * <p>
+	 * Note: {@link FusedView#rangeIterator(byte[], byte[], int, int, IFilter)}
+	 * is also responsible for constructing an {@link ITupleIterator} in a
+	 * manner similar to this method. If you are updating the logic here, then
+	 * check the logic in that method as well!
+	 * 
+	 * @todo add support to the iterator construct for filtering by a tuple
+	 *       revision timestamp range.
+	 */
     public ITupleIterator rangeIterator(//
             final byte[] fromKey,//
             final byte[] toKey,//
@@ -3572,7 +3566,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
         assert node.dirty;
         assert !node.deleted;
         assert !node.isPersistent();
-        assert !node.isReadOnly();
+        assert !node.isReadOnly(); // FIXME Occasional CI errors on this assert for TestMROWTransactions.  See https://sourceforge.net/apps/trac/bigdata/ticket/343
         assertNotReadOnly();
         
         /*
@@ -3974,7 +3968,6 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
      * {@link Reference} (a runtime security manager exception will result).
      * 
      * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
-     * @version $Id$
      * 
      * @param <T>
      */
@@ -4059,7 +4052,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 	}
 
     /**
-     * Decodes a signed long value as encoded by {@link #append(long)}.
+     * Decodes a signed long value as encoded by {@link #appendSigned(long)}.
      * 
      * @param buf
      *            The buffer containing the encoded record address.
@@ -4167,12 +4160,7 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 		if(isReadOnly())
 			throw new IllegalStateException(ERROR_READ_ONLY);
 
-		getStore().delete(addr);
-		
-		final int nbytes = getStore().getByteCount(addr);
-		
-		btreeCounters.bytesOnStore_rawRecords.addAndGet(-nbytes);
-		
+		btreeCounters.bytesOnStore_rawRecords.addAndGet(-recycle(addr));		
 	}
 
 	/**
@@ -4181,6 +4169,10 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 	 * 
 	 * @param addr
 	 *            The address of the node or leaf.
+	 * 
+	 * @see <a
+	 *      href="https://sourceforge.net/apps/trac/bigdata/ticket/434#comment:2">
+	 *      Simplify tracking of address release for B+Tree and HTree </a>
 	 */
 	void deleteNodeOrLeaf(final long addr) {
 
@@ -4190,12 +4182,51 @@ abstract public class AbstractBTree implements IIndex, IAutoboxBTree,
 		if (isReadOnly())
 			throw new IllegalStateException(ERROR_READ_ONLY);
 
-		final int nbytes = getStore().getByteCount(addr);
-        btreeCounters.bytesReleased += nbytes;
-		btreeCounters.bytesOnStore_nodesAndLeaves.addAndGet(-nbytes);
-        
-		getStore().delete(addr);
+		if (this instanceof BTree) {
 
-	}
+			if (((BTree) this).getCheckpoint().getRootAddr() == addr) {
+			
+				/*
+				 * TODO This is a bit of a hack.  It is designed to prevent
+				 * the double-delete of the last committed root node or leaf.
+				 * This should be cleaned up as part of addressing [1].
+				 * 
+				 * [1] https://sourceforge.net/apps/trac/bigdata/ticket/434
+				 */
+
+				return;
+			
+			}
+			
+		}
+
+		btreeCounters.bytesOnStore_nodesAndLeaves.addAndGet(-recycle(addr));
+
+    }
+
+    /**
+     * Recycle (aka delete) the allocation. This method also adjusts the #of
+     * bytes released in the {@link BTreeCounters}.
+     * 
+     * @param addr
+     *            The address to be recycled.
+     * 
+     * @return The #of bytes which were recycled and ZERO (0) if the address is
+     *         {@link IRawStore#NULL}.
+     */
+    protected int recycle(final long addr) {
+        
+        if (addr == IRawStore.NULL) 
+            return 0;
+        
+        final int nbytes = store.getByteCount(addr);
+        
+        getBtreeCounters().bytesReleased += nbytes;
+        
+        store.delete(addr);
+        
+        return nbytes;
+
+    }
 
 }
