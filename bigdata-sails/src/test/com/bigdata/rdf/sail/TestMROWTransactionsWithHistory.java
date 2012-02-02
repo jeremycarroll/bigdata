@@ -25,11 +25,14 @@ public class TestMROWTransactionsWithHistory extends TestMROWTransactions {
         
         for (int i = 0; i < 100; i++) {
 
+            final int retentionMillis = (r.nextInt(10) * 10) + 1;
+            
             final int nreaderThreads = r.nextInt(19) + 1;
             
-            log.warn("Trial: " + i + ", nreaderThreads=" + nreaderThreads);
+            log.warn("Trial: " + i + ", retentionMillis=" + retentionMillis
+                    + ", nreaderThreads=" + nreaderThreads);
 
-            domultiple_csem_transaction2(1/* retentionMillis */,
+            domultiple_csem_transaction2(retentionMillis,
                     nreaderThreads, 20/* nwriters */, 400/* nreaders */);
 
         }
