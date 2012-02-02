@@ -32,8 +32,8 @@ public class TestMROWTransactionsWithHistory extends TestMROWTransactions {
             log.warn("Trial: " + i + ", retentionMillis=" + retentionMillis
                     + ", nreaderThreads=" + nreaderThreads);
 
-            domultiple_csem_transaction2(retentionMillis,
-                    nreaderThreads, 20/* nwriters */, 400/* nreaders */);
+            domultiple_csem_transaction2(retentionMillis, nreaderThreads,
+                    100/* nwriters */, 400/* nreaders */);
 
         }
         
