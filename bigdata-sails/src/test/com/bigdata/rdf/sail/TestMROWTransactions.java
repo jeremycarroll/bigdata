@@ -288,11 +288,12 @@ abstract public class TestMROWTransactions extends ProxyBigdataSailTestCase {
 				if (!success.get()) {
                     final Throwable ex = failex.get();
                     if (ex != null) {
-						fail("Test failed: firstCause=" + ex
-								+ ", retentionMillis=" + retentionMillis
-								+ ", nreaderThreads=" + nreaderThreads
-								+ ", nwriters=" + nwriters + ", nreaders="
-								+ nreaders, ex);
+                        fail("Test failed: firstCause=" + ex
+                                + ", retentionMillis=" + retentionMillis
+                                + ", nreaderThreads=" + nreaderThreads
+                                + ", nwriters=" + nwriters + ", nreaders="
+                                + nreaders + ", indexManager="
+                                + repo.getDatabase().getIndexManager(), ex);
                     }
                 }
                 if (log.isInfoEnabled())
