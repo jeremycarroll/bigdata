@@ -571,6 +571,9 @@ public class FullTextIndex<V extends Comparable<V>> extends AbstractRelation {
                     Options.ANALYZER_FACTORY_CLASS,
                     Options.DEFAULT_ANALYZER_FACTORY_CLASS);
 
+            if (log.isInfoEnabled())
+                log.info(Options.ANALYZER_FACTORY_CLASS + "=" + className);
+
             final Class<IAnalyzerFactory> cls;
             try {
                 cls = (Class<IAnalyzerFactory>) Class.forName(className);

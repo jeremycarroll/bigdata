@@ -40,6 +40,7 @@ import com.bigdata.btree.IndexMetadata;
 import com.bigdata.btree.keys.DefaultKeyBuilderFactory;
 import com.bigdata.btree.keys.IKeyBuilderFactory;
 import com.bigdata.btree.keys.KeyBuilder;
+import com.bigdata.btree.raba.codec.SimpleRabaCoder;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.model.BigdataValue;
@@ -54,20 +55,20 @@ import com.bigdata.search.TokenBuffer;
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
  */
-public class BigdataRDFFullTextIndex extends FullTextIndex implements
-        ITextIndexer<Hit> {
+public class BigdataValueCentricFullTextIndex extends FullTextIndex implements
+        IValueCentricTextIndexer<Hit> {
 
     final private static transient Logger log = Logger
-            .getLogger(BigdataRDFFullTextIndex.class);
+            .getLogger(BigdataValueCentricFullTextIndex.class);
 
-    static public BigdataRDFFullTextIndex getInstance(
+    static public BigdataValueCentricFullTextIndex getInstance(
             final IIndexManager indexManager, final String namespace,
             final Long timestamp, final Properties properties) {
 
         if (namespace == null)
             throw new IllegalArgumentException();
 
-        return new BigdataRDFFullTextIndex(indexManager, namespace, timestamp,
+        return new BigdataValueCentricFullTextIndex(indexManager, namespace, timestamp,
                 properties);
 
     }
@@ -89,7 +90,7 @@ public class BigdataRDFFullTextIndex extends FullTextIndex implements
      * @param timestamp
      * @param properties
      */
-    public BigdataRDFFullTextIndex(final IIndexManager indexManager,
+    public BigdataValueCentricFullTextIndex(final IIndexManager indexManager,
             final String namespace, final Long timestamp,
             final Properties properties) {
 
@@ -186,7 +187,8 @@ public class BigdataRDFFullTextIndex extends FullTextIndex implements
             indexMetadata.setTupleSerializer(new RDFFullTextIndexTupleSerializer(
                     keyBuilderFactory,//
                     DefaultTupleSerializer.getDefaultLeafKeysCoder(),//
-                    DefaultTupleSerializer.getDefaultValuesCoder(),//
+//                    DefaultTupleSerializer.getDefaultValuesCoder(),//
+                    SimpleRabaCoder.INSTANCE,
                     fieldsEnabled,//
                     doublePrecision//
             ));

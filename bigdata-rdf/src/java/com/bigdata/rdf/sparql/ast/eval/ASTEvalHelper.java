@@ -287,6 +287,63 @@ public class ASTEvalHelper {
     }
     
     /**
+     * Evaluate a SELECT query with a stream of incoming binding sets.
+     * 
+     * @param store
+     *            The {@link AbstractTripleStore} having the data.
+     * @param queryPlan
+     *            The {@link ASTContainer}.
+     * @param bs
+     *            The initial solution to kick things off.
+     *            
+     * @return An object from which the solutions may be drained.
+     * 
+     * @throws QueryEvaluationException
+     */
+    static public TupleQueryResult evaluateTupleQuery(
+            final AbstractTripleStore store, final ASTContainer astContainer,
+            final IAsynchronousIterator<IBindingSet[]> bSetsItr) throws QueryEvaluationException {
+
+        final AST2BOpContext context = new AST2BOpContext(astContainer, store);
+
+        // Clear the optimized AST.
+        astContainer.clearOptimizedAST();
+
+//        // Batch resolve Values to IVs and convert to bigdata binding set.
+//        final IBindingSet bset = toBindingSet(batchResolveIVs(store, bs));
+
+        // Convert the query (generates an optimized AST as a side-effect).
+        AST2BOpUtility.convert(context, new ListBindingSet());
+
+        // Get the projection for the query.
+        final IVariable<?>[] projected = astContainer.getOptimizedAST()
+                .getProjection().getProjectionVars();
+
+        final List<String> projectedSet = new LinkedList<String>();
+
+        for (IVariable<?> var : projected)
+            projectedSet.add(var.getName());
+
+        // The optimized AST.
+        final QueryRoot optimizedQuery = astContainer.getOptimizedAST();
+
+        final boolean materializeProjectionInQuery = context.materializeProjectionInQuery
+                && !optimizedQuery.hasSlice();
+
+        return new TupleQueryResultImpl(projectedSet,
+                ASTEvalHelper.evaluateQuery(
+                        astContainer,
+                        context,
+//                        store, queryPlan, 
+                        bSetsItr
+//                        context.queryEngine
+                        ,materializeProjectionInQuery//
+                        , projected//
+                        ));
+
+    }
+    
+    /**
      * Evaluate a CONSTRUCT/DESCRIBE query.
      * 
      * @param store
@@ -386,6 +443,80 @@ public class ASTEvalHelper {
         try {
             
             source = wrapSource(ctx.db, bs);
+
+            // Submit query for evaluation.
+            runningQuery = ctx.queryEngine.eval(queryPlan, source);
+
+            /*
+             * Wrap up the native bigdata query solution iterator as Sesame
+             * compatible iteration with materialized RDF Values.
+             */
+            return iterator(runningQuery, ctx.db,
+                    materializeProjectionInQuery, required);
+
+        } catch (Throwable t) {
+            if (runningQuery != null) {
+                // ensure query is halted.
+                runningQuery.cancel(true/* mayInterruptIfRunning */);
+            }
+            // ensure source is closed on error path.
+            if(source != null) 
+                source.close();
+            throw new QueryEvaluationException(t);
+        }
+
+    }
+
+    /**
+     * Evaluate a query plan (core method).
+     * 
+     * @param database
+     *            The {@link AbstractTripleStore} view against which the query
+     *            will be evaluated.
+     * @param queryPlan
+     *            The query plan.
+     * @param bs
+     *            The source binding set.
+     * @param queryEngine
+     *            The query engine on which the query will run.
+     * @param materializeProjectionInQuery
+     *            When <code>true</code>, the projection was materialized within
+     *            query plan. When <code>false</code>, this method will take
+     *            responsibility for that materialization step.
+     * @param required
+     *            The variables which must be materialized. Only materialized
+     *            variables will be reported in the output solutions. This MAY
+     *            be <code>null</code> to materialize all variables in the
+     *            solutions. If MAY be empty to materialize NONE of the
+     *            variables in the solutions (in which case all solutions will
+     *            be empty).
+     * 
+     * @return An iteration which may be used to read Sesame {@link BindingSet}s
+     *         containing the solutions for the query.
+     * 
+     * @throws QueryEvaluationException
+     */
+    static private CloseableIteration<BindingSet, QueryEvaluationException> evaluateQuery(
+            final ASTContainer astContainer,
+            final AST2BOpContext ctx,            
+//            final AbstractTripleStore database, final PipelineOp queryPlan,
+            final IAsynchronousIterator<IBindingSet[]> bSetsItr, 
+//            final QueryEngine queryEngine,
+            final boolean materializeProjectionInQuery,
+            final IVariable<?>[] required) throws QueryEvaluationException {
+
+        if(log.isInfoEnabled()) {
+            // Log the SPARQL query string.
+            log.info(astContainer.getQueryString());
+        }
+        
+        final PipelineOp queryPlan = astContainer.getQueryPlan();
+        
+        IRunningQuery runningQuery = null;
+        IAsynchronousIterator<IBindingSet[]> source = bSetsItr;
+        try {
+            
+//            source = wrapSource(ctx.db, bs);
 
             // Submit query for evaluation.
             runningQuery = ctx.queryEngine.eval(queryPlan, source);

@@ -9,11 +9,13 @@ import org.openrdf.query.algebra.evaluation.QueryBindingSet;
 import org.openrdf.repository.sail.SailTupleQuery;
 import org.openrdf.sail.SailException;
 
+import com.bigdata.bop.IBindingSet;
 import com.bigdata.rdf.sparql.ast.ASTContainer;
 import com.bigdata.rdf.sparql.ast.DatasetNode;
 import com.bigdata.rdf.sparql.ast.QueryRoot;
 import com.bigdata.rdf.sparql.ast.eval.ASTEvalHelper;
 import com.bigdata.rdf.store.AbstractTripleStore;
+import com.bigdata.relation.accesspath.IAsynchronousIterator;
 
 public class BigdataSailTupleQuery extends SailTupleQuery 
         implements BigdataSailQuery {
@@ -94,6 +96,24 @@ public class BigdataSailTupleQuery extends SailTupleQuery
 
         return queryResult;
 
+    }
+    
+    public TupleQueryResult evaluate(final IAsynchronousIterator<IBindingSet[]> bSetsItr) 
+    		throws QueryEvaluationException {
+    	
+        final QueryRoot originalQuery = astContainer.getOriginalAST();
+
+        if (getMaxQueryTime() > 0)
+            originalQuery.setTimeout(TimeUnit.SECONDS
+                    .toMillis(getMaxQueryTime()));
+
+        originalQuery.setIncludeInferred(getIncludeInferred());
+
+        final TupleQueryResult queryResult = ASTEvalHelper.evaluateTupleQuery(
+                getTripleStore(), astContainer, bSetsItr);
+
+        return queryResult;
+    	
     }
 
 }

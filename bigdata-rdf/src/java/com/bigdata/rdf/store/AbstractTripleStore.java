@@ -36,9 +36,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -98,7 +100,8 @@ import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.internal.impl.BlobIV;
 import com.bigdata.rdf.internal.impl.extensions.XSDStringExtension;
-import com.bigdata.rdf.lexicon.BigdataRDFFullTextIndex;
+import com.bigdata.rdf.lexicon.BigdataSubjectCentricFullTextIndex;
+import com.bigdata.rdf.lexicon.BigdataValueCentricFullTextIndex;
 import com.bigdata.rdf.lexicon.ITermIndexCodes;
 import com.bigdata.rdf.lexicon.ITextIndexer;
 import com.bigdata.rdf.lexicon.LexiconKeyOrder;
@@ -860,6 +863,20 @@ abstract public class AbstractTripleStore extends
 
         String DEFAULT_INLINE_TEXT_INDEX = "true";
 
+        /**
+         * Boolean option (default <code>true</code>) enables support for a
+         * full text index that may be used to lookup literals by tokens found
+         * in the text of those literals.
+         * 
+         * @see #TEXT_INDEXER_CLASS
+         * @see #TEXT_INDEX_DATATYPE_LITERALS
+         * @see #INLINE_TEXT_LITERALS
+         * @see #MAX_INLINE_TEXT_LENGTH
+         */
+        String SUBJECT_CENTRIC_TEXT_INDEX = AbstractTripleStore.class.getName() + ".subjectCentricTextIndex";
+
+        String DEFAULT_SUBJECT_CENTRIC_TEXT_INDEX = "false";
+
 		/**
 		 * Boolean option enables support for a full text index that may be used
 		 * to lookup datatype literals by tokens found in the text of those
@@ -889,7 +906,26 @@ abstract public class AbstractTripleStore extends
 		String TEXT_INDEXER_CLASS = AbstractTripleStore.class.getName()
 				+ ".textIndexerClass";
 
-		String DEFAULT_TEXT_INDEXER_CLASS = BigdataRDFFullTextIndex.class
+		String DEFAULT_TEXT_INDEXER_CLASS = BigdataValueCentricFullTextIndex.class
+				.getName();
+
+        /**
+         * The name of the {@link ITextIndexer} class. The implementation MUST
+         * declare a method with the following signature which will be used to
+         * locate instances of that class.
+         * 
+         * <pre>
+         * static public ITextIndexer getInstance(final IIndexManager indexManager,
+         *             final String namespace, final Long timestamp,
+         *             final Properties properties)
+         * </pre>
+         * 
+         * @see #DEFAULT_TEXT_INDEXER_CLASS
+         */
+		String SUBJECT_CENTRIC_TEXT_INDEXER_CLASS = AbstractTripleStore.class.getName()
+				+ ".subjectCentricTextIndexerClass";
+
+		String DEFAULT_SUBJECT_CENTRIC_TEXT_INDEXER_CLASS = BigdataSubjectCentricFullTextIndex.class
 				.getName();
 
         /*
@@ -3571,14 +3607,21 @@ abstract public class AbstractTripleStore extends
 
         try {
 
-//            final LexiconRelation lexiconRelation = getLexiconRelation();
-
             final SPORelation spoRelation = statementStore.getSPORelation();
             
             if (!itr.hasNext())
                 return 0;
 
             long mutationCount = 0;
+            
+            final LexiconRelation lexiconRelation = getLexiconRelation();
+
+            /*
+             * Keep track of the subjects being written in case we need
+             * to do subject-centric truth maintenance on the text index.
+             */
+            final Set<IV<?,?>> subjects = lexiconRelation.isSubjectCentricTextIndex() ?
+            		new LinkedHashSet<IV<?,?>>() : null;
 
             /*
              * Note: We process the iterator a "chunk" at a time. If the
@@ -3652,6 +3695,26 @@ abstract public class AbstractTripleStore extends
                                     + statementIdentifierTime + "ms" : "") //
                     );
 
+                }
+                
+                if (getLexiconRelation().isSubjectCentricTextIndex()) {
+                	
+                	// truth maintenance on add
+                	
+                	for (ISPO spo : a) {
+                		
+                		if (spo.isModified() && spo.o().isLiteral()) {
+                			
+                			subjects.add(spo.s());
+                			
+                		}
+                		
+                	}
+                	
+                	lexiconRelation.refreshSubjectCentricTextIndex(subjects);
+                	
+                	subjects.clear();
+                	
                 }
 
             } // nextChunk
@@ -3732,6 +3795,22 @@ abstract public class AbstractTripleStore extends
 
         }
 
+        final LexiconRelation lexiconRelation = getLexiconRelation();
+
+        /*
+         * Keep track of the subject/object pairs being removed in case we need
+         * to do truth maintenance on the subject-centric text index.
+         */
+        final Set<ISPO> removed = lexiconRelation.isSubjectCentricTextIndex() ?
+        		new LinkedHashSet<ISPO>() : null;
+
+        /*
+         * Keep track of the subjects being written in case we need
+         * to do truth maintenance on the subject-centric text index.
+         */
+        final Set<IV<?,?>> subjects = lexiconRelation.isSubjectCentricTextIndex() ?
+        		new LinkedHashSet<IV<?,?>>() : null;
+
         try {
 
             while (itr.hasNext()) {
@@ -3742,6 +3821,32 @@ abstract public class AbstractTripleStore extends
                 final int numStmts = stmts.length;
 
                 mutationCount += getSPORelation().delete(stmts, numStmts);
+                
+                if (getLexiconRelation().isSubjectCentricTextIndex()) {
+                	
+                	// truth maintenance on add
+                	
+                	for (ISPO spo : stmts) {
+                		
+                		if (spo.isModified() && spo.o().isLiteral()) {
+                			
+                			removed.add(spo);
+                			
+                			subjects.add(spo.s());
+                			
+                		}
+                		
+                	}
+                	
+//                	lexiconRelation.refreshSubjectCentricTextIndex(removed);
+                	
+                	lexiconRelation.refreshSubjectCentricTextIndex(subjects);
+                	
+                	removed.clear();
+                	
+                	subjects.clear();
+                	
+                }
                 
             }
 

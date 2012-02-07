@@ -425,4 +425,20 @@ public class TokenBuffer<V extends Comparable<V>> {
         
     }
     
+    /**
+     * Writes on the index.
+     *  
+     * @param n
+     * @param keys
+     * @param vals
+     * 
+     * @return The #of pre-existing records that were updated.
+     */
+    protected long deleteFromIndex(final int n, final byte[][] keys,
+            final byte[][] vals) {
+
+    	throw new RuntimeException("implement me");
+        
+    }
+    
 }

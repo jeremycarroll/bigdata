@@ -241,7 +241,11 @@ public class SearchServiceFactory implements ServiceFactory {
 
                 assertObjectIsLiteral(sp);
 
-            } else if(uri.equals(BD.MATCH_ALL_TERMS)) {
+            } else if (uri.equals(BD.MATCH_ALL_TERMS)) {
+                
+                assertObjectIsLiteral(sp);
+                
+            } else if (uri.equals(BD.SUBJECT_SEARCH)) {
                 
                 assertObjectIsLiteral(sp);
                 
@@ -302,6 +306,7 @@ public class SearchServiceFactory implements ServiceFactory {
         private final Literal minRelevance;
         private final Literal maxRelevance;
         private final boolean matchAllTerms;
+        private final boolean subjectSearch;
         
         public SearchCall(
                 final AbstractTripleStore store,
@@ -339,6 +344,7 @@ public class SearchServiceFactory implements ServiceFactory {
             Literal minRelevance = null;
             Literal maxRelevance = null;
             boolean matchAllTerms = false;
+            boolean subjectSearch = false;
 
             for (StatementPatternNode meta : statementPatterns.values()) {
 
@@ -364,6 +370,8 @@ public class SearchServiceFactory implements ServiceFactory {
                     maxRelevance = (Literal) oVal;
                 } else if (BD.MATCH_ALL_TERMS.equals(p)) {
                     matchAllTerms = ((Literal) oVal).booleanValue();
+                } else if (BD.SUBJECT_SEARCH.equals(p)) {
+                    subjectSearch = ((Literal) oVal).booleanValue();
                 }
             }
 
@@ -378,15 +386,21 @@ public class SearchServiceFactory implements ServiceFactory {
             this.minRelevance = minRelevance;
             this.maxRelevance = maxRelevance;
             this.matchAllTerms = matchAllTerms;
-
+            this.subjectSearch = subjectSearch;
+            
         }
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
         private Hiterator<IHit<?>> getHiterator() {
 
-            final ITextIndexer<IHit> textIndex = (ITextIndexer) store
-                    .getLexiconRelation().getSearchEngine();
-            
+//            final ITextIndexer<IHit> textIndex = (ITextIndexer) store
+//                    .getLexiconRelation().getSearchEngine();
+
+        	final ITextIndexer<IHit> textIndex = (ITextIndexer) 
+        		(this.subjectSearch ?
+        			store.getLexiconRelation().getSubjectCentricSearchEngine() :
+        				store.getLexiconRelation().getSearchEngine());
+        	
             if (textIndex == null)
                 throw new UnsupportedOperationException("No free text index?");
 
