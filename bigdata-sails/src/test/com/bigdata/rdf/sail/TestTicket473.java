@@ -45,9 +45,11 @@ import org.openrdf.rio.RDFParserRegistry;
 import org.openrdf.rio.helpers.RDFHandlerBase;
 import org.openrdf.sail.SailException;
 
+import com.bigdata.btree.BTree;
 import com.bigdata.btree.IndexMetadata;
 import com.bigdata.journal.BufferMode;
 import com.bigdata.rdf.axioms.NoAxioms;
+import com.bigdata.rdf.lexicon.Id2TermWriteProc;
 import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 import com.bigdata.rdf.store.AbstractTripleStore;
 import com.bigdata.service.AbstractTransactionService;
@@ -56,17 +58,18 @@ import com.bigdata.service.AbstractTransactionService;
  * Test suite for <a
  * href="https://sourceforge.net/apps/trac/bigdata/ticket/473">
  * PhysicalAddressResolutionException after reopen using RWStore and
- * recycler</a>
+ * recycler</a>. The root cause for this exception was traced to recycling the
+ * root not when it was not direct in the BTree writeCheckpoint() code. The
+ * BTree was dirty because {@link Id2TermWriteProc} was having a side-effect on
+ * the {@link BTree#getCounter()} when processing a blank node if the
+ * {@link AbstractTripleStore.Options#STORE_BLANK_NODES} was <code>false</code>.
  * 
- * @author <a href="mailto:martyncutcher@users.sourceforge.net">Martyn Cutcher</a>
+ * @author <a href="mailto:martyncutcher@users.sourceforge.net">Martyn
+ *         Cutcher</a>
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$
- * 
- * FIXME This is not a proxable test suite since the properties are specified
- * directly.  Once we manage to make it fail, convert and test against each
- * journal mode.
  */
-public class TestTicket473 extends TestCase/*ProxyBigdataSailTestCase*/ {
+public class TestTicket473 extends TestCase {
 
     private static final Logger log = Logger.getLogger(TestTicket473.class);
     
