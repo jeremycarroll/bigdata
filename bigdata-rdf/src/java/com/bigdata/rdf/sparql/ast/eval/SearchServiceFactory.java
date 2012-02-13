@@ -249,6 +249,10 @@ public class SearchServiceFactory implements ServiceFactory {
                 
                 assertObjectIsLiteral(sp);
                 
+            } else if (uri.equals(BD.SEARCH_TIMEOUT)) {
+                
+                assertObjectIsLiteral(sp);
+                
             } else {
 
                 throw new AssertionError("Unverified search predicate: " + sp);
@@ -307,6 +311,7 @@ public class SearchServiceFactory implements ServiceFactory {
         private final Literal maxRelevance;
         private final boolean matchAllTerms;
         private final boolean subjectSearch;
+        private final Literal searchTimeout;
         
         public SearchCall(
                 final AbstractTripleStore store,
@@ -345,6 +350,7 @@ public class SearchServiceFactory implements ServiceFactory {
             Literal maxRelevance = null;
             boolean matchAllTerms = false;
             boolean subjectSearch = false;
+            Literal searchTimeout = null;
 
             for (StatementPatternNode meta : statementPatterns.values()) {
 
@@ -372,6 +378,8 @@ public class SearchServiceFactory implements ServiceFactory {
                     matchAllTerms = ((Literal) oVal).booleanValue();
                 } else if (BD.SUBJECT_SEARCH.equals(p)) {
                     subjectSearch = ((Literal) oVal).booleanValue();
+                } else if (BD.SEARCH_TIMEOUT.equals(p)) {
+                    searchTimeout = (Literal) oVal;
                 }
             }
 
@@ -387,6 +395,7 @@ public class SearchServiceFactory implements ServiceFactory {
             this.maxRelevance = maxRelevance;
             this.matchAllTerms = matchAllTerms;
             this.subjectSearch = subjectSearch;
+            this.searchTimeout = searchTimeout;
             
         }
 
@@ -421,7 +430,7 @@ public class SearchServiceFactory implements ServiceFactory {
                 minRank == null ? BD.DEFAULT_MIN_RANK/*1*/ : minRank.intValue()/* minRank */,
                 maxRank == null ? BD.DEFAULT_MAX_RANK/*Integer.MAX_VALUE*/ : maxRank.intValue()/* maxRank */,
                 matchAllTerms,
-                BD.DEFAULT_TIMEOUT/*0L*//* timeout */,
+                searchTimeout == null ? BD.DEFAULT_TIMEOUT/*0L*/ : searchTimeout.longValue()/* timeout */,
                 TimeUnit.MILLISECONDS);
         
         }

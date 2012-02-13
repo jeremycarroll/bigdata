@@ -305,6 +305,24 @@ public interface BD {
     final boolean DEFAULT_SUBJECT_SEARCH = false;
     
     /**
+     * Magic predicate used to query for free text search metadata.  Use 
+     * in conjunction with {@link #SEARCH} as follows:
+     * <p>
+     * <pre>
+     * 
+     * select ?s
+     * where {
+     *   ?s bd:search &quot;scale-out RDF triplestore&quot; .
+     *   ?s bd:searchTimeout "5000" .
+     * }
+     * 
+     * </pre>
+     * <p>
+     * Timeout specified in milliseconds.
+     */
+    final URI SEARCH_TIMEOUT = new URIImpl(SEARCH_NAMESPACE+"searchTimeout");
+    
+    /**
      * The default timeout for a free text search (milliseconds).
      */
     final long DEFAULT_TIMEOUT = Long.MAX_VALUE;

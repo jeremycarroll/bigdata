@@ -102,6 +102,7 @@ public class ASTSearchOptimizer implements IASTOptimizer {
         set.add(BD.MIN_RELEVANCE);
         set.add(BD.MATCH_ALL_TERMS);
         set.add(BD.SUBJECT_SEARCH);
+        set.add(BD.SEARCH_TIMEOUT);
         
         searchUris = Collections.unmodifiableSet(set);
         
