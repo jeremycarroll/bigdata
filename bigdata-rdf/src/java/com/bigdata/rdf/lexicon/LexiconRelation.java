@@ -2246,6 +2246,8 @@ public class LexiconRelation extends AbstractRelation<BigdataValue>
             long subjectCount = 0;
             long statementCount = 0;
             
+            final boolean l = log.isInfoEnabled();
+            
             while (itr.hasNext()) {
             	
             	final ISPO spo = itr.next();
@@ -2261,8 +2263,8 @@ public class LexiconRelation extends AbstractRelation<BigdataValue>
                         subjectCount++;
                         statementCount += literals.size();
                         
-                        if (subjectCount % 1000 == 0) {
-                        	System.err.println("indexed " + subjectCount + " subjects, " + statementCount + " statements");
+                        if (l && subjectCount % 1000 == 0) {
+                        	log.info("indexed " + subjectCount + " subjects, " + statementCount + " statements");
                         }
                         
             		}
@@ -2287,7 +2289,9 @@ public class LexiconRelation extends AbstractRelation<BigdataValue>
                 subjectCount++;
                 statementCount += literals.size();
                 
-            	System.err.println("indexed " + subjectCount + " subjects, " + statementCount + " statements");
+            	if (log.isInfoEnabled()) {
+            		log.info("indexed " + subjectCount + " subjects, " + statementCount + " statements");
+            	}
             	
             }
             
