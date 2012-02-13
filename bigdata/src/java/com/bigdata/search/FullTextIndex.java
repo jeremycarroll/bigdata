@@ -1187,14 +1187,17 @@ public class FullTextIndex<V extends Comparable<V>> extends AbstractRelation {
 	    	        
 	                executionHelper.submitTasks(tasks);
 	                
-	                final long readTime = System.currentTimeMillis() - start;
-	                
-	                System.err.println("read time: " + readTime);
+	                if (log.isInfoEnabled()) {
+		                final long readTime = System.currentTimeMillis() - start;
+		                log.info("read time: " + readTime);
+	                }
 	                
 	            } catch (InterruptedException ex) {
 	
-	                // TODO Should we wrap and toss this interrupt instead?
-	                log.warn("Interrupted - only partial results will be returned.");
+	            	if (log.isInfoEnabled()) {
+		                // TODO Should we wrap and toss this interrupt instead?
+		                log.info("Interrupted - only partial results will be returned.");
+	            	}
 	                
 	            } catch (ExecutionException ex) {
 	
@@ -1277,9 +1280,10 @@ public class FullTextIndex<V extends Comparable<V>> extends AbstractRelation {
 	        
 	        Arrays.sort(a);
 	        
-	        final long sortTime = System.currentTimeMillis() - start;
-	        
-	        System.err.println("sort time: " + sortTime);
+	        if (log.isInfoEnabled()) {
+	        	final long sortTime = System.currentTimeMillis() - start;
+	        	log.info("sort time: " + sortTime);
+	        }
 	        
 	        for (int i = 0; i < a.length; i++) {
 	        	a[i].setRank(i+1);

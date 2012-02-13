@@ -205,7 +205,7 @@ public class ReadIndexTask<V extends Comparable<V>> extends AbstractIndexTask<V>
             throws Exception {
         try {
             // log an error
-            log.error(t, t);
+//    		log.error(t, t);
         } finally {
             // ignore any problems here.
         }

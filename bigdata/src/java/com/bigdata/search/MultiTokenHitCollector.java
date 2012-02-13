@@ -3,6 +3,8 @@ package com.bigdata.search;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.log4j.Logger;
+
 /**
  * Multi-token implementation of {@link IHitCollector} backed by a
  * {@link ConcurrentHashMap}.
@@ -13,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *            The generic type of the document identifier.
  */
 public class MultiTokenHitCollector<V extends Comparable<V>> implements IHitCollector<V> {
+
+	protected static final transient Logger log = Logger.getLogger(MultiTokenHitCollector.class);
 
 	final ConcurrentHashMap<V/* docId */, Hit<V>> hits;
 	
@@ -43,7 +47,9 @@ public class MultiTokenHitCollector<V extends Comparable<V>> implements IHitColl
 		 */
     	final int concurrencyLevel = tasks.size();
 
-    	System.err.println("initial capacity: " + initialCapacity);
+    	if (log.isInfoEnabled()) {
+    		log.info("initial capacity: " + initialCapacity);
+    	}
     	
 		hits = new ConcurrentHashMap<V, Hit<V>>(initialCapacity,
 				.75f/* loadFactor */, concurrencyLevel);
