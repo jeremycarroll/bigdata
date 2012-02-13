@@ -1126,28 +1126,41 @@ public class FullTextIndex<V extends Comparable<V>> extends AbstractRelation {
 	            
 	        }
 	
-	        final ConcurrentHashMap<V/* docId */, Hit<V>> hits;
-	        {
+	        final IHitCollector<V> hits;
+	        
+	        if (qdata.distinctTermCount() == 1) {
+	        	
+	        	final Map.Entry<String, ITermMetadata> e = qdata.getSingletonEntry();
+	        	
+                final String termText = e.getKey();
+            	
+                final ITermMetadata md = e.getValue();
+
+                final CountIndexTask<V> task1 = new CountIndexTask<V>(termText, prefixMatch, md
+                        .getLocalTermWeight(), this);
+                
+                hits = new SingleTokenHitCollector<V>(task1);
+	        	
+	        } else {
+	        	
+	            final List<CountIndexTask<V>> tasks = new ArrayList<CountIndexTask<V>>(
+	                    qdata.distinctTermCount());
 	
-				/*
-				 * Note: Initial capacity COULD be set based on the max across the
-				 * range counts of the different search terms. However, it can not
-				 * be usefully set to the min(maxRank,10000) as we will buffer ALL
-				 * hits in this map before pruning those selected by min/max rank.
-				 */
-				final int initialCapacity = 256;//Math.min(maxRank,10000);
+	            for (Map.Entry<String, ITermMetadata> e : qdata.terms.entrySet()) {
+	
+	                final String termText = e.getKey();
+	
+	                final ITermMetadata md = e.getValue();
+	
+	                tasks.add(new CountIndexTask<V>(termText, prefixMatch, md
+	                        .getLocalTermWeight(), this));
+	
+	            }
 	            
-				/*
-				 * Note: The actual concurrency will be the #of distinct query
-				 * tokens.
-				 */
-	        	final int concurrencyLevel = qdata.distinctTermCount();
-	
-				hits = new ConcurrentHashMap<V, Hit<V>>(initialCapacity,
-						.75f/* loadFactor */, concurrencyLevel);
-	
+	            hits = new MultiTokenHitCollector<V>(tasks);
+	        	
 	        }
-	
+	        
 	        // run the queries.
 	        {
 	
@@ -1170,7 +1183,13 @@ public class FullTextIndex<V extends Comparable<V>> extends AbstractRelation {
 	
 	            try {
 	
+	    	        final long start = System.currentTimeMillis();
+	    	        
 	                executionHelper.submitTasks(tasks);
+	                
+	                final long readTime = System.currentTimeMillis() - start;
+	                
+	                System.err.println("read time: " + readTime);
 	                
 	            } catch (InterruptedException ex) {
 	
@@ -1184,53 +1203,62 @@ public class FullTextIndex<V extends Comparable<V>> extends AbstractRelation {
 	            }
 	
 	        }
-	
-	        /*
-	         * If match all is specified, remove any hits with a term count less
-	         * than the number of search tokens.
-	         */
-	        if (matchAllTerms) {
+	        
+	        a = hits.getHits();
+	        
+	        if (a.length == 0) {
 	        	
-		        final int nterms = qdata.terms.size();
-		        
-		        if (log.isInfoEnabled())
-		        	log.info("matchAll=true, nterms=" + nterms);
-		        
-		        final Iterator<Map.Entry<V,Hit<V>>> it = hits.entrySet().iterator();
-		        
-		        while (it.hasNext()) {
-		        	
-		        	final Hit<V> hit = it.next().getValue();
-	
-		        	// Note: log test in loop shows up in profiler.
-	//		        if (log.isInfoEnabled()) {
-	//		        	log.info("hit terms: " + hit.getTermCount());
-	//		        }
-			        
-		        	if (hit.getTermCount() != nterms) {
-		        		it.remove();
-		        	}
-		        	
-		        }
-		        
-	        }
-	        
-	        // #of hits.
-	        final int nhits = hits.size();
-	        
-	        if (nhits == 0) {
-	
 	            log.warn("No hits: languageCode=[" + languageCode + "], query=["
 	                    + query + "]");
-	            
-	            a = new Hit[] {};
 	            
 	            cache.put(cacheKey, a);
 	            
 	            return a; 
 	            
 	        }
+	
+	        /*
+	         * If match all is specified, remove any hits with a term count less
+	         * than the number of search tokens.
+	         */
+	        if (matchAllTerms && qdata.distinctTermCount() > 1) {
+	        	
+		        final int nterms = qdata.terms.size();
+		        
+		        if (log.isInfoEnabled())
+		        	log.info("matchAll=true, nterms=" + nterms);
+		        
+	        	final Hit<V>[] tmp = new Hit[a.length];
+	        	
+	        	int i = 0;
+	        	for (Hit<V> hit : a) {
+	        		
+	        		if (hit.getTermCount() == nterms) {
+	        			tmp[i++] = hit;
+	        		}
+	        		
+	        	}
+	        	
+	        	if (i < a.length) {
+	        		
+	        		a = new Hit[i];
+	        		System.arraycopy(tmp, 0, a, 0, i);
+	        		
+	        	}
+	        	
+	        }
 	        
+	        if (a.length == 0) {
+	        	
+	            log.warn("No hits after matchAllTerms pruning: languageCode=[" + languageCode + "], query=["
+	                    + query + "]");
+	            
+	            cache.put(cacheKey, a);
+	            
+	            return a; 
+	            
+	        }
+	
 	        /*
 	         * Rank order the hits by relevance.
 	         * 
@@ -1243,11 +1271,15 @@ public class FullTextIndex<V extends Comparable<V>> extends AbstractRelation {
 	         */
 	        
 	        if (log.isInfoEnabled())
-	            log.info("Rank ordering "+nhits+" hits by relevance");
+	            log.info("Rank ordering "+a.length+" hits by relevance");
 	        
-	        a = hits.values().toArray(new Hit[nhits]);
+	        final long start = System.currentTimeMillis();
 	        
 	        Arrays.sort(a);
+	        
+	        final long sortTime = System.currentTimeMillis() - start;
+	        
+	        System.err.println("sort time: " + sortTime);
 	        
 	        for (int i = 0; i < a.length; i++) {
 	        	a[i].setRank(i+1);
