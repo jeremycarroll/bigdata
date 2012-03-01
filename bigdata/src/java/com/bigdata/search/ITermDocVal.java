@@ -42,9 +42,9 @@ public interface ITermDocVal {
      */
     int termFreq();
 
-    /**
-     * The normalized local term weight for the token and document in the
-     * associated entry of the full text search index.
-     */
-    double getLocalTermWeight();
+//    /**
+//     * The normalized local term weight for the token and document in the
+//     * associated entry of the full text search index.
+//     */
+//    double getLocalTermWeight();
 }

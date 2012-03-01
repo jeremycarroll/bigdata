@@ -70,8 +70,7 @@ import com.bigdata.search.Hiterator;
 import com.bigdata.search.IHit;
 
 /**
- * Test suite for high-level query against a graph containing statements about
- * statements.
+ * Test suite for full text search.
  * 
  * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
  * @version $Id$

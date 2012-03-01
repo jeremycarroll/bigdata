@@ -3616,12 +3616,12 @@ abstract public class AbstractTripleStore extends
             
             final LexiconRelation lexiconRelation = getLexiconRelation();
 
-            /*
-             * Keep track of the subjects being written in case we need
-             * to do subject-centric truth maintenance on the text index.
-             */
-            final Set<IV<?,?>> subjects = lexiconRelation.isSubjectCentricTextIndex() ?
-            		new LinkedHashSet<IV<?,?>>() : null;
+//            /*
+//             * Keep track of the subjects being written in case we need
+//             * to do subject-centric truth maintenance on the text index.
+//             */
+//            final Set<IV<?,?>> subjects = lexiconRelation.isSubjectCentricTextIndex() ?
+//            		new LinkedHashSet<IV<?,?>>() : null;
 
             /*
              * Note: We process the iterator a "chunk" at a time. If the
@@ -3697,25 +3697,25 @@ abstract public class AbstractTripleStore extends
 
                 }
                 
-                if (getLexiconRelation().isSubjectCentricTextIndex()) {
-                	
-                	// truth maintenance on add
-                	
-                	for (ISPO spo : a) {
-                		
-                		if (spo.isModified() && spo.o().isLiteral()) {
-                			
-                			subjects.add(spo.s());
-                			
-                		}
-                		
-                	}
-                	
-                	lexiconRelation.refreshSubjectCentricTextIndex(subjects);
-                	
-                	subjects.clear();
-                	
-                }
+//                if (getLexiconRelation().isSubjectCentricTextIndex()) {
+//                	
+//                	// truth maintenance on add
+//                	
+//                	for (ISPO spo : a) {
+//                		
+//                		if (spo.isModified() && spo.o().isLiteral()) {
+//                			
+//                			subjects.add(spo.s());
+//                			
+//                		}
+//                		
+//                	}
+//                	
+//                	lexiconRelation.refreshSubjectCentricTextIndex(subjects);
+//                	
+//                	subjects.clear();
+//                	
+//                }
 
             } // nextChunk
 
@@ -3797,19 +3797,19 @@ abstract public class AbstractTripleStore extends
 
         final LexiconRelation lexiconRelation = getLexiconRelation();
 
-        /*
-         * Keep track of the subject/object pairs being removed in case we need
-         * to do truth maintenance on the subject-centric text index.
-         */
-        final Set<ISPO> removed = lexiconRelation.isSubjectCentricTextIndex() ?
-        		new LinkedHashSet<ISPO>() : null;
-
-        /*
-         * Keep track of the subjects being written in case we need
-         * to do truth maintenance on the subject-centric text index.
-         */
-        final Set<IV<?,?>> subjects = lexiconRelation.isSubjectCentricTextIndex() ?
-        		new LinkedHashSet<IV<?,?>>() : null;
+//        /*
+//         * Keep track of the subject/object pairs being removed in case we need
+//         * to do truth maintenance on the subject-centric text index.
+//         */
+//        final Set<ISPO> removed = lexiconRelation.isSubjectCentricTextIndex() ?
+//        		new LinkedHashSet<ISPO>() : null;
+//
+//        /*
+//         * Keep track of the subjects being written in case we need
+//         * to do truth maintenance on the subject-centric text index.
+//         */
+//        final Set<IV<?,?>> subjects = lexiconRelation.isSubjectCentricTextIndex() ?
+//        		new LinkedHashSet<IV<?,?>>() : null;
 
         try {
 
@@ -3822,31 +3822,31 @@ abstract public class AbstractTripleStore extends
 
                 mutationCount += getSPORelation().delete(stmts, numStmts);
                 
-                if (getLexiconRelation().isSubjectCentricTextIndex()) {
-                	
-                	// truth maintenance on add
-                	
-                	for (ISPO spo : stmts) {
-                		
-                		if (spo.isModified() && spo.o().isLiteral()) {
-                			
-                			removed.add(spo);
-                			
-                			subjects.add(spo.s());
-                			
-                		}
-                		
-                	}
-                	
-//                	lexiconRelation.refreshSubjectCentricTextIndex(removed);
-                	
-                	lexiconRelation.refreshSubjectCentricTextIndex(subjects);
-                	
-                	removed.clear();
-                	
-                	subjects.clear();
-                	
-                }
+//                if (getLexiconRelation().isSubjectCentricTextIndex()) {
+//                	
+//                	// truth maintenance on add
+//                	
+//                	for (ISPO spo : stmts) {
+//                		
+//                		if (spo.isModified() && spo.o().isLiteral()) {
+//                			
+//                			removed.add(spo);
+//                			
+//                			subjects.add(spo.s());
+//                			
+//                		}
+//                		
+//                	}
+//                	
+////                	lexiconRelation.refreshSubjectCentricTextIndex(removed);
+//                	
+//                	lexiconRelation.refreshSubjectCentricTextIndex(subjects);
+//                	
+//                	removed.clear();
+//                	
+//                	subjects.clear();
+//                	
+//                }
                 
             }
 

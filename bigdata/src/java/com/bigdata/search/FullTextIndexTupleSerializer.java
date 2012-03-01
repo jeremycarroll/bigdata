@@ -32,6 +32,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.apache.log4j.Logger;
+import org.apache.lucene.search.Similarity;
 
 import com.bigdata.btree.BytesUtil;
 import com.bigdata.btree.DefaultTupleSerializer;
@@ -127,7 +128,17 @@ public class FullTextIndexTupleSerializer<V extends Comparable<V>> extends
         final ITermDocKey<V> entry = (ITermDocKey<V>) obj;
 
         final String termText = entry.getToken();
-
+        
+        final double termWeight = entry.getLocalTermWeight();
+        
+        /*
+         * See: http://lucene.apache.org/core/old_versioned_docs/versions/3_0_2/api/all/org/apache/lucene/search/Similarity.html
+         * 
+         * For more information on the round-trip of normalized term weight.
+         */
+        final byte termWeightCompact =
+        	org.apache.lucene.search.Similarity.encodeNorm((float) termWeight);
+        
         final V docId = entry.getDocId();
 
         final IKeyBuilder keyBuilder = getKeyBuilder();
@@ -137,6 +148,8 @@ public class FullTextIndexTupleSerializer<V extends Comparable<V>> extends
         // the token text (or its successor as desired).
         keyBuilder
                 .appendText(termText, true/* unicode */, false/* successor */);
+        
+        keyBuilder.append(termWeightCompact);
 
         keyBuilder.append((V) docId);
 
@@ -170,17 +183,17 @@ public class FullTextIndexTupleSerializer<V extends Comparable<V>> extends
 
         final int termFreq = val.termFreq();
 
-        final double localTermWeight = val.getLocalTermWeight();
+//        final double localTermWeight = val.getLocalTermWeight();
 
         // The term frequency
         buf.putShort(termFreq > Short.MAX_VALUE ? Short.MAX_VALUE
                 : (short) termFreq);
 
-        // The term weight
-        if (doublePrecision)
-            buf.putDouble(localTermWeight);
-        else
-            buf.putFloat((float) localTermWeight);
+//        // The term weight
+//        if (doublePrecision)
+//            buf.putDouble(localTermWeight);
+//        else
+//            buf.putFloat((float) localTermWeight);
 
         return buf.toByteArray();
 
@@ -232,25 +245,37 @@ public class FullTextIndexTupleSerializer<V extends Comparable<V>> extends
         } else {
             fieldId = -1;
         }
+        
+        final int termWeightOffset = docIdOffset - Bytes.SIZEOF_BYTE;
+        
+        final byte termWeightCompact = kbuf.getByte(termWeightOffset);
+        
+        /*
+         * See: http://lucene.apache.org/core/old_versioned_docs/versions/3_0_2/api/all/org/apache/lucene/search/Similarity.html
+         * 
+         * For more information on the round-trip of normalized term weight.
+         */
+        final double termWeight = 
+        	org.apache.lucene.search.Similarity.decodeNorm(termWeightCompact);
 
         if (keyOnly) {
 
-            return new ReadOnlyTermDocKey(docId, fieldId);
+            return new ReadOnlyTermDocKey(docId, fieldId, termWeight);
             
         }
         
         final int termFreq;
-        final double termWeight;
+//        final double termWeight;
         try {
 
             final DataInputBuffer dis = tuple.getValueStream();
 
             termFreq = dis.readShort();
 
-            if(doublePrecision)
-                termWeight = dis.readDouble();
-            else
-                termWeight = dis.readFloat();
+//            if(doublePrecision)
+//                termWeight = dis.readDouble();
+//            else
+//                termWeight = dis.readFloat();
             
         } catch (IOException ex) {
             
