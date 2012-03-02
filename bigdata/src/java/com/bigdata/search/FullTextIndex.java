@@ -103,7 +103,7 @@ import com.bigdata.util.concurrent.ExecutionHelper;
  * 
  * <pre>
  * 
- *             {sortKey(token), docId, fldId} : {freq?, weight?, sorted(pos)+}
+ *             {sortKey(token), weight, docId, fldId} : {freq?, sorted(pos)+}
  * 
  * </pre>
  * 
