@@ -2299,59 +2299,59 @@ public class LexiconRelation extends AbstractRelation<BigdataValue>
 
     }
     
-    @SuppressWarnings("unchecked")
-    public void refreshSubjectCentricTextIndex(final Set<IV<?,?>> subjects) {
-
-        if (getTimestamp() != ITx.UNISOLATED)
-            throw new UnsupportedOperationException();
-
-        if (!subjectCentricTextIndex)
-            throw new UnsupportedOperationException();
-
-        final ISubjectCentricTextIndexer<?> textIndexer = getSubjectCentricSearchEngine();
-
-        final AbstractTripleStore db = getContainer();
-        
-        /*
-         * Keep a collection of literals to be indexed for each subject.
-         */
-        final Collection<IV<?,?>> literals = new LinkedList<IV<?,?>>();
-        
-        for (IV<?,?> s : subjects) {
-        	
-        	literals.clear();
-        	
-            /*
-             * Visit all plain, language code, and datatype literals in the
-             * object position of the primary statement index.
-             * 
-             * Note: This uses a filter on the ITupleIterator in order to filter
-             * out non-literal terms before they are shipped from a remote index
-             * shard.
-             */
-            final Iterator<ISPO> itr = db.getAccessPath(s, null, null, new SPOFilter<ISPO>() {
-	                private static final long serialVersionUID = 1L;
-					@Override
-					public boolean isValid(Object e) {
-						return ((ISPO)e).o().isLiteral();
-					}
-				}).iterator(); 
-            	
-            while (itr.hasNext()) {
-            	
-            	final ISPO spo = itr.next();
-            	
-            	literals.add(spo.o());
-            	
-            }
-            
-        	// flush the last subject
-        	textIndexer.index(s, getTerms(literals).values().iterator());
-            
-        }
-
-    }
-    
+//    @SuppressWarnings("unchecked")
+//    public void refreshSubjectCentricTextIndex(final Set<IV<?,?>> subjects) {
+//
+//        if (getTimestamp() != ITx.UNISOLATED)
+//            throw new UnsupportedOperationException();
+//
+//        if (!subjectCentricTextIndex)
+//            throw new UnsupportedOperationException();
+//
+//        final ISubjectCentricTextIndexer<?> textIndexer = getSubjectCentricSearchEngine();
+//
+//        final AbstractTripleStore db = getContainer();
+//        
+//        /*
+//         * Keep a collection of literals to be indexed for each subject.
+//         */
+//        final Collection<IV<?,?>> literals = new LinkedList<IV<?,?>>();
+//        
+//        for (IV<?,?> s : subjects) {
+//        	
+//        	literals.clear();
+//        	
+//            /*
+//             * Visit all plain, language code, and datatype literals in the
+//             * object position of the primary statement index.
+//             * 
+//             * Note: This uses a filter on the ITupleIterator in order to filter
+//             * out non-literal terms before they are shipped from a remote index
+//             * shard.
+//             */
+//            final Iterator<ISPO> itr = db.getAccessPath(s, null, null, new SPOFilter<ISPO>() {
+//	                private static final long serialVersionUID = 1L;
+//					@Override
+//					public boolean isValid(Object e) {
+//						return ((ISPO)e).o().isLiteral();
+//					}
+//				}).iterator(); 
+//            	
+//            while (itr.hasNext()) {
+//            	
+//            	final ISPO spo = itr.next();
+//            	
+//            	literals.add(spo.o());
+//            	
+//            }
+//            
+//        	// flush the last subject
+//        	textIndexer.index(s, getTerms(literals).values().iterator());
+//            
+//        }
+//
+//    }
+//    
 //    @SuppressWarnings("unchecked")
 //    public void refreshSubjectCentricTextIndex(final Set<ISPO> removed) {
 //

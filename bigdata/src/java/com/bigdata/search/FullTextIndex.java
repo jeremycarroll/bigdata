@@ -62,6 +62,7 @@ import com.bigdata.btree.keys.IKeyBuilder;
 import com.bigdata.btree.keys.IKeyBuilderFactory;
 import com.bigdata.btree.keys.KeyBuilder;
 import com.bigdata.btree.keys.StrengthEnum;
+import com.bigdata.btree.raba.codec.EmptyRabaValueCoder;
 import com.bigdata.cache.ConcurrentWeakValueCacheWithTimeout;
 import com.bigdata.journal.IIndexManager;
 import com.bigdata.journal.IResourceLock;
@@ -329,15 +330,15 @@ public class FullTextIndex<V extends Comparable<V>> extends AbstractRelation {
 
         String DEFAULT_FIELDS_ENABLED = "false";
 
-        /**
-         * When <code>true</code>, the <code>localTermWeight</code> is stored
-         * using double-precision. When <code>false</code>, it is stored using
-         * single-precision.
-         */
-        String DOUBLE_PRECISION = FullTextIndex.class.getName()
-                + ".doublePrecision";
-
-        String DEFAULT_DOUBLE_PRECISION = "false";
+//        /**
+//         * When <code>true</code>, the <code>localTermWeight</code> is stored
+//         * using double-precision. When <code>false</code>, it is stored using
+//         * single-precision.
+//         */
+//        String DOUBLE_PRECISION = FullTextIndex.class.getName()
+//                + ".doublePrecision";
+//
+//        String DEFAULT_DOUBLE_PRECISION = "false";
         
         /**
          * The name of the {@link IAnalyzerFactory} class which will be used to
@@ -681,23 +682,18 @@ public class FullTextIndex<V extends Comparable<V>> extends AbstractRelation {
             if (log.isInfoEnabled())
                 log.info(Options.FIELDS_ENABLED + "=" + fieldsEnabled);
     
-            final boolean doublePrecision = Boolean.parseBoolean(p
-                    .getProperty(Options.DOUBLE_PRECISION,
-                            Options.DEFAULT_DOUBLE_PRECISION));
-    
-            if (log.isInfoEnabled())
-                log.info(Options.DOUBLE_PRECISION + "=" + doublePrecision);
+//            final boolean doublePrecision = Boolean.parseBoolean(p
+//                    .getProperty(Options.DOUBLE_PRECISION,
+//                            Options.DEFAULT_DOUBLE_PRECISION));
+//    
+//            if (log.isInfoEnabled())
+//                log.info(Options.DOUBLE_PRECISION + "=" + doublePrecision);
 
-            /*
-             * FIXME Optimize. SimpleRabaCoder will be faster, but can do better
-             * with record aware coder.
-             */
             indexMetadata.setTupleSerializer(new FullTextIndexTupleSerializer<V>(
                     keyBuilderFactory,//
                     DefaultTupleSerializer.getDefaultLeafKeysCoder(),//
-                    DefaultTupleSerializer.getDefaultValuesCoder(),//
-                    fieldsEnabled,//
-                    doublePrecision//
+                    EmptyRabaValueCoder.INSTANCE,//
+                    fieldsEnabled//
             ));
             
             indexManager.registerIndex(indexMetadata);

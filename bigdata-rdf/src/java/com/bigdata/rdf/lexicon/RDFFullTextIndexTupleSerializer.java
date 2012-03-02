@@ -44,6 +44,7 @@ import com.bigdata.io.ByteArrayBuffer;
 import com.bigdata.io.DataInputBuffer;
 import com.bigdata.io.DataOutputBuffer;
 import com.bigdata.io.LongPacker;
+import com.bigdata.io.ShortPacker;
 import com.bigdata.rawstore.Bytes;
 import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.IVUtility;
@@ -75,13 +76,13 @@ public class RDFFullTextIndexTupleSerializer extends
     final private static transient Logger log = Logger
             .getLogger(RDFFullTextIndexTupleSerializer.class);
 
-    private boolean doublePrecision;
+//    private boolean doublePrecision;
     
     static private final transient int NO_FIELD = -1;
 
-    public boolean isDoublePrecision() {
-        return doublePrecision;
-    }
+//    public boolean isDoublePrecision() {
+//        return doublePrecision;
+//    }
 
     /**
      * Used to serialize the values for the tuples in the index.
@@ -112,21 +113,18 @@ public class RDFFullTextIndexTupleSerializer extends
      *            included as a component in the generated key. When
      *            <code>false</code> it will not be present in the generated
      *            key.
-     * @param doublePrecision
-     *            When <code>true</code>, the term weight will be serialized
-     *            using double precision.
      */
     public RDFFullTextIndexTupleSerializer(//
             final IKeyBuilderFactory keyBuilderFactory,//
             final IRabaCoder leafKeysCoder, //
             final IRabaCoder leafValsCoder,//
-            final boolean fieldsEnabled,//
-            final boolean doublePrecision//
+            final boolean fieldsEnabled//
+//            final boolean doublePrecision//
     ) {
 
         super(keyBuilderFactory, leafKeysCoder, leafValsCoder);
 
-        this.doublePrecision = doublePrecision;
+//        this.doublePrecision = doublePrecision;
 
     }
 
@@ -185,18 +183,27 @@ public class RDFFullTextIndexTupleSerializer extends
 
         buf.reset();
 
-        final int termFreq = val.termFreq();
-
+//        final int termFreq = val.termFreq();
+//
 //        final double localTermWeight = val.getLocalTermWeight();
 
+        final int byteLen = 
+        	((IV) ((ITermDocRecord) obj).getDocId()).byteLength();
+        
+        if (byteLen > Short.MAX_VALUE) {
+        	
+        	throw new IllegalArgumentException("cannot serialize IVs longer than Short.MAX_VALUE");
+        	
+        }
+        
         // The byte length of the document identifier IV.
-        buf.packLong(((IV) ((ITermDocRecord) obj).getDocId()).byteLength());
+        buf.packShort((short) byteLen);
         
         // The term frequency
-        buf.packLong(termFreq);
+//        buf.packLong(termFreq);
 //        buf.putShort(termFreq > Short.MAX_VALUE ? Short.MAX_VALUE
 //                : (short) termFreq);
-
+//
 //        // The term weight
 //        if (doublePrecision)
 //            buf.putDouble(localTermWeight);
@@ -228,8 +235,10 @@ public class RDFFullTextIndexTupleSerializer extends
         // The byte length of the docId IV.
         final int byteLength;
         try {
-            byteLength = LongPacker.unpackInt((DataInput) tuple
-                    .getValueStream());
+//            byteLength = LongPacker.unpackInt((DataInput) tuple
+//                    .getValueStream());
+            byteLength = ShortPacker.unpackShort((DataInput) tuple
+            		.getValueStream());
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
@@ -258,31 +267,31 @@ public class RDFFullTextIndexTupleSerializer extends
 
         }
 
-        final int termFreq;
+//        final int termFreq;
 //        final double termWeight;
-        try {
-
-            final DataInputBuffer dis = tuple.getValueStream();
-
-            // skip the byte length of the IV.
-            LongPacker.unpackInt((DataInput) dis);
-            
+//        try {
+//
+//            final DataInputBuffer dis = tuple.getValueStream();
+//
+//            // skip the byte length of the IV.
+//            LongPacker.unpackInt((DataInput) dis);
+//            
 //            termFreq = dis.readShort();
-            termFreq = LongPacker.unpackInt((DataInput) dis);
+//            termFreq = LongPacker.unpackInt((DataInput) dis);
 
 //            if (doublePrecision)
 //                termWeight = dis.readDouble();
 //            else
 //                termWeight = dis.readFloat();
-
-        } catch (IOException ex) {
-
-            throw new RuntimeException(ex);
-
-        }
+//
+//        } catch (IOException ex) {
+//
+//            throw new RuntimeException(ex);
+//
+//        }
 
         return new ReadOnlyTermDocRecord(null/* token */, docId, NO_FIELD,
-                termFreq, termWeight);
+                /* termFreq, */ termWeight);
 
     }
 
@@ -303,14 +312,14 @@ public class RDFFullTextIndexTupleSerializer extends
         default:
             throw new IOException("unknown version=" + version);
         }
-        this.doublePrecision = in.readBoolean();
+//        this.doublePrecision = in.readBoolean();
 
     }
 
     public void writeExternal(final ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeByte(VERSION);
-        out.writeBoolean(doublePrecision);
+//        out.writeBoolean(doublePrecision);
     }
 
 }

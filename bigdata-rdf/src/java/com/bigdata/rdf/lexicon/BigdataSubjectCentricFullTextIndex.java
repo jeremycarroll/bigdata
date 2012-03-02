@@ -180,12 +180,12 @@ public class BigdataSubjectCentricFullTextIndex extends FullTextIndex implements
             if (log.isInfoEnabled())
                 log.info(Options.FIELDS_ENABLED + "=" + fieldsEnabled);
     
-            final boolean doublePrecision = Boolean.parseBoolean(p
-                    .getProperty(Options.DOUBLE_PRECISION,
-                            Options.DEFAULT_DOUBLE_PRECISION));
-    
-            if (log.isInfoEnabled())
-                log.info(Options.DOUBLE_PRECISION + "=" + doublePrecision);
+//            final boolean doublePrecision = Boolean.parseBoolean(p
+//                    .getProperty(Options.DOUBLE_PRECISION,
+//                            Options.DEFAULT_DOUBLE_PRECISION));
+//    
+//            if (log.isInfoEnabled())
+//                log.info(Options.DOUBLE_PRECISION + "=" + doublePrecision);
 
             /*
              * FIXME Optimize. SimpleRabaCoder will be faster, but can do better
@@ -196,8 +196,7 @@ public class BigdataSubjectCentricFullTextIndex extends FullTextIndex implements
                     DefaultTupleSerializer.getDefaultLeafKeysCoder(),//
 //                    DefaultTupleSerializer.getDefaultValuesCoder(),//
                     SimpleRabaCoder.INSTANCE,
-                    fieldsEnabled,//
-                    doublePrecision//
+                    fieldsEnabled
             ));
             
             indexManager.registerIndex(indexMetadata);

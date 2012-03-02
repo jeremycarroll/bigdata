@@ -314,7 +314,7 @@ public class TokenBuffer<V extends Comparable<V>> {
                  * into the key/val of the index.
                  */
                 final ITermDocRecord<V> rec = new ReadOnlyTermDocRecord<V>(
-                        termText, docId, fieldId, termMetadata.termFreq(),
+                        termText, docId, fieldId, /* termMetadata.termFreq(), */
                         termMetadata.getLocalTermWeight());
 
                 final byte[] key = tupleSer.serializeKey(rec);
