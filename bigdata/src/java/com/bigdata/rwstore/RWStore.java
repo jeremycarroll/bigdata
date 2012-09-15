@@ -1745,7 +1745,17 @@ public class RWStore implements IStore, IBufferedWriter {
                 if (!alloc.isCommitted(addrOffset)) {
     				m_writeCache.clearWrite(pa);
 //                    m_writeCache.overwrite(pa, sze);
-                    removeFromExternalCache(pa, sze);
+                    /*
+                     * Pass the size of the allocator, NOT the size of the
+                     * allocation.
+                     * 
+                     * @see <a
+                     * href="https://sourceforge.net/apps/trac/bigdata/ticket/586"
+                     * > RWStore immedateFree() not removing Checkpoint
+                     * addresses from the historical index cache. </a>
+                     */
+//                    removeFromExternalCache(pa, sze);
+                    removeFromExternalCache(pa, alloc.m_size);
                 }
 			}
 			m_frees++;
@@ -1764,11 +1774,39 @@ public class RWStore implements IStore, IBufferedWriter {
 
 	}
 	
-	void removeFromExternalCache(final long clr, final int sze) {
-		assert m_allocationLock.isLocked();
-		if (m_externalCache != null && sze == 0 || sze == m_cachedDatasize)
-			m_externalCache.remove(clr);
-	}
+    /**
+     * We need to remove entries from the historicalIndexCache for checkpoint
+     * records when the allocations associated with those checkpoint records are
+     * freed.
+     * 
+     * @param clr
+     *            The physical address that is being deleted.
+     * @param slotSize
+     *            The size of the allocator slot for that physical address.
+     * 
+     * @see <a href="https://sourceforge.net/apps/trac/bigdata/ticket/586">
+     *      RWStore immedateFree() not removing Checkpoint addresses from the
+     *      historical index cache. </a>
+     */
+    void removeFromExternalCache(final long clr, final int slotSize) {
+
+        assert m_allocationLock.isLocked();
+
+        if (m_externalCache == null)
+            return;
+
+        if (slotSize == 0 || slotSize == m_cachedDatasize) {
+
+            /*
+             * Either known to be the same slot size as a checkpoint record -or-
+             * the slot size is not known.
+             */
+
+            m_externalCache.remove(clr);
+            
+        }
+        
+    }
 
 	/**
 	 * alloc
@@ -2077,6 +2115,14 @@ public class RWStore implements IStore, IBufferedWriter {
 			for (FixedAllocator fa : m_allocs) {
 				fa.reset(m_writeCache);
 			}
+            /*
+             * Discard any writes on the delete blocks. Those deletes MUST NOT
+             * be applied after a reset() on the RWStore.
+             * 
+             * @see https://sourceforge.net/apps/trac/bigdata/ticket/602
+             * (RWStore does not discard deferred deletes on reset)
+             */
+            m_deferredFreeOut.reset();
 		} catch (Exception e) {
 			throw new IllegalStateException("Unable to reset the store", e);
 		} finally {
