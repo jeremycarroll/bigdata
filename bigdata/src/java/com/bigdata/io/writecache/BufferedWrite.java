@@ -35,7 +35,6 @@ import com.bigdata.io.DirectBufferPool;
 import com.bigdata.io.FileChannelUtility;
 import com.bigdata.io.IBufferAccess;
 import com.bigdata.io.IReopenChannel;
-import com.bigdata.rwstore.RWStore;
 
 /**
  * The BufferedWrite merges/elides sorted scattered writes to minimize IO
@@ -54,7 +53,7 @@ import com.bigdata.rwstore.RWStore;
  */
 public class BufferedWrite {
 
-	/**
+    /**
 	 * Used to determine the size of the allocation slot onto which a record is
 	 * being written. This is used to pad the size of the IO out to the size of
 	 * the slot. This can improve the IO efficiency When the slots are sized so
@@ -226,7 +225,7 @@ public class BufferedWrite {
 		m_data.flip();
 		final int nwrites = FileChannelUtility.writeAll(opener, m_data, m_startAddr);
 		m_fileWrites.add(nwrites);
-
+		
 		reset();
 		
 		return nwrites;

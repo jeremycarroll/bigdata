@@ -36,6 +36,8 @@ import java.math.BigInteger;
 import java.security.DigestException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -209,14 +211,14 @@ public abstract class AbstractHAJournalServerTestCase extends TestCase3 {
 
                 for (Map.Entry<String, String> e : opts.requestHeaders
                         .entrySet()) {
-
+            
                     request.addHeader(e.getKey(), e.getValue());
-
-                    if (log.isDebugEnabled())
+                
+                if (log.isDebugEnabled())
                         log.debug(e.getKey() + ": " + e.getValue());
 
                 }
-
+                
             }
 
             if (opts.entity != null) {
@@ -1088,6 +1090,34 @@ public abstract class AbstractHAJournalServerTestCase extends TestCase3 {
         return n;
 
     }
+    
+    private void recursiveAdd(final ArrayList<File> files, final File f, final FileFilter fileFilter) {
+
+        if (f.isDirectory()) {
+
+            final File[] children = f.listFiles(fileFilter);
+
+            for (int i = 0; i < children.length; i++) {
+
+               recursiveAdd(files, children[i], fileFilter);
+
+            }
+
+        } else {
+
+            files.add(f);
+
+        }
+
+    }
+    
+    private Iterator<File> getLogs(final File f, final FileFilter fileFilter) {
+    	ArrayList<File> files = new ArrayList<File>();
+    	
+    	recursiveAdd(files, f, fileFilter);
+    	
+    	return files.iterator();
+    }
 
     protected void assertLogCount(final File logDir, final long count) {
 
@@ -1095,7 +1125,13 @@ public abstract class AbstractHAJournalServerTestCase extends TestCase3 {
         
         if (actual != count) {
         
-            fail("Actual log files: " + actual + ", expected: " + count);
+    		final Iterator<File> logs = getLogs(logDir, IHALogReader.HALOG_FILTER);
+    		StringBuilder fnmes = new StringBuilder();
+    		while (logs.hasNext()) {
+    			fnmes.append("\n" + logs.next().getName());
+    		}
+        	
+            fail("Actual log files: " + actual + ", expected: " + count + ", files: " + fnmes);
             
         }
 

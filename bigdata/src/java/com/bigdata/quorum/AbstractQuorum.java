@@ -54,6 +54,7 @@ import com.bigdata.ha.HAGlue;
 import com.bigdata.ha.HAPipelineGlue;
 import com.bigdata.ha.QuorumService;
 import com.bigdata.util.InnerCause;
+import com.bigdata.util.StackInfoReport;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
 import com.bigdata.util.concurrent.ThreadGuard;
 import com.bigdata.util.concurrent.ThreadGuard.Guard;
@@ -1692,6 +1693,10 @@ public abstract class AbstractQuorum<S extends Remote, C extends QuorumClient<S>
         }
 
         private void conditionalWithdrawVoteImpl() throws InterruptedException {
+        	
+            if (log.isDebugEnabled())
+                log.debug(new StackInfoReport());
+
             final Long lastCommitTime = getCastVote(serviceId);
             if (lastCommitTime != null) {
                 doWithdrawVote();
@@ -3204,7 +3209,20 @@ public abstract class AbstractQuorum<S extends Remote, C extends QuorumClient<S>
                 if (client != null) {
                     // Notify all quorum members that a service left.
                     try {
-                        client.serviceLeave();
+                        /**
+                         * PREVIOUSLY called client.serviceLeave()
+                         * unconditionally
+                         * 
+                         * @see <a
+                         *      href="https://sourceforge.net/apps/trac/bigdata/ticket/695">
+                         *      HAJournalServer reports "follower" but is in
+                         *      SeekConsensus and is not participating in
+                         *      commits </a>
+                         */
+                        final UUID clientId = client.getServiceId();
+                    	if (serviceId.equals(clientId))
+                    			client.serviceLeave();
+                    	
                     } catch (Throwable t) {
                         launderThrowable(t);
                     }

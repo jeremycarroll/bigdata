@@ -34,6 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.bigdata.ha.HAGlue;
 import com.bigdata.ha.HATXSGlue;
 import com.bigdata.ha.msg.IHAGatherReleaseTimeRequest;
 import com.bigdata.ha.msg.IHANotifyReleaseTimeResponse;
@@ -57,6 +58,14 @@ abstract public class AbstractHATransactionService extends
     /**
      * Factory for the Gather task that will be executed by the follower.
      * 
+     * @param leader
+     *            The proxy for the quorum leader (the service that made this
+     *            request). This is used to RMI back to the leader and therefore
+     *            MUST be non- <code>null</code>.
+     * @param serviceId
+     *            The {@link UUID} of this service. This is required as part of
+     *            the RMI back to the leader (so the leader knows which services
+     *            responded) and therefore MUST be non-<code>null</code>.
      * @param req
      *            The request.
      * 
@@ -66,12 +75,18 @@ abstract public class AbstractHATransactionService extends
      *      Native thread leak in HAJournalServer process </a>
      */
     abstract public Callable<IHANotifyReleaseTimeResponse> newGatherMinimumVisibleCommitTimeTask(
+            final HAGlue leader, final UUID serviceId,
             final IHAGatherReleaseTimeRequest req);
 
     /**
      * Coordinate the update of the <i>releaseTime</i> on each service that is
      * joined with the met quorum.
      * 
+     * @param newCommitCounter
+     *            The commit counter that will be assigned to the new commit
+     *            point.
+     * @param newCommitTime
+     *            The commit time that will be assigned to the new commit point.
      * @param joinedServiceIds
      *            The services that are joined with the met quorum as of an
      *            atomic decision point in {@link AbstractJournal#commitNow()}.
@@ -81,6 +96,8 @@ abstract public class AbstractHATransactionService extends
      *            The units for that timeout.
      */
     abstract public IHANotifyReleaseTimeResponse updateReleaseTimeConsensus(
+            final long newCommitCounter,
+            final long newCommitTime,
             final UUID[] joinedServiceIds, final long timeout,
             final TimeUnit units) throws IOException, TimeoutException,
             InterruptedException, Exception;

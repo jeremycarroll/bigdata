@@ -326,7 +326,7 @@ abstract public class QuorumPipelineImpl<S extends HAPipelineGlue> /*extends
                     }
                     dce = tst;
                 } else if (tst.getEventType() == QuorumStateChangeEventEnum.PIPELINE_ADD) {
-                    add = tst;
+                		add = tst;
                 } else if (tst.getEventType() == QuorumStateChangeEventEnum.PIPELINE_REMOVE) {
                     if (add != null) {
                         if (log.isDebugEnabled()) {
@@ -1300,7 +1300,7 @@ abstract public class QuorumPipelineImpl<S extends HAPipelineGlue> /*extends
          * attempting to robustly replicate a write into a single method. This
          * was done in order to concentrate any conditional logic and design
          * rationale into a single method.
-         * 
+         * <p>
          * Note: IFF we allow non-leaders to replicate HALog messages then this
          * assert MUST be changed to verify that the quorum token remains valid
          * and that this service remains joined with the met quorum, i.e.,
@@ -1499,10 +1499,15 @@ abstract public class QuorumPipelineImpl<S extends HAPipelineGlue> /*extends
 
             try {
 
-                if (log.isTraceEnabled())
-                    log.trace("Leader will send: " + b.remaining()
+                if (log.isInfoEnabled() || retryCount > 0) {
+                    final String msg2 = "Leader will send: " + b.remaining()
                             + " bytes, retryCount=" + retryCount + ", req="
-                            + req + ", msg=" + msg);
+                            + req + ", msg=" + msg;
+                    if (retryCount > 0)
+                        log.warn(msg2);
+                    else
+                        log.info(msg2);
+                }
 
                 // retest while holding lock before sending the message.
                 assertQuorumState();
@@ -2068,5 +2073,23 @@ abstract public class QuorumPipelineImpl<S extends HAPipelineGlue> /*extends
         }
 
     }
+
+    /**
+     * Called from ErrorTask in HAJournalServer to ensure that events are
+     * processed before entering SeekConsensus.
+     * 
+     * @see <a href="https://sourceforge.net/apps/trac/bigdata/ticket/695">
+     * HAJournalServer reports "follower" but is in SeekConsensus and is not
+     * participating in commits</a>
+     */
+	public void processEvents() {
+        this.lock.lock();
+        try {
+            innerEventHandler.dispatchEvents();// have lock, dispatch events.
+        } finally {
+            this.lock.unlock();
+        }
+
+	}
     
 }

@@ -38,9 +38,13 @@ import com.bigdata.ha.HAStatusEnum;
 import com.bigdata.ha.msg.IHA2PhaseCommitMessage;
 import com.bigdata.ha.msg.IHA2PhasePrepareMessage;
 import com.bigdata.ha.msg.IHANotifyReleaseTimeRequest;
+import com.bigdata.journal.AbstractTask;
 import com.bigdata.journal.jini.ha.HAJournalTest.HAGlueTest;
 import com.bigdata.journal.jini.ha.HAJournalTest.SpuriousTestException;
+import com.bigdata.quorum.zk.ZKQuorum;
+import com.bigdata.quorum.zk.ZKQuorumImpl;
 import com.bigdata.rdf.sail.webapp.client.HttpException;
+import com.bigdata.rdf.sail.webapp.client.RemoteRepository;
 import com.bigdata.util.ClocksNotSynchronizedException;
 import com.bigdata.util.InnerCause;
 
@@ -72,7 +76,7 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
         return new String[]{
                 "com.bigdata.journal.jini.ha.HAJournalServer.restorePolicy=new com.bigdata.journal.jini.ha.DefaultRestorePolicy(0L,1,0)",
                 "com.bigdata.journal.jini.ha.HAJournalServer.snapshotPolicy=new com.bigdata.journal.jini.ha.NoSnapshotPolicy()",
-                "com.bigdata.journal.jini.ha.HAJournalServer.HAJournalClass=\""+HAJournalTest.class.getName()+"\""
+//                "com.bigdata.journal.jini.ha.HAJournalServer.HAJournalClass=\""+HAJournalTest.class.getName()+"\""
         };
         
     }
@@ -158,6 +162,25 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
 //        
 //        Thread.sleep(10000/*ms*/);
         
+    }
+
+    /**
+     * A user level transaction abort must not cause a service leave or quorum
+     * break. It should simply discard the buffered write set for that
+     * transactions.
+     * 
+     * TODO Currently, there is a single unisolated connection commit protocol.
+     * When we add concurrent unisolated writers, the user level transaction
+     * abort will just discard the buffered writes for a specific
+     * {@link AbstractTask}.
+     * 
+     * @throws Exception
+     */
+    public void testStartABC_userLevelAbortDoesNotCauseQuorumBreak()
+            throws Exception {
+
+        fail("write test");
+
     }
 
     /**
@@ -253,6 +276,9 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
         /*
          * New transactions are still accepted.
          */
+        ((HAGlueTest)startup.serverA).log("2nd transaction");
+        ((HAGlueTest)startup.serverB).log("2nd transaction");
+        ((HAGlueTest)startup.serverC).log("2nd transaction");
         simpleTransaction();
 
         // Should be one commit point.
@@ -292,16 +318,26 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
 
         // Setup B to vote "NO" on the next PREPARE request.
         ((HAGlueTest) startup.serverB).voteNo();
+        ((HAGlueTest) startup.serverA).log("B will vote NO.");
+        ((HAGlueTest) startup.serverB).log("B will vote NO.");
+        ((HAGlueTest) startup.serverC).log("B will vote NO.");
         
         // Simple transaction.
         simpleTransaction();
         
+        ((HAGlueTest) startup.serverA).log("Transaction done");
+        ((HAGlueTest) startup.serverB).log("Transaction done");
+        ((HAGlueTest) startup.serverC).log("Transaction done");
+
         // Verify quorum is unchanged.
         assertEquals(token, quorum.token());
         
         // Should be two commit points on {A,C].
         awaitCommitCounter(2L, startup.serverA, startup.serverC);
         
+        ((HAGlueTest) startup.serverA).log("Commit Counter #2");
+        ((HAGlueTest) startup.serverB).log("Commit Counter #2");
+        ((HAGlueTest) startup.serverC).log("Commit Counter #2");
         /*
          * B should go into an ERROR state and then into SeekConsensus and from
          * there to RESYNC and finally back to RunMet. We can not reliably
@@ -316,6 +352,10 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
          */
         awaitPipeline(new HAGlue[] { startup.serverA, startup.serverC,
                 startup.serverB });
+
+        final long token2 = awaitFullyMetQuorum();
+        
+        assertEquals(token, token2);
 
         /*
          * There should be two commit points on {A,C,B} (note that this assert
@@ -451,7 +491,7 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
      * fails the commit if there is a single failure, even though the quourm
      * might have a consensus around the new commit point.)
      * 
-     * TODO Consider leader failure scenariors in this test suite, not just
+     * TODO Consider leader failure scenarios in this test suite, not just
      * scenarios where B fails. Probably we should also cover failures of C (the
      * 2nd follower). We should also cover scenariors where the quorum is barely
      * met and a single failure causes a rejected commit (local decision) or
@@ -530,6 +570,212 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
         // quorum token is unchanged.
         assertEquals(token, quorum.token());
 
+    }
+    
+    /**
+     * 2 services start, quorum meets then we bounce the zookeeper connection
+     * for the follower and verify that the quorum meets again.
+     * <p>
+     * Note: Bouncing the ZK client connection causes the reflected state
+     * maintained by the {@link ZKQuorumImpl} to be out of sync with the state
+     * in zookeeper. Not only can some events be lost, but none of the events
+     * that correspond to the elimination of the ephemeral znodes for this
+     * service will be observed. Handling this correctly requires special
+     * consideration.
+     * 
+     * @see <a href="http://sourceforge.net/apps/trac/bigdata/ticket/718" >
+     *      HAJournalServer needs to handle ZK client connection loss </a>
+     */
+    public void testStartAB_BounceFollower() throws Exception {
+        
+        final HAGlue serverA = startA();
+        final HAGlue serverB = startB();
+        
+        final long token1 = quorum.awaitQuorum(awaitQuorumTimeout, TimeUnit.MILLISECONDS);
+
+        doNSSStatusRequest(serverA);
+        doNSSStatusRequest(serverB);
+
+        // Await initial commit point (KB create).
+        awaitCommitCounter(1L, serverA, serverB);
+
+        // Await [A] up and running as leader.
+        assertEquals(HAStatusEnum.Leader, awaitNSSAndHAReady(serverA));
+
+        // Await [B] up and running as follower.
+        assertEquals(HAStatusEnum.Follower, awaitNSSAndHAReady(serverB));
+
+        // Verify self-reporting by RMI in their respective roles.
+        awaitHAStatus(serverA, HAStatusEnum.Leader);
+        awaitHAStatus(serverB, HAStatusEnum.Follower);
+        
+        // Verify binary equality on the journal files.
+        assertDigestsEquals(new HAGlue[] { serverA, serverB });
+
+        if (log.isInfoEnabled()) {
+            log.info("Zookeeper before quorum break:\n" + dumpZoo());
+        }
+        
+        /*
+         * Bounce the follower. Verify quorum meets again and that we can read
+         * on all services.
+         */
+        {
+
+            final HAGlue leader = quorum.getClient().getLeader(token1);
+
+//            final UUID leaderId1 = leader.getServiceId();
+            
+            if (leader.equals(serverA)) {
+
+                ((HAGlueTest) serverB).bounceZookeeperConnection().get();
+
+            } else {
+
+                ((HAGlueTest) serverA).bounceZookeeperConnection().get();
+
+            }
+            Thread.sleep(100000);
+            // Okay, is the problem that the quorum doesn't break?
+            // assertFalse(quorum.isQuorumMet());
+            
+            // Right so the Quorum is not met, but the follower deosn't seem to know it's broken
+            
+            // Wait for the quorum to break and then meet again.
+            final long token2 = awaitNextQuorumMeet(token1);
+
+            if (log.isInfoEnabled()) {
+                log.info("Zookeeper after quorum meet:\n" + dumpZoo());
+            }
+            
+            /*
+             * Bouncing the connection broke the quorun, so verify that the
+             * quorum token was advanced.
+             */
+            assertEquals(token1 + 1, token2);
+            
+            // The leader MAY have changed (since the quorum broke).
+            final HAGlue leader2 = quorum.getClient().getLeader(token2);
+
+            // Verify leader self-reports in new role.
+            awaitHAStatus(leader2, HAStatusEnum.Leader);
+
+//            final UUID leaderId2 = leader2.getServiceId();
+//
+//            assertFalse(leaderId1.equals(leaderId2));
+            
+            /*
+             * Verify we can read on the KB on both nodes.
+             * 
+             * Note: It is important to test the reads for the first commit on
+             * both the leader and the follower.
+             */
+            for (HAGlue service : new HAGlue[] { serverA, serverB }) {
+
+                final RemoteRepository repo = getRemoteRepository(service);
+
+                // Should be empty.
+                assertEquals(
+                        0L,
+                        countResults(repo.prepareTupleQuery(
+                                "SELECT * {?a ?b ?c} LIMIT 10").evaluate()));
+
+            }
+
+        }
+        
+    }
+    
+    /**
+     * 2 services start, quorum meets then we bounce the zookeeper connection
+     * for the leader and verify that the quorum meets again.
+     */
+    public void testStartAB_BounceLeader() throws Exception {
+        
+        final HAGlue serverA = startA();
+        final HAGlue serverB = startB();
+
+        final long token1 = quorum.awaitQuorum(awaitQuorumTimeout,
+                TimeUnit.MILLISECONDS);
+
+        doNSSStatusRequest(serverA);
+        doNSSStatusRequest(serverB);
+
+        // Await initial commit point (KB create).
+        awaitCommitCounter(1L, serverA, serverB);
+
+        // Await [A] up and running as leader.
+        assertEquals(HAStatusEnum.Leader, awaitNSSAndHAReady(serverA));
+
+        // Await [B] up and running as follower.
+        assertEquals(HAStatusEnum.Follower, awaitNSSAndHAReady(serverB));
+
+        // Verify self-reports in role.
+        awaitHAStatus(serverA, HAStatusEnum.Leader);
+        awaitHAStatus(serverB, HAStatusEnum.Follower);
+
+        // Verify binary equality on the journal files.
+        assertDigestsEquals(new HAGlue[] { serverA, serverB });
+
+        if (log.isInfoEnabled()) {
+            log.info("Zookeeper before quorum meet:\n" + dumpZoo());
+        }
+
+        /*
+         * Bounce the leader. Verify that the service that was the follower is
+         * now the leader. Verify that the quorum meets.
+         */
+        {
+            
+            final HAGlue leader = quorum.getClient().getLeader(token1);
+
+//            final UUID leaderId1 = leader.getServiceId();
+            
+            ((HAGlueTest)leader).bounceZookeeperConnection().get();
+
+            // Wait for the quorum to break and then meet again.
+            final long token2 = awaitNextQuorumMeet(token1);
+
+            if (log.isInfoEnabled()) {
+                log.info("Zookeeper after quorum meet:\n" + dumpZoo());
+            }
+
+            /*
+             * Bouncing the connection broke the quorum, so verify that the
+             * quorum token was advanced.
+             */
+            assertEquals(token1 + 1, token2);
+
+            // The leader MAY have changed.
+            final HAGlue leader2 = quorum.getClient().getLeader(token2);
+
+//            final UUID leaderId2 = leader2.getServiceId();
+//
+//            assertFalse(leaderId1.equals(leaderId2));
+            
+            // Verify leader self-reports in new role.
+            awaitHAStatus(leader2, HAStatusEnum.Leader);
+            
+            /*
+             * Verify we can read on the KB on both nodes.
+             * 
+             * Note: It is important to test the reads for the first commit on
+             * both the leader and the follower.
+             */
+            for (HAGlue service : new HAGlue[] { serverA, serverB }) {
+
+                final RemoteRepository repo = getRemoteRepository(service);
+
+                // Should be empty.
+                assertEquals(
+                        0L,
+                        countResults(repo.prepareTupleQuery(
+                                "SELECT * {?a ?b ?c} LIMIT 10").evaluate()));
+
+            }
+
+        }
+        
     }
     
 }

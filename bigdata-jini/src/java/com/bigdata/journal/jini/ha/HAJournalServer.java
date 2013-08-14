@@ -104,6 +104,7 @@ import com.bigdata.service.AbstractHATransactionService;
 import com.bigdata.service.jini.FakeLifeCycle;
 import com.bigdata.util.ClocksNotSynchronizedException;
 import com.bigdata.util.InnerCause;
+import com.bigdata.util.StackInfoReport;
 import com.bigdata.util.concurrent.LatchedExecutor;
 import com.bigdata.util.concurrent.MonitoredFutureTask;
 import com.bigdata.util.config.NicUtil;
@@ -1002,7 +1003,21 @@ public class HAJournalServer extends AbstractServer {
          */
         private final AtomicReference<FutureTask<Void>> runStateFutureRef = new AtomicReference<FutureTask<Void>>(/*null*/);
 
+        /**
+         * The {@link RunStateEnum} for the current executing task. This is set
+         * when the task actually begins to execute in its
+         * {@link RunStateCallable#doRun()} method.
+         */
         private final AtomicReference<RunStateEnum> runStateRef = new AtomicReference<RunStateEnum>(
+                null/* none */);
+
+        /**
+         * The {@link RunStateEnum} for the last task submitted. This is used by
+         * {@link #enterRunState(RunStateCallable)} to close a concurrency gap
+         * where the last submitted task has not yet begun to execute and
+         * {@link #runStateRef} has therefore not yet been updated.
+         */
+        private final AtomicReference<RunStateEnum> lastSubmittedRunStateRef = new AtomicReference<RunStateEnum>(
                 null/* none */);
 
         /*
@@ -1040,8 +1055,19 @@ public class HAJournalServer extends AbstractServer {
                 
             }
 
-            haLog.warn("runState=" + runState + ", oldRunState=" + oldRunState
-                    + ", serviceName=" + server.getServiceName());
+            // Note: *should* be non-null. Just paranoid.
+            final IRootBlockView rb = journal.getRootBlockView();
+            
+            final String commitCounterStr = (rb == null) ? "N/A" : Long
+                    .toString(rb.getCommitCounter());
+            
+            haLog.warn("runState=" + runState //
+                    + ", oldRunState=" + oldRunState //
+                    + ", quorumToken=" + journal.getQuorumToken()//
+                    + ", haStatus=" + journal.getHAStatus()//
+                    + ", commitCounter=" + commitCounterStr//
+                    + ", serviceName=" + server.getServiceName(),//
+                    new StackInfoReport());
 
         }
         
@@ -1078,35 +1104,35 @@ public class HAJournalServer extends AbstractServer {
                     if (InnerCause.isInnerCause(t, InterruptedException.class)) {
 
                         // Note: This is a normal exit condition.
-                        log.info("Interrupted.");
+                        if (log.isInfoEnabled())
+                            log.info("Interrupted: " + runState);
 
                         // Done.
                         return null;
                         
                     } else {
 
-                        log.error(t, t);
-
                         /*
                          * Unhandled error.
                          */
                         
+                        log.error(t, t);
+
                         /*
                          * Sleep for a moment to avoid tight error handling
                          * loops that can generate huge log files.
                          */
-                        Thread.sleep(250/*ms*/);
-
-                        if (runState != RunStateEnum.Error) {
+                        Thread.sleep(250/* ms */);
                         
-                            /*
-                             * Transition to the Error task (but do not allow
-                             * the error task to interrupt itself).
-                             */
+                        /*
+                         * Transition to the Error task.
+                         * 
+                         * Note: The ErrorTask can not interrupt itself even if
+                         * it was the current task since the current task has
+                         * been terminated by the theows exception!
+                         */
 
-                            enterRunState(new ErrorTask());
-                            
-                        }
+                        enterErrorState();
 
                         // Done.
                         return null;
@@ -1180,56 +1206,54 @@ public class HAJournalServer extends AbstractServer {
         } // RunStateCallable
 
         /**
+         * {@inheritDoc}
+         * <p>
+         * Note: Invoked from {@link AbstractJournal#doLocalAbort()}.
+         */
+        @Override 
+        public void discardWriteSet() {
+            
+            logLock.lock();
+			try {
+				log.warn("");
+
+				// Clear the last live message out.
+				journal.getHALogNexus().lastLiveHAWriteMessage = null;
+
+				if (journal.getHALogNexus().isHALogOpen()) {
+					/*
+					 * Note: Closing the HALog is necessary for us to be able to
+					 * re-enter SeekConsensus without violating a pre-condition
+					 * for that run state.
+					 */
+					try {
+						journal.getHALogNexus().disableHALog();
+					} catch (IOException e) {
+						log.error(e, e);
+					}
+				}
+			} finally {
+				logLock.unlock();
+			}
+
+		}
+        
+        /**
+         * {@inheritDoc}
+         * <p>
          * Transition to {@link RunStateEnum#Error}.
          * <p>
          * Note: if the current {@link Thread} is a {@link Thread} executing one
          * of the {@link RunStateCallable#doRun()} methods, then it will be
-         * <strong>interrupted</strong> when entering the new run state. Thus,
-         * the caller MAY observe an {@link InterruptedException} in their
-         * thread, but only if they are being run out of
-         * {@link RunStateCallable}.
+         * <strong>interrupted</strong> when entering the new run state (but we
+         * will not re-enter the current active state). Thus, the caller MAY
+         * observe an {@link InterruptedException} in their thread, but only if
+         * they are being run out of {@link RunStateCallable}.
          */
-        void enterErrorState() {
+        @Override
+        public void enterErrorState() {
 
-            /*
-             * Do synchronous service leave.
-             */
-
-            log.warn("Will do SERVICE LEAVE");
-            
-            serviceLeave();
-            
-            /*
-             * Update the haReadyTokena and haStatus regardless of whether the
-             * quorum token has changed since this service is no longer joined
-             * with a met quorum.
-             */
-            journal.setQuorumToken(getQuorum().token());
-            
-            logLock.lock();
-            try {
-                if (journal.getHALogNexus().isHALogOpen()) {
-                    /*
-                     * Note: Closing the HALog is necessary for us to be able to
-                     * re-enter SeekConsensus without violating a pre-condition
-                     * for that run state.
-                     */
-                    try {
-                        journal.getHALogNexus().disableHALog();
-                    } catch (IOException e) {
-                        log.error(e, e);
-                    }
-                }
-            } finally {
-                logLock.unlock();
-            }
-
-            /*
-             * Transition into the error state.
-             * 
-             * Note: This can cause the current Thread to be interrupted if it
-             * is the Thread executing one of the RunStateCallable classes.
-             */
+            log.warn(new StackInfoReport());
 
             enterRunState(new ErrorTask());
 
@@ -1292,18 +1316,41 @@ public class HAJournalServer extends AbstractServer {
         }
         
         /**
-         * Change the run state.
+         * Change the run state (but it will not re-enter the currently active
+         * state).
          * 
          * @param runStateTask
          *            The task for the new run state.
+         * 
+         * @return The {@link Future} of the newly submitted run state -or-
+         *         <code>null</code> if the service is already in that run
+         *         state.
          */
-        private Future<Void> enterRunState(final RunStateCallable<Void> runStateTask) {
+        private Future<Void> enterRunState(
+                final RunStateCallable<Void> runStateTask) {
 
             if (runStateTask == null)
                 throw new IllegalArgumentException();
 
             synchronized (runStateRef) {
 
+                if (runStateTask.runState
+                        .equals(lastSubmittedRunStateRef.get())) {
+                    
+                    /*
+                     * Do not re-enter the same run state.
+                     * 
+                     * Note: This was added to prevent re-entry of the
+                     * ErrorState when we are already in the ErrorState.
+                     */
+                    
+                    haLog.warn("Will not reenter active run state: "
+                            + runStateTask.runState);
+
+                    return null;
+
+                }
+               
                 final FutureTask<Void> ft = new FutureTaskMon<Void>(
                         runStateTask);
 
@@ -1314,6 +1361,9 @@ public class HAJournalServer extends AbstractServer {
                 try {
 
                     runStateFutureRef.set(ft);
+                    
+                    // set before we submit the task.
+                    lastSubmittedRunStateRef.set(runStateTask.runState);
 
                     // submit future task.
                     journal.getExecutorService().submit(ft);
@@ -1336,10 +1386,14 @@ public class HAJournalServer extends AbstractServer {
 
                     if (!success) {
 
+                        log.error("Unable to submit task: " + runStateTask);
+                        
                         ft.cancel(true/* interruptIfRunning */);
 
                         runStateFutureRef.set(null);
 
+                        lastSubmittedRunStateRef.set(null);
+                        
                     }
 
                 }
@@ -1455,6 +1509,16 @@ public class HAJournalServer extends AbstractServer {
             
         }
 
+        /*
+         * QUORUM EVENT HANDLERS
+         * 
+         * Note: DO NOT write event handlers that submit event transitions to
+         * any state other than the ERROR state. The ERROR state will eventually
+         * transition to SeekConsensus. Once we are no longer in the ERROR
+         * state, the states will naturally transition among themselves (until
+         * the next serviceLeave(), quorumBreak(), etc.)
+         */
+        
         @Override
         public void quorumMeet(final long token, final UUID leaderId) {
 
@@ -1506,31 +1570,10 @@ public class HAJournalServer extends AbstractServer {
 
             // Submit task to handle this event.
             server.singleThreadExecutor.execute(new MonitoredFutureTask<Void>(
-                    new QuorumBreakTask()));
+                    new EnterErrorStateTask()));
 
         }
 
-        private class QuorumBreakTask implements Callable<Void> {
-            public Void call() throws Exception {
-                /*
-                 * Note: I have removed this line. It arrived without
-                 * documentation and I can not find any reason why we should
-                 * have to do a service leave here. The quorum will
-                 * automatically issue service leaves.
-                 */
-//            	getQuorum().getActor().serviceLeave();
-            	
-                journal.setQuorumToken(Quorum.NO_QUORUM);
-                try {
-                    journal.getHALogNexus().disableHALog();
-                } catch (IOException e) {
-                    haLog.error(e, e);
-                }
-                enterRunState(new SeekConsensusTask());
-                return null;
-            }
-        }
-        
         /**
          * {@inheritDoc}
          * <p>
@@ -1542,169 +1585,215 @@ public class HAJournalServer extends AbstractServer {
 
             super.serviceLeave();
 
-            // FIXME serviceLeave() needs event handler.
-//            // Submit task to handle this event.
-//            server.singleThreadExecutor.execute(new MonitoredFutureTask<Void>(
-//                    new ServiceLeaveTask()));
+            // Submit task to handle this event.
+            server.singleThreadExecutor.execute(new MonitoredFutureTask<Void>(
+                    new EnterErrorStateTask()));
         }
 
-        private class ServiceLeaveTask implements Callable<Void> {
-            public Void call() throws Exception {
+        /**
+         * Transition to {@link RunStateEnum#Error}.
+         */
+        private class EnterErrorStateTask implements Callable<Void> {
+
+            protected EnterErrorStateTask() {
                 /*
-                 * Set token. Journal will notice that it is no longer
-                 * "HA Ready"
-                 * 
-                 * Note: AbstractJournal.setQuorumToken() will detect
-                 * case where it transitions from a met quorum through 
-                 * a service leave and will clear its haReady token and
-                 * update its haStatus field appropriately. (This is why
-                 * we pass in quorum.token() rather than NO_QUORUM.)
+                 * Note: This tells us the code path from which submitted the
+                 * task to enter the ERROR state.
                  */
-                journal.setQuorumToken(getQuorum().token());
-                try {
-                    journal.getHALogNexus().disableHALog();
-                } catch (IOException e) {
-                    haLog.error(e, e);
-                }
-                enterRunState(new SeekConsensusTask()); // TODO Versus ERROR state?
-                return null;
+                log.warn("", new StackInfoReport());
             }
-        }
 
-        /**
-         * {@inheritDoc}
-         * <p>
-         * If there is a fully met quorum, then we can purge all HA logs
-         * <em>EXCEPT</em> the current one.
-         */
-        @Override
-        public void serviceJoin() {
-
-            super.serviceJoin();
-
-            // FIXME serviceJoin() - restore event handler.
-//            // Submit task to handle this event.
-//            server.singleThreadExecutor.execute(new MonitoredFutureTask<Void>(
-//                    new ServiceJoinTask()));
-        }
-
-        /**
-         * Purge HALog files on a fully met quorum.
-         */
-        private class ServiceJoinTask implements Callable<Void> {
             public Void call() throws Exception {
-
-                final long token = getQuorum().token();
-
-                if (getQuorum().isQuorumFullyMet(token)) {
-                    /*
-                     * TODO Even though the quorum is fully met, we should wait
-                     * until we have a positive indication from the leader that
-                     * it is "ha ready" before purging the HA logs and aging put
-                     * snapshots. The leader might need to explicitly schedule
-                     * this operation against the joined services and the
-                     * services should then verify that the quorum is fully met
-                     * before they actually age out the HALogs and snapshots.
-                     */
-                    purgeHALogs(token);
-
-                }
-                
+                enterErrorState();
                 return null;
-                
             }
+
         }
+
+//        /**
+//         * {@inheritDoc}
+//         * <p>
+//         * If there is a fully met quorum, then we can purge all HA logs
+//         * <em>EXCEPT</em> the current one.
+//         */
+//        @Override
+//        public void serviceJoin() {
+//
+//            super.serviceJoin();
+//
+////            // Submit task to handle this event.
+////            server.singleThreadExecutor.execute(new MonitoredFutureTask<Void>(
+////                    new ServiceJoinTask()));
+//        }
+//
+//        /**
+//         * Purge HALog files on a fully met quorum.
+//         */
+//        private class ServiceJoinTask implements Callable<Void> {
+//            public Void call() throws Exception {
+//
+//                final long token = getQuorum().token();
+//
+//                if (getQuorum().isQuorumFullyMet(token)) {
+//                    /*
+//                     * TODO Even though the quorum is fully met, we should wait
+//                     * until we have a positive indication from the leader that
+//                     * it is "ha ready" before purging the HA logs and aging put
+//                     * snapshots. The leader might need to explicitly schedule
+//                     * this operation against the joined services and the
+//                     * services should then verify that the quorum is fully met
+//                     * before they actually age out the HALogs and snapshots.
+//                     */
+//                    purgeHALogs(token);
+//
+//                }
+//                
+//                return null;
+//                
+//            }
+//        }
 
         @Override
         public void memberRemove() {
 
             super.memberRemove();
 
-            // FIXME memberRemove() - restore event handler. Do NOT transition to seek consensus directly from error state. Instead, cause a memberRemove() that will trigger this event handler.
-//            // Submit task to handle this event.
-//            server.singleThreadExecutor.execute(new MonitoredFutureTask<Void>(
-//                    new MemberRemoveTask()));
+            // Submit task to handle this event.
+            server.singleThreadExecutor.execute(new MonitoredFutureTask<Void>(
+                    new EnterErrorStateTask()));
 
         }
 
         /**
-         * If this service is no longer a member, and the service is still
-         * running, then enter the SeekConsensus run state.
+         * Handle an error condition on the service.
+         * 
+         * @see <a href="https://sourceforge.net/apps/trac/bigdata/ticket/695">
+         *      HAJournalServer reports "follower" but is in SeekConsensus and
+         *      is not participating in commits</a>
          */
-        private class MemberRemoveTask implements Callable<Void> {
-            public Void call() throws Exception {
-                enterRunState(new SeekConsensusTask());
-                return null;
-            }
-        }
-
         private class ErrorTask extends RunStateCallable<Void> {
             
             protected ErrorTask() {
 
                 super(RunStateEnum.Error);
+                // Note: This stack trace does not have any useful info.
+//                log.warn("", new StackInfoReport());
                 
             }
             
             @Override
             public Void doRun() throws Exception {
-                /*
-                 * Note: Bouncing the ZK connection here appears to cause
-                 * problems within the test suite. We have not tracked down why
-                 * yet.
-                 */
-//                server.haGlueService.bounceZookeeperConnection();
-//                /*
-//                 * Note: Try moving to doRejectedCommit() so this will be
-//                 * synchronous.
-//                 */
-//                logLock.lock();
-//                try {
-//                    if (journal.getHALogNexus().isHALogOpen()) {
-//                        /*
-//                         * Note: Closing the HALog is necessary for us to be
-//                         * able to re-enter SeekConsensus without violating a
-//                         * pre-condition for that run state.
-//                         */
-//                        journal.getHALogNexus().disableHALog();
-//                    }
-//                } finally {
-//                    logLock.unlock();
-//                }
 
-//                // Force a service leave.
-//                getQuorum().getActor().serviceLeave();
+                while (true) {
 
-//                /*
-//                 * Set token. Journal will notice that it is no longer
-//                 * "HA Ready"
-//                 * 
-//                 * Note: AbstractJournal.setQuorumToken() will detect case where
-//                 * it transitions from a met quorum through a service leave and
-//                 * will clear its haReady token and update its haStatus field
-//                 * appropriately.
-//                 * 
-//                 * FIXME There may be a data race here. The quorum.token() might
-//                 * be be cleared by the time we call
-//                 * setQuorumToken(quorum.token()) so we may have to explicitly 
-//                 * "clear" the journal token by passing in NO_QUORUM.
-//                 */
-//                journal.setQuorumToken(Quorum.NO_QUORUM);
-//                
-//                try {
-//                    journal.getHALogNexus().disableHALog();
-//                } catch (IOException e) {
-//                    haLog.error(e, e);
-//                }
-                
+                    log.warn("Will do error handler.");
+
+                    /*
+                     * Discard the current write set.
+                     * 
+                     * Note: This is going to call through to discardWriteSet().
+                     * That method will close out the current HALog and discard
+                     * the last live write message.
+                     * 
+                     * FIXME the setQuorumToken() after the serviceLeave() will
+                     * also cause doLocalAbort() to be called, so we probably do
+                     * NOT want to call it here.
+                     */
+                    journal.doLocalAbort();
+
+                    /*
+                     * Do synchronous service leave.
+                     */
+
+                    log.warn("Will do SERVICE LEAVE");
+
+                    getActor().serviceLeave();
+
+                    /*
+                     * Set token. Journal will notice that it is no longer
+                     * "HA Ready"
+                     * 
+                     * Note: We update the haReadyToken and haStatus regardless
+                     * of whether the quorum token has changed in case this
+                     * service is no longer joined with a met quorum.
+                     * 
+                     * Note: AbstractJournal.setQuorumToken() will detect case
+                     * where it transitions from a met quorum through a service
+                     * leave and will clear its haReady token and update its
+                     * haStatus field appropriately. (This is why we pass in
+                     * quorum.token() rather than NO_QUORUM.)
+                     * 
+                     * TODO There are cases where nothing changes that may hit
+                     * an AssertionError in setQuorumToken().
+                     * 
+                     * TODO This will (conditionally) trigger doLocalAbort().
+                     * Since we did this explicitly above, that can be do
+                     * invocations each time we pass through here!
+                     */
+                    if (log.isInfoEnabled())
+                        log.info("Current Token: haJournalReady="
+                                + journal.getHAReady()
+                                + ", getQuorum().token()=: "
+                                + getQuorum().token());
+
+                    journal.setQuorumToken(getQuorum().token());
+
+                    /**
+                     * Dispatch Events before entering SeekConsensus! Otherwise
+                     * the events triggered by the serviceLeave() and
+                     * setQuorumToken will not be handled until we enter
+                     * SeekConsensus, and then when they are received
+                     * SeekConsensus will fail.
+                     * 
+                     * The intention of this action is to ensure that when
+                     * SeekConsensus is entered the service is in a "clean"
+                     * state.
+                     */
+                    processEvents();
+
+                    /**
+                     * The error task needs to validate that it does not need to
+                     * re-execute and may transition to SeekConsensus. The
+                     * specific problem is when a SERVICE_LEAVE leads to a
+                     * QUORUM_BREAK event. When we handle the SERVICE_LEAVE the
+                     * quorum's token has not yet been cleared. However, it must
+                     * be cleared when the QUORUM_BREAK comes around. Since we
+                     * do not permit re-entry into the ErrorTask in
+                     * enterRunState(), we need to check this post-condition
+                     * here.
+                     * <p>
+                     * The relevant tests are testAB_BounceFollower and
+                     * testAB_BounceLeader and also testAB_RestartLeader and
+                     * testAB_RestartFollower. In addition, any test where we
+                     * fail the leader could require this 2nd pass through
+                     * ErrorTask.doRun().
+                     */
+                    final long t1 = journal.getQuorumToken();
+                    
+                    final long t2 = journal.getQuorum().token();
+                    
+                    if (t1 == t2) {
+
+                        haLog.warn("Will not re-do error handler"
+                                + ": journal.quorumToken=" + t1
+                                + ", quorum.token()=" + t2);
+
+                        break;
+
+                    }
+
+                    // Sleep here to avoid a tight loop?
+
+                } // while(true)
+
                 // Seek consensus.
                 enterRunState(new SeekConsensusTask());
 
                 return null;
-                
-            }
-            
-        }
+
+            } // doRun()
+
+        } // class ErrorTask
         
         /**
          * Task to handle a quorum break event.
@@ -1761,6 +1850,19 @@ public class HAJournalServer extends AbstractServer {
                 // ensure in pipeline.
                 getActor().pipelineAdd();
 
+                /**
+                 * Make sure that the pipelineAdd() is handled before
+                 * continuing. Handling this event will setup the
+                 * HAReceiveService. This is necessary since the event is no
+                 * longer synchronously handled.
+                 * 
+                 * @see <a
+                 *      href="https://sourceforge.net/apps/trac/bigdata/ticket/695">
+                 *      HAJournalServer reports "follower" but is in
+                 *      SeekConsensus and is not participating in commits</a>
+                 */
+                processEvents();
+                
                 {
 
                     final long token = getQuorum().token();
@@ -2364,6 +2466,9 @@ public class HAJournalServer extends AbstractServer {
 
                 journal.doLocalAbort();
 
+                // Sets up expectations (maybe just for the test suite?)
+                conditionalCreateHALog();
+                
                 /*
                  * We will do a local commit with each HALog (aka write set)
                  * that is replicated. This let's us catch up incrementally with
@@ -2374,23 +2479,33 @@ public class HAJournalServer extends AbstractServer {
                  * The quorum leader (RMI interface). This is fixed until the
                  * quorum breaks.
                  */
+                
+                final UUID leaderId = getQuorum().getLeaderId();
+                
                 final S leader = getLeader(token);
 
-                // Until joined with the met quorum.
-                while (!getQuorum().getMember().isJoinedMember(token)) {
+                /*
+                 * Loop until joined with the met quorum (and HAReady).
+                 * 
+                 * Note: The transition will occur atomically either when we
+                 * catch up with the live write or at a commit point.
+                 * 
+                 * Note: This loop will go through an abnormal exit if the
+                 * quorum breaks or reforms (thrown error). The control when
+                 * then pass through the ErrorTask and back into SeekConsensus.
+                 */
+                while (true) {
 
                     // The current commit point on the local store.
                     final long commitCounter = journal.getRootBlockView()
                             .getCommitCounter();
 
                     // Replicate and apply the next write set
-                    replicateAndApplyWriteSet(leader, token, commitCounter + 1);
+                    replicateAndApplyWriteSet(leaderId, leader, token,
+                            commitCounter + 1);
 
                 }
-
-                // Done
-                return null;
-
+                
             }
 
         } // class ResyncTask
@@ -2415,10 +2530,10 @@ public class HAJournalServer extends AbstractServer {
          * @throws ExecutionException
          * @throws InterruptedException
          */
-        private void replicateAndApplyWriteSet(final S leader,
-                final long token, final long closingCommitCounter)
-                throws FileNotFoundException, IOException,
-                InterruptedException, ExecutionException {
+        private void replicateAndApplyWriteSet(final UUID leaderId,
+                final S leader, final long token,
+                final long closingCommitCounter) throws FileNotFoundException,
+                IOException, InterruptedException, ExecutionException {
 
             if (leader == null)
                 throw new IllegalArgumentException();
@@ -2532,15 +2647,36 @@ public class HAJournalServer extends AbstractServer {
                      * 
                      * @see #resyncTransitionToMetQuorum()
                      */
-                     
-                    return;
+
+                    if (journal.getHAReady() != token) {
+                        /*
+                         * Service must be HAReady before exiting RESYNC
+                         * normally.
+                         */
+                        throw new AssertionError();
+                    }
+
+                    // Transition to RunMet.
+                    enterRunState(new RunMetTask(token, leaderId));
+                    
+                    // Force immediate exit of the resync protocol.
+                    throw new InterruptedException();
+
                 }
                 
                 /*
                  * Since we are not joined, the HAReady token must not have been
                  * set.
                  */
-                assert journal.getHAReady() == Quorum.NO_QUORUM;
+                if (journal.getHAReady() != Quorum.NO_QUORUM) {
+                    /*
+                     * The HAReady token is set by setQuorumToken() and this
+                     * should have been done atomically in runWithBarrierLock().
+                     * Thus, it is a problem if the HAReady token is set here to
+                     * any valid token value.
+                     */
+                    throw new AssertionError();
+                }
                 journal.getHALogNexus().disableHALog();
                 journal.getHALogNexus().createHALog(openRootBlock);
             } finally {
@@ -2885,12 +3021,31 @@ public class HAJournalServer extends AbstractServer {
             // Verify that we have valid root blocks
             awaitJournalToken(token);
 
-            logLock.lock();
+            // Note: used to do conditionalCreateHALog() here.
             
+        }
+
+        /**
+         * Conditionally create the HALog.
+         * <p>
+         * Refactored out of {@link #pipelineSetup()} since
+         * {@link #discardWriteSet()} now removes the current HALog. Therefore,
+         * the {@link ResyncTask} needs to call
+         * {@link #conditionalCreateHALog()} <em>after</em> it calls
+         * {@link AbstractJournal#doLocalAbort()}.
+         * 
+         * @throws FileNotFoundException
+         * @throws IOException
+         */
+        private void conditionalCreateHALog() throws FileNotFoundException,
+                IOException {
+
+            logLock.lock();
+
             try {
 
                 if (!journal.getHALogNexus().isHALogOpen()) {
-             
+
                     /*
                      * Open the HALogWriter for our current root blocks.
                      * 
@@ -2899,14 +3054,14 @@ public class HAJournalServer extends AbstractServer {
                      * because the historical log writes occur when we ask the
                      * leader to send us a prior commit point in RESYNC.
                      */
-                    
+
                     journal.getHALogNexus().createHALog(
                             journal.getRootBlockView());
-                    
+
                 }
 
             } finally {
-            
+
                 logLock.unlock();
                 
             }
@@ -2948,6 +3103,8 @@ public class HAJournalServer extends AbstractServer {
             
             logLock.lock();
             try {
+
+                conditionalCreateHALog();
 
                 if (haLog.isDebugEnabled())
                     haLog.debug("msg=" + msg + ", buf=" + data);
@@ -3552,6 +3709,8 @@ public class HAJournalServer extends AbstractServer {
 
             try {
 
+                conditionalCreateHALog();
+                
                 /*
                  * Throws IllegalStateException if the message is not
                  * appropriate for the state of the log.
@@ -3772,11 +3931,11 @@ public class HAJournalServer extends AbstractServer {
 
         }
 
-        @Override
-        public void didMeet(final long token, final long commitCounter,
-                final boolean isLeader) {
-            // NOP
-        }
+//        @Override
+//        public void didMeet(final long token, final long commitCounter,
+//                final boolean isLeader) {
+//            // NOP
+//        }
 
         @Override
         public File getServiceDir() {

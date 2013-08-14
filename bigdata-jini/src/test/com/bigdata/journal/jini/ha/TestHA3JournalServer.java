@@ -96,7 +96,7 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
 //        		"com.bigdata.journal.HAJournal.properties=" +TestHA3JournalServer.getTestHAJournalProperties(com.bigdata.journal.HAJournal.properties),
                 "com.bigdata.journal.jini.ha.HAJournalServer.restorePolicy=new com.bigdata.journal.jini.ha.DefaultRestorePolicy(0L,1,0)",
                 "com.bigdata.journal.jini.ha.HAJournalServer.snapshotPolicy=new com.bigdata.journal.jini.ha.NoSnapshotPolicy()",
-                "com.bigdata.journal.jini.ha.HAJournalServer.HAJournalClass=\""+HAJournalTest.class.getName()+"\"",
+//                "com.bigdata.journal.jini.ha.HAJournalServer.HAJournalClass=\""+HAJournalTest.class.getName()+"\"",
                 "com.bigdata.journal.jini.ha.HAJournalServer.onlineDisasterRecovery=true",
         };
         
@@ -512,6 +512,67 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
     }
     
     /**
+     * Unit test of the ability to go through a simultaneous restart of all
+     * services once those services are no longer at commit point 0. Two
+     * services will meet on the lastCommitTime. The third will need to RESYNC
+     * and then join. This test provides converage of the RESYNC and JOIN
+     * transitions when the database is not empty.
+     */
+    public void testStartABC_RestartAllSimultaneous() throws Exception {
+
+        // Start simultaneous.
+        ABC servers = new ABC(true);
+
+        /*
+         * Now go through a commit point with a met quorum.
+         */
+        simpleTransaction();
+
+        // Current commit point.
+        final long lastCommitCounter2 = 2;
+
+        // Await 2nd commit point on all services.
+        awaitCommitCounter(lastCommitCounter2, servers.serverA,
+                servers.serverB, servers.serverC);
+
+        /*
+         * Shutdown ALL services.
+         */
+        
+        shutdownA();
+        shutdownB();
+        shutdownC();
+        
+        /*
+         * Start simultaneous (again).
+         * 
+         * Note: Since these are not new service starts, we are only awaiting
+         * the fully met quorum. Hence I am NOT re-verifying that the services
+         * are at the same commit point (they should be of course) because I
+         * would like to promote a data race for the UPDATE with the MEET +
+         * RESYNC.
+         */
+        servers = new ABC(true, false/* newServiceStarts */);
+
+//        // Should be at the same commit point on all services.
+//        awaitCommitCounter(lastCommitCounter2, servers.serverA,
+//                servers.serverB, servers.serverC);
+        
+        /*
+         * Now go through a commit point with a met quorum.
+         */
+        simpleTransaction();
+
+        // Current commit point.
+        final long lastCommitCounter3 = 3;
+
+        // Await 3rd commit point on all services.
+        awaitCommitCounter(lastCommitCounter3, servers.serverA,
+                servers.serverB, servers.serverC);
+
+    }
+    
+    /**
      * TWO (2) committed transactions then at 3000ms delay between each
      * subsequent transaction.
      * <P>
@@ -587,12 +648,12 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         doStartAB_C_MultiTransactionResync(50, 5);
     }
 
-    public void _testStressStartAB_C_MultiTransactionResync_500_0()
+    public void _testStressStartAB_C_MultiTransactionResync_5tx_then_50ms_delay()
             throws Exception {
 
         for (int i = 0; i < 40; i++) {
             try {
-                doStartAB_C_MultiTransactionResync(500, 0);
+                doStartAB_C_MultiTransactionResync(50, 5);
             } catch (Throwable t) {
                 fail("Fail after " + (i + 1) + " trials : " + t, t);
             } finally {
@@ -1104,18 +1165,19 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
      */
     public void testStartABC_Rebuild() throws Exception {
 
-        {
-
-            final HAGlue serverA = startA();
-            final HAGlue serverB = startB();
-            final HAGlue serverC = startC();
-
-            awaitFullyMetQuorum();
-
-            // Await initial commit point (KB create) on all servers.
-            awaitCommitCounter(1L, serverA, serverB, serverC);
-            
-        }
+        new ABC(false/*sequential*/); // simultaneous start.
+//        {
+//
+//            final HAGlue serverA = startA();
+//            final HAGlue serverB = startB();
+//            final HAGlue serverC = startC();
+//
+//            awaitFullyMetQuorum();
+//
+//            // Await initial commit point (KB create) on all servers.
+//            awaitCommitCounter(1L, serverA, serverB, serverC);
+//            
+//        }
         
         // Now run several transactions
         for (int i = 0; i < 5; i++)
@@ -2262,6 +2324,8 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
 
 		final long token = awaitFullyMetQuorum();
 		
+		awaitPipeline(new HAGlue[] {startup.serverA, startup.serverB, startup.serverC});
+
 		// shutdown C, the final follower
 		shutdownC();
 		awaitPipeline(new HAGlue[] {startup.serverA, startup.serverB});
@@ -3003,17 +3067,17 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
 
     }
 
-//  public void testStress_LiveLoadRemainsMet() throws Exception {
-//  for (int i = 1; i <= 20; i++) {
-//      try {
-////          testABC_LiveLoadRemainsMet_restart_B_fullyMetDuringLOAD_restartC_fullyMetDuringLOAD();
-//          testABC_LiveLoadRemainsMet_restart_C_fullyMetDuringLOAD();
-//      } catch (Throwable e) {
-//          fail("Run " + i, e);
-//      } finally {
-//          destroyAll();
-//      }
-//  }
-//}
+	public void _testStressQuorumABC_HAStatusUpdatesWithFailovers()
+			throws Exception {
+		for (int i = 1; i <= 20; i++) {
+			try {
+				testQuorumABC_HAStatusUpdatesWithFailovers();
+			} catch (Throwable e) {
+				fail("Run " + i, e);
+			} finally {
+				destroyAll();
+			}
+		}
+	}
     
 }
