@@ -24,12 +24,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.sparql.ast.eval;
 
-import com.bigdata.rdf.sparql.ast.eval.AbstractDataDrivenSPARQLTestCase.TestHelper;
 
 
 /**
- * Tests concerning "SELECT GRAPH XXXX {}" with XXXX and the dataset varying.
- *
+ * Tests concerning:
+ * 
+SELECT ?A
+WHERE {
+    ?A rdf:type  / rdfs:subClassOf * <os:ClassA> ;
+       rdf:value ?B .
+    ?B rdf:type  / rdfs:subClassOf *  <os:ClassB> .
+}
  */
 public class TestTwoPropertyPaths734 extends AbstractDataDrivenSPARQLTestCase {
 
