@@ -35,6 +35,40 @@ WHERE {
        rdf:value ?B .
     ?B rdf:type  / rdfs:subClassOf *  <os:ClassB> .
 }
+
+There is a work-around which is to replace a * with a UNION of a zero and a +
+
+
+    { 
+      { ?B rdf:type  <os:ClassB> }
+      UNION
+      {  ?B rdf:type  / rdfs:subClassOf + <os:ClassB> 
+      }
+    }
+    
+In property-path-734-B-none.rq, this is taken as the following variant:
+
+    { 
+      { ?A rdf:type  / rdfs:subClassOf  ? <os:ClassA> }
+      UNION
+      {  ?A rdf:type  /  rdfs:subClassOf / rdfs:subClassOf + <os:ClassA> 
+      }
+    }
+    
+and in property-path-734-B-workaround2.rq it is taken to (the broken):
+
+
+    ?A rdf:type  / ( rdfs:subClassOf ? | ( rdfs:subClassOf + / rdfs:subClassOf  ) )
+            <os:ClassA> .
+            
+            
+and in property-path-734-B-workaround3.rq it is taken to (the working):
+
+
+    ?A ( ( rdf:type  / rdfs:subClassOf ? ) | ( rdf:type  / rdfs:subClassOf + / rdfs:subClassOf  ) )
+            <os:ClassA> .
+            
+            
  */
 public class TestTwoPropertyPaths734 extends AbstractDataDrivenSPARQLTestCase {
 
@@ -54,13 +88,22 @@ public class TestTwoPropertyPaths734 extends AbstractDataDrivenSPARQLTestCase {
     private void property_path_test(String name) throws Exception {
 
         new TestHelper(
-                "property-path-734-" + name,        // testURI,
-                "property-path-734-" + name + ".rq",// queryFileURL
-                "property-path-734.ttl",// dataFileURL
-                "property-path-734.srx" // resultFileURL,
+                "property-path-734-" + name,         // testURI,
+                "property-path-734-" + name + ".rq", // queryFileURL
+                "property-path-734.ttl",             // dataFileURL
+                "property-path-734.srx"              // resultFileURL,
                 ).runTest();
     }
 
+    private void property_path_using_workaround_test(String name) throws Exception {
+
+        new TestHelper(
+                "property-path-734-B-" + name,         // testURI,
+                "property-path-734-B-" + name + ".rq", // queryFileURL
+                "property-path-734-B.ttl",             // dataFileURL
+                "property-path-734-B.srx"              // resultFileURL,
+                ).runTest();
+    }
     public void test_no_property_paths() throws Exception {
         property_path_test("none");
     }
@@ -72,5 +115,26 @@ public class TestTwoPropertyPaths734 extends AbstractDataDrivenSPARQLTestCase {
     }
     public void test_both_property_paths() throws Exception {
         property_path_test("both");
+    }
+    public void test_no_using_workaround_property_paths() throws Exception {
+        property_path_using_workaround_test("none");
+    }
+    public void test_first_using_workaround_property_path() throws Exception {
+        property_path_using_workaround_test("first");
+    }
+    public void test_second_using_workaround_property_path() throws Exception {
+        property_path_using_workaround_test("second");
+    }
+    public void test_both_using_workaround_property_paths() throws Exception {
+        property_path_using_workaround_test("both");
+    }
+    public void test_both_using_workaround2_property_paths() throws Exception {
+        property_path_using_workaround_test("workaround2");
+    }
+    public void test_both_using_workaround3_property_paths() throws Exception {
+        property_path_using_workaround_test("workaround3");
+    }
+    public void test_both_using_workaround4_property_paths() throws Exception {
+        property_path_using_workaround_test("workaround4");
     }
 }
