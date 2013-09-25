@@ -1,7 +1,7 @@
 # BigData®
 
 The main page for BigData® is at [bigdata.com](http://www.bigdata.com/bigdata/blog/).
-The source repository is at [sourecforge](http://www.sf.net/projects/bigdata).
+The source repository is at [sourceforge](http://www.sf.net/projects/bigdata).
 
 This is the Syapse copy of the code, and should not be further forked.
 We use this copy as:
