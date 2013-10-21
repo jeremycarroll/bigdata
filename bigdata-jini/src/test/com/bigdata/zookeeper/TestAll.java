@@ -49,8 +49,8 @@ public class TestAll extends TestCase {
 
         final TestSuite suite = new TestSuite("zookeeper client library");
 
-        // test suite for zookeeper session expiration semantics.
-        suite.addTestSuite(TestZookeeperSessionSemantics.class);
+//        // test suite for zookeeper session expiration semantics.
+//        suite.addTestSuite(TestZookeeperSessionSemantics.class);
 
         // test ability to handle an expired session.
         suite.addTestSuite(TestZookeeperAccessor.class);
