@@ -443,7 +443,7 @@ public abstract class AbstractQuorum<S extends Remote, C extends QuorumClient<S>
         pipeline = new LinkedHashSet<UUID>(k * 2);
 
     }
-
+    @Override
     protected void finalize() throws Throwable {
 
         terminate();

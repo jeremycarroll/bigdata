@@ -742,7 +742,7 @@ public class MockQuorumFixture {
             // Save UUID -> QuorumMember mapping on the fixture.
             fixture.known.put(client.getServiceId(), client);
         }
-
+        @Override
         public void terminate() {
             final MockQuorumWatcher watcher = (MockQuorumWatcher) getWatcher();
             super.terminate();

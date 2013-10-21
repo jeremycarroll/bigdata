@@ -1128,7 +1128,7 @@ public class HAClient {
                 InterruptedException {
 
             /*
-             * Fast path. Check for an existing instance.
+             * Fast path. Check for an existing instance. FIXME MUst also verify that quorum is running. If terminated, then start(). But must also pass in the AbstractQuorumClient to be run if we are the HAJournalServer.  Or let the caller start the quorum for their client rather than embedding that logic into this method.
              */
             Quorum<HAGlue, QuorumClient<HAGlue>> quorum;
             synchronized (quorums) {

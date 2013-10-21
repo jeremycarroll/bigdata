@@ -973,7 +973,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
                 log.info("Creating service impl...");
 
             // init.
-            impl = newService(config);
+            impl = newService(config); // FIXME Pass in the HAClient.Connection.
             
             if (log.isInfoEnabled())
                 log.info("Service impl is " + impl);
@@ -1075,7 +1075,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
      * Simple representation of state (non-blocking, safe). Some fields reported
      * in the representation may be <code>null</code> depending on the server
      * state.
-     */
+     */@Override
     public String toString() {
         
         // note: MAY be null.
