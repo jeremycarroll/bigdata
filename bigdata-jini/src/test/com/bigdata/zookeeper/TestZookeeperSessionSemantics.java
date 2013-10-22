@@ -29,6 +29,7 @@ package com.bigdata.zookeeper;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -43,8 +44,6 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
-
-import cern.colt.Arrays;
 
 import com.bigdata.btree.BytesUtil;
 import com.bigdata.io.TestCase3;
