@@ -100,6 +100,9 @@ import org.apache.zookeeper.ZooKeeper;
  * @see http://wiki.apache.org/hadoop/ZooKeeper/FAQ, which has a state
  *      transition diagram for the {@link ZooKeeper} client.
  * 
+ * @see <a href="https://sourceforge.net/apps/trac/bigdata/ticket/718" >
+ *      HAJournalServer needs to handle ZK client connection loss </a>
+ * 
  *      FIXME Check all use of {@link SessionExpiredException}, of
  *      {@link ZooKeeper.States#CLOSED} or {@link ZooKeeper.States#isAlive()},
  *      and of {@link KeeperState#Expired}
