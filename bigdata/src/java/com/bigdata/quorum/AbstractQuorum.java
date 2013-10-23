@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -48,7 +49,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -639,18 +639,6 @@ public abstract class AbstractQuorum<S extends Remote, C extends QuorumClient<S>
 //                }
 //            }
 
-            /*
-             * Let the service know that it is no longer running w/ the quorum.
-             */
-            try {
-                client.terminate();
-            } catch (Throwable t) {
-                if (InnerCause.isInnerCause(t, InterruptedException.class)) {
-                    interrupted = true;
-                } else {
-                    launderThrowable(t);
-                }
-            }
             if (watcher != null) {
                 try {
                     watcher.terminate();
@@ -681,8 +669,13 @@ public abstract class AbstractQuorum<S extends Remote, C extends QuorumClient<S>
                     /*
                      * Cancel any tasks which did not terminate in a timely manner.
                      */
-                    watcherActionService.shutdownNow();
+                    final List<Runnable> notrun = watcherActionService.shutdownNow();
                     watcherActionService = null;
+                    for (Runnable r : notrun) {
+                        if (r instanceof Future) {
+                            ((Future<?>) r).cancel(true/* mayInterruptIfRunning */);
+                        }
+                    }
                 }
             }
             if (actorActionService != null) {
@@ -699,10 +692,15 @@ public abstract class AbstractQuorum<S extends Remote, C extends QuorumClient<S>
                     interrupted = true;
                 } finally {
                     /*
-                     * Cancel any tasks which did terminate in a timely manner.
+                     * Cancel any tasks which did not terminate in a timely manner.
                      */
-                    actorActionService.shutdownNow();
+                    final List<Runnable> notrun = actorActionService.shutdownNow();
                     actorActionService = null;
+                    for (Runnable r : notrun) {
+                        if (r instanceof Future) {
+                            ((Future<?>) r).cancel(true/* mayInterruptIfRunning */);
+                        }
+                    }
                 }
             }
             if (!sendSynchronous) {
@@ -715,7 +713,28 @@ public abstract class AbstractQuorum<S extends Remote, C extends QuorumClient<S>
                     // Will be propagated below.
                     interrupted = true;
                 } finally {
+                    /*
+                     * Cancel any tasks which did terminate in a timely manner.
+                     */
+                    final List<Runnable> notrun = eventService.shutdownNow();
                     eventService = null;
+                    for (Runnable r : notrun) {
+                        if (r instanceof Future) {
+                            ((Future<?>) r).cancel(true/* mayInterruptIfRunning */);
+                        }
+                    }
+                }
+            }
+            /*
+             * Let the service know that it is no longer running w/ the quorum.
+             */
+            try {
+                client.terminate();
+            } catch (Throwable t) {
+                if (InnerCause.isInnerCause(t, InterruptedException.class)) {
+                    interrupted = true;
+                } else {
+                    launderThrowable(t);
                 }
             }
             /*
@@ -840,6 +859,19 @@ public abstract class AbstractQuorum<S extends Remote, C extends QuorumClient<S>
         } finally {
             lock.unlock();
         }
+    }
+
+//    @Override
+    protected C getClientNoLock() {
+//        lock.lock();
+//        try {
+            final C client = this.client;
+            if (client == null)
+                throw new IllegalStateException();
+            return client;
+//        } finally {
+//            lock.unlock();
+//        }
     }
 
     @Override

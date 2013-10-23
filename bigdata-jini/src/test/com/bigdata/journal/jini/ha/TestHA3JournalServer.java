@@ -49,6 +49,7 @@ import com.bigdata.ha.halog.HALogWriter;
 import com.bigdata.ha.halog.IHALogReader;
 import com.bigdata.ha.msg.HARootBlockRequest;
 import com.bigdata.journal.AbstractJournal;
+import com.bigdata.journal.jini.ha.HAJournalTest.HAGlueTest;
 import com.bigdata.quorum.Quorum;
 import com.bigdata.rdf.sail.webapp.client.RemoteRepository;
 import com.bigdata.service.jini.JiniClientConfig;
@@ -1484,11 +1485,16 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         assertHALogNotFound(0L/* firstCommitCounter */, lastCommitCounter,
                 new HAGlue[] { serverA, serverB, serverC });
         
+        ((HAGlueTest)serverC).log("Will kill C");
+        ((HAGlueTest)serverB).log("Will kill C");
+        ((HAGlueTest)serverA).log("Will kill C");
+        
         // Now kill C - this will leave some file detritus
         kill(serverC);
         
         // wait around to let the kill play out by waiting for [A, B] pipeline
-        awaitPipeline(new HAGlue[] {serverA, serverB});
+        awaitPipeline(getZKSessionTimeout() + 5000, TimeUnit.MILLISECONDS,
+                new HAGlue[] { serverA, serverB });
 
         // assert quorum remains met
         assertTrue(quorum.isQuorumMet());
@@ -1770,22 +1776,33 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         assertLogCount(logsC, 0);
         
         // startup AB
-        startA();
-        startB();
+        final HAGlue serverA = startA();
+        final HAGlue serverB = startB();
         
         final long token1 = awaitMetQuorum();
+        awaitHAStatus(serverA, HAStatusEnum.Leader);
+        awaitHAStatus(serverB, HAStatusEnum.Follower);
         
         // Verify new quorum token.
         assertEquals(token + 1, token1);
-
+((HAGlueTest)serverA).log("MARK");
+((HAGlueTest)serverB).log("MARK");
+Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         // and check that there are open logs
         assertLogCount(logsA, 1);
         assertLogCount(logsB, 1);
         
         // add C
-        startC();
+        final HAGlue serverC = startC();
         
         assertEquals(token1, awaitFullyMetQuorum());
+        awaitHAStatus(serverA, HAStatusEnum.Leader);
+        awaitHAStatus(serverB, HAStatusEnum.Follower);
+        awaitHAStatus(serverC, HAStatusEnum.Follower);
+((HAGlueTest)serverA).log("MARK");
+((HAGlueTest)serverB).log("MARK");
+((HAGlueTest)serverC).log("MARK");
+Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         
         // and check again for ABC
         assertLogCount(logsA, 1);
@@ -1840,10 +1857,13 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         assertLogCount(logsC, 0);
         
         // startup AB
-        startA();
-        startB();
+        final HAGlue serverA = startA();
+        final HAGlue serverB = startB();
         
         final long token1 = awaitMetQuorum();
+((HAGlueTest)serverA).log("MARK");
+((HAGlueTest)serverB).log("MARK");
+Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         
         /*
          * Verify new quorum token (could be a quorum meet when the leader
@@ -1856,10 +1876,14 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         assertLogCount(logsB, 1);
         
         // add C
-        startC();
+        final HAGlue serverC = startC();
         
         // Verify quorum token is unchanged.
         assertEquals(token1, awaitFullyMetQuorum());
+((HAGlueTest)serverA).log("MARK");
+((HAGlueTest)serverB).log("MARK");
+((HAGlueTest)serverC).log("MARK");
+Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         
         // and check again for ABC
         assertLogCount(logsA, 1);

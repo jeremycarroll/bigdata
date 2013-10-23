@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.zookeeper.CreateMode;
@@ -95,67 +96,62 @@ import com.bigdata.zookeeper.ZooKeeperAccessor;
  *       partly inconsistent and can be used to test not only that the client
  *       can get reconnected, but also how it catches up with the actual state
  *       of the distributed quorum.
+ * 
+ *       FIXME - ZKQuorumImpl currently uses ZKQuorumClient for a generic type.
+ *       This is causing some bounds mismatch problems. I think that we should
+ *       back the ZKQuorumClient out of the generic type and use a runtime
+ *       assertion in ZKQuorumImpl.start(QuorumClient) to make sure that we are
+ *       using the right kind of QuorumClient.
  */
-public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
+public class ZKQuorumImpl<S extends Remote, C extends ZKQuorumClient<S>> extends
         AbstractQuorum<S, C> implements ZKQuorum<S, C> {
 
     /**
-     * Object for obtaining a live {@link ZooKeeper} connection.
-     */
-    private final ZooKeeperAccessor zka;
-
-    /**
-     * The ACLs for operations on the quorum state.
-     */
-    private final List<ACL> acl;
-
-    /**
-     * Return a live {@link ZooKeeper} connection.
-     * <p>
-     * Note: Because obtaining the {@link Zookeeper} connection for each
-     * individual request made to {@link Zookeeper} could cause an action to
-     * succeed which would otherwise fail due to an expired session, you MUST
-     * use this method to obtain a valid {@link Zookeeper} connection exactly
-     * ONCE for each top-level action in {@link ZkQuorumActor} and exactly ONCE
-     * for each event handled in {@link ZkQuorumWatcher}.
+     * Return the ACLs used by the quorum actor and watcher.
      * 
+     * @throws IllegalStateException
+     *             if the client is not running.
+     */
+    public List<ACL> getZookeeperACL() {
+
+        return getClientNoLock().getACL();
+        
+    }
+
+    /**
+     * The {@link ZooKeeper} connection for the client.
+     * 
+     * @return The {@link ZooKeeper} connection.
      * @throws InterruptedException
+     *             never
+     * @throws IllegalStateException
+     *             if the client is not running.
+     * 
+     *             TODO Remove InterruptedException?
      */
     public ZooKeeper getZookeeper() throws InterruptedException {
-
-        return zka.getZookeeper();
-
-    }
-
-    /**
-     * The ACLs used by the quorum actor and watcher.
-     */
-    protected List<ACL> getZookeeperACL() {
-
-        return acl;
-
-    }
     
+        return getClientNoLock().getZooKeeper();
+
+    }
+
     /**
      * 
-     * @param k
-     * @param zka
-     * @param acl
+     * @param k The replication factor.
      */
-    public ZKQuorumImpl(final int k, final ZooKeeperAccessor zka,
-            final List<ACL> acl) {
+    public ZKQuorumImpl(final int k) {
 
         super(k);
         
-        if(zka == null)
-            throw new IllegalArgumentException();
+//        if(zka == null)
+//            throw new IllegalArgumentException();
+//
+//        if(acl == null)
+//            throw new IllegalArgumentException();
 
-        if(acl == null)
-            throw new IllegalArgumentException();
-
-        this.zka = zka;
-        
-        this.acl = acl;
+//        this.zka = zka;
+//        
+//        this.acl = acl;
 
     }
 
@@ -1286,7 +1282,8 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
                 /*
                  * Setup the quorum state (lazily, eventually consistent).
                  */
-                setupQuorum(logicalServiceId, replicationFactor(), zka, acl);
+                setupQuorum(logicalServiceId, replicationFactor(),
+                        getZookeeper(), getZookeeperACL());
 
                 // Setup the watchers.
                 setupWatchers(getZookeeper());
@@ -1308,7 +1305,12 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
 
             if (watcherService != null) {
             
-                watcherService.shutdownNow();
+                final List<Runnable> notrun = watcherService.shutdownNow();
+                for (Runnable r : notrun) {
+                    if (r instanceof Future) {
+                        ((Future<?>) r).cancel(true/* mayInterruptIfRunning */);
+                    }
+                }
                 
                 watcherServiceRef.set(null);
                 
@@ -1431,14 +1433,19 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
         }
         
         /**
-         * Handle an expired session by waiting for a new {@link ZooKeeper}
-         * connection, setting up new watchers against the new session, and we
-         * pumping through a mock event for each of the watchers to get things
-         * moving again.
+         * Sends out an event notice. Once the ZK session is expired, the quorum
+         * can not do any more work. It needs to be terminated and and the
+         * start()ed again with a valid ZK session.
          */
         private void handleExpired() {
             log.error("ZOOKEEPER SESSION EXPIRED: token=" + token());
             doNotifyClientDisconnected();
+            /*
+             * FIXME We can not cure an expire ZK session. Instead, we tear down
+             * the QuorumClient, obtain a new HClient connectionm, and then
+             * restart the QuorumClient. Therefore this code should go since it
+             * not make progress.
+             */
             while (true) {
                 try {
                     // wait for a valid ZooKeeper connection.
@@ -1506,7 +1513,7 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
             {
                 QuorumTokenState tmp;
                 try {
-                    final byte[] data = zka.getZookeeper().getData(
+                    final byte[] data = getZookeeper().getData(
                             logicalServiceId + "/" + QUORUM, false/* watch */,
                             stat);
                     tmp = (QuorumTokenState) SerializerUtil.deserialize(data);
@@ -1640,7 +1647,7 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
                         );
 
                         // update znode unless version is changed.
-                        zka.getZookeeper().setData(
+                        getZookeeper().setData(
                                 logicalServiceId + "/" + QUORUM,
                                 SerializerUtil.serialize(tmp),
                                 stat.getVersion());
@@ -2218,7 +2225,7 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
 
                 final Stat stat = new Stat();
 
-                data = zka.getZookeeper().getData(quorumZPath,
+                data = getZookeeper().getData(quorumZPath,
                         false/* watch */, stat);
 
                 final QuorumTokenState tokenState = (QuorumTokenState) SerializerUtil
@@ -2309,7 +2316,7 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
                 oldState.lastValidToken(), oldState.token(),
                 replicationFactor());
         try {
-            zka.getZookeeper().setData(quorumZPath,
+            getZookeeper().setData(quorumZPath,
                     SerializerUtil.serialize(newState), stat.getVersion());
             // done.
             log.warn("Set replicationFactor: zpath=" + quorumZPath
@@ -2330,8 +2337,8 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
      * Ensure that the zpaths for the {@link BigdataZooDefs#QUORUM} and its
      * various persistent children exist.
      * 
-     * @param logicalServiceId
-     *            The fully qualified logical service identifier.
+     * @param logicalServiceZPath
+     *            The fully qualified logical service zpath.
      * @param replicationFactor
      *            The replication factor for the quorum (must be a non-negative,
      *            odd integer).
@@ -2343,10 +2350,48 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
      * @throws KeeperException
      * @throws InterruptedException
      */
-    static public void setupQuorum(final String logicalServiceId,
-            final int replicationFactor,
-            final ZooKeeperAccessor zka, final List<ACL> acl)
+    static public void setupQuorum(final String logicalServiceZPath,
+            final int replicationFactor, final ZooKeeper zk, final List<ACL> acl)
             throws KeeperException, InterruptedException {
+
+        /*
+         * Note: This does not work out. We do not always create a Quorum with
+         * the same length zpath prefix, at least not in the test suite.
+         */
+//        /*
+//         * Ensure key znodes exist.
+//         * 
+//         * Note: This breaks down the given logicalServiceZPath into components
+//         * and then builds them up to ensure that the necessary path components
+//         * exist.
+//         */
+//        {
+//            final String[] a = logicalServiceZPath.split("/");
+//            if (a.length != 4)
+//                throw new IllegalArgumentException(
+//                        "Bad zpath? logicalServiceZPath=" + logicalServiceZPath);
+//            final String zroot = a[1];
+//            final String logicalServiceZPathPrefix = zroot + "/" + a[2];
+////            final String logicalServiceIdentifier = a[3]; // ignore. full length.
+//            try {
+//                zk.create(zroot, new byte[] {/* data */}, acl,
+//                        CreateMode.PERSISTENT);
+//            } catch (NodeExistsException ex) {
+//                // ignore.
+//            }
+//            try {
+//                zk.create(logicalServiceZPathPrefix, new byte[] {/* data */},
+//                        acl, CreateMode.PERSISTENT);
+//            } catch (NodeExistsException ex) {
+//                // ignore.
+//            }
+//            try {
+//                zk.create(logicalServiceZPath, new byte[] {/* data */}, acl,
+//                        CreateMode.PERSISTENT);
+//            } catch (NodeExistsException ex) {
+//                // ignore.
+//            }
+//        }
 
         try {
             final QuorumTokenState tokenState = new QuorumTokenState(//
@@ -2354,7 +2399,7 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
                     Quorum.NO_QUORUM,// currentToken
                     replicationFactor// replicationFactor
             );
-            zka.getZookeeper().create(logicalServiceId + "/" + QUORUM,
+            zk.create(logicalServiceZPath + "/" + QUORUM,
                     SerializerUtil.serialize(tokenState), acl,
                     CreateMode.PERSISTENT);
         } catch (NodeExistsException ex) {
@@ -2362,32 +2407,32 @@ public class ZKQuorumImpl<S extends Remote, C extends QuorumClient<S>> extends
         }
 
         try {
-            zka.getZookeeper().create(
-                    logicalServiceId + "/" + QUORUM + "/" + QUORUM_MEMBER,
+            zk.create(
+                    logicalServiceZPath + "/" + QUORUM + "/" + QUORUM_MEMBER,
                     new byte[0]/* empty */, acl, CreateMode.PERSISTENT);
         } catch (NodeExistsException ex) {
             // ignore.
         }
 
         try {
-            zka.getZookeeper().create(
-                    logicalServiceId + "/" + QUORUM + "/" + QUORUM_VOTES,
+            zk.create(
+                    logicalServiceZPath + "/" + QUORUM + "/" + QUORUM_VOTES,
                     new byte[0]/* empty */, acl, CreateMode.PERSISTENT);
         } catch (NodeExistsException ex) {
             // ignore.
         }
 
         try {
-            zka.getZookeeper().create(
-                    logicalServiceId + "/" + QUORUM + "/" + QUORUM_JOINED,
+            zk.create(
+                    logicalServiceZPath + "/" + QUORUM + "/" + QUORUM_JOINED,
                     new byte[0]/* empty */, acl, CreateMode.PERSISTENT);
         } catch (NodeExistsException ex) {
             // ignore.
         }
 
         try {
-            zka.getZookeeper().create(
-                    logicalServiceId + "/" + QUORUM + "/" + QUORUM_PIPELINE,
+            zk.create(
+                    logicalServiceZPath + "/" + QUORUM + "/" + QUORUM_PIPELINE,
                     new byte[0]/* empty */, acl, CreateMode.PERSISTENT);
         } catch (NodeExistsException ex) {
             // ignore.

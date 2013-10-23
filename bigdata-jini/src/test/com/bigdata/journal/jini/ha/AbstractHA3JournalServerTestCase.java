@@ -89,6 +89,7 @@ import com.bigdata.quorum.AsynchronousQuorumCloseException;
 import com.bigdata.quorum.Quorum;
 import com.bigdata.quorum.QuorumClient;
 import com.bigdata.quorum.QuorumException;
+import com.bigdata.quorum.zk.ZKQuorumClient;
 import com.bigdata.quorum.zk.ZKQuorumImpl;
 import com.bigdata.rdf.sail.webapp.client.HttpException;
 import com.bigdata.service.jini.JiniClientConfig;
@@ -236,10 +237,46 @@ public class AbstractHA3JournalServerTestCase extends
 
     private HAGlueServicesClient discoveryClient = null;
     
+//    /**
+//     * The {@link ZooKeeperAccessor} used by the {@link #quorum}.
+//     */
+//    private ZooKeeperAccessor zka = null;
+    
     /**
-     * The {@link ZooKeeperAccessor} used by the {@link #quorum}.
+     * The {@link ZooKeeper} instance used by the {@link #quorum}.
      */
-    private ZooKeeperAccessor zka = null;
+    private ZooKeeper zookeeper = null;
+    
+    private ZookeeperClientConfig zkClientConfig = null;
+    
+//    /**
+//     * The {@link ACL}s used by the {@link #quorum}.
+//     */
+//    private List<ACL> acl = null;
+
+    /**
+     * The {@link ZooKeeper} instance used by the {@link #quorum}.
+     */
+    private ZooKeeper getZookeeper() {
+        final ZooKeeper zookeeper = this.zookeeper;
+        if (zookeeper == null)
+            throw new IllegalStateException();
+        return zookeeper;
+    }
+    
+    protected int getZKSessionTimeout() {
+        final ZooKeeper zookeeper = this.zookeeper;
+        if (zookeeper != null) {
+            final int t = zookeeper.getSessionTimeout();
+            if (t > 0)
+                return t;
+        }
+        ZookeeperClientConfig t = zkClientConfig;
+        if (t != null) {
+            return t.sessionTimeout;
+        }
+        return 10000;
+    }
     
     /**
      * The logicalServiceId (without the zroot prefix).
@@ -273,6 +310,21 @@ public class AbstractHA3JournalServerTestCase extends
         }
 
         super.setUp();
+
+//        /*
+//         * Some tests tear down the zookeeper server process. This ensures that
+//         * we restart that server process before running another test.
+//         */
+//        try {
+//            assertZookeeperRunning();
+//        } catch (AssertionFailedError ex) {
+//            try {
+//                log.warn("Forcing ZooKeeper server process restart.");
+//                startZookeeper();
+//            } catch (RuntimeException ex2) {
+//                log.error(ex2, ex2);
+//            }
+//        }
 
         // Unique for each test.
         logicalServiceId = "CI-HAJournal-" + getName() + "-" + UUID.randomUUID();
@@ -317,7 +369,7 @@ public class AbstractHA3JournalServerTestCase extends
     @Override
     protected void tearDown() throws Exception {
 
-        if (quorum != null && log.isInfoEnabled()) {
+         if (quorum != null && log.isInfoEnabled()) {
 
             /*
              * Echo the final quorum state (as currently reflected).
@@ -327,7 +379,7 @@ public class AbstractHA3JournalServerTestCase extends
 
         }
         
-        if (zka != null && log.isInfoEnabled()) {
+        if (zookeeper != null && log.isInfoEnabled()) {
 
             /*
              * Dump the final zookeeper state for the logical service.
@@ -359,19 +411,19 @@ public class AbstractHA3JournalServerTestCase extends
             quorum = null;
         }
 
-        if (zka != null) {
+        if (zookeeper != null) {
             final String zroot = logicalServiceZPath;
-            final ZooKeeper zookeeper = zka.getZookeeper();
             destroyZNodes(zroot, zookeeper);
-            zka.close();
-            zka = null;
+            zookeeper.close();
+            zookeeper = null;
+            zkClientConfig = null;
         }
 
         logicalServiceId = null;
         logicalServiceZPath = null;
         serverAId = serverBId = serverCId = null;
 
-        super.tearDown();
+       super.tearDown();
 
     }
 
@@ -448,9 +500,20 @@ public class AbstractHA3JournalServerTestCase extends
      * @throws IOException
      */
     protected void awaitPipeline(final HAGlue[] members) throws IOException {
-        
+        awaitPipeline(5, TimeUnit.SECONDS, members);
+    }
+
+    /**
+     * Waits for pipeline in expected order
+     * 
+     * @param members
+     * @throws IOException
+     */
+    protected void awaitPipeline(final long timeout, final TimeUnit unit,
+            final HAGlue[] members) throws IOException {
+
         final UUID[] services = getServices(members);
-        
+
         assertCondition(new Runnable() {
             public void run() {
                 try {
@@ -461,7 +524,7 @@ public class AbstractHA3JournalServerTestCase extends
                 }
             }
 
-        }, 5, TimeUnit.SECONDS);
+        }, timeout, unit);
         
     }
     
@@ -658,9 +721,17 @@ public class AbstractHA3JournalServerTestCase extends
 
         final PrintWriter w = new PrintWriter(sw);
 
-        new DumpZookeeper(zka.getZookeeper()).dump(w, true/* showData */,
-                logicalServiceZPath, 0/* depth */);
-
+        final ZooKeeper zk = getZookeeper();
+        try {
+            new DumpZookeeper(zk).dump(w, true/* showData */,
+                    logicalServiceZPath, 0/* depth */);
+        } catch (KeeperException ex) {
+            /*
+             * Note: This is expected if you have shut down the zookeeper server
+             * process under test suite control.
+             */
+            ex.printStackTrace(w);
+        }
         w.flush();
         w.close();
 
@@ -679,16 +750,19 @@ public class AbstractHA3JournalServerTestCase extends
     protected void safeDestroy(final HAGlue haGlue, final File serviceDir,
             final ServiceListener serviceListener) {
 
+        if (log.isInfoEnabled())
+            log.info("Destroying service: " + haGlue + ", serviceDir="
+                    + serviceDir);
+
         if (haGlue == null) {
-        	tidyServiceDirectory(serviceDir); // ensure empty
-        	
+
+            tidyServiceDirectory(serviceDir); // ensure empty
+
             return;
+            
         }
 
         try {
-
-            if (log.isInfoEnabled())
-                log.info("Destroying service: " + haGlue);
 
             final UUID serviceId = haGlue.getServiceUUID();
 
@@ -700,16 +774,23 @@ public class AbstractHA3JournalServerTestCase extends
             
             if (InnerCause.isInnerCause(t, java.net.ConnectException.class)) {
             
-                log.warn("Service is down: " + t);
+                log.warn("Service is down (RMI not allowed): " + t);
                 
             } else {
-
+                
                 // Some other problem.
                 log.error(t, t);
+
+            }
+            
+            {
 
                 if (serviceListener != null && serviceListener.childPID != 0) {
 
                     final int childPID = serviceListener.childPID;
+
+                    log.warn("Attempting to signal service: " + serviceDir
+                            + ", pid=" + childPID);
 
                     // Try to request a thread dump.
                     if (trySignal(SignalEnum.QUIT, childPID)) {
@@ -1197,16 +1278,17 @@ public class AbstractHA3JournalServerTestCase extends
         final Configuration config = ConfigurationProvider
                 .getInstance(new String[] { SRC_PATH + "zkClient.config" });
 
-        final ZookeeperClientConfig zkClientConfig = new ZookeeperClientConfig(
-                config);
+        zkClientConfig = new ZookeeperClientConfig(config);
 
         final List<ACL> acl = zkClientConfig.acl;
         final String zoohosts = zkClientConfig.servers;
         final int sessionTimeout = zkClientConfig.sessionTimeout;
 
         // Note: Save reference.
-        zka = new ZooKeeperAccessor(zoohosts, sessionTimeout);
-
+        this.zookeeper = new ZooKeeperAccessor(zoohosts, sessionTimeout)
+                .getZookeeper();
+//        this.acl = acl;
+        
         // znode name for the logical service.
 //        final String logicalServiceId = (String) config.getEntry(
 //                ZookeeperClientConfig.Options.NAMESPACE,
@@ -1224,41 +1306,41 @@ public class AbstractHA3JournalServerTestCase extends
                 ZookeeperClientConfig.Options.NAMESPACE,
                 ConfigurationOptions.REPLICATION_FACTOR, Integer.TYPE);        
 
-        if (!zka.awaitZookeeperConnected(10, TimeUnit.SECONDS)) {
-
-            throw new RuntimeException("Could not connect to zk");
-
-        }
-
-        if (log.isInfoEnabled()) {
-            log.info("Connected to zookeeper");
-        }
+//        if (!zka.awaitZookeeperConnected(10, TimeUnit.SECONDS)) {
+//
+//            throw new RuntimeException("Could not connect to zk");
+//
+//        }
+//
+//        if (log.isInfoEnabled()) {
+//            log.info("Connected to zookeeper");
+//        }
 
         /*
          * Ensure key znodes exist.
          */
         try {
-            zka.getZookeeper().create(zkClientConfig.zroot,
+            getZookeeper().create(zkClientConfig.zroot,
                     new byte[] {/* data */}, acl, CreateMode.PERSISTENT);
         } catch (NodeExistsException ex) {
             // ignore.
         }
         try {
-            zka.getZookeeper().create(logicalServiceZPathPrefix,
+            getZookeeper().create(logicalServiceZPathPrefix,
                     new byte[] {/* data */}, acl, CreateMode.PERSISTENT);
         } catch (NodeExistsException ex) {
             // ignore.
         }
         try {
-            zka.getZookeeper().create(logicalServiceZPath,
+            getZookeeper().create(logicalServiceZPath,
                     new byte[] {/* data */}, acl, CreateMode.PERSISTENT);
         } catch (NodeExistsException ex) {
             // ignore.
         }
 
         // Quorum that can be used to monitor the distributed quorum state.
-        final Quorum<HAGlue, QuorumClient<HAGlue>> quorum = new ZKQuorumImpl<HAGlue, QuorumClient<HAGlue>>(
-                replicationFactor, zka, acl);
+        final Quorum<HAGlue, QuorumClient<HAGlue>> quorum = (Quorum) new ZKQuorumImpl<HAGlue, ZKQuorumClient<HAGlue>>(
+                replicationFactor);//, zka, acl);
 
         quorum.start(new MockQuorumClient<HAGlue>(logicalServiceZPath));
         
@@ -1278,12 +1360,12 @@ public class AbstractHA3JournalServerTestCase extends
     }
 
     private class MockQuorumClient<S extends Remote> extends
-            AbstractQuorumClient<S> {
+            AbstractQuorumClient<S> implements ZKQuorumClient<S> {
 
         protected MockQuorumClient(String logicalServiceId) {
 
             super(logicalServiceId);
-
+            
         }
 
         /**
@@ -1308,6 +1390,17 @@ public class AbstractHA3JournalServerTestCase extends
 
             return service;
 
+        }
+
+        @Override
+        public ZooKeeper getZooKeeper() {
+            return zookeeper;
+        }
+
+        @Override
+        public List<ACL> getACL() {
+            final ZookeeperClientConfig t = zkClientConfig;
+            return t == null ? null : t.acl;
         }
 
     }
@@ -2203,7 +2296,7 @@ public class AbstractHA3JournalServerTestCase extends
                     throw new RuntimeException(e);
                 }
             }
-        }, 20, TimeUnit.SECONDS);
+        }, getZKSessionTimeout() + 5000, TimeUnit.MILLISECONDS);
 
         quorum.assertQuorum(token+1);
         

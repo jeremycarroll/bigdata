@@ -38,6 +38,8 @@ import org.apache.log4j.Level;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
 
 import com.bigdata.quorum.AsynchronousQuorumCloseException;
 import com.bigdata.quorum.QuorumActor;
@@ -85,7 +87,7 @@ public class TestZkQuorum extends AbstractZooTestCase {
         final int replicationFactor = 3;
         
         ZKQuorumImpl.setupQuorum(logicalServiceId, replicationFactor,
-                zookeeperAccessor, acl);
+                zookeeper, acl);
 
         dumpZoo(Level.INFO, "setupQuorum", logicalServiceId);
         
@@ -146,7 +148,8 @@ public class TestZkQuorum extends AbstractZooTestCase {
              */
             for (int i = 0; i < k; i++) {
                 accessors[i] = getZooKeeperAccessorWithDistinctSession();
-                quorums[i] = new ZKQuorumImpl(k, accessors[i], acl);
+                final ZooKeeper zk = accessors[i].getZookeeper();
+                quorums[i] = new ZKQuorumImpl(k);//, accessors[i], acl);
                 clients[i] = new MockQuorumMember(logicalServiceId, registrar){
                     public Remote newService() {
                         try {
@@ -154,6 +157,15 @@ public class TestZkQuorum extends AbstractZooTestCase {
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
+                    }
+                    @Override
+                    public ZooKeeper getZooKeeper() {
+                        return zk;
+                    }
+
+                    @Override
+                    public List getACL() {
+                        return acl;
                     }
                 };
                 registrar.put(clients[i].getServiceId(), clients[i].getService());

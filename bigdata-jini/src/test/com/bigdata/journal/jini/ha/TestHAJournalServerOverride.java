@@ -31,6 +31,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import junit.framework.AssertionFailedError;
+
 import net.jini.config.Configuration;
 
 import com.bigdata.ha.HACommitGlue;
@@ -590,7 +592,7 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
      *      HAJournalServer needs to handle ZK client connection loss </a>
      */
     public void testStartAB_BounceFollower() throws Exception {
-    	doBounceFollower();
+        doBounceFollower();
     }
     
     public void _testStressStartAB_BounceFollower() throws Exception {
@@ -748,9 +750,7 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
             
             final HAGlue leader = quorum.getClient().getLeader(token1);
 
-//            final UUID leaderId1 = leader.getServiceId();
-            
-            ((HAGlueTest)leader).bounceZookeeperConnection().get();
+            ((HAGlueTest) leader).bounceZookeeperConnection().get();
 
             // Wait for the quorum to break and then meet again.
             final long token2 = awaitNextQuorumMeet(token1);
@@ -893,43 +893,43 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
 //    }
 
     public void testStartAB_StopStartZookeeper() throws Exception {
-        
-    	doStartAB_StopStartZookeeper();
+
+        doStartAB_StopStartZookeeper();
     }
-    
+
     public void testStartAB_StopStartZookeeperA() throws Exception {
-        
-    	doStartAB_StopStartZookeeper();
+
+        doStartAB_StopStartZookeeper();
     }
-    
+
     public void testStartAB_StopStartZookeeperB() throws Exception {
-        
-    	doStartAB_StopStartZookeeper();
+
+        doStartAB_StopStartZookeeper();
     }
-    
+
     public void testStartAB_StopStartZookeeperC() throws Exception {
-        
-    	doStartAB_StopStartZookeeper();
+
+        doStartAB_StopStartZookeeper();
     }
-    
+
     public void testStartAB_StopStartZookeeperD() throws Exception {
-        
-    	doStartAB_StopStartZookeeper();
+
+        doStartAB_StopStartZookeeper();
     }
-    
+
     public void testStartAB_StopStartZookeeperE() throws Exception {
-        
-    	doStartAB_StopStartZookeeper();
+
+        doStartAB_StopStartZookeeper();
     }
-    
+
     public void testStartAB_StopStartZookeeperF() throws Exception {
-        
-    	doStartAB_StopStartZookeeper();
+
+        doStartAB_StopStartZookeeper();
     }
-    
+
     public void testStartAB_StopStartZookeeperG() throws Exception {
-        
-    	doStartAB_StopStartZookeeper();
+
+        doStartAB_StopStartZookeeper();
     }
     
     public void doStartAB_StopStartZookeeper() throws Exception {
@@ -951,11 +951,18 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
         ((HAGlueTest)serverA).log("WILL SHUTDOWN ZOOKEEPER");
         stopZookeeper();
         assertZookeeperNotRunning();
-        
         /*
-         * Make sure that the clients know that they are disconnected (otherwise
-         * this can take up to the zk session timeout).
+         * Force transition into the error state. The service will not otherwise
+         * notice that zookeeper is unreachable (it only actively uses zookeeper
+         * when acting on the quorum or processing events from zookeeper).
          */
+        ((HAGlueTest)serverA).enterErrorState();
+        ((HAGlueTest)serverB).enterErrorState();
+        
+//        /*
+//         * Make sure that the clients know that they are disconnected (otherwise
+//         * this can take up to the zk session timeout).
+//         */
 //        ((HAGlueTest)serverA).dropZookeeperConnection();
 //        ((HAGlueTest)serverB).dropZookeeperConnection();
 
@@ -971,17 +978,21 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
          * (right now these operations can contend that lock and block during
          * doServiceLeave() in the ErrorTask).
          */
-//        /*
-//         * The services should be NotReady (their haReadyToken and haStatus
-//         * should all have been cleared).
-//         */
-//        awaitHAStatus(serverA, HAStatusEnum.NotReady);
-//        awaitHAStatus(serverB, HAStatusEnum.NotReady);
-//        if (log.isInfoEnabled()) {
-//            log.info("A:: " + serverA.getExtendedRunState());
-//            log.info("B:: " + serverB.getExtendedRunState());
-//        }
-//
+        /*
+         * The services should be NotReady (their haReadyToken and haStatus
+         * should all have been cleared).
+         */
+        awaitHAStatus(serverA, HAStatusEnum.NotReady);
+        awaitHAStatus(serverB, HAStatusEnum.NotReady);
+        if (log.isInfoEnabled()) {
+            log.info("A:: " + serverA.getExtendedRunState());
+            log.info("B:: " + serverB.getExtendedRunState());
+        }
+
+        /*
+         * Actually, we now stop the HAQuorumService, so the services are not in
+         * any RunStateEnum.
+         */
 //        /*
 //         * The services should be in the Error state. They can not leave that
 //         * state until we restart zookeeper, at which point they can finish
