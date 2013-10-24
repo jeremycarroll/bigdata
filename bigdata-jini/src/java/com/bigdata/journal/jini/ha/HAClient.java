@@ -860,21 +860,36 @@ public class HAClient {
                  * @see https://issues.apache.org/jira/browse/ZOOKEEPER-1666
                  */
                 {
+                    boolean reverseDSNError = false;
                     final long begin = System.nanoTime();
                     while (zk.getState().isAlive()) {
                         if (zk.getState() == States.CONNECTED) {
                             // connected.
                             break;
                         }
+                        final long elapsed = System.nanoTime() - begin;
+                        if (!reverseDSNError
+                                && TimeUnit.NANOSECONDS.toSeconds(elapsed) > 4) {
+                            reverseDSNError = true; // just one warning.
+                            log.error("Reverse DNS is not configured. The ZooKeeper client is taking too long to resolve server(s): "
+                                    + zooConfig.servers
+                                    + ", took="
+                                    + TimeUnit.NANOSECONDS.toMillis(elapsed)
+                                    + "ms");
+                        }
+                        if (TimeUnit.NANOSECONDS.toSeconds(elapsed) > 10) {
+                            // Fail if we can not reach zookeeper.
+                            throw new RuntimeException(
+                                    "Could not connect to zookeeper: state="
+                                            + zk.getState()
+                                            + ", config"
+                                            + zooConfig
+                                            + ", elapsed="
+                                            + TimeUnit.NANOSECONDS
+                                                    .toMillis(elapsed) + "ms");
+                        }
                         // wait and then retry.
                         Thread.sleep(100/* ms */);
-                    }
-                    final long elapsed = System.nanoTime() - begin;
-                    if (TimeUnit.NANOSECONDS.toSeconds(elapsed) > 4) {
-                        log.error("Reverse DNS is not configured. The ZooKeeper client is taking too long to resolve server(s): "
-                                + zooConfig.servers
-                                + ", took="
-                                + TimeUnit.NANOSECONDS.toMillis(elapsed) + "ms");
                     }
                 }
 
@@ -883,7 +898,7 @@ public class HAClient {
 
                 log.info("Done.");
                 
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
 
                 log.fatal(
                         "Problem initiating service discovery: "

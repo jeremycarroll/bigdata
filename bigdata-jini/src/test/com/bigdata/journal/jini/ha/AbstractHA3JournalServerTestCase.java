@@ -1319,15 +1319,18 @@ public class AbstractHA3JournalServerTestCase extends
                     // connected.
                     break;
                 }
+                final long elapsed = System.nanoTime() - begin;
+                if (TimeUnit.NANOSECONDS.toSeconds(elapsed) > 4) {
+                    fail("Either zookeeper is not running or reverse DNS is not configured. "
+                            + "The ZooKeeper client is taking too long to resolve server(s): state="
+                            + zookeeper.getState()
+                            + ", config="
+                            + zkClientConfig
+                            + ", took="
+                            + TimeUnit.NANOSECONDS.toMillis(elapsed) + "ms");
+                }
                 // wait and then retry.
                 Thread.sleep(100/* ms */);
-            }
-            final long elapsed = System.nanoTime() - begin;
-            if (TimeUnit.NANOSECONDS.toSeconds(elapsed) > 4) {
-                fail("Reverse DNS is not configured. The ZooKeeper client is taking too long to resolve server(s): "
-                        + zoohosts
-                        + ", took="
-                        + TimeUnit.NANOSECONDS.toMillis(elapsed) + "ms");
             }
         }
         
@@ -2903,8 +2906,10 @@ public class AbstractHA3JournalServerTestCase extends
      * @throws IOException
      */
     protected void stopZookeeper() throws InterruptedException, IOException {
+        assertZookeeperRunning();
         log.warn("");
         zkCommand("stop");
+        assertZookeeperNotRunning();
     }
 
     /**
@@ -2916,8 +2921,10 @@ public class AbstractHA3JournalServerTestCase extends
      * @throws IOException
      */
     protected void startZookeeper() throws InterruptedException, IOException {
+        assertZookeeperNotRunning();
         log.warn("");
         zkCommand("start");
+        assertZookeeperRunning();
     }
 
     /**
@@ -2943,11 +2950,19 @@ public class AbstractHA3JournalServerTestCase extends
             fail("System property not defined: " + pname);
         final File zookeeperDir = new File(zookeeperDirStr);
         if (!zookeeperDir.exists())
-            fail("No such file: " + pname);
+            fail("No such file: " + zookeeperDir);
+        final File binDir = new File(zookeeperDir, "bin");
+        if (!binDir.exists())
+            fail("No such file: " + binDir);
+        final String shell = SystemUtil.isWindows() ? "cmd" : "/bin/sh";
         final String executable = SystemUtil.isWindows() ? "zkServer.cmd"
                 : "zkServer.sh";
-        final ProcessBuilder pb = new ProcessBuilder("/bin/sh", executable, cmd);
-        pb.directory(new File(zookeeperDir, "bin"));
+        if (log.isInfoEnabled())
+            log.info("installDir=" + zookeeperDirStr + ", binDir=" + binDir
+                    + ", shell=" + shell + ", executable=" + executable
+                    + ", cmd=" + cmd);
+        final ProcessBuilder pb = new ProcessBuilder(shell, executable, cmd);
+        pb.directory(binDir);
         final int exitCode = pb.start().waitFor();
         // Make sure that the command executed normally!
         assertEquals("exitCode=" + exitCode, 0, exitCode);
@@ -2958,35 +2973,45 @@ public class AbstractHA3JournalServerTestCase extends
     /** Verify zookeeper is running on the local host at the client port. */
     protected void assertZookeeperRunning() {
 
-        final int clientPort = Integer.valueOf(System.getProperty(
-                "test.zookeeper.clientPort", "2081"));
-
-        final InetAddress localIpAddr = NicUtil.getInetAddress(null, 0, null,
-                true);
-        try {
-            ZooHelper.ruok(localIpAddr, clientPort);
-        } catch (Throwable t) {
-            fail("Zookeeper not running:: " + localIpAddr + ":" + clientPort, t);
-        }
+        if (!isZookeeperRunning())
+            fail("Zookeeper not running: localIP=" + getZKInetAddress()
+                    + ", clientPort=" + getZKClientPort());
 
     }
 
     /** Verify zookeeper is not running on the local host at the client port. */
     protected void assertZookeeperNotRunning() {
-        final int clientPort = Integer.valueOf(System.getProperty(
-                "test.zookeeper.clientPort", "2081"));
-        final InetAddress localIpAddr = NicUtil.getInetAddress(null, 0, null,
-                true);
+
+        if (isZookeeperRunning())
+            fail("Zookeeper is running: localIP=" + getZKInetAddress()
+                    + ", clientPort=" + getZKClientPort());
+        
+    }
+
+    /**
+     * Return <code>true</code>iff zookeeper is running on the local host at the
+     * client port.
+     */
+    private boolean isZookeeperRunning() {
+        final int clientPort = getZKClientPort();
+        final InetAddress localIpAddr = getZKInetAddress();
+        boolean running = false;
         try {
             ZooHelper.ruok(localIpAddr, clientPort);
-            fail("Zookeeper is running: localIpAddr=" + localIpAddr
-                    + ", clientPort=" + clientPort);
+            running = true;
         } catch (Throwable t) {
-            if (log.isInfoEnabled())
-                log.info("Zookeeper not running:: " + localIpAddr + ":"
-                        + clientPort);
+            log.warn("localIpAddr=" + localIpAddr + ":: t", t);
         }
+        return running;
+    }
 
+    private int getZKClientPort() {
+        return Integer.valueOf(System.getProperty("test.zookeeper.clientPort",
+                "2081"));
+    }
+
+    private InetAddress getZKInetAddress() {
+        return NicUtil.getInetAddress(null, 0, null, true);
     }
 
 }
