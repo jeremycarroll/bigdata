@@ -31,8 +31,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import junit.framework.AssertionFailedError;
-
 import net.jini.config.Configuration;
 
 import com.bigdata.ha.HACommitGlue;
@@ -42,7 +40,6 @@ import com.bigdata.ha.msg.IHA2PhaseCommitMessage;
 import com.bigdata.ha.msg.IHA2PhasePrepareMessage;
 import com.bigdata.ha.msg.IHANotifyReleaseTimeRequest;
 import com.bigdata.journal.AbstractTask;
-import com.bigdata.journal.jini.ha.HAJournalServer.RunStateEnum;
 import com.bigdata.journal.jini.ha.HAJournalTest.HAGlueTest;
 import com.bigdata.journal.jini.ha.HAJournalTest.SpuriousTestException;
 import com.bigdata.quorum.AsynchronousQuorumCloseException;
@@ -693,6 +690,8 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
              */
             for (HAGlue service : new HAGlue[] { serverA, serverB }) {
 
+                awaitNSSAndHAReady(service);
+
                 final RemoteRepository repo = getRemoteRepository(service);
 
                 // Should be empty.
@@ -774,7 +773,7 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
             
             // Verify leader self-reports in new role.
             awaitHAStatus(leader2, HAStatusEnum.Leader);
-            
+
             /*
              * Verify we can read on the KB on both nodes.
              * 
@@ -783,6 +782,8 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
              */
             for (HAGlue service : new HAGlue[] { serverA, serverB }) {
 
+                awaitNSSAndHAReady(service);
+                
                 final RemoteRepository repo = getRemoteRepository(service);
 
                 // Should be empty.

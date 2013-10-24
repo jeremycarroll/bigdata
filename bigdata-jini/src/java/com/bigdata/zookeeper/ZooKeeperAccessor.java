@@ -266,7 +266,7 @@ public class ZooKeeperAccessor {
                     try {
     
                         log.warn("Creating new client");
-                        // FIXME must not create new zk while session not expired.
+
                         zookeeper = new ZooKeeper(hosts, sessionTimeout,
                                 new ZooAliveWatcher());
     

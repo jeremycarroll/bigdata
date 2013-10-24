@@ -623,9 +623,8 @@ public class HAJournalServer extends AbstractServer {
      */
     private void setupZNodes() throws KeeperException, InterruptedException {
 
-        if (log.isInfoEnabled()) {
+        if (log.isInfoEnabled())
             log.info("Ensuring key znodes exist.");
-        }
 
         final ZookeeperClientConfig zkClientConfig = getHAClient()
                 .getZookeeperClientConfig();
@@ -660,6 +659,9 @@ public class HAJournalServer extends AbstractServer {
     
     @Override
     protected HAGlue newService(final Configuration config) throws Exception {
+
+        if (log.isInfoEnabled())
+            log.info("Creating service impl...");
 
 //        /*
 //         * Verify discovery of at least one ServiceRegistrar.
@@ -1365,6 +1367,7 @@ public class HAJournalServer extends AbstractServer {
              * Verify discovery of at least one ServiceRegistrar.
              */
             try {
+                log.info("Awaiting service registrar discovery.");
                 server.getHAClient()
                         .getConnection()
                         .awaitServiceRegistrars(10/* timeout */,
@@ -1377,8 +1380,6 @@ public class HAJournalServer extends AbstractServer {
             
             // Ensure key znodes exist.
             try {
-                //  
-                // 
                 server.setupZNodes();
             } catch (KeeperException e) {
                 throw new RuntimeException(e);
@@ -1402,9 +1403,6 @@ public class HAJournalServer extends AbstractServer {
                         log.trace(e);
                 }
             });
-
-            // Export the service proxy.
-            server.exportProxy(server.haGlueService);
             
             // Enter a run state for the HAJournalServer.
             runStateRef.set(null); // clear reference.
@@ -1445,26 +1443,7 @@ public class HAJournalServer extends AbstractServer {
                 }
 
             }
-            
-            /*
-             * Unexport the proxy, making the service no longer available.
-             * 
-             * Note: If you do not do this then the client can still make
-             * requests even after you have terminated the join manager and the
-             * service is no longer visible in the service browser.
-             */
-            try {
-
-                server.unexport(true/* force */);
-
-            } catch (Throwable ex) {
-
-                log.error("Problem unexporting service: " + this, ex);
-
-                /* Ignore */
-
-            }
-            
+                        
             // Disconnect. Terminate River and Zookeeper processing.
             server.getHAClient().disconnect(true/* immediateShutdown */);
 
@@ -2139,13 +2118,16 @@ public class HAJournalServer extends AbstractServer {
                             // Reduce to negotiated timeout GT ZERO.
                             sessionTimeout = sessionTimeout2;
                         }
-                        if (zk.getState().isConnected()) {
+                        switch(zk.getState()) {
+                        case CONNECTED:
                             break;
                         }
                         final long elapsed = System.nanoTime() - begin;
                         if (elapsed > TimeUnit.MILLISECONDS
                                 .toNanos(sessionTimeout)) {
-                            log.error("Tearing down service: ZK Session remains disconnected");
+                            log.error("Tearing down service: ZK Session remains disconnected for "
+                                    + TimeUnit.NANOSECONDS.toMillis(elapsed)
+                                    + "ms, effectiveTimeout=" + sessionTimeout);
                             restartHAQuorumService();
                             break;
                         }
@@ -2253,6 +2235,11 @@ public class HAJournalServer extends AbstractServer {
                              */
                             log.warn("HAQuorumService: TERMINATE");
                             journal.getQuorum().terminate();
+                            /*
+                             * Force the clear of the token since disconnected
+                             * from zookeeper.
+                             */
+                            journal.clearQuorumToken(Quorum.NO_QUORUM);
                         } catch (Throwable t) {
                             log.error(t, t);
                             // Re-enter the ErrorTask.

@@ -213,8 +213,6 @@ public class TestZookeeperSessionSemantics extends TestCase3 {
                         switch (event.getState()) {
                         case AuthFailed:
                             break;
-                        case ConnectedReadOnly:
-                            break;
                         case Disconnected:
                             lock.lock();
                             try {
@@ -233,10 +231,12 @@ public class TestZookeeperSessionSemantics extends TestCase3 {
                                 lock.unlock();
                             }
                             break;
-                        case NoSyncConnected:
-                            break;
-                        case SaslAuthenticated:
-                            break;
+//                        case ConnectedReadOnly: // not in 3.3.3
+//                            break;
+//                        case NoSyncConnected: // not in 3.3.3
+//                            break;
+//                        case SaslAuthenticated: // not in 3.3.3
+//                            break;
                         case SyncConnected:
                             lock.lock();
                             try {

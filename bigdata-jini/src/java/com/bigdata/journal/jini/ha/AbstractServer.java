@@ -53,11 +53,13 @@ import net.jini.admin.JoinAdmin;
 import net.jini.config.Configuration;
 import net.jini.config.ConfigurationException;
 import net.jini.config.ConfigurationProvider;
+import net.jini.core.discovery.LookupLocator;
 import net.jini.core.entry.Entry;
 import net.jini.core.lookup.ServiceID;
 import net.jini.core.lookup.ServiceRegistrar;
 import net.jini.discovery.DiscoveryEvent;
 import net.jini.discovery.DiscoveryListener;
+import net.jini.discovery.LookupDiscoveryManager;
 import net.jini.export.Exporter;
 import net.jini.jeri.BasicILFactory;
 import net.jini.jeri.BasicJeriExporter;
@@ -259,7 +261,9 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
      * The {@link Configuration} read based on the args[] provided when the
      * server is started.
      */
-    protected Configuration config;
+    protected final Configuration config;
+
+    private final JiniClientConfig jiniClientConfig;
 
     /**
      * The as-configured entry attributes.
@@ -619,7 +623,6 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
         List<Entry> entries = null;
         
         final String COMPONENT = getClass().getName();
-        final JiniClientConfig jiniClientConfig;
         try {
 
             // Create client.
@@ -1123,10 +1126,59 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
     }
 
     /**
-     * Export a proxy object for this service instance.
+     * Attempt to start lookup discovery.
+     * <p>
+     * Note: The returned service will perform multicast discovery if ALL_GROUPS
+     * is specified and otherwise requires you to specify one or more unicast
+     * locators (URIs of hosts running discovery services).
+     * 
+     * @return The {@link LookupDiscoveryManager}. The caller MUST invoke
+     *         {@link LookupDiscoveryManager#terminate()} when they are done
+     *         with this service.
+     * 
+     * @see JiniClientConfig
+     * @see JiniClientConfig#Options
+     * 
+     * @throws ConfigurationException
+     * @throws IOException
      */
-    synchronized protected void exportProxy(final Remote impl) {
+    synchronized LookupDiscoveryManager startLookupDiscoveryManager(
+            final Configuration config) throws ConfigurationException,
+            IOException {
 
+        if (lookupDiscoveryManager == null) {
+            
+            log.info("Starting lookup discovery.");
+            
+            final String[] groups = jiniClientConfig.groups;
+
+            final LookupLocator[] lookupLocators = jiniClientConfig.locators;
+
+            this.lookupDiscoveryManager = new LookupDiscoveryManager(groups,
+                    lookupLocators, null /* DiscoveryListener */, config);
+        
+        }
+        
+        return lookupDiscoveryManager;
+
+    }
+    private LookupDiscoveryManager lookupDiscoveryManager;
+
+    /**
+     * Export a proxy object for this service instance.
+     * 
+     * @throws IOException
+     * @throws ConfigurationException
+     */
+    synchronized private void exportProxy(final Remote impl)
+            throws ConfigurationException, IOException {
+
+        /*
+         * Note: We run our own LookupDiscoveryManager in order to avoid forcing
+         * an unexport of the service proxy when the HAClient is terminated.
+         */
+        final LookupDiscoveryManager lookupDiscoveryManager = startLookupDiscoveryManager(config);
+        
         /*
          * Export a proxy object for this service instance.
          * 
@@ -1157,9 +1209,6 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
             // The as-configured Entry[] attributes.
             final Entry[] attributes = entries.toArray(new Entry[0]);
 
-            // Note: Throws IllegalStateException if not connected.
-            final HAClient.HAConnection ctx = getHAClient().getConnection();
-
             if (this.serviceID != null) {
 
                 /*
@@ -1170,7 +1219,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
                 joinManager = new JoinManager(proxy, // service proxy
                         attributes, // attr sets
                         serviceID, // ServiceID
-                        ctx.getDiscoveryManagement(), // DiscoveryManager
+                        lookupDiscoveryManager, // DiscoveryManager
                         new LeaseRenewalManager(), //
                         config);
                 
@@ -1183,7 +1232,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
                 joinManager = new JoinManager(proxy, // service proxy
                         attributes, // attr sets
                         this, // ServiceIDListener
-                        ctx.getDiscoveryManagement(), // DiscoveryManager
+                        lookupDiscoveryManager, // DiscoveryManager
                         new LeaseRenewalManager(), //
                         config);
             
@@ -1220,8 +1269,16 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
     }
     
     /**
-     * Unexports the {@link #proxy} - this is a NOP if the proxy is
-     * <code>null</code>.
+     * Unexports the {@link #proxy}, halt the {@link JoinManager}, and halt the
+     * {@link LookupDiscoveryManager}. This is safe to invoke whether or not the
+     * proxy is exported.
+     * <p>
+     * Note: You can not re-export the proxy. The {@link Exporter} does not
+     * support this for a given instance. Also, once un-exported, if you create
+     * a new {@link Exporter} and then re-export the proxy, the new proxy will
+     * be a distinct instance. Most clients expect the life cycle of the proxy
+     * to be the life cycle of the service that is being exposed by the proxy.
+     * Unexporting and re-exporting will confuse such clients.
      * 
      * @param force
      *            When true, the object is unexported even if there are pending
@@ -1231,16 +1288,15 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
      * 
      * @see Exporter#unexport(boolean)
      */
-    synchronized protected boolean unexport(final boolean force) {
+    synchronized private boolean unexport(final boolean force) {
 
-        try {
+        boolean unexported = false;
 
-            boolean unexported = false;
-            
-            if (proxy != null) {
+        if (proxy != null) {
 
-                log.warn("UNEXPORT PROXY: force=" + force + ", proxy=" + proxy);
+            log.warn("UNEXPORT PROXY: force=" + force + ", proxy=" + proxy);
 
+            try {
                 if (exporter.unexport(force)) {
 
                     unexported = true;
@@ -1250,34 +1306,52 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
                     log.warn("Proxy was not unexported? : " + this);
 
                 }
+            } finally {
+
+                proxy = null;
 
             }
-
-            if (joinManager != null) {
-                
-                try {
-
-                    joinManager.terminate();
-
-                } catch (Throwable ex) {
-
-                    log.error("Could not terminate the join manager: " + this, ex);
-
-                } finally {
-                    
-                    joinManager = null;
-
-                }
-
-            }
-
-            return unexported;
-
-        } finally {
-
-            proxy = null;
 
         }
+
+        if (joinManager != null) {
+
+            try {
+
+                joinManager.terminate();
+
+            } catch (Throwable ex) {
+
+                log.error("Could not terminate the join manager: " + this, ex);
+
+            } finally {
+
+                joinManager = null;
+
+            }
+
+        }
+
+        if (lookupDiscoveryManager != null) {
+
+            try {
+
+                lookupDiscoveryManager.terminate();
+
+            } catch (Throwable ex) {
+
+                log.error("Could not terminate the lookup discovery manager: "
+                        + this, ex);
+
+            } finally {
+
+                lookupDiscoveryManager = null;
+
+            }
+
+        }
+
+        return unexported;
 
     }
 
@@ -1527,7 +1601,10 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
      *            the service is also destroyed.
      */
     final protected void shutdownNow(final boolean destroy) {
-
+        
+//        if (log.isTraceEnabled())
+//            HAJournalTest.dumpThreads();
+        
         // Atomically change RunState.
         if (!runState.compareAndSet(RunState.Start, RunState.ShuttingDown)
                 && !runState.compareAndSet(RunState.Running,
@@ -1545,27 +1622,24 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
         
         try {
             
-//            /*
-//             * Unexport the proxy, making the service no longer available.
-//             * 
-//             * Note: If you do not do this then the client can still make
-//             * requests even after you have terminated the join manager and the
-//             * service is no longer visible in the service browser.
-//             */
-//            try {
-//
-//                if (log.isInfoEnabled())
-//                    log.info("Unexporting the service proxy.");
-//
-//                unexport(true/* force */);
-//
-//            } catch (Throwable ex) {
-//
-//                log.error("Problem unexporting service: " + this, ex);
-//
-//                /* Ignore */
-//
-//            }
+            /*
+             * Unexport the proxy, making the service no longer available.
+             * 
+             * Note: If you do not do this then the client can still make
+             * requests even after you have terminated the join manager and the
+             * service is no longer visible in the service browser.
+             */
+            try {
+
+                unexport(true/* force */);
+
+            } catch (Throwable ex) {
+
+                log.error("Problem unexporting service: " + this, ex);
+
+                /* Ignore */
+
+            }
 
             if (destroy && impl != null && impl instanceof IService) {
 
@@ -1864,39 +1938,40 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
             
             // ignore.
             log.warn("Could not set thread name: " + ex);
-            
+
         }
 
-        boolean started = false;
         try {
-            /*
-             * Create the service object.
-             */
-                if (log.isInfoEnabled())
-                    log.info("Creating service impl...");
-                
-                impl = newService(config);
-                
-                if (log.isInfoEnabled())
-                    log.info("Service impl is " + impl);
-                
+
+            // Create the service object.
+            impl = newService(config);
+
+            // Export the service.
+            exportProxy(impl);
+            
+            // Start the service.
             startUpHook();
-            started = true;
-        } catch (Exception e) {
-            log.error(e, e);
-        } finally {
-            if (!started)
-                shutdownNow(false/* destroy */);
+            
+        } catch (Throwable t) {
+
+            fatal("Startup failure", t);
+
+            throw new AssertionError();
+            
         }
 
         if (runState.compareAndSet(RunState.Start, RunState.Running)) {
 
             {
+
                 final String msg = "Service is running: class="
                         + getClass().getName() + ", name=" + getServiceName();
+
                 System.out.println(msg);
+
                 if (log.isInfoEnabled())
                     log.info(msg);
+
             }
 
             /*
@@ -1922,7 +1997,7 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
             }
 
         }
-
+        
         System.out.println("Service is down: class=" + getClass().getName()
                 + ", name=" + getServiceName());
 

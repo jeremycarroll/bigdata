@@ -186,6 +186,7 @@ abstract public class BigdataServlet extends HttpServlet implements IMimeTypes {
         case Leader:
             return true;
         default:
+            log.warn(haStatus.name());
             buildResponse(resp, HTTP_METHOD_NOT_ALLOWED, MIME_TEXT_PLAIN,
                     haStatus.name());
             // Not writable.  Response has been committed.
@@ -195,13 +196,13 @@ abstract public class BigdataServlet extends HttpServlet implements IMimeTypes {
 	}
 	
     /**
-     * If the node is not writable, then commit a response and return
+     * If the node is not readable, then commit a response and return
      * <code>false</code>. Otherwise return <code>true</code>.
      * 
      * @param req
      * @param resp
      * 
-     * @return <code>true</code> iff the node is writable.
+     * @return <code>true</code> iff the node is readable.
      * 
      * @throws IOException
      */
@@ -227,6 +228,7 @@ abstract public class BigdataServlet extends HttpServlet implements IMimeTypes {
             return true;
         default:
             // Not ready.
+            log.warn(haStatus.name());
             buildResponse(resp, HTTP_METHOD_NOT_ALLOWED, MIME_TEXT_PLAIN,
                     haStatus.name());
             // Response has been committed.

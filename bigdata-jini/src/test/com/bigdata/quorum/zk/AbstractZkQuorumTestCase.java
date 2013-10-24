@@ -39,7 +39,6 @@ import org.apache.zookeeper.ZooKeeper;
 import com.bigdata.quorum.MockQuorumFixture;
 import com.bigdata.quorum.QuorumActor;
 import com.bigdata.zookeeper.AbstractZooTestCase;
-import com.bigdata.zookeeper.ZooKeeperAccessor;
 
 /**
  * Abstract base class for testing using a {@link MockQuorumFixture}.
@@ -69,7 +68,7 @@ abstract public class AbstractZkQuorumTestCase extends AbstractZooTestCase {
     // The per-client quorum objects.
     ZKQuorumImpl[] quorums;
     MockQuorumMember[] clients;
-    ZooKeeperAccessor[] accessors;
+    ZooKeeper[] accessors;
     QuorumActor[] actors;
     final MockServiceRegistrar<Remote> registrar = new MockServiceRegistrar();
     
@@ -92,7 +91,7 @@ abstract public class AbstractZkQuorumTestCase extends AbstractZooTestCase {
         
         clients = new MockQuorumMember[k];
 
-        accessors = new ZooKeeperAccessor[k];
+        accessors = new ZooKeeper[k];
         
         actors  = new QuorumActor[k];
 
@@ -101,7 +100,7 @@ abstract public class AbstractZkQuorumTestCase extends AbstractZooTestCase {
          */
         for (int i = 0; i < k; i++) {
             accessors[i] = getZooKeeperAccessorWithDistinctSession();
-            final ZooKeeper zk = accessors[i].getZookeeper();
+            final ZooKeeper zk = accessors[i];
             quorums[i] = new ZKQuorumImpl(k);//, accessors[i], acl);
             clients[i] = new MockQuorumMember(logicalServiceId, registrar) {
                 public Remote newService() {

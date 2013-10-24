@@ -329,7 +329,11 @@ public class TestHA2JournalServer extends AbstractHA3JournalServerTestCase {
             final UUID leaderId2 = leader2.getServiceId();
 
             if (leaderId1.equals(leaderId2)) {
-
+                /*
+                 * FIXME This fail message is not useful.
+                 * leaderId1.equals(leaderId2). it should report what the leader
+                 * *should* have been, but reports two identical values instead.
+                 */
                 fail("Expected leaderId=" + leaderId1 + ", but was "
                         + leaderId2);
 

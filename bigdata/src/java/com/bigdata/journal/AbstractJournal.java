@@ -5422,8 +5422,17 @@ public abstract class AbstractJournal implements IJournal/* , ITimestampService 
         if (quorum == null)
             return;
 
-        // This quorum member.
-        final QuorumService<HAGlue> localService = quorum.getClient();
+        // The HAQuorumService (if running).
+        final QuorumService<HAGlue> localService;
+        {
+            QuorumService<HAGlue> t;
+            try {
+                t = quorum.getClient();
+            } catch (IllegalStateException ex) {
+                t = null;
+            }
+            localService = t;
+        }
 
         // Figure out the state transitions involved.
         final QuorumTokenTransitions transitionState = new QuorumTokenTransitions(

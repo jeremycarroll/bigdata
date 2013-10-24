@@ -314,7 +314,19 @@ public abstract class AbstractHAJournalServerTestCase extends TestCase3 {
     protected void awaitHAStatus(final HAGlue haGlue,
             final HAStatusEnum expected) throws IOException {
 
+        awaitHAStatus(5, TimeUnit.SECONDS, haGlue, expected);
+        
+    }
+
+    /**
+     * Check the HAStatusEnum for the service.
+     */
+    protected void awaitHAStatus(final long timeout, final TimeUnit unit,
+            final HAGlue haGlue, final HAStatusEnum expected)
+            throws IOException {
+
         assertCondition(new Runnable() {
+            @Override
             public void run() {
                 try {
                     assertEquals(expected, haGlue.getHAStatus());
@@ -322,7 +334,7 @@ public abstract class AbstractHAJournalServerTestCase extends TestCase3 {
                     throw new RuntimeException(e);
                 }
             }
-        }, 5, TimeUnit.SECONDS);
+        }, timeout, unit);
 
     }
 

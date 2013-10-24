@@ -67,7 +67,6 @@ import com.bigdata.quorum.QuorumMember;
 import com.bigdata.quorum.QuorumWatcher;
 import com.bigdata.util.InnerCause;
 import com.bigdata.util.concurrent.DaemonThreadFactory;
-import com.bigdata.zookeeper.ZooKeeperAccessor;
 
 /**
  * Implementation of the {@link Quorum} using zookeeper to maintain the
@@ -1440,28 +1439,28 @@ public class ZKQuorumImpl<S extends Remote, C extends ZKQuorumClient<S>> extends
         private void handleExpired() {
             log.error("ZOOKEEPER SESSION EXPIRED: token=" + token());
             doNotifyClientDisconnected();
-            /*
-             * FIXME We can not cure an expire ZK session. Instead, we tear down
-             * the QuorumClient, obtain a new HClient connectionm, and then
-             * restart the QuorumClient. Therefore this code should go since it
-             * not make progress.
-             */
-            while (true) {
-                try {
-                    // wait for a valid ZooKeeper connection.
-                    final ZooKeeper zk = getZookeeper();
-                    // set the watchers.
-                    setupWatchers(zk);
-                    // done.
-                    return;
-                } catch (KeeperException e2) {
-                    log.error(e2, e2);
-                } catch (InterruptedException e2) {
-                    // propagate the interrupt.
-                    Thread.currentThread().interrupt();
-                    return;
-                }
-            }
+//            /*
+//             * FIXME We can not cure an expire ZK session. Instead, we tear down
+//             * the QuorumClient, obtain a new HClient connectionm, and then
+//             * restart the QuorumClient. Therefore this code should go since it
+//             * not make progress.
+//             */
+//            while (true) {
+//                try {
+//                    // wait for a valid ZooKeeper connection.
+//                    final ZooKeeper zk = getZookeeper();
+//                    // set the watchers.
+//                    setupWatchers(zk);
+//                    // done.
+//                    return;
+//                } catch (KeeperException e2) {
+//                    log.error(e2, e2);
+//                } catch (InterruptedException e2) {
+//                    // propagate the interrupt.
+//                    Thread.currentThread().interrupt();
+//                    return;
+//                }
+//            }
         }
 
         /**
@@ -2342,8 +2341,8 @@ public class ZKQuorumImpl<S extends Remote, C extends ZKQuorumClient<S>> extends
      * @param replicationFactor
      *            The replication factor for the quorum (must be a non-negative,
      *            odd integer).
-     * @param zka
-     *            The {@link ZooKeeperAccessor}.
+     * @param zk
+     *            The {@link ZooKeeper} client connection
      * @param acl
      *            The ACLs.
      * 

@@ -39,12 +39,10 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.data.ACL;
 
 import com.bigdata.quorum.AsynchronousQuorumCloseException;
 import com.bigdata.quorum.QuorumActor;
 import com.bigdata.zookeeper.AbstractZooTestCase;
-import com.bigdata.zookeeper.ZooKeeperAccessor;
 
 /**
  * Test suite for {@link ZKQuorumImpl}. 
@@ -69,7 +67,7 @@ public class TestZkQuorum extends AbstractZooTestCase {
 
     /**
      * Unit test for
-     * {@link ZKQuorumImpl#setupQuorum(String, ZooKeeperAccessor, List)}
+     * {@link ZKQuorumImpl#setupQuorum(String, int, ZooKeeper, List)}
      * 
      * @throws KeeperException
      * @throws InterruptedException
@@ -138,7 +136,7 @@ public class TestZkQuorum extends AbstractZooTestCase {
         // The per-client quorum objects.
         final ZKQuorumImpl[] quorums = new ZKQuorumImpl[k];
         final MockQuorumMember[] clients = new MockQuorumMember[k];
-        final ZooKeeperAccessor[] accessors = new ZooKeeperAccessor[k];
+        final ZooKeeper[] accessors = new ZooKeeper[k];
         final QuorumActor[] actors = new QuorumActor[k];
         final MockServiceRegistrar<Remote> registrar = new MockServiceRegistrar();
         try {
@@ -148,7 +146,7 @@ public class TestZkQuorum extends AbstractZooTestCase {
              */
             for (int i = 0; i < k; i++) {
                 accessors[i] = getZooKeeperAccessorWithDistinctSession();
-                final ZooKeeper zk = accessors[i].getZookeeper();
+                final ZooKeeper zk = accessors[i];
                 quorums[i] = new ZKQuorumImpl(k);//, accessors[i], acl);
                 clients[i] = new MockQuorumMember(logicalServiceId, registrar){
                     public Remote newService() {

@@ -59,7 +59,10 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.ZooKeeper.States;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
@@ -81,7 +84,7 @@ import com.bigdata.service.IService;
 import com.bigdata.service.IServiceShutdown;
 import com.bigdata.service.jini.JiniClient;
 import com.bigdata.service.jini.JiniClientConfig;
-import com.bigdata.zookeeper.ZooKeeperAccessor;
+import com.bigdata.util.StackInfoReport;
 import com.sun.jini.start.ServiceDescriptor;
 
 /**
@@ -651,7 +654,6 @@ public class HAClient {
          */
         private final AtomicReference<HAClient> clientRef = new AtomicReference<HAClient>();
 
-//        private ZooKeeperAccessor zka;
         private ZooKeeper zk;
 
         private LookupDiscoveryManager lookupDiscoveryManager;
@@ -777,21 +779,13 @@ public class HAClient {
                 throw new IllegalStateException();
 
             if (log.isInfoEnabled())
-                log.info(jiniConfig.toString());
+                log.info(jiniConfig.toString(), new StackInfoReport());
 
             final String[] groups = jiniConfig.groups;
 
             final LookupLocator[] lookupLocators = jiniConfig.locators;
 
             try {
-
-                /*
-                 * Connect to a zookeeper service in the declare ensemble of
-                 * zookeeper servers.
-                 */
-
-                zk = new ZooKeeperAccessor(zooConfig.servers,
-                        zooConfig.sessionTimeout).getZookeeper();
 
                 /*
                  * Note: This class will perform multicast discovery if
@@ -839,9 +833,56 @@ public class HAClient {
                         serviceDiscoveryManager,
                         this/* serviceDiscoveryListener */, cacheMissTimeout);
 
+                /*
+                 * Connect to a zookeeper service in the declare ensemble of
+                 * zookeeper servers.
+                 */
+                log.info("Creating ZooKeeper connection.");
+                
+                zk = new ZooKeeper(zooConfig.servers, zooConfig.sessionTimeout,
+                        new Watcher() {
+                            @Override
+                            public void process(final WatchedEvent event) {
+                                if (log.isInfoEnabled())
+                                    log.info(event);
+                            }
+                        });
+
+                /**
+                 * Wait until zookeeper is connected. Figure out how long that
+                 * took. If reverse DNS is not setup, then the following two
+                 * tickets will prevent the service from starting up in a timely
+                 * manner. We detect this with a delay of 4+ seconds before
+                 * zookeeper becomes connected. This issue does not appear in
+                 * zookeeper 3.3.4.
+                 * 
+                 * @see https://issues.apache.org/jira/browse/ZOOKEEPER-1652
+                 * @see https://issues.apache.org/jira/browse/ZOOKEEPER-1666
+                 */
+                {
+                    final long begin = System.nanoTime();
+                    while (zk.getState().isAlive()) {
+                        if (zk.getState() == States.CONNECTED) {
+                            // connected.
+                            break;
+                        }
+                        // wait and then retry.
+                        Thread.sleep(100/* ms */);
+                    }
+                    final long elapsed = System.nanoTime() - begin;
+                    if (TimeUnit.NANOSECONDS.toSeconds(elapsed) > 4) {
+                        log.error("Reverse DNS is not configured. The ZooKeeper client is taking too long to resolve server(s): "
+                                + zooConfig.servers
+                                + ", took="
+                                + TimeUnit.NANOSECONDS.toMillis(elapsed) + "ms");
+                    }
+                }
+
                 // And set the reference. The client is now "connected".
                 this.clientRef.set(client);
 
+                log.info("Done.");
+                
             } catch (Exception ex) {
 
                 log.fatal(

@@ -64,7 +64,10 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.ZooKeeper.States;
 import org.apache.zookeeper.data.ACL;
 
 import com.bigdata.ha.HAGlue;
@@ -98,7 +101,6 @@ import com.bigdata.util.InnerCause;
 import com.bigdata.util.config.NicUtil;
 import com.bigdata.zookeeper.DumpZookeeper;
 import com.bigdata.zookeeper.ZooHelper;
-import com.bigdata.zookeeper.ZooKeeperAccessor;
 
 /**
  * Class layers in support to start and stop the {@link HAJournalServer}
@@ -328,7 +330,7 @@ public class AbstractHA3JournalServerTestCase extends
 
         // Unique for each test.
         logicalServiceId = "CI-HAJournal-" + getName() + "-" + UUID.randomUUID();
-        
+
         /*
          * Read the jini/river configuration file. We need this to setup the
          * clients that we will use to lookup the services that we start.
@@ -1270,10 +1272,11 @@ public class AbstractHA3JournalServerTestCase extends
      * @throws ConfigurationException
      * @throws InterruptedException 
      * @throws KeeperException 
+     * @throws IOException 
      */
     protected Quorum<HAGlue, QuorumClient<HAGlue>> newQuorum()
             throws ConfigurationException, InterruptedException,
-            KeeperException {
+            KeeperException, IOException {
 
         final Configuration config = ConfigurationProvider
                 .getInstance(new String[] { SRC_PATH + "zkClient.config" });
@@ -1285,9 +1288,41 @@ public class AbstractHA3JournalServerTestCase extends
         final int sessionTimeout = zkClientConfig.sessionTimeout;
 
         // Note: Save reference.
-        this.zookeeper = new ZooKeeperAccessor(zoohosts, sessionTimeout)
-                .getZookeeper();
-//        this.acl = acl;
+        this.zookeeper = new ZooKeeper(zoohosts, sessionTimeout, new Watcher() {
+            @Override
+            public void process(WatchedEvent event) {
+                if (log.isInfoEnabled())
+                    log.info(event);
+            }
+        });
+        /**
+         * Wait until zookeeper is connected. Figure out how long that took. If
+         * reverse DNS is not setup, then the following two tickets will prevent
+         * the service from starting up in a timely manner. We detect this with
+         * a delay of 4+ seconds before zookeeper becomes connected. This issue
+         * does not appear in zookeeper 3.3.4.
+         * 
+         * @see https://issues.apache.org/jira/browse/ZOOKEEPER-1652
+         * @see https://issues.apache.org/jira/browse/ZOOKEEPER-1666
+         */
+        {
+            final long begin = System.nanoTime();
+            while (zookeeper.getState().isAlive()) {
+                if (zookeeper.getState() == States.CONNECTED) {
+                    // connected.
+                    break;
+                }
+                // wait and then retry.
+                Thread.sleep(100/* ms */);
+            }
+            final long elapsed = System.nanoTime() - begin;
+            if (TimeUnit.NANOSECONDS.toSeconds(elapsed) > 4) {
+                fail("Reverse DNS is not configured. The ZooKeeper client is taking too long to resolve server(s): "
+                        + zoohosts
+                        + ", took="
+                        + TimeUnit.NANOSECONDS.toMillis(elapsed) + "ms");
+            }
+        }
         
         // znode name for the logical service.
 //        final String logicalServiceId = (String) config.getEntry(
@@ -1702,6 +1737,8 @@ public class AbstractHA3JournalServerTestCase extends
              * Wait until the server is running.
              */
             assertCondition(new Runnable() {
+                
+                @Override
                 public void run() {
 
                     try {
