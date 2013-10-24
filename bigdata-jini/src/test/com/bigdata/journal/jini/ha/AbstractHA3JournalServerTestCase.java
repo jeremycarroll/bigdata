@@ -531,11 +531,18 @@ public class AbstractHA3JournalServerTestCase extends
     }
     
     protected void assertReady(final HAGlue[] members) throws IOException {
-    	for (HAGlue member : members) {
-    		final HAStatusEnum status = member.getHAStatus();
-    		if(log.isInfoEnabled())log.info(member.getServiceName() + ": " + status);
-    		assertFalse(HAStatusEnum.NotReady == status);
-    	}
+
+        for (HAGlue member : members) {
+        
+            final HAStatusEnum status = member.getHAStatus();
+            
+            if (log.isInfoEnabled())
+                log.info(member.getServiceName() + ": " + status);
+            
+            assertFalse(HAStatusEnum.NotReady == status);
+            
+        }
+        
     }
     
     /**
