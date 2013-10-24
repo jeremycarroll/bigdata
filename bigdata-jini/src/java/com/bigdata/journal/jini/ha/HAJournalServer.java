@@ -2118,8 +2118,7 @@ public class HAJournalServer extends AbstractServer {
                             // Reduce to negotiated timeout GT ZERO.
                             sessionTimeout = sessionTimeout2;
                         }
-                        switch(zk.getState()) {
-                        case CONNECTED:
+                        if (zk.getState() == ZooKeeper.States.CONNECTED) {
                             break;
                         }
                         final long elapsed = System.nanoTime() - begin;
