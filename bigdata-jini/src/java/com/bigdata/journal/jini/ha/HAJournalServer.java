@@ -1363,20 +1363,20 @@ public class HAJournalServer extends AbstractServer {
             // Start the HAClient (River and Zookeeper).
             server.getHAClient().connect();
 
-            /*
-             * Verify discovery of at least one ServiceRegistrar.
-             */
-            try {
-                log.info("Awaiting service registrar discovery.");
-                server.getHAClient()
-                        .getConnection()
-                        .awaitServiceRegistrars(10/* timeout */,
-                                TimeUnit.SECONDS);
-            } catch (TimeoutException e1) {
-                throw new RuntimeException(e1);
-            } catch (InterruptedException e1) {
-                throw new RuntimeException(e1);
-            }
+//            /*
+//             * Verify discovery of at least one ServiceRegistrar.
+//             */
+//            try {
+//                log.info("Awaiting service registrar discovery.");
+//                server.getHAClient()
+//                        .getConnection()
+//                        .awaitServiceRegistrars(10/* timeout */,
+//                                TimeUnit.SECONDS);
+//            } catch (TimeoutException e1) {
+//                throw new RuntimeException(e1);
+//            } catch (InterruptedException e1) {
+//                throw new RuntimeException(e1);
+//            }
             
             // Ensure key znodes exist.
             try {

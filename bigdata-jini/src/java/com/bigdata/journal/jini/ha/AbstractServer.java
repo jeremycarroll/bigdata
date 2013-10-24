@@ -44,6 +44,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
@@ -1132,19 +1134,14 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
      * is specified and otherwise requires you to specify one or more unicast
      * locators (URIs of hosts running discovery services).
      * 
-     * @return The {@link LookupDiscoveryManager}. The caller MUST invoke
-     *         {@link LookupDiscoveryManager#terminate()} when they are done
-     *         with this service.
-     * 
      * @see JiniClientConfig
      * @see JiniClientConfig#Options
      * 
      * @throws ConfigurationException
      * @throws IOException
      */
-    synchronized LookupDiscoveryManager startLookupDiscoveryManager(
-            final Configuration config) throws ConfigurationException,
-            IOException {
+    private void startLookupDiscoveryManager(final Configuration config)
+            throws ConfigurationException, IOException {
 
         if (lookupDiscoveryManager == null) {
             
@@ -1159,10 +1156,62 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
         
         }
         
-        return lookupDiscoveryManager;
+    }
+    private volatile LookupDiscoveryManager lookupDiscoveryManager = null;
+
+    /**
+     * Await discovery of at least one {@link ServiceRegistrar}.
+     * 
+     * @param timeout
+     *            The timeout.
+     * @param unit
+     *            The units for that timeout.
+     * 
+     * @throws IllegalArgumentException
+     *             if minCount is non-positive.
+     */
+    protected ServiceRegistrar[] awaitServiceRegistrars(final long timeout,
+            final TimeUnit unit) throws TimeoutException,
+            InterruptedException {
+
+        if (lookupDiscoveryManager == null)
+            throw new IllegalStateException();
+        
+        final long begin = System.nanoTime();
+        final long nanos = unit.toNanos(timeout);
+        long remaining = nanos;
+
+        ServiceRegistrar[] registrars = null;
+
+        while ((registrars == null || registrars.length == 0)
+                && remaining > 0) {
+
+            registrars = lookupDiscoveryManager.getRegistrars();
+
+            Thread.sleep(100/* ms */);
+
+            final long elapsed = System.nanoTime() - begin;
+
+            remaining = nanos - elapsed;
+
+        }
+
+        if (registrars == null || registrars.length == 0) {
+
+            throw new RuntimeException(
+                    "Could not discover ServiceRegistrar(s)");
+
+        }
+
+        if (log.isInfoEnabled()) {
+
+            log.info("Found " + registrars.length + " service registrars");
+
+        }
+
+        return registrars;
 
     }
-    private LookupDiscoveryManager lookupDiscoveryManager;
 
     /**
      * Export a proxy object for this service instance.
@@ -1173,12 +1222,6 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
     synchronized private void exportProxy(final Remote impl)
             throws ConfigurationException, IOException {
 
-        /*
-         * Note: We run our own LookupDiscoveryManager in order to avoid forcing
-         * an unexport of the service proxy when the HAClient is terminated.
-         */
-        final LookupDiscoveryManager lookupDiscoveryManager = startLookupDiscoveryManager(config);
-        
         /*
          * Export a proxy object for this service instance.
          * 
@@ -1327,25 +1370,6 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
             } finally {
 
                 joinManager = null;
-
-            }
-
-        }
-
-        if (lookupDiscoveryManager != null) {
-
-            try {
-
-                lookupDiscoveryManager.terminate();
-
-            } catch (Throwable ex) {
-
-                log.error("Could not terminate the lookup discovery manager: "
-                        + this, ex);
-
-            } finally {
-
-                lookupDiscoveryManager = null;
 
             }
 
@@ -1876,6 +1900,25 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
         if (haClient.isConnected())
             haClient.disconnect(false/* immediateShutdown */);
 
+        if (lookupDiscoveryManager != null) {
+
+            try {
+
+                lookupDiscoveryManager.terminate();
+
+            } catch (Throwable ex) {
+
+                log.error("Could not terminate the lookup discovery manager: "
+                        + this, ex);
+
+            } finally {
+
+                lookupDiscoveryManager = null;
+
+            }
+
+        }
+
 //        if (serviceDiscoveryManager != null) {
 //
 //            serviceDiscoveryManager.terminate();
@@ -1943,6 +1986,13 @@ abstract public class AbstractServer implements Runnable, LeaseListener,
 
         try {
 
+            /*
+             * Note: We run our own LookupDiscoveryManager in order to avoid
+             * forcing an unexport of the service proxy when the HAClient is
+             * terminated.
+             */
+            startLookupDiscoveryManager(config);
+            
             // Create the service object.
             impl = newService(config);
 

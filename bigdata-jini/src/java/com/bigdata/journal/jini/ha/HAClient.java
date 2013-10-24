@@ -901,7 +901,7 @@ public class HAClient {
             } catch (Throwable ex) {
 
                 log.fatal(
-                        "Problem initiating service discovery: "
+                        "Could not connect: "
                                 + ex.getMessage(), ex);
 
                 try {
@@ -991,6 +991,9 @@ public class HAClient {
 
             if (discoveryClient != null) {
 
+                if (log.isInfoEnabled())
+                    log.info("Terminating " + discoveryClient);
+                
                 discoveryClient.terminate();
 
                 discoveryClient = null;
@@ -1003,6 +1006,9 @@ public class HAClient {
 
             if (serviceDiscoveryManager != null) {
 
+                if (log.isInfoEnabled())
+                    log.info("Terminating " + serviceDiscoveryManager);
+
                 serviceDiscoveryManager.terminate();
 
                 serviceDiscoveryManager = null;
@@ -1010,6 +1016,9 @@ public class HAClient {
             }
 
             if (lookupDiscoveryManager != null) {
+
+                if (log.isInfoEnabled())
+                    log.info("Terminating " + lookupDiscoveryManager);
 
                 lookupDiscoveryManager.terminate();
 
