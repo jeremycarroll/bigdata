@@ -1440,10 +1440,9 @@ public class ZKQuorumImpl<S extends Remote, C extends ZKQuorumClient<S>> extends
             log.error("ZOOKEEPER SESSION EXPIRED: token=" + token());
             doNotifyClientDisconnected();
 //            /*
-//             * FIXME We can not cure an expire ZK session. Instead, we tear down
+//             * Note: We can not cure an expire ZK session. Instead, we tear down
 //             * the QuorumClient, obtain a new HClient connectionm, and then
-//             * restart the QuorumClient. Therefore this code should go since it
-//             * not make progress.
+//             * restart the QuorumClient. Therefore this code can not make progress.
 //             */
 //            while (true) {
 //                try {
