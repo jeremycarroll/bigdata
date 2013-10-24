@@ -893,47 +893,54 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
 //        
 //    }
 
-    public void testStartAB_StopStartZookeeper() throws Exception {
-
-        doStartAB_StopStartZookeeper();
-    }
-
-    public void testStartAB_StopStartZookeeperA() throws Exception {
-
-        doStartAB_StopStartZookeeper();
-    }
-
-    public void testStartAB_StopStartZookeeperB() throws Exception {
-
-        doStartAB_StopStartZookeeper();
-    }
-
-    public void testStartAB_StopStartZookeeperC() throws Exception {
-
-        doStartAB_StopStartZookeeper();
-    }
-
-    public void testStartAB_StopStartZookeeperD() throws Exception {
-
-        doStartAB_StopStartZookeeper();
-    }
-
-    public void testStartAB_StopStartZookeeperE() throws Exception {
-
-        doStartAB_StopStartZookeeper();
-    }
-
-    public void testStartAB_StopStartZookeeperF() throws Exception {
-
-        doStartAB_StopStartZookeeper();
-    }
-
-    public void testStartAB_StopStartZookeeperG() throws Exception {
-
-        doStartAB_StopStartZookeeper();
-    }
+    /*
+     * FIXME Consider re-enabling these tests. Do we want to attempt to
+     * programmatically stop and start the zookeeper ensemble under test
+     * control?  For true HA deployments, what would be much more interesting
+     * is to run an ensemble with 3 zk servers and then do failovers of the
+     * zk servers and see how that effects the HAJournalServer instances.
+     */
+//    public void testStartAB_StopStartZookeeper() throws Exception {
+//
+//        doStartAB_StopStartZookeeper();
+//    }
+//
+//    public void testStartAB_StopStartZookeeperA() throws Exception {
+//
+//        doStartAB_StopStartZookeeper();
+//    }
+//
+//    public void testStartAB_StopStartZookeeperB() throws Exception {
+//
+//        doStartAB_StopStartZookeeper();
+//    }
+//
+//    public void testStartAB_StopStartZookeeperC() throws Exception {
+//
+//        doStartAB_StopStartZookeeper();
+//    }
+//
+//    public void testStartAB_StopStartZookeeperD() throws Exception {
+//
+//        doStartAB_StopStartZookeeper();
+//    }
+//
+//    public void testStartAB_StopStartZookeeperE() throws Exception {
+//
+//        doStartAB_StopStartZookeeper();
+//    }
+//
+//    public void testStartAB_StopStartZookeeperF() throws Exception {
+//
+//        doStartAB_StopStartZookeeper();
+//    }
+//
+//    public void testStartAB_StopStartZookeeperG() throws Exception {
+//
+//        doStartAB_StopStartZookeeper();
+//    }
     
-    public void doStartAB_StopStartZookeeper() throws Exception {
+    private void doStartAB_StopStartZookeeper() throws Exception {
         
         final HAGlue serverA = startA();
         final HAGlue serverB = startB();
