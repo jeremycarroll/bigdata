@@ -1176,29 +1176,52 @@ public abstract class AbstractHAJournalServerTestCase extends TestCase3 {
     }
     
     private Iterator<File> getLogs(final File f, final FileFilter fileFilter) {
-    	ArrayList<File> files = new ArrayList<File>();
-    	
-    	recursiveAdd(files, f, fileFilter);
-    	
-    	return files.iterator();
+    
+        final ArrayList<File> files = new ArrayList<File>();
+
+        recursiveAdd(files, f, fileFilter);
+
+        return files.iterator();
+        
     }
 
-    protected void assertLogCount(final File logDir, final long count) {
+    protected void awaitLogCount(final File logDir, final long count) {
+
+        assertCondition(new Runnable() {
+            public void run() {
+                assertLogCount(logDir, count);
+            }
+        }, 5000, TimeUnit.MILLISECONDS);
+
+    }
+
+    /**
+     * Note: There is typically some non-determinism around when an HALog file
+     * is closed and a new one is opened in a 2-phase commit. Therefore you
+     * should generally use {@link #awaitLogCount(File, long)} rather than this
+     * method. 
+     * 
+     * @param logDir
+     * @param count
+     */
+    private void assertLogCount(final File logDir, final long count) {
 
         final long actual = recursiveCount(logDir, IHALogReader.HALOG_FILTER);
-        
+
         if (actual != count) {
-        
-    		final Iterator<File> logs = getLogs(logDir, IHALogReader.HALOG_FILTER);
-    		StringBuilder fnmes = new StringBuilder();
-    		while (logs.hasNext()) {
-    			fnmes.append("\n" + logs.next().getName());
-    		}
-        	
-            fail("Actual log files: " + actual + ", expected: " + count + ", files: " + fnmes);
-            
+
+            final Iterator<File> logs = getLogs(logDir,
+                    IHALogReader.HALOG_FILTER);
+            StringBuilder fnmes = new StringBuilder();
+            while (logs.hasNext()) {
+                fnmes.append("\n" + logs.next().getName());
+            }
+
+            fail("Actual log files: " + actual + ", expected: " + count
+                    + ", files: " + fnmes);
+
         }
 
     }
-    
+
 }

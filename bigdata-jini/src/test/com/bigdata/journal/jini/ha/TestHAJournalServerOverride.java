@@ -492,10 +492,13 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
      * might have a consensus around the new commit point.)
      * 
      * TODO Consider leader failure scenarios in this test suite, not just
-     * scenarios where B fails. Probably we should also cover failures of C (the
-     * 2nd follower). We should also cover scenariors where the quorum is barely
-     * met and a single failure causes a rejected commit (local decision) or
-     * 2-phase abort (joined services in joint agreement).
+     * scenarios where B fails. We MUST also cover failures of C (the 2nd
+     * follower). We should also cover scenariors where the quorum is barely met
+     * and a single failure causes a rejected commit (local decision) or 2-phase
+     * abort (joined services in joint agreement).
+     * 
+     * @see <a href="https://sourceforge.net/apps/trac/bigdata/ticket/760" >
+     *      Review commit2Phase semantics when a follower fails </a>
      */
     public void testStartABC_commit2Phase_B_fails()
             throws Exception {
@@ -517,60 +520,91 @@ public class TestHAJournalServerOverride extends AbstractHA3JournalServerTestCas
                         new Class[] { IHA2PhaseCommitMessage.class },
                         0/* nwait */, 1/* nfail */);
 
-        // Simple transaction.
-        simpleTransaction();
-        
-//        try {
-//            // Simple transaction.
-//            simpleTransaction();
-//            fail("Expecting failed transaction");
-//        } catch(HttpException ex) {
-//        if (!ex.getMessage().contains(
-//                SpuriousTestException.class.getName())) {
-//            /*
-//             * Wrong inner cause.
-//             * 
-//             * Note: The stack trace of the local exception does not include
-//             * the remote stack trace. The cause is formatted into the HTTP
-//             * response body.
-//             */
-//            fail("Expecting " + ClocksNotSynchronizedException.class, t);
-//        }
-//        }
-        
-        // Verify quorum is unchanged.
-        assertEquals(token, quorum.token());
-        
-        // Should be two commit points on {A,C].
-        awaitCommitCounter(2L, startup.serverA, startup.serverC);
-        
-        /*
-         * B should go into an ERROR state and then into SeekConsensus and from
-         * there to RESYNC and finally back to RunMet. We can not reliably
-         * observe the intervening states. So what we really need to do is watch
-         * for B to move to the end of the pipeline and catch up to the same
-         * commit point.
+        /**
+         * FIXME We need to resolve the correct behavior when B fails the commit
+         * after having prepared. Two code paths are outlined below. The
+         * implementation currently does an abort2Phase() when the
+         * commit2Phase() observe an error for B. That causes the commit point
+         * to NOT advance.
+         * 
+         * @see <a href="https://sourceforge.net/apps/trac/bigdata/ticket/760" >
+         * Review commit2Phase semantics when a follower fails </a>
          */
+        
+        if(true) {
 
-        /*
-         * The pipeline should be reordered. B will do a service leave, then
-         * enter seek consensus, and then re-enter the pipeline.
-         */
-        awaitPipeline(new HAGlue[] { startup.serverA, startup.serverC,
-                startup.serverB });
+            // Simple transaction.
+            simpleTransaction();
 
-        /*
-         * There should be two commit points on {A,C,B} (note that this assert
-         * does not pay attention to the pipeline order).
-         */
-        awaitCommitCounter(2L, startup.serverA, startup.serverC,
-                startup.serverB);
+            // Verify quorum is unchanged.
+            assertEquals(token, quorum.token());
 
-        // B should be a follower again.
-        awaitHAStatus(startup.serverB, HAStatusEnum.Follower);
+            // Should be two commit points on {A,C].
+            awaitCommitCounter(2L, startup.serverA, startup.serverC);
 
-        // quorum token is unchanged.
-        assertEquals(token, quorum.token());
+            /*
+             * B should go into an ERROR state and then into SeekConsensus and
+             * from there to RESYNC and finally back to RunMet. We can not
+             * reliably observe the intervening states. So what we really need
+             * to do is watch for B to move to the end of the pipeline and catch
+             * up to the same commit point.
+             */
+
+            /*
+             * The pipeline should be reordered. B will do a service leave, then
+             * enter seek consensus, and then re-enter the pipeline.
+             */
+            awaitPipeline(new HAGlue[] { startup.serverA, startup.serverC,
+                    startup.serverB });
+
+            /*
+             * There should be two commit points on {A,C,B} (note that this
+             * assert does not pay attention to the pipeline order).
+             */
+            awaitCommitCounter(2L, startup.serverA, startup.serverC,
+                    startup.serverB);
+
+            // B should be a follower again.
+            awaitHAStatus(startup.serverB, HAStatusEnum.Follower);
+
+            // quorum token is unchanged.
+            assertEquals(token, quorum.token());
+
+        } else {
+            
+            try {
+
+                // Simple transaction.
+                simpleTransaction();
+                
+                fail("Expecting failed transaction");
+                
+            } catch (Exception t) {
+                
+                if (!t.getMessage().contains(
+                        SpuriousTestException.class.getName())) {
+                    /*
+                     * Wrong inner cause.
+                     * 
+                     * Note: The stack trace of the local exception does not
+                     * include the remote stack trace. The cause is formatted
+                     * into the HTTP response body.
+                     */
+                    fail("Expecting " + SpuriousTestException.class, t);
+                }
+                
+            }
+
+            // Verify quorum is unchanged.
+            assertEquals(token, quorum.token());
+
+            // Should be ONE commit point on {A,B, C].
+            awaitCommitCounter(1L, startup.serverA, startup.serverB,
+                    startup.serverC);
+
+            fail("finish test under these assumptions");
+            
+        }
 
     }
     

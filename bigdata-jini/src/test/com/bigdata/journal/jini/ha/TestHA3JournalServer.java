@@ -1688,42 +1688,66 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
      */
     public void testStartABC_halog() throws Exception {
         
-        // Start 3 services
-        startA();
-        startB();
-        startC();
-        
-        awaitFullyMetQuorum();
-        
         // setup log directories
         final File logsA = getHALogDirA();
         final File logsB = getHALogDirB();
         final File logsC = getHALogDirC();
         
+        /*
+         * Start 2 services and wait for first commit point. The HALogs will not
+         * be purged because the quorum is not fully met.
+         */
+        HAGlue serverA = startA();
+        HAGlue serverB = startB();
+        final long token = awaitMetQuorum();
+        // initial token value.
+        assertEquals(0L, token);
+        awaitCommitCounter(1L, serverA, serverB);
+        awaitLogCount(logsA, 2);
+        awaitLogCount(logsB, 2);
+
+        /*
+         * Start next service. The service will resync and join with the met
+         * quorum. The HALog files will not be purged - they do not get purged
+         * until the fully met quorum goes through a commit point.
+         */
+        HAGlue serverC = startC();
+        final long token2 = awaitFullyMetQuorum();
+        assertEquals(token2,token);
+        awaitCommitCounter(1L, serverA, serverB,
+                serverC);
+
         // committed log files not purged prior to fully met commit
-        assertLogCount(logsA, 2);
-        assertLogCount(logsB, 2);
-        assertLogCount(logsC, 2);
+        awaitLogCount(logsA, 2);
+        awaitLogCount(logsB, 2);
+        awaitLogCount(logsC, 2);
+        
+        //
+        // Above here the code is shared with halogRestart()
+        //
 
         // Run through transaction
         simpleTransaction();
         
         // again check that only open log files remaining
-        assertLogCount(logsA, 1);
-        assertLogCount(logsB, 1);
-        assertLogCount(logsC, 1);
+        awaitLogCount(logsA, 1);
+        awaitLogCount(logsB, 1);
+        awaitLogCount(logsC, 1);
         assertEquals(1L, recursiveCount(getHALogDirA(),IHALogReader.HALOG_FILTER));
         assertEquals(1L, recursiveCount(getHALogDirB(),IHALogReader.HALOG_FILTER));
         assertEquals(1L, recursiveCount(getHALogDirC(),IHALogReader.HALOG_FILTER));
 
         // Now run several transactions
-        for (int i = 0; i < 5; i++)
-        	simpleTransaction();
+        for (int i = 0; i < 5; i++) {
+
+            simpleTransaction();
+
+        }
         
         // again check that only open log files remaining
-        assertLogCount(logsA, 1);
-        assertLogCount(logsB, 1);
-        assertLogCount(logsC, 1);
+        awaitLogCount(logsA, 1);
+        awaitLogCount(logsB, 1);
+        awaitLogCount(logsC, 1);
     }
     
     /**
@@ -1733,37 +1757,52 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
      * @throws Exception
      */
     public void testStartABC_halogRestart() throws Exception {
-        // Start 3 services in strict order.
-//        startA();
-//        Thread.sleep(1000); // ensure A will be leader
-//        startB();
-//        startC();
-        new ABC(true/*sequential*/);
-        
-        awaitFullyMetQuorum();
         
         // setup log directories
         final File logsA = getHALogDirA();
         final File logsB = getHALogDirB();
         final File logsC = getHALogDirC();
         
-        final long token = awaitFullyMetQuorum();
-        
+        /*
+         * Start 2 services and wait for first commit point. The HALogs will not
+         * be purged because the quorum is not fully met.
+         */
+        HAGlue serverA = startA();
+        HAGlue serverB = startB();
+        final long token = awaitMetQuorum();
         // initial token value.
         assertEquals(0L, token);
+        awaitCommitCounter(1L, serverA, serverB);
+        awaitLogCount(logsA, 2);
+        awaitLogCount(logsB, 2);
+
+        /*
+         * Start next service. The service will resync and join with the met
+         * quorum. The HALog files will not be purged - they do not get purged
+         * until the fully met quorum goes through a commit point.
+         */
+        HAGlue serverC = startC();
+        final long token2 = awaitFullyMetQuorum();
+        assertEquals(token2,token);
+        awaitCommitCounter(1L, serverA, serverB,
+                serverC);
 
         // committed log files not purged prior to fully met commit
-        assertLogCount(logsA, 2);
-        assertLogCount(logsB, 2);
-        assertLogCount(logsC, 2);
+        awaitLogCount(logsA, 2);
+        awaitLogCount(logsB, 2);
+        awaitLogCount(logsC, 2);
+        
+        //
+        // Above here the code is shared with halogRestart2()
+        //
 
         // Run through transaction
         simpleTransaction();
         
         // again check that only open log files remaining
-        assertLogCount(logsA, 1);
-        assertLogCount(logsB, 1);
-        assertLogCount(logsC, 1);
+        awaitLogCount(logsA, 1);
+        awaitLogCount(logsB, 1);
+        awaitLogCount(logsC, 1);
         
         // Now shutdown all servers
         shutdownB();
@@ -1771,13 +1810,13 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         shutdownA();
         
         // and check that there are no logs
-        assertLogCount(logsA, 0);
-        assertLogCount(logsB, 0);
-        assertLogCount(logsC, 0);
+        awaitLogCount(logsA, 0);
+        awaitLogCount(logsB, 0);
+        awaitLogCount(logsC, 0);
         
         // startup AB
-        final HAGlue serverA = startA();
-        final HAGlue serverB = startB();
+        serverA = startA();
+        serverB = startB();
         
         final long token1 = awaitMetQuorum();
         awaitHAStatus(serverA, HAStatusEnum.Leader);
@@ -1785,63 +1824,74 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         
         // Verify new quorum token.
         assertEquals(token + 1, token1);
-((HAGlueTest)serverA).log("MARK");
-((HAGlueTest)serverB).log("MARK");
-Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         // and check that there are open logs
-        assertLogCount(logsA, 1);
-        assertLogCount(logsB, 1);
+        awaitLogCount(logsA, 1);
+        awaitLogCount(logsB, 1);
         
         // add C
-        final HAGlue serverC = startC();
+        serverC = startC();
         
         assertEquals(token1, awaitFullyMetQuorum());
         awaitHAStatus(serverA, HAStatusEnum.Leader);
         awaitHAStatus(serverB, HAStatusEnum.Follower);
         awaitHAStatus(serverC, HAStatusEnum.Follower);
-((HAGlueTest)serverA).log("MARK");
-((HAGlueTest)serverB).log("MARK");
-((HAGlueTest)serverC).log("MARK");
-Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         
         // and check again for ABC
-        assertLogCount(logsA, 1);
-        assertLogCount(logsB, 1);
-        assertLogCount(logsC, 1);
+        awaitLogCount(logsA, 1);
+        awaitLogCount(logsB, 1);
+        awaitLogCount(logsC, 1);
     }
     
     /**
      * Variant where A is shutdown first.
      */
     public void testStartABC_halogRestart2() throws Exception {
-        // Start 3 services in strict order.
-//        startA();
-//        Thread.sleep(1000); // ensure A will be leader
-//        startB();
-//        startC();
-        new ABC(true/* sequential */);
-        
-        final long token = awaitFullyMetQuorum();
-        
-        assertEquals(0L, token);
-        
+
         // setup log directories
         final File logsA = getHALogDirA();
         final File logsB = getHALogDirB();
         final File logsC = getHALogDirC();
         
+        /*
+         * Start 2 services and wait for first commit point. The HALogs will not
+         * be purged because the quorum is not fully met.
+         */
+        HAGlue serverA = startA();
+        HAGlue serverB = startB();
+        final long token = awaitMetQuorum();
+        // initial token value.
+        assertEquals(0L, token);
+        awaitCommitCounter(1L, serverA, serverB);
+        awaitLogCount(logsA, 2);
+        awaitLogCount(logsB, 2);
+
+        /*
+         * Start next service. The service will resync and join with the met
+         * quorum. The HALog files will not be purged - they do not get purged
+         * until the fully met quorum goes through a commit point.
+         */
+        HAGlue serverC = startC();
+        final long token2 = awaitFullyMetQuorum();
+        assertEquals(token2,token);
+        awaitCommitCounter(1L, serverA, serverB,
+                serverC);
+
         // committed log files not purged prior to fully met commit
-        assertLogCount(logsA, 2);
-        assertLogCount(logsB, 2);
-        assertLogCount(logsC, 2);
+        awaitLogCount(logsA, 2);
+        awaitLogCount(logsB, 2);
+        awaitLogCount(logsC, 2);
+        
+        //
+        // Above here the code is shared with halogRestart()
+        //
 
         // Run through transaction
         simpleTransaction();
         
         // again check that only open log files remaining
-        assertLogCount(logsA, 1);
-        assertLogCount(logsB, 1);
-        assertLogCount(logsC, 1);
+        awaitLogCount(logsA, 1);
+        awaitLogCount(logsB, 1);
+        awaitLogCount(logsC, 1);
 
         // Verify token unchanged.
         assertEquals(token, awaitFullyMetQuorum());
@@ -1852,18 +1902,15 @@ Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         shutdownC();
         
         // and check that there are no logs
-        assertLogCount(logsA, 0);
-        assertLogCount(logsB, 0);
-        assertLogCount(logsC, 0);
+        awaitLogCount(logsA, 0);
+        awaitLogCount(logsB, 0);
+        awaitLogCount(logsC, 0);
         
         // startup AB
-        final HAGlue serverA = startA();
-        final HAGlue serverB = startB();
+        serverA = startA();
+        serverB = startB();
         
         final long token1 = awaitMetQuorum();
-((HAGlueTest)serverA).log("MARK");
-((HAGlueTest)serverB).log("MARK");
-Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         
         /*
          * Verify new quorum token (could be a quorum meet when the leader
@@ -1872,23 +1919,19 @@ Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         assertTrue(token1 >= token + 1);
 
         // and check that there are open logs
-        assertLogCount(logsA, 1);
-        assertLogCount(logsB, 1);
+        awaitLogCount(logsA, 1);
+        awaitLogCount(logsB, 1);
         
         // add C
-        final HAGlue serverC = startC();
+        serverC = startC();
         
         // Verify quorum token is unchanged.
         assertEquals(token1, awaitFullyMetQuorum());
-((HAGlueTest)serverA).log("MARK");
-((HAGlueTest)serverB).log("MARK");
-((HAGlueTest)serverC).log("MARK");
-Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         
         // and check again for ABC
-        assertLogCount(logsA, 1);
-        assertLogCount(logsB, 1);
-        assertLogCount(logsC, 1);
+        awaitLogCount(logsA, 1);
+        awaitLogCount(logsB, 1);
+        awaitLogCount(logsC, 1);
     }
 
     public void testABCMultiTransactionFollowerReads() throws Exception {
@@ -2336,18 +2379,18 @@ Thread.sleep(1000/*ms*/); // FIXME Why this delay?
         	simpleTransaction();
 
         // 5 committed files + 1 open == 6
-        assertLogCount(logsA, 6);
-        assertLogCount(logsB, 6);
+        awaitLogCount(logsA, 6);
+        awaitLogCount(logsB, 6);
 
         // and restart C with empty journal, forces Rebuild
         startC();
         
         awaitFullyMetQuorum();
         
-        assertLogCount(logsA, 6);
-        assertLogCount(logsB, 6);        
+        awaitLogCount(logsA, 6);
+        awaitLogCount(logsB, 6);        
         // Log count on C is 1 after quiescent rebuild
-        assertLogCount(logsC, 1);
+        awaitLogCount(logsC, 1);
         
         log.warn("CHECK: Committed log files not copied on Rebuild");
         
@@ -2356,9 +2399,9 @@ Thread.sleep(1000/*ms*/); // FIXME Why this delay?
             simpleTransaction();
 
         // and check that only open log files remaining
-        assertLogCount(logsA, 1);
-        assertLogCount(logsB, 1);
-        assertLogCount(logsC, 1);
+        awaitLogCount(logsA, 1);
+        awaitLogCount(logsB, 1);
+        awaitLogCount(logsC, 1);
         
     }
     
