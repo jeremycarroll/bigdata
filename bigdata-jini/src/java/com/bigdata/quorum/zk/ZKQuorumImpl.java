@@ -1463,13 +1463,45 @@ public class ZKQuorumImpl<S extends Remote, C extends ZKQuorumClient<S>> extends
         }
 
         /**
-         * This service has become disconnected from the zookeeper ensemble.
+         * This service has become disconnected (at the TCP layer) from the
+         * zookeeper ensemble - this DOES NOT imply that the client session is
+         * expired.
+         * <p>
+         * Note: The client side of session CAN NOT be expired unless the client
+         * is connected. Session expiration is decided by the zookeeper server
+         * process, not the client.
+         * <p>
+         * Note: A {@link ZooKeeper} client connection that has become
+         * disconnected will be automatically cured once the client re-connects.
+         * When this happens, the watchers will be retriggered (automatically)
+         * and the {@link ZKQuorumImpl} will have an opportunity to
+         * resynchronize with any state changes in the quorum. THEREFORE, we do
+         * not force a session expire or a transition to an error state if the
+         * {@link ZooKeeper} client is transiently disconnected (or if the
+         * session is moved to another zookeeper server process).
+         * <p>
+         * There are serveral possible causes of a disconnect:
+         * <ul>
+         * 
+         * <li>zookeeper server process is down.</li>
+         * 
+         * <li>client can not reach the zookeeper ensemble.</li>
+         * 
+         * <li>client fails over from one zookeeper server to another (either
+         * because the zookeeper server is down or because it has become
+         * unreachable).</li>
+         * 
+         * </ul>
+         * 
          * Invoke the {@link QuorumClient#disconnected()} method to allow the
          * client to handle this in an application specific manner.
          */
         private void handleDisconnected() {
-            log.error("ZOOKEEPER CLIENT DISCONNECTED: token=" + token());
-            doNotifyClientDisconnected();
+            log.warn("ZOOKEEPER CLIENT DISCONNECTED: token=" + token());
+            /*
+             * Per above, DO NOTHING.
+             */
+//            doNotifyClientDisconnected();
         }
         
         private void doNotifyClientDisconnected() {

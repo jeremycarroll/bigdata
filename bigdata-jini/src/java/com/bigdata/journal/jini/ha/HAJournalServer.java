@@ -42,7 +42,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 
@@ -2084,14 +2083,6 @@ public class HAJournalServer extends AbstractServer {
                      * 
                      * If we are (or become) connected with zookeeper before the 
                      * timeout, then do serviceLeave() for this service.
-                     * 
-                     * TODO We may *choose* to watch the ZooKeeper client
-                     * connection in RunMet. If it remains disconnected, then we
-                     * could tear down the service. However, is not required.
-                     * Bigdata should be fine without zookeeper as long as all
-                     * services remain met. ZooKeeper is only used to coordinate
-                     * changes in the quorum state. E.g., leader election,
-                     * pipeline order change, etc.
                      */
                     // session timeout as configured.
                     final int sessionTimeout1 = server.getHAClient().zooConfig.sessionTimeout;
@@ -2124,6 +2115,12 @@ public class HAJournalServer extends AbstractServer {
                         final long elapsed = System.nanoTime() - begin;
                         if (elapsed > TimeUnit.MILLISECONDS
                                 .toNanos(sessionTimeout)) {
+                            /*
+                             * TODO This forces the connection from CONNECTING
+                             * to CLOSED if we are in the Error state and unable
+                             * to connect to zookeeper. This might not be
+                             * strictly necessary.
+                             */
                             log.error("Tearing down service: ZK Session remains disconnected for "
                                     + TimeUnit.NANOSECONDS.toMillis(elapsed)
                                     + "ms, effectiveTimeout=" + sessionTimeout);
@@ -3695,7 +3692,8 @@ public class HAJournalServer extends AbstractServer {
 
                     assert req == null; // Note: MUST be a live message!
 
-                    if (!isJoinedMember(msg.getQuorumToken())) {
+                    if (journal.getHAReady() == Quorum.NO_QUORUM
+                            || !isJoinedMember(msg.getQuorumToken())) {
 
                         /*
                          * If we are not joined, we can not do anything with a

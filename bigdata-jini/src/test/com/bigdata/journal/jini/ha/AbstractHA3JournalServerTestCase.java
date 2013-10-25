@@ -363,6 +363,20 @@ public class AbstractHA3JournalServerTestCase extends
         discoveryClient = new HAGlueServicesClient(serviceDiscoveryManager,
                 null/* serviceDiscoveryListener */, cacheMissTimeout);
 
+        if (!isZookeeperRunning()) {
+
+            /*
+             * Ensure that zookeeper is running.
+             * 
+             * Note: Some unit tests will tear down the zookeeper server
+             * process. This ensures that the zookeeper server process is
+             * restarted before the next test runs.
+             */
+
+            startZookeeper();
+
+        }
+        
         // Setup quorum client.
         quorum = newQuorum();
         
@@ -1773,11 +1787,42 @@ public class AbstractHA3JournalServerTestCase extends
 
             processHelper.kill(true/* immediateShutdown */);
 
-            throw new RuntimeException("Could not start/locate service: name="
-                    + name + ", configFile=" + configFile, t);
+            throw new ServiceStartException(
+                    "Could not start/locate service: name=" + name
+                            + ", configFile=" + configFile, t);
 
         }
 
+    }
+    
+    /**
+     * Exception thrown when the test harness could not start a service.
+     * 
+     * @author <a href="mailto:thompsonbry@users.sourceforge.net">Bryan Thompson</a>
+     */
+    protected static class ServiceStartException extends RuntimeException {
+
+        /**
+         * 
+         */
+        private static final long serialVersionUID = 1L;
+
+        public ServiceStartException() {
+            super();
+        }
+
+        public ServiceStartException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public ServiceStartException(String message) {
+            super(message);
+        }
+
+        public ServiceStartException(Throwable cause) {
+            super(cause);
+        }
+        
     }
 
     /**
@@ -2524,6 +2569,22 @@ public class AbstractHA3JournalServerTestCase extends
         // Wait until that service is ready to act as the leader.
         assertEquals(HAStatusEnum.Leader, awaitNSSAndHAReady(leader));
 
+        simpleTransaction_noQuorumCheck(leader);
+        
+    }
+
+    /**
+     * Immediately issues a simple transaction against the service.
+     * 
+     * @param leader
+     *            The service (must be the leader to succeed).
+     *            
+     * @throws IOException
+     * @throws Exception
+     */
+    protected void simpleTransaction_noQuorumCheck(final HAGlue leader)
+            throws IOException, Exception {
+        
         final StringBuilder sb = new StringBuilder();
         sb.append("DROP ALL;\n");
         sb.append("PREFIX dc: <http://purl.org/dc/elements/1.1/>\n");
@@ -2533,9 +2594,6 @@ public class AbstractHA3JournalServerTestCase extends
         sb.append("}\n");
 
         final String updateStr = sb.toString();
-
-        // Verify quorum is still valid.
-        quorum.assertQuorum(token);
 
         getRemoteRepository(leader).prepareUpdate(updateStr).evaluate();
             
@@ -2941,6 +2999,10 @@ public class AbstractHA3JournalServerTestCase extends
      * directory and start/stop the zookeeper process. When running these tests,
      * you must specify this property in order to execute tests that stop and
      * start the zookeeper process under test control.
+     * <p>
+     * Note: The <code>zkServer.sh </code> script DEPENDS on the pid file
+     * written by that script. If this gets out of whack, you will not be able
+     * to stop zookeeper using this method.
      */
     protected void zkCommand(final String cmd) throws InterruptedException,
             IOException {
@@ -2964,7 +3026,12 @@ public class AbstractHA3JournalServerTestCase extends
         final ProcessBuilder pb = new ProcessBuilder(shell, executable, cmd);
         pb.directory(binDir);
         final int exitCode = pb.start().waitFor();
-        // Make sure that the command executed normally!
+        /*
+         * Make sure that the command executed normally!
+         * 
+         * Note: exitCode=1 could mean that the pid file is no longer correct
+         * hence "stop" can not be processed.
+         */
         assertEquals("exitCode=" + exitCode, 0, exitCode);
         // Wait for zk to start or stop.
         Thread.sleep(1000/* ms */);
@@ -3000,7 +3067,8 @@ public class AbstractHA3JournalServerTestCase extends
             ZooHelper.ruok(localIpAddr, clientPort);
             running = true;
         } catch (Throwable t) {
-            log.warn("localIpAddr=" + localIpAddr + ":: t", t);
+            log.warn("localIpAddr=" + localIpAddr + ", clientPort="
+                    + clientPort + " :: " + t, t);
         }
         return running;
     }

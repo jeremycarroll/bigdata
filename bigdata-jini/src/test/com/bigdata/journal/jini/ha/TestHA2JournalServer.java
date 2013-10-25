@@ -344,7 +344,7 @@ public class TestHA2JournalServer extends AbstractHA3JournalServerTestCase {
 //
 //            if (leaderId1.equals(leaderId2)) {
 //                /*
-//                 * FIXME This fail message is not useful.
+//                 * This fail message is not useful.
 //                 * leaderId1.equals(leaderId2). it should report what the leader
 //                 * *should* have been, but reports two identical values instead.
 //                 */

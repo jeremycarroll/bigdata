@@ -3293,7 +3293,7 @@ public abstract class AbstractJournal implements IJournal/* , ITimestampService 
                  * The next offset at which user data would be written.
                  * Calculated, after commit!
                  */
-    			nextOffset = _bufferStrategy.getNextOffset();
+                nextOffset = _bufferStrategy.getNextOffset();
     
                 final long blockSequence;
                 
@@ -3468,8 +3468,15 @@ public abstract class AbstractJournal implements IJournal/* , ITimestampService 
                              * the met quorum; and (b) voted YES in response to
                              * the PREPARE message.
                              */
-    
-                            quorumService.abort2Phase(commitToken);
+                            try {
+                                quorumService.abort2Phase(commitToken);
+                            } finally {
+                                throw new RuntimeException(
+                                        "PREPARE rejected: nyes="
+                                                + resp.getYesCount()
+                                                + ", replicationFactor="
+                                                + resp.replicationFactor());
+                            }
     
                         }
     
