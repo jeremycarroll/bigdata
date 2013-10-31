@@ -1184,7 +1184,7 @@ abstract public class QuorumPipelineImpl<S extends HAPipelineGlue> /*extends
                 final IHAWriteMessage msg) {
 
             // Use size and checksum from real IHAWriteMessage.
-            super(msg.getSize(),msg.getChk());
+            super(msg.getSize(),msg.getChk(),msg.getToken());
             
             this.req = req; // MAY be null;
             this.msg = msg;
@@ -1473,6 +1473,21 @@ abstract public class QuorumPipelineImpl<S extends HAPipelineGlue> /*extends
                 innerReplicate(0/* retryCount */);
                 
             } catch (Throwable t) {
+            	
+            	final PipelineException pe = (PipelineException) InnerCause.getInnerCause(t, PipelineException.class);
+                if (pe != null) {
+                	log.error("Really need to remove service " + pe.getProblemServiceId());
+                	final UUID psid = pe.getProblemServiceId();
+                	
+                    try {                    	                       
+                       member.getActor().forceRemoveService(psid);
+                   } catch (Exception e) {
+                        log.warn("Problem on node removal", e);
+                        
+                        throw new RuntimeException(e);
+                    }
+                }
+
 
                 // Note: Also see retrySend()'s catch block.
                 if (InnerCause.isInnerCause(t, InterruptedException.class)
@@ -1714,7 +1729,7 @@ abstract public class QuorumPipelineImpl<S extends HAPipelineGlue> /*extends
                 ExecutionException, IOException {
 
             // Get Future for send() outcome on local service.
-            final Future<Void> futSnd = sendService.send(b);
+            final Future<Void> futSnd = sendService.send(b, msg.getToken());
 
             try {
 
@@ -1754,6 +1769,18 @@ abstract public class QuorumPipelineImpl<S extends HAPipelineGlue> /*extends
                     }
                 }
 
+            } catch (Throwable t) {
+            	// check inner cause for downstream PipelineException
+            	final PipelineException pe = (PipelineException) InnerCause.getInnerCause(t, PipelineException.class);
+            	if (pe != null) {
+            		throw pe; // throw it upstream
+            	}
+            	
+            	// determine next pipeline service id
+            	final UUID[] priorAndNext = member.getQuorum().getPipelinePriorAndNext(member.getServiceId());
+            	log.warn("Problem with downstream service: " + priorAndNext[1], t);
+            	
+            	throw new PipelineException(priorAndNext[1], t);
             } finally {
                 // cancel the local Future.
                 futSnd.cancel(true/* mayInterruptIfRunning */);
@@ -2022,6 +2049,12 @@ abstract public class QuorumPipelineImpl<S extends HAPipelineGlue> /*extends
                     }
                 }
 
+            } catch (Throwable t) {
+            	// determine next pipeline service id
+            	final UUID[] priorAndNext = member.getQuorum().getPipelinePriorAndNext(member.getServiceId());
+            	log.warn("Problem with downstream service: " + priorAndNext[1], t);
+            	
+            	throw new PipelineException(priorAndNext[1], t);
             } finally {
                 // cancel the local Future.
                 futSnd.cancel(true/* mayInterruptIfRunning */);

@@ -24,6 +24,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.ha.pipeline;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Random;
@@ -108,6 +113,32 @@ public class TestHASendAndReceive extends TestCase3 {
         chk = null;
         
 	}
+	
+	/**
+	 * Need to check base message serialization
+	 * 
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
+	public void testMessageSerialization() throws IOException, ClassNotFoundException {
+		final ByteArrayOutputStream boutstr = new ByteArrayOutputStream();
+		final ObjectOutputStream obout = new ObjectOutputStream(boutstr);
+		
+		final HAWriteMessageBase src_msg = new HAWriteMessageBase(50, 23);
+		
+		obout.writeObject(src_msg);		
+		obout.flush();
+		
+		final ByteArrayInputStream binstr = new ByteArrayInputStream(boutstr.toByteArray());
+		final ObjectInputStream obin = new ObjectInputStream(binstr);
+		
+		final Object dst_msg = obin.readObject();
+		
+		assertTrue(src_msg.equals(dst_msg));
+		
+		// now check that it would falsely compare against a different message
+		assertFalse(src_msg.equals(new HAWriteMessageBase(50, 23)));
+	}
 
     /**
      * Should we expect concurrency of the Socket send and RMI? It seems that we
@@ -130,7 +161,7 @@ public class TestHASendAndReceive extends TestCase3 {
             final IHAWriteMessageBase msg1 = new HAWriteMessageBase(50, chk.checksum(tst1));
             final ByteBuffer rcv = ByteBuffer.allocate(2000);
             final Future<Void> futRec = receiveService.receiveData(msg1, rcv);
-            final Future<Void> futSnd = sendService.send(tst1);
+            final Future<Void> futSnd = sendService.send(tst1, msg1.getToken());
             futSnd.get(timeout,TimeUnit.MILLISECONDS);
             futRec.get(timeout,TimeUnit.MILLISECONDS);
             assertEquals(tst1, rcv);
@@ -140,7 +171,41 @@ public class TestHASendAndReceive extends TestCase3 {
             final ByteBuffer tst2 = getRandomData(100);
             final IHAWriteMessageBase msg2 = new HAWriteMessageBase(100, chk.checksum(tst2));
             final ByteBuffer rcv2 = ByteBuffer.allocate(2000);
-            final Future<Void> futSnd = sendService.send(tst2);
+            final Future<Void> futSnd = sendService.send(tst2, msg2.getToken());
+            final Future<Void> futRec = receiveService.receiveData(msg2, rcv2);
+            futSnd.get(timeout,TimeUnit.MILLISECONDS);
+            futRec.get(timeout,TimeUnit.MILLISECONDS);
+            assertEquals(tst2, rcv2);
+        }
+
+    }
+
+    public void testSimpleExchangeWithTokens() throws InterruptedException, ExecutionException, TimeoutException {
+
+        final long timeout = 5000;// ms
+        {
+            final ByteBuffer tst1 = getRandomData(50);
+            final IHAWriteMessageBase msg1 = new HAWriteMessageBase(50, chk.checksum(tst1));
+            final ByteBuffer rcv = ByteBuffer.allocate(2000);
+            final Future<Void> futRec = receiveService.receiveData(msg1, rcv);
+            final Future<Void> futSnd = sendService.send(tst1, msg1.getToken());
+            futSnd.get(timeout,TimeUnit.MILLISECONDS);
+            futRec.get(timeout,TimeUnit.MILLISECONDS);
+            assertEquals(tst1, rcv);
+        }
+        
+        {
+        	// how throw some random data into the stream to force the tokens to do something
+            final ByteBuffer junk = getRandomData(10000);
+            final Future<Void> futSnd = sendService.send(junk, null);
+            futSnd.get(timeout,TimeUnit.MILLISECONDS);
+        }
+
+        {
+            final ByteBuffer tst2 = getRandomData(100);
+            final IHAWriteMessageBase msg2 = new HAWriteMessageBase(100, chk.checksum(tst2));
+            final ByteBuffer rcv2 = ByteBuffer.allocate(2000);
+            final Future<Void> futSnd = sendService.send(tst2, msg2.getToken());
             final Future<Void> futRec = receiveService.receiveData(msg2, rcv2);
             futSnd.get(timeout,TimeUnit.MILLISECONDS);
             futRec.get(timeout,TimeUnit.MILLISECONDS);
@@ -168,7 +233,7 @@ public class TestHASendAndReceive extends TestCase3 {
             final ByteBuffer rcv = ByteBuffer.allocate(sze + r.nextInt(1024));
             // FutureTask return ensures remote ready for Socket data
             final Future<Void> futRec = receiveService.receiveData(msg, rcv);
-            final Future<Void> futSnd = sendService.send(tst);
+            final Future<Void> futSnd = sendService.send(tst, msg.getToken());
             futSnd.get(timeout,TimeUnit.MILLISECONDS);
             futRec.get(timeout,TimeUnit.MILLISECONDS);
             assertEquals(tst, rcv); // make sure buffer has been transmitted
@@ -199,7 +264,7 @@ public class TestHASendAndReceive extends TestCase3 {
                 assertEquals(sze,tst.limit());
                 // FutureTask return ensures remote ready for Socket data
                 final Future<Void> futRec = receiveService.receiveData(msg, rcv);
-                final Future<Void> futSnd = sendService.send(tst);
+                final Future<Void> futSnd = sendService.send(tst, msg.getToken());
                 futSnd.get(timeout,TimeUnit.MILLISECONDS);
                 futRec.get(timeout,TimeUnit.MILLISECONDS);
                 // make sure buffer has been transmitted

@@ -45,6 +45,7 @@ import net.jini.config.Configuration;
 
 import com.bigdata.ha.HAGlue;
 import com.bigdata.ha.HAStatusEnum;
+import com.bigdata.ha.IndexManagerCallable;
 import com.bigdata.ha.halog.HALogWriter;
 import com.bigdata.ha.halog.IHALogReader;
 import com.bigdata.ha.msg.HARootBlockRequest;
@@ -1028,6 +1029,180 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
 			testStartAB_C_LiveResync();
 			destroyAll();
 		}
+	}
+    
+    /**
+     * Start A+B+C in strict sequence. Wait until the quorum fully meets. Start
+     * a long running LOAD. While the LOAD is running, sure kill C (the last
+     * follower). Verify that the LOAD completes successfully with the remaining
+     * services (A+B).
+     */
+    public void testABC_LiveLoadRemainsMet_kill_C() throws Exception {
+
+        // enforce join order
+		final ABC startup = new ABC(true /*sequential*/);
+		
+		final long token = awaitFullyMetQuorum();
+		
+        // start concurrent task loads that continue until fully met
+        final FutureTask<Void> ft = new FutureTask<Void>(new LargeLoadTask(
+                token));
+
+        executorService.submit(ft);
+
+        // allow load head start
+        Thread.sleep(300/* ms */);
+
+		// Verify load is still running.
+		assertFalse(ft.isDone());
+		
+		// Dump Zookeeper
+		log.warn("ZOOKEEPER\n" + dumpZoo());
+		
+		kill(startup.serverC);
+
+		awaitPipeline(20, TimeUnit.SECONDS, new HAGlue[] {startup.serverA, startup.serverB});
+
+		awaitMembers(new HAGlue[] {startup.serverA, startup.serverB});
+		awaitJoined(new HAGlue[] {startup.serverA, startup.serverB});
+
+		// token must remain unchanged to indicate same quorum
+		assertEquals(token, awaitMetQuorum());
+		
+        // Await LOAD, but with a timeout.
+        ft.get(longLoadTimeoutMillis, TimeUnit.MILLISECONDS);
+
+        // token must remain unchanged to indicate same quorum
+        assertEquals(token, awaitMetQuorum());
+
+    }
+
+    public void _testStressABC_LiveLoadRemainsMet_kill_C() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            try {
+            	testABC_LiveLoadRemainsMet_kill_C();
+            } catch (Throwable t) {
+                fail("Run " + i, t);
+            } finally {
+            	Thread.sleep(2000);
+                destroyAll();
+            }
+        }
+    }
+
+    /**
+     * Start A+B+C in strict sequence. Wait until the quorum fully meets. Start
+     * a long running LOAD. While the LOAD is running, sure kill B (the first
+     * follower). Verify that the LOAD completes successfully with the remaining
+     * services (A+C), after the leader re-orders the pipeline.
+     */
+    public void testABC_LiveLoadRemainsMet_kill_B() throws Exception {
+
+        // enforce join order
+		final ABC startup = new ABC(true /*sequential*/);
+		
+		final long token = awaitFullyMetQuorum();
+		
+        // start concurrent task loads that continue until fully met
+        final FutureTask<Void> ft = new FutureTask<Void>(new LargeLoadTask(
+                token));
+
+        executorService.submit(ft);
+
+        // allow load head start
+        Thread.sleep(300/* ms */);
+
+		// Verify load is still running.
+		assertFalse(ft.isDone());
+		
+		// Dump Zookeeper
+		log.warn("ZOOKEEPER\n" + dumpZoo());
+		
+		kill(startup.serverB);
+
+		awaitPipeline(10, TimeUnit.SECONDS, new HAGlue[] {startup.serverA, startup.serverC});
+		
+		// also check members and joined
+		awaitMembers(new HAGlue[] {startup.serverA, startup.serverC});
+		awaitJoined(new HAGlue[] {startup.serverA, startup.serverC});
+
+		// token must remain unchanged to indicate same quorum
+		assertEquals(token, awaitMetQuorum());
+		
+        // Await LOAD, but with a timeout.
+        ft.get(longLoadTimeoutMillis, TimeUnit.MILLISECONDS);
+
+        // token must remain unchanged to indicate same quorum
+        assertEquals(token, awaitMetQuorum());
+
+    }
+
+    /**
+     * Instead of killing B this forces its removal from Zookeeper using the
+     * forceRemoveService method in a task submitted to the leader.
+     * 
+     * @throws Exception
+     */
+	public void testABC_LiveLoadRemainsMet_remove_B() throws Exception {
+
+        // enforce join order
+		final ABC startup = new ABC(true /*sequential*/);
+		
+		final long token = awaitFullyMetQuorum();
+		
+        // start concurrent task loads that continue until fully met
+        final FutureTask<Void> ft = new FutureTask<Void>(new LargeLoadTask(
+                token));
+
+        executorService.submit(ft);
+
+        // allow load head start
+        Thread.sleep(300/* ms */);
+
+		// Verify load is still running.
+		assertFalse(ft.isDone());
+		
+		// Dump Zookeeper
+		log.warn("ZOOKEEPER\n" + dumpZoo());
+		
+		startup.serverA.submit(new ForceRemoveService(startup.serverB.getServiceId()), false);
+		
+		awaitPipeline(10, TimeUnit.SECONDS, new HAGlue[] {startup.serverA, startup.serverC});
+
+		// token must remain unchanged to indicate same quorum
+		assertEquals(token, awaitMetQuorum());
+		
+        // Await LOAD, but with a timeout.
+        ft.get(longLoadTimeoutMillis, TimeUnit.MILLISECONDS);
+
+        // token must remain unchanged to indicate same quorum
+        assertEquals(token, awaitMetQuorum());
+		
+        // ...and in this case we might also expect the service to rejoin
+		awaitPipeline(10, TimeUnit.SECONDS, new HAGlue[] {startup.serverA, startup.serverC, startup.serverB});
+        assertEquals(token, awaitFullyMetQuorum());
+
+    }
+
+	static class ForceRemoveService extends IndexManagerCallable<Void> {
+
+        private static final long serialVersionUID = 1L;
+        private final UUID service;
+
+        ForceRemoveService(final UUID service) {
+            this.service = service;
+        }
+    	
+		@Override
+		public Void call() throws Exception {
+
+		    final HAJournal ha = (HAJournal) this.getIndexManager();
+			
+			ha.getQuorum().getActor().forceRemoveService(service);
+			
+			return null;
+		}
+		
 	}
     
     /**

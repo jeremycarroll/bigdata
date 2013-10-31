@@ -51,6 +51,7 @@ import java.util.zip.Adler32;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.btree.BytesUtil;
 import com.bigdata.ha.QuorumPipelineImpl;
 import com.bigdata.ha.msg.IHASyncRequest;
 import com.bigdata.ha.msg.IHAWriteMessage;
@@ -564,7 +565,7 @@ public class HAReceiveService<M extends IHAWriteMessageBase> extends Thread {
                 try {
                     readFuture.get();
                 } catch (Exception e) {
-                    log.warn(e, e);
+                    log.warn("Pipeline should have been drained", e);
                 }
 
                 lock.lockInterruptibly();
@@ -579,6 +580,7 @@ public class HAReceiveService<M extends IHAWriteMessageBase> extends Thread {
         } finally {
             final Client client = clientRef.get();
             if (client != null) {
+            	log.warn("Closing client");
                 client.close();
             }
         }
@@ -958,29 +960,44 @@ public class HAReceiveService<M extends IHAWriteMessageBase> extends Thread {
 
             }
 
-//            boolean success = false;
-//            try {
+            boolean success = false;
+            try {
                 doReceiveAndReplicate(client);
-//                success = true;
+                success = true;
                 // success.
                 return null;
-//            } finally {
-//                try {
-//                    if(success) {
-//                        ack(client);
-//                    } else {
-//                        nack(client);
-//                    }
-//                } catch (IOException ex) {
-//                    // log and ignore.
-//                    log.error(ex, ex);
-//                }
-//            }
+            } finally {
+                try {
+                    if (!success) {
+                    	// Drain, assuming that localBuffer is sized to be able to receive the full message
+                    	// TODO; confirm this assumption
+                    	if (localBuffer.capacity() < message.getSize())
+                    		log.error("Insufficient buffer capacity");
+                    	
+                    	// TODO: confirm that it is not possible for the next message to be sent to the pipeline since the
+                    	//	RMI may have already failed and the next message could be on the way.  If so the drain may read the
+                    	//	start of the next message.
+                    	final int startDrain = localBuffer.position();
+                    	final int msgSize = message.getSize();
+                    	log.warn("Start drain at " + startDrain + ", message size: " + msgSize + ", blocking mode: " + client.client.isBlocking());
+                        while(localBuffer.position() < msgSize) {
+                        	if (client.client.read(localBuffer) <= 0) // either -1 or no bytes available
+                        		break;
+                        }
+                    	log.warn("Drained the pipe of " + (localBuffer.position()-startDrain) + " bytes");
+                    }
+                } catch (IOException ex) {
+                    // log and ignore.
+                    log.error(ex, ex);
+                }
+            }
             
         } // call.
         
         private void doReceiveAndReplicate(final Client client)
                 throws Exception {
+        	
+        	log.warn("doReceiveAndReplicate");
 
             /*
              * We should now have parameters ready in the WriteMessage and can
@@ -998,6 +1015,17 @@ public class HAReceiveService<M extends IHAWriteMessageBase> extends Thread {
             // for debug retain number of low level reads
             int reads = 0;
             
+            // setup token values to search for any provided token prefix
+            final byte[] token = message.getToken();
+            
+            boolean foundStart = token == null; // if null then not able to check
+            int tokenIndex = 0;
+            final byte[] tokenBuffer = token == null ? null : new byte[token.length];
+            final ByteBuffer tokenBB = token == null ? null : ByteBuffer.wrap(tokenBuffer);
+            
+            if (log.isDebugEnabled())
+            	log.debug("Receive token: " + BytesUtil.toHexString(token));
+
             while (rem > 0 && !EOS) {
 
                 // block up to the timeout.
@@ -1049,15 +1077,68 @@ public class HAReceiveService<M extends IHAWriteMessageBase> extends Thread {
                     
                 }
 
+                
                 final Set<SelectionKey> keys = client.clientSelector
                         .selectedKeys();
                 
                 final Iterator<SelectionKey> iter = keys.iterator();
                 
+                int ntokenreads = 0;
+                int ntokenbytematches = 0;
+                
                 while (iter.hasNext()) {
                 
                     iter.next();
                     iter.remove();
+                    
+                    if (!foundStart) {
+                    	if (log.isDebugEnabled())
+                    		log.debug("Looking for token, reads: " + ntokenreads);
+                    	// Note that the logic for finding the token bytes depends on the
+                    	//	first byte in the token being unique!
+                    	// We have to be a bit clever to be sure we do not read beyond the
+                    	//	token and therefore complicate the reading into the localBuffer.
+                    	// This is optimized for the normal case where the key token is read
+                    	//	as the next bytes from the stream.  In the worst case scenario this
+                    	//	could read large amounts of data only a few bytes at a time, however
+                    	//	this is not in reality a significant overhead.
+                    	while (tokenIndex < token.length ) {
+                        	final int remtok = token.length - tokenIndex;
+                        	tokenBB.limit(remtok);
+                        	tokenBB.position(0);
+                        	
+                        	final int rdLen = client.client.read(tokenBB);
+                        	for (int i = 0; i < rdLen; i++) {
+                        		if (tokenBuffer[i] != token[tokenIndex]) {
+                        			log.warn("TOKEN MISMATCH");
+                        			tokenIndex = 0;
+                        			if (tokenBuffer[i] == token[tokenIndex]) {
+                        				tokenIndex++;
+                        			}
+                        		} else {
+                        			tokenIndex++;
+                        			ntokenbytematches++;
+                        		}
+                        	}
+                        	
+                        	ntokenreads++;
+                        	if (ntokenreads % 10000 == 0) {
+                        		if (log.isDebugEnabled())
+                        			log.debug("...still looking, reads: " + ntokenreads);
+                        	}
+                        	
+                        	foundStart = tokenIndex == token.length;                    		
+                     	}
+                    	
+                    	if (!foundStart) { // not sufficient data ready
+                    		// if (log.isDebugEnabled())
+                    			log.warn("Not found token yet!");
+                    		continue;
+                    	} else {
+                    		if (log.isDebugEnabled())
+                    			log.debug("Found token after " + ntokenreads + " token reads and " + ntokenbytematches + " byte matches");
+                    	}
+                    }
 
                     final int rdlen = client.client.read(localBuffer);
 
@@ -1099,41 +1180,53 @@ public class HAReceiveService<M extends IHAWriteMessageBase> extends Thread {
                      * 
                      * Note: loop since addrNext might change asynchronously.
                      */
-                    while(true) {
-                    if (rdlen != 0 && addrNextRef.get() != null) {
-                        if (log.isTraceEnabled())
-                            log.trace("Incremental send of " + rdlen + " bytes");
-                        final ByteBuffer out = localBuffer.asReadOnlyBuffer();
-                        out.position(localBuffer.position() - rdlen);
-                        out.limit(localBuffer.position());
-                        synchronized (sendService) {
-                            /*
-                             * Note: Code block is synchronized on [downstream]
-                             * to make the decision to start the HASendService
-                             * that relays to [addrNext] atomic. The
-                             * HASendService uses [synchronized] for its public
-                             * methods so we can coordinate this lock with its
-                             * synchronization API.
-                             */
-                            if (!sendService.isRunning()) {
-                                /*
-                                 * Prepare send service for incremental
-                                 * transfers to the specified address.
-                                 */
-                                // Check for termination.
-                                client.checkFirstCause();
-                                // Note: use then current addrNext!
-                                sendService.start(addrNextRef.get());
-                                continue;
-                            }
-                        }
-                        // Check for termination.
-                        client.checkFirstCause();
-                        // Send and await Future.
-                        sendService.send(out).get();
-                        }
-                        break;
-                    }
+					while (true) {
+						if (rdlen != 0 && addrNextRef.get() != null) {
+							if (log.isTraceEnabled())
+								log.trace("Incremental send of " + rdlen
+										+ " bytes");
+							final ByteBuffer out = localBuffer
+									.asReadOnlyBuffer();
+							out.position(localBuffer.position() - rdlen);
+							out.limit(localBuffer.position());
+							synchronized (sendService) {
+								/*
+								 * Note: Code block is synchronized on
+								 * [downstream] to make the decision to start
+								 * the HASendService that relays to [addrNext]
+								 * atomic. The HASendService uses [synchronized]
+								 * for its public methods so we can coordinate
+								 * this lock with its synchronization API.
+								 */
+								if (!sendService.isRunning()) {
+									/*
+									 * Prepare send service for incremental
+									 * transfers to the specified address.
+									 */
+									// Check for termination.
+									client.checkFirstCause();
+									// Note: use then current addrNext!
+									sendService.start(addrNextRef.get());
+									continue;
+								}
+							}
+							// Check for termination.
+							client.checkFirstCause();
+							
+							// Send and await Future, sending message token if at start of buffer
+							if (out.position() == 0) {
+								log.warn("Sending token " + BytesUtil.toHexString(message.getToken()));
+							}
+							try {
+								sendService.send(out, out.position() == 0 ? message.getToken() : null).get();
+							} catch(Throwable t) {
+								log.warn("Send downstream error", t);
+								
+								throw new RuntimeException(t);
+							}
+						}
+						break;
+					}
                 }
 
             } // while( rem > 0 )
@@ -1295,6 +1388,7 @@ public class HAReceiveService<M extends IHAWriteMessageBase> extends Thread {
             localBuffer.limit(message.getSize());
             localBuffer.position(0);
             messageReady.signalAll();
+            
 
             if (log.isTraceEnabled())
                 log.trace("Will accept data for message: msg=" + msg);

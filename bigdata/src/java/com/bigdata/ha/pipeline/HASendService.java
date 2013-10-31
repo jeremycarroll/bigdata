@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 
+import com.bigdata.btree.BytesUtil;
+
 /**
  * A service for sending raw {@link ByteBuffer}s across a socket. This service
  * supports the HA write pipeline. This service is designed to be paired with an
@@ -281,7 +283,11 @@ public class HASendService {
      * @todo throws IOException if the {@link SocketChannel} was not open and
      *       could not be opened.
      */
-	public Future<Void> send(final ByteBuffer buffer) {
+//	public Future<Void> send(final ByteBuffer buffer) {
+//		return send(buffer, null);
+//	}
+	
+	public Future<Void> send(final ByteBuffer buffer, final byte[] token) {
      
 	    if (buffer == null)
             throw new IllegalArgumentException();
@@ -300,7 +306,9 @@ public class HASendService {
 
 //        reopenChannel();
         
-        return tmp.submit(newIncSendTask(buffer.asReadOnlyBuffer()));
+        log.warn("Sending message with token: " + BytesUtil.toHexString(token));
+        
+        return tmp.submit(newIncSendTask(buffer.asReadOnlyBuffer(), token));
 
 	}
 
@@ -402,13 +410,14 @@ public class HASendService {
      * 
      * @param buffer
      *            The buffer whose data are to be sent.
+     * @param token 
      *            
      * @return The task which will send the data to the configured
      *         {@link InetSocketAddress}.
      */
-    protected Callable<Void> newIncSendTask(final ByteBuffer buffer) {
+    protected Callable<Void> newIncSendTask(final ByteBuffer buffer, final byte[] token) {
 
-        return new IncSendTask(buffer);
+        return new IncSendTask(buffer, token);
          
     }
 
@@ -460,8 +469,9 @@ public class HASendService {
 
 //        private final SocketChannel socketChannel;
         private final ByteBuffer data;
+        private final byte[] token;
 
-        public IncSendTask(/*final SocketChannel socketChannel, */final ByteBuffer data) {
+        public IncSendTask(/*final SocketChannel socketChannel, */final ByteBuffer data, final byte[] token) {
 
 //            if (socketChannel == null)
 //                throw new IllegalArgumentException();
@@ -472,12 +482,12 @@ public class HASendService {
 //            this.socketChannel = socketChannel;
             
             this.data = data;
-
+            this.token = token;
         }
 
         public Void call() throws Exception {
 
-            // defer until we actually run.
+    		// defer until we actually run.
             final SocketChannel socketChannel = reopenChannel();
 
             if (!isRunning())
@@ -494,9 +504,22 @@ public class HASendService {
 
             try {
 
+            	int ntoken = 0;
                 int nwritten = 0;
                 
                 while (nwritten < remaining) {
+                	
+            		log.warn("TOKEN: " + BytesUtil.toHexString(token) + ", written: " + (token == null ? false : ntoken == token.length));
+                	if (token != null && ntoken < token.length) {
+                		final ByteBuffer tokenBB = ByteBuffer.wrap(token);
+                		tokenBB.position(ntoken);
+                		
+                		ntoken += socketChannel.write(tokenBB);
+                		
+                		log.warn("Wrote " + ntoken + " token bytes");
+                		
+                		continue;
+                	}
 
                     /*
                      * Write the data. Depending on the channel, will either

@@ -302,7 +302,7 @@ public class HAWriteMessage extends HAWriteMessageBase implements
         this.compressorKey = compressorKey;
         
     }
-
+    
     /**
      * The initial version.
      * 

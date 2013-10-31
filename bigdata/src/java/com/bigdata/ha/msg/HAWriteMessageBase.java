@@ -28,7 +28,9 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Random;
 
+import com.bigdata.btree.BytesUtil;
 import com.bigdata.ha.pipeline.HAReceiveService;
 import com.bigdata.ha.pipeline.HASendService;
 
@@ -55,6 +57,37 @@ public class HAWriteMessageBase implements Externalizable, IHAWriteMessageBase {
     /** The Alder32 checksum of the bytes to be transfered. */
     private int chk;
 
+    /** A byte[] token that must prefix the message payload, needed to skip stale data from failed read tasks */
+    private byte[] token;
+
+    static private Random r = new Random();
+    static final private int TOKEN_SIZE = 8;
+    
+    static private byte[] genToken() {
+    	final byte[] token = new byte[TOKEN_SIZE];
+    	
+    	while (!unique1(token)) {
+    		r.nextBytes(token);
+    	}
+    	
+    	return token;
+    }
+    
+    /**
+     * Checks that the first byte is not repeated in the
+     * remaining bytes, this simplifies search for the token
+     * in the input stream.
+     */
+	static private boolean unique1(final byte[] bytes) {
+		final byte b = bytes[0];
+		for (int t = 1; t < bytes.length; t++) {
+			if (bytes[t] == b)
+				return false;
+		}
+
+		return true;
+	}
+
     /**
      * 
      * @param sze
@@ -63,6 +96,10 @@ public class HAWriteMessageBase implements Externalizable, IHAWriteMessageBase {
      *            The Alder32 checksum of the bytes to be transfered.
      */
     public HAWriteMessageBase(final int sze, final int chk) {
+    	this(sze, chk, genToken());
+    }
+    
+    public HAWriteMessageBase(final int sze, final int chk, final byte[] token) {
 
         if (sze <= 0)
             throw new IllegalArgumentException();
@@ -70,6 +107,8 @@ public class HAWriteMessageBase implements Externalizable, IHAWriteMessageBase {
         this.sze = sze;
 		
         this.chk = chk;
+        
+        this.token = token;
         
 	}
 	
@@ -115,7 +154,7 @@ public class HAWriteMessageBase implements Externalizable, IHAWriteMessageBase {
         
         final IHAWriteMessageBase t = (IHAWriteMessageBase) obj;
 
-        return sze == t.getSize() && chk == t.getChk();
+        return sze == t.getSize() && chk == t.getChk() && (BytesUtil.compareBytes(t.getToken(), getToken()) == 0);
 
     }
 
@@ -143,6 +182,15 @@ public class HAWriteMessageBase implements Externalizable, IHAWriteMessageBase {
         
         chk = in.readInt();
         
+        // read token
+        final int tlen = in.readInt();
+        if (tlen == 0) {
+        	token = null;
+        } else {
+        	token = new byte[tlen];
+        	in.read(token);
+        }
+        
     }
 
     public void writeExternal(final ObjectOutput out) throws IOException {
@@ -153,6 +201,17 @@ public class HAWriteMessageBase implements Externalizable, IHAWriteMessageBase {
         
         out.writeInt(chk);
         
+        if (token == null) {
+        	out.writeInt(0);
+        } else {
+        	out.writeInt(token.length);
+        	out.write(token);
+        }
     }
+
+	@Override
+	public byte[] getToken() {
+		return token;
+	}
 
 }

@@ -177,7 +177,7 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
 		// rcv.limit(50);
 		final Future<Void> futRec1 = receiveServiceB.receiveData(msg1, rcv1);
 		final Future<Void> futRec2 = receiveServiceC.receiveData(msg1, rcv2);
-		final Future<Void> futSnd = sendServiceA.send(tst1);
+		final Future<Void> futSnd = sendServiceA.send(tst1, msg1.getToken());
 		futSnd.get(timeout,TimeUnit.MILLISECONDS);
 		futRec1.get(timeout,TimeUnit.MILLISECONDS);
 		futRec2.get(timeout,TimeUnit.MILLISECONDS);
@@ -195,7 +195,7 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
 		// rcv.limit(50);
 		final Future<Void> futRec1 = receiveServiceB.receiveData(msg1, rcv1);
 		final Future<Void> futRec2 = receiveServiceC.receiveData(msg1, rcv2);
-		final Future<Void> futSnd = sendServiceA.send(tst1);
+		final Future<Void> futSnd = sendServiceA.send(tst1, msg1.getToken());
 		while (!futSnd.isDone() && !futRec2.isDone()) {
 			try {
 				futSnd.get(10L, TimeUnit.MILLISECONDS);
@@ -284,7 +284,7 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
                     .receiveData(msg1, rcv1);
             final Future<Void> futRec2 = receiveServiceC
                     .receiveData(msg1, rcv2);
-            final Future<Void> futSnd = sendServiceA.send(tst1);
+            final Future<Void> futSnd = sendServiceA.send(tst1, msg1.getToken());
             futSnd.get(timeout,TimeUnit.MILLISECONDS);
             futRec1.get(timeout,TimeUnit.MILLISECONDS);
             futRec2.get(timeout,TimeUnit.MILLISECONDS);
@@ -317,7 +317,7 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
                     .receiveData(msg1, rcv1);
 //            final Future<Void> futRec2 = receiveService2
 //                    .receiveData(msg1, rcv2);
-            final Future<Void> futSnd = sendServiceA.send(tst1.duplicate());
+            final Future<Void> futSnd = sendServiceA.send(tst1.duplicate(), msg1.getToken());
             // Send will always succeed.
             futSnd.get(timeout, TimeUnit.MILLISECONDS);
             /*
@@ -421,7 +421,7 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
                     .receiveData(msg1, rcv1);
             final Future<Void> futRec2 = receiveServiceC
                     .receiveData(msg1, rcv2);
-            final Future<Void> futSnd = sendServiceA.send(tst1);
+            final Future<Void> futSnd = sendServiceA.send(tst1, msg1.getToken());
             // Send will always succeed.
             futSnd.get(timeout, TimeUnit.MILLISECONDS);
             /*
@@ -498,7 +498,7 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
 //                    .receiveData(msg1, rcv1);
             final Future<Void> futRec2 = receiveServiceC
                     .receiveData(msg1, rcv2);
-            final Future<Void> futSnd = sendServiceA.send(tst1);
+            final Future<Void> futSnd = sendServiceA.send(tst1, msg1.getToken());
             futSnd.get(timeout,TimeUnit.MILLISECONDS);
 //            futRec1.get();
             futRec2.get(timeout,TimeUnit.MILLISECONDS);
@@ -520,7 +520,7 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
                     .receiveData(msg1, rcv1);
             final Future<Void> futRec2 = receiveServiceC
                     .receiveData(msg1, rcv2);
-            final Future<Void> futSnd = sendServiceA.send(tst1);
+            final Future<Void> futSnd = sendServiceA.send(tst1, msg1.getToken());
             futSnd.get(timeout,TimeUnit.MILLISECONDS);
             futRec1.get(timeout,TimeUnit.MILLISECONDS);
             futRec2.get(timeout,TimeUnit.MILLISECONDS);
@@ -553,7 +553,7 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
                         rcv1);
 //                final Future<Void> futRec2 = receiveServiceC.receiveData(msg1,
 //                        rcv2);
-                final Future<Void> futSnd = sendServiceC.send(tst1);
+                final Future<Void> futSnd = sendServiceC.send(tst1, msg1.getToken());
                 futSnd.get(timeout, TimeUnit.MILLISECONDS);
                 futRec1.get(timeout, TimeUnit.MILLISECONDS);
 //                futRec2.get(timeout, TimeUnit.MILLISECONDS);
@@ -576,7 +576,7 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
                         rcv1);
                 final Future<Void> futRec2 = receiveServiceA.receiveData(msg1,
                         rcv2);
-                final Future<Void> futSnd = sendServiceC.send(tst1);
+                final Future<Void> futSnd = sendServiceC.send(tst1, msg1.getToken());
                 futSnd.get(timeout, TimeUnit.MILLISECONDS);
                 futRec1.get(timeout, TimeUnit.MILLISECONDS);
                 futRec2.get(timeout, TimeUnit.MILLISECONDS);
@@ -665,7 +665,7 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
 				// FutureTask return ensures remote ready for Socket data
 				final Future<Void> futRec1 = receiveServiceB.receiveData(msg, rcv1);
 				final Future<Void> futRec2 = receiveServiceC.receiveData(msg, rcv2);
-				final Future<Void> futSnd = sendServiceA.send(tst);
+				final Future<Void> futSnd = sendServiceA.send(tst, msg.getToken());
 				while (!futSnd.isDone() && !futRec1.isDone() && !futRec2.isDone()) {
 					try {
 						futSnd.get(10L, TimeUnit.MILLISECONDS);

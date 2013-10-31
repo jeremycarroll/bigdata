@@ -60,6 +60,9 @@ public class TestAll extends TestCase {
     {
 
         final TestSuite suite = new TestSuite("write pipeline");
+        
+        // Test message buffer framing idiom (not required for CI).
+        // suite.addTestSuite(TestBufferFraming.class);
 
         // Test of HASendService and HAReceiveService (2 nodes).
         suite.addTestSuite(TestHASendAndReceive.class);

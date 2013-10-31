@@ -37,4 +37,6 @@ public interface IHAWriteMessageBase extends IHAMessage {
     /** The Alder32 checksum of the bytes to be transfered. */
     int getChk();
 
+    /** A byte[] token that must prefix the message payload, needed to skip stale data from failed read tasks */
+    byte[] getToken();
 }
