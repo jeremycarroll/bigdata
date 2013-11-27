@@ -39,6 +39,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.bigdata.io.FileChannelUtility;
+import com.bigdata.journal.jini.ha.HAJournalTest.StoreState;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.AbstractRawWormStore;
 import com.bigdata.rawstore.Bytes;
@@ -687,4 +688,14 @@ public abstract class AbstractBufferStrategy extends AbstractRawWormStore implem
 //	public boolean isFlushed() {
 //		return true;
 //	}
+    
+    
+    /**
+     * Default StoreState implementation to be overridden
+     * as appropriate.
+     */
+    synchronized public StoreState getStoreState() {
+    	return new StoreState();
+    }
+
 }

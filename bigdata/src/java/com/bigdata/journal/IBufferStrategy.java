@@ -28,6 +28,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
 import com.bigdata.counters.CounterSet;
+import com.bigdata.journal.jini.ha.HAJournalTest.StoreState;
 import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IMRMW;
 import com.bigdata.rawstore.IRawStore;
@@ -275,6 +276,15 @@ public interface IBufferStrategy extends IRawStore, IMRMW {
      * the disk. Those bytes contain the checksum of the record.
      */
     public boolean useChecksums();
+
+    /**
+     * A StoreState object references critical transient data that can be used
+     * to determine a degree of consistency between stores, specifically for an
+     * HA context.
+     * 
+     * @return the StoreState
+     */
+	public StoreState getStoreState();
 
 //    /**
 //     * Determines whether there are outstanding writes to the underlying store

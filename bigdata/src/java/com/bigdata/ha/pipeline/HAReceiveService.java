@@ -27,14 +27,18 @@ package com.bigdata.ha.pipeline;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -52,6 +56,7 @@ import java.util.zip.Adler32;
 import org.apache.log4j.Logger;
 
 import com.bigdata.btree.BytesUtil;
+import com.bigdata.ha.PipelineException;
 import com.bigdata.ha.QuorumPipelineImpl;
 import com.bigdata.ha.msg.IHASyncRequest;
 import com.bigdata.ha.msg.IHAWriteMessage;
@@ -962,8 +967,35 @@ public class HAReceiveService<M extends IHAWriteMessageBase> extends Thread {
 
             boolean success = false;
             try {
-                doReceiveAndReplicate(client);
-                success = true;
+            	while (!success) {
+                	try {
+                		log.warn("Receiving");
+    	                doReceiveAndReplicate(client);
+                		log.warn("DONE");
+    	                success = true;
+                	} catch (ClosedChannelException cce) { // closed then re-open
+                		
+                		final ServerSocket socket = server.socket();
+                		
+                		log.warn("Closed upstream? " + socket.getChannel().isOpen(), cce);
+                		
+                		socket.bind(socket.getLocalSocketAddress());
+                		
+                		server.socket().getChannel().isOpen();
+                		
+                		awaitAccept();
+                		
+                		log.warn("Creating new client");
+
+                		client = new Client(server);//, sendService, addrNext);
+
+                        // save off reference and round we go
+                        clientRef.set(client);
+                	} catch (Throwable t) {
+                		log.warn("Unexpected Error", t);
+                		throw new RuntimeException(t);
+                	}
+            	}
                 // success.
                 return null;
             } finally {
@@ -1110,7 +1142,8 @@ public class HAReceiveService<M extends IHAWriteMessageBase> extends Thread {
                         	final int rdLen = client.client.read(tokenBB);
                         	for (int i = 0; i < rdLen; i++) {
                         		if (tokenBuffer[i] != token[tokenIndex]) {
-                        			log.warn("TOKEN MISMATCH");
+                        			if (ntokenreads < 2)
+                        				log.warn("TOKEN MISMATCH");
                         			tokenIndex = 0;
                         			if (tokenBuffer[i] == token[tokenIndex]) {
                         				tokenIndex++;
@@ -1222,7 +1255,7 @@ public class HAReceiveService<M extends IHAWriteMessageBase> extends Thread {
 							} catch(Throwable t) {
 								log.warn("Send downstream error", t);
 								
-								throw new RuntimeException(t);
+				            	throw new RuntimeException(t);
 							}
 						}
 						break;

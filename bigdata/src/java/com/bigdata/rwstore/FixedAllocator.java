@@ -178,7 +178,9 @@ public class FixedAllocator implements Allocator {
                         "Address committed but not set in transients");
             }
 			
-		    m_store.showWriteCacheDebug(paddr);			
+		    m_store.showWriteCacheDebug(paddr);		
+		    
+		    log.warn("Physical address " + paddr + " not accessible for Allocator of size " + m_size);
 			
 			return 0L;
 		}

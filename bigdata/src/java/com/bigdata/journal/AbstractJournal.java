@@ -3380,7 +3380,9 @@ public abstract class AbstractJournal implements IJournal/* , ITimestampService 
                     metaStartAddr, metaBitsAddr, old.getStoreType(),
                     old.getCreateTime(), old.getCloseTime(), old.getVersion(),
                     store.checker);
-
+            
+            
+            log.warn("CommitRecordIndexAddr: " + commitRecordIndexAddr + ", strategy: " + _bufferStrategy.getClass() + ", physicalAddress: " + _bufferStrategy.getPhysicalAddress(commitRecordIndexAddr));
         }
 
         /**
@@ -3545,6 +3547,17 @@ public abstract class AbstractJournal implements IJournal/* , ITimestampService 
         private void commitHA() {
 
             try {
+            	
+            	if (log.isDebugEnabled()) {
+            		final long rootAddr = store._commitRecordIndex.getRootAddr();
+            		log.debug("CommitRecordIndex RootAddr: " + rootAddr + ", physical address: " + store.getPhysicalAddress(rootAddr));
+            		
+                    if (_bufferStrategy instanceof IRWStrategy) {
+                        final RWStore rwstore = ((RWStrategy) _bufferStrategy).getStore();
+                        log.debug(rwstore.showAllocatorList());
+                    }
+
+            	}
 
                 if(!prepare2Phase()) {
                     
@@ -4623,6 +4636,8 @@ public abstract class AbstractJournal implements IJournal/* , ITimestampService 
                  * 
                  * Note: For this code path we DO NOT cache the index view.
                  */
+		    	if (log.isDebugEnabled())
+		    		log.debug("reading CommitRecordIndex from PhysicalAddress: " + _bufferStrategy.getPhysicalAddress(addr));
 
 		        ndx = (CommitRecordIndex) BTree.load(this, addr, false/* readOnly */);
 		        
@@ -7589,6 +7604,9 @@ public abstract class AbstractJournal implements IJournal/* , ITimestampService 
                     
                 }
             
+		    	if (log.isDebugEnabled())
+		    		log.debug("RBV with CommitRecordIndex at PhysicalAddress: " + _bufferStrategy.getPhysicalAddress(rootBlock.getCommitRecordIndexAddr()));
+
             } // doInnerRun()
             
         } // Commit2PhaseTask

@@ -41,6 +41,7 @@ import com.bigdata.journal.ICommitter;
 import com.bigdata.journal.IRootBlockView;
 import com.bigdata.journal.RootBlockView;
 import com.bigdata.journal.StoreTypeEnum;
+import com.bigdata.journal.jini.ha.HAJournalTest.StoreState;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.rawstore.IAddressManager;
 import com.bigdata.rawstore.IAllocationContext;
@@ -495,6 +496,11 @@ public class MemStrategy implements IBufferStrategy, IRWStrategy, IAllocationMan
 	@Override
 	public boolean isDirty() {
 		return m_dirty;
+	}
+
+	@Override
+	public StoreState getStoreState() {
+		throw new UnsupportedOperationException();
 	}
 
 //	@Override

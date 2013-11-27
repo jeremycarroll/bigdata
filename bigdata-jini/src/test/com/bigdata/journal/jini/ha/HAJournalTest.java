@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.journal.jini.ha;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.rmi.Remote;
@@ -287,6 +288,25 @@ public class HAJournalTest extends HAJournal {
          */
         public RunStateEnum getRunStateEnum() throws IOException;
         
+        /**
+         * Supports consistency checking between HA services
+         */
+        public StoreState getStoreState() throws IOException;
+        
+    }
+    
+    /**
+     * Contains critical transient data that can be used to determine
+     * state consistency between HA services.
+     *
+     */
+    public static class StoreState implements Serializable {
+
+		/**
+		 * Generate ID
+		 */
+		private static final long serialVersionUID = 221305636777218052L;
+    	
     }
 
     /**
@@ -1080,6 +1100,11 @@ public class HAJournalTest extends HAJournal {
             return null;
         
         }
+
+		@Override
+		public StoreState getStoreState() throws IOException {
+			return getIndexManager().getBufferStrategy().getStoreState();
+		}
 
 //		@Override
 //		public Future<Void> dropZookeeperConnection() throws IOException {

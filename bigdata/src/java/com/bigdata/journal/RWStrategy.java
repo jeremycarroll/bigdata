@@ -49,6 +49,7 @@ import com.bigdata.ha.msg.IHARebuildRequest;
 import com.bigdata.ha.msg.IHAWriteMessage;
 import com.bigdata.io.IBufferAccess;
 import com.bigdata.io.writecache.WriteCacheService;
+import com.bigdata.journal.jini.ha.HAJournalTest.StoreState;
 import com.bigdata.mdi.IResourceMetadata;
 import com.bigdata.quorum.Quorum;
 import com.bigdata.quorum.QuorumException;
@@ -904,6 +905,11 @@ public class RWStrategy extends AbstractRawStore implements IBufferStrategy,
 	@Override
 	public WriteCacheService getWriteCacheService() {
 	    return m_store.getWriteCacheService();
+	}
+
+	@Override
+	public StoreState getStoreState() {
+		return m_store.getStoreState();
 	}
 	
 //	@Override

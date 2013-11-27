@@ -30,6 +30,7 @@ import java.nio.channels.FileChannel;
 
 import com.bigdata.counters.CounterSet;
 import com.bigdata.io.FileChannelUtility;
+import com.bigdata.journal.jini.ha.HAJournalTest.StoreState;
 
 /**
  * Implements logic to read from and write on a buffer. This is sufficient

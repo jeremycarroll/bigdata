@@ -25,14 +25,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.ha.pipeline;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
+import com.bigdata.btree.BytesUtil;
 import com.bigdata.ha.msg.HAWriteMessageBase;
 import com.bigdata.ha.msg.IHAWriteMessageBase;
 import com.bigdata.io.DirectBufferPool;
@@ -169,22 +180,29 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
     public void testSimpleExchange() throws InterruptedException,
             ExecutionException, TimeoutException {
 
-        final long timeout = 5000; // ms
+    	doSimpleExchange();
+	}
+
+    private void doSimpleExchange() throws InterruptedException,
+			ExecutionException, TimeoutException {
+
+		final long timeout = 5000; // ms
 		final ByteBuffer tst1 = getRandomData(50);
-		final IHAWriteMessageBase msg1 = new HAWriteMessageBase(50, chk.checksum(tst1));
+		final IHAWriteMessageBase msg1 = new HAWriteMessageBase(50,
+				chk.checksum(tst1));
 		final ByteBuffer rcv1 = ByteBuffer.allocate(2000);
 		final ByteBuffer rcv2 = ByteBuffer.allocate(2000);
 		// rcv.limit(50);
 		final Future<Void> futRec1 = receiveServiceB.receiveData(msg1, rcv1);
 		final Future<Void> futRec2 = receiveServiceC.receiveData(msg1, rcv2);
 		final Future<Void> futSnd = sendServiceA.send(tst1, msg1.getToken());
-		futSnd.get(timeout,TimeUnit.MILLISECONDS);
-		futRec1.get(timeout,TimeUnit.MILLISECONDS);
-		futRec2.get(timeout,TimeUnit.MILLISECONDS);
+		futSnd.get(timeout, TimeUnit.MILLISECONDS);
+		futRec1.get(timeout, TimeUnit.MILLISECONDS);
+		futRec2.get(timeout, TimeUnit.MILLISECONDS);
 		assertEquals(tst1, rcv1);
 		assertEquals(rcv1, rcv2);
 	}
-
+    
 	public void testChecksumError() throws InterruptedException, ExecutionException
 
 	{
@@ -708,6 +726,141 @@ public class TestHASendAndReceive3Nodes extends TestCase3 {
 					}
 				}
 			}
+		}
+	}
+
+    public void testSimpleReset() throws InterruptedException,
+			ExecutionException, TimeoutException {
+
+    	doSimpleExchange();
+		
+		sendServiceA.resetSocket();
+		
+    	doSimpleExchange();
+	}
+    
+    /**
+     * The use of threaded tasks in the send/receive service makes it difficult to
+     * observer the socket state changes.
+     * 
+     * So let's begin by writing some tests over the raw sockets.
+     * 
+     * @throws IOException 
+     */
+    public void testDirectSockets() throws IOException {
+        final InetSocketAddress serverAddr = new InetSocketAddress(getPort(0));
+
+        final ServerSocket ss = new ServerSocket();
+        ss.bind(serverAddr);
+        
+        final SocketChannel cs = SocketChannel.open();
+        
+        cs.connect(serverAddr);
+        
+        final Random r = new Random();
+        final byte[] data = new byte[200];
+        r.nextBytes(data);
+        
+        final ByteBuffer src = ByteBuffer.wrap(data);
+        
+        cs.write(src);
+        
+        final byte[] dst = new byte[200];
+
+        final Socket readSckt1 = ss.accept();
+        
+        InputStream instr = readSckt1.getInputStream();
+        
+        instr.read(dst);
+        
+        assertTrue(BytesUtil.bytesEqual(data, dst));
+        
+        // now write some more data into the channel and then close it
+        cs.write(ByteBuffer.wrap(data));
+        
+        // close the client socket
+        cs.close();
+        
+        // and see what happens when we try to accept the data
+        //	we expect it to hang and timeout!       
+        assertTimout(1, TimeUnit.SECONDS, new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				ss.accept();
+				
+				return null;
+			}});
+        
+        // Now try writing some more data
+        try {
+        	cs.write(ByteBuffer.wrap(data));
+        	fail("Expected closed channel exception");
+        } catch (ClosedChannelException e) {
+        	// expected
+        }
+                
+        // the old stream should be closed
+        try {
+        	final int rdlen = instr.read(dst); // should be closed
+        	fail("Expected closed socket exception, rdlen: " + rdlen);
+        } catch (Exception e) {
+        	// expected;
+        }
+        
+        // if so then should we explicitly close its socket?
+        readSckt1.close();
+        
+        final SocketChannel cs2 = SocketChannel.open();       
+        cs2.connect(serverAddr);
+    	cs2.write(ByteBuffer.wrap(data));
+
+    	// Now we should be able to accept the new write
+    	final AtomicReference<Socket> av = new AtomicReference<Socket>();
+        assertNoTimout(1, TimeUnit.SECONDS, new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				av.set(ss.accept());
+				
+				return null;
+			}});
+        
+        // the new socket and associated stream should be good to go
+        av.get().getInputStream().read(dst);
+        
+        assertTrue(BytesUtil.bytesEqual(data, dst));
+        
+       
+    }
+
+	private void assertTimout(long timeout, TimeUnit unit, Callable<Void> callable) {
+		final ExecutorService es = Executors.newSingleThreadExecutor();
+		try {
+			final Future<Void> ret = es.submit(callable);
+			ret.get(timeout, unit);
+			fail("Expected timeout");
+		} catch (TimeoutException e) {
+			// that is expected
+			return;
+		} catch (Exception e) {
+			fail("Expected timeout");
+		} finally {
+			es.shutdown();
+		}
+	}
+
+	private void assertNoTimout(long timeout, TimeUnit unit, Callable<Void> callable) {
+		final ExecutorService es = Executors.newSingleThreadExecutor();
+		try {
+			final Future<Void> ret = es.submit(callable);
+			ret.get(timeout, unit);
+		} catch (TimeoutException e) {
+			fail("Unexpected timeout");
+		} catch (Exception e) {
+			fail("Unexpected Exception", e);
+		} finally {
+			es.shutdown();
 		}
 	}
 

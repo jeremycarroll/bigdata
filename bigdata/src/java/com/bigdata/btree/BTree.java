@@ -1807,6 +1807,9 @@ public class BTree extends AbstractBTree implements //ICommitter,
 		final Checkpoint checkpoint;
 		try {
 			checkpoint = Checkpoint.load(store, addrCheckpoint);
+			
+			if (log.isDebugEnabled())
+				log.debug("Checkpoint rootAddr: " + checkpoint.getRootAddr());
 		} catch (Throwable t) {
 			throw new RuntimeException("Could not load Checkpoint: store="
 					+ store + ", addrCheckpoint="

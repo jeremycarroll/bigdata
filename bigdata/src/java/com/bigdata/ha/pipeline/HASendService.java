@@ -509,7 +509,7 @@ public class HASendService {
                 
                 while (nwritten < remaining) {
                 	
-            		log.warn("TOKEN: " + BytesUtil.toHexString(token) + ", written: " + (token == null ? false : ntoken == token.length));
+            		// log.warn("TOKEN: " + BytesUtil.toHexString(token) + ", written: " + (token == null ? false : ntoken == token.length));
                 	if (token != null && ntoken < token.length) {
                 		final ByteBuffer tokenBB = ByteBuffer.wrap(token);
                 		tokenBB.position(ntoken);
@@ -551,9 +551,25 @@ public class HASendService {
                      * buffer.
                      */
 
-                    final int nbytes = socketChannel.write(data);
-
-                    nwritten += nbytes;
+                	final int nbytes;
+                	if (log.isDebugEnabled()) { // add debug latency
+	                	final int limit = data.limit();
+	                	if (data.position() < (limit-50000)) {
+	                		data.limit(data.position()+50000);
+	                	}
+	                    nbytes = socketChannel.write(data);
+	                    data.limit(limit);
+	                    
+	                    nwritten += nbytes;
+	                    log.debug("Written " + nwritten + " of total " + data.limit());
+	                    
+	                    if (nwritten < limit) {
+	                    	Thread.sleep(2);
+	                    }
+                	} else {
+                		nbytes = socketChannel.write(data);
+                		nwritten += nbytes;
+                	}
 
                     if (log.isTraceEnabled())
                         log.trace("Sent " + nbytes + " bytes with " + nwritten
@@ -728,5 +744,22 @@ public class HASendService {
 //        }
 
     }
+
+	public void resetSocket() {
+        try {
+            final SocketChannel socketChannel = this.socketChannel.get();
+            if (socketChannel != null) {
+                try {
+                    socketChannel.close();
+                } catch (IOException ex) {
+                    log.error("Ignoring exception during reetSocket: " + ex, ex);
+                } finally {
+                    this.socketChannel.set(null);
+                }
+            }
+        } finally {
+            reopenChannel();
+        }
+	}
 
 }
