@@ -194,7 +194,9 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         awaitHAStatus(serverB, HAStatusEnum.Follower);
         awaitHAStatus(serverC, HAStatusEnum.Follower);
 
-        // The commit counter has not changed.
+    	assertStoreStates(new HAGlue[] { serverA, serverB, serverC });  	
+
+    	// The commit counter has not changed.
         assertEquals(
                 lastCommitCounter,
                 serverA.getRootBlock(
@@ -543,8 +545,14 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         // Verify binary equality of ALL journals.
         assertDigestsEquals(new HAGlue[] { serverA, serverB, serverC });
 
+        // Check transient store states after resync
+        assertStoreStates(new HAGlue[] { serverA, serverB, serverC });
+        
         // Now force further commit when fully met to remove log files
         simpleTransaction();
+
+        // Check transient store states after commit
+        assertStoreStates(new HAGlue[] { serverA, serverB, serverC });
 
         // And again verify binary equality of ALL journals.
         assertDigestsEquals(new HAGlue[] { serverA, serverB, serverC });
@@ -556,6 +564,46 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         assertHALogNotFound(0L/* firstCommitCounter */, lastCommitCounter3,
                 new HAGlue[] { serverA, serverB, serverC });
 
+    }
+    
+    /**
+     * We have seen problems with updates when the leader changes, this test reconstructs
+     * this simple scenario, with and update transaction, change of leader and then a 
+     * second update transaction.
+     * 
+     * @throws Exception
+     */
+    public void testStartABC_ChangeLeader() throws Exception {
+
+        // Start 3 services
+        final HAGlue serverA = startA();
+        final HAGlue serverB = startB();
+        final HAGlue serverC = startC();
+
+        // Wait for a quorum meet.
+        final long token1 = quorum.awaitQuorum(awaitQuorumTimeout,
+                TimeUnit.MILLISECONDS);
+
+        // await pipeline
+		awaitPipeline(20, TimeUnit.SECONDS, new HAGlue[] {serverA, serverB, serverC});
+
+		/*
+         * Now go through a commit point with a met quorum. The HALog
+         * files should be retained at that commit point.
+         */
+        simpleTransaction();
+        
+        shutdownA();
+
+        final long token2 = quorum.awaitQuorum(awaitQuorumTimeout,
+                TimeUnit.MILLISECONDS);
+       	assertFalse(token1 == token2);
+       	        
+        simpleTransaction();
+
+        // And again verify binary equality of ALL journals.
+        assertDigestsEquals(new HAGlue[] { serverB, serverC });
+       
     }
     
     /**
@@ -883,6 +931,8 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
                     HAStatusEnum.Follower, HAStatusEnum.Follower },
                     new HAGlue[] { serverA, serverB, serverC });
 
+        	// Check store states
+        	assertStoreStates(new HAGlue[] { serverA, serverB, serverC });
             /*
              * Verify binary equality of ALL journals.
              * 
@@ -893,7 +943,7 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
              * could result in the leader not including the newly joined
              * follower in the 2-phase commit.
              */
-			assertDigestsEquals(new HAGlue[] { serverA, serverB, serverC });
+        	assertStoreStates(new HAGlue[] { serverA, serverB, serverC });
 
 			// Now force further commit when fully met to remove log files
 			simpleTransaction();
@@ -901,7 +951,10 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
 			// And again verify binary equality of ALL journals.
 			// assertDigestsEquals(new HAGlue[] { serverA, serverB, serverC });
 
-			// Now verify no HALog files since fully met quorum @ commit.
+        	// Check store states
+        	assertStoreStates(new HAGlue[] { serverA, serverB, serverC });
+
+        	// Now verify no HALog files since fully met quorum @ commit.
 			final long lastCommitCounter3 = leader
 					.getRootBlock(new HARootBlockRequest(null/* storeUUID */))
 					.getRootBlock().getCommitCounter();
@@ -1019,6 +1072,8 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         // And again verify binary equality of ALL journals.
         assertDigestsEquals(new HAGlue[] { serverA, serverB, serverC });
 
+    	assertStoreStates(new HAGlue[] { serverA, serverB, serverC });
+    	
 		log.info("ALL GOOD!");
 	}
 	
@@ -1291,6 +1346,8 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         assertHALogNotFound(0L/* firstCommitCounter */, lastCommitCounter3,
                 new HAGlue[] { serverA, serverB, serverC });
 
+    	// Check store states
+    	assertStoreStates(new HAGlueTest[] { (HAGlueTest) serverA, (HAGlueTest) serverB, (HAGlueTest) serverC });
     }
 
     /**
@@ -1639,6 +1696,7 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         // Verify binary equality of ALL journals.
         assertDigestsEquals(new HAGlue[] { serverA, serverB, serverC });
 
+    	assertStoreStates(new HAGlue[] { serverA, serverB, serverC });  	
         /*
          * Now go through a commit point with a fully met quorum. The HALog
          * files should be purged at that commit point.
@@ -1676,6 +1734,8 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         
         // ...and with original token
         assertTrue(token == quorum.token());
+        
+    	assertStoreStates(new HAGlue[] { serverA, serverB});  	
     }
 
     /**
@@ -1712,6 +1772,7 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         assertTrue(leader.equals(startup.serverB)
                 || leader.equals(startup.serverC));
         
+    	assertStoreStates(new HAGlue[] { startup.serverB, startup.serverC });  	
 	}
     
     /**
@@ -1748,6 +1809,7 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         assertTrue(leader.equals(startup.serverB)
                 || leader.equals(startup.serverC));
         
+    	assertStoreStates(new HAGlue[] { startup.serverB, startup.serverC });  	
 	}
     
     /**
@@ -2352,6 +2414,7 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
 
 			assertDigestsEquals(new HAGlue[] { services.serverA, services.serverB, services.serverC });
 
+	    	assertStoreStates(new HAGlue[] { services.serverA, services.serverB, services.serverC });  	
         } finally {
 		
             destroyAll();
@@ -2858,6 +2921,9 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         // Verify quorum becomes fully met now that LOAD is done.
         assertEquals(token, awaitFullyMetQuorum());
 
+
+    	// Check store states
+    	assertStoreStates(new HAGlue[] { startup.serverA, startup.serverB, serverC2 });
     }
 
     /**
@@ -3033,6 +3099,8 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         // Verify quorum becomes fully met now that LOAD is done.
         assertEquals(token, awaitFullyMetQuorum());
 
+    	// Check store states
+    	assertStoreStates(new HAGlue[] { startup.serverA, serverB2, startup.serverC });
     }
 
     /**
@@ -3085,6 +3153,8 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
         // Verify fully met.
         assertTrue(quorum.isQuorumFullyMet(token));
 
+        serverB2.awaitHAReady(awaitQuorumTimeout, TimeUnit.MILLISECONDS);
+
         // Await LOAD, but with a timeout.
         ft.get(longLoadTimeoutMillis, TimeUnit.MILLISECONDS);
         
@@ -3108,7 +3178,8 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
 //			log.warn("Result Leader: " + resultLeader.next().getBinding("count"));
 //        }
 
-		// assertDigestsEquals(new HAGlue[] { startup.serverA, serverB2, startup.serverC });
+        // Check store states after load and final transaction
+    	assertStoreStates(new HAGlue[] { startup.serverA, serverB2, startup.serverC });  	
     }
 
     /**
@@ -3480,7 +3551,7 @@ public class TestHA3JournalServer extends AbstractHA3JournalServerTestCase {
 
     }
 
-	public void _testStressQuorumABC_HAStatusUpdatesWithFailovers()
+	public void testStressQuorumABC_HAStatusUpdatesWithFailovers()
 			throws Exception {
 		for (int i = 1; i <= 20; i++) {
 			try {
