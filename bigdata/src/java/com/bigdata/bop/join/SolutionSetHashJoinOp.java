@@ -350,7 +350,7 @@ abstract public class SolutionSetHashJoinOp extends PipelineOp {
                  */
                 break;
             case Optional:
-            case NotExists: {
+            case Minus: {
                 /*
                  * Output the optional solutions.
                  */

@@ -576,7 +576,7 @@ public class HTreeHashJoinUtility implements IHashJoinUtility {
         switch (joinType) {
         case Optional:
         case Exists:
-        case NotExists:
+        case Minus:
             // The join set is used to handle optionals.
             joinSet.set(HTree.create(store, getIndexMetadata(op)));
             break;
@@ -1067,7 +1067,7 @@ public class HTreeHashJoinUtility implements IHashJoinUtility {
                     switch (joinType) {
                     case Optional:
                     case Exists:
-                    case NotExists:
+                    case Minus:
                         joined = new LinkedList<BS2>();
                         break;
                     default:
@@ -1116,7 +1116,7 @@ public class HTreeHashJoinUtility implements IHashJoinUtility {
                                 final IBindingSet outSolution = BOpContext
                                         .bind(leftSolution, rightSolution,
                                                 constraints,
-                                                selectVars);
+                                                selectVars, joinType == JoinTypeEnum.Minus);
 
                                 nJoinsConsidered.increment();
 
@@ -1206,7 +1206,7 @@ public class HTreeHashJoinUtility implements IHashJoinUtility {
                                     }
                                     break;
                                 }
-                                case NotExists: {
+                                case Minus: {
                                     /*
                                      * The right solution is output iff there
                                      * does not exist any left solution which

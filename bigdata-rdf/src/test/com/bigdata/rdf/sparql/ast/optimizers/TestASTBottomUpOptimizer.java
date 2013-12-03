@@ -188,7 +188,9 @@ public class TestASTBottomUpOptimizer extends
 
                 // where clause
                 {
-                    final JoinGroupNode liftedClause = new JoinGroupNode(true/* optional */);
+                	// The lifted clause does not need to be optional,
+                	// since the inclusion in the modified clause is wrapped in an optional group.
+                    final JoinGroupNode liftedClause = new JoinGroupNode(false/* optional */);  
                     final JoinGroupNode innerClause = new JoinGroupNode(true/* optional */);
                     // :x3 :q ?w
                     liftedClause.addChild(new StatementPatternNode(//

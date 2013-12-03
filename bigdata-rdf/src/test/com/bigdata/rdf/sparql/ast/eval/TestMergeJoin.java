@@ -31,7 +31,6 @@ import com.bigdata.bop.BOpUtility;
 import com.bigdata.bop.join.AbstractHashJoinUtilityTestCase;
 import com.bigdata.bop.join.AbstractMergeJoin;
 import com.bigdata.rdf.sparql.ast.ASTContainer;
-import com.bigdata.rdf.sparql.ast.eval.AbstractDataDrivenSPARQLTestCase.TestHelper;
 
 /**
  * Data driven test suite.

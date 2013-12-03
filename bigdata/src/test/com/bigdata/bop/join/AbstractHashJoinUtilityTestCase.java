@@ -617,7 +617,7 @@ abstract public class AbstractHashJoinUtilityTestCase extends TestCase {
             case Normal:
                 break;
             case Optional:
-            case NotExists:
+            case Minus:
                 // Output the optional solutions.
                 state.outputOptionals(outputBuffer);
                 break;
@@ -1942,7 +1942,7 @@ abstract public class AbstractHashJoinUtilityTestCase extends TestCase {
                 ),//
         };
 
-        doHashJoinTest(JoinTypeEnum.NotExists, joinVars, selectVars,
+        doHashJoinTest(JoinTypeEnum.Minus, joinVars, selectVars,
                 constraints, left, right, expected);
 
     }

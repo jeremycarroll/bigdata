@@ -257,7 +257,7 @@ public class JVMHashJoinUtility implements IHashJoinUtility {
             indexSolutionsHavingUnboundJoinVars = false;
             break;
         case Optional:  // OPTIONAL join.
-        case NotExists: // NOT EXISTS and MINUS
+        case Minus: //  MINUS
         case Filter:    // SELECT DISTINCT
             indexSolutionsHavingUnboundJoinVars = true;
             break;
@@ -587,7 +587,8 @@ public class JVMHashJoinUtility implements IHashJoinUtility {
                             right.solution,//
                             left,//
                             constraints,//
-                            selectVars//
+                            selectVars, //
+                            joinType == JoinTypeEnum.Minus //
                             );
 
                     switch(joinType) {
@@ -625,7 +626,7 @@ public class JVMHashJoinUtility implements IHashJoinUtility {
                         }
                         break;
                     }
-                    case NotExists: {
+                    case Minus: {
                         /*
                          * The right solution is output iff there does not exist
                          * any left solution which joins with that right

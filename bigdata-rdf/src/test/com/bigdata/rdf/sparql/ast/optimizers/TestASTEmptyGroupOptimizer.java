@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.sparql.ast.optimizers;
 
+import static com.bigdata.rdf.sparql.ast.optimizers.AbstractOptimizerTestCase.HelperFlag.*;
+
 import org.openrdf.model.impl.LiteralImpl;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.model.vocabulary.RDF;
@@ -39,7 +41,6 @@ import com.bigdata.rdf.internal.IV;
 import com.bigdata.rdf.internal.VTE;
 import com.bigdata.rdf.internal.XSD;
 import com.bigdata.rdf.internal.impl.TermId;
-import com.bigdata.rdf.sparql.ast.AbstractASTEvaluationTestCase;
 import com.bigdata.rdf.sparql.ast.AssignmentNode;
 import com.bigdata.rdf.sparql.ast.ConstantNode;
 import com.bigdata.rdf.sparql.ast.FilterNode;
@@ -72,7 +73,7 @@ import com.bigdata.rdf.vocab.decls.FOAFVocabularyDecl;
  * @version $Id: TestASTEmptyGroupOptimizer.java 5302 2011-10-07 14:28:03Z
  *          thompsonbry $
  */
-public class TestASTEmptyGroupOptimizer extends AbstractASTEvaluationTestCase {
+public class TestASTEmptyGroupOptimizer extends AbstractOptimizerTestCase {
 
     /**
      * 
@@ -87,6 +88,12 @@ public class TestASTEmptyGroupOptimizer extends AbstractASTEvaluationTestCase {
         super(name);
     }
 
+
+	@Override
+	IASTOptimizer newOptimizer() {
+		// Only used in newer tests, legacy tests do everything in-line
+		return new ASTEmptyGroupOptimizer();
+	}
     /**
      * Given
      * 
@@ -1689,6 +1696,29 @@ public class TestASTEmptyGroupOptimizer extends AbstractASTEvaluationTestCase {
 
         assertSameAST(expected, actual);
 
+    }
+    
+    public void testMinusUnion() {
+    	new Helper() {{
+
+    		given = createNonOptimizableExpression();
+    		expected = createNonOptimizableExpression();
+
+
+    	}
+
+    	private QueryRoot createNonOptimizableExpression() {
+    		return select(varNode(x),
+    				where(  
+    						bind(constantNode(a),varNode(x)),
+    						unionNode(
+    								joinGroupNode(bind(constantNode(b),varNode(x)) ),
+    								joinGroupNode(MINUS,
+    										unionNode( joinGroupNode(bind(constantNode(a),varNode(x))),
+    												joinGroupNode(bind(constantNode(c),varNode(y)) )	
+    												)))));
+    	}
+    	}.test();
     }
 
     /**

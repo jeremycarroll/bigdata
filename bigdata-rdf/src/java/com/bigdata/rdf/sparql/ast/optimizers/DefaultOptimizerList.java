@@ -225,6 +225,9 @@ public class DefaultOptimizerList extends ASTOptimizerList {
          */
         add(new ASTEmptyGroupOptimizer());
         
+
+        add(new ASTFlattenMinusUnionOptimizer());
+        
         /**
          * Rewrites any {@link ProjectionNode} with a wild card into the set of
          * variables visible to the {@link QueryBase} having that projection.

@@ -394,7 +394,7 @@ abstract public class HashJoinOp<E> extends PipelineOp implements
                  */
                 break;
             case Optional:
-            case NotExists: {
+            case Minus: {
                 /*
                  * Output the optional solutions.
                  */

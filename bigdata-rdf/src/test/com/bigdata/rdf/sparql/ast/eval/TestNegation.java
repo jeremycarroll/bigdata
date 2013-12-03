@@ -32,8 +32,6 @@ import java.util.Map;
 
 import org.openrdf.model.vocabulary.RDF;
 
-import com.bigdata.bop.IVariable;
-import com.bigdata.bop.Var;
 import com.bigdata.rdf.model.BigdataURI;
 import com.bigdata.rdf.model.BigdataValue;
 import com.bigdata.rdf.model.BigdataValueFactory;

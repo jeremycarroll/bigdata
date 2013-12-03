@@ -33,6 +33,18 @@ public interface IGroupNode<E extends IGroupMemberNode> extends
      */
     int size();
 
+    /**
+     * Replace a child of a node with another reference (destructive
+     * modification). All arguments which point to the oldChild will be replaced
+     * by references to the newChild.
+     * 
+     * @param oldChild
+     * @param newChild
+     * 
+     * @return The #of references which were replaced.
+     */
+	int replaceWith(E old, E replacement);
+
 //    /**
 //     * Return whether or not this is an optional group. Optional groups may or
 //     * may not produce variable bindings, but will not prune incoming solutions

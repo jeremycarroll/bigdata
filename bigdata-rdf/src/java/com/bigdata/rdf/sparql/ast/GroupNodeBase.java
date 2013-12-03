@@ -361,7 +361,7 @@ public abstract class GroupNodeBase<E extends IGroupMemberNode> extends
      */
     @SuppressWarnings("unchecked")
     @Override
-    public int replaceWith(final BOp oldChild, final BOp newChild) {
+    public int replaceWith(final E oldChild, final E newChild) {
 
     	final int i = super.replaceWith(oldChild, newChild);
 

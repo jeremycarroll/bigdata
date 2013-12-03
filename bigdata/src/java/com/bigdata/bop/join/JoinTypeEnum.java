@@ -59,14 +59,14 @@ public enum JoinTypeEnum {
      */
     Exists,
     /**
-     * A join where the left solution is output iff there is no right solution
-     * which joins with that left solution. This basically an optional join
-     * where the solutions which join are not output.
-     * <p>
-     * Note: This is also used for "MINUS" since the only difference between
-     * "NotExists" and "MINUS" deals with the scope of the variables.
+     * A join implementing the SPARQL Minus operator: where the left solution is output iff 
+     * every right solution either does not join with that left solution or has no
+     * bound variables in common with the left solution.
+     * 
+     * This basically is an optional join where the solutions which join are not output,
+     * modified by the SPARQL rule concerning no variables in common.
      */
-    NotExists,
+    Minus,
     /**
      * A distinct filter (not a join). Only the distinct left solutions are
      * output. Various annotations pertaining to JOIN processing are ignored

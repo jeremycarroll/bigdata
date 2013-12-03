@@ -921,12 +921,36 @@ public class BOpContext<E> extends BOpContextBase {
      *         etc. Note that either <code>left</code> or <code>right</code> MAY
      *         be returned if the other solution set is empty (optimization).
      */
+    @SuppressWarnings({ "rawtypes" })
+    static public IBindingSet bind(//
+            final IBindingSet left,//
+            final IBindingSet right,//
+            final IConstraint[] constraints, //
+            final IVariable[] varsToKeep
+            ) {
+        return bind(left,right,constraints,varsToKeep, false);
+    }
+    /**
+     * This is like {@link #bind(IBindingSet, IBindingSet, IConstraint[], IVariable[])}
+     * except for the additional argument failIfDisjoint. If this is true,
+     * and left and right have no bound variables in common, then we return null.
+     * This is to implement:
+     * http://www.w3.org/TR/2013/REC-sparql11-query-20130321/#defn_algMinus
+     * 
+     * @param left
+     * @param right
+     * @param constraints
+     * @param varsToKeep
+     * @param failIfDisjoint
+     * @return
+     */
     @SuppressWarnings({ "rawtypes", "unchecked" })
     static public IBindingSet bind(//
             final IBindingSet left,//
             final IBindingSet right,//
             final IConstraint[] constraints, //
-            final IVariable[] varsToKeep//
+            final IVariable[] varsToKeep,
+            final boolean failIfDisjoint
             ) {
  
         if (constraints == null && varsToKeep == null) {
@@ -938,10 +962,10 @@ public class BOpContext<E> extends BOpContextBase {
              */
 
             if (left.isEmpty())
-                return right;
+                return failIfDisjoint ? null : right;
             
             if (right.isEmpty())
-                return left;
+                return failIfDisjoint ? null : left;
 
         }
         
@@ -958,6 +982,7 @@ public class BOpContext<E> extends BOpContextBase {
 //        final IBindingSet dst = leftIsPipeline ? left.clone() : right.clone();
         final IBindingSet src = right;
         final IBindingSet dst = left.clone();
+        boolean seenNonDisjointVar = false;
 
 //        log.error("LEFT :" + left); 
 //        log.error("RIGHT:" + right);
@@ -1002,6 +1027,7 @@ public class BOpContext<E> extends BOpContextBase {
                                 // Propagate the cached Value to the dst.
                                 div.setValue(siv.getValue());
                             }
+                            seenNonDisjointVar = true;
                         }
 
                     } else {
@@ -1016,6 +1042,11 @@ public class BOpContext<E> extends BOpContextBase {
 
         }
 
+        // check for the MINUS condition
+        if (failIfDisjoint && !seenNonDisjointVar) {
+        	return null;
+        }
+        
         // Test constraint(s)
         if (constraints != null && !BOpUtility.isConsistent(constraints, dst)) {
 

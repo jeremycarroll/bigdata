@@ -71,6 +71,10 @@ public class TestALPPinTrac773 extends AbstractOptimizerTestCase {
     		// the unimportance of the name of anonymous variables.
     		ArbitraryLengthPathNode alpp1;
     		ArbitraryLengthPathNode alpp2;
+    		
+			spn1 = statementPatternNode(varNode(y), constantNode(c),  varNode(x), 15431);
+    		spn2 = statementPatternNode(varNode(z), constantNode(a),  varNode(w), 2054);
+    		
     		if (switchOrdering) {
     			alpp2 = alpp2(zero_or_one_to_one_or_more);
     			alpp1 = alpp1(zero_or_one_to_one_or_more);
@@ -119,6 +123,9 @@ public class TestALPPinTrac773 extends AbstractOptimizerTestCase {
 							joinGroupNode( 
 									statementPatternNode(leftVar(), constantNode(d),  rightVar(), 3135)
 									) );
+			
+			spn1 = statementPatternNode(varNode(y), constantNode(c),  varNode(x), 15431);
+    		spn2 = statementPatternNode(varNode(z), constantNode(a),  varNode(w), 2054);
 
     		final GroupMemberNodeBase<?> gmn[] = alpp1.lowerBound() == 0 
     				? new GroupMemberNodeBase[]{alpp1, spn1, alpp2, spn2}

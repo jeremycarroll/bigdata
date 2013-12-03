@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.bigdata.rdf.sparql.ast;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -58,9 +59,9 @@ import com.bigdata.rdf.sparql.ast.service.ServiceNode;
 import com.bigdata.rdf.sparql.ast.ssets.ISolutionSetManager;
 
 /**
- * Methods for static analysis of a query. There is one method which looks "up".
+ * Methods for static analysis of a query. Some of the methods look "up".
  * This corresponds to how we actually evaluation things (left to right in the
- * query plan). There are two methods which look "down". This corresponds to the
+ * query plan). Other methods look "down". This corresponds to the
  * bottom-up evaluation semantics of SPARQL.
  * <p>
  * When determining the "known" bound variables on entry to a node we have to
@@ -199,6 +200,636 @@ import com.bigdata.rdf.sparql.ast.ssets.ISolutionSetManager;
  * @version $Id$
  */
 public class StaticAnalysis extends StaticAnalysis_CanJoin {
+	
+	/**
+	 * The various methods forming the API for StaticAnalysis, can be executed in somewhat different fashion
+	 * as to whether we are looking for MUST or MAYBE bindings,
+	 * and as to whether we want a recursive analysis or just one level.
+	 * 
+	 * This abstract class and its subclasses follow the strategy pattern,
+	 * with the subclasses determining MUST or MAYBE, and recursive or not: giving four concrete subclasses.
+	 * 
+	 * Since all five classes are private (to StaticAnalysis) we can use the scope of the member methods
+	 * to indicate intent: private methods are used within the defining class only, non-final methods
+	 * are redefined in at least one subclasses, public methods are used by methods from within StaticAnalysis and
+	 * hence exposed through the API, protected methods are used in at least one subclass.
+	 * 
+	 * For any one API call to StaticAnalysis, at least one new instance of GetBindings is used.
+	 * 
+	 * 
+	 * @author jeremycarroll
+	 *
+	 */
+	
+	private abstract class GetBindings {
+		/**
+		 * The results of the API call being evaluated.
+		 */
+		final Set<IVariable<?>> results;
+		
+		/** An instance of GetBindings which shares the result set and is either {@link GetRecursiveMaybeBindings} or
+		 * {@link GetRecursiveDefiniteBindings}
+		  * It is assigned once, lazily:
+		 * 
+		 */
+		private GetBindings recursive;
+
+		private GetBindings(Set<IVariable<?>> vars) {
+			this.results = vars != null ? vars : new LinkedHashSet<IVariable<?>>();
+		}
+
+		public final Set<IVariable<?>> getIncomingBindings(IGroupMemberNode node) {
+			/*
+	    	 * Start by adding the exogenous variables.
+	    	 */
+	    	getIncomingExognousBindings();
+	    	
+	        final GraphPatternGroup<?> parent = node.getParentGraphPatternGroup();
+	        
+	        /*
+	         * We've reached the root.
+	         */
+	        if (parent == null) {
+	            
+	            /*
+	             * FIXME This is unable to look upwards when the group is the graph
+	             * pattern of a subquery, a service, or a (NOT) EXISTS filter. Unit
+	             * tests. This could be fixed using a method which searched the
+	             * QueryRoot for the node having a given join group as its
+	             * annotation. However, that would not resolve the question of
+	             * evaluation order versus "in scope" visibility.
+	             * 
+	             * Use findParent(...) to fix this, but build up the test coverage
+	             * before making the code changes.
+	             */
+	            return results;
+	            
+	        }
+
+	        getIncomingSiblingBindings(node);
+	        
+	        /*
+	         * Next we recurse upwards to figure out what is definitely bound 
+	         * coming into the parent.  
+	         */
+	        return getIncomingBindings(parent);
+		}
+
+		public final Set<IVariable<?>> getIncomingSiblingBindings(IGroupMemberNode node) {
+			final GraphPatternGroup<?> parent = node.getParentGraphPatternGroup();
+			/*
+	         * Do the siblings of the node first.  Unless it is a Union.  Siblings
+	         * don't see each other's bindings in a Union. 
+	         */
+	        if (!(parent instanceof UnionNode)) {
+	            
+	            for (IGroupMemberNode child : parent) {
+	                
+	                /*
+	                 * We've found ourself. Stop collecting vars.
+	                 */
+	                if (child == node) {
+	                    break;
+	                }
+	                
+	                if (child instanceof IBindingProducerNode) {
+	                    if (includeBindings(child)) {
+	                        recursive().getProducedBindings( (IBindingProducerNode) child);
+	                    }
+	                }
+	            }
+	        }
+	        return results;
+			
+		}
+
+        public final Set<IVariable<?>> getProducedBindings(IBindingProducerNode node) {
+    		if (node instanceof GraphPatternGroup<?>) {
+    	        
+                if (node instanceof JoinGroupNode) {
+                
+                    getProducedBindings((JoinGroupNode) node);
+                    
+                } else if (node instanceof UnionNode) {
+                    
+                    getProducedBindings((UnionNode) node);
+                    
+                } else {
+                    throw new AssertionError(node.toString());
+                }
+
+            } else if(node instanceof StatementPatternNode) {
+
+                final StatementPatternNode sp = (StatementPatternNode) node;
+                
+                    results.addAll(sp.getProducedBindings());
+
+            } else if (node instanceof ArbitraryLengthPathNode) {
+            	
+            	results.addAll(((ArbitraryLengthPathNode) node).getProducedBindings());
+            	
+            } else if (node instanceof ZeroLengthPathNode) {
+            	
+            	results.addAll(((ZeroLengthPathNode) node).getProducedBindings());
+            	
+            } else if(node instanceof SubqueryRoot) {
+
+                final SubqueryRoot subquery = (SubqueryRoot) node;
+
+                getProducedBindings(subquery);
+
+            } else if (node instanceof NamedSubqueryInclude) {
+
+                final NamedSubqueryInclude nsi = (NamedSubqueryInclude) node;
+
+                final String name = nsi.getName();
+                
+    			final NamedSubqueryRoot nsr = getNamedSubqueryRoot(name);
+
+    			if (nsr != null) {
+
+    				getProducedBindings(nsr);
+
+    			} else {
+
+                    final ISolutionSetStats stats = getSolutionSetStats(name);
+                    
+                    getProducedBindings(stats);
+
+    			}
+
+            } else if(node instanceof ServiceNode) {
+
+                getProducedBindings((ServiceNode) node);
+
+            } else if(node instanceof AssignmentNode) {
+            	
+                getProducedBindings((AssignmentNode)node);
+                
+            } else if(node instanceof FilterNode) {
+
+                // NOP.
+
+            } else {
+                
+                throw new AssertionError(node.toString());
+                
+            }
+
+            return results;
+			
+		}
+
+		public final Set<IVariable<?>> getProducedBindings(ServiceNode node) {
+	        final GraphPatternGroup<IGroupMemberNode> graphPattern = 
+	        		(GraphPatternGroup<IGroupMemberNode>) node.getGraphPattern();
+
+	        if (graphPattern != null) {
+
+	            recursive().getProducedBindings(graphPattern);
+
+	        }
+	        return results;
+			
+		}
+
+		protected void getProducedBindings(UnionNode node) {
+			// not recursive - nothing
+		}
+
+		final Set<IVariable<?>> getProducedBindings(JoinGroupNode node) {
+
+	        // Note: always report what is bound when we enter a group. The caller
+	        // needs to avoid entering a group which is optional if they do not want
+	        // it's bindings.
+//	        if(node.isOptional())
+//	            return vars;
+	        
+	        for (IGroupMemberNode child : node) {
+
+	            if(!(child instanceof IBindingProducerNode))
+	                continue;
+	            
+	            if (!includeBindings(child)) 
+	            	continue;
+	            
+	            IBindingProducerNode bpn = (IBindingProducerNode)child;
+	            
+	            // if the child is itself a JoinGroupNode and we are non-recusive, we are not interested
+	            if (skipRecursiveJoinGroup(bpn))
+	            	continue;
+	            
+	            
+	            // otherwise get the bindings
+	            
+	            getProducedBindings(bpn);
+	        }
+	        return results;
+		}
+		/**
+		 * Return true if the child is a join group that the algorithm should skip
+		 * when analyzing a parent join group. This method is overriden in the
+		 * subclasses implementing recursive algorithms.
+		 * @param bpn
+		 * @return
+		 */
+		protected boolean skipRecursiveJoinGroup(IBindingProducerNode bpn) {
+			return bpn instanceof JoinGroupNode;
+		}
+
+		public abstract Set<IVariable<?>> getProducedBindings(QueryBase nsr) ;
+
+		protected abstract void getProducedBindings(AssignmentNode node) ;
+
+		protected abstract void getProducedBindings(ISolutionSetStats stats) ;
+
+		GetBindings recursive()  {
+        	if (recursive==null) {
+        		recursive = constructRecursive();
+        	}
+			return recursive;
+		}
+
+		protected abstract GetBindings constructRecursive();
+
+		protected abstract boolean includeBindings(IGroupMemberNode child);
+
+		protected final boolean isMinus(IGroupMemberNode child) {
+			return child instanceof IJoinNode
+			        && ((IJoinNode) child).isMinus();
+		}
+
+		private void getIncomingExognousBindings() {
+			if (evaluationContext != null) {
+				getProducedBindings(evaluationContext.getSolutionSetStats());
+			}
+		}
+		
+	}
+	private class GetDefiniteBindings extends GetBindings {
+
+		private GetDefiniteBindings(Set<IVariable<?>> vars) {
+			super(vars);
+		}
+		@Override
+		protected boolean includeBindings(IGroupMemberNode child) {
+			return !(isMinus(child)||isOptional(child));
+		}
+		private boolean isOptional(IGroupMemberNode child) {
+			return child instanceof IJoinNode  && ((IJoinNode) child).isOptional();
+		}
+		@Override
+		protected GetBindings constructRecursive() {
+			return new GetRecursiveDefiniteBindings(results);
+		}
+		
+
+		@Override
+		protected void getProducedBindings(AssignmentNode node) {
+
+            /*
+             * Note: BIND() in a group is only a "maybe" because the spec says
+             * that an error when evaluating a BIND() in a group will not fail
+             * the solution.
+             * 
+             * @see http://www.w3.org/TR/sparql11-query/#assignment (
+             * "If the evaluation of the expression produces an error, the
+             * variable remains unbound for that solution.")
+             */
+		}
+		
+		
+		
+		@Override
+		protected void getProducedBindings(ISolutionSetStats stats) {
+            	/*
+            	 * Note: This is all variables which are bound in ALL solutions.
+            	 */
+
+            	results.addAll(stats.getAlwaysBound());
+		}
+	    /**
+	     * Report "MUST" bound bindings projected by the query. This involves
+	     * checking the WHERE clause and the {@link ProjectionNode} for the query.
+	     * Note that the projection can rename variables. It can also bind a
+	     * constant on a variable. Variables which are not projected by the query
+	     * will NOT be reported.
+	     * 
+	     * FIXME For a top-level query, any exogenously bound variables are also
+	     * definitely bound (in a subquery they are definitely bound if they are
+	     * projected into the subquery).
+	     * 
+	     * TODO  In the case when the variable is bound to an expression
+	     *       and the expression may execute with an error, this
+	     *       method incorrectly reports that variable as definitely bound
+	     *       see trac 750
+	     * @return 
+	     * 
+	     *      
+	     * @see http://sourceforge.net/apps/trac/bigdata/ticket/430 (StaticAnalysis
+	     *      does not follow renames of projected variables)
+	     *      
+	     * @see http://sourceforge.net/apps/trac/bigdata/ticket/750
+	     *      artificial test case fails, currently wontfix
+	     */
+		@Override
+		public Set<IVariable<?>> getProducedBindings(QueryBase queryBase) {
+	        final ProjectionNode projection = queryBase.getProjection();
+	        
+	        if(projection == null) {
+
+	            // If there is no projection then there is nothing to report.
+	            return results;
+
+	        }
+
+	        
+	        // The set of definitely bound variables in the query.
+	        final Set<IVariable<?>> definitelyBound;
+	        @SuppressWarnings("unchecked")
+	        final GraphPatternGroup<IGroupMemberNode> whereClause = queryBase.getWhereClause();
+	        
+	        
+
+	        if (whereClause != null) {
+	        	definitelyBound = getDefiniteRecursive(null).getProducedBindings(whereClause);
+
+	            if (log.isInfoEnabled()) {
+	            	log.info(whereClause);
+	            	log.info(definitelyBound);
+	            }
+
+	        } else {
+	        	
+	        	definitelyBound = Collections.EMPTY_SET;
+	        }
+
+	        /*
+	         * Now, we need to consider each select expression in turn. There are
+	         * several cases:
+	         * 
+	         * 1. Projection of a constant.
+	         * 
+	         * 2. Projection of a variable under the same name.
+	         * 
+	         * 3. Projection of a variable under a different name.
+	         * 
+	         * 4. Projection of a select expression which is not an aggregate.
+	         * 
+	         * This case is the one explored in trac750, and the code
+	         * below while usually correct is incorrect if the expression
+	         * can evaluate with an error - in which case the variable
+	         * will remain unbound.
+	         * 
+	         * 5. Projection of a select expression which is an aggregate. This case
+	         * is tricky. A select expression that is an aggregate which evaluates
+	         * to an error will cause an unbound value for to be reported for the
+	         * projected variable for the solution in which the error is computed.
+	         * Therefore, we must not assume that aggregation expressions MUST be
+	         * bound. (Given the schema flexible nature of RDF data, it is very
+	         * difficult to prove that an aggregate expression will never result in
+	         * an error without actually running the aggregation query. COUNT seems
+	         * OK, )
+	         * 
+	         * 6. Projection of an exogenously bound variable which is in scope.
+	         * 
+	         * TODO (6) is not yet handled! We need to know what variables are in
+	         * scope at each level as we descend into subqueries. Even if we know
+	         * the set of exogenous variables, the in scope exogenous varaibles are
+	         * not available in the typical invocation context.
+	         */
+	        {
+
+	            final boolean isAggregate = isAggregate(queryBase);
+	            
+
+	            for (AssignmentNode bind : projection) {
+
+	                if (isBoundProjection(bind, definitelyBound, isAggregate)) {
+	    			    IVariable<IV> var = bind.getVar();
+						results.add(var);
+	    			    definitelyBound.add(var);
+	                }
+	                
+	            }
+
+	        }
+	        
+	        return results;
+			
+		}
+		private boolean  isBoundProjection(AssignmentNode bind, final Set<IVariable<?>> definitelyBound,
+				final boolean isAggregate) {
+			if (bind.getValueExpression() instanceof IConstant<?>) {
+
+			    /*
+			     * 1. The projection of a constant.
+			     * 
+			     * Note: This depends on pre-evaluation of constant
+			     * expressions. If the expression has not been reduced to a
+			     * constant then it will not be detected by this test!
+			     */
+			    return true;
+
+			}
+
+			if (bind.getValueExpression() instanceof IVariable<?>) {
+
+		        /*
+		         * 2. The projection of a definitely bound variable
+		         * under the same name.
+		         * 
+		         * OR
+		         * 
+		         * 3. The projection of a definitely bound variable
+		         * under a different name.
+		         */
+
+			    return definitelyBound.contains(bind.getValueExpression());
+			}
+
+			if (!isAggregate) {
+
+			    /*
+			     * 4. The projection of a select expression which is not an
+			     * aggregate. Normally, the projected variable will be 
+			     * bound if all components of the select expression are
+			     * definitely bound: this comment ignores the possibility
+			     * that the expression may raise an error, in which case
+			     * this block of code is incorrect.
+			     * As of Oct 11, 2013 - we are no-fixing this
+			     * because of caution about the performance impact, 
+			     * and it seeming to be a corner case. See trac 750.
+			     * 
+			     * TODO Does coalesce() change the semantics for this
+			     * analysis? If any of the values for coalesce() is
+			     * definitely bound, then the coalesce() will produce a
+			     * value. Can coalesce() be used to propagate an unbound
+			     * value? If so, then we must either not assume that any
+			     * value expression involving coalesce() is definitely bound
+			     * or we must do a more detailed analysis of the value
+			     * expression.
+			     */
+			    final Set<IVariable<?>> usedVars = getSpannedVariables(
+			            (BOp) bind.getValueExpression(),
+			            new LinkedHashSet<IVariable<?>>());
+
+			    usedVars.removeAll(definitelyBound);
+			    /*
+			     * If all variables used by the select expression are
+			     * definitely bound so the projected variable for that
+			     * select expression will be definitely bound.
+			     */
+
+			    return !usedVars.isEmpty();
+
+			} 
+				/* 5. Projection of a select expression which is an aggregate.
+				 * We dubiously do nothing:
+				 * - COUNT always gives a value
+				 * ... MIN MAX SAMPLE are only errors if there are no solutions
+				 * ... GROUP_CONCAT SUM and AVG may have type errors which perhaps
+				 *   could be excluded by static analysis
+				 */
+			
+			/* 6. Projection of an exogenously bound variable which is in scope.
+			 * We incorrectly do nothing
+			 */
+			return false;
+		}
+		
+	}
+	class GetMaybeBindings extends GetBindings {
+
+		public GetMaybeBindings(Set<IVariable<?>> vars) {
+			super(vars);
+		}
+		@Override
+		protected boolean includeBindings(IGroupMemberNode child) {
+			return !isMinus(child);
+		}
+		@Override
+		protected GetBindings constructRecursive() {
+			return new GetRecursiveMaybeBindings(results);
+		}
+		@Override
+		protected void getProducedBindings(AssignmentNode node) {
+        	results.add(((AssignmentNode) node).getVar());
+		}
+		@Override
+		protected void getProducedBindings(ISolutionSetStats stats) {
+            	
+                /*
+                 * Note: This is all variables bound in ANY solution. It MAY
+                 * include variables which are NOT bound in some solutions.
+                 */
+
+                results.addAll(stats.getUsedVars());
+		}
+
+	    /**
+	     * Report the "MUST" and "MAYBE" bound bindings projected by the query. This
+	     * reduces to reporting the projected variables. We do not need to analyze
+	     * the whereClause or projection any further in order to know what "might"
+	     * be projected.
+	     * @return 
+	     */
+		@Override
+		public Set<IVariable<?>> getProducedBindings(QueryBase node) {
+
+	        final ProjectionNode projection = node.getProjection();
+	        
+	        if(projection != null) {
+	        	projection.getProjectionVars(results);
+	        }	
+	        return results;
+			
+		}
+	}
+	private class GetRecursiveDefiniteBindings extends GetDefiniteBindings {
+
+		private GetRecursiveDefiniteBindings(Set<IVariable<?>> vars) {
+			super(vars);
+		}
+		@Override
+		protected GetBindings constructRecursive() {
+			return this;
+		}
+		@Override
+		protected void getProducedBindings(UnionNode node) {        
+
+
+			final Set<IVariable<?>> perChildSets[] = new Set[node.arity()];
+			int i = 0;
+
+			for (JoinGroupNode child : node) {
+				perChildSets[i++] =  getDefiniteRecursive(null).getProducedBindings(child);
+			}
+
+			results.addAll(intersection(perChildSets));
+
+		}
+
+		@Override
+		protected boolean skipRecursiveJoinGroup(IBindingProducerNode bpn) {
+			return false;
+		}
+	}
+	private class GetRecursiveMaybeBindings extends GetMaybeBindings {
+
+		public GetRecursiveMaybeBindings(Set<IVariable<?>> vars) {
+			super(vars);
+		}
+		@Override
+		protected GetBindings constructRecursive() {
+			return this;
+		}
+		@Override
+		protected void getProducedBindings(UnionNode node) {
+
+	        /*
+	         * Collect all "maybe" bindings from each of the children.
+	         */
+	        for (JoinGroupNode child : node) {
+
+	            getProducedBindings(child);
+
+	        }
+		}
+		@Override
+		protected boolean skipRecursiveJoinGroup(IBindingProducerNode bpn) {
+			return false;
+		}
+		
+	}
+	
+	private GetBindings get(boolean definite, boolean recursive, Set<IVariable<?>> vars) {
+		if (definite) {
+			if (recursive) {
+				return new GetRecursiveDefiniteBindings(vars);
+			} else {
+				return new GetDefiniteBindings(vars);
+			}
+		} else {
+			if (recursive) {
+				return new GetRecursiveMaybeBindings(vars);
+			} else {
+				return new GetMaybeBindings(vars);
+			}
+		}
+	}
+	private GetBindings getDefinite(boolean recursive, Set<IVariable<?>> vars) {
+		return get(true, recursive, vars);
+	}
+	private GetBindings getDefiniteRecursive(Set<IVariable<?>> vars) {
+		return get(true, true, vars);
+	}
+	private GetBindings getMaybe(boolean recursive, Set<IVariable<?>> vars) {
+		return get(false, recursive, vars);
+	}
+	private GetBindings getMaybeRecursive(Set<IVariable<?>> vars) {
+		return get(false, true, vars);
+	}
 
     private static final Logger log = Logger.getLogger(StaticAnalysis.class);
 
@@ -232,8 +863,6 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
 	 *            {@link ISolutionSetStats} and the {@link ISolutionSetManager} for
 	 *            named solution sets.
 	 * 
-	 * @see https://sourceforge.net/apps/trac/bigdata/ticket/412
-	 *      (StaticAnalysis#getDefinitelyBound() ignores exogenous variables.)
 	 */
     public StaticAnalysis(final QueryRoot queryRoot,
             final IEvaluationContext evaluationContext) {
@@ -559,6 +1188,33 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
 //
 //    }
     
+    /*
+     * 
+ 
+ Main interface methods - these have the words
+    Definitely or Maybe
+ and
+    Produced or Incoming 
+    
+   The first indicates the difference between variables that are known to be bound
+   versus those that might be bound, e.g. because of an optional, or an expression 
+   that might fail in a BIND.
+   
+   The second indices a distinction between a declarative semantics typically bottom-up,
+   or the procedural left-to-right top-down evaluation
+   
+   For the former (definitely or maybe), many of the methods are fairly similar in which
+   case a third parameterized form is used. The result is somewhat ugly code
+   where:
+       - if the implementations for 'definitely' and for 'maybe' are sufficiently similar then
+         both methods delegate to a third parameterized method
+       - if, on the other hand, the implementations for 'definitely' and for 'maybe' are
+         sufficiently different, then the two methods are written explicitly and the
+         third parameterized method delegates to them.
+ 
+ 
+     * 
+     */
     /**
      * Return the set of variables which MUST be bound coming into this group
      * during top-down, left-to-right evaluation. The returned set is based on a
@@ -578,11 +1234,6 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
      * 
      * @return The argument.
      * 
-     *         FIXME Both this and
-     *         {@link #getMaybeIncomingBindings(IGroupMemberNode, Set)} need to
-     *         consider the exogenous variables. Perhaps modify the
-     *         StaticAnalysis constructor to pass in the exogenous
-     *         IBindingSet[]?
      * 
      *         FIXME For some purposes we need to consider the top-down,
      *         left-to-right evaluation order. However, for others, such as when
@@ -590,88 +1241,10 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
      *         scope, we need to consider whether there exists some evaluation
      *         order for which the variable would be in scope.
      * 
-     * @see https://sourceforge.net/apps/trac/bigdata/ticket/412
-     *      (StaticAnalysis#getDefinitelyBound() ignores exogenous variables.)
      */
     public Set<IVariable<?>> getDefinitelyIncomingBindings(
             final IGroupMemberNode node, final Set<IVariable<?>> vars) {
-    
-    	/*
-    	 * Start by adding the exogenous variables.
-    	 */
-    	if (evaluationContext != null) {
-    		
-    		final ISolutionSetStats stats = evaluationContext.getSolutionSetStats();
-    		
-    		// only add the vars that are always bound
-    		vars.addAll(stats.getAlwaysBound());
-    		
-    	}
-    	
-        final GraphPatternGroup<?> parent = node.getParentGraphPatternGroup();
-        
-        /*
-         * We've reached the root.
-         */
-        if (parent == null) {
-            
-            /*
-             * FIXME This is unable to look upwards when the group is the graph
-             * pattern of a subquery, a service, or a (NOT) EXISTS filter. Unit
-             * tests. This could be fixed using a method which searched the
-             * QueryRoot for the node having a given join group as its
-             * annotation. However, that would not resolve the question of
-             * evaluation order versus "in scope" visibility.
-             * 
-             * Use findParent(...) to fix this, but build up the test coverage
-             * before making the code changes.
-             */
-            return vars;
-            
-        }
-
-        /*
-         * Do the siblings of the node first.  Unless it is a Union.  Siblings
-         * don't see each other's bindings in a Union. 
-         */
-        if (!(parent instanceof UnionNode)) {
-            
-            for (IGroupMemberNode child : parent) {
-                
-                /*
-                 * We've found ourself. Stop collecting vars.
-                 */
-                if (child == node) {
-                    
-                    break;
-                    
-                }
-                
-                if (child instanceof IBindingProducerNode) {
-                    
-                    final boolean optional = child instanceof IJoinNode
-                            && ((IJoinNode) child).isOptional();
-
-                    final boolean minus = child instanceof IJoinNode
-                            && ((IJoinNode) child).isMinus();
-                    
-                    if (!optional && !minus) {
-                        getDefinitelyProducedBindings(
-                                (IBindingProducerNode) child, vars, true/* recursive */);
-                    }
-                    
-                }
-                
-            }
-            
-        }
-        
-        /*
-         * Next we recurse upwards to figure out what is definitely bound 
-         * coming into the parent.  
-         */
-        return getDefinitelyIncomingBindings(parent, vars);
-        
+    	return getDefiniteRecursive(vars).getIncomingBindings(node);
     }
 
     /**
@@ -694,94 +1267,27 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
      * 
      * @return The argument.
      * 
-     *         FIXME Both this and
-     *         {@link #getDefinitelyIncomingBindings(IGroupMemberNode, Set)}
-     *         need to consider the exogenous variables. Perhaps modify the
-     *         StaticAnalysis constructor to pass in the exogenous
-     *         IBindingSet[]?
      * 
      *         FIXME This is unable to look upwards when the group is the graph
      *         pattern of a subquery, a service, or a (NOT) EXISTS filter.
      *         
-     * @see https://sourceforge.net/apps/trac/bigdata/ticket/412
      */
     public Set<IVariable<?>> getMaybeIncomingBindings(
             final IGroupMemberNode node, final Set<IVariable<?>> vars) {
-    
-    	/*
-    	 * Start by adding the exogenous variables.
-    	 */
-    	if (evaluationContext != null) {
-    		
-    		final ISolutionSetStats stats = evaluationContext.getSolutionSetStats();
-    		
-    		// add the vars that are always bound
-    		vars.addAll(stats.getAlwaysBound());
-    		
-    		// also add the vars that might be bound
-    		vars.addAll(stats.getNotAlwaysBound());
-    		
-    	}
-    	
-        final GraphPatternGroup<?> parent = node.getParentGraphPatternGroup();
-        
-        /*
-         * We've reached the root.
-         */
-        if (parent == null) {
-            
-            return vars;
-            
-        }
-
-        /*
-         * Do the siblings of the node first.  Unless it is a Union.  Siblings
-         * don't see each other's bindings in a Union.
-         */
-        if (!(parent instanceof UnionNode)) {
-            
-            for (IGroupMemberNode child : parent) {
-                
-                /*
-                 * We've found ourself. Stop collecting vars.
-                 */
-                if (child == node) {
-                    
-                    break;
-                    
-                }
-                
-                if (child instanceof IBindingProducerNode) {
-                    
-//                    final boolean optional = child instanceof IJoinNode
-//                            && ((IJoinNode) child).isOptional();
-
-                    final boolean minus = child instanceof IJoinNode
-                            && ((IJoinNode) child).isMinus();
-
-                    if (/* !optional && */!minus) {
-                        /*
-                         * MINUS does not produce any bindings, it just removes
-                         * solutions. On the other hand, OPTIONAL joins DO
-                         * produce bindings, they are just "maybe" bindings.
-                         */
-                        getMaybeProducedBindings(
-                                (IBindingProducerNode) child, vars, true/* recursive */);
-                    }
-                    
-                }
-                
-            }
-            
-        }
-        
-        /*
-         * Next we recurse upwards to figure out what is definitely bound 
-         * coming into the parent.  
-         */
-        return getMaybeIncomingBindings(parent, vars);
+    	return getMaybeRecursive(vars).getIncomingBindings(node);
         
     }
+
+
+    public Set<IVariable<?>> getMaybeIncomingSiblingBindings(final IGroupMemberNode node,
+			final Set<IVariable<?>> vars) {
+    	return getMaybeRecursive(vars).getIncomingSiblingBindings(node);
+	}
+
+    public Set<IVariable<?>> getDefinitelyIncomingSiblingBindings(final IGroupMemberNode node,
+			final Set<IVariable<?>> vars) {
+    	return getDefiniteRecursive(vars).getIncomingSiblingBindings(node);
+	}
 
     /**
      * Return the set of variables which MUST be bound for solutions after the
@@ -817,101 +1323,32 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
             final IBindingProducerNode node, final Set<IVariable<?>> vars,
             final boolean recursive) {
 
-        if (node instanceof GraphPatternGroup<?>) {
-        
-            if (node instanceof JoinGroupNode) {
-            
-                getDefinitelyProducedBindings((JoinGroupNode) node, vars,
-                        recursive);
-                
-            } else if (node instanceof UnionNode) {
-                
-                getDefinitelyProducedBindings((UnionNode) node, vars, recursive);
-                
-            } else {
-                
-                throw new AssertionError(node.toString());
-                
-            }
+        return this.getDefinite(recursive, vars).getProducedBindings(node);
+      
+    }
+    /**
+     * Return the set of variables which MUST or MIGHT be bound after the
+     * evaluation of this join group.
+     * <p>
+     * The returned collection reflects "bottom-up" evaluation semantics. This
+     * method does NOT consider variables which are already bound on entry to
+     * the group.
+     * 
+     * @param vars
+     *            Where to store the "MUST" and "MIGHT" be bound variables.
+     * @param recursive
+     *            When <code>true</code>, the child groups will be recursively
+     *            analyzed. When <code>false</code>, only <i>this</i> group will
+     *            be analyzed.
+     *            
+     * @return The caller's set.
+     */
+    public Set<IVariable<?>> getMaybeProducedBindings(
+            final IBindingProducerNode node,//
+            final Set<IVariable<?>> vars,//
+            final boolean recursive) {
+        return this.getMaybe(recursive, vars).getProducedBindings(node);
 
-        } else if(node instanceof StatementPatternNode) {
-
-            final StatementPatternNode sp = (StatementPatternNode) node;
-            
-//            if(!sp.isOptional()) {
-//
-//                // Only if the statement pattern node is a required join.
-                vars.addAll(sp.getProducedBindings());
-//                
-//            }
-
-        } else if (node instanceof ArbitraryLengthPathNode) {
-        	
-        	vars.addAll(((ArbitraryLengthPathNode) node).getProducedBindings());
-        	
-        } else if (node instanceof ZeroLengthPathNode) {
-        	
-        	vars.addAll(((ZeroLengthPathNode) node).getProducedBindings());
-        	
-        } else if(node instanceof SubqueryRoot) {
-
-            final SubqueryRoot subquery = (SubqueryRoot) node;
-
-            vars.addAll(getDefinitelyProducedBindings(subquery));
-
-        } else if (node instanceof NamedSubqueryInclude) {
-
-            final NamedSubqueryInclude nsi = (NamedSubqueryInclude) node;
-
-            final String name = nsi.getName();
-            
-			final NamedSubqueryRoot nsr = getNamedSubqueryRoot(name);
-
-			if (nsr != null) {
-
-				vars.addAll(getDefinitelyProducedBindings(nsr));
-
-			} else {
-
-                final ISolutionSetStats stats = getSolutionSetStats(name);
-
-                /*
-                 * Note: This is all variables which are bound in ALL solutions.
-                 */
-
-                vars.addAll(stats.getAlwaysBound());
-
-			}
-
-        } else if(node instanceof ServiceNode) {
-
-            final ServiceNode service = (ServiceNode) node;
-
-            vars.addAll(getDefinitelyProducedBindings(service));
-
-        } else if(node instanceof AssignmentNode) {
-            
-            /*
-             * Note: BIND() in a group is only a "maybe" because the spec says
-             * that an error when evaluating a BIND() in a group will not fail
-             * the solution.
-             * 
-             * @see http://www.w3.org/TR/sparql11-query/#assignment (
-             * "If the evaluation of the expression produces an error, the
-             * variable remains unbound for that solution.")
-             */
-
-        } else if(node instanceof FilterNode) {
-
-            // NOP.
-
-        } else {
-            
-            throw new AssertionError(node.toString());
-            
-        }
-
-        return vars;
       
     }
 
@@ -953,363 +1390,31 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
         
     }
 
+
+    
+
     /**
-     * Return the set of variables which MUST or MIGHT be bound after the
-     * evaluation of this join group.
-     * <p>
-     * The returned collection reflects "bottom-up" evaluation semantics. This
-     * method does NOT consider variables which are already bound on entry to
-     * the group.
-     * 
-     * @param vars
-     *            Where to store the "MUST" and "MIGHT" be bound variables.
-     * @param recursive
-     *            When <code>true</code>, the child groups will be recursively
-     *            analyzed. When <code>false</code>, only <i>this</i> group will
-     *            be analyzed.
-     *            
-     * @return The caller's set.
+     * Report "MUST" bound bindings projected by the SERVICE. This involves
+     * checking the graph pattern reported by
+     * {@link ServiceNode#getGraphPattern()} .
      */
-    public Set<IVariable<?>> getMaybeProducedBindings(
-            final IBindingProducerNode node,//
-            final Set<IVariable<?>> vars,//
-            final boolean recursive) {
+    // MUST : ServiceNode
+    public Set<IVariable<?>> getDefinitelyProducedBindings(final ServiceNode node) {
+    	return getDefiniteRecursive(null).getProducedBindings(node);
 
-        if (node instanceof GraphPatternGroup<?>) {
-        
-            if (node instanceof JoinGroupNode) {
-            
-                getMaybeProducedBindings((JoinGroupNode) node, vars,
-                        recursive);
-
-            } else if (node instanceof UnionNode) {
-
-                getMaybeProducedBindings((UnionNode) node, vars, recursive);
-
-            } else {
-
-                throw new AssertionError(node.toString());
-                
-            }
-
-        } else if( node instanceof StatementPatternNode) {
-
-            final StatementPatternNode sp = (StatementPatternNode) node;
-
-//            if(sp.isOptional()) {
-//
-//                // Only if the statement pattern node is an optional join.
-                vars.addAll(sp.getProducedBindings());
-//                
-//            }
-
-        } else if (node instanceof ArbitraryLengthPathNode) {
-        	
-        	vars.addAll(((ArbitraryLengthPathNode) node).getProducedBindings());
-        	
-        } else if (node instanceof ZeroLengthPathNode) {
-        	
-        	vars.addAll(((ZeroLengthPathNode) node).getProducedBindings());
-        	
-        } else if(node instanceof SubqueryRoot) {
-
-            final SubqueryRoot subquery = (SubqueryRoot) node;
-
-            vars.addAll(getMaybeProducedBindings(subquery));
-
-        } else if (node instanceof NamedSubqueryInclude) {
-
-            final NamedSubqueryInclude nsi = (NamedSubqueryInclude) node;
-
-            final String name = nsi.getName();
-            
-			final NamedSubqueryRoot nsr = getNamedSubqueryRoot(name);
-
-			if (nsr != null) {
-
-				vars.addAll(getMaybeProducedBindings(nsr));
-				
-			} else {
-				
-                final ISolutionSetStats stats = getSolutionSetStats(name);
-
-                /*
-                 * Note: This is all variables bound in ANY solution. It MAY
-                 * include variables which are NOT bound in some solutions.
-                 */
-
-                vars.addAll(stats.getUsedVars());
-
-			}
-
-        } else if(node instanceof ServiceNode) {
-
-            final ServiceNode service = (ServiceNode) node;
-
-            vars.addAll(getMaybeProducedBindings(service));
-
-        } else if(node instanceof AssignmentNode) {
-
-            /*
-             * Note: BIND() in a group is only a "maybe" because the spec says
-             * that an error when evaluating a BIND() in a group will not fail
-             * the solution.
-             * 
-             * @see http://www.w3.org/TR/sparql11-query/#assignment (
-             * "If the evaluation of the expression produces an error, the
-             * variable remains unbound for that solution.")
-             */
-
-            vars.add(((AssignmentNode) node).getVar());
-            
-        } else if(node instanceof FilterNode) {
-
-            // NOP
-
-        } else {
-            
-            throw new AssertionError(node.toString());
-            
-        }
-
-        return vars;
-      
     }
 
-    /*
-     * Private type specific helper methods.
+    /**
+     * Report the "MUST" and "MAYBE" bound variables projected by the service.
+     * This involves checking the graph pattern reported by
+     * {@link ServiceNode#getGraphPattern()}. A SERVICE does NOT have an
+     * explicit PROJECTION so it can not rename the projected bindings.
      */
-
-    // MUST : JOIN GROUP
-    private Set<IVariable<?>> getDefinitelyProducedBindings(
-            final JoinGroupNode node, final Set<IVariable<?>> vars,
-            final boolean recursive) {
-        // Note: always report what is bound when we enter a group. The caller
-        // needs to avoid entering a group which is optional if they do not want
-        // it's bindings.
-//        if(node.isOptional())
-//            return vars;
-        
-        for (IGroupMemberNode child : node) {
-
-            if(!(child instanceof IBindingProducerNode))
-                continue;
-            
-            if (child instanceof StatementPatternNode) {
-
-                final StatementPatternNode sp = (StatementPatternNode) child;
-
-                if (!sp.isOptional()) {
-                    
-                    /*
-                     * Required JOIN (statement pattern).
-                     */
-
-                    getDefinitelyProducedBindings(sp, vars, recursive);
-
-                }
-
-            } else if (child instanceof ArbitraryLengthPathNode) {
-            	
-            	vars.addAll(((ArbitraryLengthPathNode) child).getProducedBindings());
-            	
-            } else if (child instanceof ZeroLengthPathNode) {
-            	
-            	vars.addAll(((ZeroLengthPathNode) child).getProducedBindings());
-            	
-            } else if (child instanceof NamedSubqueryInclude
-                    || child instanceof SubqueryRoot
-                    || child instanceof ServiceNode) {
-
-                /*
-                 * Required JOIN (Named solution set, SPARQL 1.1 subquery,
-                 * EXISTS, or SERVICE).
-                 * 
-                 * Note: We have to descend recursively into these structures in
-                 * order to determine anything.
-                 */
-
-                vars.addAll(getDefinitelyProducedBindings(
-                        (IBindingProducerNode) child,
-                        new LinkedHashSet<IVariable<?>>(), true/* recursive */));
-
-            } else if (child instanceof GraphPatternGroup<?>) {
-
-                if (recursive) {
-
-                    // Add anything bound by a child group.
-
-                    final GraphPatternGroup<?> group = (GraphPatternGroup<?>) child;
-
-                    if (!group.isOptional() && !group.isMinus()) {
-
-                        getDefinitelyProducedBindings(group, vars, recursive);
-
-                    }
-
-                }
-                
-            } else if (child instanceof AssignmentNode) {
-
-                /*
-                 * Note: BIND() in a group is only a "maybe" because the spec says
-                 * that an error when evaluating a BIND() in a group will not fail
-                 * the solution.
-                 * 
-                 * @see http://www.w3.org/TR/sparql11-query/#assignment (
-                 * "If the evaluation of the expression produces an error, the
-                 * variable remains unbound for that solution.")
-                 */
-
-            } else if(child instanceof FilterNode) {
-
-                // NOP
-                
-            } else {
-
-                throw new AssertionError(child.toString());
-
-            }
-
-        }
-
-        /*
-         * Note: Assignments which have an error cause the variable to be left
-         * unbound rather than failing the solution. Therefore assignment nodes
-         * are handled as "maybe" bound, not "must" bound.
-         */
-
-        return vars;
+    // MAY : ServiceNode
+    public Set<IVariable<?>> getMaybeProducedBindings(final ServiceNode node) {
+    	return getMaybeRecursive(null).getProducedBindings(node);
 
     }
-
-    // MAYBE : JOIN GROUP
-    private Set<IVariable<?>> getMaybeProducedBindings(
-            final JoinGroupNode node, final Set<IVariable<?>> vars,
-            final boolean recursive) {
-
-        // Add in anything definitely produced by this group (w/o recursion).
-        getDefinitelyProducedBindings(node, vars, false/* recursive */);
-
-        /*
-         * Note: Assignments which have an error cause the variable to be left
-         * unbound rather than failing the solution. Therefore assignment nodes
-         * are handled as "maybe" bound, not "must" bound.
-         */
-
-        for (AssignmentNode bind : node.getAssignments()) {
-
-            vars.add(bind.getVar());
-
-        }
-
-        if (recursive) {
-
-            /*
-             * Add in anything "maybe" produced by a child group.
-             */
-
-            for (IGroupMemberNode child : node) {
-
-                if (child instanceof IBindingProducerNode) {
-
-                    final IBindingProducerNode tmp = (IBindingProducerNode) child;
-                    
-                    if(tmp instanceof IJoinNode && ((IJoinNode)tmp).isMinus()) {
-                        
-                        // MINUS never contributes bindings, it only removes
-                        // solutions.
-                        continue;
-                        
-                    }
-
-//                    vars.addAll(
-                    getMaybeProducedBindings(tmp, vars, recursive)
-//                            )
-                    ;
-
-                }
-                
-            }
-
-        }
-
-        return vars;
-
-    }
-
-    // MUST : UNION
-    private Set<IVariable<?>> getDefinitelyProducedBindings(
-            final UnionNode node,
-            final Set<IVariable<?>> vars, final boolean recursive) {
-
-        if (!recursive || node.isOptional() || node.isMinus()) {
-
-            // Nothing to contribute
-            return vars;
-            
-        }
-
-        /*
-         * Collect all definitely produced bindings from each of the children.
-         */
-        final Set<IVariable<?>> all = new LinkedHashSet<IVariable<?>>();
-
-        final List<Set<IVariable<?>>> perChildSets = new LinkedList<Set<IVariable<?>>>();
-
-        for (JoinGroupNode child : node) {
-
-            final Set<IVariable<?>> childSet = new LinkedHashSet<IVariable<?>>();
-            
-            perChildSets.add(childSet);
-
-            getDefinitelyProducedBindings(child, childSet, recursive);
-
-            all.addAll(childSet);
-            
-        }
-
-        /*
-         * Now retain only those bindings which are definitely produced by each
-         * child of the union.
-         */
-        for(Set<IVariable<?>> childSet : perChildSets) {
-            
-            all.retainAll(childSet);
-            
-        }
-        
-        // These are the variables which are definitely bound by the union.
-        vars.addAll(all);
-        
-        return vars;
-
-    }
-
-    // MAYBE : UNION
-    private Set<IVariable<?>> getMaybeProducedBindings(final UnionNode node,
-            final Set<IVariable<?>> vars, final boolean recursive) {
-
-        if (!recursive) {
-
-            // Nothing to contribute.
-            return vars;
-
-        }
-
-        /*
-         * Collect all "maybe" bindings from each of the children.
-         */
-        for (JoinGroupNode child : node) {
-
-            getMaybeProducedBindings(child, vars, recursive);
-
-        }
-
-        return vars;
-
-    }
-
     /**
      * Report "MUST" bound bindings projected by the query. This involves
      * checking the WHERE clause and the {@link ProjectionNode} for the query.
@@ -1326,8 +1431,6 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
      *       method incorrectly reports that variable as definitely bound
      *       see trac 750
      * 
-     * @see https://sourceforge.net/apps/trac/bigdata/ticket/412
-     *      (StaticAnalysis#getDefinitelyBound() ignores exogenous variables.)
      *      
      * @see http://sourceforge.net/apps/trac/bigdata/ticket/430 (StaticAnalysis
      *      does not follow renames of projected variables)
@@ -1336,188 +1439,8 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
      *      artificial test case fails, currently wontfix
      */
     // MUST : QueryBase
-    public Set<IVariable<?>> getDefinitelyProducedBindings(final QueryBase queryBase) {
-
-        final ProjectionNode projection = queryBase.getProjection();
-        
-        if(projection == null) {
-
-            // If there is no projection then there is nothing to report.
-            return new LinkedHashSet<IVariable<?>>();
-
-        }
-
-        // The set of definitely bound variables in the query.
-        final Set<IVariable<?>> definitelyBound = new LinkedHashSet<IVariable<?>>();
-        
-        @SuppressWarnings("unchecked")
-        final GraphPatternGroup<IGroupMemberNode> whereClause = queryBase.getWhereClause();
-
-        if (whereClause != null) {
-
-            getDefinitelyProducedBindings(whereClause, definitelyBound, true/* recursive */);
-            
-            if (log.isInfoEnabled()) {
-            	log.info(whereClause);
-            	log.info(definitelyBound);
-            }
-
-        }
-
-        /*
-         * Now, we need to consider each select expression in turn. There are
-         * several cases:
-         * 
-         * 1. Projection of a constant.
-         * 
-         * 2. Projection of a variable under the same name.
-         * 
-         * 3. Projection of a variable under a different name.
-         * 
-         * 4. Projection of a select expression which is not an aggregate.
-         * 
-         * This case is the one explored in trac750, and the code
-         * below while usually correct is incorrect if the expression
-         * can evaluate with an error - in which case the variable
-         * will remain unbound.
-         * 
-         * 5. Projection of a select expression which is an aggregate. This case
-         * is tricky. A select expression that is an aggregate which evaluates
-         * to an error will cause an unbound value for to be reported for the
-         * projected variable for the solution in which the error is computed.
-         * Therefore, we must not assume that aggregation expressions MUST be
-         * bound. (Given the schema flexible nature of RDF data, it is very
-         * difficult to prove that an aggregate expression will never result in
-         * an error without actually running the aggregation query.)
-         * 
-         * 6. Projection of an exogenously bound variable which is in scope.
-         * 
-         * TODO (6) is not yet handled! We need to know what variables are in
-         * scope at each level as we descend into subqueries. Even if we know
-         * the set of exogenous variables, the in scope exogenous varaibles are
-         * not available in the typical invocation context.
-         */
-        {
-
-            final boolean isAggregate = isAggregate(queryBase);
-            
-            /*
-             * The set of projected variables which are definitely bound.
-             */
-            final Set<IVariable<?>> tmp = new LinkedHashSet<IVariable<?>>();
-
-            for (AssignmentNode bind : projection) {
-
-                if (bind.getValueExpression() instanceof IConstant<?>) {
-
-                    /*
-                     * 1. The projection of a constant.
-                     * 
-                     * Note: This depends on pre-evaluation of constant
-                     * expressions. If the expression has not been reduced to a
-                     * constant then it will not be detected by this test!
-                     */
-
-                    tmp.add(bind.getVar());
-
-                    continue;
-
-                }
-
-                if (bind.getVar().equals(bind.getValueExpression())) {
-
-                    if (definitelyBound.contains(bind.getVar())) {
-
-                        /*
-                         * 2. The projection of a definitely bound variable
-                         * under the same name.
-                         */
-
-                        tmp.add(bind.getVar());
-
-                    }
-                    
-                    continue;
-
-                }
-
-                if (bind.getValueExpression() instanceof IVariable<?>) {
-
-                    if (definitelyBound.contains(bind.getValueExpression())) {
-
-                        /*
-                         * 3. The projection of a definitely bound variable
-                         * under a different name.
-                         */
-
-                        tmp.add(bind.getVar());
-
-                    }
-
-                    continue;
-
-                }
-
-                if (!isAggregate) {
-
-                    /*
-                     * 4. The projection of a select expression which is not an
-                     * aggregate. Normally, the projected variable will be 
-                     * bound if all components of the select expression are
-                     * definitely bound: this comment ignores the possibility
-                     * that the expression may raise an error, in which case
-                     * this block of code is incorrect.
-                     * As of Oct 11, 2013 - we are no-fixing this
-                     * because of caution about the performance impact, 
-                     * and it seeming to be a corner case. See trac 750.
-                     * 
-                     * TODO Does coalesce() change the semantics for this
-                     * analysis? If any of the values for coalesce() is
-                     * definitely bound, then the coalesce() will produce a
-                     * value. Can coalesce() be used to propagate an unbound
-                     * value? If so, then we must either not assume that any
-                     * value expression involving coalesce() is definitely bound
-                     * or we must do a more detailed analysis of the value
-                     * expression.
-                     */
-                    final Set<IVariable<?>> usedVars = getSpannedVariables(
-                            (BOp) bind.getValueExpression(),
-                            new LinkedHashSet<IVariable<?>>());
-
-                    usedVars.removeAll(definitelyBound);
-
-                    if (!usedVars.isEmpty()) {
-
-                        /*
-                         * There is at least one variable which is used by the
-                         * select expression which is not definitely bound.
-                         */
-                        continue;
-
-                    }
-
-                    /*
-                     * All variables used by the select expression are
-                     * definitely bound so the projected variable for that
-                     * select expression will be definitely bound.
-                     */
-                    tmp.add(bind.getVar());
-
-                } else {
-                	/* 5. Projection of a select expression which is an aggregate.
-                	 * We do nothing
-                	 */
-                }
-            	/* 6. Projection of an exogenously bound variable which is in scope.
-            	 * We incorrectly do nothing
-            	 */
-                
-            }
-
-            return tmp;
-
-        }
-
+    Set<IVariable<?>> getDefinitelyProducedBindings(final QueryBase queryBase) {
+    	return getDefiniteRecursive(null).getProducedBindings(queryBase);
     }
 
     /**
@@ -1527,69 +1450,27 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
      * be projected.
      */
     // MAYBE : QueryBase
-    public Set<IVariable<?>> getMaybeProducedBindings(final QueryBase node) {
-
-        final Set<IVariable<?>> vars = new LinkedHashSet<IVariable<?>>();
-
-        final ProjectionNode projection = node.getProjection();
-        
-        if(projection == null) {
-
-            // If there is no projection then there is nothing to report.
-            return vars;
-
-        }
-
-        return projection.getProjectionVars(vars);
+    Set<IVariable<?>> getMaybeProducedBindings(final QueryBase node) {
+    	return getMaybeRecursive(null).getProducedBindings(node);
         
     }
-
-    /**
-     * Report "MUST" bound bindings projected by the SERVICE. This involves
-     * checking the graph pattern reported by
-     * {@link ServiceNode#getGraphPattern()} .
-     */
-    // MUST : ServiceNode
-    public Set<IVariable<?>> getDefinitelyProducedBindings(
-            final ServiceNode node) {
-
-        final Set<IVariable<?>> vars = new LinkedHashSet<IVariable<?>>();
-
-        final GraphPatternGroup<IGroupMemberNode> graphPattern = (GraphPatternGroup<IGroupMemberNode>) node
-                .getGraphPattern();
-
-        if (graphPattern != null) {
-
-            getDefinitelyProducedBindings(graphPattern, vars, true/* recursive */);
-
-        }
-
-        return vars;
+	
+    // MUST : JOIN GROUP
+    private Set<IVariable<?>> getDefinitelyProducedBindings(
+            final JoinGroupNode node, final Set<IVariable<?>> vars,
+            final boolean recursive) {
+    	
+    	return getDefinite(recursive, vars).getProducedBindings(node);
 
     }
 
-    /**
-     * Report the "MUST" and "MAYBE" bound variables projected by the service.
-     * This involves checking the graph pattern reported by
-     * {@link ServiceNode#getGraphPattern()}. A SERVICE does NOT have an
-     * explicit PROJECTION so it can not rename the projected bindings.
-     */
-    // MAY : ServiceNode
-    public Set<IVariable<?>> getMaybeProducedBindings(final ServiceNode node) {
-
-        final Set<IVariable<?>> vars = new LinkedHashSet<IVariable<?>>();
-        
-        final GraphPatternGroup<IGroupMemberNode> graphPattern = (GraphPatternGroup<IGroupMemberNode>) node.getGraphPattern();
-
-        if (graphPattern != null) {
-
-            getMaybeProducedBindings(graphPattern, vars, true/* recursive */);
-
-        }
-
-        return vars;
-
+    // MAYBE : JOIN GROUP
+    private Set<IVariable<?>> getMaybeProducedBindings(
+            final JoinGroupNode node, final Set<IVariable<?>> vars,
+            final boolean recursive) {
+    	return getMaybe(recursive, vars).getProducedBindings(node);
     }
+
 
     /*
      * FILTERS analysis for JoinGroupNodes
@@ -2437,4 +2318,82 @@ public class StaticAnalysis extends StaticAnalysis_CanJoin {
 
     }
 
+	private static class ArrayOfSets<T> {
+		Set<T> sets[];
+		public ArrayOfSets(Set<T> ...sets ) {
+			this.sets = sets;
+		}
+	}
+	public static class AndResult<T> extends ArrayOfSets<T> {
+		public AndResult(Set<T> ...sets ) {
+			super(sets);
+		}
+	}
+	public static class AndNotResult<T> extends ArrayOfSets<T> {
+		public AndNotResult(Set<T> ...sets ) {
+			super(sets);
+		}
+	}
+	/**
+	 * Does the given list of sets intersect with non-empty intersection?
+	 * @param sets
+	 * @return true if the intersection is non-empty
+	 */
+	public static <T> boolean intersect(Set<T> ...sets ) {
+		return intersect(and(sets),andNot());
+	}
+	/**
+	 * Does the given list of sets intersect with non-empty intersection?
+	 * @param and Sets that positively contribute to the intersection
+	 * @param andNot Sets whose complement is used in the intersection
+	 * @return true if the intersection is non-empty
+	 */
+	public static <T> boolean intersect(AndResult<T> and, AndNotResult<T> andNot) {
+		return !intersection(and,andNot).isEmpty();
+	}
+	/**
+	 * 
+	 * @param sets
+	 * @return The intersection
+	 */
+	public static <T> Set<T> intersection(Set<T> ...sets ) {
+		return intersection(and(sets),andNot());
+	}
+	/**
+	 * 
+	 * 
+	 * @param and Sets that positively contribute to the intersection
+	 * @param andNot Sets whose complement is used in the intersection
+	 * @return The intersection
+	 */
+	public static <T> Set<T> intersection(AndResult<T> and, AndNotResult<T >andNot) {
+
+		Set<T> result = new LinkedHashSet(and.sets[0]);
+		if (and.sets.length == 0) {
+			return result;
+		}
+		for (int i=1;i<and.sets.length;i++) {
+			result.retainAll(and.sets[i]);
+		}
+		for (int i=0;i<andNot.sets.length;i++) {
+			result.removeAll(andNot.sets[i]);
+		}
+		return result;
+	}
+	/**
+	 * Supporting method for {@link #intersect(AndResult, AndNotResult)} and {@link #intersection(AndResult, AndNotResult)}
+	 * @param sets
+	 * @return An opaque intermediate result
+	 */
+	public static AndNotResult andNot(Set<?> ...sets ) {
+		return new AndNotResult(sets);
+	}
+	/**
+	 * Supporting method for {@link #intersect(AndResult, AndNotResult)} and {@link #intersection(AndResult, AndNotResult)}
+	 * @param sets
+	 * @return An opaque intermediate result
+	 */
+	public static AndResult and(Set<?> ...sets ) {
+		return new AndResult(sets);
+	}
 }

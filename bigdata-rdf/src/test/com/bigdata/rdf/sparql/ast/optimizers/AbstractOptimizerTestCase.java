@@ -109,6 +109,13 @@ public abstract class AbstractOptimizerTestCase extends AbstractASTEvaluationTes
 				((StatementPatternNode) sp).setScope(Scope.DEFAULT_CONTEXTS);
 			}
 		},
+		MINUS {
+			@Override
+			public void apply(ASTBase sp) {
+				((ModifiableBOpBase) sp)
+						.setProperty(Annotations.MINUS, true);
+			}
+		},
 		OPTIONAL {
 			@Override
 			public void apply(ASTBase sp) {
@@ -388,7 +395,10 @@ public abstract class AbstractOptimizerTestCase extends AbstractASTEvaluationTes
 
 		protected UnionNode unionNode(Object... statements) {
 			return initGraphPatternGroup(new UnionNode(), statements);
-
+		}
+		
+		protected AssignmentNode bind(IValueExpressionNode val, VarNode var) {
+			return new AssignmentNode(var,val);
 		}
 
 		protected JoinGroupNode where(GroupMemberNodeBase... statements) {

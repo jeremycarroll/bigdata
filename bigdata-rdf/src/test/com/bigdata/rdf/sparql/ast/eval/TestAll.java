@@ -115,6 +115,8 @@ public class TestAll extends TestCase {
 
         // Test suite for negation (EXISTS, NOT EXISTS, MINUS).
         suite.addTestSuite(TestNegation.class);
+        // Additional tests for negation (EXISTS, NOT EXISTS, MINUS).
+        suite.addTestSuite(TestUnionMinus.class);
 
         // Test suite for a merge join pattern
         suite.addTestSuite(TestMergeJoin.class);

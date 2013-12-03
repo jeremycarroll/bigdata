@@ -48,6 +48,7 @@ import com.bigdata.rdf.sparql.ast.FilterNode;
 import com.bigdata.rdf.sparql.ast.FunctionNode;
 import com.bigdata.rdf.sparql.ast.GlobalAnnotations;
 import com.bigdata.rdf.sparql.ast.GraphPatternGroup;
+import com.bigdata.rdf.sparql.ast.GroupNodeBase;
 import com.bigdata.rdf.sparql.ast.IBindingProducerNode;
 import com.bigdata.rdf.sparql.ast.IGroupMemberNode;
 import com.bigdata.rdf.sparql.ast.IGroupNode;
@@ -71,7 +72,7 @@ import com.bigdata.rdf.sparql.ast.eval.IEvaluationContext;
  * Rewrites aspects of queries where bottom-up evaluation would produce
  * different results. This includes joins which are not "well designed" as
  * defined in section 4.2 of "Semantics and Complexity of SPARQL", 2006, Jorge
- * Pérez et al and also FILTERs on variables whose bindings are not in scope.
+ * Perez et al and also FILTERs on variables whose bindings are not in scope.
  * <p>
  * Note: The test suite for this class is a set of DAWG tests which focus on
  * bottom up evaluation semantics, including:
@@ -172,7 +173,84 @@ public class ASTBottomUpOptimizer implements IASTOptimizer {
 
         final QueryRoot queryRoot = (QueryRoot) queryNode;
 
-        /*
+        findAndLiftBadlyDesignedLeftJoins(context, queryRoot);
+
+        findAndHideVariablesNotInScope(context, queryRoot, bindingSets);
+
+        findAndRewriteSomeMinusGroups(context, queryRoot);
+
+        return queryNode;
+    
+    }
+
+    /**
+     * MINUS groups may be obviously unnecessary, or may need to be rewritten as named sub queries.
+     * Most are OK.
+     * @param context
+     * @param queryRoot
+     */
+	private void findAndRewriteSomeMinusGroups(final AST2BOpContext context, final QueryRoot queryRoot) {
+		/*
+         * Handle MINUS when it appears without shared variables.
+         */
+        {
+
+            final StaticAnalysis sa = new StaticAnalysis(queryRoot, context);
+            final List<JoinGroupNode> badlyDesignedMinusJoins = new LinkedList<JoinGroupNode>();
+
+            // Handle named subqueries.
+            if (queryRoot.getNamedSubqueries() != null) {
+
+                for (NamedSubqueryRoot namedSubquery : queryRoot
+                        .getNamedSubqueries()) {
+
+                    // WHERE clause for the named subquery.
+                    analyzeMinusGroups(context, sa,
+                            namedSubquery.getWhereClause(), badlyDesignedMinusJoins);
+
+                }
+
+            }
+
+            analyzeMinusGroups(context, sa,
+                    queryRoot.getWhereClause(), badlyDesignedMinusJoins);
+            
+
+            liftBadlyDesignedJoins(context, sa, badlyDesignedMinusJoins);
+
+        }
+	}
+
+	private void findAndHideVariablesNotInScope(final AST2BOpContext context, final QueryRoot queryRoot,
+			final IBindingSet[] bindingSets) {
+		/*
+         * Hide variables which would not be in scope for bottom up evaluation.
+         */
+        {
+
+            final StaticAnalysis sa = new StaticAnalysis(queryRoot, context);
+
+            // Handle named subqueries.
+            if (queryRoot.getNamedSubqueries() != null) {
+
+                for (NamedSubqueryRoot namedSubquery : queryRoot
+                        .getNamedSubqueries()) {
+
+                    handleFiltersWithVariablesNotInScope(context, sa,
+                            namedSubquery, bindingSets);
+
+                }
+
+            }
+
+            handleFiltersWithVariablesNotInScope(context, sa, queryRoot,
+                    bindingSets);
+
+        }
+	}
+
+	private void findAndLiftBadlyDesignedLeftJoins(final AST2BOpContext context, final QueryRoot queryRoot) {
+		/*
          * Rewrite badly designed left joins by lifting them into a named
          * subquery.
          */
@@ -217,75 +295,34 @@ public class ASTBottomUpOptimizer implements IASTOptimizer {
 
             }
 
-            /*
-             * Convert badly designed left joins into named subqueries. This
-             * gives the join group effective "bottom-up" evaluation semantics
-             * since we will run the named subqueries before we run anything
-             * else.
-             */
-
-            for (JoinGroupNode group : innerOptionalGroups) {
-
-                liftBadlyDesignedLeftJoin(context, sa, queryRoot, group);
-
-            }
+            liftBadlyDesignedJoins(context, sa, innerOptionalGroups);
 
         }
+	}
 
-        /*
-         * Hide variables which would not be in scope for bottom up evaluation.
-         */
-        {
+	/**
+	 * The badly designed children are things like optionals or minuses
+	 * which need to be run in the context of their siblings, but not their parent's siblings.
+	 * @param context
+	 * @param sa
+	 * @param badlyDesignedJoinGroupChildren
+	 */
+	private void liftBadlyDesignedJoins(final AST2BOpContext context, final StaticAnalysis sa,
+			final List<JoinGroupNode> badlyDesignedJoinGroupChildren) {
+		/*
+		 * Convert badly designed left joins into named subqueries. This
+		 * gives the join group effective "bottom-up" evaluation semantics
+		 * since we will run the named subqueries before we run anything
+		 * else.
+		 */
 
-            final StaticAnalysis sa = new StaticAnalysis(queryRoot, context);
+		for (JoinGroupNode group : badlyDesignedJoinGroupChildren) {
 
-            // Handle named subqueries.
-            if (queryRoot.getNamedSubqueries() != null) {
+		    liftBadlyDesignedJoin(context, sa, group);
 
-                for (NamedSubqueryRoot namedSubquery : queryRoot
-                        .getNamedSubqueries()) {
+		}
+	}
 
-                    handleFiltersWithVariablesNotInScope(context, sa,
-                            namedSubquery, bindingSets);
-
-                }
-
-            }
-
-            handleFiltersWithVariablesNotInScope(context, sa, queryRoot,
-                    bindingSets);
-
-        }
-
-        /*
-         * Handle MINUS when it appears without shared variables.
-         */
-        {
-
-            final StaticAnalysis sa = new StaticAnalysis(queryRoot, context);
-
-            // Handle named subqueries.
-            if (queryRoot.getNamedSubqueries() != null) {
-
-                for (NamedSubqueryRoot namedSubquery : queryRoot
-                        .getNamedSubqueries()) {
-
-                    // WHERE clause for the named subquery.
-                    handleMinusWithoutSharedVariables(context, sa,
-                            namedSubquery.getWhereClause());
-
-                }
-
-            }
-
-            handleMinusWithoutSharedVariables(context, sa,
-                    queryRoot.getWhereClause());
-
-        }
-
-        return queryNode;
-    
-    }
 
     /**
      * We are looking for queries of the form:
@@ -504,8 +541,8 @@ public class ASTBottomUpOptimizer implements IASTOptimizer {
      *            {@link JoinGroupNode} will be lifted out and replaced by a
      *            {@link NamedSubqueryInclude}.
      */
-    private void liftBadlyDesignedLeftJoin(final AST2BOpContext context,
-            final StaticAnalysis sa, final QueryRoot queryRoot,
+    private void liftBadlyDesignedJoin(final AST2BOpContext context,
+            final StaticAnalysis sa,
             final JoinGroupNode group) {
 
         // The parent join group.
@@ -513,9 +550,17 @@ public class ASTBottomUpOptimizer implements IASTOptimizer {
 
         if (p == null)
             throw new AssertionError();
+        
+        liftBadlyDesignedJoinGroup(context, sa, p);
+       
+    }
 
-        // The parent's parent join group.
-        final JoinGroupNode pp = p.getParentJoinGroup();
+	private void liftBadlyDesignedJoinGroup(final AST2BOpContext context, final StaticAnalysis sa,
+			final JoinGroupNode groupWithBadlyDesignedChild) throws AssertionError {
+		final QueryRoot queryRoot = sa.getQueryRoot();
+        
+        final IGroupNode<IGroupMemberNode> pp = groupWithBadlyDesignedChild.getParent();
+        
 
         if (pp == null)
             throw new AssertionError();
@@ -534,7 +579,7 @@ public class ASTBottomUpOptimizer implements IASTOptimizer {
                 
                 final Set<IVariable<?>> vars = new LinkedHashSet<IVariable<?>>();
                 
-                sa.getMaybeProducedBindings(p, vars, true/* recursive */);
+                sa.getMaybeProducedBindings(groupWithBadlyDesignedChild, vars, true/* recursive */);
                 
                 for (IVariable<?> var : vars) {
                 
@@ -544,54 +589,38 @@ public class ASTBottomUpOptimizer implements IASTOptimizer {
 
             }
             
-            nsr.setWhereClause(p);
+            nsr.setWhereClause(groupWithBadlyDesignedChild);
 
             queryRoot.getNamedSubqueriesNotNull().add(nsr);
             
         }
         
         final NamedSubqueryInclude nsi = new NamedSubqueryInclude(namedSet);
-
-        if (p.isOptional()) {
-
-            /*
-             * TODO This is a hack because the INCLUDE operation (a solution
-             * set hash join) does not currently support OPTIONAL. As a
-             * workaround the INCLUDE is stuffed into an OPTIONAL group.
-             */
-
-            final JoinGroupNode tmp = new JoinGroupNode();
-            
-            tmp.setOptional(true);
-            
-            tmp.addChild(nsi);
-
-            pp.replaceWith(p, tmp);
-
-        } else if (p.isMinus()) {
-
-            /*
-             * TODO This is a hack because the INCLUDE operation does not
-             * currently support MINUS. As a workaround the INCLUDE is stuffed
-             * into an MINUS group.
-             */
-
-            final JoinGroupNode tmp = new JoinGroupNode();
-            
-            tmp.setMinus(true);
-
-            tmp.addChild(nsi);
-
-            pp.replaceWith(p, tmp);
-
-        } else {
-
-            // Replace with named subquery INCLUDE.
-            pp.replaceWith(p, nsi);
+        final IGroupMemberNode replacement;
+        final JoinGroupNode wrappedNsi = new JoinGroupNode();
+        wrappedNsi.addChild(nsi);
         
+        // We have to decide whether to use the nsi as is, or wrapped in a JoinGroup
+        // The cases are: if we have top set Optional or Minus then we need to wrap
+        // If the parent is not a JoinGroup then we need to wrap.
+
+        if (groupWithBadlyDesignedChild.isOptional()) {
+            
+        	wrappedNsi.setOptional(true);
+            groupWithBadlyDesignedChild.setOptional(false);
+            replacement = wrappedNsi;
+
+        } else if (groupWithBadlyDesignedChild.isMinus()) {
+        	wrappedNsi.setMinus(true);
+            groupWithBadlyDesignedChild.setMinus(false);
+            replacement = wrappedNsi;
+        } else if (pp instanceof JoinGroupNode) {
+        	replacement = nsi;
+        } else {
+        	replacement = wrappedNsi;
         }
-       
-    }
+        pp.replaceWith(groupWithBadlyDesignedChild, replacement);
+	}
     
     /**
      * Examine each {@link JoinGroupNode} in the query and each FILTER in each
@@ -870,21 +899,30 @@ public class ASTBottomUpOptimizer implements IASTOptimizer {
     }
 
     /**
-     * Handle MINUS when it appears without shared variables. We just get rid of
+     * Analyze minus groups in two fashions:
+     * 
+     * A) Handle MINUS when it appears without shared variables. We just get rid of
      * the MINUS group since it can not interact with the parent group without
      * shared variables (without shared variables, nothing joins and if nothing
      * joins then nothing is removed from the parent).
+     * 
+     * B) Some MINUS groups need to be rewritten in bottom up fashion
      * 
      * @param context
      * @param group
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private void handleMinusWithoutSharedVariables(
+    private void analyzeMinusGroups(
             final IEvaluationContext context,
             final StaticAnalysis sa,
-            final GraphPatternGroup<?> group) {
+            final GraphPatternGroup<?> group,
+            final List<JoinGroupNode> badlyDesignedMinusJoins) {
 
         int arity = group.arity();
+        
+        boolean haveAlreadyLiftedGroup = false;
+        
+        Set<IVariable<?>> maybeIncomingParentBindings = null; // initialize lazily
 
         for (int i = 0; i < arity; i++) {
 
@@ -901,32 +939,24 @@ public class ASTBottomUpOptimizer implements IASTOptimizer {
             /*
              * Recursion.
              */
-            handleMinusWithoutSharedVariables(context, sa,
-                        childGroup);
+            analyzeMinusGroups(context, sa, childGroup, badlyDesignedMinusJoins);
 
             /*
              * Examine this child.
              */
             if(childGroup.isMinus()) {
 
-                // FIXME This should be an "in-scope" test (not MUST|MAYBE).
-                final Set<IVariable<?>> incomingBound = sa
-                        .getDefinitelyIncomingBindings(childGroup,
-                                new LinkedHashSet<IVariable<?>>());
+                final Set<IVariable<?>> maybeIncomingSibling =
+                		sa.getMaybeIncomingSiblingBindings(childGroup, new LinkedHashSet<IVariable<?>>());
 
                 final Set<IVariable<?>> maybeProduced = sa
                         .getMaybeProducedBindings(childGroup,
                                 new LinkedHashSet<IVariable<?>>(), true/* recursive */);
-
-                final Set<IVariable<?>> intersection = new LinkedHashSet<IVariable<?>>(
-                        incomingBound);
-
-                intersection.retainAll(maybeProduced);
-
-//                System.err.println("intersection=" + intersection + ", incoming="
-//                        + incomingBound + ", produced=" + maybeProduced);
+                final Set<IVariable<?>> definitelyIncomingSibling = sa
+                        .getDefinitelyIncomingSiblingBindings(childGroup,
+                                new LinkedHashSet<IVariable<?>>());
                 
-                if (intersection.isEmpty()) {
+                if (!StaticAnalysis.intersect(maybeIncomingSibling,maybeProduced)) {
 
                     // Remove the MINUS operator. It can not have any effect.
                     
@@ -934,6 +964,75 @@ public class ASTBottomUpOptimizer implements IASTOptimizer {
                     
                     i++;
 
+                } else {
+                	if (haveAlreadyLiftedGroup) {
+                		continue;
+                	}
+                	
+                	if ( maybeIncomingParentBindings == null ) {
+                		maybeIncomingParentBindings = sa.getMaybeIncomingBindings(group, new LinkedHashSet<IVariable<?>>());
+                	}
+                    final Set<IVariable<?>> definitelyProduced = sa
+                            .getDefinitelyProducedBindings(childGroup,
+                                    new LinkedHashSet<IVariable<?>>(), true/* recursive */);
+                    /* There are some cases where the top-down left-to-right execution and the bottom-up semantics
+                    do not agree. Such Queries are called 'badly designed' and MUST be rewritten (by lifting out named
+                   subqueries). The named subquery will correspond to the parent node here. 
+                   
+                   The issues are for any variable that 
+                   -  MAY be an incoming binding to the parent group
+                   -  is not a MUST incoming binding from the siblings
+                   -  and is a MAY binding within the MINUS
+                      
+                   A) Such variables might have a join involving that variable from the parent with the MINUS
+                   without the binding coming from the siblings (which define the bottom up semantics), this would
+                   remove solutions incorrectly
+                   
+                   com.bigdata.rdf.sparql.ast.eval.TestUnionMinus.test_union_minus_11_bind()
+                   
+                   B) Such variables may prevent a join between the parent bindings and the minus bindings
+                   which is possible between the sibling bindings and the minus bindings, hence incorrectly failing 
+                   to remove solutions 
+                   
+                   com.bigdata.rdf.sparql.ast.eval.TestUnionMinus.test_union_minus_12_bind()
+                   
+                   
+                   C)
+                   A further set of issues seen in 
+                   com.bigdata.rdf.sparql.ast.eval.TestUnionMinus.test_union_minus_13_bind()
+                   and
+                   com.bigdata.rdf.sparql.ast.eval.TestUnionMinus.test_union_minus_11_bind()
+                   is:
+                   A variable that:
+                   - MAY be an incoming binding from the siblings
+                   - is not a MUST binding within the minus
+                   - but is a MAY binding within the minus
+                   - and there are no variables that MUST be set on both the siblings and the minus
+                   is difficult, and the minus itself needs to be executed first
+                   to avoid such a variable being incorrect set in the minus and the incoming bindings
+                   and hence causing the minus to subtract.
+                   
+                   Both of these issues may be present :( as in 
+                   com.bigdata.rdf.sparql.ast.eval.TestUnionMinus.test_union_minus_11_bind()
+                   
+                   */
+                	// Issues A and B above
+                   
+                    if (StaticAnalysis.intersect(StaticAnalysis.and(maybeIncomingParentBindings,maybeProduced),StaticAnalysis.andNot(definitelyIncomingSibling))) {
+                    	badlyDesignedMinusJoins.add((JoinGroupNode) childGroup);
+                    	haveAlreadyLiftedGroup = true;
+                    }
+                    // Issue C above
+                    if (StaticAnalysis.intersect(StaticAnalysis.and(maybeIncomingSibling, maybeProduced), StaticAnalysis.andNot(definitelyProduced))) {
+                    	if (!StaticAnalysis.intersect(definitelyIncomingSibling,definitelyProduced) ) {
+                    		System.err.println("Not implemented lifting of:");
+                    		System.err.println(childGroup.toString(8));
+              // This did not work, even after some effort.
+//                    		badlyDesignedMinusJoins.add((JoinGroupNode) childGroup);
+                    	}
+                    }
+                    
+                	
                 }
                 
             }

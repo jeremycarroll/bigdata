@@ -906,8 +906,7 @@ public class AST2BOpUtility extends AST2BOpJoins {
          */
         
         // Anything which can flow out of the SERVICE is "projected".
-        final Set<IVariable<?>> projectedVars = ctx.sa
-                .getMaybeProducedBindings(serviceNode);
+        final Set<IVariable<?>> projectedVars = ctx.sa.getMaybeProducedBindings(serviceNode);
         {
 
             /*
@@ -1500,15 +1499,13 @@ public class AST2BOpUtility extends AST2BOpJoins {
 			 * directly into the pipeline.
 			 */
 
-			final QueryBase dominatingQuery = (QueryBase) ctx.sa
-					.findParent(parentJoinGroup);
+			final QueryBase dominatingQuery = (QueryBase) ctx.sa.findParent(parentJoinGroup);
 
 			if (dominatingQuery instanceof QueryRoot
 					|| dominatingQuery instanceof NamedSubqueryRoot) {
 
 				// The stats associated with the exogenous solutions.
-				final ISolutionSetStats exogenousStats = ctx
-						.getSolutionSetStats();
+				final ISolutionSetStats exogenousStats = ctx.getSolutionSetStats();
 
 				// TODO Extract threshold to AST2BOpContext and QueryHint.
 				if (exogenousStats.getSolutionSetSize() <= 100) {
@@ -3346,7 +3343,7 @@ public class AST2BOpUtility extends AST2BOpJoins {
         
         // The type of join.
         final JoinTypeEnum joinType = optional ? JoinTypeEnum.Optional
-                : minus ? JoinTypeEnum.NotExists : JoinTypeEnum.Normal;
+                : minus ? JoinTypeEnum.Minus : JoinTypeEnum.Normal;
 
         @SuppressWarnings("rawtypes")
         final Map<IConstraint, Set<IVariable<IV>>> needsMaterialization = new LinkedHashMap<IConstraint, Set<IVariable<IV>>>();
