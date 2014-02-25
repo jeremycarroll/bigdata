@@ -2305,6 +2305,11 @@ public class Node extends AbstractNode<Node> implements INodeData {
             final MutableKeyBuffer keys = (MutableKeyBuffer) this.getKeys();
             final MutableNodeData data = (MutableNodeData) this.data;
 
+            // check for persistent storage to be recycled for the removed child
+            if (data.childAddr[index] != 0) {
+            	btree.recycle(data.childAddr[index]);
+            }
+
             if (lengthKeyCopy > 0) {
 
                 System.arraycopy(keys.keys, index + 1, keys.keys, index,
