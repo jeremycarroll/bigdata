@@ -1,0 +1,114 @@
+allocations: 33068, frees: 36, net: 33032, commits: 2
+allocations: 34891, frees: 630, net: 34261, commits: 4
+allocations: 36606, frees: 1728, net: 34878, commits: 6
+allocations: 38322, frees: 2826, net: 35496, commits: 8
+allocations: 40037, frees: 3925, net: 36112, commits: 10
+allocations: 40895, frees: 4474, net: 36421, commits: 11
+
+
+This run maintained the connection, and showed no change, so creating and closing a connec   n makes no difference
+
+allocations: 33068, frees: 36, net: 33032, commits: 2
+allocations: 34891, frees: 630, net: 34261, commits: 4
+allocations: 36606, frees: 1728, net: 34878, commits: 6
+allocations: 40037, frees: 3925, net: 36112, commits: 10
+allocations: 40895, frees: 4474, net: 36421, commits: 11
+
+
+Loop 2 journal file is 90177536 bytes
+RW allocations: 34891, frees: 630, net: 34261, commits: 4, BTree recycles: 622, allocations: 34804 (34182)
+
+-------------------------
+RWStore Allocator Summary
+-------------------------
+AllocatorSize      AllocatorCount   SlotsAllocated  %SlotsAllocated    SlotsRecycled        SlotChurn       SlotsInUse      %SlotsInUse   MeanAllocation    SlotsReserved     %SlotsUnused    BytesReserved     BytesAppData       %SlotWaste         %AppData       %StoreFile      %TotalWaste       %FileWaste 
+64                              3            20012            57.36                9             1.00            20003            58.38               23            20480             2.33          1310720           477936            63.54             2.69             4.18             6.10              2.65 
+128                             1                8             0.02                5             2.67                3             0.01              103              512            99.41            65536              347            99.47             0.00             0.21             0.48              0.21 
+192                             1                2             0.01                0             1.00                2             0.01              161             1024            99.80           196608              323            99.84             0.00             0.63             1.44              0.63 
+320                             1               57             0.16               44             4.38               13             0.04              224             1024            98.73           327680             3496            98.93             0.02             1.04             2.37              1.03 
+512                             1                9             0.03                3             1.50                6             0.02              397              256            97.66           131072             2240            98.29             0.01             0.42             0.94              0.41 
+768                             1             2049             5.87               12             1.01             2037             5.95              608             2048             0.54          1572864          1239919            21.17             6.99             5.01             2.44              1.06 
+1024                            1               84             0.24                5             1.06               79             0.23              943              256            69.14           262144            74808            71.46             0.42             0.84             1.37              0.60 
+2048                            2            12389            35.51              507             1.04            11882            34.68             1302            12544             5.28         25690112         15307541            40.41            86.29            81.84            76.05             33.07 
+3072                            1              205             0.59               29             1.16              176             0.51             2307              256            31.25           786432           400890            49.02             2.26             2.51             2.82              1.23 
+4096                            1               76             0.22               16             1.27               60             0.18             3844              256            76.56          1048576           232770            77.80             1.31             3.34             5.98              2.60 
+8192                            0                0             0.00                0             0.00                0             0.00                0                0             0.00                0                0             0.00             0.00             0.00             0.00              0.00 
+
+
+RW allocations: 40895, frees: 4474, net: 36421, commits: 11, BTree recycles: 4444, allocations: 40711 (36267)
+
+RW increase: 2160 vs BTree increase: 2079
+
+RW allocations: 40037, frees: 3925, net: 36112, commits: 10, BTree recycles: 3899, allocations: 39875 (35976)
+RW allocations: 40895, frees: 4474, net: 36421, commits: 11, BTree recycles: 4445, allocations: 40721 (36276)
+RW Net: 309
+BTree Net: 300
+
+So there is an amount not accounted for, but BTree is main culprit
+
+RW allocations: 34891, frees: 630, net: 34261, commits: 4, BTree recycles: 622, allocations: 34807, newNodes: 14803
+RW allocations: 36606, frees: 1728, net: 34878, commits: 6, BTree recycles: 1714 (1092), allocations: 36495 (1688), newNodes: 16493 (1690)
+RW allocations: 38322, frees: 2826, net: 35496, commits: 8, BTree recycles: 2806 (1092), allocations: 38184 (1689), newNodes: 18185 (1692)
+
+
+RW allocations: 38322, frees: 2826, net: 35496, commits: 8, BTree recycles: 2806, allocations: 38177, newNodes: 18181, rawDels: 0
+RW allocations: 40037, frees: 3925, net: 36112, commits: 10, BTree recycles: 3899, allocations: 39859, newNodes: 19867, rawDels: 0
+RW allocations: 40895, frees: 4474, net: 36421, commits: 11, BTree recycles: 4445, allocations: 40705, newNodes: 20712, rawDels: 0
+
+So this looks odd.  Looks like it never recycles? So where do the recycles come from?
+
+Called from replaceChildRef .. copyOnWrite ... nowhere else!
+
+So, when node is updated... made mutable, its old store is recycled... 
+
+start with 
+RW allocations: 33068, frees: 36, net: 33032, commits: 2, BTree recycles: 34, allocations: 33011, newNodes: 13009, rawDels: 0
+
+so let's zero the figures
+
+RW allocations: 5264, frees: 2826, net: 2400, commits: 8, BTree recycles: 2806, allocations: 5166, newNodes: 5172, rawDels: 0
+RW allocations: 6969, frees: 3925, net: 3000, commits: 10, BTree recycles: 3899, allocations: 6848, newNodes: 6858, rawDels: 0
+RW allocations: 7827, frees: 4474, net: 3400, commits: 11, BTree recycles: 4445, allocations: 7694, newNodes: 7703, rawDels: 0
+
+
+-------------------------
+RWStore Allocator Summary
+-------------------------
+AllocatorSize      AllocatorCount   SlotsAllocated  %SlotsAllocated    SlotsRecycled        SlotChurn       SlotsInUse      %SlotsInUse   MeanAllocation    SlotsReserved     %SlotsUnused    BytesReserved     BytesAppData       %SlotWaste         %AppData       %StoreFile      %TotalWaste       %FileWaste 
+64                              3            20012            48.94                9             1.00            20003            54.92               23            20480             2.33          1310720           477936            63.54             2.33             3.66             5.44              2.32 
+128                             1               15             0.04               12             5.00                3             0.01              101              512            99.41            65536              371            99.43             0.00             0.18             0.43              0.18 
+192                             1                2             0.00                0             1.00                2             0.01              161             1024            99.80           196608              323            99.84             0.00             0.55             1.28              0.55 
+320                             1              120             0.29              107             9.23               13             0.04              224             1024            98.73           327680             4700            98.57             0.02             0.91             2.11              0.90 
+512                             1               23             0.06               10             1.77               13             0.04              389              256            94.92           131072             4676            96.43             0.02             0.37             0.83              0.35 
+768                             1             2091             5.11               54             1.03             2037             5.59              609             2048             0.54          1572864          1240123            21.16             6.04             4.39             2.17              0.93 
+1024                            1              539             1.32               12             1.02              527             1.45              979              768            31.38           786432           517451            34.20             2.52             2.19             1.76              0.75 
+2048                            2            16133            39.45             2558             1.19            13575            37.27             1337            14080             3.59         28835840         17625812            38.88            85.84            80.44            73.20             31.27 
+3072                            1             1471             3.60             1282             7.78              189             0.52             2271              512            63.09          1572864           432221            72.52             2.10             4.39             7.45              3.18 
+4096                            1              489             1.20              430             8.29               59             0.16             3878              256            76.95          1048576           230688            78.00             1.12             2.93             5.34              2.28 
+8192                            0                0             0.00                0             0.00                0             0.00                0                0             0.00                0                0             0.00             0.00             0.00             0.00              0.00 
+
+
+BTree recycles: 14, allocations: 17, newNodes: 17, rawDels: 0, missedRecycles: 0
+
+RW allocations: 33068, frees: 36, net: 33032, commits: 2
+BTree recycles: 34, allocations: 33003, newNodes: 13009, rawDels: 0, missedRecycles: 0
+
+RW allocations: 34891, frees: 630, net: 34261, commits: 4
+BTree recycles: 622, allocations: 34799, newNodes: 14803, rawDels: 0, missedRecycles: 370
+
+RW allocations: 36606, frees: 1728, net: 34878, commits: 6
+BTree recycles: 1714, allocations: 36484, newNodes: 16493, rawDels: 0, missedRecycles: 939
+
+RW allocations: 38322, frees: 2826, net: 35496, commits: 8
+BTree recycles: 2806, allocations: 38175, newNodes: 18183, rawDels: 0, missedRecycles: 1513
+
+RW allocations: 40037, frees: 3925, net: 36112, commits: 10
+BTree recycles: 3899, allocations: 39863, newNodes: 19871, rawDels: 0, missedRecycles: 2081
+
+RW allocations: 40895, frees: 4474, net: 36421, commits: 11
+BTree recycles: 4445, allocations: 40709, newNodes: 20717, rawDels: 0, missedRecycles: 2366
+
+4445 + 2366 = 6811
+
+40895 - 6811 = 34084
+
