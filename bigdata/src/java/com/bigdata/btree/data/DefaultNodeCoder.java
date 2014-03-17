@@ -219,11 +219,11 @@ public class DefaultNodeCoder implements IAbstractNodeDataCoder<INodeData>,
 
 			final long childAddr = node.getChildAddr(i);
 
-			if (childAddr == IRawStore.NULL)
-				throw new AssertionError("Child is not persistent: index=" + i
-						+ " out of " + nkeys + " entries, " + node.toString());
+//			if (childAddr == IRawStore.NULL)
+//				throw new AssertionError("Child is not persistent: index=" + i
+//						+ " out of " + nkeys + " entries, " + node.toString());
 
-            buf.putLong(node.getChildAddr(i));
+            buf.putLong(childAddr);
             
         }
         
