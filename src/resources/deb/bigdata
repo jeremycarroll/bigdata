@@ -1,0 +1,20 @@
+# Bigdata upstart script
+
+description "Bigdata triple store server"
+start on runlevel [2345]
+stop on runlevel [06]
+
+# setuid bigdata
+# setgid bigdata
+expect daemon
+
+# respawn
+
+
+pre-start script
+    mkdir -p -m0755 /var/run/bigdata
+    chown bigdata:bigdata /var/run/bigdata
+end script
+
+exec start-stop-daemon --start --quiet --chuid bigdata:bigdata --make-pidfile \
+    --pidfile /var/run/bigdata/bigdata-upstart.pid --exec /usr/bin/bigdata
