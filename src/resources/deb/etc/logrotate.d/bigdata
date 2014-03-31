@@ -1,0 +1,13 @@
+# Copy this file to /etc/logrotate.d/bigdata
+/var/log/bigdata/*.log {
+        weekly
+        missingok
+        rotate 7
+        compress
+        notifempty
+        create 640 bigdata bigdata
+        sharedscripts
+        postrotate
+                reload rsyslog >/dev/null 2>&1 || true
+        endscript
+}
