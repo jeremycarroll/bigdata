@@ -12,4 +12,7 @@ fpm -s dir -t deb -n bigdata -v ${VERSION} \
     --after-remove src/resources/deb/post-uninstall.sh \
     ant-build/lib=/usr/share/bigdata/ \
     src/resources/deb/etc=/ \
-    src/resources/deb/usr=/
+    src/resources/deb/usr=/ \
+    bigdata-war/src/jetty.xml=/usr/share/bigdata/var/jetty/ \
+    bigdata-war/src/WEB-INF=/usr/share/bigdata/var/jetty/ \
+    bigdata-war/src/html=/usr/share/bigdata/var/jetty/

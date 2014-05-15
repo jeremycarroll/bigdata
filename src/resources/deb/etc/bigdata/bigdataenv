@@ -4,8 +4,9 @@ JVM_OPTS="-XX:+UseParallelOldGC -Xmx1500M -server"
 CONFIG_OPTS="-Dlog4j.configuration=file:/etc/bigdata/bigdata-log4j.properties"
 
 BIGDATA_HOME=/usr/share/bigdata
-CLASSPATH="$BIGDATA_HOME/lib/*:$BIGDATA_HOME/apache/lib/*:$BIGDATA_HOME/lib/jini/lib/*:$BIGDATA_HOME/lib/jini/lib-dl/*:$BIGDATA_HOME/lib/jini/lib-ext/*"
+CLASSPATH="$BIGDATA_HOME/lib/*:$BIGDATA_HOME/lib/apache/*:$BIGDATA_HOME/lib/jini/lib/*:$BIGDATA_HOME/lib/jini/lib-dl/*:$BIGDATA_HOME/lib/jini/lib-ext/*"
 BIGDATA_OPTS="-Dorg.eclipse.jetty.server.Request.maxFormContentSize=2000000000 \
-              -Dcom.bigdata.relation.accesspath.BlockingBuffer.NSPIN.READ=100000"
+              -Dcom.bigdata.relation.accesspath.BlockingBuffer.NSPIN.READ=100000 \
+              -Djetty.resourceBase=$BIGDATA_HOME/var/jetty"
 BIGDATA_PROPERTIES=/etc/bigdata/bigdata.properties
 BIGDATA_PORT=2333
