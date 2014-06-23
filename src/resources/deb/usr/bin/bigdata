@@ -3,5 +3,5 @@
 . /etc/bigdata/bigdataenv
 
 exec /usr/bin/java $JVM_OPTS $BIGDATA_OPTS $CONFIG_OPTS -cp $CLASSPATH \
-    com.bigdata.rdf.sail.webapp.NanoSparqlServer $BIGDATA_PORT '' \
+    com.bigdata.rdf.sail.webapp.NanoSparqlServer $BIGDATA_PORT kb \
     $BIGDATA_PROPERTIES 2>&1 | logger -t bigdata
