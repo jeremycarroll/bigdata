@@ -1980,6 +1980,11 @@ public class AST2BOpUtility extends AST2BOpRTO {
 //        left = convertQueryBaseWithScopedVars(left, subqueryRoot,
 //                new LinkedHashSet<IVariable<?>>(doneSet)/* doneSet */,
 //                false /* materializeProjection */, ctx);
+
+
+        if (subqueryRoot.hasSlice()) {
+            left = addSlice(left, subqueryRoot, subqueryRoot.getSlice(), ctx);
+        }
         
         if(ctx.nativeHashJoins) {
             left = applyQueryHints(new HTreeSolutionSetHashJoinOp(
@@ -2014,7 +2019,6 @@ public class AST2BOpUtility extends AST2BOpRTO {
                 new NV(JVMSolutionSetHashJoinOp.Annotations.NAMED_SET_REF, namedSolutionSet)//
             ), subqueryRoot, ctx);
         }
-
         /*
          * For each filter which requires materialization steps, add the
          * materializations steps to the pipeline and then add the filter to the

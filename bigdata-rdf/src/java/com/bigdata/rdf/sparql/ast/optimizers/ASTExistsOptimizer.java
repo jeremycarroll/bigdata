@@ -45,6 +45,7 @@ import com.bigdata.rdf.sparql.ast.ProjectionNode;
 import com.bigdata.rdf.sparql.ast.QueryBase;
 import com.bigdata.rdf.sparql.ast.QueryRoot;
 import com.bigdata.rdf.sparql.ast.QueryType;
+import com.bigdata.rdf.sparql.ast.SliceNode;
 import com.bigdata.rdf.sparql.ast.StaticAnalysis;
 import com.bigdata.rdf.sparql.ast.SubqueryFunctionNodeBase;
 import com.bigdata.rdf.sparql.ast.SubqueryRoot;
@@ -225,6 +226,10 @@ public class ASTExistsOptimizer implements IASTOptimizer {
 
                     final ProjectionNode projection = new ProjectionNode();
                     subquery.setProjection(projection);
+                    
+                    final SliceNode slice = new SliceNode(0L/* offset */, 1L/* limit */);
+
+                    subquery.setSlice(slice);
 
                     /*
                      * The anonymous variable used to communicate the outcome of
