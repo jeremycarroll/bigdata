@@ -352,6 +352,8 @@ public class QueryServlet extends BigdataRDFServlet {
          * InputStream will be closed and the task will terminate rather than
          * running on in the background with a disconnected client.
          */
+        final long tx = getBigdataRDFContext().newTx(timestamp);
+        boolean ok = false;
         try {
 
             final BigdataRDFContext context = getBigdataRDFContext();
@@ -401,11 +403,21 @@ public class QueryServlet extends BigdataRDFServlet {
             // Wait for the Future.
             ft.get();
 
+            ok = true;
+            
         } catch (Throwable e) {
 
             throw BigdataRDFServlet.launderThrowable(e, resp, updateStr);
 
-        }
+        } finally {
+
+			if (!ok) {
+
+				getBigdataRDFContext().abortTx(tx);
+
+			}
+
+		}
         
     }
 
