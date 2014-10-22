@@ -70,6 +70,7 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -1652,6 +1653,12 @@ public class BigdataSail extends SailBase implements Sail {
 		 * those at a time).
 		 */
         private final boolean unisolated;
+        
+        /**
+         * Critical section support in case rollback is not completed cleanly, in which
+         * case calls to commit() will fail until a clean rollback() is made,
+         */
+        private AtomicBoolean rollbackRequired = new AtomicBoolean(false);
 
         public String toString() {
         	
@@ -3150,25 +3157,32 @@ public class BigdataSail extends SailBase implements Sail {
          */
         @Override
         public synchronized void rollback() throws SailException {
-
-            assertWritableConn();
-
-            if (txLog.isInfoEnabled())
-                txLog.info("SAIL-ROLLBACK-CONN: " + this);
-
-            // discard buffered assertions and/or retractions.
-            clearBuffers();
-
-            // discard the write set.
-            database.abort();
-            
-            if (changeLog != null) {
-                
-                changeLog.transactionAborted();
-                
-            }
-            
-            dirty = false;
+        	
+        	boolean success = false;
+        	try {
+	            assertWritableConn();
+	
+	            if (txLog.isInfoEnabled())
+	                txLog.info("SAIL-ROLLBACK-CONN: " + this);
+	
+	            // discard buffered assertions and/or retractions.
+	            clearBuffers();
+	
+	            // discard the write set.
+	            database.abort();
+	            
+	            if (changeLog != null) {
+	                
+	                changeLog.transactionAborted();
+	                
+	            }
+	            
+	            dirty = false;
+	            
+	            success = true;
+        	} finally {
+        		rollbackRequired.set(!success);
+        	}
             
         }
 
@@ -3197,6 +3211,13 @@ public class BigdataSail extends SailBase implements Sail {
          *         was committed.
          */
         public synchronized long commit2() throws SailException {
+        	
+        	/**
+        	 * If a call to rollback does not complete cleanly, then
+        	 * rollbackRequired will be set and no updates will be allowed
+        	 */
+        	if (rollbackRequired.get())
+        		throw new IllegalStateException("Rollback required");
 
             assertWritableConn();
 
