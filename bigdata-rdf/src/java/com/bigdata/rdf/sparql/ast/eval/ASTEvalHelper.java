@@ -1280,7 +1280,7 @@ public class ASTEvalHelper {
              * is no query string.
              */
             
-            log.info(queryString);
+            log.info("Using namespace: " + ctx.getNamespace() + ":\n" + queryString);
             
         } else {
 

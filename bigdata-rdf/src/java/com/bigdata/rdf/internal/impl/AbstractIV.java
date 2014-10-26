@@ -895,10 +895,14 @@ public abstract class AbstractIV<V extends BigdataValue, T>
 		final V v = cache;
 
 		if (v == null)
-			throw new NotMaterializedException(toString());
+			throwNotMaterializedException();
 
 		return v;
 
+	}
+
+	protected void throwNotMaterializedException() {
+		throw new NotMaterializedException(toString());
 	}
 
 	/**
@@ -910,9 +914,16 @@ public abstract class AbstractIV<V extends BigdataValue, T>
 	 * @return The argument.
 	 */
 	final public V setValue(final V v) {
+		
+		settingValue(v);
 
 		return (this.cache = v);
 		
+	}
+
+	/** hook for subclasses to know when the value is being set. */
+	protected void settingValue(V newValue) {
+		// do nothing
 	}
 
 	/**

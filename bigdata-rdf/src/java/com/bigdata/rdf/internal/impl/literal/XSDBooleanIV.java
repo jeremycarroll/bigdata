@@ -24,10 +24,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.bigdata.rdf.internal.impl.literal;
 
+import java.util.Date;
+
+import java.text.SimpleDateFormat;
+
 import org.openrdf.model.Literal;
 
 import com.bigdata.rdf.internal.DTE;
 import com.bigdata.rdf.internal.IV;
+import com.bigdata.rdf.internal.NotMaterializedException;
 import com.bigdata.rdf.lexicon.LexiconRelation;
 import com.bigdata.rdf.model.BigdataLiteral;
 
@@ -39,6 +44,7 @@ public class XSDBooleanIV<V extends BigdataLiteral> extends
      * 
      */
     private static final long serialVersionUID = 1L;
+    static private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss.SSS");
 
     static public transient final XSDBooleanIV<BigdataLiteral> TRUE = 
     	new XSDBooleanIV<BigdataLiteral>(true);
@@ -65,14 +71,44 @@ public class XSDBooleanIV<V extends BigdataLiteral> extends
         return tmp;
 
     }
+    
+    private transient Exception created;
 
     public XSDBooleanIV(final boolean value) {
         
         super(DTE.XSDBoolean);
         
+        setCreated();
+        
         this.value = value;
         
     }
+
+	private void setCreated() {
+		Exception newValue = new Exception(dateFormat.format(new Date()));
+		
+		if (created != null) {
+			newValue.initCause(created);
+		}
+        newValue.fillInStackTrace();
+        this.created = newValue;
+	}
+
+	protected void settingValue(V newValue) {
+		if (newValue == null) {
+			setCreated();
+		} else {
+		   this.created = null;
+		}
+	}
+
+	protected void throwNotMaterializedException() {
+		NotMaterializedException notMaterializedException = new NotMaterializedException("XSDBooleanIV:" + toString());
+		if (this.created != null) {
+			notMaterializedException.initCause(created);
+		}
+		throw notMaterializedException;
+	}
 
     final public Boolean getInlineValue() {
 
